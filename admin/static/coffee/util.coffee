@@ -53,6 +53,8 @@ ISODateString = (d) ->
         pad(d.getUTCMinutes())+':' +
         pad(d.getUTCSeconds())+'Z'
 
+iso_date_from_unix_time = (unix_time) -> ISODateString new Date(unix_time * 1000)
+
 # Choose a random model from the given collection
 # -----------------------------------------------
 random_model_from = (collection) ->_.shuffle(collection.models)[0]

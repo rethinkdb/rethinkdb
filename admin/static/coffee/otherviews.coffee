@@ -1,29 +1,3 @@
-class StatusPanelView extends Backbone.View
-    # TODO get rid of className?
-    className: 'status-panel'
-    tagName: 'h5'
-    template: Handlebars.compile $('#status_panel_view-template').html()
-
-    initialize: ->
-        log_initial '(initializing status panel view'
-        connection_status.on 'all', => @render()
-        machines.on 'all', => @render()
-
-    render: ->
-        log_render '(rendering) status panel view'
-        cs_json = connection_status.toJSON()
-        connected_machine = machines.get(connection_status.get('contact_machine_id'))
-        if connected_machine?
-            cs_json['contact_machine_name'] = connected_machine.get('name')
-            contact_datacenter = connected_machine.get('datacenter_uuid')
-            if contact_datacenter?
-               cs_json['contact_datacenter_name'] = contact_datacenter.get('name')
-            else
-               cs_json['contact_datacenter_name'] = 'Unassigned'
-                
-        @.$el.html @template(cs_json)
-        return @
-
 # Dashboard: provides an overview and visualizations of the cluster
 class DashboardView extends Backbone.View
     className: 'dashboard-view'
@@ -217,9 +191,86 @@ module 'DatacenterView', ->
 # Sidebar view
 module 'Sidebar', ->
     # Sidebar.Container
+    class @Container extends Backbone.View
+        className: 'sidebar-container'
+        template: Handlebars.compile $('#sidebar-container-template').html()
+        max_recent_events: 5
+        resolve_issues_route: '#resolve_issues'
+
+        initialize: =>
+            log_initial '(initializing) sidebar view: container'
+
+            @client_connectivity_status = new Sidebar.ClientConnectionStatus()
+            @connectivity_status = new Sidebar.ConnectivityStatus()
+            @issues = new Sidebar.Issues()
+
+            @reset_event_views()
+            events.on 'add', (model, collection) =>
+                @reset_event_views()
+                @render()
+
+            # Set up bindings for the router
+            $(window.app_events).on 'on_ready', =>
+                window.app.on 'all', => @render()
+
+        render: (route) =>
+            @.$el.html @template
+                show_resolve_issues: window.location.hash isnt @resolve_issues_route
+
+            # Render connectivity status
+            @.$('.client-connection-status').html @client_connectivity_status.render().el
+            @.$('.connectivity-status').html @connectivity_status.render().el
+
+            # Render issue summary
+            @.$('.issues').html @issues.render().el
+
+            # Render each event view and add it to the list of recent events
+            for view in @event_views
+                @.$('.recent-events').append view.render().el
+
+            return @
+
+        reset_event_views: =>
+            # Wipe out any existing event views
+            @event_views = []
+
+            # Add an event view for the most recent events.
+            for event in events.models[0...@max_recent_events]
+                @event_views.push new Sidebar.Event model: event
+
+    # Sidebar.ClientConnectionStatus
+    class @ClientConnectionStatus extends Backbone.View
+        className: 'client-connection-status'
+        tagName: 'div'
+        template: Handlebars.compile $('#sidebar-client_connection_status-template').html()
+
+        initialize: ->
+            log_initial '(initializing) client connection status view'
+            connection_status.on 'all', => @render()
+            machines.on 'all', => @render()
+
+        render: ->
+            log_render '(rendering) status panel view'
+            connected_machine = machines.get(connection_status.get('contact_machine_id'))
+            json =
+                disconnected: connection_status.get('client_disconnected')
+
+            # If we're connected to a machine, get its machine name
+            if connected_machine?
+                json['machine_name'] = connected_machine.get('name')
+                # If the machine is assigned to a datacenter, include it
+                assigned_datacenter = datacenters.get(connected_machine.get('datacenter_uuid'))
+                console.log 'dc',assigned_datacenter
+                json['datacenter_name'] = if assigned_datacenter? then assigned_datacenter.get('name') else 'Unassigned'
+                    
+            @.$el.html @template json
+
+            return @
+
+    # Sidebar.ConnectivityStatus
     class @ConnectivityStatus extends Backbone.View
-        className: 'sidebar-connectivity-status'
-        template: Handlebars.compile $('#sidebar-connectivity-status-template').html()
+        className: 'connectivity-status'
+        template: Handlebars.compile $('#sidebar-connectivity_status-template').html()
 
         initialize: =>
             # Rerender every time some relevant info changes
@@ -251,53 +302,6 @@ module 'Sidebar', ->
         render: =>
             @.$el.html @template @compute_connectivity()
             return @
-
-    class @Container extends Backbone.View
-        className: 'sidebar-container'
-        template: Handlebars.compile $('#sidebar-container-template').html()
-        max_recent_events: 5
-        resolve_issues_route: '#resolve_issues'
-
-        initialize: =>
-            log_initial '(initializing) sidebar view: container'
-
-            @client_connectivity_status = new StatusPanelView()
-            @connectivity_status = new Sidebar.ConnectivityStatus()
-            @issues = new Sidebar.Issues()
-
-            @reset_event_views()
-            events.on 'add', (model, collection) =>
-                @reset_event_views()
-                @render()
-
-            # Set up bindings for the router
-            $(window.app_events).on 'on_ready', =>
-                window.app.on 'all', => @render()
-
-        render: (route) =>
-            @.$el.html @template
-                show_resolve_issues: window.location.hash isnt @resolve_issues_route
-
-            # Render connectivity status
-            @.$('#client-connectivity-status-placeholder').html @client_connectivity_status.render().el
-            @.$('#sidebar-connectivity-status-placeholder').html @connectivity_status.render().el
-
-            # Render issue summary
-            @.$('.issues').html @issues.render().el
-
-            # Render each event view and add it to the list of recent events
-            for view in @event_views
-                @.$('.recent-events').append view.render().el
-
-            return @
-
-        reset_event_views: =>
-            # Wipe out any existing event views
-            @event_views = []
-
-            # Add an event view for the most recent events.
-            for event in events.models[0...@max_recent_events]
-                @event_views.push new Sidebar.Event model: event
 
     # Sidebar.Issues
     class @Issues extends Backbone.View
@@ -374,6 +378,10 @@ module 'ResolveIssuesView', ->
         templates:
             'MACHINE_DOWN': Handlebars.compile $('#resolve_issues-machine_down-template').html()
             'NAME_CONFLICT_ISSUE': Handlebars.compile $('#resolve_issues-name_conflict-template').html()
+            'PERSISTENCE_ISSUE': Handlebars.compile $('#resolve_issues-persistence-template').html()
+            'VCLOCK_CONFLICT': Handlebars.compile $('#resolve_issues-vclock_conflict-template').html()
+            'PINNINGS_SHARDS_MISMATCH': Handlebars.compile $('#resolve_issues-pinnings_shards_mismatch-template').html()
+
         unknown_issue_template: Handlebars.compile $('#resolve_issues-unknown-template').html()
 
         initialize: ->
@@ -409,7 +417,7 @@ module 'ResolveIssuesView', ->
                         name: machine.get('name')
                         masters: masters
                         replicas: replicas
-                        datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
+                        datetime: ISODateString new Date # faked TODO -- the time field should be ISO 8601
 
                 when 'NAME_CONFLICT_ISSUE'
                    json =
@@ -419,8 +427,16 @@ module 'ResolveIssuesView', ->
                         contestants: _.map(@model.get('contestants'), (uuid) ->
                             uuid: uuid
                         )
+                        datetime: iso_date_from_unix_time @model.get('time')
+                when 'PERSISTENCE_ISSUE'
+                    json =
                         datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
-                       
+                when 'VCLOCK_CONFLICT'
+                    json =
+                        datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
+                when 'PINNINGS_SHARDS_MISMATCH'
+                    json =
+                        datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
                 else
                     _template = @unknown_issue_template
                     json =

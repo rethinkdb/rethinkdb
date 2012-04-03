@@ -102,6 +102,11 @@
         font-weight: bold;
         line-height: 2em;
 
+        &.connection { color: @blue; }
+        &.connected-to {
+            margin-left: 10px;
+            line-height: 1.6em;
+        }
         &.cluster { color: darken(@green, 30%); }
         &.critical { color: @red; }
         &.other { color: darken(@purple, 20%); }

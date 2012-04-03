@@ -83,19 +83,6 @@
             {{/each}}
         </script>
 
-        <script id="status_panel_view-template" type="text/x-handlebars-template">
-            {{#if client_disconnected}}
-                <a class="disconnected" href="#">Disconnected</a>
-            {{else}}
-                <a class="connected" href="#">Connected to:</a><br />
-                <p style="margin-left: 10px">
-                  <span>{{contact_machine_name}}</span>
-                  <span>in</span>
-                  <span>{{contact_datacenter_name}}</span>
-                </p>
-            {{/if}}
-        </script>
-
         <!-- Cluster view -->
         <script id="namespaces_container-template" type="text/x-handlebars-template">
             <h1>Namespaces overview</h1>
@@ -652,16 +639,10 @@
         </script>
 
         <!-- Sidebar -->
-        <script id="sidebar-connectivity-status-template" type="text/x-handlebars-template">
-          <h5 class="cluster">Cluster status</h5>
-          <div class="connectivity-info">
-            <p class="metrics"><strong>{{machines_active}}</strong> of <strong>{{machines_total}}</strong> machines reachable.</p>
-            <p class="metrics"><strong>{{datacenters_active}}</strong> of <strong>{{datacenters_total}}</strong> data centers reachable.</p>
-          </div>
-        </script>
         <script id="sidebar-container-template" type="text/x-handlebars-template">
             <div class="section cluster-status">
-                <div id="client-connectivity-status-placeholder"></div>
+                <div class="client-connection-status"></div>
+                <hr />
                 <div class="issues"></div>
                 {{#if show_resolve_issues}}
                 <div class="resolve-issues">
@@ -670,7 +651,7 @@
                 {{/if}}
                 <hr />
                 <!-- Connectivity status goes here -->
-                <div id="sidebar-connectivity-status-placeholder">
+                <div class="connectivity-status">
                 </div>
             </div>
             <div class="section last">
@@ -678,6 +659,14 @@
                 <div class="recent-events"></div>
                 <p><a href="#events">See all recent events &rarr;</a></p>
             </div>
+        </script>
+        <script id="sidebar-client_connection_status-template" type="text/x-handlebars-template">
+            {{#if disconnected}}
+                <h5 class="connection disconnected">Disconnected</h5>
+            {{else}}
+                <h5 class="connection connected">Connected to:</h5>
+                <h5 class="connected-to">{{machine_name}} in {{datacenter_name}}</h5>
+            {{/if}}
         </script>
         <script id="sidebar-issues-template" type="text/x-handlebars-template">
             {{#if critical_issues.exist}}
@@ -705,6 +694,13 @@
             {{#if no_issues}}
                 <h5 class="no-issues">No issues reported</h5>
             {{/if}}
+        </script>
+        <script id="sidebar-connectivity_status-template" type="text/x-handlebars-template">
+          <h5 class="cluster">Cluster status</h5>
+          <div class="connectivity-info">
+            <p class="metrics"><strong>{{machines_active}}</strong> of <strong>{{machines_total}}</strong> machines reachable.</p>
+            <p class="metrics"><strong>{{datacenters_active}}</strong> of <strong>{{datacenters_total}}</strong> data centers reachable.</p>
+          </div>
         </script>
         <script id="sidebar-event-template" type="text/x-handlebars-template">
             <div class="priority {{priority}}"></div>
@@ -750,12 +746,55 @@
                 <h4>{{capitalize type}}{{pluralize_noun num_contestants}} with the name {{name}}:</h4>
                 <ul>
                 {{#each contestants}}
-                    <li><a href="#namespaces/{{uuid}}">{{uuid}}</a></li>
+                <li><a href="#{{type}}{{pluralize_noun}}/{{uuid}}">{{uuid}}</a></li>
                 {{/each}}
                 </ul>
             </div>
         </script>
-
+        <script id="resolve_issues-persistence-template" type="text/x-handlebars-template">
+            <div class="issue {{#if critical }}critical{{/if}}">
+                <div class="header">
+                    <h3 class="title">Persistence has been lost.</h3>
+                    {{#if datetime}}
+                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+                    {{/if}}
+                </div>
+                <hr />
+            </div>
+        </script>
+        <script id="resolve_issues-persistence-template" type="text/x-handlebars-template">
+            <div class="issue {{#if critical }}critical{{/if}}">
+                <div class="header">
+                    <h3 class="title">Persistence has been lost.</h3>
+                    {{#if datetime}}
+                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+                    {{/if}}
+                </div>
+                <hr />
+            </div>
+        </script>
+        <script id="resolve_issues-vclock_conflict-template" type="text/x-handlebars-template">
+            <div class="issue {{#if critical }}critical{{/if}}">
+                <div class="header">
+                    <h3 class="title">Metadata problem (vclock).</h3>
+                    {{#if datetime}}
+                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+                    {{/if}}
+                </div>
+                <hr />
+            </div>
+        </script>
+        <script id="resolve_issues-pinnings_shards_mismatch-template" type="text/x-handlebars-template">
+            <div class="issue {{#if critical }}critical{{/if}}">
+                <div class="header">
+                    <h3 class="title">Pinnings mismatch for a shard.</h3>
+                    {{#if datetime}}
+                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+                    {{/if}}
+                </div>
+                <hr />
+            </div>
+        </script>
         <script id="resolve_issues-unknown-template" type="text/x-handlebars-template">
             <div class="issue {{#if critical }}critical{{/if}}">
                 <div class="header">
