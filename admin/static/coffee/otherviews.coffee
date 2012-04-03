@@ -195,7 +195,6 @@ module 'Sidebar', ->
         className: 'sidebar-container'
         template: Handlebars.compile $('#sidebar-container-template').html()
         max_recent_events: 5
-        resolve_issues_route: '#resolve_issues'
 
         initialize: =>
             log_initial '(initializing) sidebar view: container'
@@ -214,8 +213,7 @@ module 'Sidebar', ->
                 window.app.on 'all', => @render()
 
         render: (route) =>
-            @.$el.html @template
-                show_resolve_issues: window.location.hash isnt @resolve_issues_route
+            @.$el.html @template({})
 
             # Render connectivity status
             @.$('.client-connection-status').html @client_connectivity_status.render().el
@@ -260,7 +258,6 @@ module 'Sidebar', ->
                 json['machine_name'] = connected_machine.get('name')
                 # If the machine is assigned to a datacenter, include it
                 assigned_datacenter = datacenters.get(connected_machine.get('datacenter_uuid'))
-                console.log 'dc',assigned_datacenter
                 json['datacenter_name'] = if assigned_datacenter? then assigned_datacenter.get('name') else 'Unassigned'
                     
             @.$el.html @template json
@@ -307,6 +304,7 @@ module 'Sidebar', ->
     class @Issues extends Backbone.View
         className: 'issues'
         template: Handlebars.compile $('#sidebar-issues-template').html()
+        resolve_issues_route: '#resolve_issues'
 
         initialize: =>
             log_initial '(initializing) sidebar view: issues'
@@ -333,6 +331,7 @@ module 'Sidebar', ->
                     exist: other_issues.length > 0
                     num: other_issues.length
                 no_issues: _.keys(critical_issues).length is 0 and other_issues.length is 0 
+                show_resolve_issues: window.location.hash isnt @resolve_issues_route
             return @
 
     # Sidebar.Event
@@ -360,7 +359,8 @@ module 'ResolveIssuesView', ->
             issues.on 'all', (model, collection) => @render()
 
         render: ->
-            @.$el.html @template({})
+            @.$el.html @template
+                issues_exist: if issues.length > 0 then true else false
 
             issue_views = []
             issues.each (issue) ->
@@ -401,7 +401,6 @@ module 'ResolveIssuesView', ->
                         for machine_uuid, role_summary of namespace.get('blueprint').peers_roles
                             if machine_uuid is machine.get('id')
                                 for shard, role of role_summary
-                                    console.log role
                                     if role is 'role_primary'
                                         masters.push
                                             name: namespace.get('name')

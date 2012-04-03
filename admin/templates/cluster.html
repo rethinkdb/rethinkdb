@@ -644,11 +644,6 @@
                 <div class="client-connection-status"></div>
                 <hr />
                 <div class="issues"></div>
-                {{#if show_resolve_issues}}
-                <div class="resolve-issues">
-                    <p><a href="#resolve_issues">Resolve issues</a></p>
-                </div>
-                {{/if}}
                 <hr />
                 <!-- Connectivity status goes here -->
                 <div class="connectivity-status">
@@ -693,6 +688,10 @@
             {{/if}}
             {{#if no_issues}}
                 <h5 class="no-issues">No issues reported</h5>
+            {{else}}
+                {{#if show_resolve_issues}}
+                    <p class="resolve-issues"><a href="#resolve_issues">Resolve issues</a></p>
+                {{/if}}
             {{/if}}
         </script>
         <script id="sidebar-connectivity_status-template" type="text/x-handlebars-template">
@@ -711,8 +710,12 @@
         <!-- Resolve issues view -->
         <script id="resolve_issues-container-template" type="text/x-handlebars-template">
             <h1>Resolve issues</h1>
-            <div class="issues"></div>
-            <a class="btn large danger">Resolve these issues</a>
+            {{#if issues_exist}}
+                <div class="issues"></div>
+                <a class="btn large danger">Resolve these issues</a>
+            {{else}}
+                <p class="no-issues">No issues reported in the cluster.</p>
+            {{/if}}
         </script>
         <script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
             <div class="issue {{#if critical }}critical{{/if}}">
