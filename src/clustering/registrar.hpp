@@ -35,6 +35,16 @@ private:
         constructed. */
         mutex_t::acq_t mutex_acq(&mutex);
 
+        /* If the registrant has already deregistered but the deregistration
+        message arrived ahead of the registration message, it will have left a
+        NULL in the `registrations` map. */
+        typename std::map<registration_id_t, cond_t *>::iterator it = registrations.find(rid);
+        if (it != registrations.end()) {
+            rassert(it->second == NULL);
+            registrations.erase(it);
+            return;
+        }
+
         /* Construct a `registrant_t` to tell the controller that something has
         now registered. */
         registrant_t registrant(controller, business_card);
@@ -92,6 +102,13 @@ private:
             cond_t *deleter = (*it).second;
             rassert(!deleter->is_pulsed());
             deleter->pulse();
+        } else {
+            /* We got here because the registrant was deleted right after being
+            created and the deregistration message arrived before the
+            registration message. Insert a NULL into the map so that
+            `on_create()` realizes it. */
+            std::pair<registration_id_t, cond_t *> value(rid, NULL);
+            registrations.insert(value);
         }
     }
 
