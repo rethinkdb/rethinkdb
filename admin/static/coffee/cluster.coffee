@@ -118,6 +118,7 @@ class Directory extends Backbone.Collection
 class NavBarView extends Backbone.View
     className: 'navbar-view'
     template: Handlebars.compile $('#navbar_view-template').html()
+    first_render: true
 
     initialize: ->
         log_initial '(initializing) NavBarView'
@@ -125,6 +126,26 @@ class NavBarView extends Backbone.View
         $(window.app_events).on "on_ready", =>
             # Render every time the route changes
             window.app.on "all", @render
+    
+    init_typeahead: ->
+        $('input.search-query').typeahead
+            source: (typeahead, query) ->
+                _machines = _.map machines.models, (machine) ->
+                    uuid: machine.get('id')
+                    name: machine.get('name') + ' (machine)'
+                    type: 'machines'
+                _datacenters = _.map datacenters.models, (datacenter) ->
+                    uuid: datacenter.get('id')
+                    name: datacenter.get('name') + ' (datacenter)'
+                    type: 'datacenters'
+                _namespaces = _.map namespaces.models, (namespace) ->
+                    uuid: namespace.get('id')
+                    name: namespace.get('name') + ' (namespace)'
+                    type: 'namespaces'
+                return _machines.concat(_datacenters).concat(_namespaces)
+            property: 'name'
+            onselect: (obj) ->
+                window.app.navigate('#' + obj.type + '/' + obj.uuid , { trigger: true })
 
     render: (route) =>
         log_render '(rendering) NavBarView'
@@ -140,6 +161,11 @@ class NavBarView extends Backbone.View
                 $('ul.nav li#nav-datacenters').addClass('active')
             else if route is 'route:index_machines'
                 $('ul.nav li#nav-machines').addClass('active')
+        
+        if @first_render?
+            # Initialize typeahead
+            @init_typeahead()
+            @first_render = false
         
         return @
 
