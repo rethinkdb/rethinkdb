@@ -2,10 +2,12 @@
 import sys, os, subprocess, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import http_admin
+from workload_runner import create_workload
 from vcoptparse import *
 
 op = OptParser()
 op["workload"] = PositionalArg()
+op["protocol"] = StringFlag("--protocol", "memcached")
 op["num-nodes"] = IntFlag("--num-nodes", 3)
 opts = op.parse(sys.argv)
 
@@ -24,20 +26,29 @@ datacenter = cluster.add_datacenter(name = "Test Datacenter")
 for machine in cluster.machines:
     cluster.move_server_to_datacenter(machine, datacenter)
 
-namespace = cluster.add_namespace(name = "Test Namespace", primary = datacenter)
+namespace = cluster.add_namespace(protocol = opts["protocol"], name = "Test Namespace", primary = datacenter)
+host, port = cluster.get_namespace_host(namespace)
 
-port = cluster.compute_port(namespace, next(cluster.machines.iterkeys()))
+time.sleep(3)
 
-time.sleep(5)
+command_line = opts["workload"].replace("$HOST", host).replace("$PORT", str(port))
+# Assume that there is at most 2 phases to the workload
+workload = create_workload(command_line)
 
-command_line = opts["workload"].replace("$HOST", "localhost").replace("$PORT", str(port))
-print "Running", repr(command_line)+"..."
-start_time = time.time()
+import signal
+import pdb
+
+def sighandler(sig):
+	print "blah"
+	pdb.set_trace()
+
+signal.signal(signal.SIGUSR1, sighandler)
+
 try:
-    subprocess.check_call(command_line, shell = True)
-except subprocess.CalledProcessError:
-    end_time = time.time()
-    print "Failed (%d seconds)" % (end_time - start_time)
-else:
-    end_time = time.time()
-    print "Done (%d seconds)" % (end_time - start_time)
+	workload.run(0)
+	# Nothing to do for this scenario
+	workload.finish()
+	sys.exit(0)
+except RuntimeError:
+	sys.exit(1)
+

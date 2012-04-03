@@ -7,6 +7,9 @@ op["num_keys"] = IntFlag("--num-keys", 5000)
 op["sequential"] = BoolFlag("--sequential")
 opts = op.parse(sys.argv)
 
+if opts["phase-count"]:
+	sys.exit(0)
+
 with workload_common.make_memcache_connection(opts) as mc:
     
     print "Inserting"

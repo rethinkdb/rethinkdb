@@ -42,6 +42,9 @@ op = workload_common.option_parser_for_socket()
 op["duration"] = IntFlag("--duration", 1000)
 opts = op.parse(sys.argv)
 
+if opts["phase-count"]:
+	sys.exit(0)
+
 with workload_common.make_socket_connection(opts) as s:
     sent_log = open('fuzz_sent', 'w')
     recv_log = open('fuzz_recv', 'w')

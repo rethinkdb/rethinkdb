@@ -115,10 +115,10 @@ class Datacenter(object):
 		self.name = json_data["name"]
 
 	def check(self, data):
-		return data == self.to_json()
+		return data[u"name"] == self.name
 
 	def to_json(self):
-		return { unicode("name"): self.name }
+		return { u"name": self.name }
 
 	def __str__(self):
 		return "Datacenter(name:%s)" % (self.name)
@@ -128,7 +128,7 @@ class Blueprint(object):
 		self.peers_roles = json_data["peers_roles"]
 
 	def to_json(self):
-		return { unicode("peers_roles"): self.peers_roles }
+		return { u"peers_roles": self.peers_roles }
 
 	def __str__(self):
 		return "Blueprint()"
@@ -144,10 +144,10 @@ class Namespace(object):
 		self.port = json_data["port"]
 
 	def check(self, data):
-		return data == self.to_json()
+		return data[u"name"] == self.name and data[u"primary_uuid"] == self.primary_uuid and data[u"replica_affinities"] == self.replica_affinities and data[u"shards"] == self.shards and data[u"port"] == self.port
 
 	def to_json(self):
-		return { unicode("blueprint"): self.blueprint.to_json(), unicode("name"): self.name, unicode("primary_uuid"): self.primary_uuid, unicode("replica_affinities"): self.replica_affinities, unicode("shards"): self.shards, unicode("port"): self.port }
+		return { u"blueprint": self.blueprint.to_json(), u"name": self.name, u"primary_uuid": self.primary_uuid, u"replica_affinities": self.replica_affinities, u"shards": self.shards, u"port": self.port }
 
 	def __str__(self):
 		affinities = ""
@@ -187,10 +187,10 @@ class Server(object):
 		# Do not check DummyServer objects
 		if isinstance(self, DummyServer):
 			return True
-		return data == self.to_json()
+		return data[u"datacenter_uuid"] == self.datacenter_uuid and data[u"name"] == self.name and data[u"port_offset"] == self.port_offset
 
 	def to_json(self):
-		return { unicode("datacenter_uuid"): self.datacenter_uuid, unicode("name"): self.name, unicode("port_offset"): self.port_offset }
+		return { u"datacenter_uuid": self.datacenter_uuid, u"name": self.name, u"port_offset": self.port_offset }
 
 	def do_query(self, method, route, payload = None):
 		conn = HTTPConnection(self.host, self.http_port)
@@ -252,6 +252,7 @@ class InternalServer(Server):
 		sleep(0.2)
 		Server.__init__(self, socket.gethostname(), serv_port)
 		self.running = True
+		self.closed = False
 
 	def kill(self):
 		assert self.running
@@ -269,10 +270,17 @@ class InternalServer(Server):
 		self.instance = subprocess.Popen(serve_args, 0, None, None, subprocess.PIPE)
 		self.running = True
 
-	def __del__(self):
-		self.instance.send_signal(SIGINT)
-		self.instance.wait()
+	def shutdown(self):
+		assert not self.closed
+		if self.running:
+			self.instance.send_signal(SIGINT)
+			self.instance.wait()
 		rmtree(self.db_dir)
+		self.closed = True
+
+	def __del__(self):
+		if not self.closed:
+			self.shutdown()
 
 	def __str__(self):
 		return "Internal" + Server.__str__(self) + ", args:" + str(self.args_without_join)
@@ -475,7 +483,7 @@ class Cluster(object):
 		assert type_namespaces[type(namespace)][namespace.uuid] is namespace
 		if selector is None:
 			# Take any machine
-			machine = random.choice(list(self.machines))
+			machine = random.choice(self.machines.values())
 		elif isinstance(selector, Datacenter):
 			# Take any machine from the specified datacenter
 			machine = self.get_machine_in_datacenter(selector)
@@ -616,11 +624,20 @@ class InternalCluster(Cluster):
 				affinity_offset += 1
 			assert affinity_offset == len(affinities[1])
 
-	def __del__(self):
+		self.closed = False
+
+	def shutdown(self):
+		assert not self.closed
 		# Clean up any remaining blocked paths
 		for m in self.machines:
 			for dest_port in self.blocked_ports:
 				unblock_path(m.local_cluster_port, dest_port)
+			m.shutdown()
+		self.closed = True
+
+	def __del__(self):
+		if not self.closed:
+			self.shutdown()
 
 	def _initialize_namespace(self, namespace, datacenter_list, affinity):
 		primary, aff_data = affinity

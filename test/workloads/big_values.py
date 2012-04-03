@@ -65,6 +65,9 @@ def test_sizes(x, y, s):
 op = workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 
+if opts["phase-count"]:
+	sys.exit(0)
+
 with workload_common.make_socket_connection(opts) as s:
 
     # 250 - the maximum small value

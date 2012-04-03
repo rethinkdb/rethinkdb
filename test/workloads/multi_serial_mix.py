@@ -15,6 +15,9 @@ op = serial_mix.option_parser_for_serial_mix()
 op["num_testers"] = IntFlag("--num-testers", 16)
 opts = op.parse(sys.argv)
 
+if opts["phase-count"]:
+	sys.exit(0)
+
 shutdown_grace_period = 15
 
 tester_log_dir = "multi_serial_mix_out"

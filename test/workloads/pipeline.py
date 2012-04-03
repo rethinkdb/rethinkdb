@@ -20,6 +20,9 @@ op["num_ints"] = IntFlag("--num-ints", 1000)
 op["num_chunks"] = IntFlag("--num-chunks", 50)
 opts = op.parse(sys.argv)
 
+if opts["phase-count"]:
+	sys.exit(0)
+
 with workload_common.make_socket_connection(opts) as s:
 
     ints = range(opts["num_ints"])
