@@ -16,6 +16,7 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
+#include "containers/intrusive_list.hpp"
 #include "perfmon_types.hpp"
 #include "arch/io/event_watcher.hpp"
 #include "containers/intrusive_list.hpp"
@@ -187,6 +188,7 @@ private:
     write_queue_op_t * get_write_queue_op();
     void release_write_buffer(write_buffer_t *buffer);
     void release_write_queue_op(write_queue_op_t *op);
+
 
     /* Schedules old write buffer's contents to be flushed and swaps in a fresh write buffer.
     Blocks until it can acquire the `write_queue_limiter` semaphore, but doesn't wait for

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import shelve, threading, subprocess, os, sys, atexit, time, traceback, cStringIO, signal
+import shelve, threading, subprocess32, os, sys, atexit, time, traceback, cStringIO, signal
 import cgi_as_wsgi, send_gmail
 import flask
 
@@ -81,7 +81,7 @@ running_tasks = {}
 # `running_tasks` has an entry for every task that is currently running. Each
 # entry is a dictionary with the following keys:
 #
-# `proc`: The `subprocess.Popen` object associated with the task.
+# `proc`: The `subprocess32.Popen` object associated with the task.
 
 def run_test(test_id, command):
     try:
@@ -90,7 +90,7 @@ def run_test(test_id, command):
         with database_lock:
             database["%d.result" % test_id] = { "status": "running" }
         with file(os.path.join(test_dir, "output.txt"), "w") as output_file:
-            proc = subprocess.Popen(command, shell = True, stdout = output_file, stderr = output_file, cwd = box_dir, preexec_fn = os.setsid)
+            proc = subprocess32.Popen(command, shell = True, stdout = output_file, stderr = output_file, cwd = box_dir, preexec_fn = os.setsid)
             running_tasks[test_id]["proc"] = proc
             rc = proc.wait()
         with database_lock:
@@ -131,13 +131,13 @@ def spawn():
             try:
                 tar_cmd = ["tar", "--extract", "-z", "-C", box_dir]
                 if hasattr(tarball_file, "fileno"):
-                    subprocess.check_output(tar_cmd + ["--file=-"], stdin = tarball_file, stderr = subprocess.STDOUT)
+                    subprocess32.check_output(tar_cmd + ["--file=-"], stdin = tarball_file, stderr = subprocess32.STDOUT)
                 else:
                     tarball_path = os.path.join(test_dir, "tarball-temp.tar")
                     tarball_file.save(tarball_path)
-                    subprocess.check_output(tar_cmd + ["--file", tarball_path], stderr = subprocess.STDOUT)
+                    subprocess32.check_output(tar_cmd + ["--file", tarball_path], stderr = subprocess32.STDOUT)
                     os.remove(tarball_path)
-            except subprocess.CalledProcessError, e:
+            except subprocess32.CalledProcessError, e:
                 raise ValueError("Bad tarball: " + e.output)
             if not os.access(os.path.join(box_dir, "renderer"), os.X_OK):
                 raise ValueError("renderer is missing or not executable")

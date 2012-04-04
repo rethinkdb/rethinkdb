@@ -10,13 +10,19 @@
 #include <boost/function.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/ptr_container/ptr_list.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/uuid_serialize.hpp>
 
 #include "http/json.hpp"
+#include "http/json/json_adapter.hpp"
 
+/* A note about json adapter exceptions: When an operation throws an exception
+ * there is no guaruntee that the target object has been left in tact.
+ * Generally this is okay because we first apply changes and then join them in
+ * to semilattice metadata. Generally once a particular object has thrown one
+ * of these exceptions it should probably not be used anymore. */
 struct json_adapter_exc_t : public std::exception { 
     virtual const char *what() const throw () {
         return "Generic json adapter exception\n";
@@ -108,6 +114,7 @@ private:
     virtual cJSON *render_impl(const ctx_t &) = 0;
     virtual void apply_impl(cJSON *, const ctx_t &) = 0;
     virtual void erase_impl(const ctx_t &) = 0;
+    virtual void reset_impl(const ctx_t &) = 0;
     /* follows the creation paradigm, ie the caller is responsible for the
      * object this points to */
     virtual boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback() = 0;
@@ -119,6 +126,7 @@ public:
     cJSON *render(const ctx_t &);
     void apply(cJSON *, const ctx_t &);
     void erase(const ctx_t &);
+    void reset(const ctx_t &);
     virtual ~json_adapter_if_t() { }
 };
 
@@ -137,6 +145,7 @@ private:
     cJSON *render_impl(const ctx_t &);
     virtual void apply_impl(cJSON *, const ctx_t &);
     virtual void erase_impl(const ctx_t &);
+    virtual void reset_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 };
 
@@ -149,6 +158,7 @@ public:
 private:
     void apply_impl(cJSON *, const ctx_t &);
     void erase_impl(const ctx_t &);
+    void reset_impl(const ctx_t &);
 };
 
 /* A json temporary adapter is like a read only adapter but it stores a copy of
@@ -161,6 +171,26 @@ private:
     T t;
 public:
     explicit json_temporary_adapter_t(const T &);
+};
+
+/* A json_combiner_adapter_t is useful for glueing different adapters together.
+ * */
+template <class ctx_t>
+class json_combiner_adapter_t : public json_adapter_if_t<ctx_t> {
+private:
+    typedef typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_map_t;
+public:
+    json_combiner_adapter_t();
+    void add_adapter(std::string key, boost::shared_ptr<json_adapter_if_t<ctx_t> > adapter);
+private:
+    cJSON *render_impl(const ctx_t &);
+    void apply_impl(cJSON *, const ctx_t &);
+    void erase_impl(const ctx_t &);
+    void reset_impl(const ctx_t &);
+    json_adapter_map_t get_subfields_impl(const ctx_t &);
+    boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
+
+    json_adapter_map_t sub_adapters; 
 };
 
 /* This adapter is a little bit different from the other ones, it's meant to
@@ -198,6 +228,7 @@ private:
     cJSON *render_impl(const ctx_t &);
     void apply_impl(cJSON *, const ctx_t &);
     void erase_impl(const ctx_t &);
+    void reset_impl(const ctx_t &);
     json_adapter_map_t get_subfields_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 };
@@ -227,6 +258,7 @@ private:
     cJSON *render_impl(const ctx_t &);
     void apply_impl(cJSON *, const ctx_t &);
     void erase_impl(const ctx_t &);
+    void reset_impl(const ctx_t &);
     void on_change(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 };
@@ -241,6 +273,19 @@ void erase_json(T *, const ctx_t &) {
             "implement a working erase method for it.");
 #else
     throw permission_denied_exc_t("Can't erase this object.");
+#endif
+}
+
+/* Erase is a fairly rare function for an adapter to allow so we implement a
+ * generic version of it. */
+template <class T, class ctx_t>
+void reset_json(T *, const ctx_t &) { 
+#ifndef NDEBUG
+    throw permission_denied_exc_t("Can't reset this object.. by default"
+            "json_adapters disallow deletion. if you'd like to be able to please"
+            "implement a working reset method for it.");
+#else
+    throw permission_denied_exc_t("Can't reset this object.");
 #endif
 }
 
@@ -262,6 +307,19 @@ void apply_json_to(cJSON *, int *, const ctx_t &);
 template <class ctx_t>
 void on_subfield_change(int *, const ctx_t &);
 
+//JSON adapter for uint64_t
+template <class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(uint64_t *, const ctx_t &);
+
+template <class ctx_t>
+cJSON *render_as_json(uint64_t *, const ctx_t &);
+
+template <class ctx_t>
+void apply_json_to(cJSON *, uint64_t *, const ctx_t &);
+
+template <class ctx_t>
+void on_subfield_change(uint64_t *, const ctx_t &);
+
 //JSON adapter for char
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(char *, const ctx_t &);
@@ -274,6 +332,19 @@ void apply_json_to(cJSON *, char *, const ctx_t &);
 
 template <class ctx_t>
 void on_subfield_change(char *, const ctx_t &);
+
+//JSON adapter for bool
+template <class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(bool *, const ctx_t &);
+
+template <class ctx_t>
+cJSON *render_as_json(bool *, const ctx_t &);
+
+template <class ctx_t>
+void apply_json_to(cJSON *, bool *, const ctx_t &);
+
+template <class ctx_t>
+void on_subfield_change(bool *, const ctx_t &);
 
 namespace boost {
 

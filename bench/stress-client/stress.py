@@ -24,16 +24,16 @@ def declare_fun(fname, ret, *args):
 declare_struct("protocol_t")
 declare_fun("protocol_create", POINTER(libstress_protocol_t), ctypes.c_char_p)
 declare_fun("protocol_destroy", None, POINTER(libstress_protocol_t))
-declare_struct("op_t")
-declare_fun("op_destroy", None, POINTER(libstress_op_t))
-declare_fun("op_lock", None, POINTER(libstress_op_t))
-declare_fun("op_poll", None, POINTER(libstress_op_t), POINTER(ctypes.c_int), POINTER(ctypes.c_float), POINTER(ctypes.c_int), POINTER(ctypes.c_float))
-declare_fun("op_reset", None, POINTER(libstress_op_t))
-declare_fun("op_unlock", None, POINTER(libstress_op_t))
+declare_struct("op_generator_t")
+declare_fun("op_generator_destroy", None, POINTER(libstress_op_generator_t))
+declare_fun("op_generator_lock", None, POINTER(libstress_op_generator_t))
+declare_fun("op_generator_poll", None, POINTER(libstress_op_generator_t), POINTER(ctypes.c_int), POINTER(ctypes.c_float), POINTER(ctypes.c_int), POINTER(ctypes.c_float))
+declare_fun("op_generator_reset", None, POINTER(libstress_op_generator_t))
+declare_fun("op_generator_unlock", None, POINTER(libstress_op_generator_t))
 declare_struct("client_t")
 declare_fun("client_create", POINTER(libstress_client_t))
 declare_fun("client_destroy", None, POINTER(libstress_client_t))
-declare_fun("client_add_op", None, POINTER(libstress_client_t), ctypes.c_int, POINTER(libstress_op_t))
+declare_fun("client_add_op", None, POINTER(libstress_client_t), ctypes.c_int, POINTER(libstress_op_generator_t))
 declare_fun("client_start", None, POINTER(libstress_client_t))
 declare_fun("client_stop", None, POINTER(libstress_client_t))
 declare_struct("seed_key_generator_t")
@@ -47,13 +47,13 @@ declare_struct("value_tracker_t")
 declare_fun("value_tracker_as_existence_tracker", POINTER(libstress_existence_tracker_t), POINTER(libstress_value_tracker_t))
 declare_struct("seed_chooser_t")
 declare_fun("seed_chooser_destroy", None, POINTER(libstress_seed_chooser_t))
-declare_fun("op_create_read", POINTER(libstress_op_t), POINTER(libstress_seed_key_generator_t), POINTER(libstress_seed_chooser_t), POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int)
-declare_fun("op_create_insert", POINTER(libstress_op_t), POINTER(libstress_seed_key_generator_t), POINTER(libstress_seed_chooser_t), POINTER(libstress_value_watcher_t), POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int)
-declare_fun("op_create_update", POINTER(libstress_op_t), POINTER(libstress_seed_key_generator_t), POINTER(libstress_seed_chooser_t), POINTER(libstress_value_watcher_t), POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int)
-declare_fun("op_create_delete", POINTER(libstress_op_t), POINTER(libstress_seed_key_generator_t), POINTER(libstress_seed_chooser_t), POINTER(libstress_value_watcher_t), POINTER(libstress_protocol_t))
-declare_fun("op_create_append_prepend", POINTER(libstress_op_t), POINTER(libstress_seed_key_generator_t), POINTER(libstress_seed_chooser_t), POINTER(libstress_value_watcher_t), POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int, ctypes.c_int)
-declare_fun("op_create_percentage_range_read", POINTER(libstress_op_t), POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_char_p)
-declare_fun("op_create_calibrated_range_read", POINTER(libstress_op_t), POINTER(libstress_existence_tracker_t), POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_char_p)
+declare_fun("op_generator_create_read", POINTER(libstress_op_generator_t), ctypes.c_int, POINTER(libstress_seed_key_generator_t), POINTER(libstress_seed_chooser_t), POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int)
+declare_fun("op_generator_create_insert", POINTER(libstress_op_generator_t), ctypes.c_int, POINTER(libstress_seed_key_generator_t), POINTER(libstress_seed_chooser_t), POINTER(libstress_value_watcher_t), POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int)
+declare_fun("op_generator_create_update", POINTER(libstress_op_generator_t), ctypes.c_int, POINTER(libstress_seed_key_generator_t), POINTER(libstress_seed_chooser_t), POINTER(libstress_value_watcher_t), POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int)
+declare_fun("op_generator_create_delete", POINTER(libstress_op_generator_t), ctypes.c_int, POINTER(libstress_seed_key_generator_t), POINTER(libstress_seed_chooser_t), POINTER(libstress_value_watcher_t), POINTER(libstress_protocol_t))
+declare_fun("op_generator_create_append_prepend", POINTER(libstress_op_generator_t), ctypes.c_int, POINTER(libstress_seed_key_generator_t), POINTER(libstress_seed_chooser_t), POINTER(libstress_value_watcher_t), POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int, ctypes.c_int)
+declare_fun("op_generator_create_percentage_range_read", POINTER(libstress_op_generator_t), ctypes.c_int, POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_char_p)
+declare_fun("op_generator_create_calibrated_range_read", POINTER(libstress_op_generator_t), ctypes.c_int, POINTER(libstress_existence_tracker_t), POINTER(libstress_protocol_t), ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_char_p)
 declare_struct("consecutive_seed_model_t")
 declare_fun("consecutive_seed_model_create", POINTER(libstress_consecutive_seed_model_t))
 declare_fun("consecutive_seed_model_destroy", None, POINTER(libstress_consecutive_seed_model_t))
@@ -102,20 +102,20 @@ class Connection(object):
         if hasattr(self, "_connection"):
             libstress_protocol_destroy(self._connection)
 
-# Op corresponds to op_t in the C++ stress client.
+# OpGenerator corresponds to op_generator_t in the C++ stress client.
 
-class Op(object):
-    """Base class for all benchmarkable operations. If you have an Op object
-    called "op", you can extract stats from it as follows:
-    >>> op.lock()
-    >>> stats = op.poll()
-    >>> op.reset()   # Optional; resets the stat counters back to zero
-    >>> op.unlock()
+class OpGenerator(object):
+    """Base class for all benchmarkable operations. If you have an OpGenerator
+    object called "opg", you can extract stats from it as follows:
+    >>> opg.lock()
+    >>> stats = opg.poll()
+    >>> opg.reset()   # Optional; resets the stat counters back to zero
+    >>> opg.unlock()
     """
 
-    def __init__(self, _op):
-        assert isinstance(_op, POINTER(libstress_op_t))
-        self._op = _op
+    def __init__(self, _opg):
+        assert isinstance(_opg, POINTER(libstress_op_generator_t))
+        self._opg = _opg
         self.client = None
         self.locked = False
 
@@ -126,7 +126,7 @@ class Op(object):
     def lock(self):
         assert not self.locked
         self.locked = True
-        libstress_op_lock(self._op)
+        libstress_op_generator_lock(self._opg)
 
     def poll(self):
         """Returns a dictionary containing three keys:
@@ -146,7 +146,7 @@ class Op(object):
         samples_count = ctypes.c_int(100)
         samples = (ctypes.c_float * samples_count.value)()
 
-        libstress_op_poll(self._op,
+        libstress_op_generator_poll(self._opg,
             ctypes.byref(queries),
             ctypes.byref(worst_latency),
             ctypes.byref(samples_count),
@@ -161,19 +161,19 @@ class Op(object):
 
     def reset(self):
         assert self.locked or not self.client or not self.client.running, \
-            "It's not safe to reset() an Op attached to a running client without lock()ing it first."
-        libstress_op_reset(self._op)
+            "It's not safe to reset() an OpGenerator attached to a running client without lock()ing it first."
+        libstress_op_generator_reset(self._opg)
 
     def unlock(self):
         assert self.locked
         self.locked = False
-        libstress_op_unlock(self._op)
+        libstress_op_unlock(self._opg)
 
     def __del__(self):
         if hasattr(self, "locked"):
-            assert not self.locked, "Op.unlock() was never called."
-        if hasattr(self, "_op"):
-            libstress.op_destroy(self._op)
+            assert not self.locked, "OpGenerator.unlock() was never called."
+        if hasattr(self, "_opg"):
+            libstress.op_destroy(self._opg)
 
 # Client corresponds to client_t in the C++ stress client.
 
@@ -189,13 +189,13 @@ class Client(object):
         self.ops = []
         self.running = False
 
-    def add_op(self, freq, op):
+    def add_op(self, freq, opg):
         assert isinstance(freq, int)
         assert freq >= 0
-        assert isinstance(op, Op)
-        op.on_add(self)
-        self.ops.append(op)
-        libstress_client_add_op(self._client, freq, op._op)
+        assert isinstance(opg, OpGenerator)
+        opg.on_add(self)
+        self.ops.append(opg)
+        libstress_client_add_op(self._client, freq, opg._opg)
 
     def start(self):
         assert not self.running
@@ -279,55 +279,57 @@ class SeedChooser(object):
         if hasattr(self, "_sch"):
             libstress_seed_chooser_destroy(self._sch)
 
-# SingleConnectionOp is a common superlcass for ops that have a seed_key_generator_t, a
-# seed_chooser_t, a protocol_t, and optionally a value_watcher_t.
+# SingleConnectionOpGenerator is a common superlcass for ops that have a
+# seed_key_generator_t, a seed_chooser_t, a protocol_t, and optionally a
+# value_watcher_t.
 
-class SingleConnectionOp(Op):
+class SingleConnectionOpGenerator(OpGenerator):
 
-    def __init__(self, conn, _op):
+    def __init__(self, conn, _opg):
         assert isinstance(conn, Connection)
         self.connection = conn
-        Op.__init__(self, _op)
+        OpGenerator.__init__(self, _opg)
 
     def on_add(self, client):
         assert self.connection.client is None or self.connection.client is client, \
             "Can't use the same connection with ops that are associated with two " + \
             "different clients."
         if self.connection.client is None: self.connection.client = client
-        Op.on_add(self, client)
+        OpGenerator.on_add(self, client)
 
-class SimpleOp(SingleConnectionOp):
+class SimpleOpGenerator(SingleConnectionOpGenerator):
 
-    def __init__(self, skgen, sch, vw, conn, _op):
+    def __init__(self, skgen, sch, vw, conn, _opg):
         assert isinstance(skgen, SeedKeyGenerator)
         self.seed_key_generator = skgen
         assert isinstance(sch, SeedChooser)
         self.seed_chooser = sch
         assert vw is None or isinstance(vw, ValueWatcher)
         self.value_watcher = vw
-        SingleConnectionOp.__init__(self, conn, _op)
+        SingleConnectionOpGenerator.__init__(self, conn, _opg)
 
-class ReadOp(SimpleOp):
-    """ReadOp is an operation that performs reads against the database. The parameters
-    to its constructor are:
+class ReadOpGenerator(SimpleOpGenerator):
+    """ReadOpGenerator is an operation that performs reads against the database.
+    The parameters to its constructor are:
     1. A SeedKeyGenerator, which determines how it interprets the seeds it gets
     2. A SeedChooser, which determines which keys it will look up
     3. A Connection, which is where it will submit its queries to
     4. The batch factor distribution, as a number or a tuple of (low, high)
     Please note that add_op() does not account for batch_factor when it comes to
-    the frequency of a ReadOp! You might want to divide frequency by the average
-    batch_factor to get a more reasonable distribution of operations.
+    the frequency of a ReadOpGenerator! You might want to divide frequency by
+    the average batch_factor to get a more reasonable distribution of
+    operations.
     """
 
-    def __init__(self, skgen, sch, conn, batch_factor = (1,16)):
-        SimpleOp.__init__(self, skgen, sch, None, conn,
-            libstress_op_create_read(
-                skgen._skgen, sch._sch, conn._connection,
+    def __init__(self, nops, skgen, sch, conn, batch_factor = (1,16)):
+        SimpleOpGenerator.__init__(self, skgen, sch, None, conn,
+            libstress_op_generator_create_read(
+                nops, skgen._skgen, sch._sch, conn._connection,
                 distr_min(batch_factor), distr_max(batch_factor)))
 
-class InsertOp(SimpleOp):
-    """InsertOp performs insertions into the database. Its constructor has these
-    parameters:
+class InsertOpGenerator(SimpleOpGenerator):
+    """InsertOpGenerator performs insertions into the database. Its constructor
+    has these parameters:
     1. A SeedKeyGenerator, which determines how it interprets the seeds it gets
     2. A SeedChooser, which determines which keys it will insert
     3. A ValueWatcher, which it reports its changes to; if you use it with a
@@ -337,45 +339,46 @@ class InsertOp(SimpleOp):
     5. A value size distribution, as a number or a tuple of (low, high)
     """
 
-    def __init__(self, skgen, sch, vw, conn, size=(8,16)):
-        SimpleOp.__init__(self, skgen, sch, vw, conn,
-            libstress_op_create_insert(
-                skgen._skgen, sch._sch,
+    def __init__(self, nops, skgen, sch, vw, conn, size=(8,16)):
+        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+            libstress_op_generator_create_insert(
+                nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
                 conn._connection,
                 distr_min(size), distr_max(size)))
 
-class UpdateOp(SimpleOp):
-    """UpdateOp is like InsertOp except that, depending on the protocol used,
-    the commands it sends over the wire might be no-ops if the key to be updated
-    does not already exist. Its constructor has the same parameters."""
+class UpdateOpGenerator(SimpleOpGenerator):
+    """UpdateOpGenerator is like InsertOpGenerator except that, depending on the
+    protocol used, the commands it sends over the wire might be no-ops if the
+    key to be updated does not already exist. Its constructor has the same
+    parameters."""
 
-    def __init__(self, skgen, sch, vw, conn, size=(8,16)):
-        SimpleOp.__init__(self, skgen, sch, vw, conn,
-            libstress_op_create_update(
-                skgen._skgen, sch._sch,
+    def __init__(self, nops, skgen, sch, vw, conn, size=(8,16)):
+        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+            libstress_op_generator_create_update(
+                nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
                 conn._connection,
                 distr_min(size), distr_max(size)))
 
-class DeleteOp(SimpleOp):
-    """DeleteOp deletes keys. Its constructor has these parameters:
+class DeleteOpGenerator(SimpleOpGenerator):
+    """DeleteOpGenerator deletes keys. Its constructor has these parameters:
     1. A SeedKeyGenerator, which determines how it interprets the seeds it gets
     2. A SeedChooser, which decides which keys to delete
     3. A ValueWatcher, which it reports its changes to
     4. The connection over which to send the query, as a Connection
     """
 
-    def __init__(self, skgen, sch, vw, conn):
-        SimpleOp.__init__(self, skgen, sch, vw, conn,
-            libstress_op_create_delete(
-                skgen._skgen, sch._sch,
+    def __init__(self, nops, skgen, sch, vw, conn):
+        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+            libstress_op_generator_create_delete(
+                nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
                 conn._connection))
 
-class AppendPrependOp(SimpleOp):
-    """AppendPrependOp appends or prepends to values. Its constructor has
-    these parameters:
+class AppendPrependOpGenerator(SimpleOpGenerator):
+    """AppendPrependOpGenerator appends or prepends to values. Its constructor
+    has these parameters:
     1. A SeedKeyGenerator, which determines how it interprets the seeds it gets
     2. A SeedChooser, which decides which keys to append or prepend to
     3. A ValueWatcher, which is what it reports its changes to
@@ -385,59 +388,62 @@ class AppendPrependOp(SimpleOp):
        tuple of (low, high)
     """
 
-    def __init__(self, skgen, sch, vw, conn, mode="append", size=(8,16)):
+    def __init__(self, nops, skgen, sch, vw, conn, mode="append", size=(8,16)):
         if mode == "append": mode_int = 1
         elif mode == "prepend": mode_int = 0
         else: raise ValueError("'mode' should be 'append' or 'prepend'")
-        SimpleOp.__init__(self, skgen, sch, vw, conn,
-            libstress_op_create_append_prepend(
-                skgen._skgen, sch._sch,
+        SimpleOpGenerator.__init__(self, skgen, sch, vw, conn,
+            libstress_op_generator_create_append_prepend(
+                nops, skgen._skgen, sch._sch,
                 vw._value_watcher if vw is not None else None,
                 conn._connection,
                 mode_int, distr_min(size), distr_max(size)))
 
-class PercentageRangeReadOp(SingleConnectionOp):
-    """PercentageRangeReadOp performs range reads over a chosen percentage
-    of the database. Its constructor has these parameters:
+class PercentageRangeReadOpGenerator(SingleConnectionOpGenerator):
+    """PercentageRangeReadOpGenerator performs range reads over a chosen
+    percentage of the database. Its constructor has these parameters:
     1. A Connection over which to send the query
     2. The percentage of the database to request each time, as a number or as
        a distribution of (low, high)
     3. The maximum number of keys to request at a time, as a number or as a
        distribution of (low, high)
     4. Optionally, a prefix to put on the keys
-    PercentageRangeReadOp assumes that the database has been populated by keys
-    from one or more SeedKeyGenerators. The prefix you pass to
-    PercentageRangeReadOp's constructor should be the same prefix you passed to
-    the SeedKeyGenerator."""
+    PercentageRangeReadOpGenerator assumes that the database has been populated 
+    by keys from one or more SeedKeyGenerators. The prefix you pass to
+    PercentageRangeReadOpGenerator's constructor should be the same prefix you
+    passed to the SeedKeyGenerator."""
 
-    def __init__(self, conn, percentage=(10,50), limit=(16,128), prefix=""):
-        SingleConnectionOp.__init__(self, conn,
-            libstress_op_create_percentage_range_read(
-                conn._connection,
+    def __init__(self, nops, conn, percentage=(10,50), limit=(16,128), prefix=""):
+        SingleConnectionOpGenerator.__init__(self, conn,
+            libstress_op_generator_create_percentage_range_read(
+                nops, conn._connection,
                 distr_min(percentage), distr_max(percentage),
                 distr_min(limit), distr_max(limit),
                 prefix))
 
-class CalibratedRangeReadOp(SingleConnectionOp):
-    """CalibratedRangeReadOp performs range reads just like PercentageRangeReadOp,
-    but it tries to guess how many keys the range will contain by examining a
-    model. Its constructor has these parameters:
+class CalibratedRangeReadOpGenerator(SingleConnectionOpGenerator):
+    """CalibratedRangeReadOpGenerator performs range reads just like
+    PercentageRangeReadOpGenerator, but it tries to guess how many keys the
+    range will contain by examining a model. Its constructor has these
+    parameters:
     1. The model to consult, which must be an ExistenceTracker.
-    2. A multiplier factor; the CalibratedRangeReadOp will assume that the total number
-       of keys in the database is the number in the model times the multiplier.
+    2. A multiplier factor; the CalibratedRangeReadOpGenerator will assume that
+       the total number of keys in the database is the number in the model times
+       the multiplier.
     3. The number of keys to try to grab at a time, as a number or distribution of
        (low, high).
     4. The maximum number of keys to request at a time, as a number or as a tuple
        of (low, high).
     5. Optionally, a prefix to put on the keys
-    Like CalibratedRangeReadOp, PercentageRangeReadOp assumes that SeedKeyGenerator
-    was used to populate the database and the prefix you pass to the CalibratedRangeReadOp
-    constructor should be the same one passed to the SeedKeyGenerator."""
+    Like CalibratedRangeReadOpGenerator, PercentageRangeReadOpGenerator assumes
+    that SeedKeyGenerator was used to populate the database and the prefix you
+    pass to the CalibratedRangeReadOpGenerator constructor should be the same
+    one passed to the SeedKeyGenerator."""
 
-    def __init__(self, conn, rangesize=(10,50), limit=(16,128), prefix=""):
-        SingleConnectionOp.__init__(self, conn,
-            libstress_op_create_calibrated_range_read(
-                conn._connection,
+    def __init__(self, nops, conn, rangesize=(10,50), limit=(16,128), prefix=""):
+        SingleConnectionOpGenerator.__init__(self, conn,
+            libstress_op_generator_create_calibrated_range_read(
+                nops, conn._connection,
                 distr_min(rangesize), distr_max(rangesize),
                 distr_min(limit), distr_max(limit),
                 prefix))

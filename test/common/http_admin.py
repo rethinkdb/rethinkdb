@@ -46,10 +46,10 @@ import os
 import re
 import json
 import copy
+import time
 import socket
 import random
 import subprocess
-from time import sleep
 from signal import SIGINT
 from shutil import rmtree
 from httplib import HTTPConnection
@@ -67,8 +67,9 @@ def unblock_path(source_port, dest_port):
 	conn.sendall("unblock %s %s\n" % (str(source_port), str(dest_port)))
 	conn.close()
 
-def find_rethinkdb_executable():
-	paths = ["build/debug/rethinkdb", "../build/debug/rethinkdb", "../../build/debug/rethinkdb", "../../../build/debug/rethinkdb"]
+def find_rethinkdb_executable(mode = "debug"):
+	subpath = "build/%s/rethinkdb" % (mode)
+	paths = [subpath, "../" + subpath, "../../" + subpath, "../../../" + subpath]
 	for path in paths:
 		if os.path.exists(path):
 			return path
@@ -142,12 +143,23 @@ class Namespace(object):
 		self.shards = json_data["shards"]
 		self.name = json_data["name"]
 		self.port = json_data["port"]
+		self.primary_pinnings = json_data["primary_pinnings"]
+		self.secondary_pinnings = json_data["secondary_pinnings"]
 
 	def check(self, data):
 		return data[u"name"] == self.name and data[u"primary_uuid"] == self.primary_uuid and data[u"replica_affinities"] == self.replica_affinities and data[u"shards"] == self.shards and data[u"port"] == self.port
 
 	def to_json(self):
-		return { u"blueprint": self.blueprint.to_json(), u"name": self.name, u"primary_uuid": self.primary_uuid, u"replica_affinities": self.replica_affinities, u"shards": self.shards, u"port": self.port }
+		return {
+			unicode("blueprint"): self.blueprint.to_json(),
+			unicode("name"): self.name,
+			unicode("primary_uuid"): self.primary_uuid,
+			unicode("replica_affinities"): self.replica_affinities,
+			unicode("shards"): self.shards,
+			unicode("port"): self.port,
+			unicode("primary_pinnings"): self.primary_pinnings,
+			unicode("secondary_pinnings"): self.secondary_pinnings
+			}
 
 	def __str__(self):
 		affinities = ""
@@ -156,7 +168,7 @@ class Namespace(object):
 		else:
 			for uuid, count in self.replica_affinities.iteritems():
 				affinities += uuid + "=" + str(count) + ", "
-		return "Namespace(name:%s, port:%d, primary:%s, affinities:%sblueprint:NYI)" % (self.name, self.port, self.primary_uuid, affinities)
+		return "Namespace(name:%s, port:%d, primary:%s, affinities:%r, pinnings:%s, blueprint:NYI)" % (self.name, self.port, self.primary_uuid, self.replica_affinities, self.pinnings)
 
 class DummyNamespace(Namespace):
 	def __init__(self, uuid, json_data):
@@ -226,7 +238,7 @@ class ExternalServer(Server):
 		return "External" + Server.__str__(self)
 
 class InternalServer(Server):
-	def __init__(self, serv_port, local_cluster_port, join = None, name = None, port_offset = 0):
+	def __init__(self, serv_port, local_cluster_port, join = None, name = None, port_offset = 0, log_file = "stdout", mode = "debug"):
 
 		self.local_cluster_port = local_cluster_port
 
@@ -235,12 +247,20 @@ class InternalServer(Server):
 		self.db_dir = "/tmp/rethinkdb-port-" + str(serv_port)
 		assert not os.path.exists(self.db_dir)
 
-		create_args = [find_rethinkdb_executable(), "create", "--directory=" + self.db_dir, "--port-offset=" + str(port_offset)]
+		create_args = [find_rethinkdb_executable(mode), "create", "--directory=" + self.db_dir, "--port-offset=" + str(port_offset)]
 		if name is not None:
 			create_args.append("--name=" + name)
-		subprocess.check_call(create_args)
 
-		self.args_without_join = [find_rethinkdb_executable(), "serve", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port)]
+		if log_file == "stdout":
+			self.output_file = None
+			self.instance = subprocess.Popen(args = create_args)
+		else:
+			self.log_file = log_file
+			self.output_file = open(self.log_file, "w")
+
+		subprocess.check_call(args = create_args, stdout = self.output_file, stderr = self.output_file)
+		self.args_without_join = [find_rethinkdb_executable(mode), "serve", "--directory=" + self.db_dir, "--port=" + str(serv_port), "--client-port=" + str(local_cluster_port)]
+
 		if join is None:
 			serve_args = self.args_without_join
 		else:
@@ -248,16 +268,19 @@ class InternalServer(Server):
 			serve_args = self.args_without_join + ["--join=" + join_host + ":" + str(join_port)]
 
 		print serve_args
-		self.instance = subprocess.Popen(serve_args, 0, None, None, subprocess.PIPE)
-		sleep(0.2)
+
+		self.instance = subprocess.Popen(args = serve_args, stdout = self.output_file, stderr = self.output_file)
+		time.sleep(0.2)
 		Server.__init__(self, socket.gethostname(), serv_port)
 		self.running = True
-		self.closed = False
 
 	def kill(self):
 		assert self.running
-		self.instance.send_signal(SIGINT)
-		self.instance.wait()
+		try:
+			self.instance.send_signal(SIGINT)
+		except OSError:
+			pass
+		self._wait()
 		self.running = False
 
 	def recover(self, join = None):
@@ -267,26 +290,31 @@ class InternalServer(Server):
 		else:
 			join_host, join_port = join
 			serve_args = self.args_without_join + ["--join=" + join_host + ":" + str(join_port)]
-		self.instance = subprocess.Popen(serve_args, 0, None, None, subprocess.PIPE)
+
+		self.instance = subprocess.Popen(args = serve_args, stdout = self.output_file)
 		self.running = True
 
 	def shutdown(self):
-		assert not self.closed
 		if self.running:
-			self.instance.send_signal(SIGINT)
-			self.instance.wait()
-		rmtree(self.db_dir)
-		self.closed = True
+			self.kill()
+		rmtree(self.db_dir, True)
 
 	def __del__(self):
-		if not self.closed:
-			self.shutdown()
+		self.shutdown()
+
+	def _wait(self):
+		start_time = time.time()
+		while time.time() - start_time < 15 and self.instance.poll() is None:
+			time.sleep(1)
+		if self.instance.poll() is None:
+			print "rethinkdb unresponsive to SIGINT after 15 seconds, using SIGKILL"
+			self.instance.send_signal(signal.SIGKILL)
 
 	def __str__(self):
 		return "Internal" + Server.__str__(self) + ", args:" + str(self.args_without_join)
 
 class Cluster(object):
-	def __init__(self):
+	def __init__(self, log_file = "stdout", mode = "debug"):
 		try:
 			self.base_port = os.environ["RETHINKDB_BASE_PORT"]
 		except KeyError:
@@ -298,6 +326,8 @@ class Cluster(object):
 		self.datacenters = { }
 		self.dummy_namespaces = { }
 		self.memcached_namespaces = { }
+		self.log_file = log_file
+		self.mode = mode
 
 	def __str__(self):
 		retval = "Machines:"
@@ -342,15 +372,22 @@ class Cluster(object):
 			join = None
 		else:
 			join = (socket.gethostname(), self.base_port)
+
+		log_file = self.log_file
+		if self.log_file != "stdout":
+			log_file += ".%d" % (self.base_port + self.server_instances)
+			
 		serv = InternalServer(
 			self.base_port + self.server_instances,
 			self.base_port - self.server_instances - 1,
 			join = join,
 			name = name,
-			port_offset = self.server_instances)
+			port_offset = self.server_instances,
+			log_file = log_file,
+			mode = self.mode)
 		self.machines[serv.uuid] = serv
 		self.server_instances += 1
-		sleep(0.2)
+		time.sleep(0.2)
 		self.update_cluster_data()
 		return serv
 
@@ -373,7 +410,7 @@ class Cluster(object):
 		info = self._get_server_for_command(servid).do_query("POST", "/ajax/datacenters/new", {
 			"name": name
 			})
-		sleep(0.2) # Give some time for changes to hit the rest of the cluster
+		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		assert len(info) == 1
 		uuid, json_data = next(info.iteritems())
 		datacenter = Datacenter(uuid, json_data)
@@ -417,7 +454,7 @@ class Cluster(object):
 		if not isinstance(serv, DummyServer):
 			serv.datacenter_uuid = datacenter.uuid
 		self._get_server_for_command(servid).do_query("POST", "/ajax/machines/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
-		sleep(0.2) # Give some time for changes to hit the rest of the cluster
+		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		self.update_cluster_data()
 
 	def move_namespace_to_datacenter(self, namespace, primary, servid = None):
@@ -428,7 +465,7 @@ class Cluster(object):
 			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
 		elif isinstance(namespace, DummyNamespace):
 			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
-		sleep(0.2) # Give some time for the changes to hit the rest of the cluster
+		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
 		self.update_cluster_data()
 
 	def set_namespace_affinities(self, namespace, affinities = { }, servid = None):
@@ -441,7 +478,7 @@ class Cluster(object):
 			self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
 		elif isinstance(namespace, DummyNamespace):
 			self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
-		sleep(0.2) # Give some time for the changes to hit the rest of the cluster
+		time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
 		self.update_cluster_data()
 		return namespace
 
@@ -463,7 +500,7 @@ class Cluster(object):
 			"primary_uuid": primary,
 			"replica_affinities": aff_dict
 			})
-		sleep(0.2) # Give some time for changes to hit the rest of the cluster
+		time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
 		assert len(info) == 1
 		uuid, json_data = next(info.iteritems())
 		type_class = {"memcached": MemcachedNamespace, "dummy": DummyNamespace}[protocol]
@@ -524,14 +561,14 @@ class Cluster(object):
 
 	# Get the list of machines/namespaces from the cluster, verify that it is consistent across each machine
 	def _verify_consistent_cluster(self):
-		expected = self._get_server_for_command().do_query("GET", "/ajax/")
+		expected = self._get_server_for_command().do_query("GET", "/ajax")
 		# Filter out the "me" value - it will be different on each machine
 		assert expected.pop("me") is not None
 		for i in self.machines.iterkeys():
 			if isinstance(self.machines[i], DummyServer): # Don't try to query a server we don't know anything about
 				continue
 
-			actual = self.machines[i].do_query("GET", "/ajax/")
+			actual = self.machines[i].do_query("GET", "/ajax")
 			assert actual.pop("me") == self.machines[i].uuid
 			if actual != expected:
 				raise BadClusterData(expected, actual)
@@ -539,7 +576,8 @@ class Cluster(object):
 
 	def _verify_cluster_data_chunk(self, local, remote):
 		for key, value in local.iteritems():
-			assert value.check(remote[key])
+			if not value.check(remote[key]):
+				raise ValueError("inconsistent cluster data: %r != %r" % (value.to_json(), remote[key]))
 
 	# Check the data from the server against our data
 	def _verify_cluster_data(self, data):
@@ -556,6 +594,13 @@ class Cluster(object):
 		self._pull_cluster_data(data["memcached_namespaces"], self.memcached_namespaces, MemcachedNamespace)
 		self._verify_cluster_data(data)
 		return data
+
+	def is_alive(self):
+		for i, m in self.machines.iteritems():
+			if isinstance(m, InternalServer):
+				if m.running and m.instance.poll() is not None:
+					return False
+		return True
 
 class ExternalCluster(Cluster):
 	def __init__(self, serv_list):
@@ -574,14 +619,14 @@ class InternalCluster(Cluster):
 	#                                          second array - one item per namespace to create
 	#                                          tuple - first value is the index of the primary datacenter, second value is
 	#                                              an array with one item per datacenter, an integer value for the affinity towards that datacenter
-	def __init__(self, datacenters = [ ], affinities = [ ]):
+	def __init__(self, datacenters = [ ], affinities = [ ], log_file = "stdout", mode = "debug"):
 		assert len(affinities) <= 2 # only two namespace types at the moment - dummy and memcached
 		for i in affinities:
 			for primary_id, replica_counts in i:
 				assert primary_id < len(datacenters) # make sure the primary datacenter id doesn't overflow
 				assert len(replica_counts) == len(datacenters) or len(replica_counts) == 0 # namespace affinities must define values for each datacenter or no affinities
 
-		Cluster.__init__(self)
+		Cluster.__init__(self, log_file, mode)
 		self.blocked_ports = set()
 		self.other_clusters = set()
 
@@ -763,7 +808,7 @@ class InternalCluster(Cluster):
 		other.other_cluster = set()
 
 		# Give some time for the cluster to update internally, then pull the cluster data
-		sleep(1)
+		time.sleep(1)
 		self.update_cluster_data()
 
 	def _notify_of_new_cluster_port(self, port):

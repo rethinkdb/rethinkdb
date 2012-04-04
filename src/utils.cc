@@ -1,4 +1,5 @@
 #include "utils.hpp"
+#include <boost/tokenizer.hpp>
 
 #include <cxxabi.h>
 #include <execinfo.h>
@@ -575,4 +576,28 @@ std::string read_file(const char *path) {
     fclose(fp);
 
     return s;
+}
+
+std::vector<std::string> parse_as_path(const std::string &path) {
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    typedef tokenizer::iterator tok_iterator;
+
+    boost::char_separator<char> sep("/");
+    tokenizer tokens(path, sep);
+
+    return std::vector<std::string>(tokens.begin(), tokens.end());
+}
+
+std::string render_as_path(const std::vector<std::string> &path) {
+    std::string res;
+    for (std::vector<std::string>::const_iterator it =  path.begin();
+                                                  it != path.end();
+                                                  it++) {
+        if (it != path.begin()) {
+            res += "/";
+        }
+        res += *it;
+    }
+
+    return res;
 }

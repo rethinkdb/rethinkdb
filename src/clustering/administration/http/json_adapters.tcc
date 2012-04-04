@@ -2,9 +2,11 @@
 #define CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_TCC_
 
 #include "http/json.hpp"
+#include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "stl_utils.hpp"
+#include "protocol_api.hpp"
 
 //json adapter concept for vclock_t
 template <class T, class ctx_t>
@@ -167,5 +169,98 @@ void apply_json_to(cJSON *change, peer_id_t *target, const ctx_t &ctx) {
 
 template <class ctx_t>
 void on_subfield_change(peer_id_t *, const ctx_t &) { }
+
+/* A special adapter for a region_map's value */
+template <class protocol_t, class value_t, class ctx_t>
+class json_region_adapter_t : public json_adapter_if_t<ctx_t> {
+private:
+    typedef region_map_t<protocol_t, value_t> target_region_map_t;
+public:
+    json_region_adapter_t(target_region_map_t *_parent, typename protocol_t::region_t _target_region)
+        : parent(_parent), target_region(_target_region)
+    { }
+private:
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_subfields_impl(const ctx_t &) {
+            return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
+    }
+
+    cJSON *render_impl(const ctx_t &ctx) {
+        target_region_map_t target_map = parent->mask(target_region);
+        return render_as_json(&target_map, ctx);
+    }
+
+    void apply_impl(cJSON *change, const ctx_t &ctx) {
+        value_t val;
+        apply_json_to(change, &val, ctx);
+
+        parent->set(target_region, val);
+    }
+
+    void erase_impl(const ctx_t &) {
+        throw permission_denied_exc_t("Can't erase from a region map.\n");
+    }
+
+    void reset_impl(const ctx_t &) {
+        throw permission_denied_exc_t("Can't reset from a region map.\n");
+    }
+
+    /* follows the creation paradigm, ie the caller is responsible for the
+     * object this points to */
+    boost::shared_ptr<subfield_change_functor_t<ctx_t> >  get_change_callback() {
+        return boost::shared_ptr<subfield_change_functor_t<ctx_t> >(new noop_subfield_change_functor_t<ctx_t>());
+    }
+
+    target_region_map_t *parent;
+    typename protocol_t::region_t target_region;
+};
+
+//json adapter concept for region map
+template <class protocol_t, class value_t, class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(region_map_t<protocol_t, value_t> *target, const ctx_t &ctx) {
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
+    for (typename region_map_t<protocol_t, value_t>::iterator it  = target->begin();
+                                                              it != target->end();
+                                                              ++it) {
+        scoped_cJSON_t key(render_as_json(&it->first, ctx));
+        rassert(key.get()->type = cJSON_String);
+        res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_region_adapter_t<protocol_t, value_t, ctx_t>(target, it->first));
+    }
+
+    return res;
+}
+
+template <class protocol_t, class value_t, class ctx_t>
+cJSON *render_as_json(region_map_t<protocol_t, value_t> *target, const ctx_t &ctx) {
+    cJSON *res = cJSON_CreateObject();
+    for (typename region_map_t<protocol_t, value_t>::iterator it  = target->begin();
+                                                              it != target->end();
+                                                              ++it) {
+        scoped_cJSON_t key(render_as_json(&it->first, ctx));
+        rassert(key.get()->type = cJSON_String);
+        cJSON_AddItemToObject(res, get_string(key.get()).c_str(), render_as_json(&it->second, ctx));
+    }
+
+    return res;
+}
+
+template <class protocol_t, class value_t, class ctx_t>
+void apply_json_to(cJSON *change, region_map_t<protocol_t, value_t> *target, const ctx_t &ctx) {
+    json_object_iterator_t it = get_object_it(change);
+    cJSON *hd;
+
+    while ((hd = it.next())) {
+       typename protocol_t::region_t key;
+       value_t val;
+
+       scoped_cJSON_t key_desc(cJSON_CreateString(hd->string));
+       apply_json_to(key_desc.get(), &key, ctx);
+       apply_json_to(hd, &val, ctx);
+
+       target->set(key, val);
+    }
+}
+
+template <class protocol_t, class value_t, class ctx_t>
+void on_subfield_change(region_map_t<protocol_t, value_t> *, const ctx_t &) { }
 
 #endif
