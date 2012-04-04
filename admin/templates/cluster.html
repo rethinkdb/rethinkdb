@@ -655,11 +655,14 @@
         </script>
 
         <!-- Resolve issues view -->
-        <script id="resolve_issues-container-template" type="text/x-handlebars-template">
+        <script id="resolve_issues-container-outer-template" type="text/x-handlebars-template">
             <h1>Resolve issues</h1>
+            <div id="user-alert-space"></div>
+            <div id="resolve_issues-container-inner-placeholder"></div>
+        </script>
+        <script id="resolve_issues-container-inner-template" type="text/x-handlebars-template">
             {{#if issues_exist}}
                 <div class="issues"></div>
-                <a class="btn large danger">Resolve these issues</a>
             {{else}}
                 <p class="no-issues">No issues reported in the cluster.</p>
             {{/if}}
@@ -673,15 +676,38 @@
                     {{/if}}
                 </div>
                 <hr />
-                <h4>This machine is responsible for the following namespaces:</h4>
+                {{#if no_responsibilities}}
+                <h4>This machine has no master or replica responsibilities.</h4>
+
+                {{else}}
+
+                <!-- Masters -->
+                {{#if masters}}
+                <h4>This machine is responsible for the following masters:</h4>
                 <ul>
                 {{#each masters}}
-                    <li>This machine acts as a master for the namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
-                {{/each}}
-                {{#each replicas}}
-                    <li>This machine acts as a replica for the namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+                    <li>Namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
                 {{/each}}
                 </ul>
+                {{else}}
+                <h4>This machine has no master responsibilities.</h4>
+                {{/if}}
+
+                <!-- Replicas -->
+                {{#if replicas}}
+                <h4>This machine is responsible for the following replicas:</h4>
+                <ul>
+                {{#each replicas}}
+                    <li>Namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+                {{/each}}
+                </ul>
+                {{else}}
+                <h4>This machine has no replica responsibilities.</h4>
+                {{/if}}
+
+                {{/if}}
+
+                <p><a class="btn large danger">Declare Dead</a></p>
             </div>
         </script>
         <script id="resolve_issues-name_conflict-template" type="text/x-handlebars-template">
@@ -758,6 +784,13 @@
             <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You removed namespace <span class="name">{{name}}</span>.</p>
+            </div>
+        </script>
+
+        <script id="declared_machine_dead-alert-template" type="text/x-handlebars-template">
+            <div class="alert" data-alert="alert">
+                <a class="close" href="#">&times;</a>
+                <p>You successfully declared machine <span class="name">{{machine_name}}</span> dead.</p>
             </div>
         </script>
 
@@ -892,6 +925,24 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn primary remove-namespace" type="submit" name="remove-namespace" value="Remove namespace">Remove namespace</button>
+                        <a href="#" class="btn secondary cancel">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </script>
+
+        <script id="declare_machine_dead-modal-template" type="text/x-handlebars-template">
+            <div class="modal declare_machine_dead">
+                <form class="form">
+                    <div class="modal-header">
+                        <a href="#" class="close">&times;</a>
+                        <h3>Declare machine dead</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to declare <strong>{{machine_name}}</strong> dead?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn primary declare_machine_dead" type="submit" name="declare-machine-dead" value="Declare dead">Declare dead</button>
                         <a href="#" class="btn secondary cancel">Cancel</a>
                     </div>
                 </form>
@@ -1053,43 +1104,6 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn primary remove-datacenter" type="submit" name="remove-datacenter" value="Remove datacenter">Remove datacenters</button>
-                        <a href="#" class="btn secondary cancel">Cancel</a>
-                    </div>
-                </form>
-            </div>
-        </script>
-
-        <script id="suspend_machine-modal-template" type="text/x-handlebars-template">
-            <div class="modal suspend-machine">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Suspend a machine</h3>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert block-message error">
-                            <p>
-                            <strong>Be careful.</strong>
-                                Suspending these machines will cause the following
-                                namespaces to become unavailable:
-                                <ul class="namespace-list">
-                                    {{#each machines }}
-                                        {{#each namespaces}}
-                                            <li><a href="#namespaces/{{id}}" target="_blank">{{name}}</a></li>
-                                        {{/each}}
-                                    {{/each }}
-                                </ul>
-                            </p>
-                        </div>
-                        <p>Are you sure you want to suspend these machines:</p>
-                        <ul class="machine-list">
-                            {{#each machines}}
-                                <li><a href="#machines/{{id}}" target="_blank">{{name}}</a></li>
-                            {{/each}}
-                        </ul>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary suspend-machine" type="submit" name="suspend-machine" value="Suspend machine">Suspend machines</button>
                         <a href="#" class="btn secondary cancel">Cancel</a>
                     </div>
                 </form>

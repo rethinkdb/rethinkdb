@@ -363,16 +363,26 @@ module 'ResolveIssuesView', ->
     # ResolveIssuesView.Container
     class @Container extends Backbone.View
         className: 'resolve-issues'
-        template: Handlebars.compile $('#resolve_issues-container-template').html()
+        template_outer: Handlebars.compile $('#resolve_issues-container-outer-template').html()
+        template_inner: Handlebars.compile $('#resolve_issues-container-inner-template').html()
 
         initialize: =>
             log_initial '(initializing) resolve issues view: container'
-            issues.on 'all', (model, collection) => @render()
+            issues.on 'all', (model, collection) => @render_issues()
 
         render: ->
-            @.$el.html @template
-                issues_exist: if issues.length > 0 then true else false
+            @.$el.html @template_outer
+            @render_issues()
 
+            return @
+
+        # we're adding an inner render function to avoid rerendering
+        # everything (for example we need to not render the alert,
+        # otherwise it disappears)
+        render_issues: ->
+            @.$('#resolve_issues-container-inner-placeholder').html @template_inner
+                issues_exist: if issues.length > 0 then true else false
+                
             issue_views = []
             issues.each (issue) ->
                 issue_views.push new ResolveIssuesView.Issue
@@ -382,6 +392,47 @@ module 'ResolveIssuesView', ->
             $issues.append view.render().el for view in issue_views
 
             return @
+
+    class @DeclareMachineDeadModal extends ClusterView.AbstractModal
+        template: Handlebars.compile $('#declare_machine_dead-modal-template').html()
+        alert_tmpl: Handlebars.compile $('#declared_machine_dead-alert-template').html()
+
+        initialize: ->
+            log_initial '(initializing) modal dialog: declare machine dead'
+            super @template
+
+        render: (machine_to_kill) ->
+            log_render '(rendering) declare machine dead dialog'
+            validator_options =
+                submitHandler: =>
+                    $.ajax
+                        url: "/ajax/machines/#{machine_to_kill.id}"
+                        type: 'DELETE'
+                        contentType: 'application/json'
+
+                        success: (response) =>
+                            clear_modals()
+
+                            if (response)
+                                throw "Received a non null response to a delete... this is incorrect"
+                            
+                            # Grab the new set of issues (so we don't have to wait)
+                            $.ajax
+                                url: '/ajax/issues'
+                                success: set_issues
+                                async: false
+                                
+                            # remove the dead machine from the models
+                            machines.remove(machine_to_kill.id)
+
+                            # rerender issue view (just the issues, not the whole thing)
+                            window.app.resolve_issues_view.render_issues()
+
+                            # notify the user that we succeeded
+                            $('#user-alert-space').append @alert_tmpl
+                                machine_name: machine_to_kill.get("name")
+
+            super validator_options, { 'machine_name': machine_to_kill.get("name") }
 
     # ResolveIssuesView.Issue
     class @Issue extends Backbone.View
@@ -397,58 +448,82 @@ module 'ResolveIssuesView', ->
         initialize: ->
             log_initial '(initializing) resolve issues view: issue'
 
+        render_machine_down: (_template) ->
+            machine = machines.get(@model.get('victim'))
+
+            masters = []
+            replicas = []
+            
+            # Look at all namespaces in the cluster and determine whether this machine had a master or replicas for them
+            namespaces.each (namespace) ->
+                for machine_uuid, role_summary of namespace.get('blueprint').peers_roles
+                    if machine_uuid is machine.get('id')
+                        for shard, role of role_summary
+                            if role is 'role_primary'
+                                masters.push
+                                    name: namespace.get('name')
+                                    uuid: namespace.get('id')
+                                    shard: human_readable_shard shard
+                            if role is 'role_secondary'
+                                console.log shard
+                                replicas.push
+                                    name: namespace.get('name')
+                                    uuid: namespace.get('id')
+                                    shard: human_readable_shard shard
+
+            json =
+                name: machine.get('name')
+                masters: if _.isEmpty(masters) then null else masters
+                replicas: if _.isEmpty(replicas) then null else replicas
+                no_responsibilities: if (_.isEmpty(replicas) and _.isEmpty(masters)) then true else false
+                datetime: iso_date_from_unix_time @model.get('time')
+
+            @.$el.html _template(json)
+
+            # Declare machine dead handler
+            @.$('p a.btn').off "click"
+            @.$('p a.btn').click =>
+                declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
+                declare_dead_modal.render machine
+
+        render_name_conflict_issue: (_template) ->
+            json =
+                name: @model.get('contested_name')
+                type: @model.get('contested_type')
+                num_contestants: @model.get('contestants').length
+                contestants: _.map(@model.get('contestants'), (uuid) ->
+                   uuid: uuid
+                )
+                datetime: iso_date_from_unix_time @model.get('time')
+            
+            @.$el.html _template(json)
+
+        render_persistence_issue: (_template) ->
+            json = datetime: iso_date_from_unix_time @model.get('time')
+            @.$el.html _template(json)
+
+        render_vlock_conflict: (_template) ->
+            json = datetime: iso_date_from_unix_time @model.get('time')
+            @.$el.html _template(json)
+
+        render_unknown_issue: (_template) ->
+            json = issue_type: @model.get('type')
+            @.$el.html _template(json)
+
         render: ->
             _template = @templates[@model.get('type')]
             switch @model.get('type')
                 when 'MACHINE_DOWN'
-                    machine = machines.get(@model.get('victim'))
-
-                    masters = []
-                    replicas = []
-                    
-                    # Look at all namespaces in the cluster and determine whether this machine had a master or replicas for them
-                    namespaces.each (namespace) ->
-                        for machine_uuid, role_summary of namespace.get('blueprint').peers_roles
-                            if machine_uuid is machine.get('id')
-                                for shard, role of role_summary
-                                    if role is 'role_primary'
-                                        masters.push
-                                            name: namespace.get('name')
-                                            uuid: namespace.get('id')
-                                            shard: shard
-                                    if role is 'role_secondary'
-                                        replicas.push
-                                            name: namespace.get('name')
-                                            uuid: namespace.get('id')
-                                            shard: shard
-
-                    json =
-                        name: machine.get('name')
-                        masters: masters
-                        replicas: replicas
-                        datetime: iso_date_from_unix_time @model.get('time')
-
+                    @render_machine_down _template
                 when 'NAME_CONFLICT_ISSUE'
-                   json =
-                        name: @model.get('contested_name')
-                        type: @model.get('contested_type')
-                        num_contestants: @model.get('contestants').length
-                        contestants: _.map(@model.get('contestants'), (uuid) ->
-                            uuid: uuid
-                        )
-                        datetime: iso_date_from_unix_time @model.get('time')
+                    @render_name_conflict_issue _template
                 when 'PERSISTENCE_ISSUE'
-                    json =
-                        datetime: iso_date_from_unix_time @model.get('time')
+                    @render_persistence_issue _template
                 when 'VCLOCK_CONFLICT'
-                    json =
-                        datetime: iso_date_from_unix_time @model.get('time')
+                    @render_vclock_conflict _template
                 else
-                    _template = @unknown_issue_template
-                    json =
-                        issue_type: @model.get('type')
-
-            @.$el.html _template(json)
+                    @render_unknown_issue @unknown_issue_template
+                        
             @.$('abbr.timeago').timeago()
 
             return @
