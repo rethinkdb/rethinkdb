@@ -51,6 +51,8 @@ public:
 
     void append(const void *p, int64_t n);
 
+    intrusive_list_t<write_buffer_t> *unsafe_expose_buffers() { return &buffers_; }
+
 private:
     intrusive_list_t<write_buffer_t> buffers_;
 
