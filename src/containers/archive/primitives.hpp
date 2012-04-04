@@ -1,7 +1,7 @@
 #ifndef CONTAINERS_ARCHIVE_PRIMITIVES_HPP_
 #define CONTAINERS_ARCHIVE_PRIMITIVES_HPP_
 
-#include "containers/archive.hpp"
+#include "containers/archive/archive.hpp"
 
 #define ARCHIVE_PRIM_WRITE(typ)                                         \
     write_message_t &operator<<(write_message_t &msg, typ x) {          \
