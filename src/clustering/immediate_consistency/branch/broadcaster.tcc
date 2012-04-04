@@ -61,7 +61,7 @@ typename protocol_t::read_response_t listener_read(
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
+typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, fifo_enforcer_sink_t::exit_read_t *lock, auto_drainer_t::lock_t *auto_drainer_lock, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
 
     dispatchee_t *reader;
     auto_drainer_t::lock_t reader_lock;
@@ -69,7 +69,14 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
     fifo_enforcer_read_token_t enforcer_token;
 
     {
+        lock->wait();
+        // TODO: We shouldn't reset exit_read_t _after_ we've
+        // acquired the mutex.  We should release it after we've
+        // gotten in line.
         mutex_t::acq_t mutex_acq(&mutex);
+        lock->reset();
+        auto_drainer_lock->reset();
+
         pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
         timestamp = current_timestamp;
         order_sink.check_out(order_token);
@@ -86,7 +93,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
+typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, UNUSED fifo_enforcer_sink_t::exit_write_t *lock, auto_drainer_t::lock_t *auto_drainer_lock, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
 
     /* TODO: Make `target_ack_count` configurable */
     int target_ack_count = 1;
@@ -113,9 +120,19 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
         directly to the new dispatchee by the loop further down in this very
         function. */
         {
+
+            lock->wait();
+
+            // TODO: We shouldn't reset exit_read_t _after_ we've
+            // acquired the mutex.  We should release it after we've
+            // gotten in line.
+
             /* We must hold the mutex so that we don't race with other writes
             that are starting or with new dispatchees that are joining. */
             mutex_t::acq_t mutex_acq(&mutex);
+            lock->reset();
+            auto_drainer_lock->reset();
+
             ASSERT_FINITE_CORO_WAITING;
 
             transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);

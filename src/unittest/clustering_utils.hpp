@@ -11,6 +11,11 @@ namespace unittest {
 using mock::dummy_protocol_t;
 using mock::a_thru_z_region;
 
+struct fake_fifo_enforcement_t {
+    fifo_enforcer_source_t source;
+    fifo_enforcer_sink_t sink;
+};
+
 template<class protocol_t>
 class test_store_t {
 public:

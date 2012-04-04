@@ -57,7 +57,7 @@ void run_transmit_lines_test() {
     int port = 10000 + randint(20000);
     streamed_tcp_listener_t listener(port, boost::bind(&handle_echo_conn, _1));
 
-    streamed_tcp_conn_t conn("localhost", port);
+    streamed_tcp_conn_t conn("127.0.0.1", port);
     std::string test_str = "0";
     for (int i = 0; i < 8192 / 32; ++i, test_str += std::string(32, static_cast<char>('a' + (i % 26)))) {
         conn.get_ostream() << test_str.substr(0, i);
@@ -78,7 +78,7 @@ TEST(TCPStreamTest, TransmitLines) {
 void run_boost_serialize_test() {
     int port = 10000 + randint(20000);
     streamed_tcp_listener_t listener(port, boost::bind(&handle_charwise_echo_conn, _1));
-    streamed_tcp_conn_t conn("localhost", port);
+    streamed_tcp_conn_t conn("127.0.0.1", port);
 
     for (int n = 0; n < 5; n++) {
 

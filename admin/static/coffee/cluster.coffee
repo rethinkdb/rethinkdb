@@ -113,93 +113,60 @@ class Directory extends Backbone.Collection
     model: MachineAttributes
     url: '/ajax/directory'
 
-class DashboardView extends Backbone.View
-    className: 'dashboard-view'
-    template: Handlebars.compile $('#dashboard_view-template').html()
-
-    update_data_streams: (datastreams) ->
-        timestamp = new Date(Date.now())
-
-        for stream in datastreams
-           stream.update(timestamp)
-
-    create_fake_data: ->
-        data_points = new DataPoints()
-        cached_data = {}
-        for collection in [namespaces, datacenters, machines]
-            collection.map (model, i) ->
-                d = new DataPoint
-                    collection: collection
-                    value: (i+1) * 100
-                    id: model.get('id')
-                    # Assumption: every datapoint across datastreams at the time of sampling will have the same datetime stamp
-                    time: new Date(Date.now())
-                data_points.add d
-                cached_data[model.get('id')] = [d]
-        return data_points
+# navigation bar view. Not sure where it should go, putting it here
+# because it's global.
+class NavBarView extends Backbone.View
+    className: 'navbar-view'
+    template: Handlebars.compile $('#navbar_view-template').html()
+    first_render: true
 
     initialize: ->
-        log_initial '(initializing) dashboard view'
+        log_initial '(initializing) NavBarView'
+        # rerender when route changes
+        $(window.app_events).on "on_ready", =>
+            # Render every time the route changes
+            window.app.on "all", @render
+    
+    init_typeahead: ->
+        $('input.search-query').typeahead
+            source: (typeahead, query) ->
+                _machines = _.map machines.models, (machine) ->
+                    uuid: machine.get('id')
+                    name: machine.get('name') + ' (machine)'
+                    type: 'machines'
+                _datacenters = _.map datacenters.models, (datacenter) ->
+                    uuid: datacenter.get('id')
+                    name: datacenter.get('name') + ' (datacenter)'
+                    type: 'datacenters'
+                _namespaces = _.map namespaces.models, (namespace) ->
+                    uuid: namespace.get('id')
+                    name: namespace.get('name') + ' (namespace)'
+                    type: 'namespaces'
+                return _machines.concat(_datacenters).concat(_namespaces)
+            property: 'name'
+            onselect: (obj) ->
+                window.app.navigate('#' + obj.type + '/' + obj.uuid , { trigger: true })
 
-        mem_usage_data = new DataStream
-            name: 'mem_usage_data'
-            pretty_print_name: 'memory usage'
-            data: @create_fake_data()
-            cached_data: []
-            active_uuids: []
-
-        disk_usage_data = new DataStream
-            name: 'disk_usage_data'
-            pretty_print_name: 'disk usage'
-            data: @create_fake_data()
-            cached_data: []
-            active_uuids: []
-
-        cluster_performance_total = new DataStream
-            name:  'cluster_performance_total'
-            pretty_print_name: 'total ops/sec'
-            data: @create_fake_data()
-            cached_data: []
-            active_uuids: []
-
-        cluster_performance_reads = new DataStream
-            name:  'cluster_performance_reads'
-            pretty_print_name: 'reads/sec'
-            data: @create_fake_data()
-            cached_data: []
-            active_uuids: []
-
-        cluster_performance_writes = new DataStream
-            name:  'cluster_performance_writes'
-            pretty_print_name: 'writes/sec'
-            data: @create_fake_data()
-            cached_data: []
-            active_uuids: []
-
-        @data_streams = [mem_usage_data, disk_usage_data, cluster_performance_total, cluster_performance_reads, cluster_performance_writes]
-
-        setInterval (=> @update_data_streams @data_streams), 1500
-
-        @data_picker = new Vis.DataPicker @data_streams
-        color_map = @data_picker.get_color_map()
-
-        @disk_usage = new Vis.ResourcePieChart disk_usage_data, color_map
-        @mem_usage = new Vis.ResourcePieChart mem_usage_data, color_map
-        @cluster_performance = new Vis.ClusterPerformanceGraph [cluster_performance_total, cluster_performance_reads, cluster_performance_writes], color_map
-
-    render: ->
-        # Updates elements tracked by our fake data streams | Should be removed when DataStreams are live from the server TODO
-        for stream in @data_streams
-            stream.set('data', @create_fake_data())
-
-        log_render '(rendering) dashboard view'
-        @.$el.html @template({})
-
-        @.$('.data-picker').html @data_picker.render().el
-        @.$('.disk-usage').html @disk_usage.render().el
-        @.$('.mem-usage').html @mem_usage.render().el
-        @.$('.chart.cluster-performance').html @cluster_performance.render().el
-
+    render: (route) =>
+        log_render '(rendering) NavBarView'
+        @.$el.html @template()
+        # set active tab
+        if route?
+            @.$('ul.nav li').removeClass('active')
+            if route is 'route:dashboard'
+                $('ul.nav li#nav-dashboard').addClass('active')
+            else if route is 'route:index_namespaces'
+                $('ul.nav li#nav-namespaces').addClass('active')
+            else if route is 'route:index_datacenters'
+                $('ul.nav li#nav-datacenters').addClass('active')
+            else if route is 'route:index_machines'
+                $('ul.nav li#nav-machines').addClass('active')
+        
+        if @first_render?
+            # Initialize typeahead
+            @init_typeahead()
+            @first_render = false
+        
         return @
 
 # Router for Backbone.js
@@ -232,61 +199,56 @@ class BackboneCluster extends Backbone.Router
 
         @dashboard_view = new DashboardView
 
+        @navbar_view = new NavBarView
+
         # Add and render the sidebar (visible across all views)
         @$sidebar = $('#sidebar')
         window.sidebar = new Sidebar.Container()
         @sidebar = window.sidebar
         @render_sidebar()
 
+        # Render navbar for the first time
+        @render_navbar()
+
         @resolve_issues_view = new ResolveIssuesView.Container
         @events_view = new EventsView.Container
 
     render_sidebar: -> @$sidebar.html @sidebar.render().el
+    render_navbar: -> $('#navbar-container').html @navbar_view.render().el
 
     index_namespaces: ->
         log_router '/index_namespaces'
         clear_modals()
-        $('ul.nav li').removeClass('active')
-        $('ul.nav li#nav-namespaces').addClass('active')
         @$container.html @namespaces_cluster_view.render().el
 
     index_datacenters: ->
         log_router '/index_datacenters'
         clear_modals()
-        $('ul.nav li').removeClass('active')
-        $('ul.nav li#nav-datacenters').addClass('active')
         @$container.html @datacenters_cluster_view.render().el
 
     index_machines: ->
         log_router '/index_machines'
         clear_modals()
-        $('ul.nav li').removeClass('active')
-        $('ul.nav li#nav-machines').addClass('active')
         @$container.html @machines_cluster_view.render().el
 
     dashboard: ->
         log_router '/dashboard'
         clear_modals()
-        $('ul.nav li').removeClass('active')
-        $('ul.nav li#nav-dashboard').addClass('active')
         @$container.html @dashboard_view.render().el
 
     resolve_issues: ->
         log_router '/resolve_issues'
         clear_modals()
-        $('ul.nav li').removeClass('active')
         @$container.html @resolve_issues_view.render().el
 
     events: ->
         log_router '/events'
         clear_modals()
-        $('ul.nav li').removeClass('active')
         @$container.html @events_view.render().el
 
     namespace: (id) ->
         log_router '/namespaces/' + id
         clear_modals()
-        $('ul.nav li').removeClass('active')
 
         # Helper function to build the namespace view
         build_namespace_view = (namespace) =>
@@ -302,7 +264,6 @@ class BackboneCluster extends Backbone.Router
     datacenter: (id) ->
         log_router '/datacenters/' + id
         clear_modals()
-        $('ul.nav li').removeClass('active')
 
         # Helper function to build the datacenter view
         build_datacenter_view = (datacenter) =>
@@ -319,7 +280,6 @@ class BackboneCluster extends Backbone.Router
     machine: (id) ->
         log_router '/machines/' + id
         clear_modals()
-        $('ul.nav li').removeClass('active')
 
         # Helper function to build the machine view
         build_machine_view = (machine) =>
@@ -347,14 +307,14 @@ declare_client_connected = ->
 
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
-        if (data)
-            if (collection.get(id))
+        if data
+            if collection.get(id)
                 collection.get(id).set(data)
             else
                 data.id = id
                 collection.add(new collection.model(data))
         else
-            if (collection.get(id))
+            if collection.get(id)
                 collection.remove(id)
 
 add_protocol_tag = (data, tag) ->
@@ -397,8 +357,7 @@ apply_diffs = (updates) ->
                 console.log "Unhandled element update: " + updates
     return
 
-set_issues = (issue_data_from_server) ->
-    issues.reset(_.map(issue_data_from_server, (issue) -> {critical: false, type: "master_down", time: ISODateString}))
+set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
 
 set_directory = (attributes_from_server) ->
     # Convert directory representation from RethinkDB into backbone friendly one
@@ -448,11 +407,14 @@ $ ->
     # This object is for events triggered by views on the router; this exists because the router is unavailable when first initializing
     window.app_events = {}
 
+    # Create the app
     window.app = new BackboneCluster
-    Backbone.history.start()
 
     # Signal that the router is ready to be bound to
     $(window.app_events).trigger('on_ready')
+
+    # Now that we're all bound, start routing
+    Backbone.history.start()
 
     setInterval (-> Backbone.sync 'read', null), updateInterval
     declare_client_connected()

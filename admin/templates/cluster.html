@@ -12,6 +12,31 @@
         <link rel="stylesheet" type="text/css" href="gen/cluster.css" />
 
         <!-- handlebars templates -->
+        <script id="navbar_view-template" type="text/x-handlebars-template">
+          <div id="topbar" class="navbar">
+            <div class="navbar-inner">
+              <div class="container">
+                <a class="brand" href="#">RethinkDB Administration Console</a>
+                <ul class="nav">
+                  <li id="nav-dashboard"><a href="#dashboard">Dashboard</a></li>
+                  <li id="nav-namespaces"><a href="#namespaces">Namespaces</a></li>
+                  <li id="nav-datacenters"><a href="#datacenters">Datacenters</a></li>
+                  <li id="nav-machines"><a href="#machines">Machines</a></li>
+                </ul>
+
+                <ul class="right-nav nav pull-right">
+                  <li class="divider-vertical"></li>
+                  <li>
+                    <form class="navbar-search pull-right">
+                      <input type="text" class="search-query" placeholder="Search" data-provide="typeahead">
+                    </form>
+                  </li>
+                </ul>
+              </div><!-- /container -->
+            </div><!-- /navbar-inner -->
+          </div><!-- /navbar -->
+        </script>
+
         <script id="dashboard_view-template" type="text/x-handlebars-template">
             <h1>Cluster dashboard</h1>
             <div class="section">
@@ -83,15 +108,6 @@
             {{/each}}
         </script>
 
-        <script id="status_panel_view-template" type="text/x-handlebars-template">
-            {{#if client_disconnected}}
-                <a class="disconnected" href="#">Disconnected</a>
-            {{else}}
-                <a class="connected" href="#">Connected to:</a><br />
-                <span style="margin-left: 10px">{{contact_machine_name}}</span>
-            {{/if}}
-        </script>
-
         <!-- Cluster view -->
         <script id="namespaces_container-template" type="text/x-handlebars-template">
             <h1>Namespaces overview</h1>
@@ -145,7 +161,6 @@
 
         <script id="cluster_view-machine_list-template" type="text/x-handlebars-template">
             <div class="actions-bar">
-                <a href="#" class="btn for-multiple-elements disabled suspend-machine">Suspend machines</a>
                 <a href="#" class="btn for-multiple-elements disabled set-datacenter">Set datacenter</a>
             </div>
             <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
@@ -496,7 +511,6 @@
         </script>
 
     <script id="modify_shards_modal-sharding_plan-edit_datacenter-template" type="text/x-handlebars-template">
-    {{debug}}
     <td class="name"><h4>{{name}}</h4></td>
     <td class="machines">
         <p class="delta">
@@ -649,28 +663,14 @@
         </script>
 
         <!-- Sidebar -->
-        <script id="sidebar-connectivity-status-template" type="text/x-handlebars-template">
-          <h5 class="cluster">Cluster status</h5>
-          <div class="connectivity-info">
-            <p class="metrics"><strong>{{machines_active}}</strong> of <strong>{{machines_total}}</strong> machines reachable.</p>
-            <p class="metrics"><strong>{{datacenters_active}}</strong> of <strong>{{datacenters_total}}</strong> data centers reachable.</p>
-          </div>
-        </script>
         <script id="sidebar-container-template" type="text/x-handlebars-template">
             <div class="section cluster-status">
-                <div id="client-connectivity-status-placeholder"></div>
-                <h5 class="critical">Critical issues</h5>
-                <div class="critical-issues"></div>
-                <h5 class="other">Other issues</h5>
-                <div class="other-issues"></div>
-                {{#if show_resolve_issues}}
-                <div class="resolve-issues">
-                    <p><a href="#resolve_issues">Resolve issues</a></p>
-                </div>
-                {{/if}}
+                <div class="client-connection-status"></div>
+                <hr />
+                <div class="issues"></div>
                 <hr />
                 <!-- Connectivity status goes here -->
-                <div id="sidebar-connectivity-status-placeholder">
+                <div class="connectivity-status">
                 </div>
             </div>
             <div class="section last">
@@ -679,13 +679,51 @@
                 <p><a href="#events">See all recent events &rarr;</a></p>
             </div>
         </script>
-        <script id="sidebar-critical_issue-template" type="text/x-handlebars-template">
-            <div class="priority"></div>
-            <div class="message">{{message}}</div>
+        <script id="sidebar-client_connection_status-template" type="text/x-handlebars-template">
+            {{#if disconnected}}
+                <h5 class="connection disconnected">Disconnected</h5>
+            {{else}}
+                <h5 class="connection connected">Connected to:</h5>
+                <h5 class="connected-to">{{machine_name}} in {{datacenter_name}}</h5>
+            {{/if}}
         </script>
-        <script id="sidebar-other_issues-template" type="text/x-handlebars-template">
-            <div class="priority"></div>
-            <div class="message">{{message}}</div>
+        <script id="sidebar-issues-template" type="text/x-handlebars-template">
+            {{#if critical_issues.exist}}
+                <h5 class="critical">Critical issues</h5>
+                <div class="critical-issues">
+                {{#each critical_issues.types}}
+                    <div class="critical-issues">
+                        <div class="priority"></div>
+                        <div class="message">
+                            {{#if MACHINE_DOWN}}{{num}} machine{{pluralize_noun num}} {{pluralize_verb_to_be num}} down{{/if}}
+                        </div>
+                    </div>
+                {{/each}}
+                </div>
+            {{/if}}
+            {{#if other_issues.exist}}
+                <h5 class="other">Non-critical issues</h5>
+                <div class="critical-issues">
+                    <div class="priority"></div>
+                    <div class="message">
+                        {{other_issues.num}} other issue{{pluralize_noun num_other_issues}}
+                    </div>
+                </div>
+            {{/if}}
+            {{#if no_issues}}
+                <h5 class="no-issues">No issues reported</h5>
+            {{else}}
+                {{#if show_resolve_issues}}
+                    <p class="resolve-issues"><a href="#resolve_issues">Resolve issues</a></p>
+                {{/if}}
+            {{/if}}
+        </script>
+        <script id="sidebar-connectivity_status-template" type="text/x-handlebars-template">
+          <h5 class="cluster">Cluster status</h5>
+          <div class="connectivity-info">
+            <p class="metrics"><strong>{{machines_active}}</strong> of <strong>{{machines_total}}</strong> machines reachable.</p>
+            <p class="metrics"><strong>{{datacenters_active}}</strong> of <strong>{{datacenters_total}}</strong> data centers reachable.</p>
+          </div>
         </script>
         <script id="sidebar-event-template" type="text/x-handlebars-template">
             <div class="priority {{priority}}"></div>
@@ -696,39 +734,92 @@
         <!-- Resolve issues view -->
         <script id="resolve_issues-container-template" type="text/x-handlebars-template">
             <h1>Resolve issues</h1>
-            <div class="issues"></div>
-            <a class="btn large danger">Resolve these issues</a>
+            {{#if issues_exist}}
+                <div class="issues"></div>
+                <a class="btn large danger">Resolve these issues</a>
+            {{else}}
+                <p class="no-issues">No issues reported in the cluster.</p>
+            {{/if}}
         </script>
-        <script id="resolve_issues-issue-template" type="text/x-handlebars-template">
+        <script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
             <div class="issue {{#if critical }}critical{{/if}}">
                 <div class="header">
-                    <h3 class="title">
-                        {{#if master_down}}
-                            Master for shard <a href="#resolve_issues">{{shard}}</a> on namespace <a href="#namespaces/{{namespace_uuid}}">{{namespace}}</a> is down.
-                        {{else}}
-                            {{title}}
-                        {{/if}}
-                    </h3>
+                    <h3 class="title">Machine {{name}} is unreachable.</h3>
                     {{#if datetime}}
                         <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
                     {{/if}}
                 </div>
                 <hr />
-                {{#if details}}
-                    <ul class="details">
-                        {{#each details}}
-                            <li>{{{this}}}</li>
-                        {{/each}}
-                    </ul>
-                {{/if}}
-                {{#if resolution}}
-                    <div class="resolution">
-                        {{#with resolution}}
-                            <h4>Suggested resolution</h4>
-                            <p>Move master for shard a-k to: <strong>magneto</strong> (<a href="#resolve_issues">change</a>)</p>
-                        {{/with}}
-                    </div>
-                {{/if}}
+                <h4>This machine is responsible for the following namespaces:</h4>
+                <ul>
+                {{#each masters}}
+                    <li>This machine acts as a master for the namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+                {{/each}}
+                {{#each replicas}}
+                    <li>This machine acts as a replica for the namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+                {{/each}}
+                </ul>
+            </div>
+        </script>
+        <script id="resolve_issues-name_conflict-template" type="text/x-handlebars-template">
+            <div class="issue {{#if critical }}critical{{/if}}">
+                <div class="header">
+                    <h3 class="title">The name {{name}} is used by more than one {{type}}.</h3>
+                    {{#if datetime}}
+                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+                    {{/if}}
+                </div>
+                <hr />
+                <h4>{{capitalize type}}{{pluralize_noun num_contestants}} with the name {{name}}:</h4>
+                <ul>
+                {{#each contestants}}
+                <li><a href="#{{type}}{{pluralize_noun}}/{{uuid}}">{{uuid}}</a></li>
+                {{/each}}
+                </ul>
+            </div>
+        </script>
+        <script id="resolve_issues-persistence-template" type="text/x-handlebars-template">
+            <div class="issue {{#if critical }}critical{{/if}}">
+                <div class="header">
+                    <h3 class="title">Persistence has been lost.</h3>
+                    {{#if datetime}}
+                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+                    {{/if}}
+                </div>
+                <hr />
+            </div>
+        </script>
+        <script id="resolve_issues-vclock_conflict-template" type="text/x-handlebars-template">
+            <div class="issue {{#if critical }}critical{{/if}}">
+                <div class="header">
+                    <h3 class="title">Metadata problem (vclock).</h3>
+                    {{#if datetime}}
+                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+                    {{/if}}
+                </div>
+                <hr />
+            </div>
+        </script>
+        <script id="resolve_issues-pinnings_shards_mismatch-template" type="text/x-handlebars-template">
+            <div class="issue {{#if critical }}critical{{/if}}">
+                <div class="header">
+                    <h3 class="title">The current machine assignment conflicts with the sharding scheme for the namespace <a href="#namespaces/{{namespace_uuid}}">{{namespace_name}}</a>.</h3>
+                    {{#if datetime}}
+                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+                    {{/if}}
+                </div>
+                <hr />
+            </div>
+        </script>
+        <script id="resolve_issues-unknown-template" type="text/x-handlebars-template">
+            <div class="issue {{#if critical }}critical{{/if}}">
+                <div class="header">
+                    <h3 class="title">Unknown issue: {{issue_type}}</h3>
+                    {{#if datetime}}
+                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+                    {{/if}}
+                </div>
+                <hr />
             </div>
         </script>
 
@@ -919,79 +1010,79 @@
             </div>
         </script>
 
-    <script id="modify_replica_modal-replica_plan-shard-template" type="text/x-handlebars-template">
-    <td class="name"><h4>{{name}}</h4></td>
-    <td class="machines">
-        <p class="existing-primary">Primary replica for this shard: <a href='/#machines/{{existing_primary_machine.id}}'>{{existing_primary_machine.name}}</a></p>
-        <p class="existing-secondaries">
-            Secondary replicas for this shard:
-            {{#comma_separated existing_secondary_machines}}<input type="hidden" name="machine_for_{{shard_index}}" value="{{machine.id}}"><a href='/#machines/{{machine.id}}'>{{machine.name}}</a>{{/comma_separated}}
-        </p>
-    </td>
-    <td class="change-machines">
-        (<a class="edit" href="#">change</a>)
-    </td>
-    </script>
+        <script id="modify_replica_modal-replica_plan-shard-template" type="text/x-handlebars-template">
+            <td class="name"><h4>{{name}}</h4></td>
+            <td class="machines">
+                <p class="existing-primary">Primary replica for this shard: <a href='/#machines/{{existing_primary_machine.id}}'>{{existing_primary_machine.name}}</a></p>
+                <p class="existing-secondaries">
+                    Secondary replicas for this shard:
+                    {{#comma_separated existing_secondary_machines}}<input type="hidden" name="machine_for_{{shard_index}}" value="{{machine.id}}"><a href='/#machines/{{machine.id}}'>{{machine.name}}</a>{{/comma_separated}}
+                </p>
+            </td>
+            <td class="change-machines">
+                (<a class="edit" href="#">change</a>)
+            </td>
+        </script>
 
-    <script id="modify_replica_modal-replica_plan-edit_shard-template" type="text/x-handlebars-template">
-    <td class="name"><h4>{{name}}</h4></td>
-    <td class="machines">
-        <div class="delta">
-            <p>Primary replica for this shard:</p>
-                {{#with primary_machine_dropdown}}
-                    <select name="machine_for_{{shard_index}}" class="small primary-for-replica">
-                    {{#each available_machines}}
-                        <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
+        <script id="modify_replica_modal-replica_plan-edit_shard-template" type="text/x-handlebars-template">
+            <td class="name"><h4>{{name}}</h4></td>
+            <td class="machines">
+                <div class="delta">
+                    <p>Primary replica for this shard:</p>
+                        {{#with primary_machine_dropdown}}
+                            <select name="machine_for_{{shard_index}}" class="small primary-for-replica">
+                            {{#each available_machines}}
+                                <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
+                            {{/each}}
+                            </select>
+                        {{/with}}
+                    <p>Secondary replicas for this shard:</p>
+                    {{#each secondary_machine_dropdowns}}
+                        <select name="machine_for_{{shard_index}}" class="small secondary-for-replica">
+                        {{#each available_machines}}
+                            <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
+                        {{/each}}
+                        </select>
                     {{/each}}
-                    </select>
-                {{/with}}
-            <p>Secondary replicas for this shard:</p>
-            {{#each secondary_machine_dropdowns}}
-                <select name="machine_for_{{shard_index}}" class="small secondary-for-replica">
-                {{#each available_machines}}
-                    <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
-                {{/each}}
-                </select>
-            {{/each}}
-        </div>
-    </td>
-    </script>
+                </div>
+            </td>
+        </script>
 
-    <script id="modify_replicas_review_changes-modal-template" type="text/x-handlebars-template">
-    <div class="modal modify-replicas">
-        <form class="form">
-        <input type="hidden" name="datacenter" value="{{datacenter.id}}">
-        <div class="modal-header">
-            <a href="#" class="close">&times;</a>
-            <h3>Replication for namespace <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a> in datacenter <a href="/#datacenters/{{datacenter.id}}">{{datacenter.name}}</a></h3>
-        </div>
-        <div class="modal-body">
-            <div class="replica-plan">
-            {{#if replicas.adding}}
-                <h4 class="replicas">Adding {{replicas.num_changed}} replicas</h4>
-            {{else}}
-                {{#if replicas.removing}}
-                <h4>Removing {{replicas.num_changed}} replicas</h4>
-                {{else}}
-                <h4>No replica changes</h4>
-                {{/if}}
-            {{/if}}
-            <table class="shards">
-                <tbody>
-                </tbody>
-            </table>
-            <h5 class="acks">Replicas on this datacenter will require {{acks.num}} acks.</h5>
+        <script id="modify_replicas_review_changes-modal-template" type="text/x-handlebars-template">
+            <div class="modal modify-replicas">
+                <form class="form">
+                <input type="hidden" name="datacenter" value="{{datacenter.id}}">
+                <div class="modal-header">
+                    <a href="#" class="close">&times;</a>
+                    <h3>Replication for namespace <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a> in datacenter <a href="/#datacenters/{{datacenter.id}}">{{datacenter.name}}</a></h3>
+                </div>
+                <div class="modal-body">
+                    <div class="replica-plan">
+                    {{#if replicas.adding}}
+                        <h4 class="replicas">Adding {{replicas.num_changed}} replicas</h4>
+                    {{else}}
+                        {{#if replicas.removing}}
+                        <h4>Removing {{replicas.num_changed}} replicas</h4>
+                        {{else}}
+                        <h4>No replica changes</h4>
+                        {{/if}}
+                    {{/if}}
+                    <table class="shards">
+                        <tbody>
+                        </tbody>
+                    </table>
+                    <h5 class="acks">Replicas on this datacenter will require {{acks.num}} acks.</h5>
+                    </div>
+                    <input type="hidden" name="num_acks" value="{{acks.num}}">
+                    <input type="hidden" name="num_replicas" value="{{replicas.num}}">
+                </div>
+                <div class="modal-footer">
+                    <a href="#" class="btn commit-plan primary">Commit changes</a>
+                    <a href="#" class="btn modify-replicas cancel">Cancel</a>
+                </div>
+                </form>
             </div>
-            <input type="hidden" name="num_acks" value="{{acks.num}}">
-            <input type="hidden" name="num_replicas" value="{{replicas.num}}">
-        </div>
-        <div class="modal-footer">
-            <a href="#" class="btn commit-plan primary">Commit changes</a>
-            <a href="#" class="btn modify-replicas cancel">Cancel</a>
-        </div>
-        </form>
-    </div>
-    </script>
+        </script>
 
         <script id="add_datacenter-modal-template" type="text/x-handlebars-template">
             <div class="modal add-datacenter">
@@ -1130,6 +1221,7 @@
         <script type="text/javascript" src="js/bootstrap/bootstrap-tab.js"></script>
         <script type="text/javascript" src="js/bootstrap/bootstrap-modal.js"></script>
         <script type="text/javascript" src="js/bootstrap/bootstrap-alert.js"></script>
+        <script type="text/javascript" src="js/bootstrap/bootstrap-typeahead.js"></script>
         <script type="text/javascript" src="js/jquery.sparkline.min.js"></script>
         <script type="text/javascript" src="js/jquery.validate.min.js"></script>
         <script type="text/javascript" src="js/jquery.hotkeys.js"></script>
@@ -1145,29 +1237,7 @@
         </script>
     </head>
     <body>
-        <div id="topbar" class="navbar">
-            <div class="navbar-inner">
-                <div class="container">
-                    <a class="brand" href="#">RethinkDB Administration Console</a>
-                    <ul class="nav">
-                        <li id="nav-dashboard"><a href="#dashboard">Dashboard</a></li>
-                        <li id="nav-namespaces"><a href="#namespaces">Namespaces</a></li>
-                        <li id="nav-datacenters"><a href="#datacenters">Datacenters</a></li>
-                        <li id="nav-machines"><a href="#machines">Machines</a></li>
-                    </ul>
-
-                    <ul class="right-nav nav pull-right">
-                        <li class="divider-vertical"></li>
-                        <li>
-                            <form class="navbar-search pull-right">
-                                <input type="text" class="search-query" placeholder="Search">
-                            </form>
-                        </li>
-                    </ul>
-                </div><!-- /container -->
-            </div><!-- /navbar-inner -->
-        </div><!-- /navbar -->
-
+        <div id="navbar-container"></div>
         <div id="dev-tools">
             <h3>Development tools</h3>
             <div id="live-data" class="btn" href="#">Pause live data feed</div>

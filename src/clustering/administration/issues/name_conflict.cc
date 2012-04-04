@@ -22,7 +22,7 @@ cJSON *name_conflict_issue_t::get_json_description() {
         json.description += uuid_to_str(*it) + "; ";
     }
     json.type.issue_type = NAME_CONFLICT_ISSUE;
-    json.time = get_ticks();
+    json.time = get_secs();
 
     cJSON *res = render_as_json(&json, 0);
 
