@@ -1,9 +1,7 @@
-#ifndef CONTAINERS_ARCHIVE_HPP_
-#define CONTAINERS_ARCHIVE_HPP_
+#ifndef CONTAINERS_ARCHIVE_ARCHIVE_HPP_
+#define CONTAINERS_ARCHIVE_ARCHIVE_HPP_
 
 #include "errors.hpp"
-#include "arch/address.hpp"
-#include "arch/types.hpp"
 #include "containers/intrusive_list.hpp"
 
 class read_stream_t {
@@ -59,22 +57,5 @@ private:
     DISABLE_COPYING(write_message_t);
 };
 
-// TODO: Move this and "arch/..." inclusions to a separate header.
-class tcp_conn_stream_t : public read_stream_t, public write_stream_t {
-public:
-    tcp_conn_stream_t(const char *host, int port, int local_port = 0);
-    tcp_conn_stream_t(const ip_address_t &host, int port, int local_port = 0);
-    virtual ~tcp_conn_stream_t();
 
-    virtual int64_t read(void *p, int64_t n);
-    virtual int64_t write(const void *p, int64_t n);
-
-private:
-    tcp_conn_t *conn_;
-
-    DISABLE_COPYING(tcp_conn_stream_t);
-};
-
-
-
-#endif  // CONTAINERS_ARCHIVE_HPP_
+#endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

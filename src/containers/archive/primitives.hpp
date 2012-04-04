@@ -1,6 +1,8 @@
 #ifndef CONTAINERS_ARCHIVE_PRIMITIVES_HPP_
 #define CONTAINERS_ARCHIVE_PRIMITIVES_HPP_
 
+#include <stdint.h>
+
 #include "containers/archive/archive.hpp"
 
 #define ARCHIVE_PRIM_WRITE(typ)                                         \
