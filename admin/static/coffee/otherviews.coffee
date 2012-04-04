@@ -391,7 +391,6 @@ module 'ResolveIssuesView', ->
             'NAME_CONFLICT_ISSUE': Handlebars.compile $('#resolve_issues-name_conflict-template').html()
             'PERSISTENCE_ISSUE': Handlebars.compile $('#resolve_issues-persistence-template').html()
             'VCLOCK_CONFLICT': Handlebars.compile $('#resolve_issues-vclock_conflict-template').html()
-            'PINNINGS_SHARDS_MISMATCH': Handlebars.compile $('#resolve_issues-pinnings_shards_mismatch-template').html()
 
         unknown_issue_template: Handlebars.compile $('#resolve_issues-unknown-template').html()
 
@@ -443,12 +442,6 @@ module 'ResolveIssuesView', ->
                         datetime: iso_date_from_unix_time @model.get('time')
                 when 'VCLOCK_CONFLICT'
                     json =
-                        datetime: iso_date_from_unix_time @model.get('time')
-                when 'PINNINGS_SHARDS_MISMATCH'
-                    namespace = namespaces.get @model.get('offending_namespace')
-                    json =
-                        namespace_name: namespace.get('name')
-                        namespace_uuid: namespace.get('id')
                         datetime: iso_date_from_unix_time @model.get('time')
                 else
                     _template = @unknown_issue_template

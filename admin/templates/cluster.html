@@ -723,17 +723,6 @@
                 <hr />
             </div>
         </script>
-        <script id="resolve_issues-pinnings_shards_mismatch-template" type="text/x-handlebars-template">
-            <div class="issue {{#if critical }}critical{{/if}}">
-                <div class="header">
-                    <h3 class="title">The current machine assignment conflicts with the sharding scheme for the namespace <a href="#namespaces/{{namespace_uuid}}">{{namespace_name}}</a>.</h3>
-                    {{#if datetime}}
-                        <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
-                    {{/if}}
-                </div>
-                <hr />
-            </div>
-        </script>
         <script id="resolve_issues-unknown-template" type="text/x-handlebars-template">
             <div class="issue {{#if critical }}critical{{/if}}">
                 <div class="header">
