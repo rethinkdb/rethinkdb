@@ -88,6 +88,11 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
             );
     global_issue_aggregator_t::source_t dummy__pinnings_shards_mismatch_issue_tracker_feed(&issue_aggregator, &dummy_pinnings_shards_mismatch_issue_tracker);
 
+    last_seen_tracker_t last_seen_tracker(
+        metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
+        translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id)))
+        );
+
     for (int i = 0; i < (int)joins.size(); i++) {
         connectivity_cluster_run.join(joins[i]);
     }
@@ -129,6 +134,7 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
         semilattice_manager_cluster.get_root_view(),
         directory_manager.get_root_view(),
         &issue_aggregator,
+        &last_seen_tracker,
         machine_id,
         web_assets);
 
