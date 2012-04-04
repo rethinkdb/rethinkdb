@@ -313,8 +313,8 @@ module 'ClusterView', ->
             stuff = super()
             # status
             stuff.status = "Unreachable"
-            for m in directory.models
-                if m.get('id') == @model.get('id')
+            directory.each (m) =>
+                if m.get('id') is @model.get('id')
                     stuff.status = "Reachable"
 
             # ip

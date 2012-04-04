@@ -98,74 +98,76 @@ module 'MachineView', ->
         initialize: ->
             log_initial '(initializing) machine view: container'
 
-            # Sparkline for CPU
-            @cpu_sparkline =
-                data: []
-                total_points: 30
-                update_interval: 750
-            @cpu_sparkline.data[i] = 0 for i in [0...@cpu_sparkline.total_points]
+            #@model.on 'change', @update_meters
 
-            # Performance graph (flot)
-            @performance_graph =
-                data: []
-                total_points: 75
-                update_interval: 750
-                options:
-                    series:
-                        shadowSize: 0
-                    yaxis:
-                        min: 0
-                        max: 10000
-                    xaxis:
-                        show: true
-                        min: 0
-                        max: 75
-                plot: null
-            @performance_graph.data[i] = 0 for i in [0..@performance_graph.total_points]
-
-            @model.on 'change', @update_meters
-
-            setInterval @update_sparklines, @cpu_sparkline.update_interval
-            setInterval @update_graphs, @performance_graph.update_interval
+            #setInterval @update_sparklines, @cpu_sparkline.update_interval
+            #setInterval @update_graphs, @performance_graph.update_interval
 
         render: =>
             log_render '(rendering) machine view: container'
 
-            @.$el.html @template @model.toJSON()
+            datacenter_uuid = @model.get('datacenter_uuid')
+            directory_listing = directory.get(@model.get('id'))
+            json =
+                name: @model.get('name')
+                ip: "192.168.1.#{Math.round(Math.random() * 255)}" # Fake IP, replace with real data TODO
+                datacenter_uuid: datacenter_uuid
+
+            # If the machine is assigned to a datacenter, add relevant json
+            if datacenter_uuid?
+                json = _.extend json,
+                    assigned_to_datacenter: datacenter_uuid
+                    datacenter_name: datacenters.get(datacenter_uuid).get('name')
+
+            # If the machine is reachable, add relevant json
+            if directory_listing?
+                console.log directory_listing.get('memcached_namespaces')
+                namespaces_on_this_machine = directory_listing.get('memcached_namespaces').reactor_bcards
+                json = _.extend json,
+                    is_reachable: true
+                    data:
+                        namespaces: _.map(namespaces_on_this_machine, (shard_roles, namespace_uuid) ->
+                            name: namespaces.get(namespace_uuid).get('name')
+                            shards: _.map(shard_roles, (role, shard) ->
+                                name: shard
+                                status: role
+                            )
+                        )
+            @.$el.html @template json
 
             return @
 
         # Update the sparkline data and render a new sparkline for the view
-        update_sparklines: =>
-            @cpu_sparkline.data = @cpu_sparkline.data.slice(1)
-            @cpu_sparkline.data.push @model.get 'cpu'
-            @.$('.cpu-graph').sparkline(@cpu_sparkline.data)
+        #update_sparklines: =>
+            #@cpu_sparkline.data = @cpu_sparkline.data.slice(1)
+            #@cpu_sparkline.data.push @model.get 'cpu'
+            #@.$('.cpu-graph').sparkline(@cpu_sparkline.data)
 
         # Update the performance data and render a graph for the view
-        update_graphs: =>
-            @performance_graph.data = @performance_graph.data.slice(1)
-            @performance_graph.data.push @model.get 'iops'
+        #update_graphs: =>
+            #@performance_graph.data = @performance_graph.data.slice(1)
+            #@performance_graph.data.push @model.get 'iops'
             # TODO: consider making this a utility function: enumerate
             # Maps the graph data y-values to x-values (zips them up) and sets the data
-            data = _.map @performance_graph.data, (val, i) -> [i, val]
+            #data = _.map @performance_graph.data, (val, i) -> [i, val]
 
 
             # If the plot isn't in the DOM yet, create the initial plot
-            if not @performance_graph.plot?
-                @performance_graph.plot = $.plot($('#performance-graph'), [data], @performance_graph.options)
-                window.graph = @performance_graph
+            #if not @performance_graph.plot?
+            #    @performance_graph.plot = $.plot($('#performance-graph'), [data], @performance_graph.options)
+            #    window.graph = @performance_graph
             # Otherwise, set the updated data and draw the plot again
-            else
-                @performance_graph.plot.setData [data]
-                @performance_graph.plot.draw() if not pause_live_data
+            #else
+            #    @performance_graph.plot.setData [data]
+            #    @performance_graph.plot.draw() if not pause_live_data
 
         # Update the meters
-        update_meters: =>
-            $('.meter > span').each ->
-                $(this)
-                    .data('origWidth', $(this).width())
-                    .width(0)
-                    .animate width: $(this).data('origWidth'), 1200
+        #update_meters: =>
+            #$('.meter > span').each ->
+            #    $(this)
+            #        .data('origWidth', $(this).width())
+            #        .width(0)
+            #        .animate width: $(this).data('origWidth'), 1200
 
 # Datacenter view
 module 'DatacenterView', ->
@@ -179,13 +181,22 @@ module 'DatacenterView', ->
 
         render: =>
             log_render('(rendering) datacenter view: container')
-            # Add a list of machines that belong to this datacenter to the json
-            json = @model.toJSON()
-            # Filter all the machines for those belonging to this datacenter, then return an array of their JSON representations
-            json.machines = _.map _.filter(machines.models, (machine) => return machine.get('datacenter_uuid') == @model.id),
-                (machine) -> machine.toJSON()
-            @.$el.html @template json
 
+            # Filter all the machines for those belonging to this datacenter
+            machines_in_datacenter = machines.filter (machine) => return machine.get('datacenter_uuid') is @model.get('id')
+            # Machines we can actually reach in this datacenter
+            reachable_machines = directory.filter (m) => machines.get(m.get('id')).get('datacenter_uuid') is @model.get('id')
+
+            @.$el.html @template
+                name: @model.get('name')
+                machines: _.map(machines_in_datacenter, (machine) ->
+                    name: machine.get('name')
+                    id: machine.get('id')
+                    is_reachable: directory.get(machine.get('id'))?
+                )
+                total_machines: machines_in_datacenter.length
+                reachable_machines: reachable_machines.length
+                is_live: reachable_machines.length > 0
             return @
 
 # Sidebar view
@@ -278,13 +289,13 @@ module 'Sidebar', ->
         compute_connectivity: =>
             # data centers with machines
             dc_have_machines = []
-            for m in machines.models
+            machines.each (m) =>
                 if m.get('datacenter_uuid')
                     dc_have_machines[dc_have_machines.length] = m.get('datacenter_uuid')
             dc_have_machines = _.uniq(dc_have_machines)
             # data centers visible
             dc_visible = []
-            for m in directory.models
+            directory.each (m) =>
                 _m = machines.get(m.get('id'))
                 if _m and _m.get('datacenter_uuid')
                     dc_visible[dc_visible.length] = _m.get('datacenter_uuid')

@@ -216,77 +216,61 @@
         </script>
 
         <!-- Namespace view -->
-        <script id="namespace_view-profile-template" type="text/x-handlebars-template">
-            <h1>Namespace overview</h1>
+        <script id="namespace_view-container-template" type="text/x-handlebars-template">
+            <h1>Namespace overview for {{name}}</h1>
             <div id="user-alert-space"></div>
-            <div id="profile" class="panel">
-                <div class="title">
-                    <h3>Namespace profile</h3>
-                </div>
-                <div class="content">
-                    <div class="wrapper">
-                        <div id="summary">
-                            <h4>{{name}}</h4>
-                            <p class="protocol">Protocol: {{protocol}}</p>
-                            <p class="port">Port: {{port}}</p>
-                        </div>
-                    </div>
-                    <div class="wrapper">
-                        <div id="resources">
-                        </div>
-                    </div>
-                </div>
+            <h3 class="title">Namespace profile</h3>
+            <div class="section summary">
+                <p class="protocol">Protocol: {{protocol}}</p>
+                <p class="port">Port: {{port}}</p>
             </div>
+            <h3 class="title">Replication settings</h3>
+            <div class="section replication"></div>
+            <h3 class="title">Sharding settings</h3>
+            <div class="section sharding"></div>
         </script>
 
         <script id="namespace_view-replica-template" type="text/x-handlebars-template">
-            <div id="replica" class="panel">
-                <div class="title">
-                    <h3>Replication settings</h3>
-                </div>
-                <div class="content">
-                    <table class="datacenters table">
-                        <tr>
-                            <th>Name</th>
-                            <th>Replicas</th>
-                            <th>Write acks</th>
-                            <th>Health</th>
-                            <th>Command</th>
-                        </tr>
-                        <tr>
-                            <td colspan="5"><strong>Primary datacenter</strong></td>
-                        </tr>
-                        {{#with primary }}
-                        <tr>
-                            <td>{{name}}</td>
-                            <td>{{replicas}}</td>
-                            <td>{{acks}}</td>
-                            <td><font color="green">ok</font></td>
-                            <td><a id="edit-primary" href="#">Edit</a> | <a class="edit-machines {{this.id}}" href="#">Change machines</a></td>
-                        </tr>
-                        {{/with}}
-                        <tr>
-                            <td colspan="5"><strong>Secondary datacenters</strong></td>
-                        </tr>
-                        {{#each secondaries}}
-                        <tr>
-                            <td>{{name}}</td>
-                            <td>{{replicas}}</td>
-                            <td>{{acks}}</td>
-                            <td><font color="green">ok</td>
-                            <td><a class="edit-secondary {{this.id}}" href="#">Edit</a> | <a class="edit-machines {{this.id}}" href="#">Change machines</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a> | <a class="remove-secondary {{id}}" href="#">Remove</a></td>
-                        </tr>
-                        {{/each}}
-                    </table>
-                    <div id="add-secondary-datacenter">
-                        {{#if datacenters_left}}
-                            <a id="add-secondary-datacenter-button" href="#">Add secondary</a>
-                        {{/if}}
-                        {{#unless datacenters_left}}
-                            <p>We're replicating to all datacenters.</p>
-                        {{/unless}}
-                    </div>
-                </div>
+            <table class="datacenters table">
+                <tr>
+                    <th>Name</th>
+                    <th>Replicas</th>
+                    <th>Write acks</th>
+                    <th>Health</th>
+                    <th>Command</th>
+                </tr>
+                <tr>
+                    <td colspan="5"><strong>Primary datacenter</strong></td>
+                </tr>
+                {{#with primary }}
+                <tr>
+                    <td>{{name}}</td>
+                    <td>{{replicas}}</td>
+                    <td>{{acks}}</td>
+                    <td><font color="green">ok</font></td>
+                    <td><a id="edit-primary" href="#">Edit</a> | <a class="edit-machines {{this.id}}" href="#">Change machines</a></td>
+                </tr>
+                {{/with}}
+                <tr>
+                    <td colspan="5"><strong>Secondary datacenters</strong></td>
+                </tr>
+                {{#each secondaries}}
+                <tr>
+                    <td>{{name}}</td>
+                    <td>{{replicas}}</td>
+                    <td>{{acks}}</td>
+                    <td><font color="green">ok</td>
+                    <td><a class="edit-secondary {{this.id}}" href="#">Edit</a> | <a class="edit-machines {{this.id}}" href="#">Change machines</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a> | <a class="remove-secondary {{id}}" href="#">Remove</a></td>
+                </tr>
+                {{/each}}
+            </table>
+            <div id="add-secondary-datacenter">
+                {{#if datacenters_left}}
+                    <a id="add-secondary-datacenter-button" href="#">Add secondary</a>
+                {{/if}}
+                {{#unless datacenters_left}}
+                    <p>We're replicating to all datacenters.</p>
+                {{/unless}}
             </div>
         </script>
 
@@ -395,27 +379,20 @@
         </script>
 
         <script id="namespace_view-sharding-template" type="text/x-handlebars-template">
-            <div id="sharding" class="panel">
-                <div class="title">
-                    <h3>Sharding settings</h3>
-                </div>
-                <div class="content">
-                    <table class="shards table">
-                        <tbody>
-                            {{#each shards}}
-                                <tr>
-                                    <td class="name"><h4>{{lower}} to {{upper}}</h4></td>
-                                    <td class="status">
-                                        <p>4 of 5 replicas live</p>
-                                        <p>50.3 GB of data in this shard</p>
-                                    </td>
-                                </tr>
-                            {{/each}}
-                        </tbody>
-                    </table>
-                    <p><a class="edit" href="#">Change sharding scheme</a></p>
-                </div>
-            </div>
+            <table class="shards table">
+                <tbody>
+                    {{#each shards}}
+                        <tr>
+                            <td class="name"><h4>{{lower}} to {{upper}}</h4></td>
+                            <td class="status">
+                                <p>4 of 5 replicas live</p>
+                                <p>50.3 GB of data in this shard</p>
+                            </td>
+                        </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+            <p><a class="edit" href="#">Change sharding scheme</a></p>
         </script>
 
         <script id="modify_shards_modal-template" type="text/x-handlebars-template">
@@ -539,127 +516,73 @@
 
         <!-- Datacenter view -->
         <script id="datacenter_view-container-template" type="text/x-handlebars-template">
-            <h1>Datacenter overview</h1>
-            <div id="profile" class="panel">
-                <div class="title">
-                    <h3>Datacenter Profile</h3>
-                </div>
-                <div class="content">
-                    <div class="wrapper">
-                        <div id="summary">
-                            <h4>{{name}}</h4>
-                            <p class="status">Status: {{status}}</p>
-                        </div>
-                    </div>
-                    <div class="wrapper">
-                        <div id="resources">
-                            <p class="health">Health: {{health}}</p>
-                        </div>
-                    </div>
-                </div>
+            <h1>Datacenter overview for {{name}}</h1>
+            <h3 class="title">Datacenter profile</h3>
+            <div class="section summary">
+                <p class="status">Status: 
+                    {{#if is_live}}
+                        Live ({{reachable_machines}} of {{total_machines}} can be reached)
+                    {{else}}
+                        Down
+                    {{/if}}
+                </p>
+                <p>Machines:</p>
+                <ul>
+                  {{#each machines}}
+                      <li><a href='#machines/{{id}}'>{{name}}</a> {{#if is_reachable }} {{else}}(cannot be reached){{/if}}</li>
+                  {{/each}}
+                </ul>
             </div>
-            <div id="machines" class="panel">
-                <div class="title">
-                    <h3>Machines</h3>
-                </div>
-                <div class="content">
-                    <div id="machines">
-                      <ul>
-                        {{#each machines}}
-                          <li><a href='#machines/{{id}}'>{{name}}</a></li>
-                        {{/each}}
-                      </ul>
-                    </div>
-                </div>
-            </div>
-            <div id="recent-actions" class="panel">
-                <div class="title">
-                    <h3>Recent actions</h3>
-                </div>
-                <div class="content">
-                    <table class="table" cellpadding="0" cellspacing="0">
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <h3 class="title">Performance</h3>
+            <div class="section performance-graph"></div>
+            <h3 class="title">Recent actions</h3>
+            <div class="section recent-actions"></div>
         </script>
 
         <!-- Machine view -->
         <script id="machine_view-container-template" type="text/x-handlebars-template">
-            <h1>Machine overview</h1>
-            <div id="profile" class="panel">
-                <div class="title">
-                    <h3>System Profile</h3>
-                </div>
-                <div class="content">
-                    <div class="wrapper">
-                        <div id="summary">
-                            <h4>{{name}} ({{ip}})</h4>
-                            <p class="datacenter_name">Datacenter: <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a></p>
-                            <p class="status">Status: {{status}}</p>
-                        </div>
-                    </div>
-                    <div class="wrapper">
-                        <div id="resources">
-                            <p class="uptime">Uptime: {{uptime}}</p>
-                            <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
-                            <div class="ram meter"><span style="width: {{ram}}"></span></div>
-                            <p class="ram">RAM:</p>
-                            <div class="clearboth"></div>
-                            <div class="row">
-                                <div class="span6">
-                                    <div class="ram meter"><span style="width: {{ram}}"></span></div>
-                                </div>
-                                <div class="span10">
-                                <p class="disk">Disk:</p>
-                                </div>
-                                <div class="clearboth"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <h1>Machine overview for {{name}}</h1>
+            <h3 class="title">System profile</h3>
+            <div class="section summary">
+                <p class="datacenter-name">Datacenter:
+                    {{#if assigned_to_datacenter}}
+                        <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
+                    {{else}}
+                        Unassigned 
+                    {{/if}}
+                    <a class="set-datacenter" href="#">(change)</a>
+                </p>
+                <p>IP address: {{ip}}</p>
+                <p>
             </div>
-            <div class="row">
-                <div id="performance" class="span10">
-                    <div class="panel">
-                        <div class="title">
-                            <h3>Performance</h3>
-                        </div>
-                        <div class="content">
-                            <div id="performance-graph"></div>
-                            <div class="clearboth"></div>
-                            <p class="graph-controls">
-                                <a id="pause-graph" href="#">pause</a><a id="resume-graph" href="#">resume</a>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div id="data" class="span6">
-                    <div class="panel">
-                        <div class="title">
-                            <h3>Data</h3>
-                        </div>
-                        <div class="content">
-                            <table class="table" cellpadding="0" cellspacing="0">
-                                <tbody>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+            <h3 class="title">Resources</h3>
+            <div class="section system-resources">
+                <p class="uptime">Uptime: {{uptime}}</p>
+                <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
+                <p class="ram">RAM:</p>
+                <p class="disk">Disk:</p>
             </div>
-            <div id="recent-actions" class="panel">
-                <div class="title">
-                    <h3>Recent actions</h3>
-                </div>
-                <div class="content">
-                    <table class="table" cellpadding="0" cellspacing="0">
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
+            <h3 class="title">Performance</h3>
+            <div class="section performance-graph"></div>
+            <h3 class="title">Data on this machine</h3>
+            <div class="section data">
+                {{#if is_reachable}}
+                    {{#each data.namespaces}}
+                        <div class="namespace">
+                            <h4>Shards on namespace {{name}}:</h4>
+                            <ul>
+                            {{#each shards}}
+                                <li>{{name}}: {{role}}</li>
+                            {{/each}}
+                        </ul>
+                        </div>
+                    {{/each}}
+                {{else}}
+                    <p>This machine cannot be reached.</p>
+                {{/if}}
             </div>
+            <h3 class="title">Recent actions</h3>
+            <div class="section recent-actions"></div>
         </script>
 
         <!-- Sidebar -->

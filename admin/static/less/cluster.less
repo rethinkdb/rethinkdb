@@ -598,48 +598,15 @@
     Generic element view
     ----------------------------
 */
-.namespace-view, .datacenter-view, .machine-view, .dashboard-view {
-    @panel_padding: 0 20px;
-    .panel {
-        border: @panel_border;
-        .border-radius(@border_radius);
+.namespace-view, .datacenter-view, .machine-view {
+    .section {
+        border-bottom: thin solid #CCC;
+        padding-bottom: 10px;
         margin-bottom: 10px;
-
-        .title {
-            .border-radius(@border_radius);
-            .panel-gradient;
-            .border-radius(@border_radius @border_radius 0 0);
-            h3 {
-                line-height: 2.25em;
-            }
-            margin-bottom: 5px;
-            padding: @panel_padding;
-        }
-        .content {
-            padding: @panel_padding;
-        }
     }
 
-    #profile {
-        &:after { display: block; content: ""; clear: left; }
-        .wrapper {
-            width: 50%;
-            float: left;
-        }
-    }
-
-    #recent-actions table {
-        .table-striped;
-
-        td p {
-            color: @grayDark;
-            margin-bottom: 0;
-            line-height: 1.75em;
-        }
-
-        tr.last-child td {
-            border-bottom: 0;
-        }
+    h3.title {
+        margin-bottom: 10px;
     }
 }
 
@@ -658,17 +625,15 @@
         } 
     }
 
-    #sharding.panel {
-       table.shards {
-            margin-bottom: 15px;
-            td {
-                border-bottom: thin solid @grayLighter;
-                padding: 10px 0;
-                &.name {
-                    width: 15%;
-                }
-            } 
-        }
+   table.shards {
+        margin-bottom: 15px;
+        td {
+            border-bottom: thin solid @grayLighter;
+            padding: 10px 0;
+            &.name {
+                width: 15%;
+            }
+        } 
     }
 
     /* Override Bootstrap */
@@ -689,48 +654,6 @@
 */
 
 .machine-view {
-    #profile {
-        .meter {
-            height: 10px;
-            position: relative;
-            background: @grayLighter;
-            .border-radius(6px);
-            padding: 5px;
-            //.box-shadow(@shadow: 0px -1px 1px rgba(255,255,255,0,0.3));
-            float: right;
-            width: 100%;
-
-            span {
-                display: block;
-                height: 100%;
-                .border-radius(6px);
-                background-color: rgb(119,204,164);
-                // #gradient > .vertical(rgb(43, 194, 83), rgb(84,240,84));
-                // .box-shadow(@shadow: 0px 2px 9px rgba(255,255,255,0.3));
-                position: relative;
-                overflow: hidden;
-            }
-        }
-    }
-
-    #performance {
-        #performance-graph {
-            .center-block;
-            width: 90%;
-            height: 300px;
-            margin-top: 20px;
-        }
-
-        p.graph-controls {
-            line-height: 2.5em;
-            margin-top: 0.5em;
-            margin-left: 60px;
-
-            #resume-graph {
-                display: none;
-            }
-        }
-    }
 }
 
 /*
