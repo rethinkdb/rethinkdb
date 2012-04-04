@@ -4,6 +4,7 @@
 #include "utils.hpp"
 #include <boost/optional.hpp>
 
+#include "containers/archive/archive.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "stl_utils.hpp"
@@ -15,6 +16,9 @@ enum role_t {
     role_secondary,
     role_nothing
 };
+
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(role_t, uint8_t);
+
 } //namespace blueprint_details
 
 template<class protocol_t>

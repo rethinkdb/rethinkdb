@@ -5,11 +5,11 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <list>
 
-#include "containers/archive/primitives.hpp"
+#include "containers/archive/archive.hpp"
 
-// Implementations for pair, map, set, string, and vector.  list is
-// omitted because we should be optimistic.
+// Implementations for pair, map, set, string, and vector.
 
 template <class T, class U>
 write_message_t &operator<<(write_message_t &msg, const std::pair<T, U> &p) {
@@ -45,6 +45,7 @@ write_message_t &operator<<(write_message_t &msg, const std::set<T> &s) {
     return msg;
 }
 
+inline 
 write_message_t &operator<<(write_message_t &msg, const std::string &s) {
     const char *data = s.data();
     uint64_t sz = s.size();
@@ -59,6 +60,7 @@ template <class T>
 write_message_t &operator<<(write_message_t &msg, const std::vector<T> &v) {
     uint64_t sz = v.size();
 
+    msg << sz;
     for (typename std::vector<T>::const_iterator it = v.begin(), e = v.end(); it != e; ++it) {
         msg << *it;
     }
@@ -66,6 +68,17 @@ write_message_t &operator<<(write_message_t &msg, const std::vector<T> &v) {
     return msg;
 }
 
+// TODO: Stop using std::list! What are you thinking?
+template <class T>
+write_message_t &operator<<(write_message_t &msg, const std::list<T> &v) {
+    uint64_t sz = v.size();
+    msg << sz;
+    for (typename std::list<T>::const_iterator it = v.begin(), e = v.end(); it != e; ++it) {
+        msg << *it;
+    }
+
+    return msg;
+}
 
 
 

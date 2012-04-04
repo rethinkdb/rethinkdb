@@ -4,6 +4,8 @@
 #include "errors.hpp"
 #include <boost/intrusive_ptr.hpp>
 
+#include "containers/archive/archive.hpp"
+
 struct data_buffer_t {
 private:
     int64_t ref_count_;
@@ -46,6 +48,7 @@ inline void intrusive_ptr_release(data_buffer_t *buffer) {
         data_buffer_t::destroy(buffer);
     }
 }
+
 
 
 

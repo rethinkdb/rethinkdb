@@ -7,6 +7,8 @@
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/access.hpp>
 
+#include "containers/archive/archive.hpp"
+
 #define NEVER_FLUSH -1
 
 /* Configuration for the cache (it can all change from run to run) */
@@ -72,6 +74,18 @@ struct mirrored_cache_config_t {
         ar & max_concurrent_flushes;
         ar & io_priority_reads;
         ar & io_priority_writes;
+    }
+
+    void rdb_serialize(write_message_t &msg) const {
+        msg << max_size;
+        msg << wait_for_flush;
+        msg << flush_timer_ms;
+        msg << max_dirty_size;
+        msg << flush_dirty_size;
+        msg << flush_waiting_threshold;
+        msg << max_concurrent_flushes;
+        msg << io_priority_reads;
+        msg << io_priority_writes;
     }
 };
 

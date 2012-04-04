@@ -4,6 +4,8 @@
 #include "errors.hpp"
 #include <boost/serialization/split_member.hpp>
 
+#include "containers/archive/archive.hpp"
+
 /* `clone_ptr_t` is a smart pointer that calls the `clone()` method on its
 underlying object whenever the `clone_ptr_t`'s copy constructor is called. It's
 primarily useful when you have a type that effectively acts like a piece of
@@ -54,6 +56,18 @@ private:
         ar & object;
     }
     BOOST_SERIALIZATION_SPLIT_MEMBER()
+
+    friend class write_message_t;
+    void rdb_serialize(write_message_t &msg) const {
+        // clone pointers own their pointees exclusively, so we don't
+        // have to worry about replicating any boost pointer
+        // serialization bullshit.
+        bool exists = object;
+        msg << exists;
+        if (exists) {
+            msg << *object;
+        }
+    }
 
     T *object;
 };

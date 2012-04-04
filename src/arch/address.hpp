@@ -1,10 +1,12 @@
 #ifndef ARCH_ADDRESS_HPP_
 #define ARCH_ADDRESS_HPP_
 
+#include "utils.hpp" // (for UNUSED macro)
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/binary_object.hpp>
 #include <netinet/in.h>
-#include "utils.hpp" // (for UNUSED macro)
+
+#include "containers/archive/archive.hpp"
 
 /* ip_address_t represents an IPv4 address. */
 struct ip_address_t {
@@ -28,6 +30,11 @@ private:
         // Not really platform independent...
         boost::serialization::binary_object bin_addr(&addr, sizeof(in_addr));
         ar & bin_addr;
+    }
+
+    friend class write_message_t;
+    void rdb_serialize(write_message_t &msg) const {
+        msg.append(&addr, sizeof(addr));
     }
 };
 

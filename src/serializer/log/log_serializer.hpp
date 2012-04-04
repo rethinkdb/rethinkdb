@@ -81,12 +81,7 @@ public:
             : private_dynamic_config(file_name)
         { }
 
-        friend class boost::serialization::access;
-        template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-            ar & dynamic_config;
-            ar & private_dynamic_config;
-            ar & static_config;
-        }
+        RDB_MAKE_ME_SERIALIZABLE_3(dynamic_config, private_dynamic_config, static_config);
     };
 
     typedef log_serializer_config_t config_t;

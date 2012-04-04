@@ -19,10 +19,16 @@ def generate_make_serializable_macro(nfields):
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     print "    namespace boost {\\"
     print "    namespace serialization {\\"
-    print "    template<class Archive> void serialize(%sArchive &__archive, type_t &__thing, UNUSED const unsigned int /* version */) { \\"  % ("UNUSED " if nfields == 0 else "")
+    zeroarg = ("UNUSED " if nfields == 0 else "")
+    print "    template<class Archive> void serialize(%sArchive &__archive, %stype_t &__thing, UNUSED const unsigned int /* version */) { \\"  % (zeroarg, zeroarg)
     for i in xrange(nfields):
-        print "        __archive & __thing.field%d; \\" % (i+1)
+        print "        __archive & __thing.field%d; \\" % (i + 1)
     print "    }}} \\"
+    print "    inline write_message_t &operator<<(%swrite_message_t &msg, %sconst type_t &thing) { \\" % (zeroarg, zeroarg)
+    for i in xrange(nfields):
+        print "        msg << thing.field%d; \\" % (i + 1)
+    print "    return msg; \\"
+    print "    } \\"
     # See the note in the comment below.
     print "    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;"
 
@@ -32,7 +38,13 @@ def generate_make_me_serializable_macro(nfields):
     print "    friend class boost::serialization::access; \\"
     print "    template<typename Archive> void serialize(%sArchive &__archive, UNUSED const unsigned int /* version */) { \\"  % ("UNUSED " if nfields == 0 else "")
     for i in xrange(nfields):
-        print "        __archive & field%d; \\" % (i+1)
+        print "        __archive & field%d; \\" % (i + 1)
+    print "    } \\"
+    zeroarg = ("UNUSED " if nfields == 0 else "")
+    print "    friend class write_message_t; \\"
+    print "    void rdb_serialize(%swrite_message_t &msg) const { \\" % zeroarg
+    for i in xrange(nfields):
+        print "        msg << field%d; \\" % (i + 1)
     print "    }"
 
 if __name__ == "__main__":
@@ -47,6 +59,10 @@ if __name__ == "__main__":
 
     print "#include \"errors.hpp\""
     print "#include <boost/serialization/access.hpp>"
+    print
+    print "#include \"containers/archive/archive.hpp\""
+    print "#include \"containers/archive/stl_types.hpp\""
+    print "#include \"containers/archive/boost_types.hpp\""
     print
 
     print """
@@ -73,7 +89,9 @@ the class scope. */
 
     for nfields in xrange(20):
         generate_make_serializable_macro(nfields)
+        print
         generate_make_me_serializable_macro(nfields)
+        print
         print
 
     print "#endif /* __RPC_SERIALIZE_MACROS_HPP__ */"

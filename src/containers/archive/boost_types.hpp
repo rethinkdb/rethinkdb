@@ -2,12 +2,15 @@
 #define CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_
 
 #include "errors.hpp"
+#include <boost/optional.hpp>
 #include <boost/variant.hpp>
+#include <boost/uuid/uuid.hpp>
 
-#include "containers/archive/primitives.hpp"
+#include "containers/archive/archive.hpp"
 
-write_message_t &operator<<(UNUSED write_message_t &msg, UNUSED const boost::detail::variant::void_ &v) {
-    unreachable("You cannot do operator<<(write_message_t &msg, const boost::detail::variant::void_ &v).");
+inline
+write_message_t &operator<<(UNUSED write_message_t &msg, UNUSED boost::detail::variant::void_ &v) {
+    unreachable("You cannot do operator<<(write_message_t &msg, boost::detail::variant::void_ &v).");
 }
 
 
@@ -106,7 +109,21 @@ write_message_t &operator<<(write_message_t &msg, const boost::variant<T1, T2, T
     return msg;
 }
 
+inline write_message_t &operator<<(write_message_t &msg, const boost::uuids::uuid &uuid) {
+    msg.append(uuid.data, boost::uuids::uuid::static_size());
+    return msg;
+}
 
 
+template <class T>
+write_message_t &operator<<(write_message_t &msg, const boost::optional<T> &x) {
+    const T *ptr = x.get_ptr();
+    bool exists = ptr;
+    msg << exists;
+    if (exists) {
+        msg << *ptr;
+    }
+    return msg;
+}
 
 #endif  // CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_

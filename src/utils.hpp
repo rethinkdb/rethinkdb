@@ -41,6 +41,9 @@ public:
     }
 };
 
+class write_message_t;
+write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp);
+
 
 
 struct const_charslice {

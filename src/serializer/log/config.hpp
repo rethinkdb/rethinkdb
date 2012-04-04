@@ -4,9 +4,7 @@
 #include "config/args.hpp"
 #include "serializer/types.hpp"
 #include "arch/io/io_utils.hpp"   /* for `io_backend_t` */
-
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/access.hpp>
+#include "rpc/serialize_macros.hpp"
 
 /* Private serializer dynamic configuration values */
 
@@ -25,14 +23,14 @@ struct log_serializer_private_dynamic_config_t {
 #endif
     { }
 
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & db_filename;
 #ifdef SEMANTIC_SERIALIZER_CHECK
-        ar & semantic_filename;
+    RDB_MAKE_ME_SERIALIZABLE_2(db_filename, semantic_filename);
+#else
+    RDB_MAKE_ME_SERIALIZABLE_1(db_filename);
 #endif
-    }
 };
+
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(io_backend_t, int8_t);
 
 /* Configuration for the serializer that can change from run to run */
 
@@ -76,17 +74,7 @@ struct log_serializer_dynamic_config_t {
     /* Enable reading more data than requested to let the cache warmup more quickly esp. on rotational drives */
     bool read_ahead;
 
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & gc_low_ratio;
-        ar & gc_high_ratio;
-        ar & num_active_data_extents;
-        ar & file_size;
-        ar & file_zone_size;
-        ar & io_backend;
-        ar & io_batch_factor;
-        ar & read_ahead;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_8(gc_low_ratio, gc_high_ratio, num_active_data_extents, file_size, file_zone_size, io_backend, io_batch_factor, read_ahead);
 };
 
 /* This is equivalent to log_serializer_static_config_t below, but is an on-disk
@@ -110,6 +98,11 @@ struct log_serializer_static_config_t : public log_serializer_on_disk_static_con
     log_serializer_static_config_t() {
         extent_size_ = DEFAULT_EXTENT_SIZE;
         block_size_ = DEFAULT_BTREE_BLOCK_SIZE;
+    }
+
+    void rdb_serialize(write_message_t &msg) const {
+        msg << block_size_;
+        msg << extent_size_;
     }
 };
 

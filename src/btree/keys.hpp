@@ -93,6 +93,12 @@ struct store_key_t {
         ar & size;
         ar & boost::serialization::make_binary_object(contents, size);
     }
+
+    void rdb_serialize(write_message_t &msg) const {
+        uint8_t sz = size;
+        msg << sz;
+        msg.append(contents, sz);
+    }
 };
 
 inline bool operator==(const store_key_t &k1, const store_key_t &k2) {

@@ -17,6 +17,8 @@
 #include "arch/address.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/signal.hpp"
+#include "containers/archive/archive.hpp"
+#include "rpc/serialize_macros.hpp"
 
 class peer_address_t {
 public:
@@ -33,11 +35,7 @@ public:
     }
 
 private:
-    friend class ::boost::serialization::access;
-    template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
-        ar & ip;
-        ar & port;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_2(ip, port);
 };
 
 /* `peer_id_t` is a wrapper around a `boost::uuids::uuid`. Each newly
@@ -74,10 +72,7 @@ private:
 
     boost::uuids::uuid uuid;
 
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
-        ar & uuid;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_1(uuid);
 };
 
 inline std::ostream &operator<<(std::ostream &stream, peer_id_t id) {

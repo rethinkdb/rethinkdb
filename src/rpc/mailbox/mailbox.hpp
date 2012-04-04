@@ -1,6 +1,7 @@
 #ifndef RPC_MAILBOX_MAILBOX_HPP_
 #define RPC_MAILBOX_MAILBOX_HPP_
 
+#include "containers/archive/archive.hpp"
 #include "rpc/connectivity/cluster.hpp"
 
 struct mailbox_manager_t;
@@ -45,12 +46,7 @@ public:
         friend struct raw_mailbox_t;
         friend struct mailbox_manager_t;
 
-        friend class ::boost::serialization::access;
-        template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
-            ar & peer;
-            ar & thread;
-            ar & mailbox_id;
-        }
+        RDB_MAKE_ME_SERIALIZABLE_3(peer, thread, mailbox_id);
 
         /* The peer on which the mailbox is located */
         peer_id_t peer;

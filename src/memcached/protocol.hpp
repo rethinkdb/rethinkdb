@@ -23,6 +23,34 @@
 #include "timestamps.hpp"
 #include "containers/iterators.hpp"
 
+inline write_message_t &operator<<(write_message_t &msg, const boost::intrusive_ptr<data_buffer_t> &buf) {
+    if (buf) {
+        bool exists = true;
+        msg << exists;
+        int64_t size = buf->size();
+        msg << size;
+        msg.append(buf->buf(), buf->size());
+    } else {
+        bool exists = false;
+        msg << exists;
+    }
+    return msg;
+}
+
+inline write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
+    while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
+        const key_with_data_buffer_t &kv = pair.get();
+
+        const std::string &key = kv.key;
+        const boost::intrusive_ptr<data_buffer_t> &data = kv.value_provider;
+        msg << true;
+        msg << key;
+        msg << data;
+    }
+    msg << false;
+    return msg;
+}
+
 namespace boost {
 namespace serialization {
 
@@ -32,7 +60,7 @@ template<class Archive> void save(Archive &ar, const boost::intrusive_ptr<data_b
         ar << exists;
         int64_t size = buf->size();
         ar << size;
-        ar.save_binary(buf.get()->buf(), buf.get()->size());
+        ar.save_binary(buf->buf(), buf->size());
     } else {
         bool exists = false;
         ar << exists;

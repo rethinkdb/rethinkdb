@@ -5,6 +5,7 @@
 #include <boost/optional.hpp>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "rpc/serialize_macros.hpp"
 
 /* `reactor_business_card_t` is the way that each peer tells peers what's
 currently happening on this machine. Each `reactor_business_card_t` only applies
@@ -20,6 +21,8 @@ namespace reactor_business_card_details {
  */
 template <class protocol_t>
 class primary_when_safe_t {
+public:
+    // I don't know why this has to be public here.  It is a mystery.
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
@@ -88,6 +91,7 @@ public:
  * will become a secondary when it completes backfilling. */
 template <class protocol_t>
 class secondary_backfilling_t {
+public:
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
@@ -114,6 +118,7 @@ public:
  * the we would like to display in the ui. */
 template <class protocol_t>
 class nothing_when_done_erasing_t {
+public:
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
@@ -121,6 +126,7 @@ class nothing_when_done_erasing_t {
  * primary or a secondary. */
 template <class protocol_t>
 class nothing_t {
+public:
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 

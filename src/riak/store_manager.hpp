@@ -121,10 +121,7 @@ public:
 private:
     std::map<identifier_t, store_id_t> id_map;
 
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & id_map;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_1(id_map);
 }; */
 
 // A few examples...
@@ -149,41 +146,19 @@ ________________________________________________________________________________
 struct memcached_store_metadata_t {
     int tcp_port;
 private:
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & tcp_port;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_1(tcp_port);
 };
 
 typedef riak::bucket_t riak_store_metadata_t;
 
-namespace boost {
-namespace serialization {
-template<class Archive>
-void serialize(Archive &ar, riak_store_metadata_t &m, const unsigned int) {
-    ar & m.name;
-    ar & m.n_val;
-    ar & m.allow_mult;
-    ar & m.last_write_wins;
-    ar & m.precommit;
-    ar & m.postcommit;
-    ar & m.r;
-    ar & m.w;
-    ar & m.dw; 
-    ar & m.rw;
-    ar & m.backend;
-}
-} //namespace boost
-} //namespace serialization
+RDB_MAKE_SERIALIZABLE_11(riak_store_metadata_t, name, n_val, allow_mult, last_write_wins, precommit, postcommit, r, w, dw, rw, backend);
+
 
 /* struct riak_store_metadata_t {
 //obviously a lot more is going to go in here, this is just a place holder
     int n_val;
 private:
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & n_val;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_1(n_val);
 }; */
 
 // This is just some non-sense type, basically meaning "void". We can't use void
@@ -300,13 +275,9 @@ private:
         }
     };
 
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & store_metadata;
-        ar & store_config;
-        // store is not serialized. Instead it can be re-created after unserializing by
-        // calling load_store().
-    }
+    RDB_MAKE_ME_SERIALIZABLE_2(store_metadata, store_config);
+    // store is not serialized. Instead it can be re-created after unserializing by
+    // calling load_store().
 };
 
 /*
@@ -376,22 +347,11 @@ public:
 private:
     store_map_t store_map;
 
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & store_map; // Magic boost serialization handles the store_t pointers automatically
-    }
+    // Magic boost serialization handles the store_t pointers automatically
+    RDB_MAKE_ME_SERIALIZABLE_1(store_map);
 
     DISABLE_COPYING(store_manager_t);
 };
-
-namespace boost {
-namespace serialization {
-template<class Archive>
-void serialize(Archive &ar, std::list<std::string> &target, const unsigned int) {
-    ar & target;
-}
-} //namespace boost
-} //namespace serialization
 
 
 #endif  /* STORE_MANAGER_HPP_ */

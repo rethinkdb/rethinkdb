@@ -1,6 +1,8 @@
 #ifndef CONTAINERS_ARCHIVE_ARCHIVE_HPP_
 #define CONTAINERS_ARCHIVE_ARCHIVE_HPP_
 
+#include <stdint.h>
+
 #include "errors.hpp"
 #include "containers/intrusive_list.hpp"
 
@@ -53,17 +55,43 @@ public:
 
     intrusive_list_t<write_buffer_t> *unsafe_expose_buffers() { return &buffers_; }
 
+    // This _could_ destroy the object yo.
+    template <class T>
+    write_message_t &operator<<(const T &x) {
+        x.rdb_serialize(*this);
+        return *this;
+    }
+
 private:
     intrusive_list_t<write_buffer_t> buffers_;
 
     DISABLE_COPYING(write_message_t);
 };
 
-template <class T>
-write_message_t &operator<<(write_message_t &msg, const T &x) {
-    x.rdb_serialize(msg);
-    return msg;
-}
+#define ARCHIVE_PRIM_MAKE_SERIALIZABLE(typ1, typ2)                      \
+    inline write_message_t &operator<<(write_message_t &msg, typ1 x) {  \
+        union {                                                         \
+            typ2 v;                                                     \
+            char buf[sizeof(typ2)];                                     \
+        } u;                                                            \
+        u.v = x;                                                        \
+        msg.append(u.buf, sizeof(typ2));                                \
+        return msg;                                                     \
+    }
+
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(int8_t, int8_t);
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(uint8_t, uint8_t);
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(int16_t, int16_t);
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(uint16_t, uint16_t);
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(int32_t, int32_t);
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(uint32_t, uint32_t);
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(int64_t, int64_t);
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(uint64_t, uint64_t);
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(float, float);
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(double, double);
+
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(bool, uint8_t);
+
 
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

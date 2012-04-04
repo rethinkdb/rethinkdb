@@ -55,6 +55,8 @@ enum rget_bound_mode_t {
     rget_bound_none   // Ignore boundary key and go all the way to the left/right side of the tree
 };
 
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(rget_bound_mode_t, uint8_t);
+
 struct rget_query_t {
     rget_bound_mode_t left_mode;
     store_key_t left_key;
@@ -100,11 +102,15 @@ enum add_policy_t {
     add_policy_no
 };
 
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(add_policy_t, uint8_t);
+
 enum replace_policy_t {
     replace_policy_yes,
     replace_policy_if_cas_matches,
     replace_policy_no
 };
+
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(replace_policy_t, uint8_t);
 
 #define NO_CAS_SUPPLIED 0
 
@@ -150,6 +156,8 @@ enum set_result_t {
     sr_too_large,
 };
 
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(set_result_t, uint8_t);
+
 /* `delete` */
 
 struct delete_mutation_t {
@@ -169,12 +177,16 @@ enum delete_result_t {
     dr_not_found,
 };
 
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(delete_result_t, uint8_t);
+
 /* `incr`, `decr` */
 
 enum incr_decr_kind_t {
     incr_decr_INCR,
     incr_decr_DECR
 };
+
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(incr_decr_kind_t, uint8_t);
 
 struct incr_decr_mutation_t {
     incr_decr_kind_t kind;
@@ -197,9 +209,13 @@ struct incr_decr_result_t {
     explicit incr_decr_result_t(result_t r, uint64_t n = 0) : res(r), new_value(n) { }
 };
 
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(incr_decr_result_t::result_t, uint8_t);
+
 /* `append`, `prepend` */
 
 enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
+
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(append_prepend_kind_t, uint8_t);
 
 struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
@@ -216,5 +232,7 @@ enum append_prepend_result_t {
     apr_too_large,
     apr_not_found,
 };
+
+ARCHIVE_PRIM_MAKE_SERIALIZABLE(append_prepend_result_t, uint8_t);
 
 #endif /* MEMCACHED_QUERIES_HPP_ */

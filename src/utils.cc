@@ -13,9 +13,10 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "config/args.hpp"
-#include "containers/printf_buffer.hpp"
 #include "arch/runtime/runtime.hpp"
+#include "config/args.hpp"
+#include "containers/archive/archive.hpp"
+#include "containers/printf_buffer.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "db_thread_info.hpp"
 #include "logger.hpp"
@@ -23,6 +24,11 @@
 #ifdef VALGRIND
 #include <valgrind/memcheck.h>
 #endif
+
+write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp) {
+    msg << tstamp.time;
+    return msg;
+}
 
 // fast non-null terminated string comparison
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {

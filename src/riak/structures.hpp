@@ -7,6 +7,8 @@
 #include <boost/shared_array.hpp>
 
 #include "buffer_cache/types.hpp"
+#include "containers/archive/archive.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "containers/iterators.hpp"
 
 class riak_value_t;
@@ -26,6 +28,13 @@ struct hook_t {
     } lang;
     std::string code;
 };
+
+inline write_message_t &operator<<(write_message_t &msg, const hook_t& hook) {
+    uint8_t lang = hook.lang;
+    msg << lang;
+    msg << hook.code;
+    return msg;
+}
 
 struct bucket_t {
     std::string name;
