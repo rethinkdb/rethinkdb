@@ -4,8 +4,9 @@
 #include "clustering/registration_metadata.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
-#include "rpc/semilattice/view.hpp"
+#include "rpc/directory/watchable_copier.hpp"
 #include "rpc/mailbox/typed.hpp"
+#include "rpc/semilattice/view.hpp"
 
 template<class business_card_t>
 class registrant_t {
@@ -70,6 +71,7 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     resource_access_t<registrar_business_card_t<business_card_t> > registrar;
+
     registration_id_t registration_id;
 };
 

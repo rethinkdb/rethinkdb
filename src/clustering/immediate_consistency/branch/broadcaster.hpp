@@ -123,9 +123,11 @@ public:
         }
     };
 
-    typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
+    // lock shall be reset by this function _before_ auto_drainer_lock is reset.
+    typename protocol_t::read_response_t read(typename protocol_t::read_t r, fifo_enforcer_sink_t::exit_read_t *lock, auto_drainer_t::lock_t *auto_drainer_lock, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
+    // lock shall be reset by this function _before_ auto_drainer_lock is reset.
+    typename protocol_t::write_response_t write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, auto_drainer_t::lock_t *auto_drainer_lock, order_token_t tok) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t);
 
     branch_id_t get_branch_id() {
         return branch_id;

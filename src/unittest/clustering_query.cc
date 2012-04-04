@@ -62,6 +62,8 @@ static void run_read_write_test() {
     /* Set up a namespace dispatcher */
     cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(cluster.get_mailbox_manager(), master_metadata_controller.get_root_view());
 
+    nap(100);
+
     /* Send some writes to the namespace */
     order_source_t order_source;
     std::map<std::string, std::string> inserter_state;
