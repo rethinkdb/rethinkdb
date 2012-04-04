@@ -129,7 +129,7 @@ module 'MachineView', ->
                         namespaces: _.map(namespaces_on_this_machine, (shard_roles, namespace_uuid) ->
                             name: namespaces.get(namespace_uuid).get('name')
                             shards: _.map(shard_roles, (role, shard) ->
-                                name: shard
+                                name: human_readable_shard shard
                                 status: role
                             )
                         )
