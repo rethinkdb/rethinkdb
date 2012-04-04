@@ -19,12 +19,6 @@ last_seen_tracker_t::last_seen_tracker_t(
     update();
 }
 
-time_t last_seen_tracker_t::get_last_seen(machine_id_t machine) {
-    std::map<machine_id_t, time_t>::iterator it = last_seen.find(machine);
-    rassert(it != last_seen.end(), "machine is connected or was declared dead.");
-    return it->second;
-}
-
 void last_seen_tracker_t::update() {
     std::set<machine_id_t> visible;
     std::map<peer_id_t, machine_id_t> machine_ids = machine_id_map->get();

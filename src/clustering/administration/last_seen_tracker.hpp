@@ -12,10 +12,9 @@ public:
             const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machines_view,
             const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_map);
 
-    /* Return value is a UNIX timestamp. `machine` cannot be currently
-    connected and also cannot have been declared dead. You are advised to hold
-    a freeze on `machine_id_map` when calling, to avoid race conditions. */
-    time_t get_last_seen(machine_id_t machine);
+    std::map<machine_id_t, time_t> get_last_seen_times() {
+        return last_seen;
+    }
 
 private:
     void update();
