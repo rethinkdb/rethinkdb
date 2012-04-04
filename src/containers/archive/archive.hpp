@@ -59,5 +59,11 @@ private:
     DISABLE_COPYING(write_message_t);
 };
 
+template <class T>
+write_message_t &operator<<(write_message_t &msg, const T &x) {
+    x.rdb_serialize(msg);
+    return msg;
+}
+
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

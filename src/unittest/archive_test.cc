@@ -17,7 +17,7 @@ void dump_to_string(write_message_t &msg, std::string *out) {
 }
 
 TEST(WriteMessageTest, Variant) {
-    boost::variant<int, std::string, char> v("Hello, world!");
+    boost::variant<int32_t, std::string, int8_t> v("Hello, world!");
 
     write_message_t msg;
 
