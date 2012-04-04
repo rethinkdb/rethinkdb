@@ -173,7 +173,7 @@ void do_backfill(
         promise_t<bool> *success,
         signal_t *interruptor) THROWS_NOTHING {
     try {
-        backfillee<protocol_t>(mailbox_manager, branch_history, store, region, backfiller_metadata, interruptor);
+        backfillee<protocol_t>(mailbox_manager, branch_history, store, region, translate_into_watchable(backfiller_metadata), interruptor);
         success->pulse(true);
     } catch (interrupted_exc_t) {
         success->pulse(false);

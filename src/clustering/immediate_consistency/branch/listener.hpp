@@ -145,7 +145,7 @@ public:
                 branch_history,
                 store,
                 store->get_region(),
-                replier->subview(optional_monad_lens<backfiller_business_card_t<protocol_t>, replier_business_card_t<protocol_t> >(field_lens(&replier_business_card_t<protocol_t>::backfiller_bcard))),
+                translate_into_watchable(replier->subview(optional_monad_lens<backfiller_business_card_t<protocol_t>, replier_business_card_t<protocol_t> >(field_lens(&replier_business_card_t<protocol_t>::backfiller_bcard)))),
                 interruptor
                 );
         } catch (resource_lost_exc_t) {

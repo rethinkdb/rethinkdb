@@ -45,12 +45,12 @@ void backfillee(
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
         store_view_t<protocol_t> *store,
         typename protocol_t::region_t region,
-        clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfiller_metadata,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
     rassert(region_is_superset(store->get_region(), region));
-    resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(translate_into_watchable(backfiller_metadata));
+    resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
