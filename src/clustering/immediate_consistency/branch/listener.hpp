@@ -133,7 +133,7 @@ public:
             cond_t backfiller_is_up_to_date;
             mailbox_t<void()> ack_mbox(mailbox_manager, boost::bind(&cond_t::pulse, &backfiller_is_up_to_date));
 
-            resource_access_t<replier_business_card_t<protocol_t> > replier_access(replier);
+            resource_access_t<replier_business_card_t<protocol_t> > replier_access(translate_into_watchable(replier));
             send(mailbox_manager, replier_access.access().synchronize_mailbox, streaming_begin_point, ack_mbox.get_address());
 
             wait_any_t interruptor2(interruptor, replier_access.get_failed_signal());

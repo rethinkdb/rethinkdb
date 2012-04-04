@@ -217,11 +217,11 @@ private:
                     if (!region_is_empty(intersection)) {
                         regions_out->push_back(intersection);
                         masters_out->push_back(boost::make_shared<resource_access_t<master_business_card_t<protocol_t> > >(
-                            masters_view
+                            translate_into_watchable(masters_view
                                 ->get_peer_view(*it)
                                 ->template subview<boost::optional<master_business_card_t<protocol_t> > >(
                                     optional_member_lens<master_id_t, master_business_card_t<protocol_t> >(it2->first)
-                                    )
+                                    ))
                             ));
                         master_ids_out->push_back(it2->first);
                     }

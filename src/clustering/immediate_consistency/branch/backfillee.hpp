@@ -6,6 +6,7 @@
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "rpc/directory/watchable_copier.hpp"
 
 /* TODO: What if the backfill chunks on the network get reordered in transit?
 Even if the `protocol_t` can tolerate backfill chunks being reordered, it's
@@ -49,7 +50,7 @@ void backfillee(
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
     rassert(region_is_superset(store->get_region(), region));
-    resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
+    resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(translate_into_watchable(backfiller_metadata));
 
     /* Read the metadata to determine where we're starting from */
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;

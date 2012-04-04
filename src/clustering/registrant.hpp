@@ -21,7 +21,7 @@ public:
             business_card_t initial_value)
             THROWS_ONLY(resource_lost_exc_t) :
         mailbox_manager(mm),
-        registrar(registrar_md),
+        registrar(translate_into_watchable(registrar_md)),
         registration_id(generate_uuid())
     {
         /* This will make it so that we get deregistered in our destructor. */
