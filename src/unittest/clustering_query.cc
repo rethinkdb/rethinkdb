@@ -67,6 +67,7 @@ static void run_read_write_test() {
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
         &namespace_interface,
+        &dummy_key_gen,
         &order_source,
         &inserter_state);
     nap(100);

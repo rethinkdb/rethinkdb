@@ -157,6 +157,7 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
     test_inserter_t inserter(
         boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
         NULL,
+        &dummy_key_gen,
         &order_source,
         &inserter_state);
     nap(100);
@@ -220,6 +221,7 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     test_inserter_t inserter(
         boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
         NULL,
+        &dummy_key_gen,
         &order_source,
         &inserter_state);
     nap(100);

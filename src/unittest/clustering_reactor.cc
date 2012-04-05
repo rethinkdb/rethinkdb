@@ -245,7 +245,7 @@ public:
 
             order_source_t order_source;
 
-            test_inserter_t inserter(&namespace_if, &order_source, &inserter_state);
+            test_inserter_t inserter(&namespace_if, &key_gen<protocol_t>, &order_source, &inserter_state);
             let_stuff_happen();
             inserter.stop();
             inserter.validate();
