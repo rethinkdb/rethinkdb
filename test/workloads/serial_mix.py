@@ -127,5 +127,6 @@ def option_parser_for_serial_mix():
 if __name__ == "__main__":
     op = option_parser_for_serial_mix()
     opts = op.parse(sys.argv)
+
     with workload_common.make_memcache_connection(opts) as mc:
         test(opts, mc)
