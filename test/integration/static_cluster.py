@@ -1,9 +1,15 @@
 #!/usr/bin/python
 import scenario
 import sys
+import time
 from vcoptparse import *
 
-def initialize_cluster(cluster, opts):
+op = scenario.get_default_option_parser()
+op["protocol"] = StringFlag("--protocol", "memcached")
+op["num-nodes"] = IntFlag("--num-nodes", 3)
+opts = op.parse(sys.argv)
+
+def initialize_cluster(cluster):
 	for i in xrange(opts["num-nodes"]):
 		cluster.add_machine(name = "x" * (i + 1))
 
@@ -13,11 +19,8 @@ def initialize_cluster(cluster, opts):
 		cluster.move_server_to_datacenter(machine, datacenter)
 
 	namespace = cluster.add_namespace(protocol = opts["protocol"], name = "Test Namespace", primary = datacenter)
+	time.sleep(5)
 	return cluster.get_namespace_host(namespace)
 
-op = scenario.get_default_option_parser()
-op["protocol"] = StringFlag("--protocol", "memcached")
-op["num-nodes"] = IntFlag("--num-nodes", 3)
-
-scenario.run_scenario(op.parse(sys.argv), initialize_cluster)
+scenario.run_scenario(opts, initialize_cluster)
 

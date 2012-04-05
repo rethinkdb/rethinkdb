@@ -69,9 +69,6 @@ def check_results(res, expected_count):
 op = workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 
-if opts["phase-count"]:
-	sys.exit(0)
-
 foo_count = 100
 fop_count = 1000
 max_results = foo_count+fop_count

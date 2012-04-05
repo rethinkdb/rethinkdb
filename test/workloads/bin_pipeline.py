@@ -19,9 +19,6 @@ def get_pipelined(sock):
 op = workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 
-if opts["phase-count"]:
-	sys.exit(0)
-
 import signal
 import pdb
 

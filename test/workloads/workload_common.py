@@ -3,8 +3,6 @@ import socket
 
 def option_parser_for_socket():
 	op = OptParser()
-	op["phase-count"] = BoolFlag("--phase-count")
-	op["phase"] = IntFlag("--phase", -1)
 	op["port"] = IntFlag("--port")
 	op["host"] = StringFlag("--host", "localhost")
 	return op
@@ -30,8 +28,6 @@ class SocketConnection(object):
 		self.sock.close()
 
 def make_memcache_connection(opts):
-	# If the phase count was requested, no tests should be run
-	assert not opts["phase-count"]
 	return MemcacheConnection(opts["host"], opts["port"], opts["mclib"], opts["protocol"])
 
 class MemcacheConnection(object):

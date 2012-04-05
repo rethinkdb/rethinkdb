@@ -128,8 +128,5 @@ if __name__ == "__main__":
     op = option_parser_for_serial_mix()
     opts = op.parse(sys.argv)
 
-    if opts["phase-count"]:
-        sys.exit(0)
-
     with workload_common.make_memcache_connection(opts) as mc:
         test(opts, mc)

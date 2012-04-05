@@ -27,9 +27,6 @@ op['val_len'] = IntFlag("--val-len", 45)
 op['pattern'] = ChoiceFlag("--pattern", reorder_funs.keys(), "fwd")
 opts = op.parse(sys.argv)
 
-if opts["phase-count"]:
-	sys.exit(0)
-
 with workload_common.make_memcache_connection(opts) as mc:
     keys = [("%0" + str(opts['key_len']) + "d") % (key,) for key in xrange(opts['max_key']+1)]
     val = 'Q' * opts['val_len']

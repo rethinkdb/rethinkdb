@@ -49,9 +49,6 @@ def past_test(mc):
 op = workload_common.option_parser_for_memcache()
 opts = op.parse(sys.argv)
 
-if opts["phase-count"]:
-	sys.exit(0)
-
 with workload_common.make_memcache_connection(opts) as mc:
     zero_test(mc)
     basic_test(mc)

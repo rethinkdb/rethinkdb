@@ -3,7 +3,7 @@
 # Cluster - This base class provides most functionality for managing a cluster:
 #   add_machine - adds a new instance of rethinkdb by instantiating an InternalServer
 #   add_datacenter - adds a new datacenter object to the cluster
-#   add_*_namespace - adds a new namespace of the specified type (dummy or memcached)
+#   add_namespace - adds a new namespace of the specified type (dummy or memcached)
 #   kill_machines - kills a rethinkdb_server, but does not clean up its metadata, it may be recovered later to rejoin the cluster (UNTESTED)
 #   recover_machines - recovers a previously killed rethinkdb_server, which should then rejoin the cluster
 # The cluster's machines, datacenters, and *_namespaces variables may be inspected directly, but
@@ -253,7 +253,6 @@ class InternalServer(Server):
 
 		if log_file == "stdout":
 			self.output_file = None
-			self.instance = subprocess.Popen(args = create_args)
 		else:
 			self.log_file = log_file
 			self.output_file = open(self.log_file, "w")
@@ -654,7 +653,7 @@ class InternalCluster(Cluster):
 				self._initialize_namespace(namespace, datacenter_list, affinities[0][affinity_offset])
 				affinity_offset += 1
 			while len(self.dummy_namespaces) < len(affinities[0]):
-				self._initialize_namespace(self.add_dummy_namespace(), datacenter_list, affinities[0][affinity_offset])
+				self._initialize_namespace(self.add_namespace("dummy"), datacenter_list, affinities[0][affinity_offset])
 				affinity_offset += 1
 			assert affinity_offset == len(affinities[0])
 
@@ -665,7 +664,7 @@ class InternalCluster(Cluster):
 				self._initialize_namespace(namespace, datacenter_list, affinities[1][affinity_offset])
 				affinity_offset += 1
 			while len(self.memcached_namespaces) < len(affinities[1]):
-				self._initialize_namespace(self.add_memcached_namespace(), datacenter_list, affinities[1][affinity_offset])
+				self._initialize_namespace(self.add_namespace("memcached"), datacenter_list, affinities[1][affinity_offset])
 				affinity_offset += 1
 			assert affinity_offset == len(affinities[1])
 
@@ -674,7 +673,7 @@ class InternalCluster(Cluster):
 	def shutdown(self):
 		assert not self.closed
 		# Clean up any remaining blocked paths
-		for m in self.machines:
+		for m in self.machines.itervalues():
 			for dest_port in self.blocked_ports:
 				unblock_path(m.local_cluster_port, dest_port)
 			m.shutdown()

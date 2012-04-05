@@ -51,9 +51,6 @@ class TimeoutException(Exception):
 op = workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 
-if opts["phase-count"]:
-	sys.exit(0)
-
 # Test:
 # start rget query, then start a write concurrently (but after rget got to the bottom of the tree)
 # if the write blocks, then we do not do copy-on-write/snapshotting/etc.

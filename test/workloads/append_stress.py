@@ -16,9 +16,6 @@ op = workload_common.option_parser_for_socket()
 op["n_appends"] = IntFlag("--num-appends", 20000)
 opts = op.parse(sys.argv)
 
-if opts["phase-count"]:
-	sys.exit(0)
-
 with workload_common.make_socket_connection(opts) as s:
 
     def send(x):

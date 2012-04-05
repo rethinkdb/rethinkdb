@@ -6,9 +6,6 @@ op = workload_common.option_parser_for_socket()
 op["suite-test"] = PositionalArg()
 opts = op.parse(sys.argv)
 
-if opts["phase-count"]:
-	sys.exit(0)
-
 # Figure out where the memcached scripts are located
 memcached_suite_dir = os.path.join(os.path.dirname(__file__), "memcached_suite")
 

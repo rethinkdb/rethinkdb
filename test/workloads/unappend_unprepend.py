@@ -37,9 +37,6 @@ def test_sizes(s, cmd, lo, hi):
 op = workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 
-if opts["phase-count"]:
-	sys.exit(0)
-
 with workload_common.make_socket_connection(opts) as s:
 
     sizes = [1, 100, 300, 1000, 8000, 700000]
