@@ -491,8 +491,9 @@ module 'ResolveIssuesView', ->
                 name: @model.get('contested_name')
                 type: @model.get('contested_type')
                 num_contestants: @model.get('contestants').length
-                contestants: _.map(@model.get('contestants'), (uuid) ->
+                contestants: _.map(@model.get('contestants'), (uuid) =>
                    uuid: uuid
+                   type: @model.get('contested_type')
                 )
                 datetime: iso_date_from_unix_time @model.get('time')
             

@@ -711,7 +711,7 @@
             </div>
         </script>
         <script id="resolve_issues-name_conflict-template" type="text/x-handlebars-template">
-            <div class="issue {{#if critical }}critical{{/if}}">
+            <div class="issue {{#if critical }}critical{{/if}} name-conflict">
                 <div class="header">
                     <h3 class="title">The name {{name}} is used by more than one {{type}}.</h3>
                     {{#if datetime}}
@@ -722,7 +722,7 @@
                 <h4>{{capitalize type}}{{pluralize_noun num_contestants}} with the name {{name}}:</h4>
                 <ul>
                 {{#each contestants}}
-                <li><a href="#{{type}}{{pluralize_noun}}/{{uuid}}">{{uuid}}</a></li>
+                <li><a href="#{{type}}{{pluralize_noun 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a href="#">rename</a>)</li>
                 {{/each}}
                 </ul>
             </div>
