@@ -99,9 +99,9 @@ typedef std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<du
 
 dummy_protocol_parser_maker_t::parser_and_namespace_if_t::parser_and_namespace_if_t(namespace_id_t id, dummy_protocol_parser_maker_t *parent, int port) 
     : namespace_if(parent->mailbox_manager, 
-                   parent->namespaces_directory_metadata->
+                   translate_into_watchable(parent->namespaces_directory_metadata->
                        subview<master_map_t>(field_lens(&namespaces_directory_metadata_t<dummy_protocol_t>::master_maps))->
-                           subview(default_member_lens<master_map_t::key_type, master_map_t::mapped_type>(id))),
+                           subview(default_member_lens<master_map_t::key_type, master_map_t::mapped_type>(id)))),
       parser(&namespace_if),
       server(port, &parser)
 { }

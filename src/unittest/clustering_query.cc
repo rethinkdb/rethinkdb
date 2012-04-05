@@ -60,7 +60,7 @@ static void run_read_write_test() {
     master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), master_metadata_controller.get_root_view(), a_thru_z_region(), &broadcaster);
 
     /* Set up a namespace dispatcher */
-    cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(cluster.get_mailbox_manager(), master_metadata_controller.get_root_view());
+    cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(cluster.get_mailbox_manager(), translate_into_watchable(master_metadata_controller.get_root_view()));
 
     nap(100);
 

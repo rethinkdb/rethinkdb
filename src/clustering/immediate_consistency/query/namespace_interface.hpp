@@ -38,18 +38,17 @@ public:
 
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<directory_rview_t<master_map_t> > mv) :
+            clone_ptr_t<watchable_t<std::map<peer_id_t, master_map_t> > > mv) :
         self_id(generate_uuid()),
         mailbox_manager(mm),
         masters_view(mv),
-        master_map_watcher(translate_into_watchable(masters_view)),
         watcher_subscription(boost::bind(&cluster_namespace_interface_t::update_registrants, this))
     {
 
-        typename watchable_t< std::map<peer_id_t, master_map_t> >::freeze_t freeze(master_map_watcher);
+        typename watchable_t< std::map<peer_id_t, master_map_t> >::freeze_t freeze(masters_view);
         update_registrants();
 
-        watcher_subscription.reset(master_map_watcher, &freeze);
+        watcher_subscription.reset(masters_view, &freeze);
     }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
@@ -190,6 +189,19 @@ private:
         }
     }
 
+    static boost::optional<boost::optional<master_business_card_t<protocol_t> > > extract_master_business_card(const std::map<peer_id_t, master_map_t> &map, const peer_id_t &peer, const master_id_t &master) {
+        boost::optional<boost::optional<master_business_card_t<protocol_t> > > ret;
+        typename std::map<peer_id_t, master_map_t>::const_iterator it = map.find(peer);
+        if (it != map.end()) {
+            ret = boost::optional<master_business_card_t<protocol_t> >();
+            typename master_map_t::const_iterator jt = it->second.find(master);
+            if (jt != it->second.end()) {
+                ret.get() = jt->second;
+            }
+        }
+        return ret;
+    }
+
     void cover(
             typename protocol_t::region_t target_region,
             std::vector<typename protocol_t::region_t> *regions_out,
@@ -202,26 +214,16 @@ private:
 
         /* Find all the masters that might possibly be relevant */
         {
-            connectivity_service_t::peers_list_freeze_t connectivity_freeze(
-                masters_view->get_directory_service()->get_connectivity_service());
-            ASSERT_FINITE_CORO_WAITING;
-            std::set<peer_id_t> peers = masters_view->get_directory_service()->
-                get_connectivity_service()->get_peers_list();
-            for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); ++it) {
-                directory_read_service_t::peer_value_freeze_t value_freeze(
-                    masters_view->get_directory_service(), *it);
-                master_map_t masters = masters_view->get_value(*it).get();
-                for (typename master_map_t::iterator it2 = masters.begin(); it2 != masters.end(); ++it2) {
+            typename watchable_t< std::map<peer_id_t, master_map_t> >::freeze_t freeze(masters_view);
+            std::map<peer_id_t, master_map_t> snapshot = masters_view->get();
+            for (typename std::map<peer_id_t, master_map_t>::iterator it = snapshot.begin(); it != snapshot.end(); it++) {
+                for (typename master_map_t::iterator it2 = it->second.begin(); it2 != it->second.end(); it2++) {
                     typename protocol_t::region_t intersection =
                         region_intersection(target_region, it2->second.region);
                     if (!region_is_empty(intersection)) {
                         regions_out->push_back(intersection);
                         masters_out->push_back(boost::make_shared<resource_access_t<master_business_card_t<protocol_t> > >(
-                            translate_into_watchable(masters_view
-                                ->get_peer_view(*it)
-                                ->template subview<boost::optional<master_business_card_t<protocol_t> > >(
-                                    optional_member_lens<master_id_t, master_business_card_t<protocol_t> >(it2->first)
-                                    ))
+                            masters_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, _1, it->first, it2->first))
                             ));
                         master_ids_out->push_back(it2->first);
                     }
@@ -245,7 +247,7 @@ private:
 
     void update_registrants() {
         ASSERT_NO_CORO_WAITING;
-        std::map<peer_id_t, master_map_t> existings = master_map_watcher->get();
+        std::map<peer_id_t, master_map_t> existings = masters_view->get();
 
         for (typename std::map<peer_id_t, master_map_t>::const_iterator it = existings.begin(); it != existings.end(); ++it) {
             for (typename master_map_t::const_iterator mmit = it->second.begin(); mmit != it->second.end(); ++mmit) {
@@ -264,30 +266,28 @@ private:
         coro_t::spawn_sometime(boost::bind(&cluster_namespace_interface_t::registrant_coroutine, this, peer_id, master_id, auto_drainer_t::lock_t(&registrant_coroutine_auto_drainer)));
     }
 
+    static boost::optional<boost::optional<registrar_business_card_t<namespace_interface_business_card_t> > > extract_registrar_business_card(const std::map<peer_id_t, master_map_t> &map, const peer_id_t &peer, const master_id_t &master) {
+        boost::optional<boost::optional<registrar_business_card_t<namespace_interface_business_card_t> > > ret;
+        typename std::map<peer_id_t, master_map_t>::const_iterator it = map.find(peer);
+        if (it != map.end()) {
+            ret = boost::optional<registrar_business_card_t<namespace_interface_business_card_t> >();
+            typename master_map_t::const_iterator jt = it->second.find(master);
+            if (jt != it->second.end()) {
+                ret.get() = jt->second.namespace_interface_registration_business_card;
+            }
+        }
+        return ret;
+    }
+
     void registrant_coroutine(peer_id_t peer_id, master_id_t master_id, auto_drainer_t::lock_t lock) {
         // this function is responsible for removing master_id from handled_master_ids before it returns.
-
-        clone_ptr_t<readwrite_lens_t<registrar_business_card_t<namespace_interface_business_card_t>, master_business_card_t<protocol_t> > >
-            field = field_lens(&master_business_card_t<protocol_t>::namespace_interface_registration_business_card);
-
-        clone_ptr_t<read_lens_t<registrar_business_card_t<namespace_interface_business_card_t>, master_business_card_t<protocol_t> > >
-            field_r(field);
-
-        clone_ptr_t<read_lens_t<boost::optional<registrar_business_card_t<namespace_interface_business_card_t> >, boost::optional<master_business_card_t<protocol_t> > > > opt = optional_monad_lens(field_r);
-
-        clone_ptr_t<readwrite_lens_t<boost::optional<master_business_card_t<protocol_t> >, std::map<master_id_t, master_business_card_t<protocol_t> > > > memb = optional_member_lens<master_id_t, master_business_card_t<protocol_t> >(master_id);
-
-        clone_ptr_t<read_lens_t<boost::optional<master_business_card_t<protocol_t> >, std::map<master_id_t, master_business_card_t<protocol_t> > > >
-            memb_r(memb);
-
-        clone_ptr_t<read_lens_t<boost::optional<registrar_business_card_t<namespace_interface_business_card_t> >, std::map<master_id_t, master_business_card_t<protocol_t> > > > composed = compose_lens(opt, memb_r);
 
         cond_t ack_signal;
         namespace_interface_business_card_t::ack_mailbox_type ack_mailbox(mailbox_manager, boost::bind(&cond_t::pulse, &ack_signal));
 
         registrant_t<namespace_interface_business_card_t>
             registrant(mailbox_manager,
-                       masters_view->get_peer_view(peer_id)->subview(composed),
+                       masters_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_registrar_business_card, _1, peer_id, master_id)),
                        namespace_interface_business_card_t(self_id, ack_mailbox.get_address()));
 
         signal_t *drain_signal = lock.get_drain_signal();
@@ -321,7 +321,7 @@ private:
 
     namespace_interface_id_t self_id;
     mailbox_manager_t *mailbox_manager;
-    clone_ptr_t<directory_rview_t<master_map_t> > masters_view;
+    clone_ptr_t<watchable_t<std::map<peer_id_t, master_map_t> > > masters_view;
 
     typename protocol_t::temporary_cache_t temporary_cache;
 
@@ -330,11 +330,7 @@ private:
 
     auto_drainer_t registrant_coroutine_auto_drainer;
 
-    clone_ptr_t<watchable_t<std::map<peer_id_t, master_map_t> > > master_map_watcher;
-
     typename watchable_t< std::map<peer_id_t, master_map_t> >::subscription_t watcher_subscription;
-
-
 
     DISABLE_COPYING(cluster_namespace_interface_t);
 };

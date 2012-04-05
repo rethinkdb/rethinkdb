@@ -60,7 +60,7 @@ void run_register_test() {
     {
         registrant_t<std::string> registrant(
             cluster.get_mailbox_manager(),
-            metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me()),
+            translate_into_watchable(metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me())),
             "hello");
         let_stuff_happen();
 
@@ -102,7 +102,7 @@ void run_registrar_death_test() {
 
     registrant_t<std::string> registrant(
         cluster.get_mailbox_manager(),
-        metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me()),
+        translate_into_watchable(metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me())),
         "hello");
     let_stuff_happen();
 
@@ -150,7 +150,7 @@ void run_quick_disconnect_test() {
     {
         registrant_t<std::string> registrant(
             cluster.get_mailbox_manager(),
-            metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me()),
+            translate_into_watchable(metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me())),
             "hello");
     }
     let_stuff_happen();

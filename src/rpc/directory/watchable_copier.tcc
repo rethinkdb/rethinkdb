@@ -86,8 +86,7 @@ public:
     std::map<peer_id_t, metadata_t> get() {
         return parent->value;
     }
-    publisher_t<boost::function<void()> > *get_publisher(typename watchable_t<std::map<peer_id_t, metadata_t> >::freeze_t *f) {
-        f->assert_is_holding(clone_ptr_t<watchable_t<std::map<peer_id_t, metadata_t> > >(clone()));
+    publisher_t<boost::function<void()> > *get_publisher() {
         return parent->publisher_controller.get_publisher();
     }
     rwi_lock_assertion_t *get_rwi_lock_assertion() {
@@ -183,8 +182,7 @@ public:
     boost::optional<metadata_t> get() {
         return parent->value;
     }
-    publisher_t<boost::function<void()> > *get_publisher(typename watchable_t<boost::optional<metadata_t> >::freeze_t *f) {
-        f->assert_is_holding(clone_ptr_t<watchable_t<boost::optional<metadata_t> > >(clone()));
+    publisher_t<boost::function<void()> > *get_publisher() {
         return parent->publisher_controller.get_publisher();
     }
     rwi_lock_assertion_t *get_rwi_lock_assertion() {

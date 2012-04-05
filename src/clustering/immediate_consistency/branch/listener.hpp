@@ -305,13 +305,13 @@ private:
         try {
             registrant.reset(new registrant_t<listener_business_card_t<protocol_t> >(
                 mailbox_manager,
-                broadcaster->subview(
+                translate_into_watchable(broadcaster->subview(
                     optional_monad_lens<
                             registrar_business_card_t<listener_business_card_t<protocol_t> >,
                             broadcaster_business_card_t<protocol_t> >(
                         field_lens(&broadcaster_business_card_t<protocol_t>::registrar)
                         )
-                    ),
+                    )),
                 listener_business_card_t<protocol_t>(intro_mailbox.get_address(), write_mailbox.get_address())
                 ));
         } catch (resource_lost_exc_t) {
