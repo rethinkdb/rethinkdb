@@ -49,8 +49,8 @@ static void run_read_write_test() {
 
     listener_t<dummy_protocol_t> initial_listener(
         cluster.get_mailbox_manager(),
-        broadcaster_metadata_controller.get_root_view()->
-            get_peer_view(cluster.get_connectivity_service()->get_me()),
+        translate_into_watchable(broadcaster_metadata_controller.get_root_view()->
+            get_peer_view(cluster.get_connectivity_service()->get_me())),
         branch_history_controller.get_view(),
         &broadcaster,
         &interruptor
