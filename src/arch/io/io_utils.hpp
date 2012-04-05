@@ -5,7 +5,7 @@
 
 /* Types of IO backends */
 enum linux_io_backend_t {
-    aio_native, aio_pool
+    AIO_BACKEND_MIN_BOUND = 0, aio_native = 0, aio_pool = 1, AIO_BACKEND_MAX_BOUND = 1
 };
 typedef linux_io_backend_t io_backend_t;
 

@@ -55,7 +55,7 @@ enum rget_bound_mode_t {
     rget_bound_none   // Ignore boundary key and go all the way to the left/right side of the tree
 };
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(rget_bound_mode_t, uint8_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(rget_bound_mode_t, int8_t, rget_bound_open, rget_bound_none);
 
 struct rget_query_t {
     rget_bound_mode_t left_mode;
@@ -102,7 +102,7 @@ enum add_policy_t {
     add_policy_no
 };
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(add_policy_t, uint8_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(add_policy_t, int8_t, add_policy_yes, add_policy_no);
 
 enum replace_policy_t {
     replace_policy_yes,
@@ -110,7 +110,7 @@ enum replace_policy_t {
     replace_policy_no
 };
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(replace_policy_t, uint8_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(replace_policy_t, int8_t, replace_policy_yes, replace_policy_no);
 
 #define NO_CAS_SUPPLIED 0
 
@@ -156,7 +156,7 @@ enum set_result_t {
     sr_too_large,
 };
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(set_result_t, uint8_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(set_result_t, int8_t, sr_stored, sr_too_large);
 
 /* `delete` */
 
@@ -177,7 +177,7 @@ enum delete_result_t {
     dr_not_found,
 };
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(delete_result_t, uint8_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(delete_result_t, int8_t, dr_deleted, dr_not_found);
 
 /* `incr`, `decr` */
 
@@ -186,7 +186,7 @@ enum incr_decr_kind_t {
     incr_decr_DECR
 };
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(incr_decr_kind_t, uint8_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(incr_decr_kind_t, int8_t, incr_decr_INCR, incr_decr_DECR);
 
 struct incr_decr_mutation_t {
     incr_decr_kind_t kind;
@@ -209,13 +209,13 @@ struct incr_decr_result_t {
     explicit incr_decr_result_t(result_t r, uint64_t n = 0) : res(r), new_value(n) { }
 };
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(incr_decr_result_t::result_t, uint8_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(incr_decr_result_t::result_t, int8_t, incr_decr_result_t::idr_success, incr_decr_result_t::idr_not_numeric);
 
 /* `append`, `prepend` */
 
 enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(append_prepend_kind_t, uint8_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(append_prepend_kind_t, int8_t, append_prepend_APPEND, append_prepend_PREPEND);
 
 struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
@@ -233,6 +233,6 @@ enum append_prepend_result_t {
     apr_not_found,
 };
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(append_prepend_result_t, uint8_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(append_prepend_result_t, int8_t, apr_success, apr_not_found);
 
 #endif /* MEMCACHED_QUERIES_HPP_ */

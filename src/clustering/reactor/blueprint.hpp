@@ -17,7 +17,7 @@ enum role_t {
     role_nothing
 };
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(role_t, uint8_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(role_t, int8_t, role_primary, role_nothing);
 
 } //namespace blueprint_details
 

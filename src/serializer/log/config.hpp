@@ -30,7 +30,7 @@ struct log_serializer_private_dynamic_config_t {
 #endif
 };
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(io_backend_t, int8_t);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(io_backend_t, int8_t, AIO_BACKEND_MIN_BOUND, AIO_BACKEND_MAX_BOUND);
 
 /* Configuration for the serializer that can change from run to run */
 

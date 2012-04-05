@@ -17,6 +17,8 @@ private:
     DISABLE_COPYING(read_stream_t);
 };
 
+int64_t force_read(read_stream_t *s, void *p, int64_t n);
+
 class write_stream_t {
 public:
     write_stream_t() { }
@@ -68,7 +70,7 @@ private:
     DISABLE_COPYING(write_message_t);
 };
 
-#define ARCHIVE_PRIM_MAKE_SERIALIZABLE(typ1, typ2)                      \
+#define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)                \
     inline write_message_t &operator<<(write_message_t &msg, typ1 x) {  \
         union {                                                         \
             typ2 v;                                                     \
@@ -79,18 +81,59 @@ private:
         return msg;                                                     \
     }
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(int8_t, int8_t);
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(uint8_t, uint8_t);
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(int16_t, int16_t);
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(uint16_t, uint16_t);
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(int32_t, int32_t);
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(uint32_t, uint32_t);
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(int64_t, int64_t);
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(uint64_t, uint64_t);
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(float, float);
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(double, double);
+#define ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(typ1, typ2, lo, hi)       \
+    ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2);                   \
+                                                                        \
+    inline int deserialize(read_stream_t *s, typ1 *x) {                 \
+        union {                                                         \
+            typ2 v;                                                     \
+            char buf[sizeof(typ2)];                                     \
+        } u;                                                            \
+        int64_t res = force_read(s, u.buf, sizeof(typ2));               \
+        if (res == -1) {                                                \
+            return -1;                                                  \
+        }                                                               \
+        if (res < int64_t(sizeof(typ2))) {                              \
+            return -2;                                                  \
+        }                                                               \
+        if (u.v < typ2(lo) || u.v > typ2(hi)) {                         \
+            return -3;                                                  \
+        }                                                               \
+        *x = typ1(u.v);                                                 \
+        return 0;                                                       \
+    }
 
-ARCHIVE_PRIM_MAKE_SERIALIZABLE(bool, uint8_t);
+#define ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(typ)                         \
+    ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ, typ);                     \
+                                                                        \
+    inline int deserialize(read_stream_t *s, typ *x) {                  \
+        union {                                                         \
+            typ v;                                                      \
+            char buf[sizeof(typ)];                                      \
+        } u;                                                            \
+        int64_t res = force_read(s, u.buf, sizeof(typ));                \
+        if (res == -1) {                                                \
+            return -1;                                                  \
+        }                                                               \
+        if (res < int64_t(sizeof(typ))) {                               \
+            return -2;                                                  \
+        }                                                               \
+        *x = u.v;                                                       \
+        return 0;                                                       \
+    }
+
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(int8_t);
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(uint8_t);
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(int16_t);
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(uint16_t);
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(int32_t);
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(uint32_t);
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(int64_t);
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(uint64_t);
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(float);
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(double);
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
 
 
 
