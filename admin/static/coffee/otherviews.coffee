@@ -1,23 +1,3 @@
-class StatusPanelView extends Backbone.View
-    # TODO get rid of className?
-    className: 'status-panel'
-    tagName: 'h5'
-    template: Handlebars.compile $('#status_panel_view-template').html()
-
-    initialize: ->
-        log_initial '(initializing status panel view'
-        connection_status.on 'all', => @render()
-        machines.on 'all', => @render()
-
-    render: ->
-        log_render '(rendering) status panel view'
-        cs_json = connection_status.toJSON()
-        connected_machine = machines.get(connection_status.get('contact_machine_id'))
-        if connected_machine
-            cs_json['contact_machine_name'] = connected_machine.get('name')
-        @.$el.html @template(cs_json)
-        return @
-
 # Dashboard: provides an overview and visualizations of the cluster
 class DashboardView extends Backbone.View
     className: 'dashboard-view'
@@ -118,74 +98,76 @@ module 'MachineView', ->
         initialize: ->
             log_initial '(initializing) machine view: container'
 
-            # Sparkline for CPU
-            @cpu_sparkline =
-                data: []
-                total_points: 30
-                update_interval: 750
-            @cpu_sparkline.data[i] = 0 for i in [0...@cpu_sparkline.total_points]
+            #@model.on 'change', @update_meters
 
-            # Performance graph (flot)
-            @performance_graph =
-                data: []
-                total_points: 75
-                update_interval: 750
-                options:
-                    series:
-                        shadowSize: 0
-                    yaxis:
-                        min: 0
-                        max: 10000
-                    xaxis:
-                        show: true
-                        min: 0
-                        max: 75
-                plot: null
-            @performance_graph.data[i] = 0 for i in [0..@performance_graph.total_points]
-
-            @model.on 'change', @update_meters
-
-            setInterval @update_sparklines, @cpu_sparkline.update_interval
-            setInterval @update_graphs, @performance_graph.update_interval
+            #setInterval @update_sparklines, @cpu_sparkline.update_interval
+            #setInterval @update_graphs, @performance_graph.update_interval
 
         render: =>
             log_render '(rendering) machine view: container'
 
-            @.$el.html @template @model.toJSON()
+            datacenter_uuid = @model.get('datacenter_uuid')
+            directory_listing = directory.get(@model.get('id'))
+            json =
+                name: @model.get('name')
+                ip: "192.168.1.#{Math.round(Math.random() * 255)}" # Fake IP, replace with real data TODO
+                datacenter_uuid: datacenter_uuid
+
+            # If the machine is assigned to a datacenter, add relevant json
+            if datacenter_uuid?
+                json = _.extend json,
+                    assigned_to_datacenter: datacenter_uuid
+                    datacenter_name: datacenters.get(datacenter_uuid).get('name')
+
+            # If the machine is reachable, add relevant json
+            if directory_listing?
+                console.log directory_listing.get('memcached_namespaces')
+                namespaces_on_this_machine = directory_listing.get('memcached_namespaces').reactor_bcards
+                json = _.extend json,
+                    is_reachable: true
+                    data:
+                        namespaces: _.map(namespaces_on_this_machine, (shard_roles, namespace_uuid) ->
+                            name: namespaces.get(namespace_uuid).get('name')
+                            shards: _.map(shard_roles, (role, shard) ->
+                                name: human_readable_shard shard
+                                status: role
+                            )
+                        )
+            @.$el.html @template json
 
             return @
 
         # Update the sparkline data and render a new sparkline for the view
-        update_sparklines: =>
-            @cpu_sparkline.data = @cpu_sparkline.data.slice(1)
-            @cpu_sparkline.data.push @model.get 'cpu'
-            @.$('.cpu-graph').sparkline(@cpu_sparkline.data)
+        #update_sparklines: =>
+            #@cpu_sparkline.data = @cpu_sparkline.data.slice(1)
+            #@cpu_sparkline.data.push @model.get 'cpu'
+            #@.$('.cpu-graph').sparkline(@cpu_sparkline.data)
 
         # Update the performance data and render a graph for the view
-        update_graphs: =>
-            @performance_graph.data = @performance_graph.data.slice(1)
-            @performance_graph.data.push @model.get 'iops'
+        #update_graphs: =>
+            #@performance_graph.data = @performance_graph.data.slice(1)
+            #@performance_graph.data.push @model.get 'iops'
             # TODO: consider making this a utility function: enumerate
             # Maps the graph data y-values to x-values (zips them up) and sets the data
-            data = _.map @performance_graph.data, (val, i) -> [i, val]
+            #data = _.map @performance_graph.data, (val, i) -> [i, val]
 
 
             # If the plot isn't in the DOM yet, create the initial plot
-            if not @performance_graph.plot?
-                @performance_graph.plot = $.plot($('#performance-graph'), [data], @performance_graph.options)
-                window.graph = @performance_graph
+            #if not @performance_graph.plot?
+            #    @performance_graph.plot = $.plot($('#performance-graph'), [data], @performance_graph.options)
+            #    window.graph = @performance_graph
             # Otherwise, set the updated data and draw the plot again
-            else
-                @performance_graph.plot.setData [data]
-                @performance_graph.plot.draw() if not pause_live_data
+            #else
+            #    @performance_graph.plot.setData [data]
+            #    @performance_graph.plot.draw() if not pause_live_data
 
         # Update the meters
-        update_meters: =>
-            $('.meter > span').each ->
-                $(this)
-                    .data('origWidth', $(this).width())
-                    .width(0)
-                    .animate width: $(this).data('origWidth'), 1200
+        #update_meters: =>
+            #$('.meter > span').each ->
+            #    $(this)
+            #        .data('origWidth', $(this).width())
+            #        .width(0)
+            #        .animate width: $(this).data('origWidth'), 1200
 
 # Datacenter view
 module 'DatacenterView', ->
@@ -199,63 +181,36 @@ module 'DatacenterView', ->
 
         render: =>
             log_render('(rendering) datacenter view: container')
-            # Add a list of machines that belong to this datacenter to the json
-            json = @model.toJSON()
-            # Filter all the machines for those belonging to this datacenter, then return an array of their JSON representations
-            json.machines = _.map _.filter(machines.models, (machine) => return machine.get('datacenter_uuid') == @model.id),
-                (machine) -> machine.toJSON()
-            @.$el.html @template json
 
+            # Filter all the machines for those belonging to this datacenter
+            machines_in_datacenter = machines.filter (machine) => return machine.get('datacenter_uuid') is @model.get('id')
+            # Machines we can actually reach in this datacenter
+            reachable_machines = directory.filter (m) => machines.get(m.get('id')).get('datacenter_uuid') is @model.get('id')
+
+            @.$el.html @template
+                name: @model.get('name')
+                machines: _.map(machines_in_datacenter, (machine) ->
+                    name: machine.get('name')
+                    id: machine.get('id')
+                    is_reachable: directory.get(machine.get('id'))?
+                )
+                total_machines: machines_in_datacenter.length
+                reachable_machines: reachable_machines.length
+                is_live: reachable_machines.length > 0
             return @
 
 # Sidebar view
 module 'Sidebar', ->
     # Sidebar.Container
-    class @ConnectivityStatus extends Backbone.View
-        className: 'sidebar-connectivity-status'
-        template: Handlebars.compile $('#sidebar-connectivity-status-template').html()
-
-        initialize: =>
-            # Rerender every time some relevant info changes
-            directory.on 'all', (model, collection) => @render()
-            machines.on 'all', (model, collection) => @render()
-            datacenters.on 'all', (model, collection) => @render()
-
-        compute_connectivity: =>
-            # data centers with machines
-            dc_have_machines = []
-            for m in machines.models
-                if m.get('datacenter_uuid')
-                    dc_have_machines[dc_have_machines.length] = m.get('datacenter_uuid')
-            dc_have_machines = _.uniq(dc_have_machines)
-            # data centers visible
-            dc_visible = []
-            for m in directory.models
-                _m = machines.get(m.get('id'))
-                if _m and _m.get('datacenter_uuid')
-                    dc_visible[dc_visible.length] = _m.get('datacenter_uuid')
-            dc_visible = _.uniq(dc_visible)
-            conn =
-                machines_active: directory.length
-                machines_total: machines.length
-                datacenters_active: dc_visible.length
-                datacenters_total: dc_have_machines.length
-            return conn
-
-        render: =>
-            @.$el.html @template @compute_connectivity()
-            return @
-
     class @Container extends Backbone.View
         className: 'sidebar-container'
         template: Handlebars.compile $('#sidebar-container-template').html()
         max_recent_events: 5
-        resolve_issues_route: '#resolve_issues'
 
         initialize: =>
             log_initial '(initializing) sidebar view: container'
 
-            @client_connectivity_status = new StatusPanelView()
+            @client_connectivity_status = new Sidebar.ClientConnectionStatus()
             @connectivity_status = new Sidebar.ConnectivityStatus()
             @issues = new Sidebar.Issues()
 
@@ -269,12 +224,11 @@ module 'Sidebar', ->
                 window.app.on 'all', => @render()
 
         render: (route) =>
-            @.$el.html @template
-                show_resolve_issues: window.location.hash isnt @resolve_issues_route
+            @.$el.html @template({})
 
             # Render connectivity status
-            @.$('#client-connectivity-status-placeholder').html @client_connectivity_status.render().el
-            @.$('#sidebar-connectivity-status-placeholder').html @connectivity_status.render().el
+            @.$('.client-connection-status').html @client_connectivity_status.render().el
+            @.$('.connectivity-status').html @connectivity_status.render().el
 
             # Render issue summary
             @.$('.issues').html @issues.render().el
@@ -293,10 +247,75 @@ module 'Sidebar', ->
             for event in events.models[0...@max_recent_events]
                 @event_views.push new Sidebar.Event model: event
 
+    # Sidebar.ClientConnectionStatus
+    class @ClientConnectionStatus extends Backbone.View
+        className: 'client-connection-status'
+        tagName: 'div'
+        template: Handlebars.compile $('#sidebar-client_connection_status-template').html()
+
+        initialize: ->
+            log_initial '(initializing) client connection status view'
+            connection_status.on 'all', => @render()
+            machines.on 'all', => @render()
+
+        render: ->
+            log_render '(rendering) status panel view'
+            connected_machine = machines.get(connection_status.get('contact_machine_id'))
+            json =
+                disconnected: connection_status.get('client_disconnected')
+
+            # If we're connected to a machine, get its machine name
+            if connected_machine?
+                json['machine_name'] = connected_machine.get('name')
+                # If the machine is assigned to a datacenter, include it
+                assigned_datacenter = datacenters.get(connected_machine.get('datacenter_uuid'))
+                json['datacenter_name'] = if assigned_datacenter? then assigned_datacenter.get('name') else 'Unassigned'
+                    
+            @.$el.html @template json
+
+            return @
+
+    # Sidebar.ConnectivityStatus
+    class @ConnectivityStatus extends Backbone.View
+        className: 'connectivity-status'
+        template: Handlebars.compile $('#sidebar-connectivity_status-template').html()
+
+        initialize: =>
+            # Rerender every time some relevant info changes
+            directory.on 'all', (model, collection) => @render()
+            machines.on 'all', (model, collection) => @render()
+            datacenters.on 'all', (model, collection) => @render()
+
+        compute_connectivity: =>
+            # data centers with machines
+            dc_have_machines = []
+            machines.each (m) =>
+                if m.get('datacenter_uuid')
+                    dc_have_machines[dc_have_machines.length] = m.get('datacenter_uuid')
+            dc_have_machines = _.uniq(dc_have_machines)
+            # data centers visible
+            dc_visible = []
+            directory.each (m) =>
+                _m = machines.get(m.get('id'))
+                if _m and _m.get('datacenter_uuid')
+                    dc_visible[dc_visible.length] = _m.get('datacenter_uuid')
+            dc_visible = _.uniq(dc_visible)
+            conn =
+                machines_active: directory.length
+                machines_total: machines.length
+                datacenters_active: dc_visible.length
+                datacenters_total: dc_have_machines.length
+            return conn
+
+        render: =>
+            @.$el.html @template @compute_connectivity()
+            return @
+
     # Sidebar.Issues
     class @Issues extends Backbone.View
         className: 'issues'
         template: Handlebars.compile $('#sidebar-issues-template').html()
+        resolve_issues_route: '#resolve_issues'
 
         initialize: =>
             log_initial '(initializing) sidebar view: issues'
@@ -323,6 +342,7 @@ module 'Sidebar', ->
                     exist: other_issues.length > 0
                     num: other_issues.length
                 no_issues: _.keys(critical_issues).length is 0 and other_issues.length is 0 
+                show_resolve_issues: window.location.hash isnt @resolve_issues_route
             return @
 
     # Sidebar.Event
@@ -343,15 +363,26 @@ module 'ResolveIssuesView', ->
     # ResolveIssuesView.Container
     class @Container extends Backbone.View
         className: 'resolve-issues'
-        template: Handlebars.compile $('#resolve_issues-container-template').html()
+        template_outer: Handlebars.compile $('#resolve_issues-container-outer-template').html()
+        template_inner: Handlebars.compile $('#resolve_issues-container-inner-template').html()
 
         initialize: =>
             log_initial '(initializing) resolve issues view: container'
-            issues.on 'all', (model, collection) => @render()
+            issues.on 'all', (model, collection) => @render_issues()
 
         render: ->
-            @.$el.html @template({})
+            @.$el.html @template_outer
+            @render_issues()
 
+            return @
+
+        # we're adding an inner render function to avoid rerendering
+        # everything (for example we need to not render the alert,
+        # otherwise it disappears)
+        render_issues: ->
+            @.$('#resolve_issues-container-inner-placeholder').html @template_inner
+                issues_exist: if issues.length > 0 then true else false
+                
             issue_views = []
             issues.each (issue) ->
                 issue_views.push new ResolveIssuesView.Issue
@@ -362,65 +393,138 @@ module 'ResolveIssuesView', ->
 
             return @
 
+    class @DeclareMachineDeadModal extends ClusterView.AbstractModal
+        template: Handlebars.compile $('#declare_machine_dead-modal-template').html()
+        alert_tmpl: Handlebars.compile $('#declared_machine_dead-alert-template').html()
+
+        initialize: ->
+            log_initial '(initializing) modal dialog: declare machine dead'
+            super @template
+
+        render: (machine_to_kill) ->
+            log_render '(rendering) declare machine dead dialog'
+            validator_options =
+                submitHandler: =>
+                    $.ajax
+                        url: "/ajax/machines/#{machine_to_kill.id}"
+                        type: 'DELETE'
+                        contentType: 'application/json'
+
+                        success: (response) =>
+                            clear_modals()
+
+                            if (response)
+                                throw "Received a non null response to a delete... this is incorrect"
+                            
+                            # Grab the new set of issues (so we don't have to wait)
+                            $.ajax
+                                url: '/ajax/issues'
+                                success: set_issues
+                                async: false
+                                
+                            # remove the dead machine from the models
+                            machines.remove(machine_to_kill.id)
+
+                            # rerender issue view (just the issues, not the whole thing)
+                            window.app.resolve_issues_view.render_issues()
+
+                            # notify the user that we succeeded
+                            $('#user-alert-space').append @alert_tmpl
+                                machine_name: machine_to_kill.get("name")
+
+            super validator_options, { 'machine_name': machine_to_kill.get("name") }
+
     # ResolveIssuesView.Issue
     class @Issue extends Backbone.View
         className: 'issue-container'
         templates:
             'MACHINE_DOWN': Handlebars.compile $('#resolve_issues-machine_down-template').html()
             'NAME_CONFLICT_ISSUE': Handlebars.compile $('#resolve_issues-name_conflict-template').html()
+            'PERSISTENCE_ISSUE': Handlebars.compile $('#resolve_issues-persistence-template').html()
+            'VCLOCK_CONFLICT': Handlebars.compile $('#resolve_issues-vclock_conflict-template').html()
+
         unknown_issue_template: Handlebars.compile $('#resolve_issues-unknown-template').html()
 
         initialize: ->
             log_initial '(initializing) resolve issues view: issue'
 
+        render_machine_down: (_template) ->
+            machine = machines.get(@model.get('victim'))
+
+            masters = []
+            replicas = []
+            
+            # Look at all namespaces in the cluster and determine whether this machine had a master or replicas for them
+            namespaces.each (namespace) ->
+                for machine_uuid, role_summary of namespace.get('blueprint').peers_roles
+                    if machine_uuid is machine.get('id')
+                        for shard, role of role_summary
+                            if role is 'role_primary'
+                                masters.push
+                                    name: namespace.get('name')
+                                    uuid: namespace.get('id')
+                                    shard: human_readable_shard shard
+                            if role is 'role_secondary'
+                                console.log shard
+                                replicas.push
+                                    name: namespace.get('name')
+                                    uuid: namespace.get('id')
+                                    shard: human_readable_shard shard
+
+            json =
+                name: machine.get('name')
+                masters: if _.isEmpty(masters) then null else masters
+                replicas: if _.isEmpty(replicas) then null else replicas
+                no_responsibilities: if (_.isEmpty(replicas) and _.isEmpty(masters)) then true else false
+                datetime: iso_date_from_unix_time @model.get('time')
+
+            @.$el.html _template(json)
+
+            # Declare machine dead handler
+            @.$('p a.btn').off "click"
+            @.$('p a.btn').click =>
+                declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
+                declare_dead_modal.render machine
+
+        render_name_conflict_issue: (_template) ->
+            json =
+                name: @model.get('contested_name')
+                type: @model.get('contested_type')
+                num_contestants: @model.get('contestants').length
+                contestants: _.map(@model.get('contestants'), (uuid) =>
+                   uuid: uuid
+                   type: @model.get('contested_type')
+                )
+                datetime: iso_date_from_unix_time @model.get('time')
+            
+            @.$el.html _template(json)
+
+        render_persistence_issue: (_template) ->
+            json = datetime: iso_date_from_unix_time @model.get('time')
+            @.$el.html _template(json)
+
+        render_vlock_conflict: (_template) ->
+            json = datetime: iso_date_from_unix_time @model.get('time')
+            @.$el.html _template(json)
+
+        render_unknown_issue: (_template) ->
+            json = issue_type: @model.get('type')
+            @.$el.html _template(json)
+
         render: ->
             _template = @templates[@model.get('type')]
             switch @model.get('type')
                 when 'MACHINE_DOWN'
-                    machine = machines.get(@model.get('victim'))
-
-                    masters = []
-                    replicas = []
-                    
-                    # Look at all namespaces in the cluster and determine whether this machine had a master or replicas for them
-                    namespaces.each (namespace) ->
-                        for machine_uuid, role_summary of namespace.get('blueprint').peers_roles
-                            if machine_uuid is machine.get('id')
-                                for shard, role of role_summary
-                                    console.log role
-                                    if role is 'role_primary'
-                                        masters.push
-                                            name: namespace.get('name')
-                                            uuid: namespace.get('id')
-                                            shard: shard
-                                    if role is 'role_secondary'
-                                        replicas.push
-                                            name: namespace.get('name')
-                                            uuid: namespace.get('id')
-                                            shard: shard
-
-                    json =
-                        name: machine.get('name')
-                        masters: masters
-                        replicas: replicas
-                        datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
-
+                    @render_machine_down _template
                 when 'NAME_CONFLICT_ISSUE'
-                   json =
-                        name: @model.get('contested_name')
-                        type: @model.get('contested_type')
-                        num_contestants: @model.get('contestants').length
-                        contestants: _.map(@model.get('contestants'), (uuid) ->
-                            uuid: uuid
-                        )
-                        datetime: ISODateString new Date() # faked TODO -- the time field should be ISO 8601
-                       
+                    @render_name_conflict_issue _template
+                when 'PERSISTENCE_ISSUE'
+                    @render_persistence_issue _template
+                when 'VCLOCK_CONFLICT'
+                    @render_vclock_conflict _template
                 else
-                    _template = @unknown_issue_template
-                    json =
-                        issue_type: @model.get('type')
-
-            @.$el.html _template(json)
+                    @render_unknown_issue @unknown_issue_template
+                        
             @.$('abbr.timeago').timeago()
 
             return @

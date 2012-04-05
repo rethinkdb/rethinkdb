@@ -479,14 +479,14 @@ class Cluster(object):
 
 	# Get the list of machines/namespaces from the cluster, verify that it is consistent across each machine
 	def _verify_consistent_cluster(self):
-		expected = self._get_server_for_command().do_query("GET", "/ajax/")
+		expected = self._get_server_for_command().do_query("GET", "/ajax")
 		# Filter out the "me" value - it will be different on each machine
 		assert expected.pop("me") is not None
 		for i in self.machines.iterkeys():
 			if type(self.machines[i]) is DummyServer: # Don't try to query a server we don't know anything about
 				continue
 
-			actual = self.machines[i].do_query("GET", "/ajax/")
+			actual = self.machines[i].do_query("GET", "/ajax")
 			assert actual.pop("me") == self.machines[i].uuid
 			if actual != expected:
 				raise BadClusterData(expected, actual)

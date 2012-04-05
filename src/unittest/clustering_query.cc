@@ -16,6 +16,12 @@ namespace unittest {
 /* The `ReadWrite` test sends some reads and writes to some shards via a
 `cluster_namespace_interface_t`. */
 
+static std::map<peer_id_t, std::map<master_id_t, master_business_card_t<dummy_protocol_t> > > wrap_in_peers_map(const std::map<master_id_t, master_business_card_t<dummy_protocol_t> > &peer_value, peer_id_t peer) {
+    std::map<peer_id_t, std::map<master_id_t, master_business_card_t<dummy_protocol_t> > > map;
+    map.insert(std::make_pair(peer, peer_value));
+    return map;
+}
+
 static void run_read_write_test() {
 
     /* Set up a cluster so mailboxes can be created */
@@ -54,13 +60,19 @@ static void run_read_write_test() {
 
     /* Set up a metadata meeting-place for masters */
     std::map<master_id_t, master_business_card_t<dummy_protocol_t> > initial_master_metadata;
-    simple_directory_manager_t<std::map<master_id_t, master_business_card_t<dummy_protocol_t> > > master_metadata_controller(&cluster, initial_master_metadata);
+    watchable_variable_t<std::map<master_id_t, master_business_card_t<dummy_protocol_t> > > master_directory(initial_master_metadata);
+    mutex_assertion_t master_directory_lock;
 
     /* Set up a master */
-    master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), master_metadata_controller.get_root_view(), a_thru_z_region(), &broadcaster);
+    master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &master_directory, &master_directory_lock, a_thru_z_region(), &broadcaster);
 
     /* Set up a namespace dispatcher */
-    cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(cluster.get_mailbox_manager(), master_metadata_controller.get_root_view());
+    cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(
+        cluster.get_mailbox_manager(),
+        master_directory.get_watchable()->subview(boost::bind(&wrap_in_peers_map, _1, cluster.get_connectivity_service()->get_me()))
+        );
+
+    nap(100);
 
     /* Send some writes to the namespace */
     order_source_t order_source;

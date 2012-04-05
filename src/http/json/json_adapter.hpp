@@ -308,6 +308,19 @@ void apply_json_to(cJSON *, int *, const ctx_t &);
 template <class ctx_t>
 void on_subfield_change(int *, const ctx_t &);
 
+//JSON adapter for time_t
+template <class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(time_t *, const ctx_t &);
+
+template <class ctx_t>
+cJSON *render_as_json(time_t *, const ctx_t &);
+
+template <class ctx_t>
+void apply_json_to(cJSON *, time_t *, const ctx_t &);
+
+template <class ctx_t>
+void on_subfield_change(time_t *, const ctx_t &);
+
 //JSON adapter for uint64_t
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(uint64_t *, const ctx_t &);

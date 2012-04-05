@@ -1,20 +1,26 @@
 
 # Namespace view
 module 'NamespaceView', ->
-    # Profile view
-    class @Profile extends Backbone.View
-        className: 'namespace-profile'
-        template: Handlebars.compile $('#namespace_view-profile-template').html()
+    # Container for the entire namespace view
+    class @Container extends Backbone.View
+        className: 'namespace-view'
+        template: Handlebars.compile $('#namespace_view-container-template').html()
 
         initialize: ->
-            log_initial '(initializing) namespace view: profile'
+            log_initial '(initializing) namespace view: container'
+            @replicas = new NamespaceView.Replicas model: @model
+            @shards = new NamespaceView.Shards model: @model
 
         render: =>
-            log_render '(rendering) namespace view: profile'
-            @.$el.html @template(@model.toJSON())
+            log_render '(rendering) namespace view: container'
+            @.$el.html @template @model.toJSON()
+            
+            # Add the replica and shards views
+            @.$('.section.replication').html @replicas.render().el
+            @.$('.section.sharding').html @shards.render().el
 
             return @
-
+        
     # Replicas view
     class @Replicas extends Backbone.View
         className: 'namespace-replicas'
@@ -721,20 +727,3 @@ module 'NamespaceView', ->
 
 
             e.preventDefault()
-
-    # Container for the entire namespace view
-    class @Container extends Backbone.View
-        className: 'namespace-view'
-
-        initialize: ->
-            log_initial '(initializing) namespace view: container'
-            @profile = new NamespaceView.Profile model: @model
-            @replicas = new NamespaceView.Replicas model: @model
-            @shards = new NamespaceView.Shards model: @model
-        render: =>
-            log_render '(rendering) namespace view: container'
-            @.$el.append @profile.render().el
-            @.$el.append @replicas.render().el
-            @.$el.append @shards.render().el
-
-            return @

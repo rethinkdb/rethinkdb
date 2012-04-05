@@ -60,7 +60,7 @@ void run_register_test() {
     {
         registrant_t<std::string> registrant(
             cluster.get_mailbox_manager(),
-            metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me()),
+            translate_into_watchable(metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me())),
             "hello");
         let_stuff_happen();
 
@@ -102,7 +102,7 @@ void run_registrar_death_test() {
 
     registrant_t<std::string> registrant(
         cluster.get_mailbox_manager(),
-        metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me()),
+        translate_into_watchable(metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me())),
         "hello");
     let_stuff_happen();
 
@@ -126,6 +126,39 @@ void run_registrar_death_test() {
 }
 TEST(ClusteringRegistration, RegistrarDeath) {
     run_in_thread_pool(&run_registrar_death_test);
+}
+
+/* `QuickDisconnect` is to expose a bug that could appear if the registrant is
+deleted immediately after being created. */
+
+void run_quick_disconnect_test() {
+
+    simple_mailbox_cluster_t cluster;
+
+    monitoring_controller_t controller;
+    registrar_t<std::string, monitoring_controller_t *, monitoring_controller_t::registrant_t> registrar(
+        cluster.get_mailbox_manager(),
+        &controller);
+
+    simple_directory_manager_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
+        &cluster,
+        boost::optional<registrar_business_card_t<std::string> >(registrar.get_business_card())
+        );
+
+    EXPECT_FALSE(controller.has_registrant);
+
+    {
+        registrant_t<std::string> registrant(
+            cluster.get_mailbox_manager(),
+            translate_into_watchable(metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me())),
+            "hello");
+    }
+    let_stuff_happen();
+
+    EXPECT_FALSE(controller.has_registrant);
+}
+TEST(ClusteringRegistration, QuickDisconnect) {
+    run_in_thread_pool(&run_quick_disconnect_test);
 }
 
 }   /* namespace unittest */

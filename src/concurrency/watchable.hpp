@@ -22,6 +22,7 @@ public:
         }
 
     private:
+        friend class watchable_t<value_t>::subscription_t;
         rwi_lock_assertion_t::read_acq_t rwi_lock_acquisition;
     };
 
@@ -40,7 +41,8 @@ public:
         }
 
         void reset(const clone_ptr_t<watchable_t> &watchable, freeze_t *freeze) {
-            subscription.reset(watchable->get_publisher(freeze));
+            freeze->rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
+            subscription.reset(watchable->get_publisher());
         }
 
     private:
@@ -50,8 +52,11 @@ public:
     virtual ~watchable_t() { }
     virtual watchable_t *clone() = 0;
     virtual value_t get() = 0;
-    virtual publisher_t<boost::function<void()> > *get_publisher(freeze_t *) = 0;
+    virtual publisher_t<boost::function<void()> > *get_publisher() = 0;
     virtual rwi_lock_assertion_t *get_rwi_lock_assertion() = 0;
+
+    template<class callable_type>
+    clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_t)>::type> > subview(const callable_type &lens);
 
 protected:
     watchable_t() { }
@@ -87,8 +92,7 @@ private:
         value_t get() {
             return parent->value;
         }
-        publisher_t<boost::function<void()> > *get_publisher(typename watchable_t<value_t>::freeze_t *f) {
-            f->assert_is_holding(parent->get_watchable());
+        publisher_t<boost::function<void()> > *get_publisher() {
             return parent->publisher_controller.get_publisher();
         }
         rwi_lock_assertion_t *get_rwi_lock_assertion() {
@@ -109,5 +113,7 @@ private:
 
     DISABLE_COPYING(watchable_variable_t);
 };
+
+#include "concurrency/watchable.tcc"
 
 #endif /* CONCURRENCY_WATCHABLE_HPP_ */

@@ -19,6 +19,10 @@
 @border_radius: 3px;
 @panel_border: thin solid #DDD;
 
+.uuid {
+    font-family: monospace;
+}
+
 .drop-shadow() {
     .box-shadow(0 1px 2px @grayLighter);
     }
@@ -78,7 +82,7 @@
             .border-radius(3px 3px 3px 3px);
 
             .resolve-issues {
-                margin-top: 15px;
+                margin-top: 10px;
                 margin-bottom: 0;
             }
             hr {
@@ -102,6 +106,11 @@
         font-weight: bold;
         line-height: 2em;
 
+        &.connection { color: @blue; }
+        &.connected-to {
+            margin-left: 10px;
+            line-height: 1.6em;
+        }
         &.cluster { color: darken(@green, 30%); }
         &.critical { color: @red; }
         &.other { color: darken(@purple, 20%); }
@@ -180,7 +189,12 @@
     ----------------------------
 */
 #cluster > .resolve-issues {
-    .btn { float: right; }
+    .no-issues {
+        margin-top: 15px;
+        font-size: 1.4em;
+        color: @grayLight
+    }
+    .btn { margin-top: 10px; }
     .issue {
         margin: 20px 0px;
         padding: 15px 25px;
@@ -192,11 +206,9 @@
 
         .header {
             margin-top: 3px;
-            padding-left: 44px;
             min-height: 32px;
             h3 {
-                line-height: 0.8em;
-                margin-bottom: 0.5em;
+                line-height: 1em;
             }
         }
 
@@ -210,7 +222,9 @@
             font-size: 0.75em;
             color: @gray;
             text-transform: uppercase;
-            line-height: 4em;
+            padding-top: 3px;
+            margin-bottom: 0;
+            padding-bottom: 0;
         }
 
         .details {
@@ -221,6 +235,12 @@
             li {
                 line-height: 1.8em;
                 color: @grayDark;
+            }
+        }
+
+        &.name-conflict {
+            h4 {
+                margin-bottom: 5px;
             }
         }
     }
@@ -588,48 +608,15 @@
     Generic element view
     ----------------------------
 */
-.namespace-view, .datacenter-view, .machine-view, .dashboard-view {
-    @panel_padding: 0 20px;
-    .panel {
-        border: @panel_border;
-        .border-radius(@border_radius);
+.namespace-view, .datacenter-view, .machine-view {
+    .section {
+        border-bottom: thin solid #CCC;
+        padding-bottom: 10px;
         margin-bottom: 10px;
-
-        .title {
-            .border-radius(@border_radius);
-            .panel-gradient;
-            .border-radius(@border_radius @border_radius 0 0);
-            h3 {
-                line-height: 2.25em;
-            }
-            margin-bottom: 5px;
-            padding: @panel_padding;
-        }
-        .content {
-            padding: @panel_padding;
-        }
     }
 
-    #profile {
-        &:after { display: block; content: ""; clear: left; }
-        .wrapper {
-            width: 50%;
-            float: left;
-        }
-    }
-
-    #recent-actions table {
-        .table-striped;
-
-        td p {
-            color: @grayDark;
-            margin-bottom: 0;
-            line-height: 1.75em;
-        }
-
-        tr.last-child td {
-            border-bottom: 0;
-        }
+    h3.title {
+        margin-bottom: 10px;
     }
 }
 
@@ -648,17 +635,15 @@
         } 
     }
 
-    #sharding.panel {
-       table.shards {
-            margin-bottom: 15px;
-            td {
-                border-bottom: thin solid @grayLighter;
-                padding: 10px 0;
-                &.name {
-                    width: 15%;
-                }
-            } 
-        }
+   table.shards {
+        margin-bottom: 15px;
+        td {
+            border-bottom: thin solid @grayLighter;
+            padding: 10px 0;
+            &.name {
+                width: 15%;
+            }
+        } 
     }
 
     /* Override Bootstrap */
@@ -679,48 +664,6 @@
 */
 
 .machine-view {
-    #profile {
-        .meter {
-            height: 10px;
-            position: relative;
-            background: @grayLighter;
-            .border-radius(6px);
-            padding: 5px;
-            //.box-shadow(@shadow: 0px -1px 1px rgba(255,255,255,0,0.3));
-            float: right;
-            width: 100%;
-
-            span {
-                display: block;
-                height: 100%;
-                .border-radius(6px);
-                background-color: rgb(119,204,164);
-                // #gradient > .vertical(rgb(43, 194, 83), rgb(84,240,84));
-                // .box-shadow(@shadow: 0px 2px 9px rgba(255,255,255,0.3));
-                position: relative;
-                overflow: hidden;
-            }
-        }
-    }
-
-    #performance {
-        #performance-graph {
-            .center-block;
-            width: 90%;
-            height: 300px;
-            margin-top: 20px;
-        }
-
-        p.graph-controls {
-            line-height: 2.5em;
-            margin-top: 0.5em;
-            margin-left: 60px;
-
-            #resume-graph {
-                display: none;
-            }
-        }
-    }
 }
 
 /*

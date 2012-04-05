@@ -4,8 +4,9 @@
 #include "clustering/registration_metadata.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
-#include "rpc/semilattice/view.hpp"
+#include "rpc/directory/watchable_copier.hpp"
 #include "rpc/mailbox/typed.hpp"
+#include "rpc/semilattice/view.hpp"
 
 template<class business_card_t>
 class registrant_t {
@@ -16,7 +17,7 @@ public:
     */
     registrant_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<directory_single_rview_t<boost::optional<registrar_business_card_t<business_card_t> > > > registrar_md,
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<registrar_business_card_t<business_card_t> > > > > registrar_md,
             business_card_t initial_value)
             THROWS_ONLY(resource_lost_exc_t) :
         mailbox_manager(mm),
@@ -70,6 +71,7 @@ private:
 
     mailbox_manager_t *mailbox_manager;
     resource_access_t<registrar_business_card_t<business_card_t> > registrar;
+
     registration_id_t registration_id;
 };
 

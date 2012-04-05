@@ -241,7 +241,9 @@ public:
     void run_queries() {
         for (unsigned i = 0; i < test_clusters.size(); i++) {
             cluster_namespace_interface_t<protocol_t> namespace_if(&(&test_clusters[i])->mailbox_manager, 
-                                                                   (&test_clusters[i])->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory)));
+                                                                   translate_into_watchable((&test_clusters[i])->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory))));
+
+            nap(50);
 
             order_source_t order_source;
 
@@ -283,7 +285,7 @@ public:
 
 void runOneShardOnePrimaryOneNodeStartupShutdowntest() {
     test_cluster_group_t<dummy_protocol_t> cluster_group(2);
-
+    nap(100);
     cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,n"));
 
     cluster_group.wait_until_blueprint_is_satisfied("p,n");

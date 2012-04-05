@@ -30,14 +30,23 @@ fifo_enforcer_sink_t::exit_read_t::exit_read_t(fifo_enforcer_sink_t *p, fifo_enf
     parent->pump();
 }
 
-fifo_enforcer_sink_t::exit_read_t::~exit_read_t() THROWS_NOTHING {
-    mutex_assertion_t::acq_t acq(&parent->lock);
-    if (is_pulsed()) {
-        parent->finish_a_reader(token.timestamp);
-        parent->pump();
-    } else {
-        queue_position->second = NULL;
+void fifo_enforcer_sink_t::exit_read_t::reset() {
+    if (parent) {
+        parent->assert_thread();
+        mutex_assertion_t::acq_t acq(&parent->lock);
+        if (is_pulsed()) {
+            parent->finish_a_reader(token.timestamp);
+            parent->pump();
+        } else {
+            queue_position->second = NULL;
+        }
+
+        parent = NULL;
     }
+}
+
+fifo_enforcer_sink_t::exit_read_t::~exit_read_t() THROWS_NOTHING {
+    reset();
 }
 
 fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t) THROWS_NOTHING :
@@ -53,14 +62,22 @@ fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_e
     parent->pump();
 }
 
-fifo_enforcer_sink_t::exit_write_t::~exit_write_t() THROWS_NOTHING {
-    mutex_assertion_t::acq_t acq(&parent->lock);
-    if (is_pulsed()) {
-        parent->finish_a_writer(token.timestamp, token.num_preceding_reads);
-        parent->pump();
-    } else {
-        queue_position->second.second = NULL;
+void fifo_enforcer_sink_t::exit_write_t::reset() {
+    if (parent) {
+        mutex_assertion_t::acq_t acq(&parent->lock);
+        if (is_pulsed()) {
+            parent->finish_a_writer(token.timestamp, token.num_preceding_reads);
+            parent->pump();
+        } else {
+            queue_position->second.second = NULL;
+        }
+
+        parent = NULL;
     }
+}
+
+fifo_enforcer_sink_t::exit_write_t::~exit_write_t() THROWS_NOTHING {
+    reset();
 }
 
 void fifo_enforcer_sink_t::pump() THROWS_NOTHING {

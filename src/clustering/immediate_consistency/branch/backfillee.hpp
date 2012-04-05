@@ -6,6 +6,7 @@
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "rpc/directory/watchable_copier.hpp"
 
 /* TODO: What if the backfill chunks on the network get reordered in transit?
 Even if the `protocol_t` can tolerate backfill chunks being reordered, it's
@@ -44,7 +45,7 @@ void backfillee(
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
         store_view_t<protocol_t> *store,
         typename protocol_t::region_t region,
-        clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfiller_metadata,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
