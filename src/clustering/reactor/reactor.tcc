@@ -9,13 +9,15 @@ template<class protocol_t>
 reactor_t<protocol_t>::reactor_t(
         mailbox_manager_t *mm,
         clone_ptr_t<directory_rwview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > rd,
-        clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > _master_directory,
+        clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > master_directory_view,
         boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,
         store_view_t<protocol_t> *_underlying_store) THROWS_NOTHING :
     mailbox_manager(mm), directory_echo_access(mailbox_manager, rd, reactor_business_card_t<protocol_t>()), 
-    master_directory(_master_directory), 
-    branch_history(bh), blueprint_watchable(b), underlying_store(_underlying_store),
+    branch_history(bh),
+    master_directory(std::map<master_id_t, master_business_card_t<protocol_t> >()),
+    master_directory_copier(master_directory.get_watchable(), master_directory_view), 
+    blueprint_watchable(b), underlying_store(_underlying_store),
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this))
 {
     {
