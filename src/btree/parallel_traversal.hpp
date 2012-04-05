@@ -111,6 +111,10 @@ void btree_parallel_traversal(transaction_t *txn, got_superblock_t &superblock, 
 
 class traversal_progress_t : public home_thread_mixin_t {
 public:
+    traversal_progress_t()
+        : height(-1), print_counter(0)
+    { }
+
     enum action_t {
         LEARN,
         ACQUIRE,
@@ -128,11 +132,13 @@ public:
     float guess_completion();
 
 private:
-    std::vector<int> known_of; //How many nodes at each level we believe exist
+    std::vector<int> learned; //How many nodes at each level we believe exist
     std::vector<int> acquired; //How many nodes at each level we've acquired
     std::vector<int> released; //How many nodes at each level we've released
 
     int height; //The height we've learned the tree has. Or -1 if we're still unsure;
+
+    int print_counter;
 };
 
 #endif  // BTREE_PARALLEL_TRAVERSAL_HPP_

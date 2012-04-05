@@ -304,32 +304,32 @@ void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, in
 struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
     traversal_state_t *state;
     int level;
-    const btree_key_t *left_exclusive_or_null;
-    const btree_key_t *right_inclusive_or_null;
+    btree_key_buffer_t left_exclusive;
+    bool left_unbounded;
+    btree_key_buffer_t right_inclusive;
+    bool right_unbounded;
 
     void on_node_ready(buf_lock_t *buf) {
         rassert(coro_t::self());
         const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
 
-        traversal_state_t *local_state = state;
-        int local_level = level;
-        const btree_key_t *local_left_exclusive_or_null = left_exclusive_or_null;
-        const btree_key_t *local_right_inclusive_or_null = right_inclusive_or_null;
+        const btree_key_t *left_exclusive_or_null = left_unbounded ? NULL : left_exclusive.key();
+        const btree_key_t *right_inclusive_or_null = right_unbounded ? NULL : right_inclusive.key();
 
         if (node::is_leaf(node)) {
             if (state->helper->progress) {
                 state->helper->progress->inform(level, traversal_progress_t::ACQUIRE, traversal_progress_t::LEAF);
             }
+            process_a_leaf_node(state, buf, level, left_exclusive_or_null, right_inclusive_or_null);
             delete this;
-            process_a_leaf_node(local_state, buf, local_level, local_left_exclusive_or_null, local_right_inclusive_or_null);
         } else {
             rassert(node::is_internal(node));
 
             if (state->helper->progress) {
                 state->helper->progress->inform(level, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
             }
+            process_a_internal_node(state, buf, level, left_exclusive_or_null, right_inclusive_or_null);
             delete this;
-            process_a_internal_node(local_state, buf, local_level, local_left_exclusive_or_null, local_right_inclusive_or_null);
         }
     }
 };
@@ -338,8 +338,19 @@ void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t bloc
     do_a_subtree_traversal_fsm_t *fsm = new do_a_subtree_traversal_fsm_t;
     fsm->state = state;
     fsm->level = level;
-    fsm->left_exclusive_or_null = left_exclusive_or_null;
-    fsm->right_inclusive_or_null = right_inclusive_or_null;
+
+    if (left_exclusive_or_null) {
+        fsm->left_exclusive.assign(left_exclusive_or_null);
+        fsm->left_unbounded = false;
+    } else {
+        fsm->left_unbounded = true;
+    }
+    if (right_inclusive_or_null) {
+        fsm->right_inclusive.assign(right_inclusive_or_null);
+        fsm->right_unbounded = false;
+    } else {
+        fsm->right_unbounded = true;
+    }
 
     acquire_a_node(state, level, block_id, acq_start_cb, fsm);
 }
@@ -376,6 +387,19 @@ void interesting_children_callback_t::receive_interesting_child(int child_index)
     const btree_key_t *left_excl_or_null;
     const btree_key_t *right_incl_or_null;
     ids_source->get_block_id_and_bounding_interval(child_index, &block_id, &left_excl_or_null, &right_incl_or_null);
+
+    btree_key_buffer_t left_excl;
+    btree_key_buffer_t right_incl;
+
+    if (left_excl_or_null) {
+        left_excl.assign(left_excl_or_null);
+        left_excl_or_null = left_excl.key();
+    }
+
+    if (right_incl_or_null) {
+        right_incl.assign(right_incl_or_null);
+        right_incl_or_null = right_incl.key();
+    }
 
     ++acquisition_countdown;
     do_a_subtree_traversal(state, level, block_id, left_excl_or_null, right_incl_or_null, this);
@@ -436,17 +460,70 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
         *left_excl_bound_out = left_exclusive_or_null_;
         *right_incl_bound_out = right_inclusive_or_null_;
     }
-}
 
-void traversal_progress_t::inform(int , action_t action, node_type_t ) {
-    switch(action) {
-    case LEARN:
-        break;
-    case ACQUIRE:
-        break;
-    case RELEASE:
-        break;
+    if (*left_excl_bound_out && *right_incl_bound_out && 
+        sized_strcmp((*left_excl_bound_out)->contents, (*left_excl_bound_out)->size, (*right_incl_bound_out)->contents, (*right_incl_bound_out)->size) == 0) {
+        BREAKPOINT;
     }
 }
 
-float guess_completion();
+void traversal_progress_t::inform(int level, action_t action, node_type_t type) {
+    assert_thread();
+    rassert(level >= 0);
+    if (size_t(level) > learned.size()) {
+        learned.resize(level, 0);
+        acquired.resize(level, 0);
+        released.resize(level, 0);
+    }
+
+    if (type == LEAF) {
+        if (height == -1) {
+            height = level;
+        }
+        rassert(height == level);
+    }
+
+    switch(action) {
+    case LEARN:
+        learned[level]++;
+        break;
+    case ACQUIRE:
+        acquired[level]++;
+        break;
+    case RELEASE:
+        released[level]++;
+        break;
+    default:
+        unreachable();
+        break;
+    }
+    if ((print_counter++ % 100) == 0) {
+        debugf("Learned:\n");
+        for (std::vector<int>::iterator it  = learned.begin();
+                                        it != learned.end();
+                                        ++it) {
+            debugf("%d\t", *it);
+        }
+
+        debugf("\nAcquired:\n");
+        for (std::vector<int>::iterator it  = acquired.begin();
+                                        it != acquired.end();
+                                        ++it) {
+            debugf("%d\t", *it);
+        }
+
+        debugf("\nReleased:\n");
+        for (std::vector<int>::iterator it  = released.begin();
+                                        it != released.end();
+                                        ++it) {
+            debugf("%d\t", *it);
+        }
+
+        debugf("\nHeight: %d\n", height);
+    }
+}
+
+float traversal_progress_t::guess_completion() {
+    assert_thread();
+    return 0.0;
+}
