@@ -1,5 +1,6 @@
 #include "memcached/btree/backfill.hpp"
 
+#include "btree/parallel_traversal.hpp"
 #include "memcached/btree/btree_data_provider.hpp"
 #include "memcached/btree/node.hpp"
 #include "memcached/btree/value.hpp"
@@ -33,8 +34,8 @@ public:
 };
 
 void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                    transaction_t *txn, got_superblock_t& superblock) {
+                    transaction_t *txn, got_superblock_t& superblock, traversal_progress_t *p) {
     agnostic_memcached_backfill_callback_t agnostic_cb(callback);
     value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock);
+    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p);
 }

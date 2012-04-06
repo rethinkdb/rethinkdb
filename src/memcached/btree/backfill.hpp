@@ -29,6 +29,6 @@ protected:
 };
 
 void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                    transaction_t *txn, got_superblock_t& superblock);
+                    transaction_t *txn, got_superblock_t& superblock, traversal_progress_t *p);
 
 #endif /* MEMCACHED_BTREE_BACKFILL_HPP_ */

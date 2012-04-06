@@ -3,12 +3,14 @@
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "btree/internal_node.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "containers/scoped_malloc.hpp"
+#include "protocol_api.hpp"
 
 struct btree_superblock_t;
 class traversal_state_t;
@@ -109,7 +111,7 @@ struct btree_traversal_helper_t {
 void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_traversal_helper_t *helper);
 void btree_parallel_traversal(transaction_t *txn, got_superblock_t &superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
-class traversal_progress_t : public home_thread_mixin_t {
+class traversal_progress_t : public home_thread_mixin_t, public backfill_progress_t {
 public:
     traversal_progress_t()
         : height(-1), print_counter(0)
@@ -130,6 +132,7 @@ public:
     void inform(int level, action_t, node_type_t);
 
     float guess_completion();
+    std::pair<int, int> numerator_and_denominator();
 
 private:
     std::vector<int> learned; //How many nodes at each level we believe exist
@@ -139,6 +142,17 @@ private:
     int height; //The height we've learned the tree has. Or -1 if we're still unsure;
 
     int print_counter;
+};
+
+class traversal_progress_combiner_t : public home_thread_mixin_t, public backfill_progress_t {
+public:
+    traversal_progress_combiner_t() { }
+
+    void add_constituent(traversal_progress_t *);
+    float guess_completion();
+
+private:
+    boost::ptr_vector<traversal_progress_t> constituents;
 };
 
 #endif  // BTREE_PARALLEL_TRAVERSAL_HPP_

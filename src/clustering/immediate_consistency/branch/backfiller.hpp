@@ -111,6 +111,7 @@ private:
             store->new_read_token(send_backfill_token);
 
             /* Actually perform the backfill */
+            backfill_progress_t *progress;
             store->send_backfill(
                 region_map_transform<protocol_t, version_range_t, state_timestamp_t>(
                     start_point,
@@ -118,6 +119,7 @@ private:
                     ),
                 boost::bind(&backfiller_t<protocol_t>::confirm_and_send_metainfo, this, _1, start_point, end_point_cont),
                 send_fun,
+                &progress,
                 send_backfill_token,
                 &interrupted
                 );
