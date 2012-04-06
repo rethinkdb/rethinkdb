@@ -49,8 +49,8 @@ import copy
 import time
 import socket
 import random
+import signal
 import subprocess
-from signal import SIGINT
 from shutil import rmtree
 from httplib import HTTPConnection
 
@@ -276,7 +276,7 @@ class InternalServer(Server):
 	def kill(self):
 		assert self.running
 		try:
-			self.instance.send_signal(SIGINT)
+			self.instance.send_signal(signal.SIGINT)
 		except OSError:
 			pass
 		self._wait()
@@ -518,8 +518,12 @@ class Cluster(object):
 		type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
 		assert type_namespaces[type(namespace)][namespace.uuid] is namespace
 		if selector is None:
-			# Take any machine
-			machine = random.choice(self.machines.values())
+			# Take any machine (make sure it isn't a DummyServer)
+			machines = [ ]
+			for serv in self.machines.itervalues():
+				if not isinstance(serv, DummyServer):
+					machines.append(serv)
+			machine = random.choice(machines)
 		elif isinstance(selector, Datacenter):
 			# Take any machine from the specified datacenter
 			machine = self.get_machine_in_datacenter(selector)
@@ -547,7 +551,7 @@ class Cluster(object):
 		# Build a list of machines in the given datacenter
 		machines = [ ]
 		for serv in self.machines.itervalues():
-			if serv.datacenter_uuid == datacenter.uuid:
+			if serv.datacenter_uuid == datacenter.uuid and not isinstance(serv, DummyServer):
 				machines.append(serv)
 		return random.choice(machines)
 
@@ -816,7 +820,7 @@ class InternalCluster(Cluster):
 			if not isinstance(m, DummyServer):
 				block_path(m.cluster_port, port)
 
-	def add_machine(self):
+	def add_machine(self, name = None):
 		# Block the new machine's port across all pieces of the cluster before we actually run the server
 		new_local_cluster_port = self.base_port - self.server_instances - 1
 		new_cluster_port = self.base_port + self.server_instances
@@ -824,7 +828,7 @@ class InternalCluster(Cluster):
 			c._notify_of_new_cluster_port(new_cluster_port)
 		for p in self.blocked_ports:
 			block_path(new_local_cluster_port, p)
-		return Cluster.add_machine(self)
+		return Cluster.add_machine(self, name)
 
 	def add_existing_machine(self, machine):
 		assert len(self.other_clusters) != 0 # Cannot have a split cluster with externally-added machines

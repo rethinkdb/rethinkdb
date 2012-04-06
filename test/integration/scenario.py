@@ -16,7 +16,7 @@ def get_default_option_parser():
 def run_scenario(opts, initialize_fn, phase_fns = []):
 	assert len(opts["workloads"]) > len(phase_fns)
 	# Take a random host/port from the cluster and run the workload with it
-	cluster = http_admin.Cluster(opts["log-file"], opts["mode"])
+	cluster = http_admin.InternalCluster(log_file = opts["log-file"], mode = opts["mode"])
 	host, port = initialize_fn(cluster)
 
 	# Create workload objects - this will verify they exist and whatnot

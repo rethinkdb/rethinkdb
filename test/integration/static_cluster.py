@@ -19,7 +19,7 @@ def initialize_cluster(cluster):
 		cluster.move_server_to_datacenter(machine, datacenter)
 
 	namespace = cluster.add_namespace(protocol = opts["protocol"], name = "Test Namespace", primary = datacenter)
-	time.sleep(5)
+	time.sleep(8)
 	return cluster.get_namespace_host(namespace)
 
 scenario.run_scenario(opts, initialize_cluster)
