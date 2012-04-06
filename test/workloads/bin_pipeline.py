@@ -19,6 +19,11 @@ def get_pipelined(sock):
 op = workload_common.option_parser_for_socket()
 opts = op.parse(sys.argv)
 
+import signal
+import pdb
+
+signal.signal(signal.SIGUSR1, lambda sig, stack: pdb.set_trace())
+
 with workload_common.MemcacheConnection(opts["host"], opts["port"], mclib="pylibmc", protocol="binary") as mc:
     print "Inserting"
     insert_dict = dict((str(i), str(i)) for i in xrange(NUM_INTS))

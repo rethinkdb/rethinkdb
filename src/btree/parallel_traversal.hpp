@@ -80,7 +80,13 @@ private:
     DISABLE_COPYING(interesting_children_callback_t);
 };
 
+class traversal_progress_t;
+
 struct btree_traversal_helper_t {
+    btree_traversal_helper_t()
+        : progress(NULL)
+    { }
+
     // This is free to call mark_deleted.
     virtual void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                                 const btree_key_t *left_exclusive_or_null,
@@ -96,9 +102,43 @@ struct btree_traversal_helper_t {
     virtual access_t btree_node_mode() = 0;
 
     virtual ~btree_traversal_helper_t() { }
+
+    traversal_progress_t *progress;
 };
 
 void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_traversal_helper_t *helper);
 void btree_parallel_traversal(transaction_t *txn, got_superblock_t &superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
+
+class traversal_progress_t : public home_thread_mixin_t {
+public:
+    traversal_progress_t()
+        : height(-1), print_counter(0)
+    { }
+
+    enum action_t {
+        LEARN,
+        ACQUIRE,
+        RELEASE
+    };
+
+    enum node_type_t {
+        UNKNOWN,
+        INTERNAL,
+        LEAF
+    };
+
+    void inform(int level, action_t, node_type_t);
+
+    float guess_completion();
+
+private:
+    std::vector<int> learned; //How many nodes at each level we believe exist
+    std::vector<int> acquired; //How many nodes at each level we've acquired
+    std::vector<int> released; //How many nodes at each level we've released
+
+    int height; //The height we've learned the tree has. Or -1 if we're still unsure;
+
+    int print_counter;
+};
 
 #endif  // BTREE_PARALLEL_TRAVERSAL_HPP_

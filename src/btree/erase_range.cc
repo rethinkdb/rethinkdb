@@ -33,7 +33,7 @@ public:
 
             // k's in the leaf node so it should be in the range of
             // keys allowed for the leaf node.
-            rassert(key_in_range(k, l_excl, r_incl));
+            assert_key_in_range(k, l_excl, r_incl);
 
             if (key_in_range(k, left_exclusive_or_null_, right_inclusive_or_null_) && tester_->key_should_be_erased(k)) {
                 keys_to_delete.push_back(btree_key_buffer_t(k));
@@ -85,6 +85,20 @@ public:
             return false;
         }
         return true;
+    }
+
+    static void assert_key_in_range(const btree_key_t *k, const btree_key_t *left_excl, const btree_key_t *right_incl) {
+        if (!key_in_range(k, left_excl, right_incl)) {
+            debugf("Assert key in range failing:\n");
+            if (left_excl) {
+                debugf("left_excl(%d): %*.*s, key(%d): %*.*s\n", int(left_excl->size), int(left_excl->size), int(left_excl->size), left_excl->contents, int(k->size), int(k->size), int(k->size), k->contents);
+            }
+            if (right_incl) {
+                debugf("right_incl(%d): %*.*s, key(%d): %*.*s\n", int(right_incl->size), int(right_incl->size), int(right_incl->size), right_incl->contents, int(k->size), int(k->size), int(k->size), k->contents);
+            }
+        }
+
+        rassert(key_in_range(k, left_excl, right_incl));
     }
 
     // Checks if (x_l_excl, x_r_incl] intersects (y_l_excl, y_r_incl].

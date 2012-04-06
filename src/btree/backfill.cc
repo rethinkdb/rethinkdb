@@ -157,5 +157,7 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice
     rassert(coro_t::self());
 
     backfill_traversal_helper_t helper(callback, since_when, sizer, key_range);
+    //traversal_progress_t p;
+    //helper.progress = &p;
     btree_parallel_traversal(txn, superblock, slice, &helper);
 }
