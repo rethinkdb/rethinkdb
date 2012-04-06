@@ -722,7 +722,7 @@
                 <h4>{{capitalize type}}{{pluralize_noun num_contestants}} with the name {{name}}:</h4>
                 <ul>
                 {{#each contestants}}
-                <li><a id="rename_{{uuid}}" href="#{{type}}{{pluralize_noun 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a href="#">rename</a>)</li>
+                <li><a href="#{{type}}{{pluralize_noun 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
                 {{/each}}
                 </ul>
             </div>
@@ -799,6 +799,13 @@
             <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You added datacenter <span class="name">{{name}}</span>. You can now <a href="#datacenters/{{uuid}}">configure</a> it further.</p>
+            </div>
+        </script>
+
+        <script id="renamed_item-alert-template" type="text/x-handlebars-template">
+            <div class="alert" data-alert="alert">
+                <a class="close" href="#">&times;</a>
+                <p>You successfully renamed {{type}} from <span class="name">{{old_name}}</span> to <span class="name">{{new_name}}</span>.</p>
             </div>
         </script>
 
@@ -1074,6 +1081,32 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn primary add-datacenter" type="submit" name="add-datacenter" value="Add datacenter">Add datacenter</button>
+                        <a href="#" class="btn secondary cancel">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </script>
+
+        <script id="rename_item-modal-template" type="text/x-handlebars-template">
+            <div class="modal rename-item">
+                <form class="form">
+                    <div class="modal-header">
+                        <a href="#" class="close">&times;</a>
+                        <h3>Rename {{type}}</h3>
+                    </div>
+                    <div class="modal-body">
+                        <fieldset>
+                           <legend>Rename {{capitalize type}} from {{old_name}} to:</legend>
+                           <div class="clearfix">
+                                <label for="name">New name</label>
+                                <div class="input">
+                                    <input class="xlarge" name="new_name" size="30" type="text" />
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn primary rename-item" type="submit" name="rename-item" value="Rename {{type}}">Rename {{type}}</button>
                         <a href="#" class="btn secondary cancel">Cancel</a>
                     </div>
                 </form>

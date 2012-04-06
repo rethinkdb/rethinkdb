@@ -502,8 +502,19 @@ module 'ResolveIssuesView', ->
 
             # bind rename handlers
             _.each(@model.get('contestants'), (uuid) =>
-                $("#rename_" + uuid).click (foo) =>
-                    console.log foo, uuid
+                @.$("a#rename_" + uuid).click (e) =>
+                    e.preventDefault()
+                    rename_modal = new ClusterView.RenameItemModal(uuid, @model.get('contested_type'), (response) =>
+                        # Grab the new set of issues (so we don't have to wait)
+                        $.ajax
+                            url: '/ajax/issues'
+                            success: set_issues
+                            async: false
+                                
+                        # rerender issue view (just the issues, not the whole thing)
+                        window.app.resolve_issues_view.render_issues()
+                    )
+                    rename_modal.render()
             )
 
         render_persistence_issue: (_template) ->
