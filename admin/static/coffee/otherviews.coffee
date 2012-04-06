@@ -121,14 +121,15 @@ module 'MachineView', ->
 
             # If the machine is reachable, add relevant json
             if directory_listing?
-                console.log directory_listing.get('memcached_namespaces')
                 namespaces_on_this_machine = directory_listing.get('memcached_namespaces').reactor_bcards
                 json = _.extend json,
                     is_reachable: true
                     data:
-                        namespaces: _.map(namespaces_on_this_machine, (shard_roles, namespace_uuid) ->
+                        namespaces: _.map(namespaces_on_this_machine, (activity_map, namespace_uuid) ->
                             name: namespaces.get(namespace_uuid).get('name')
-                            shards: _.map(shard_roles, (role, shard) ->
+                            shards: _.map(activity_map["activity_map"], (activity, activity_uuid) ->
+                                role = activity[1]['type']
+                                shard = activity[0]
                                 name: human_readable_shard shard
                                 status: role
                             )
@@ -498,6 +499,12 @@ module 'ResolveIssuesView', ->
                 datetime: iso_date_from_unix_time @model.get('time')
             
             @.$el.html _template(json)
+
+            # bind rename handlers
+            _.each(@model.get('contestants'), (uuid) =>
+                $("#rename_" + uuid).click (foo) =>
+                    console.log foo, uuid
+            )
 
         render_persistence_issue: (_template) ->
             json = datetime: iso_date_from_unix_time @model.get('time')
