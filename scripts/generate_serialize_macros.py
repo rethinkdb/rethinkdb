@@ -29,6 +29,13 @@ def generate_make_serializable_macro(nfields):
         print "        msg << thing.field%d; \\" % (i + 1)
     print "    return msg; \\"
     print "    } \\"
+    print "    inline int deserialize(%sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg)
+    print "        int res = 0; \\"
+    for i in xrange(nfields):
+        print "        res = deserialize(s, &thing->field%d); \\" % (i + 1)
+        print "        if (res) { return res; } \\"
+    print "        return res; \\"
+    print "    } \\"
     # See the note in the comment below.
     print "    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;"
 
@@ -45,6 +52,14 @@ def generate_make_me_serializable_macro(nfields):
     print "    void rdb_serialize(%swrite_message_t &msg) const { \\" % zeroarg
     for i in xrange(nfields):
         print "        msg << field%d; \\" % (i + 1)
+    print "    } \\"
+    print "    template <class T> friend int deserialize(read_stream_t *, T *); \\"
+    print "    int rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
+    print "        int res = 0; \\"
+    for i in xrange(nfields):
+        print "        res = deserialize(s, &field%d); \\" % (i + 1)
+        print "        if (res) { return res; } \\"
+    print "        return res; \\"
     print "    }"
 
 if __name__ == "__main__":

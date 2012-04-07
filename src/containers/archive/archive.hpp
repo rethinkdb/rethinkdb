@@ -17,6 +17,13 @@ private:
     DISABLE_COPYING(read_stream_t);
 };
 
+template <class T>
+int deserialize(read_stream_t *s, T *thing) {
+    return thing->rdb_deserialize(s);
+}
+
+// Returns the number of bytes written, or -1.  Returns a
+// non-negative value less than n upon EOF.
 int64_t force_read(read_stream_t *s, void *p, int64_t n);
 
 class write_stream_t {
@@ -80,6 +87,12 @@ private:
         msg.append(u.buf, sizeof(typ2));                                \
         return msg;                                                     \
     }
+
+// The deserialize function returns 0 upon success, a positive or
+// negative error code upon failure.  -1 means there was an error on
+// the socket, -2 means EOF on the socket, -3 means a "range error",
+// +1 means specific error info was discarded, the error code got used
+// as a boolean.
 
 // Makes typ1 serializable, sending a typ2 over the wire.  Has range
 // checking on the closed interval [lo, hi] when deserializing.

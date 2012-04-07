@@ -10,7 +10,12 @@
 
 inline
 write_message_t &operator<<(UNUSED write_message_t &msg, UNUSED boost::detail::variant::void_ &v) {
-    unreachable("You cannot do operator<<(write_message_t &msg, boost::detail::variant::void_ &v).");
+    unreachable("You cannot do operator<<(write_message_t &, boost::detail::variant::void_ &).");
+}
+
+inline
+int deserialize(UNUSED read_stream_t *s, UNUSED boost::detail::variant::void_ *v) {
+    unreachable("You cannot do deserialize(read_stream_t *, boost::detail::variant::void_ *).");
 }
 
 
@@ -114,6 +119,16 @@ inline write_message_t &operator<<(write_message_t &msg, const boost::uuids::uui
     return msg;
 }
 
+int deserialize(read_stream_t *s, boost::uuids::uuid *uuid) {
+    int64_t sz = boost::uuids::uuid::static_size();
+    int64_t res = force_read(s, uuid->data, sz);
+
+    if (res == -1) { return -1; }
+    if (res < sz) { return -2; }
+    rassert(res == sz);
+    return 0;
+}
+
 
 template <class T>
 write_message_t &operator<<(write_message_t &msg, const boost::optional<T> &x) {
@@ -124,6 +139,23 @@ write_message_t &operator<<(write_message_t &msg, const boost::optional<T> &x) {
         msg << *ptr;
     }
     return msg;
+}
+
+template <class T>
+int deserialize(read_stream_t *s, boost::optional<T> *x) {
+    bool exists;
+    rassert(!x->get_ptr());
+
+    int res = deserialize(s, &exists);
+    if (res) { return res; }
+    if (exists) {
+        x->reset(T());
+        res = deserialize(s, x->get_ptr());
+        return res;
+    } else {
+        x->reset();
+        return 0;
+    }
 }
 
 #endif  // CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_

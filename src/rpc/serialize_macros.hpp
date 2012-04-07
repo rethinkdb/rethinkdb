@@ -38,6 +38,10 @@ the class scope. */
     inline write_message_t &operator<<(UNUSED write_message_t &msg, UNUSED const type_t &thing) { \
     return msg; \
     } \
+    inline int deserialize(UNUSED read_stream_t *s, UNUSED type_t *thing) { \
+        int res = 0; \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_0() \
@@ -46,6 +50,11 @@ the class scope. */
     } \
     friend class write_message_t; \
     void rdb_serialize(UNUSED write_message_t &msg) const { \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(UNUSED read_stream_t *s) { \
+        int res = 0; \
+        return res; \
     }
 
 
@@ -59,6 +68,12 @@ the class scope. */
         msg << thing.field1; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_1(field1) \
@@ -69,6 +84,13 @@ the class scope. */
     friend class write_message_t; \
     void rdb_serialize(write_message_t &msg) const { \
         msg << field1; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -84,6 +106,14 @@ the class scope. */
         msg << thing.field2; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_2(field1, field2) \
@@ -96,6 +126,15 @@ the class scope. */
     void rdb_serialize(write_message_t &msg) const { \
         msg << field1; \
         msg << field2; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -113,6 +152,16 @@ the class scope. */
         msg << thing.field3; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_3(field1, field2, field3) \
@@ -127,6 +176,17 @@ the class scope. */
         msg << field1; \
         msg << field2; \
         msg << field3; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -146,6 +206,18 @@ the class scope. */
         msg << thing.field4; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_4(field1, field2, field3, field4) \
@@ -162,6 +234,19 @@ the class scope. */
         msg << field2; \
         msg << field3; \
         msg << field4; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -183,6 +268,20 @@ the class scope. */
         msg << thing.field5; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_5(field1, field2, field3, field4, field5) \
@@ -201,6 +300,21 @@ the class scope. */
         msg << field3; \
         msg << field4; \
         msg << field5; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -224,6 +338,22 @@ the class scope. */
         msg << thing.field6; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_6(field1, field2, field3, field4, field5, field6) \
@@ -244,6 +374,23 @@ the class scope. */
         msg << field4; \
         msg << field5; \
         msg << field6; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -269,6 +416,24 @@ the class scope. */
         msg << thing.field7; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_7(field1, field2, field3, field4, field5, field6, field7) \
@@ -291,6 +456,25 @@ the class scope. */
         msg << field5; \
         msg << field6; \
         msg << field7; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -318,6 +502,26 @@ the class scope. */
         msg << thing.field8; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_8(field1, field2, field3, field4, field5, field6, field7, field8) \
@@ -342,6 +546,27 @@ the class scope. */
         msg << field6; \
         msg << field7; \
         msg << field8; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -371,6 +596,28 @@ the class scope. */
         msg << thing.field9; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field9); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_9(field1, field2, field3, field4, field5, field6, field7, field8, field9) \
@@ -397,6 +644,29 @@ the class scope. */
         msg << field7; \
         msg << field8; \
         msg << field9; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -428,6 +698,30 @@ the class scope. */
         msg << thing.field10; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field10); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_10(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
@@ -456,6 +750,31 @@ the class scope. */
         msg << field8; \
         msg << field9; \
         msg << field10; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -489,6 +808,32 @@ the class scope. */
         msg << thing.field11; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field11); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_11(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
@@ -519,6 +864,33 @@ the class scope. */
         msg << field9; \
         msg << field10; \
         msg << field11; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -554,6 +926,34 @@ the class scope. */
         msg << thing.field12; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field12); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_12(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
@@ -586,6 +986,35 @@ the class scope. */
         msg << field10; \
         msg << field11; \
         msg << field12; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -623,6 +1052,36 @@ the class scope. */
         msg << thing.field13; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field13); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_13(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
@@ -657,6 +1116,37 @@ the class scope. */
         msg << field11; \
         msg << field12; \
         msg << field13; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -696,6 +1186,38 @@ the class scope. */
         msg << thing.field14; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field14); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_14(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
@@ -732,6 +1254,39 @@ the class scope. */
         msg << field12; \
         msg << field13; \
         msg << field14; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -773,6 +1328,40 @@ the class scope. */
         msg << thing.field15; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field15); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_15(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
@@ -811,6 +1400,41 @@ the class scope. */
         msg << field13; \
         msg << field14; \
         msg << field15; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &field15); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -854,6 +1478,42 @@ the class scope. */
         msg << thing.field16; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field16); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_16(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
@@ -894,6 +1554,43 @@ the class scope. */
         msg << field14; \
         msg << field15; \
         msg << field16; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &field16); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -939,6 +1636,44 @@ the class scope. */
         msg << thing.field17; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field16); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field17); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_17(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
@@ -981,6 +1716,45 @@ the class scope. */
         msg << field15; \
         msg << field16; \
         msg << field17; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &field16); \
+        if (res) { return res; } \
+        res = deserialize(s, &field17); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -1028,6 +1802,46 @@ the class scope. */
         msg << thing.field18; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field16); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field17); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field18); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_18(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
@@ -1072,6 +1886,47 @@ the class scope. */
         msg << field16; \
         msg << field17; \
         msg << field18; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &field16); \
+        if (res) { return res; } \
+        res = deserialize(s, &field17); \
+        if (res) { return res; } \
+        res = deserialize(s, &field18); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
@@ -1121,6 +1976,48 @@ the class scope. */
         msg << thing.field19; \
     return msg; \
     } \
+    inline int deserialize(read_stream_t *s, type_t *thing) { \
+        int res = 0; \
+        res = deserialize(s, &thing->field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field16); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field17); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field18); \
+        if (res) { return res; } \
+        res = deserialize(s, &thing->field19); \
+        if (res) { return res; } \
+        return res; \
+    } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 
 #define RDB_MAKE_ME_SERIALIZABLE_19(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
@@ -1167,6 +2064,49 @@ the class scope. */
         msg << field17; \
         msg << field18; \
         msg << field19; \
+    } \
+    template <class T> friend int deserialize(read_stream_t *, T *); \
+    int rdb_deserialize(read_stream_t *s) { \
+        int res = 0; \
+        res = deserialize(s, &field1); \
+        if (res) { return res; } \
+        res = deserialize(s, &field2); \
+        if (res) { return res; } \
+        res = deserialize(s, &field3); \
+        if (res) { return res; } \
+        res = deserialize(s, &field4); \
+        if (res) { return res; } \
+        res = deserialize(s, &field5); \
+        if (res) { return res; } \
+        res = deserialize(s, &field6); \
+        if (res) { return res; } \
+        res = deserialize(s, &field7); \
+        if (res) { return res; } \
+        res = deserialize(s, &field8); \
+        if (res) { return res; } \
+        res = deserialize(s, &field9); \
+        if (res) { return res; } \
+        res = deserialize(s, &field10); \
+        if (res) { return res; } \
+        res = deserialize(s, &field11); \
+        if (res) { return res; } \
+        res = deserialize(s, &field12); \
+        if (res) { return res; } \
+        res = deserialize(s, &field13); \
+        if (res) { return res; } \
+        res = deserialize(s, &field14); \
+        if (res) { return res; } \
+        res = deserialize(s, &field15); \
+        if (res) { return res; } \
+        res = deserialize(s, &field16); \
+        if (res) { return res; } \
+        res = deserialize(s, &field17); \
+        if (res) { return res; } \
+        res = deserialize(s, &field18); \
+        if (res) { return res; } \
+        res = deserialize(s, &field19); \
+        if (res) { return res; } \
+        return res; \
     }
 
 
