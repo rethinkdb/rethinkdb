@@ -49,8 +49,8 @@ void run_with_broadcaster(
     boost::scoped_ptr<listener_t<dummy_protocol_t> > initial_listener(
         new listener_t<dummy_protocol_t>(
             cluster.get_mailbox_manager(),
-            broadcaster_metadata_controller.get_root_view()->
-                get_peer_view(cluster.get_connectivity_service()->get_me()),
+            translate_into_watchable(broadcaster_metadata_controller.get_root_view()->
+                get_peer_view(cluster.get_connectivity_service()->get_me())),
             branch_history_controller.get_view(),
             broadcaster.get(),
             &interruptor
@@ -179,11 +179,11 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         cluster->get_mailbox_manager(),
-        broadcaster_metadata_view,
+        translate_into_watchable(broadcaster_metadata_view),
         branch_history_view,
         &store2.store,
-        replier_directory_controller.get_root_view()->
-            get_peer_view(cluster->get_connectivity_service()->get_me()),
+        translate_into_watchable(replier_directory_controller.get_root_view()->
+            get_peer_view(cluster->get_connectivity_service()->get_me())),
         &interruptor);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
@@ -245,11 +245,11 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         cluster->get_mailbox_manager(),
-        broadcaster_metadata_view,
+        translate_into_watchable(broadcaster_metadata_view),
         branch_history_view,
         &substore,
-        replier_directory_controller.get_root_view()->
-            get_peer_view(cluster->get_connectivity_service()->get_me()),
+        translate_into_watchable(replier_directory_controller.get_root_view()->
+            get_peer_view(cluster->get_connectivity_service()->get_me())),
         &interruptor);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());

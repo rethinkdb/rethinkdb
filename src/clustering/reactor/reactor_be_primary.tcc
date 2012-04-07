@@ -279,7 +279,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
-        listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, interruptor);
+        listener_t<protocol_t> listener(mailbox_manager, translate_into_watchable(broadcaster_business_card), branch_history, &broadcaster, interruptor);
         replier_t<protocol_t> replier(&listener);
         master_t<protocol_t> master(mailbox_manager, &master_directory, &master_directory_lock, region, &broadcaster);
 

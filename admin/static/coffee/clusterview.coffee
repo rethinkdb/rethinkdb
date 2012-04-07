@@ -418,6 +418,69 @@ module 'ClusterView', ->
 
             super validator_options, { 'message': message }
 
+    class @RenameItemModal extends @AbstractModal
+        template: Handlebars.compile $('#rename_item-modal-template').html()
+        alert_tmpl: Handlebars.compile $('#renamed_item-alert-template').html()
+
+        initialize: (uuid, type, on_success) ->
+            log_initial '(initializing) modal dialog: rename item'
+            @item_uuid = uuid
+            @item_type = type
+            @on_success = on_success
+            super @template
+
+        get_item_object: ->
+            switch @item_type
+                when 'datacenter' then return datacenters.get(@item_uuid)
+                when 'namespace' then return namespaces.get(@item_uuid)
+                when 'machine' then return machines.get(@item_uuid)
+                else return null
+
+        get_item_url: ->
+            switch @item_type
+                when 'datacenter' then return 'datacenters'
+                when 'namespace' then return namespaces.get(@item_uuid).get('protocol') + '_namespaces'
+                when 'machine' then return 'machines'
+                else return null
+
+        render: ->
+            log_render '(rendering) rename item dialog'
+
+            # Define the validator options
+            validator_options =
+                rules:
+                   name: 'required'
+
+                messages:
+                   name: 'Required'
+
+                submitHandler: =>
+                    old_name = @get_item_object().get('name')
+                    formdata = form_data_as_object($('form', @$modal))
+
+                    $.ajax
+                        processData: false
+                        url: "/ajax/" + @get_item_url() + "/#{@item_uuid}/name"
+                        type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify(formdata.new_name)
+                        success: (response) =>
+                            clear_modals()
+
+                            # notify the user that we succeeded
+                            $('#user-alert-space').append @alert_tmpl
+                                type: @item_type
+                                old_name: old_name
+                                new_name: formdata.new_name
+                            
+                            # Call custom success function
+                            if @on_success?
+                                @on_success response
+
+            super validator_options, 
+                type: @item_type
+                old_name: @get_item_object().get('name')
+    
     class @AddDatacenterModal extends @AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_datacenter-alert-template').html()

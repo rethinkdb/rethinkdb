@@ -11,6 +11,8 @@
 template <class value_t>
 class watchable_t {
 public:
+    class subscription_t;
+
     class freeze_t {
     public:
         explicit freeze_t(const clone_ptr_t<watchable_t> &watchable) 
