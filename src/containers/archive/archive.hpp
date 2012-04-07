@@ -81,6 +81,8 @@ private:
         return msg;                                                     \
     }
 
+// Makes typ1 serializable, sending a typ2 over the wire.  Has range
+// checking on the closed interval [lo, hi] when deserializing.
 #define ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(typ1, typ2, lo, hi)       \
     ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2);                   \
                                                                         \
@@ -103,6 +105,8 @@ private:
         return 0;                                                       \
     }
 
+// Designed for <stdint.h>'s u?int[0-9]+_t types, which are just sent
+// raw over the wire.
 #define ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(typ)                         \
     ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ, typ);                     \
                                                                         \
