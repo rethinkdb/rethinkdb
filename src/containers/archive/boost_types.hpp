@@ -19,14 +19,14 @@ int deserialize(UNUSED read_stream_t *s, UNUSED boost::detail::variant::void_ *v
 }
 
 
-#define ARCHIVE_VARIANT_VISITOR_METHOD(i)       \
-    void operator()(const T##i &x) {            \
-        uint8_t n = i;                          \
-        *(this->msg) << n;                      \
-        *(this->msg) << x;                      \
+#define ARCHIVE_VARIANT_SERIALIZE_VISITOR_METHOD(i)     \
+    void operator()(const T##i &x) {                    \
+        uint8_t n = i;                                  \
+        *(this->msg) << n;                              \
+        *(this->msg) << x;                              \
     }
 
-#define ARCHIVE_USING_DECL(i)                   \
+#define ARCHIVE_VARIANT_SERIALIZE_USING_DECL(i) \
     using v_##i##_t<ARCHIVE_TL##i>::operator()
 
 namespace archive_nonsense {
@@ -35,12 +35,13 @@ template <class T20> struct v_20_t : public boost::static_visitor<void> {
     v_20_t() : msg(NULL) { }
     write_message_t *msg;
 
-    ARCHIVE_VARIANT_VISITOR_METHOD(20);
+    ARCHIVE_VARIANT_SERIALIZE_VISITOR_METHOD(20);
 private:
     DISABLE_COPYING(v_20_t);
 };
 
-#define ARCHIVE_CLASS_DECL(i, j) template <ARCHIVE_CL##i> struct v_##i##_t : public v_##j##_t<ARCHIVE_TL##j> { ARCHIVE_USING_DECL(j); ARCHIVE_VARIANT_VISITOR_METHOD(i); }
+#define ARCHIVE_CLASS_DECL(i, j) template <ARCHIVE_CL##i> struct v_##i##_t : public v_##j##_t<ARCHIVE_TL##j> { ARCHIVE_VARIANT_SERIALIZE_USING_DECL(j); ARCHIVE_VARIANT_SERIALIZE_VISITOR_METHOD(i); }
+
 
 #define ARCHIVE_CL19 class T19, class T20
 #define ARCHIVE_TL20 T20
@@ -113,6 +114,64 @@ write_message_t &operator<<(write_message_t &msg, const boost::variant<T1, T2, T
 
     return msg;
 }
+
+template <class T> struct archive_variant_deserialize_standin_t {
+    template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
+    int do_the_deserialization(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
+        T v;
+        int res = deserialize(s, &v);
+        if (res) { return res; }
+        *x = v;
+    }
+ };
+
+template <> struct archive_variant_deserialize_standin_t<boost::detail::variant::void_> {
+    template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
+    int do_the_deserialization(UNUSED read_stream_t *s, UNUSED boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
+        return -3;
+    }
+};
+
+template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
+int deserialize(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
+    uint8_t n;
+    int res = deserialize(s, &n);
+    if (res) { return res; }
+    if (!(1 <= n && n <= 20)) {
+        return -3;
+    }
+
+#define ARCHIVE_DESERIALIZE_CASE(i) case i: { archive_variant_deserialize_standin_t<T##i> st; return st.do_the_deserialization(s, x); }
+
+    switch (n) {
+    case 1: { archive_variant_deserialize_standin_t<T1> st; return st.do_the_deserialization(s, x); }
+    case 2: { archive_variant_deserialize_standin_t<T2> st; return st.do_the_deserialization(s, x); }
+    case 3: { archive_variant_deserialize_standin_t<T3> st; return st.do_the_deserialization(s, x); }
+    case 4: { archive_variant_deserialize_standin_t<T4> st; return st.do_the_deserialization(s, x); }
+    case 5: { archive_variant_deserialize_standin_t<T5> st; return st.do_the_deserialization(s, x); }
+    case 6: { archive_variant_deserialize_standin_t<T6> st; return st.do_the_deserialization(s, x); }
+    case 7: { archive_variant_deserialize_standin_t<T7> st; return st.do_the_deserialization(s, x); }
+    case 8: { archive_variant_deserialize_standin_t<T8> st; return st.do_the_deserialization(s, x); }
+    case 9: { archive_variant_deserialize_standin_t<T9> st; return st.do_the_deserialization(s, x); }
+    case 10: { archive_variant_deserialize_standin_t<T10> st; return st.do_the_deserialization(s, x); }
+    case 11: { archive_variant_deserialize_standin_t<T11> st; return st.do_the_deserialization(s, x); }
+    case 12: { archive_variant_deserialize_standin_t<T12> st; return st.do_the_deserialization(s, x); }
+    case 13: { archive_variant_deserialize_standin_t<T13> st; return st.do_the_deserialization(s, x); }
+    case 14: { archive_variant_deserialize_standin_t<T14> st; return st.do_the_deserialization(s, x); }
+    case 15: { archive_variant_deserialize_standin_t<T15> st; return st.do_the_deserialization(s, x); }
+    case 16: { archive_variant_deserialize_standin_t<T16> st; return st.do_the_deserialization(s, x); }
+    case 17: { archive_variant_deserialize_standin_t<T17> st; return st.do_the_deserialization(s, x); }
+    case 18: { archive_variant_deserialize_standin_t<T18> st; return st.do_the_deserialization(s, x); }
+    case 19: { archive_variant_deserialize_standin_t<T19> st; return st.do_the_deserialization(s, x); }
+    case 20: { archive_variant_deserialize_standin_t<T20> st; return st.do_the_deserialization(s, x); }
+
+    default:
+        unreachable("impossible to reach, we already returned -3");
+    }
+
+    unreachable("impossible to reach, we return from every case of the switch statement");
+}
+
 
 inline write_message_t &operator<<(write_message_t &msg, const boost::uuids::uuid &uuid) {
     msg.append(uuid.data, boost::uuids::uuid::static_size());
