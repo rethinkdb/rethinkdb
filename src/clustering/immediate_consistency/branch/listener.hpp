@@ -53,10 +53,10 @@ public:
 
     listener_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > broadcaster_metadata,
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
             store_view_t<protocol_t> *s,
-            clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > replier,
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
@@ -76,7 +76,7 @@ public:
         }
 
         boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
-            broadcaster_metadata->get_value();
+            broadcaster_metadata->get();
         if (business_card && business_card.get()) {
             branch_id = business_card.get().get().branch_id;
         } else {
@@ -145,7 +145,7 @@ public:
                 branch_history,
                 store,
                 store->get_region(),
-                replier->subview(optional_monad_lens<backfiller_business_card_t<protocol_t>, replier_business_card_t<protocol_t> >(field_lens(&replier_business_card_t<protocol_t>::backfiller_bcard))),
+                replier->subview(&listener_t<protocol_t>::get_backfiller_from_replier_bcard),
                 interruptor
                 );
         } catch (resource_lost_exc_t) {
@@ -189,7 +189,7 @@ public:
     each `broadcaster_t`. */
     listener_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > broadcaster_metadata,
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
             broadcaster_t<protocol_t> *broadcaster,
             signal_t *interruptor)
@@ -220,7 +220,7 @@ public:
 #ifndef NDEBUG
         /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
         boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
-            broadcaster_metadata->get_value();
+            broadcaster_metadata->get();
         rassert(business_card && business_card.get());
         rassert(business_card.get().get().branch_id == broadcaster->branch_id);
 
@@ -288,13 +288,39 @@ private:
         }
     };
 
+    static boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > get_backfiller_from_replier_bcard(
+            const boost::optional<boost::optional<replier_business_card_t<protocol_t> > > &replier_bcard) {
+        if (!replier_bcard) {
+            return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >();
+        } else if (!replier_bcard.get()) {
+            return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >(
+                boost::optional<backfiller_business_card_t<protocol_t> >());
+        } else {
+            return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >(
+                boost::optional<backfiller_business_card_t<protocol_t> >(replier_bcard.get().get().backfiller_bcard));
+        }
+    }
+
+    static boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t<protocol_t> > > > get_registrar_from_broadcaster_bcard(
+            const boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > &broadcaster_bcard) {
+        if (!broadcaster_bcard) {
+            return boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t<protocol_t> > > >();
+        } else if (!broadcaster_bcard.get()) {
+            return boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t<protocol_t> > > >(
+                boost::optional<registrar_business_card_t<listener_business_card_t<protocol_t> > >());
+        } else {
+            return boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t<protocol_t> > > >(
+                boost::optional<registrar_business_card_t<listener_business_card_t<protocol_t> > >(broadcaster_bcard.get().get().registrar));
+        }
+    }
+
     /* `try_start_receiving_writes()` is called from within the constructors. It
     tries to register with the master. It throws `interrupted_exc_t` if
     `interruptor` is pulsed. Otherwise, it fills `registration_result_cond` with
     a value indicating if the registration succeeded or not, and with the intro
     we got from the broadcaster if it succeeded. */
     void try_start_receiving_writes(
-            clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > broadcaster,
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t)
     {
@@ -305,13 +331,7 @@ private:
         try {
             registrant.reset(new registrant_t<listener_business_card_t<protocol_t> >(
                 mailbox_manager,
-                broadcaster->subview(
-                    optional_monad_lens<
-                            registrar_business_card_t<listener_business_card_t<protocol_t> >,
-                            broadcaster_business_card_t<protocol_t> >(
-                        field_lens(&broadcaster_business_card_t<protocol_t>::registrar)
-                        )
-                    ),
+                broadcaster->subview(&listener_t<protocol_t>::get_registrar_from_broadcaster_bcard),
                 listener_business_card_t<protocol_t>(intro_mailbox.get_address(), write_mailbox.get_address())
                 ));
         } catch (resource_lost_exc_t) {

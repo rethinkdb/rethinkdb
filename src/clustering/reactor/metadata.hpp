@@ -177,6 +177,7 @@ std::ostream &operator<<(std::ostream &stream, const nothing_when_done_erasing_t
     stream << "nothing_when_done_erasing_t";
     return stream;
 }
+
 } //namespace reactor_business_card_details
 
 template<class protocol_t>

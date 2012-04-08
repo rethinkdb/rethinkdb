@@ -535,7 +535,7 @@
             </div>
             <h3 class="title">Performance</h3>
             <div class="section performance-graph"></div>
-            <h3 class="title">Recent actions</h3>
+            <h3 class="title">Recent log entries</h3>
             <div class="section recent-actions"></div>
         </script>
 
@@ -581,7 +581,7 @@
                     <p>This machine cannot be reached.</p>
                 {{/if}}
             </div>
-            <h3 class="title">Recent actions</h3>
+            <h3 class="title">Recent log entries</h3>
             <div class="section recent-actions"></div>
         </script>
 
@@ -597,9 +597,9 @@
                 </div>
             </div>
             <div class="section last">
-                <h3>Recent events</h3>
+                <h3>Recent log entries</h3>
                 <div class="recent-events"></div>
-                <p><a href="#events">See all recent events &rarr;</a></p>
+                <p><a href="#events">See all recent log entries &rarr;</a></p>
             </div>
         </script>
         <script id="sidebar-client_connection_status-template" type="text/x-handlebars-template">
@@ -711,7 +711,7 @@
             </div>
         </script>
         <script id="resolve_issues-name_conflict-template" type="text/x-handlebars-template">
-            <div class="issue {{#if critical }}critical{{/if}}">
+            <div class="issue {{#if critical }}critical{{/if}} name-conflict">
                 <div class="header">
                     <h3 class="title">The name {{name}} is used by more than one {{type}}.</h3>
                     {{#if datetime}}
@@ -722,7 +722,7 @@
                 <h4>{{capitalize type}}{{pluralize_noun num_contestants}} with the name {{name}}:</h4>
                 <ul>
                 {{#each contestants}}
-                <li><a href="#{{type}}{{pluralize_noun}}/{{uuid}}">{{uuid}}</a></li>
+                <li><a href="#{{type}}{{pluralize_noun 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
                 {{/each}}
                 </ul>
             </div>
@@ -764,7 +764,7 @@
 
         <!-- Events view -->
         <script id="events-container-template" type="text/x-handlebars-template">
-            <h1>Events</h1>
+            <h1>Log entries</h1>
             <div class="events"></div>
         </script>
         <script id="events-event-template" type="text/x-handlebars-template">
@@ -799,6 +799,13 @@
             <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You added datacenter <span class="name">{{name}}</span>. You can now <a href="#datacenters/{{uuid}}">configure</a> it further.</p>
+            </div>
+        </script>
+
+        <script id="renamed_item-alert-template" type="text/x-handlebars-template">
+            <div class="alert" data-alert="alert">
+                <a class="close" href="#">&times;</a>
+                <p>You successfully renamed {{type}} from <span class="name">{{old_name}}</span> to <span class="name">{{new_name}}</span>.</p>
             </div>
         </script>
 
@@ -1064,16 +1071,36 @@
                                     <input class="xlarge" name="name" size="30" type="text" />
                                 </div>
                             </div>
-                            <div class="clearfix">
-                                <label for="location">Location</label>
+                        </fieldset>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn primary add-datacenter" type="submit" name="add-datacenter" value="Add datacenter">Add datacenter</button>
+                        <a href="#" class="btn secondary cancel">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </script>
+
+        <script id="rename_item-modal-template" type="text/x-handlebars-template">
+            <div class="modal rename-item">
+                <form class="form">
+                    <div class="modal-header">
+                        <a href="#" class="close">&times;</a>
+                        <h3>Rename {{type}}</h3>
+                    </div>
+                    <div class="modal-body">
+                        <fieldset>
+                           <legend>Rename {{capitalize type}} from {{old_name}} to:</legend>
+                           <div class="clearfix">
+                                <label for="name">New name</label>
                                 <div class="input">
-                                    <input class="xlarge" name="location" size="30" type="text" />
+                                    <input class="xlarge" name="new_name" size="30" type="text" />
                                 </div>
                             </div>
                         </fieldset>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn primary add-datacenter" type="submit" name="add-datacenter" value="Add datacenter">Add datacenter</button>
+                        <button class="btn primary rename-item" type="submit" name="rename-item" value="Rename {{type}}">Rename {{type}}</button>
                         <a href="#" class="btn secondary cancel">Cancel</a>
                     </div>
                 </form>

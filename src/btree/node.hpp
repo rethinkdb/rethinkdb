@@ -73,7 +73,7 @@ struct btree_key_t {
         return space > 0 && space > size;
     }
     void print() const {
-        printf("%*.*s", size, size, contents);
+        debugf("%*.*s\n", size, size, contents);
     }
 };
 

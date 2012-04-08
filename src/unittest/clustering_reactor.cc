@@ -241,13 +241,13 @@ public:
     void run_queries() {
         for (unsigned i = 0; i < test_clusters.size(); i++) {
             cluster_namespace_interface_t<protocol_t> namespace_if(&(&test_clusters[i])->mailbox_manager, 
-                                                                   (&test_clusters[i])->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory)));
+                                                                   translate_into_watchable((&test_clusters[i])->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory))));
 
             nap(50);
 
             order_source_t order_source;
 
-            test_inserter_t inserter(&namespace_if, &order_source, &inserter_state);
+            test_inserter_t inserter(&namespace_if, &key_gen<protocol_t>, &order_source, &inserter_state);
             let_stuff_happen();
             inserter.stop();
             inserter.validate();

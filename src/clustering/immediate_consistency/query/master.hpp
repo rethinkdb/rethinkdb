@@ -20,7 +20,8 @@ class master_t {
 public:
     master_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > master_directory,
+            watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > *md,
+            mutex_assertion_t *mdl,
             typename protocol_t::region_t region,
             broadcaster_t<protocol_t> *b)
             THROWS_ONLY(interrupted_exc_t) :
@@ -31,8 +32,24 @@ public:
         write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
                                                    this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
         registrar(mm, this),
-        advertisement(master_directory, generate_uuid(),
-                      master_business_card_t<protocol_t>(region, read_mailbox.get_address(), write_mailbox.get_address(), registrar.get_business_card())) {
+        master_directory(md), master_directory_lock(mdl),
+        uuid(generate_uuid()) {
+
+        master_business_card_t<protocol_t> bcard(
+            region,
+            read_mailbox.get_address(), write_mailbox.get_address(),
+            registrar.get_business_card());
+        mutex_assertion_t::acq_t master_directory_lock_acq(master_directory_lock);
+        std::map<master_id_t, master_business_card_t<protocol_t> > master_map = master_directory->get_watchable()->get();
+        master_map.insert(std::make_pair(uuid, bcard));
+        master_directory->set_value(master_map);
+    }
+
+    ~master_t() {
+        mutex_assertion_t::acq_t master_directory_lock_acq(master_directory_lock);
+        std::map<master_id_t, master_business_card_t<protocol_t> > master_map = master_directory->get_watchable()->get();
+        master_map.erase(uuid);
+        master_directory->set_value(master_map);
     }
 
 private:
@@ -118,7 +135,9 @@ private:
 
     registrar_t<namespace_interface_business_card_t, master_t *, parser_lifetime_t> registrar;
 
-    resource_map_advertisement_t<master_id_t, master_business_card_t<protocol_t> > advertisement;
+    watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > *master_directory;
+    mutex_assertion_t *master_directory_lock;
+    master_id_t uuid;
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP_ */

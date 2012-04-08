@@ -121,15 +121,16 @@ module 'MachineView', ->
 
             # If the machine is reachable, add relevant json
             if directory_listing?
-                console.log directory_listing.get('memcached_namespaces')
                 namespaces_on_this_machine = directory_listing.get('memcached_namespaces').reactor_bcards
                 json = _.extend json,
                     is_reachable: true
                     data:
-                        namespaces: _.map(namespaces_on_this_machine, (shard_roles, namespace_uuid) ->
+                        namespaces: _.map(namespaces_on_this_machine, (activity_map, namespace_uuid) ->
                             name: namespaces.get(namespace_uuid).get('name')
-                            shards: _.map(shard_roles, (role, shard) ->
-                                name: shard
+                            shards: _.map(activity_map["activity_map"], (activity, activity_uuid) ->
+                                role = activity[1]['type']
+                                shard = activity[0]
+                                name: human_readable_shard shard
                                 status: role
                             )
                         )
@@ -491,12 +492,30 @@ module 'ResolveIssuesView', ->
                 name: @model.get('contested_name')
                 type: @model.get('contested_type')
                 num_contestants: @model.get('contestants').length
-                contestants: _.map(@model.get('contestants'), (uuid) ->
+                contestants: _.map(@model.get('contestants'), (uuid) =>
                    uuid: uuid
+                   type: @model.get('contested_type')
                 )
                 datetime: iso_date_from_unix_time @model.get('time')
             
             @.$el.html _template(json)
+
+            # bind rename handlers
+            _.each(@model.get('contestants'), (uuid) =>
+                @.$("a#rename_" + uuid).click (e) =>
+                    e.preventDefault()
+                    rename_modal = new ClusterView.RenameItemModal(uuid, @model.get('contested_type'), (response) =>
+                        # Grab the new set of issues (so we don't have to wait)
+                        $.ajax
+                            url: '/ajax/issues'
+                            success: set_issues
+                            async: false
+                                
+                        # rerender issue view (just the issues, not the whole thing)
+                        window.app.resolve_issues_view.render_issues()
+                    )
+                    rename_modal.render()
+            )
 
         render_persistence_issue: (_template) ->
             json = datetime: iso_date_from_unix_time @model.get('time')

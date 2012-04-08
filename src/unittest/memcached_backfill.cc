@@ -49,8 +49,8 @@ void run_with_broadcaster(
     boost::scoped_ptr<listener_t<memcached_protocol_t> > initial_listener(
         new listener_t<memcached_protocol_t>(
             cluster.get_mailbox_manager(),
-            broadcaster_metadata_controller.get_root_view()->
-                get_peer_view(cluster.get_connectivity_service()->get_me()),
+            translate_into_watchable(broadcaster_metadata_controller.get_root_view()->
+                get_peer_view(cluster.get_connectivity_service()->get_me())),
             branch_history_controller.get_view(),
             broadcaster.get(),
             &interruptor
@@ -80,7 +80,7 @@ void run_in_thread_pool_with_broadcaster(
 
 /* `let_stuff_happen()` delays for some time to let events occur */
 void let_stuff_happen() {
-    nap(1000);
+    nap(100000);
 }
 
 }   /* anonymous namespace */
@@ -127,9 +127,10 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     test_inserter_t inserter(
         boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
         NULL,
+        &mc_key_gen,
         &order_source,
         &inserter_state);
-    nap(100);
+    nap(10000);
 
     /* Set up a second mirror */
     test_store_t<memcached_protocol_t> store2;
@@ -138,17 +139,17 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     cond_t interruptor;
     listener_t<memcached_protocol_t> listener2(
         cluster->get_mailbox_manager(),
-        broadcaster_metadata_view,
+        translate_into_watchable(broadcaster_metadata_view),
         branch_history_view,
         &substore,
-        replier_directory_controller.get_root_view()->
-            get_peer_view(cluster->get_connectivity_service()->get_me()),
+        translate_into_watchable(replier_directory_controller.get_root_view()->
+            get_peer_view(cluster->get_connectivity_service()->get_me())),
         &interruptor);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
 
-    nap(100);
+    nap(10000);
 
     /* Stop the inserter, then let any lingering writes finish */
     inserter.stop();

@@ -17,7 +17,7 @@ public:
     */
     registrant_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<directory_single_rview_t<boost::optional<registrar_business_card_t<business_card_t> > > > registrar_md,
+            clone_ptr_t<watchable_t<boost::optional<boost::optional<registrar_business_card_t<business_card_t> > > > > registrar_md,
             business_card_t initial_value)
             THROWS_ONLY(resource_lost_exc_t) :
         mailbox_manager(mm),

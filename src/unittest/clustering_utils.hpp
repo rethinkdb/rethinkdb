@@ -2,6 +2,7 @@
 #define UNITTEST_CLUSTERING_UTILS_HPP_
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "rpc/directory/view.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -58,19 +59,21 @@ public:
 
     test_inserter_t(boost::function<void(const std::string&, const std::string&, order_token_t, signal_t *)> _wfun, 
                boost::function<std::string(const std::string&, order_token_t, signal_t *)> _rfun,
+               boost::function<std::string()> _key_gen_fun,
                order_source_t *_osource, state_t *state)
-        : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), osource(_osource)
+        : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun), osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
             this, osource, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template<class protocol_t>
-    test_inserter_t(namespace_interface_t<protocol_t> *namespace_if, order_source_t *_osource, state_t *state)
+    test_inserter_t(namespace_interface_t<protocol_t> *namespace_if, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t), 
           wfun(boost::bind(&test_inserter_t::write_namespace_if<protocol_t>, namespace_if, _1, _2, _3, _4)),
           rfun(boost::bind(&test_inserter_t::read_namespace_if<protocol_t>, namespace_if, _1, _2, _3)),
+          key_gen_fun(_key_gen_fun),
           osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
@@ -102,11 +105,10 @@ private:
             auto_drainer_t::lock_t keepalive) {
         try {
             for (int i = 0; ; i++) {
-
                 if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
                 dummy_protocol_t::write_t w;
-                std::string key = std::string(1, 'a' + randint(26));
+                std::string key = key_gen_fun();
                 std::string value = (*values_inserted)[key] = strprintf("%d", i);
 
                 cond_t interruptor;
@@ -133,8 +135,34 @@ public:
 private:
     boost::function<void(const std::string&, const std::string&, order_token_t, signal_t *)> wfun;
     boost::function<std::string(const std::string&, order_token_t, signal_t *)> rfun;
+    boost::function<std::string()> key_gen_fun;
     order_source_t *osource;
 };
+
+inline std::string dummy_key_gen() {
+    return std::string(1, 'a' + randint(26));
+}
+
+inline std::string mc_key_gen() {
+    std::string key;
+    for (int j = 0; j < 100; j++) {
+        key.push_back('a' + randint(26));
+    }
+    return key;
+}
+
+template <class protocol_t>
+std::string key_gen();
+
+template <>
+inline std::string key_gen<dummy_protocol_t>() {
+    return dummy_key_gen();
+}
+
+template <>
+inline std::string key_gen<memcached_protocol_t>() {
+    return mc_key_gen();
+}
 
 class simple_mailbox_cluster_t {
 public:
