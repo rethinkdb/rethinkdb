@@ -141,8 +141,6 @@ int deserialize(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8,
         return -3;
     }
 
-#define ARCHIVE_DESERIALIZE_CASE(i) case i: { archive_variant_deserialize_standin_t<T##i> st; return st.do_the_deserialization(s, x); }
-
     switch (n) {
     case 1: { archive_variant_deserialize_standin_t<T1> st; return st.do_the_deserialization(s, x); }
     case 2: { archive_variant_deserialize_standin_t<T2> st; return st.do_the_deserialization(s, x); }
