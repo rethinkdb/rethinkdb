@@ -18,8 +18,12 @@ public:
     virtual ~local_issue_t() { }
     virtual local_issue_t *clone() const = 0;
 
-    RDB_MAKE_ME_SERIALIZABLE_0();
+    // Remember to include your subclass in the deserialize function below!
+    enum serialization_code_t { PERSISTENCE_ISSUE_CODE };
+    virtual void rdb_serialize(UNUSED write_message_t &msg) const = 0;
 };
+
+int deserialize(read_stream_t *s, local_issue_t **issue_ptr);
 
 class local_issue_tracker_t {
 public:

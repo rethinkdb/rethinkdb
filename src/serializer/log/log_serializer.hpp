@@ -81,6 +81,7 @@ public:
             : private_dynamic_config(file_name)
         { }
 
+        log_serializer_config_t() { }
         RDB_MAKE_ME_SERIALIZABLE_3(dynamic_config, private_dynamic_config, static_config);
     };
 

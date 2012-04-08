@@ -52,7 +52,7 @@ public:
 
     std::string message;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(boost::serialization::base_object<local_issue_t>(*this), message);
+    RDB_MAKE_ME_SERIALIZABLE_1(message);
 };
 
 class semilattice_watching_persister_t {

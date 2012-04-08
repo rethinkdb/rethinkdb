@@ -51,7 +51,7 @@ the class scope. */
     friend class write_message_t; \
     void rdb_serialize(UNUSED write_message_t &msg) const { \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(UNUSED read_stream_t *s) { \
         int res = 0; \
         return res; \
@@ -85,7 +85,7 @@ the class scope. */
     void rdb_serialize(write_message_t &msg) const { \
         msg << field1; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -127,7 +127,7 @@ the class scope. */
         msg << field1; \
         msg << field2; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -177,7 +177,7 @@ the class scope. */
         msg << field2; \
         msg << field3; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -235,7 +235,7 @@ the class scope. */
         msg << field3; \
         msg << field4; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -301,7 +301,7 @@ the class scope. */
         msg << field4; \
         msg << field5; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -375,7 +375,7 @@ the class scope. */
         msg << field5; \
         msg << field6; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -457,7 +457,7 @@ the class scope. */
         msg << field6; \
         msg << field7; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -547,7 +547,7 @@ the class scope. */
         msg << field7; \
         msg << field8; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -645,7 +645,7 @@ the class scope. */
         msg << field8; \
         msg << field9; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -751,7 +751,7 @@ the class scope. */
         msg << field9; \
         msg << field10; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -865,7 +865,7 @@ the class scope. */
         msg << field10; \
         msg << field11; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -987,7 +987,7 @@ the class scope. */
         msg << field11; \
         msg << field12; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -1117,7 +1117,7 @@ the class scope. */
         msg << field12; \
         msg << field13; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -1255,7 +1255,7 @@ the class scope. */
         msg << field13; \
         msg << field14; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -1401,7 +1401,7 @@ the class scope. */
         msg << field14; \
         msg << field15; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -1555,7 +1555,7 @@ the class scope. */
         msg << field15; \
         msg << field16; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -1717,7 +1717,7 @@ the class scope. */
         msg << field16; \
         msg << field17; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -1887,7 +1887,7 @@ the class scope. */
         msg << field17; \
         msg << field18; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \
@@ -2065,7 +2065,7 @@ the class scope. */
         msg << field18; \
         msg << field19; \
     } \
-    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
+    template <class SERIALIZE_MACRO_ARG> friend int ::deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \
     int rdb_deserialize(read_stream_t *s) { \
         int res = 0; \
         res = deserialize(s, &field1); \

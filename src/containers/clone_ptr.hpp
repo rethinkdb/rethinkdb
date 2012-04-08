@@ -72,15 +72,9 @@ private:
     template <class U> friend int deserialize(read_stream_t *, U *);
     int rdb_deserialize(read_stream_t *s) {
         rassert(!object);
-        bool exists;
-        int res = deserialize(s, &exists);
-        if (res) { return res; }
-        if (exists) {
-            delete object;
-            object = new T;
-            return deserialize(s, object);
-        }
-        return 0;
+        delete object;
+        object = NULL;
+        return deserialize(s, &object);
     }
 
     T *object;

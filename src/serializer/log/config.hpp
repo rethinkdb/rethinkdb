@@ -10,6 +10,9 @@
 
 struct log_serializer_private_dynamic_config_t {
     std::string db_filename;
+
+    // TODO: Get rid of this field, instead have a method that
+    // retrieves the value based on db_filename.
 #ifdef SEMANTIC_SERIALIZER_CHECK
     std::string semantic_filename;
 #endif

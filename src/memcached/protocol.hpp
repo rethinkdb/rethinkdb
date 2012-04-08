@@ -125,7 +125,7 @@ template<class Archive> void load(Archive &ar, rget_result_t &iter, UNUSED const
     }
 }
 
-}}
+}}  // namespace boost::serialization
 
 inline write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
     while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
@@ -144,8 +144,7 @@ inline write_message_t &operator<<(write_message_t &msg, const rget_result_t &it
 }
 
 inline int deserialize(read_stream_t *s, rget_result_t *iter) {
-    one_way_iterator_t<key_with_data_buffer_t> *blah = new vector_backed_one_way_iterator_t<key_with_data_buffer_t>();
-    *iter = rget_result_t(blah);
+    *iter = rget_result_t(new boost::serialization::vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
     bool next;
     for (;;) {
         int res = deserialize(s, &next);

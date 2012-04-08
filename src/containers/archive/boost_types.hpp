@@ -178,7 +178,7 @@ inline write_message_t &operator<<(write_message_t &msg, const boost::uuids::uui
     return msg;
 }
 
-int deserialize(read_stream_t *s, boost::uuids::uuid *uuid) {
+inline int deserialize(read_stream_t *s, boost::uuids::uuid *uuid) {
     int64_t sz = boost::uuids::uuid::static_size();
     int64_t res = force_read(s, uuid->data, sz);
 
