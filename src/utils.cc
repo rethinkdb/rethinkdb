@@ -26,9 +26,14 @@
 #endif
 
 write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp) {
-    msg << tstamp.time;
-    return msg;
+    return msg << tstamp.time;
 }
+
+int deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {
+    return deserialize(s, &tstamp->time);
+}
+
+
 
 // fast non-null terminated string comparison
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {

@@ -56,20 +56,6 @@ inline int deserialize(read_stream_t *s, boost::intrusive_ptr<data_buffer_t> *bu
     return 0;
 }
 
-inline write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
-    while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
-        const key_with_data_buffer_t &kv = pair.get();
-
-        const std::string &key = kv.key;
-        const boost::intrusive_ptr<data_buffer_t> &data = kv.value_provider;
-        msg << true;
-        msg << key;
-        msg << data;
-    }
-    msg << false;
-    return msg;
-}
-
 namespace boost {
 namespace serialization {
 
@@ -131,6 +117,8 @@ template<class Archive> void load(Archive &ar, rget_result_t &iter, UNUSED const
     iter = rget_result_t(new vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
     bool next;
     while (ar >> next, next) {
+        // TODO: WTF?  We just assign to key and some data buffer, and then.. ignore the values.
+
         std::string key;
         boost::intrusive_ptr<data_buffer_t> data;
         ar >> key >> data;
@@ -138,6 +126,47 @@ template<class Archive> void load(Archive &ar, rget_result_t &iter, UNUSED const
 }
 
 }}
+
+inline write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
+    while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
+        const key_with_data_buffer_t &kv = pair.get();
+
+        const std::string &key = kv.key;
+        const boost::intrusive_ptr<data_buffer_t> &data = kv.value_provider;
+        bool next = true;
+        msg << next;
+        msg << key;
+        msg << data;
+    }
+    bool next = false;
+    msg << next;
+    return msg;
+}
+
+inline int deserialize(read_stream_t *s, rget_result_t *iter) {
+    one_way_iterator_t<key_with_data_buffer_t> *blah = new vector_backed_one_way_iterator_t<key_with_data_buffer_t>();
+    *iter = rget_result_t(blah);
+    bool next;
+    for (;;) {
+        int res = deserialize(s, &next);
+        if (res) { return res; }
+        if (!next) {
+            return 0;
+        }
+
+        // TODO: See the load function above.  I'm guessing this code is never used.
+        std::string key;
+        res = deserialize(s, &key);
+        if (res) { return res; }
+        boost::intrusive_ptr<data_buffer_t> data;
+        res = deserialize(s, &data);
+        if (res) { return res; }
+
+        // You'll note that we haven't put the values in the vector-backed iterator.  Neither does the load function above...
+    }
+
+}
+
 
 BOOST_SERIALIZATION_SPLIT_FREE(boost::intrusive_ptr<data_buffer_t>);
 BOOST_SERIALIZATION_SPLIT_FREE(rget_result_t);

@@ -44,6 +44,8 @@ public:
 class write_message_t;
 write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp);
 
+class read_stream_t;
+int deserialize(read_stream_t *s, repli_timestamp_t *tstamp);
 
 
 struct const_charslice {

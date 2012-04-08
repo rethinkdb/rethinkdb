@@ -53,7 +53,7 @@ def generate_make_me_serializable_macro(nfields):
     for i in xrange(nfields):
         print "        msg << field%d; \\" % (i + 1)
     print "    } \\"
-    print "    template <class T> friend int deserialize(read_stream_t *, T *); \\"
+    print "    template <class SERIALIZE_MACRO_ARG> friend int deserialize(read_stream_t *, SERIALIZE_MACRO_ARG *); \\"
     print "    int rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
     print "        int res = 0; \\"
     for i in xrange(nfields):
