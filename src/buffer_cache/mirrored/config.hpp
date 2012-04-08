@@ -87,6 +87,28 @@ struct mirrored_cache_config_t {
         msg << io_priority_reads;
         msg << io_priority_writes;
     }
+
+    int rdb_deserialize(read_stream_t *s) {
+        int res = 0;
+        res = deserialize(s, &max_size);
+        if (res) { return res; }
+        res = deserialize(s, &wait_for_flush);
+        if (res) { return res; }
+        res = deserialize(s, &flush_timer_ms);
+        if (res) { return res; }
+        res = deserialize(s, &max_dirty_size);
+        if (res) { return res; }
+        res = deserialize(s, &flush_dirty_size);
+        if (res) { return res; }
+        res = deserialize(s, &flush_waiting_threshold);
+        if (res) { return res; }
+        res = deserialize(s, &max_concurrent_flushes);
+        if (res) { return res; }
+        res = deserialize(s, &io_priority_reads);
+        if (res) { return res; }
+        res = deserialize(s, &io_priority_writes);
+        return res;
+    }
 };
 
 /* This part of the serializer is part of the on-disk serializer_config_block and can

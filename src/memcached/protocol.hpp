@@ -37,6 +37,25 @@ inline write_message_t &operator<<(write_message_t &msg, const boost::intrusive_
     return msg;
 }
 
+inline int deserialize(read_stream_t *s, boost::intrusive_ptr<data_buffer_t> *buf) {
+    bool exists;
+    int res = deserialize(s, &exists);
+    if (res) { return res; }
+    if (exists) {
+        int64_t size;
+        int res = deserialize(s, &size);
+        if (res) { return res; }
+        if (size < 0) { return -3; }
+        *buf = data_buffer_t::create(size);
+        int64_t num_read = force_read(s, (*buf)->buf(), size);
+
+        if (num_read == -1) { return -1; }
+        if (num_read < size) { return -2; }
+        rassert(num_read == size);
+    }
+    return 0;
+}
+
 inline write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
     while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
         const key_with_data_buffer_t &kv = pair.get();

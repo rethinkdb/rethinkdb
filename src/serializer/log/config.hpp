@@ -100,10 +100,7 @@ struct log_serializer_static_config_t : public log_serializer_on_disk_static_con
         block_size_ = DEFAULT_BTREE_BLOCK_SIZE;
     }
 
-    void rdb_serialize(write_message_t &msg) const {
-        msg << block_size_;
-        msg << extent_size_;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_2(block_size_, extent_size_);
 };
 
 #endif
