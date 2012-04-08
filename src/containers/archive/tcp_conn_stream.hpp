@@ -15,10 +15,24 @@ public:
     virtual int64_t read(void *p, int64_t n);
     virtual int64_t write(const void *p, int64_t n);
 
+    void rethread(int new_thread);
+
+    int home_thread() const;
+
 private:
     tcp_conn_t *conn_;
 
     DISABLE_COPYING(tcp_conn_stream_t);
+};
+
+class rethread_tcp_conn_stream_t {
+public:
+    rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, int thread);
+    ~rethread_tcp_conn_stream_t();
+private:
+    tcp_conn_stream_t *conn_;
+    int old_thread_, new_thread_;
+    DISABLE_COPYING(rethread_tcp_conn_stream_t);
 };
 
 

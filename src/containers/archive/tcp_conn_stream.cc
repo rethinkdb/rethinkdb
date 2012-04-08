@@ -34,3 +34,23 @@ int64_t tcp_conn_stream_t::write(const void *p, int64_t n) {
         return -1;
     }
 }
+
+void tcp_conn_stream_t::rethread(int new_thread) {
+    conn_->rethread(new_thread);
+}
+
+int tcp_conn_stream_t::home_thread() const {
+    return conn_->home_thread();
+}
+
+rethread_tcp_conn_stream_t::rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {
+    conn->rethread(thread);
+    rassert(conn->home_thread() == thread);
+}
+
+
+rethread_tcp_conn_stream_t::~rethread_tcp_conn_stream_t() {
+    rassert(conn_->home_thread() == new_thread_);
+    conn_->rethread(old_thread_);
+    rassert(conn_->home_thread() == old_thread_);
+}
