@@ -363,7 +363,9 @@ void connectivity_cluster_t::run_t::handle(
 
         /* Send our routing table to the leader */
         {
-            int res = deserialize(conn, &routing_table_to_send);
+            write_message_t msg;
+            msg << routing_table_to_send;
+            int res = send_write_message(conn, &msg);
             if (res) {
                 if (!conn->is_write_open()) {
                     return;
