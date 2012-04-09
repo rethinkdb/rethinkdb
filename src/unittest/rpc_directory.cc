@@ -1,5 +1,6 @@
 #include "unittest/gtest.hpp"
 
+#include "arch/timing.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/directory/manager.hpp"
 #include "rpc/directory/watchable_copier.hpp"

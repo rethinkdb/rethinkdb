@@ -8,6 +8,10 @@ tcp_conn_stream_t::tcp_conn_stream_t(const char *host, int port, int local_port)
 tcp_conn_stream_t::tcp_conn_stream_t(const ip_address_t &host, int port, int local_port)
     : conn_(new tcp_conn_t(host, port, local_port)) { }
 
+tcp_conn_stream_t::tcp_conn_stream_t(tcp_conn_t *conn) : conn_(conn) {
+    rassert(conn_ != NULL);
+}
+
 tcp_conn_stream_t::~tcp_conn_stream_t() {
     delete conn_;
 }
@@ -41,6 +45,22 @@ void tcp_conn_stream_t::rethread(int new_thread) {
 
 int tcp_conn_stream_t::home_thread() const {
     return conn_->home_thread();
+}
+
+void tcp_conn_stream_t::shutdown_read() {
+    conn_->shutdown_read();
+}
+
+void tcp_conn_stream_t::shutdown_write() {
+    conn_->shutdown_write();
+}
+
+bool tcp_conn_stream_t::is_read_open() {
+    return conn_->is_read_open();
+}
+
+bool tcp_conn_stream_t::is_write_open() {
+    return conn_->is_write_open();
 }
 
 rethread_tcp_conn_stream_t::rethread_tcp_conn_stream_t(tcp_conn_stream_t *conn, int thread) : conn_(conn), old_thread_(conn->home_thread()), new_thread_(thread) {

@@ -1,5 +1,7 @@
 #include "unittest/gtest.hpp"
 
+#include "arch/runtime/thread_pool.hpp"
+#include "arch/timing.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"

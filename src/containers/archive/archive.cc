@@ -19,7 +19,7 @@ int64_t force_read(read_stream_t *s, void *p, int64_t n) {
             // I'm guessing callers to force_read don't care.
             return -1;
         }
-        rassert(res < n);
+        rassert(res <= n);
 
         written_so_far += res;
         chp += res;
@@ -42,5 +42,17 @@ void write_message_t::append(const void *p, int64_t n) {
         p = static_cast<const char *>(p) + k;
         n = n - k;
     }
+}
+
+int send_write_message(write_stream_t *s, write_message_t *msg) {
+    intrusive_list_t<write_buffer_t> *list = &msg->buffers_;
+    for (write_buffer_t *p = list->head(); p; p = list->next(p)) {
+        int64_t res = s->write(p->data, p->size);
+        if (res == -1) {
+            return -1;
+        }
+        rassert(res == p->size);
+    }
+    return 0;
 }
 

@@ -72,10 +72,14 @@ public:
     }
 
 private:
+    friend int send_write_message(write_stream_t *s, write_message_t *msg);
+
     intrusive_list_t<write_buffer_t> buffers_;
 
     DISABLE_COPYING(write_message_t);
 };
+
+int send_message(write_stream_t *s, write_message_t *msg);
 
 #define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)                \
     inline write_message_t &operator<<(write_message_t &msg, typ1 x) {  \

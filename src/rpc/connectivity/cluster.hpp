@@ -4,9 +4,10 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "arch/streamed_tcp.hpp"
+#include "arch/io/network.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
+#include "containers/archive/tcp_conn_stream.hpp"
 #include "containers/map_sentries.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
@@ -36,11 +37,11 @@ public:
         public:
             /* The constructor registers us in every thread's `connection_map`;
             the destructor deregisters us. Both also notify all subscribers. */
-            connection_entry_t(run_t *, peer_id_t, streamed_tcp_conn_t *, peer_address_t) THROWS_NOTHING;
+            connection_entry_t(run_t *, peer_id_t, tcp_conn_stream_t *, peer_address_t) THROWS_NOTHING;
             ~connection_entry_t() THROWS_NOTHING;
 
             /* NULL for our "connection" to ourself */
-            streamed_tcp_conn_t *conn;
+            tcp_conn_stream_t *conn;
 
             /* `connection_t` contains a `peer_address_t` so that we can call
             `get_peers_list()` on any thread. Otherwise, we would have to go
@@ -86,7 +87,7 @@ public:
             run_t *value;
         };
 
-        void on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &, auto_drainer_t::lock_t) THROWS_NOTHING;
+        void on_new_connection(boost::scoped_ptr<nascent_tcp_conn_t> &, auto_drainer_t::lock_t) THROWS_NOTHING;
 
         /* `connectivity_cluster_t::join_blocking()` is spawned in a new
         coroutine by `connectivity_cluster_t::join()`. It's also run by
@@ -101,7 +102,7 @@ public:
         connect-notification, receiving messages from the peer until it
         disconnects or we are shut down, and sending out the
         disconnect-notification. */
-        void handle(streamed_tcp_conn_t *c,
+        void handle(tcp_conn_stream_t *c,
             boost::optional<peer_id_t> expected_id,
             boost::optional<peer_address_t> expected_address,
             auto_drainer_t::lock_t) THROWS_NOTHING;
@@ -132,7 +133,7 @@ public:
         auto_drainer_t drainer;
 
         /* This must be destroyed before `drainer` is. */
-        streamed_tcp_listener_t listener;
+        tcp_listener_t listener;
     };
 
     connectivity_cluster_t() THROWS_NOTHING;

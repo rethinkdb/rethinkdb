@@ -256,7 +256,6 @@ private:
 
 
 
-
 /*
  tcp_listener_t creates tcp_conn_t objects. We want to be able to get
  streamed_tcp_conn_ts out of it. The following class provides a safe
