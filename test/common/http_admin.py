@@ -113,7 +113,7 @@ class BadServerResponse(StandardError):
 class Datacenter(object):
 	def __init__(self, uuid, json_data):
 		self.uuid = uuid
-		self.name = json_data["name"]
+		self.name = json_data[u"name"]
 
 	def check(self, data):
 		return data[u"name"] == self.name
@@ -126,7 +126,7 @@ class Datacenter(object):
 
 class Blueprint(object):
 	def __init__(self, json_data):
-		self.peers_roles = json_data["peers_roles"]
+		self.peers_roles = json_data[u"peers_roles"]
 
 	def to_json(self):
 		return { u"peers_roles": self.peers_roles }
@@ -137,17 +137,27 @@ class Blueprint(object):
 class Namespace(object):
 	def __init__(self, uuid, json_data):
 		self.uuid = validate_uuid(uuid)
-		self.blueprint = Blueprint(json_data["blueprint"])
-		self.primary_uuid = None if json_data["primary_uuid"] is None else validate_uuid(json_data["primary_uuid"])
-		self.replica_affinities = json_data["replica_affinities"]
-		self.shards = json_data["shards"]
-		self.name = json_data["name"]
-		self.port = json_data["port"]
-		self.primary_pinnings = json_data["primary_pinnings"]
-		self.secondary_pinnings = json_data["secondary_pinnings"]
+		self.blueprint = Blueprint(json_data[u"blueprint"])
+		self.primary_uuid = None if json_data[u"primary_uuid"] is None else validate_uuid(json_data[u"primary_uuid"])
+		self.replica_affinities = json_data[u"replica_affinities"]
+		self.shards = self.parse_shards(json_data[u"shards"])
+		self.name = json_data[u"name"]
+		self.port = json_data[u"port"]
+		self.primary_pinnings = json_data[u"primary_pinnings"]
+		self.secondary_pinnings = json_data[u"secondary_pinnings"]
 
 	def check(self, data):
-		return data[u"name"] == self.name and data[u"primary_uuid"] == self.primary_uuid and data[u"replica_affinities"] == self.replica_affinities and data[u"shards"] == self.shards and data[u"port"] == self.port
+		return data[u"name"] == self.name and data[u"primary_uuid"] == self.primary_uuid and data[u"replica_affinities"] == self.replica_affinities and self.parse_shards(data[u"shards"]) == self.shards and data[u"port"] == self.port
+
+	def shards_to_json(self):
+		# Build the ridiculously formatted shard data
+		shard_json = []
+		last_split = u""
+		for split in self.shards:
+			shard_json.append(u"[\"%s\", \"%s\"]" % (last_split, split))
+			last_split = split
+		shard_json.append(u"[\"%s\", null]" % (last_split))
+		return shard_json
 
 	def to_json(self):
 		return {
@@ -155,11 +165,37 @@ class Namespace(object):
 			unicode("name"): self.name,
 			unicode("primary_uuid"): self.primary_uuid,
 			unicode("replica_affinities"): self.replica_affinities,
-			unicode("shards"): self.shards,
+			unicode("shards"): self.shards_to_json(),
 			unicode("port"): self.port,
 			unicode("primary_pinnings"): self.primary_pinnings,
 			unicode("secondary_pinnings"): self.secondary_pinnings
 			}
+
+	def parse_shards(self, shards):
+		# Build the ridiculously formatted shard data
+		splits = [ ]
+		last_split = u""
+		matches = None
+		for shard in shards:
+			matches = re.match(u"^\[\"(\w*)\", \"(\w*)\"\]$|^\[\"(\w*)\", null\]$", shard)
+			assert matches is not None
+			if matches.group(3) is None:
+				assert matches.group(1) == last_split
+				splits.append(matches.group(2))
+				last_split = matches.group(2)
+			else:
+				assert matches.group(3) == last_split
+		if matches is not None:
+			assert matches.group(3) is not None
+		assert sorted(splits) == splits
+		return splits
+
+	def add_shard(self, split_point):
+		if isinstance(split_point, str):
+			split_point = unicode(split_point)
+		assert split_point not in self.shards
+		self.shards.append(split_point)
+		self.shards.sort()
 
 	def __str__(self):
 		affinities = ""
@@ -191,9 +227,9 @@ class Server(object):
 		self.http_port = serv_port + 1000
 		self.uuid = validate_uuid(self.do_query("GET", "/ajax/me"))
 		serv_info = self.do_query("GET", "/ajax/machines/" + self.uuid)
-		self.datacenter_uuid = serv_info["datacenter_uuid"]
-		self.name = serv_info["name"]
-		self.port_offset = serv_info["port_offset"]
+		self.datacenter_uuid = serv_info[u"datacenter_uuid"]
+		self.name = serv_info[u"name"]
+		self.port_offset = serv_info[u"port_offset"]
 
 	def check(self, data):
 		# Do not check DummyServer objects
@@ -375,7 +411,7 @@ class Cluster(object):
 		log_file = self.log_file
 		if self.log_file != "stdout":
 			log_file += ".%d" % (self.base_port + self.server_instances)
-			
+
 		serv = InternalServer(
 			self.base_port + self.server_instances,
 			self.base_port - self.server_instances - 1,
@@ -508,6 +544,16 @@ class Cluster(object):
 		self.update_cluster_data()
 		return namespace
 
+	def add_namespace_shard(self, namespace, split_point, servid = None):
+		type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
+		type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
+		assert type_namespaces[type(namespace)][namespace.uuid] is namespace
+		protocol = type_protocols[type(namespace)]
+		namespace.add_shard(split_point)
+		info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
+		time.sleep(0.2)
+		self.update_cluster_data()
+
 	def compute_port(self, namespace, machine):
 		namespace = self.find_namespace(namespace)
 		machine = self.find_machine(machine)
@@ -544,7 +590,6 @@ class Cluster(object):
 		for uuid in namespace.replica_affinities.iterkeys():
 			datacenters.append(self.datacenters[uuid])
 		return random.choice(datacenters)
-
 
 	def get_machine_in_datacenter(self, datacenter):
 		assert self.datacenters[datacenter.uuid] is datacenter
@@ -584,17 +629,17 @@ class Cluster(object):
 
 	# Check the data from the server against our data
 	def _verify_cluster_data(self, data):
-		self._verify_cluster_data_chunk(self.machines, data["machines"])
-		self._verify_cluster_data_chunk(self.datacenters, data["datacenters"])
-		self._verify_cluster_data_chunk(self.dummy_namespaces, data["dummy_namespaces"])
-		self._verify_cluster_data_chunk(self.memcached_namespaces, data["memcached_namespaces"])
+		self._verify_cluster_data_chunk(self.machines, data[u"machines"])
+		self._verify_cluster_data_chunk(self.datacenters, data[u"datacenters"])
+		self._verify_cluster_data_chunk(self.dummy_namespaces, data[u"dummy_namespaces"])
+		self._verify_cluster_data_chunk(self.memcached_namespaces, data[u"memcached_namespaces"])
 
 	def update_cluster_data(self):
 		data = self._verify_consistent_cluster()
-		self._pull_cluster_data(data["machines"], self.machines, DummyServer)
-		self._pull_cluster_data(data["datacenters"], self.datacenters, Datacenter)
-		self._pull_cluster_data(data["dummy_namespaces"], self.dummy_namespaces, DummyNamespace)
-		self._pull_cluster_data(data["memcached_namespaces"], self.memcached_namespaces, MemcachedNamespace)
+		self._pull_cluster_data(data[u"machines"], self.machines, DummyServer)
+		self._pull_cluster_data(data[u"datacenters"], self.datacenters, Datacenter)
+		self._pull_cluster_data(data[u"dummy_namespaces"], self.dummy_namespaces, DummyNamespace)
+		self._pull_cluster_data(data[u"memcached_namespaces"], self.memcached_namespaces, MemcachedNamespace)
 		self._verify_cluster_data(data)
 		return data
 
@@ -811,7 +856,7 @@ class InternalCluster(Cluster):
 		other.other_cluster = set()
 
 		# Give some time for the cluster to update internally, then pull the cluster data
-		time.sleep(1)
+		time.sleep(5)
 		self.update_cluster_data()
 
 	def _notify_of_new_cluster_port(self, port):
