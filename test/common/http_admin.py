@@ -601,6 +601,16 @@ class Cluster(object):
         self.update_cluster_data()
         return namespace
 
+    def rename(self, target, name, servid = None):
+        type_targets = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces, InternalServer: self.machines, ExternalServer: self.machines, DummyServer: self.machines, Datacenter: self.datacenters }
+        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", InternalServer: "machines", ExternalServer: "machines", DummyServer: "machines", Datacenter: "datacenters" }
+        assert type_targets[type(target)][target.uuid] is target
+        object_type = type_objects[type(target)]
+        target.name = name
+        info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s/%s/name" % (object_type, target.uuid), name)
+        time.sleep(0.2)
+        self.update_cluster_data()
+
     def add_namespace_shard(self, namespace, split_point, servid = None):
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
