@@ -122,6 +122,8 @@ template <class T> struct archive_variant_deserialize_standin_t {
         int res = deserialize(s, &v);
         if (res) { return res; }
         *x = v;
+
+        return 0;
     }
  };
 

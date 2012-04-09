@@ -56,12 +56,12 @@ public:
 
 private:
     friend void send(mailbox_manager_t*, address_t);
-    static void write(UNUSED write_stream_t *stream) {
+    static void write(write_stream_t *stream) {
         write_message_t msg;
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void() > &fun) {
+    static void on_message(UNUSED read_stream_t *stream, const boost::function<void()> &done, const boost::function< void() > &fun) {
         done();
         fun();
     }

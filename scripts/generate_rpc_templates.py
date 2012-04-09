@@ -62,14 +62,14 @@ def generate_async_message_template(nargs):
     else:
         print "    template<" + csep("class a#_t") + ">"
         print "    friend void send(mailbox_manager_t*, typename mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
-    print "    static void write(%swrite_stream_t *stream" % ("UNUSED " if nargs == 0 else "") + cpre("const arg#_t &arg#") + ") {"
+    print "    static void write(write_stream_t *stream" + cpre("const arg#_t &arg#") + ") {"
     print "        write_message_t msg;"
     for i in xrange(nargs):
         print "        msg << arg%d;" % i
     print "        int res = send_write_message(stream, &msg);"
     print "        if (res) { throw fake_archive_exc_t(); }"
     print "    }"
-    print "    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(" + csep("arg#_t") + ") > &fun) {"
+    print "    static void on_message(%sread_stream_t *stream, const boost::function<void()> &done, const boost::function< void(" % ("UNUSED " if nargs == 0 else "") + csep("arg#_t") + ") > &fun) {"
     for i in xrange(nargs):
         print "        arg%d_t arg%d;" % (i, i)
 

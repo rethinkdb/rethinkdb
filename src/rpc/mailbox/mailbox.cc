@@ -21,7 +21,7 @@ peer_id_t raw_mailbox_t::address_t::get_peer() const {
     return peer;
 }
 
-raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, const boost::function<void(std::istream &, const boost::function<void()> &)> &fun) :
+raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, const boost::function<void(read_stream_t *, const boost::function<void()> &)> &fun) :
     manager(m),
     mailbox_id(manager->mailbox_tables.get()->next_mailbox_id++),
     callback(fun)
@@ -84,17 +84,31 @@ raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::i
     }
 }
 
-void mailbox_manager_t::write_mailbox_message(std::ostream &stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer) {
-    stream.write(reinterpret_cast<char*>(&dest_thread), sizeof(dest_thread));
-    stream.write(reinterpret_cast<char*>(&dest_mailbox_id), sizeof(dest_mailbox_id));
+void mailbox_manager_t::write_mailbox_message(write_stream_t *stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, boost::function<void(write_stream_t *)> writer) {
+    write_message_t msg;
+    int32_t dest_thread_32_bit = dest_thread;
+    msg << dest_thread_32_bit;
+    msg << dest_mailbox_id;
+
+    // TODO: Maybe pass write_message_t to writer... eventually.
+    int res = send_write_message(stream, &msg);
+
+    if (res) { throw fake_archive_exc_t(); }
+
     writer(stream);
 }
 
-void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, std::istream &stream) {
+void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *stream) {
     int dest_thread;
     raw_mailbox_t::id_t dest_mailbox_id;
-    stream.read(reinterpret_cast<char*>(&dest_thread), sizeof(dest_thread));
-    stream.read(reinterpret_cast<char*>(&dest_mailbox_id), sizeof(dest_mailbox_id));
+    {
+        int res = deserialize(stream, &dest_thread);
+        if (!res) { res = deserialize(stream, &dest_mailbox_id); }
+
+        if (res) {
+            throw fake_archive_exc_t();
+        }
+    }
 
     /* TODO: This is probably horribly inefficient; we switch to another
     thread and back before we parse the next message. */
@@ -104,7 +118,7 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, std::istream &s
     if (mbox) {
         cond_t done_cond;
         boost::function<void()> done_fun = boost::bind(&cond_t::pulse, &done_cond);
-        coro_t::spawn_sometime(boost::bind(mbox->callback, boost::ref(stream), done_fun));
+        coro_t::spawn_sometime(boost::bind(mbox->callback, stream, done_fun));
         done_cond.wait_lazily_unordered();
     } else {
         /* Print a warning message */

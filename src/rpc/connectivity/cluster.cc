@@ -487,7 +487,7 @@ connectivity_service_t *connectivity_cluster_t::get_connectivity_service() THROW
     return this;
 }
 
-void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<void(std::ostream&)> &writer) THROWS_NOTHING {
+void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<void(write_message_t *)> &writer) THROWS_NOTHING {
     // We could be on _any_ thread.
 
     rassert(!dest.is_nil());

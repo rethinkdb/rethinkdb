@@ -18,9 +18,10 @@ message_multiplexer_t::run_t::~run_t() {
     parent->run = NULL;
 }
 
-void message_multiplexer_t::run_t::on_message(peer_id_t source, std::istream &stream) {
+void message_multiplexer_t::run_t::on_message(peer_id_t source, read_stream_t *stream) {
     tag_t tag;
-    stream >> tag;
+    int res = deserialize(stream, &tag);
+    if (res) { throw fake_archive_exc_t(); }
     client_t *client = parent->clients[tag];
     guarantee(client != NULL, "Got a message for an unfamiliar tag. Apparently "
         "we aren't compatible with the cluster on the other end.");
@@ -59,12 +60,15 @@ connectivity_service_t *message_multiplexer_t::client_t::get_connectivity_servic
     return parent->message_service->get_connectivity_service();
 }
 
-void write_tagged_message(std::ostream &os, message_multiplexer_t::tag_t tag, const boost::function<void(std::ostream &)> &subwriter) {
-    os << tag;
+void write_tagged_message(write_stream_t *os, message_multiplexer_t::tag_t tag, const boost::function<void(write_stream_t *)> &subwriter) {
+    write_message_t msg;
+    msg << tag;
+    int res = send_write_message(os, &msg);
+    if (res) { throw fake_archive_exc_t(); }
     subwriter(os);
 }
 
-void message_multiplexer_t::client_t::send_message(peer_id_t dest, const boost::function<void(std::ostream &)> &subwriter) {
+void message_multiplexer_t::client_t::send_message(peer_id_t dest, const boost::function<void(write_strream_t *)> &subwriter) {
     parent->message_service->send_message(dest,
         boost::bind(&write_tagged_message, _1, tag, boost::cref(subwriter))
         );

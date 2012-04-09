@@ -21,7 +21,7 @@ private:
     typedef int id_t;
     id_t mailbox_id;
 
-    boost::function<void(std::istream &, const boost::function<void()> &)> callback;
+    boost::function<void(read_stream_t *, const boost::function<void()> &)> callback;
 
     DISABLE_COPYING(raw_mailbox_t);
 
@@ -42,7 +42,7 @@ public:
 
     private:
         friend std::ostream &operator<<(std::ostream &, raw_mailbox_t::address_t);
-        friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(std::ostream&)>);
+        friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(write_stream_t *)>);
         friend struct raw_mailbox_t;
         friend struct mailbox_manager_t;
 
@@ -58,7 +58,7 @@ public:
         id_t mailbox_id;
     };
 
-    raw_mailbox_t(mailbox_manager_t *, const boost::function<void(std::istream &, const boost::function<void()> &)> &);
+    raw_mailbox_t(mailbox_manager_t *, const boost::function<void(read_stream_t *, const boost::function<void()> &)> &);
     ~raw_mailbox_t();
 
     address_t get_address();
@@ -75,7 +75,7 @@ inaccessible, `send()` will silently fail. */
 void send(
     mailbox_manager_t *src,
     raw_mailbox_t::address_t dest,
-    boost::function<void(std::ostream&)> message
+    boost::function<void(write_stream_t *)> message
     );
 
 /* `mailbox_manager_t` uses a `message_service_t` to provide mailbox capability.
@@ -96,7 +96,7 @@ public:
 
 private:
     friend struct raw_mailbox_t;
-    friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(std::ostream&)>);
+    friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(write_stream_t *)>);
 
     message_service_t *message_service;
 
@@ -109,8 +109,8 @@ private:
     };
     one_per_thread_t<mailbox_table_t> mailbox_tables;
 
-    static void write_mailbox_message(std::ostream&, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer);
-    void on_message(peer_id_t, std::istream&);
+    static void write_mailbox_message(write_stream_t *stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, boost::function<void(write_stream_t *)> writer);
+    void on_message(peer_id_t, read_stream_t *stream);
 };
 
 #endif /* RPC_MAILBOX_MAILBOX_HPP_ */

@@ -35,7 +35,7 @@ public:
         explicit run_t(message_multiplexer_t *);
         ~run_t();
     private:
-        void on_message(peer_id_t, std::istream &);
+        void on_message(peer_id_t, read_stream_t *);
         message_multiplexer_t *const parent;
     };
     class client_t : public message_service_t {
@@ -52,7 +52,7 @@ public:
         client_t(message_multiplexer_t *, tag_t tag);
         ~client_t();
         connectivity_service_t *get_connectivity_service();
-        void send_message(peer_id_t, const boost::function<void(std::ostream &)> &);
+        void send_message(peer_id_t, const boost::function<void(write_stream_t *)> &);
     private:
         friend class message_multiplexer_t;
         message_multiplexer_t *const parent;

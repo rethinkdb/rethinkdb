@@ -60,9 +60,10 @@ public:
     }
 
 private:
-    void on_message(peer_id_t peer, std::istream &stream) {
+    void on_message(peer_id_t peer, read_stream_t *stream) {
         int i;
-        stream >> i;
+        int res = deserialize(stream, &i);
+        if (res) { throw fake_archive_exc_t(); }
         on_thread_t th(home_thread());
         inbox[i] = peer;
         timing[i] = sequence_number++;
