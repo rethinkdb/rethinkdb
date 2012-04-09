@@ -111,20 +111,15 @@ class BadServerResponse(StandardError):
         return "Server returned error code: %d %s" % (self.status, self.reason)
 
 class Datacenter(object):
-    def __init__(self, cluster, uuid, json_data):
+    def __init__(self, uuid, json_data):
         self.uuid = uuid
         self.name = json_data[u"name"]
-        self.cluster = cluster
 
     def check(self, data):
         return data[u"name"] == self.name
 
     def to_json(self):
         return { u"name": self.name }
-
-    def rename(self, new_name):
-        self.name = new_name
-        self.cluster._get_server_for_command().do_query("POST", "/ajax/datacenters/" + self.uuid + "/name", new_name)
 
     def __str__(self):
         return "Datacenter(name:%s)" % (self.name)
@@ -505,7 +500,7 @@ class Cluster(object):
         time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
         assert len(info) == 1
         uuid, json_data = next(info.iteritems())
-        datacenter = Datacenter(self, uuid, json_data)
+        datacenter = Datacenter(uuid, json_data)
         self.datacenters[datacenter.uuid] = datacenter
         self.update_cluster_data()
         return datacenter
