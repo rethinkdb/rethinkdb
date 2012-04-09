@@ -46,6 +46,7 @@ void backfillee(
         store_view_t<protocol_t> *store,
         typename protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
+        backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
@@ -62,9 +63,6 @@ void backfillee(
             );
 
     start_point = start_point.mask(region);
-
-    /* Pick a unique ID to identify this backfill session to the backfiller */
-    backfill_session_id_t backfill_session_id = generate_uuid();
 
     /* The backfiller will send a message to `end_point_mailbox` before it sends
     any other messages; that message will tell us what the version will be when
