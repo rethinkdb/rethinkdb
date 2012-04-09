@@ -43,7 +43,6 @@ write_message_t &operator<<(write_message_t &msg, const std::map<K, V> &m) {
 
 template <class K, class V>
 int deserialize(read_stream_t *s, std::map<K, V> *m) {
-    rassert(m->empty());
     m->clear();
 
     uint64_t sz;
@@ -78,7 +77,6 @@ write_message_t &operator<<(write_message_t &msg, const std::set<T> &s) {
 
 template <class T>
 int deserialize(read_stream_t *s, std::set<T> *out) {
-    rassert(out->empty());
     out->clear();
 
     uint64_t sz;
@@ -111,7 +109,6 @@ write_message_t &operator<<(write_message_t &msg, const std::string &s) {
 
 inline
 int deserialize(read_stream_t *s, std::string *out) {
-    rassert(out->empty());
     out->clear();
 
     int64_t sz;
@@ -156,7 +153,6 @@ write_message_t &operator<<(write_message_t &msg, const std::vector<T> &v) {
 
 template <class T>
 int deserialize(read_stream_t *s, std::vector<T> *v) {
-    rassert(v->empty());
     v->clear();
 
     uint64_t sz;
