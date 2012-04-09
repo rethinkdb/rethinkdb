@@ -1,8 +1,5 @@
-#include "errors.hpp"
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/archive.hpp"
 
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_service_t *super) THROWS_NOTHING :
@@ -90,16 +87,23 @@ void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOT
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, std::istream &stream) THROWS_NOTHING {
-    switch (stream.get()) {
+void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, read_stream_t *s) THROWS_NOTHING {
+    uint8_t code = 0;
+    {
+        int res = deserialize(s, &code);
+        guarantee(!res);  // We do unreachable below...
+    }
+
+    switch (code) {
         case 'I': {
             /* Initial message from another peer */
             metadata_t initial_value;
             fifo_enforcer_source_t::state_t metadata_fifo_state;
             {
-                boost::archive::binary_iarchive archive(stream);
-                archive >> initial_value;
-                archive >> metadata_fifo_state;
+                int res = deserialize(s, &initial_value);
+                guarantee(!res);  // In the spirit of unreachable...
+                res = deserialize(s, &metadata_fifo_state);
+                guarantee(!res);
             }
 
             /* Spawn a new coroutine because we might not be on the home thread
@@ -119,9 +123,12 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, std
             metadata_t new_value;
             fifo_enforcer_write_token_t metadata_fifo_token;
             {
-                boost::archive::binary_iarchive archive(stream);
-                archive >> new_value;
-                archive >> metadata_fifo_token;
+                int res = deserialize(s, &new_value);
+                guarantee(!res);  // In the spirit of unreachable...
+                res = deserialize(s, &metadata_fifo_token);
+                guarantee(!res);  // In the spirit of unreachable...
+
+                // TODO Don't fail catastrophically just because there's bad data on the stream.
             }
 
             /* Spawn a new coroutine because we might not be on the home thread

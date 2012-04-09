@@ -34,8 +34,8 @@ private:
     void send_initialization(peer_id_t peer, const metadata_t &initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
     void send_update(peer_id_t peer, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
-    static void write_initialization(std::ostream &os, const metadata_t &initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state) THROWS_NOTHING;
-    static void write_update(std::ostream &os, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token) THROWS_NOTHING;
+    static void write_initialization(write_stream_t *os, const metadata_t &initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state) THROWS_NOTHING;
+    static void write_update(write_stream_t *os, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token) THROWS_NOTHING;
 
     /* `directory_write_service_t` interface: */
     mutex_t *get_our_value_lock() THROWS_NOTHING;

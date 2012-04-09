@@ -5,7 +5,7 @@
 #include "concurrency/access.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/iterators.hpp"
-#include "containers/vector_stream.hpp"
+#include "containers/archive/vector_stream.hpp"
 #include "memcached/btree/append_prepend.hpp"
 #include "memcached/btree/delete.hpp"
 #include "memcached/btree/erase_range.hpp"
@@ -141,8 +141,6 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     return responses[0];
 }
 
-namespace arc = boost::archive;
-
 memcached_protocol_t::store_t::store_t(const std::string& filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::universe()) {
     if (create) {
         standard_serializer_t::create(
@@ -181,12 +179,13 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create)
         get_btree_superblock(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, txn);
         buf_lock_t* sb_buf = superblock.get_real_buf();
         clear_superblock_metainfo(txn.get(), sb_buf);
-        vector_streambuf_t<> key;
-        {
-            arc::binary_oarchive key_archive(key, arc::no_header);
-            key_range_t kr = key_range_t::universe();   // `operator<<` needs a non-const reference
-            key_archive << kr;
-        }
+
+        vector_stream_t key;
+        write_message_t msg;
+        key_range_t kr = key_range_t::universe();   // `operator<<` needs a non-const reference
+        msg << kr;
+        int res = send_write_message(&key, &msg);
+        rassert(!res);
         set_superblock_metainfo(txn.get(), sb_buf, key.vector(), std::vector<char>());
     }
 }
@@ -280,13 +279,13 @@ region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t:
 
     std::vector<std::pair<memcached_protocol_t::region_t, binary_blob_t> > result;
     for (std::vector<std::pair<std::vector<char>, std::vector<char> > >::iterator i = kv_pairs.begin(); i != kv_pairs.end(); ++i) {
-        vector_streambuf_t<> key((*i).first);
-        const std::vector<char> &value = (*i).second;
+        const std::vector<char> &value = i->second;
 
         memcached_protocol_t::region_t region;
         {
-            arc::binary_iarchive region_archive(key, arc::no_header);
-            region_archive >> region;
+            vector_read_stream_t key(&i->first);
+            int res = deserialize(&key, &region);
+            rassert(!res);
         }
 
         result.push_back(std::make_pair(
@@ -575,11 +574,12 @@ void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metain
     clear_superblock_metainfo(txn, sb_buf);
 
     for (region_map_t<memcached_protocol_t, binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
-        vector_streambuf_t<> key;
-        {
-            arc::binary_oarchive key_archive(key, arc::no_header);
-            key_archive << (*i).first;
-        }
+
+        vector_stream_t key;
+        write_message_t msg;
+        msg << i->first;
+        int res = send_write_message(&key, &msg);
+        rassert(!res);
 
         std::vector<char> value(static_cast<const char*>((*i).second.data()),
                                 static_cast<const char*>((*i).second.data()) + (*i).second.size());
