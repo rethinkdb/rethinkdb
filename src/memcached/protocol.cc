@@ -166,6 +166,8 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create)
         cache_t::create(serializer.get(), &cache_static_config);
     }
 
+    cache_dynamic_config.max_size = GIGABYTE;
+    cache_dynamic_config.max_dirty_size = GIGABYTE / 2;
     cache.reset(new cache_t(serializer.get(), &cache_dynamic_config));
 
     if (create) {
@@ -441,6 +443,7 @@ bool memcached_protocol_t::store_t::send_backfill(
         const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
         const boost::function<bool(const metainfo_t&)> &should_backfill,
         const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
+        backfill_progress_t **progress_out,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -453,13 +456,21 @@ bool memcached_protocol_t::store_t::send_backfill(
     if (should_backfill(metainfo)) {
         memcached_backfill_callback_t callback(chunk_fun);
 
+        traversal_progress_combiner_t progress_combiner;
+        *progress_out = &progress_combiner;
+
         for (region_map_t<memcached_protocol_t, state_timestamp_t>::const_iterator i = start_point.begin(); i != start_point.end(); i++) {
             const memcached_protocol_t::region_t& range = (*i).first;
             repli_timestamp_t since_when = (*i).second.to_repli_timestamp(); // FIXME: this loses precision
-            memcached_backfill(btree.get(), range, since_when, &callback, txn.get(), superblock);
+
+            traversal_progress_t *p = new traversal_progress_t;
+            progress_combiner.add_constituent(p);
+            memcached_backfill(btree.get(), range, since_when, &callback, txn.get(), superblock, p);
         }
+        progress_out = NULL;
         return true;
     } else {
+        progress_out = NULL;
         return false;
     }
 }

@@ -20,7 +20,16 @@ namespace reactor_business_card_details {
  */
 template <class protocol_t>
 class primary_when_safe_t {
-    RDB_MAKE_ME_SERIALIZABLE_0();
+public:
+    primary_when_safe_t() { }
+
+    primary_when_safe_t(const std::vector<backfill_session_id_t> &_backfills_waited_on,
+                        std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> > > > > &_progress_mboxs) 
+        : backfills_waited_on(_backfills_waited_on), progress_mboxs(_progress_mboxs)
+    { }
+    std::vector<backfill_session_id_t> backfills_waited_on;
+    std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> > > > > progress_mboxs;
+    RDB_MAKE_ME_SERIALIZABLE_2(backfills_waited_on, progress_mboxs);
 };
 
 /* This peer is currently a primary in working order. */
@@ -88,7 +97,15 @@ public:
  * will become a secondary when it completes backfilling. */
 template <class protocol_t>
 class secondary_backfilling_t {
-    RDB_MAKE_ME_SERIALIZABLE_0();
+public:
+    secondary_backfilling_t() { }
+
+    secondary_backfilling_t(backfill_session_id_t _backfill_session)
+        : backfill_session(_backfill_session)
+    { }
+
+    backfill_session_id_t backfill_session;
+    RDB_MAKE_ME_SERIALIZABLE_1(backfill_session);
 };
 
 /* This peer would like to erase its data and not do any job for this

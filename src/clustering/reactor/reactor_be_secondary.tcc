@@ -156,13 +156,17 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
             }
 
             try {
+                /* Generate a session id to do our backfill. */
+                backfill_session_id_t backfill_session_id = generate_uuid();
 
                 /* We have found a broadcaster (a master to track) so now we
                  * need to backfill to get up to date. */
-                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t());
+                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t(backfill_session_id));
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t<protocol_t> listener(mailbox_manager, translate_into_watchable(broadcaster), branch_history, store, translate_into_watchable(location_to_backfill_from), interruptor);
+                listener_t<protocol_t> listener(mailbox_manager, translate_into_watchable(broadcaster), 
+                                                branch_history, store, translate_into_watchable(location_to_backfill_from), 
+                                                backfill_session_id, interruptor);
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use

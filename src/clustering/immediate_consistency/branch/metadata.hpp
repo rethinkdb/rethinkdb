@@ -18,6 +18,7 @@
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/joins/map.hpp"
 #include "timestamps.hpp"
+#include "concurrency/promise.hpp"
 
 /* Every broadcaster generates a UUID when it's first created. This is the UUID
 of the branch that the broadcaster administers. */
@@ -150,18 +151,30 @@ struct backfiller_business_card_t {
 
     typedef mailbox_t<void(backfill_session_id_t)> cancel_backfill_mailbox_t;
 
+
+    /* Mailboxes used for requesting the progress of a backfill */
+    typedef mailbox_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> request_progress_mailbox_t;
+    typedef mailbox_t<void(float)> receive_progress_mailbox_t;
+
     backfiller_business_card_t() { }
     backfiller_business_card_t(
             const typename backfill_mailbox_t::address_t &ba,
-            const cancel_backfill_mailbox_t::address_t &cba) :
-        backfill_mailbox(ba), cancel_backfill_mailbox(cba)
+            const cancel_backfill_mailbox_t::address_t &cba,
+            const request_progress_mailbox_t::address_t &pa) :
+        backfill_mailbox(ba), cancel_backfill_mailbox(cba), request_progress_mailbox(pa)
         { }
 
     typename backfill_mailbox_t::address_t backfill_mailbox;
     cancel_backfill_mailbox_t::address_t cancel_backfill_mailbox;
+    request_progress_mailbox_t::address_t request_progress_mailbox;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(backfill_mailbox, cancel_backfill_mailbox);
+    RDB_MAKE_ME_SERIALIZABLE_3(backfill_mailbox, cancel_backfill_mailbox, request_progress_mailbox);
 };
+
+template <class protocol_t>
+void request_backfiller_progress(const backfiller_business_card_t<protocol_t> &backfiller_bcard, mailbox_manager_t *mbox_manager, backfill_session_id_t id, promise_t<float> *out) {
+    send(mbox_manager, backfiller_bcard.request_progress_mailbox, id, boost::bind(&promise_t<float>::pulse, out, _1));
+}
 
 /* `broadcaster_business_card_t` is the way that listeners find the broadcaster.
 It appears in the directory. */

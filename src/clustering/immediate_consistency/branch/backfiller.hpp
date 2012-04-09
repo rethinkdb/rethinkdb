@@ -7,6 +7,7 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/resource.hpp"
 #include "protocol_api.hpp"
+#include "stl_utils.hpp"
 
 /* Used internally by `backfiller_t`. Grr I want lambdas grr. */
 inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_range_t &vr) {
@@ -26,13 +27,15 @@ struct backfiller_t :
         mailbox_manager(mm), branch_history(bh),
         store(s),
         backfill_mailbox(mailbox_manager, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
-        cancel_backfill_mailbox(mailbox_manager, boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer)))
+        cancel_backfill_mailbox(mailbox_manager, boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer))),
+        request_progress_mailbox(mailbox_manager, boost::bind(&backfiller_t::request_backfill_progress, this, _1, _2, auto_drainer_t::lock_t(&drainer)))
         { }
 
     backfiller_business_card_t<protocol_t> get_business_card() {
         return backfiller_business_card_t<protocol_t>(
             backfill_mailbox.get_address(),
-            cancel_backfill_mailbox.get_address()
+            cancel_backfill_mailbox.get_address(),
+            request_progress_mailbox.get_address()
             );
     }
 
@@ -111,6 +114,7 @@ private:
             store->new_read_token(send_backfill_token);
 
             /* Actually perform the backfill */
+            backfill_progress_t *progress;
             store->send_backfill(
                 region_map_transform<protocol_t, version_range_t, state_timestamp_t>(
                     start_point,
@@ -118,6 +122,7 @@ private:
                     ),
                 boost::bind(&backfiller_t<protocol_t>::confirm_and_send_metainfo, this, _1, start_point, end_point_cont),
                 send_fun,
+                &progress,
                 send_backfill_token,
                 &interrupted
                 );
@@ -150,6 +155,14 @@ private:
         }
     }
 
+    void request_backfill_progress(backfill_session_id_t session_id,
+                                   mailbox_addr_t<void(float)> response_mbox,
+                                   auto_drainer_t::lock_t) {
+        if (std_contains(local_backfill_progress, session_id) && local_backfill_progress[session_id]) {
+            send(mailbox_manager, response_mbox, (*local_backfill_progress[session_id])->guess_completion());
+        }
+    }
+
     mailbox_manager_t *mailbox_manager;
     boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
 
@@ -157,9 +170,12 @@ private:
 
     auto_drainer_t drainer;
     std::map<backfill_session_id_t, cond_t *> local_interruptors;
+    std::map<backfill_session_id_t, backfill_progress_t **> local_backfill_progress;
 
     typename backfiller_business_card_t<protocol_t>::backfill_mailbox_t backfill_mailbox;
     typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;
+    typename backfiller_business_card_t<protocol_t>::request_progress_mailbox_t request_progress_mailbox;
+
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP_ */

@@ -267,6 +267,11 @@ void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblo
 
     buf_lock_t * superblock_buf = static_cast<real_superblock_t*>(got_superblock.sb.get())->get(); // TODO: Ugh
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
+    
+    if (helper->progress) {
+        helper->progress->inform(0, traversal_progress_t::LEARN, traversal_progress_t::INTERNAL);
+        helper->progress->inform(0, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
+    }
 
     block_id_t root_id = superblock->root_block;
     rassert(root_id != SUPERBLOCK_ID);
@@ -470,10 +475,10 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
 void traversal_progress_t::inform(int level, action_t action, node_type_t type) {
     assert_thread();
     rassert(level >= 0);
-    if (size_t(level) > learned.size()) {
-        learned.resize(level, 0);
-        acquired.resize(level, 0);
-        released.resize(level, 0);
+    if (size_t(level) >= learned.size()) {
+        learned.resize(level + 1, 0);
+        acquired.resize(level + 1, 0);
+        released.resize(level + 1, 0);
     }
 
     if (type == LEAF) {
@@ -497,33 +502,71 @@ void traversal_progress_t::inform(int level, action_t action, node_type_t type) 
         unreachable();
         break;
     }
-    if ((print_counter++ % 100) == 0) {
-        debugf("Learned:\n");
-        for (std::vector<int>::iterator it  = learned.begin();
-                                        it != learned.end();
-                                        ++it) {
-            debugf("%d\t", *it);
-        }
-
-        debugf("\nAcquired:\n");
-        for (std::vector<int>::iterator it  = acquired.begin();
-                                        it != acquired.end();
-                                        ++it) {
-            debugf("%d\t", *it);
-        }
-
-        debugf("\nReleased:\n");
-        for (std::vector<int>::iterator it  = released.begin();
-                                        it != released.end();
-                                        ++it) {
-            debugf("%d\t", *it);
-        }
-
-        debugf("\nHeight: %d\n", height);
-    }
 }
 
 float traversal_progress_t::guess_completion() {
     assert_thread();
-    return 0.0;
+    std::pair<int, int> num_and_denom = numerator_and_denominator();
+    if (num_and_denom.first == -1) {
+        return 0.0;
+    } else {
+        return float(num_and_denom.first)/float(num_and_denom.second);
+    }
 }
+
+std::pair<int, int> traversal_progress_t::numerator_and_denominator() {
+    assert_thread();
+    rassert(learned.size() == acquired.size() && acquired.size() == released.size());
+
+    if (height == -1) {
+        return std::make_pair(-1, -1);
+    }
+
+    /* First we compute the ratio at each stage of the acquired nodes to the
+     * learned nodes. This gives us a rough estimate of the branch factor at
+     * each level. */
+
+    std::vector<float>released_to_acquired_ratios;
+    for (unsigned i = 0; i < learned.size() - 1; i++) {
+        released_to_acquired_ratios.push_back(float(acquired[i + 1]) / std::max(1.0f, float(released[i])));
+    }
+
+    std::vector<int> population_by_level_guesses;
+    population_by_level_guesses.push_back(learned[0]);
+
+    for (unsigned i = 0; i < (learned.size() - 1); i++) {
+        population_by_level_guesses.push_back(released_to_acquired_ratios[i] * population_by_level_guesses[i]);
+    }
+
+    int estimate_of_total_nodes = 0;
+    int total_released_nodes = 0;
+    for (unsigned i = 0; i < population_by_level_guesses.size(); i++) {
+        estimate_of_total_nodes += population_by_level_guesses[i];
+        total_released_nodes += released[i];
+    }
+
+    return std::make_pair(total_released_nodes, estimate_of_total_nodes);
+}
+
+void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
+    assert_thread();
+    constituents.push_back(c);
+}
+
+float traversal_progress_combiner_t::guess_completion() {
+    int numerator, denominator;
+    for (boost::ptr_vector<traversal_progress_t *>::iterator it  = constituents.begin();
+                                                             it != constituents.end();
+                                                             ++it) {
+        std::pair<int, int> n_and_d = (*it)->numerator_and_denominator();
+        if (n_and_d.first == -1) {
+            return 0.0f;
+        }
+
+        numerator += n_and_d.first;
+        denominator += n_and_d.second;
+    }
+
+    return float(numerator) / float(denominator);
+}
+
