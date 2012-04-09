@@ -236,6 +236,10 @@ public:
     // Call it on the thread you'll use the connection on.
     void ennervate(boost::scoped_ptr<linux_tcp_conn_t>& tcp_conn);
 
+    // Must get called exactly once during lifetime of this object.
+    // Call it on the thread you'll use the connection on.
+    void ennervate(linux_tcp_conn_t **tcp_conn_out);
+
 private:
     friend class linux_tcp_listener_t;
 
