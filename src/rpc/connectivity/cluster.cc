@@ -10,6 +10,7 @@
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
+#include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
 #include "do_on_thread.hpp"
 #include "utils.hpp"
@@ -427,8 +428,9 @@ void connectivity_cluster_t::run_t::handle(
                     }
                 }
 
-                std::stringstream stream(message, std::stringstream::in | std::stringstream::binary);
-                message_handler->on_message(other_id, stream);
+                std::vector<char> vec(message.begin(), message.end());
+                vector_read_stream_t stream(&vec);
+                message_handler->on_message(other_id, &stream);
             }
         } catch (fake_archive_exc_t) {
             /* The exception broke us out of the loop, and that's what we
@@ -487,7 +489,7 @@ connectivity_service_t *connectivity_cluster_t::get_connectivity_service() THROW
     return this;
 }
 
-void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<void(write_message_t *)> &writer) THROWS_NOTHING {
+void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<void(write_stream_t *)> &writer) THROWS_NOTHING {
     // We could be on _any_ thread.
 
     rassert(!dest.is_nil());
@@ -496,15 +498,15 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
     // to worry about having the writer run on the connection thread.
-    std::stringstream buffer(std::ios_base::out | std::stringstream::binary);
+    vector_stream_t buffer;
     {
         ASSERT_FINITE_CORO_WAITING;
-        writer(buffer);
+        writer(&buffer);
     }
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
     std::cerr << "from " << me << " to " << dest << std::endl;
-    print_hd(buffer.str().data(), 0, buffer.str().size());
+    print_hd(buffer.vector().data(), 0, buffer.vector().size());
 #endif
 
 #ifndef NDEBUG
@@ -537,8 +539,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
         /* We're sending a message to ourself */
         rassert(dest == me);
         // We could be on any thread here! Oh no!
-        std::stringstream buffer2(buffer.str(), std::stringstream::in | std::stringstream::binary);
-        current_run->message_handler->on_message(me, buffer2);
+        vector_read_stream_t buffer2(&buffer.vector());
+        current_run->message_handler->on_message(me, &buffer2);
 
     } else {
         rassert(dest != me);
@@ -550,7 +552,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
 
         {
             write_message_t msg;
-            std::string buffer_str = buffer.str();
+            std::string buffer_str(buffer.vector().begin(), buffer.vector().end());
             msg << buffer_str;
             int res = send_write_message(conn_structure->conn, &msg);
             if (res) {

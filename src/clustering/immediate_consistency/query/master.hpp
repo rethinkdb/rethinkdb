@@ -5,6 +5,7 @@
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
+#include "containers/archive/order_token.hpp"
 
 /* TODO: Right now we rely on the network to deliver messages from the parsers
 to the `master_t` in the same order as the client sent them to the parsers. This

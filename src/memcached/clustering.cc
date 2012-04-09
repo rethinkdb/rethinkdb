@@ -1,8 +1,9 @@
 #include "errors.hpp"
-#include <boost/variant/get.hpp>
+#include <boost/variant/get.hpp>  // TODO drop this?
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/machine_metadata.hpp"
+#include "containers/archive/order_token.hpp"
 #include "memcached/clustering.hpp"
 #include "memcached/tcp_conn.hpp"
 

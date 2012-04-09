@@ -1,5 +1,7 @@
 #include "containers/archive/vector_stream.hpp"
 
+#include <string.h>
+
 vector_stream_t::vector_stream_t() { }
 
 vector_stream_t::~vector_stream_t() { }

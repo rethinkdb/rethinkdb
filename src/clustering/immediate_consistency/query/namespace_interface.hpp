@@ -11,6 +11,7 @@
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/registrant.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/archive/order_token.hpp"
 #include "protocol_api.hpp"
 
 

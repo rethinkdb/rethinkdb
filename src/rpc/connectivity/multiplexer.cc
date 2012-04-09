@@ -68,7 +68,7 @@ void write_tagged_message(write_stream_t *os, message_multiplexer_t::tag_t tag, 
     subwriter(os);
 }
 
-void message_multiplexer_t::client_t::send_message(peer_id_t dest, const boost::function<void(write_strream_t *)> &subwriter) {
+void message_multiplexer_t::client_t::send_message(peer_id_t dest, const boost::function<void(write_stream_t *)> &subwriter) {
     parent->message_service->send_message(dest,
         boost::bind(&write_tagged_message, _1, tag, boost::cref(subwriter))
         );

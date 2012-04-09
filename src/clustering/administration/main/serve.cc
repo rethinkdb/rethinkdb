@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
 #include "clustering/administration/http/server.hpp"

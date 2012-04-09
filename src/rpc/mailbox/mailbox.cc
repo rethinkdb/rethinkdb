@@ -45,7 +45,7 @@ raw_mailbox_t::address_t raw_mailbox_t::get_address() {
     return a;
 }
 
-void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, boost::function<void(std::ostream&)> writer) {
+void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, boost::function<void(write_stream_t *)> writer) {
     rassert(src);
     rassert(!dest.is_nil());
 

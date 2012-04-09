@@ -40,7 +40,7 @@ void create(const std::string& file_path, machine_id_t machine_id, const cluster
     msg << machine_id;
     msg << semilattice;
 
-    int res = send_write_message(&file, &msg);
+    res = send_write_message(&file, &msg);
     if (res) {
         throw file_exc_t("Could not write to file.");
     }
