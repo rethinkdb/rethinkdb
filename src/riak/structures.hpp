@@ -202,24 +202,4 @@ struct luwak_props_t {
 /* For the purposes of clustering many of the riak data structures will need to
  * be serialized. They're all done down here to make them less intrusive */
 
-/* namespace boost {
-namespace serialization {
-
-template <class Archive>
-void serialize(Archive & ar, riak::link_t & link, const unsigned int) {
-    ar & link.bucket;
-    ar & link.key;
-    ar & link.tag;
-}
-
-template <class Archive>
-void serialize(Archive & ar, riak::object_t & object, const unsigned int) {
-    ar & object.ETag;
-    ar & object.bucket;
-    ar & object.content;
-}
-
-} //namespace serialization
-} //namespace boost */
-
 #endif  // RIAK_STRUCTURES_HPP_

@@ -4,7 +4,6 @@
 #include "utils.hpp"
 #include <boost/optional.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
-#include <boost/serialization/optional.hpp>
 
 #include "rpc/directory/view.hpp"
 #include "rpc/mailbox/typed.hpp"

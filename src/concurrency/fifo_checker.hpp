@@ -1,12 +1,11 @@
 #ifndef CONCURRENCY_FIFO_CHECKER_HPP_
 #define CONCURRENCY_FIFO_CHECKER_HPP_
 
-#include "utils.hpp"
-#include <boost/serialization/split_member.hpp>
-
 #ifndef NDEBUG
 #include <map>
 #endif
+
+#include "utils.hpp"
 
 
 struct order_bucket_t {
@@ -67,19 +66,6 @@ private:
     friend class order_sink_t;
     friend class backfill_receiver_order_source_t;
     friend class plain_sink_t;
-
-    /* Serialization. Since we don't have sane facilities for choosing bucket
-    identifiers in a cluster-safe way, we don't even try. */
-    friend class ::boost::serialization::access;
-    BOOST_SERIALIZATION_SPLIT_MEMBER();
-    template<class Archive>
-    void save(UNUSED Archive & a, UNUSED const int version) const {
-        // Do nothing
-    }
-    template<class Archive>
-    void load(UNUSED Archive & a, UNUSED const int version) {
-        *this = ignore;
-    }
 };
 
 

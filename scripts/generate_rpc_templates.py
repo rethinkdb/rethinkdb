@@ -62,19 +62,22 @@ def generate_async_message_template(nargs):
     else:
         print "    template<" + csep("class a#_t") + ">"
         print "    friend void send(mailbox_manager_t*, typename mailbox_t< void(" + csep("a#_t") + ") >::address_t" + cpre("const a#_t&") + ");"
-    print "    static void write(std::ostream &stream" + cpre("const arg#_t &arg#") + ") {"
-    print "        boost::archive::binary_oarchive archive(stream);"
+    print "    static void write(write_stream_t *stream" + cpre("const arg#_t &arg#") + ") {"
+    print "        write_message_t msg;"
     for i in xrange(nargs):
-        print "        archive << arg%d;" % i
+        print "        msg << arg%d;" % i
+    print "        int res = send_write_message(stream, &msg);"
+    print "        if (res) { throw fake_archive_exc_t(); }"
     print "    }"
-    print "    static void on_message(std::istream &stream, const boost::function<void()> &done, const boost::function< void(" + csep("arg#_t") + ") > &fun) {"
+    print "    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(" + csep("arg#_t") + ") > &fun) {"
     for i in xrange(nargs):
         print "        arg%d_t arg%d;" % (i, i)
-    print "        {"
+    print "        int res;"
+
     print "            boost::archive::binary_iarchive archive(stream);"
     for i in xrange(nargs):
-        print "        archive >> arg%d;" % i
-    print "        }"
+        print "        res = deserialize(stream, &arg%d);" % i
+        print "        if (res) { throw fake_archive_exc_t(); }"
     print "        done();"
     print "        fun(" + csep("arg#") + ");"
     print "    }"
@@ -102,9 +105,7 @@ if __name__ == "__main__":
     print "Please modify '%s' instead of modifying this file.*/" % sys.argv[0]
     print
 
-    print "#include \"errors.hpp\""
-    print "#include <boost/archive/binary_iarchive.hpp>"
-    print "#include <boost/archive/binary_oarchive.hpp>"
+    print "#include \"containers/archive/archive.hpp\""
     print "#include \"rpc/serialize_macros.hpp\""
     print "#include \"rpc/mailbox/mailbox.hpp\""
     print
@@ -116,7 +117,7 @@ if __name__ == "__main__":
     print "};"
     print
     print "template<class invalid_proto_t> class mailbox_addr_t {"
-    print "    // If someoen tries to instantiate mailbox_addr_t incorrectly,"
+    print "    // If someone tries to instantiate mailbox_addr_t incorrectly,"
     print "    // this should cause an error."
     print "    typename invalid_proto_t::you_are_using_mailbox_addr_t_incorrectly foo;"
     print "};"

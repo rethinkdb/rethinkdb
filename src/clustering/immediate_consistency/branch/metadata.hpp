@@ -4,9 +4,6 @@
 #include <map>
 
 #include "errors.hpp"
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/variant.hpp>
-#include <boost/serialization/vector.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/variant.hpp>
 

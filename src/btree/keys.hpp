@@ -6,9 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/serialization/binary_object.hpp>
-
 #include "config/args.hpp"
 #include "protocol_api.hpp" // FIXME: ugh!
 #include "utils.hpp"
@@ -86,12 +83,6 @@ struct store_key_t {
 
     int compare(const store_key_t& k) const {
         return sized_strcmp(contents, size, k.contents, k.size);
-    }
-
-    friend class boost::serialization::access;
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & size;
-        ar & boost::serialization::make_binary_object(contents, size);
     }
 
     void rdb_serialize(write_message_t &msg) const {

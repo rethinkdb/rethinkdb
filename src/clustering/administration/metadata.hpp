@@ -1,8 +1,6 @@
 #ifndef CLUSTERING_ADMINISTRATION_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_METADATA_HPP_
 
-#include "errors.hpp"
-#include <boost/serialization/list.hpp>
 #include <sstream>
 
 #include "clustering/administration/datacenter_metadata.hpp"

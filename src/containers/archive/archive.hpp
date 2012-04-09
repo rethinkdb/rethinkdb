@@ -6,6 +6,12 @@
 #include "errors.hpp"
 #include "containers/intrusive_list.hpp"
 
+struct fake_archive_exc_t {
+    const char *what() const throw() {
+        return "Writing to a tcp stream failed.";
+    }
+};
+
 class read_stream_t {
 public:
     read_stream_t() { }

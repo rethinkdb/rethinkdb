@@ -8,7 +8,6 @@
 
 #include "utils.hpp"
 #include <boost/function.hpp>
-#include <boost/serialization/set.hpp>
 
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"

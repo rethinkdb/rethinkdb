@@ -25,12 +25,6 @@ structures into a metadata file or metadata_store of some kind.
 #include <map>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/variant.hpp>
-
 #include "riak/structures.hpp"
 #include "concurrency/promise.hpp"
 #include "serializer/config.hpp"
@@ -52,11 +46,6 @@ private:
     store_id_t(int _raw_id) : raw_id(_raw_id) {
     }
     int raw_id;
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & raw_id;
-    }
 }; */
 
 /* ---- Name mapping ---- */

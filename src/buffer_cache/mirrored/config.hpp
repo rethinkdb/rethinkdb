@@ -3,10 +3,6 @@
 
 #include "config/args.hpp"
 #include "utils.hpp"
-
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/access.hpp>
-
 #include "containers/archive/archive.hpp"
 
 #define NEVER_FLUSH -1
@@ -62,19 +58,6 @@ struct mirrored_cache_config_t {
     // one account for writes, and one account for reads.
     int io_priority_reads;
     int io_priority_writes;
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & max_size;
-        ar & wait_for_flush;
-        ar & flush_timer_ms;
-        ar & max_dirty_size;
-        ar & flush_dirty_size;
-        ar & flush_waiting_threshold;
-        ar & max_concurrent_flushes;
-        ar & io_priority_reads;
-        ar & io_priority_writes;
-    }
 
     void rdb_serialize(write_message_t &msg) const {
         msg << max_size;

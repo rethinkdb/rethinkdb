@@ -1,13 +1,8 @@
 #include "errors.hpp"
-#include <boost/archive/binary_oarchive.hpp>
-#include "containers/vector_stream.hpp"
-
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/cond_var.hpp"
-
-namespace arc = boost::archive;
 
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10

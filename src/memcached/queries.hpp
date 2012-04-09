@@ -8,8 +8,6 @@
 #include "errors.hpp"
 #include <boost/intrusive_ptr.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/variant.hpp>
-#include <boost/serialization/binary_object.hpp>
 
 #include "btree/keys.hpp"
 #include "config/args.hpp"

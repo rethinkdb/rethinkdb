@@ -1,9 +1,5 @@
 #include "memcached/protocol.hpp"
 
-#include "errors.hpp"
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"
 #include "concurrency/access.hpp"

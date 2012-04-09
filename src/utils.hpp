@@ -33,12 +33,6 @@ public:
 
     static const repli_timestamp_t distant_past;
     static const repli_timestamp_t invalid;
-
-    /* Make `repli_timestamp_t` serializable using `boost::serialization` */
-    template<class Archive>
-    void serialize(Archive & ar, UNUSED unsigned int version) {
-        ar & time;
-    }
 };
 
 class write_message_t;

@@ -56,46 +56,6 @@ inline int deserialize(read_stream_t *s, boost::intrusive_ptr<data_buffer_t> *bu
     return 0;
 }
 
-namespace boost {
-namespace serialization {
-
-template<class Archive> void save(Archive &ar, const boost::intrusive_ptr<data_buffer_t> &buf, UNUSED const unsigned int version) {
-    if (buf) {
-        bool exists = true;
-        ar << exists;
-        int64_t size = buf->size();
-        ar << size;
-        ar.save_binary(buf->buf(), buf->size());
-    } else {
-        bool exists = false;
-        ar << exists;
-    }
-}
-
-template<class Archive> void load(Archive &ar, boost::intrusive_ptr<data_buffer_t> &value, UNUSED const unsigned int version) {
-    bool exists;
-    ar >> exists;
-    if (exists) {
-        int64_t size;
-        ar >> size;
-        value = data_buffer_t::create(size);
-        ar.load_binary(value->buf(), size);
-    } else {
-        value.reset();
-    }
-}
-
-template<class Archive> void save(Archive &ar, rget_result_t &iter, UNUSED const unsigned int version) {
-    while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
-        const key_with_data_buffer_t& kv = pair.get();
-
-        const std::string& key = kv.key;
-        const boost::intrusive_ptr<data_buffer_t>& data = kv.value_provider;
-        ar << true << key << data;
-    }
-    ar << false;
-}
-
 template<typename T>
 class vector_backed_one_way_iterator_t : public one_way_iterator_t<T> {
     typename std::vector<T> data;
@@ -113,19 +73,6 @@ public:
     void prefetch() { }
 };
 
-template<class Archive> void load(Archive &ar, rget_result_t &iter, UNUSED const unsigned int version) {
-    iter = rget_result_t(new vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
-    bool next;
-    while (ar >> next, next) {
-        // TODO: WTF?  We just assign to key and some data buffer, and then.. ignore the values.
-
-        std::string key;
-        boost::intrusive_ptr<data_buffer_t> data;
-        ar >> key >> data;
-    }
-}
-
-}}  // namespace boost::serialization
 
 inline write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
     while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
@@ -144,7 +91,7 @@ inline write_message_t &operator<<(write_message_t &msg, const rget_result_t &it
 }
 
 inline int deserialize(read_stream_t *s, rget_result_t *iter) {
-    *iter = rget_result_t(new boost::serialization::vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
+    *iter = rget_result_t(new vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
     bool next;
     for (;;) {
         int res = deserialize(s, &next);

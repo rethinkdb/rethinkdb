@@ -41,10 +41,6 @@ if __name__ == "__main__":
     print "Please modify '%s' instead of modifying this file.*/" % sys.argv[0]
     print
 
-    print "#include \"errors.hpp\""
-    print "#include <boost/serialization/access.hpp>"
-    print
-
     print """
 /* The purpose of these macros is to make it easier to define semilattice joins
 for types that consist of a fixed set of fields which it is a simple product of.

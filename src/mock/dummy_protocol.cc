@@ -1,17 +1,13 @@
 #include "mock/dummy_protocol.hpp"
 
-#include <fstream>
-
 #include "errors.hpp"
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
 #include <boost/scoped_ptr.hpp>
-#include <boost/serialization/map.hpp>
 
 #include "arch/timing.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/file_stream.hpp"
 
 namespace mock {
 
@@ -182,22 +178,29 @@ dummy_protocol_t::store_t::store_t(const std::string& fn, bool create) : store_v
     if (create) {
         initialize_empty();
     } else {
-        std::ifstream stream(filename.c_str(), std::ios::in);
-        rassert(!stream.fail());
-        boost::archive::text_iarchive i(stream);
-        i >> metainfo;
-        i >> values;
-        i >> timestamps;
+        blocking_read_file_stream_t stream;
+        DEBUG_ONLY_VAR bool success = stream.init(filename.c_str());
+        rassert(success);
+        int res = deserialize(&stream, &metainfo);
+        if (res) { throw fake_archive_exc_t(); }
+        res = deserialize(&stream, &values);
+        if (res) { throw fake_archive_exc_t(); }
+        res = deserialize(&stream, &timestamps);
+        if (res) { throw fake_archive_exc_t(); }
     }
 }
 
 dummy_protocol_t::store_t::~store_t() {
     if (filename != "") {
-        std::ofstream stream(filename.c_str(), std::ios::out);
-        boost::archive::text_oarchive o(stream);
-        o << metainfo;
-        o << values;
-        o << timestamps;
+        blocking_write_file_stream_t stream;
+        DEBUG_ONLY_VAR bool success = stream.init(filename.c_str());
+        rassert(success);
+        write_message_t msg;
+        msg << metainfo;
+        msg << values;
+        msg << timestamps;
+        int res = send_write_message(&stream, &msg);
+        if (res) { throw fake_archive_exc_t(); }
     }
 }
 

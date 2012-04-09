@@ -17,13 +17,7 @@ $ ../scripts/generate_serialize_macros.py > rpc/serialize_macros.hpp
 def generate_make_serializable_macro(nfields):
     print "#define RDB_MAKE_SERIALIZABLE_%d(type_t%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
-    print "    namespace boost {\\"
-    print "    namespace serialization {\\"
     zeroarg = ("UNUSED " if nfields == 0 else "")
-    print "    template<class Archive> void serialize(%sArchive &__archive, %stype_t &__thing, UNUSED const unsigned int /* version */) { \\"  % (zeroarg, zeroarg)
-    for i in xrange(nfields):
-        print "        __archive & __thing.field%d; \\" % (i + 1)
-    print "    }}} \\"
     print "    inline write_message_t &operator<<(%swrite_message_t &msg, %sconst type_t &thing) { \\" % (zeroarg, zeroarg)
     for i in xrange(nfields):
         print "        msg << thing.field%d; \\" % (i + 1)
@@ -42,11 +36,6 @@ def generate_make_serializable_macro(nfields):
 def generate_make_me_serializable_macro(nfields):
     print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \
         (nfields, ", ".join("field%d" % (i+1) for i in xrange(nfields)))
-    print "    friend class boost::serialization::access; \\"
-    print "    template<typename Archive> void serialize(%sArchive &__archive, UNUSED const unsigned int /* version */) { \\"  % ("UNUSED " if nfields == 0 else "")
-    for i in xrange(nfields):
-        print "        __archive & field%d; \\" % (i + 1)
-    print "    } \\"
     zeroarg = ("UNUSED " if nfields == 0 else "")
     print "    friend class write_message_t; \\"
     print "    void rdb_serialize(%swrite_message_t &msg) const { \\" % zeroarg
@@ -72,9 +61,6 @@ if __name__ == "__main__":
     print "Please modify '%s' instead of modifying this file.*/" % sys.argv[0]
     print
 
-    print "#include \"errors.hpp\""
-    print "#include <boost/serialization/access.hpp>"
-    print
     print "#include \"containers/archive/archive.hpp\""
     print "#include \"containers/archive/stl_types.hpp\""
     print "#include \"containers/archive/boost_types.hpp\""

@@ -3,20 +3,16 @@
 #include <sstream>
 #include <ios>
 
-#include "utils.hpp"
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/serialization/base_object.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/map.hpp>
 
 #ifndef NDEBUG
 #include "arch/timing.hpp"
 #endif  // NDEBUG
+
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/uuid.hpp"
 #include "do_on_thread.hpp"
+#include "utils.hpp"
 
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
@@ -167,12 +163,6 @@ public:
 private:
     tcp_conn_stream_t *conn_;
     DISABLE_COPYING(cluster_conn_closing_subscription_t);
-};
-
-struct fake_archive_exc_t : public std::exception {
-    const char *what() const throw() {
-        return "Writing to a tcp stream failed.";
-    }
 };
 
 void connectivity_cluster_t::run_t::handle(
