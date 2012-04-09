@@ -7,6 +7,7 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/resource.hpp"
 #include "protocol_api.hpp"
+#include "stl_utils.hpp"
 
 /* Used internally by `backfiller_t`. Grr I want lambdas grr. */
 inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_range_t &vr) {
@@ -26,13 +27,15 @@ struct backfiller_t :
         mailbox_manager(mm), branch_history(bh),
         store(s),
         backfill_mailbox(mailbox_manager, boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
-        cancel_backfill_mailbox(mailbox_manager, boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer)))
+        cancel_backfill_mailbox(mailbox_manager, boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer))),
+        request_progress_mailbox(mailbox_manager, boost::bind(&backfiller_t::request_backfill_progress, this, _1, _2, auto_drainer_t::lock_t(&drainer)))
         { }
 
     backfiller_business_card_t<protocol_t> get_business_card() {
         return backfiller_business_card_t<protocol_t>(
             backfill_mailbox.get_address(),
-            cancel_backfill_mailbox.get_address()
+            cancel_backfill_mailbox.get_address(),
+            request_progress_mailbox.get_address()
             );
     }
 
@@ -152,6 +155,14 @@ private:
         }
     }
 
+    void request_backfill_progress(backfill_session_id_t session_id,
+                                   mailbox_addr_t<void(float)> response_mbox,
+                                   auto_drainer_t::lock_t) {
+        if (std_contains(local_backfill_progress, session_id) && local_backfill_progress[session_id]) {
+            send(mailbox_manager, response_mbox, (*local_backfill_progress[session_id])->guess_completion());
+        }
+    }
+
     mailbox_manager_t *mailbox_manager;
     boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
 
@@ -163,6 +174,7 @@ private:
 
     typename backfiller_business_card_t<protocol_t>::backfill_mailbox_t backfill_mailbox;
     typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;
+    typename backfiller_business_card_t<protocol_t>::request_progress_mailbox_t request_progress_mailbox;
 
 };
 

@@ -23,11 +23,13 @@ class primary_when_safe_t {
 public:
     primary_when_safe_t() { }
 
-    primary_when_safe_t(const std::set<backfill_session_id_t> &_backfills_waited_on) 
-        : backfills_waited_on(_backfills_waited_on)
+    primary_when_safe_t(const std::vector<backfill_session_id_t> &_backfills_waited_on,
+                        std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> > > > > &_progress_mboxs) 
+        : backfills_waited_on(_backfills_waited_on), progress_mboxs(_progress_mboxs)
     { }
-    std::set<backfill_session_id_t> backfills_waited_on;
-    RDB_MAKE_ME_SERIALIZABLE_1(backfills_waited_on);
+    std::vector<backfill_session_id_t> backfills_waited_on;
+    std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> > > > > progress_mboxs;
+    RDB_MAKE_ME_SERIALIZABLE_2(backfills_waited_on, progress_mboxs);
 };
 
 /* This peer is currently a primary in working order. */

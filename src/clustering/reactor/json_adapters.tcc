@@ -10,7 +10,7 @@ template <class protocol_t, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(primary_when_safe_t<protocol_t> *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<std::string, ctx_t>("primary_when_safe"));
-    res["backfill_session_ids"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<std::set<backfill_session_id_t>, ctx_t>(&target->backfills_waited_on));
+    res["backfill_session_ids"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<std::vector<backfill_session_id_t>, ctx_t>(&target->backfills_waited_on));
     return res;
 }
 

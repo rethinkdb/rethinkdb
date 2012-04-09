@@ -4,6 +4,8 @@
 #include <exception>
 #include <vector>
 
+#include "lens.hpp"
+
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
     : version_range(_version_range), places_to_get_this_version(_places_to_get_this_version), present_in_our_store(_present_in_our_store)
@@ -225,7 +227,9 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
              * whether or not the backfill succeeded. */
             boost::ptr_vector<promise_t<bool> > promises;
 
-            std::set<backfill_session_id_t> backfills;
+            std::vector<backfill_session_id_t> backfills;
+            std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> > > > > progress_mboxs;
+
             for (typename best_backfiller_map_t::iterator it =  best_backfillers.begin();
                                                           it != best_backfillers.end();
                                                           it++) {
@@ -242,12 +246,21 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
                                                        backfill_session_id,
                                                        p,
                                                        interruptor));
-                    backfills.insert(backfill_session_id);
+                    backfills.push_back(backfill_session_id);
+
+                    progress_mboxs.push_back(it->second.places_to_get_this_version[0]->subview(
+                                optional_monad_lens(
+                                    clone_ptr_t<read_lens_t<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)>, backfiller_business_card_t<protocol_t> > >(
+                                        field_lens(
+                                            &backfiller_business_card_t<protocol_t>::request_progress_mailbox
+                                        )
+                                    )
+                                )));
                 }
             }
 
             /* Tell the other peers which backfills we're waiting on. */
-            directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t(backfills));
+            directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t(backfills, progress_mboxs));
 
             /* Since these don't actually modify peers behavior, just allow
              * them to query the backfiller for progress reports there's no

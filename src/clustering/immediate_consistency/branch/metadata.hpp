@@ -159,16 +159,16 @@ struct backfiller_business_card_t {
     backfiller_business_card_t() { }
     backfiller_business_card_t(
             const typename backfill_mailbox_t::address_t &ba,
-            const cancel_backfill_mailbox_t::address_t &cba) :
-        backfill_mailbox(ba), cancel_backfill_mailbox(cba)
+            const cancel_backfill_mailbox_t::address_t &cba,
+            const request_progress_mailbox_t::address_t &pa) :
+        backfill_mailbox(ba), cancel_backfill_mailbox(cba), request_progress_mailbox(pa)
         { }
 
     typename backfill_mailbox_t::address_t backfill_mailbox;
     cancel_backfill_mailbox_t::address_t cancel_backfill_mailbox;
     request_progress_mailbox_t::address_t request_progress_mailbox;
-    std::set<backfill_session_id_t> running_backfills;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(backfill_mailbox, cancel_backfill_mailbox, request_progress_mailbox, running_backfills);
+    RDB_MAKE_ME_SERIALIZABLE_3(backfill_mailbox, cancel_backfill_mailbox, request_progress_mailbox);
 };
 
 template <class protocol_t>
