@@ -1,6 +1,7 @@
 #ifndef UNITTEST_CLUSTERING_UTILS_HPP_
 #define UNITTEST_CLUSTERING_UTILS_HPP_
 
+#include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
