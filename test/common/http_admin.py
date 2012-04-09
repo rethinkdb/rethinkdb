@@ -149,16 +149,6 @@ class Namespace(object):
 	def check(self, data):
 		return data[u"name"] == self.name and data[u"primary_uuid"] == self.primary_uuid and data[u"replica_affinities"] == self.replica_affinities and self.parse_shards(data[u"shards"]) == self.shards and data[u"port"] == self.port
 
-	def shards_to_json(self):
-		# Build the ridiculously formatted shard data
-		shard_json = []
-		last_split = u""
-		for split in self.shards:
-			shard_json.append(u"[\"%s\", \"%s\"]" % (last_split, split))
-			last_split = split
-		shard_json.append(u"[\"%s\", null]" % (last_split))
-		return shard_json
-
 	def to_json(self):
 		return {
 			unicode("blueprint"): self.blueprint.to_json(),
@@ -170,6 +160,82 @@ class Namespace(object):
 			unicode("primary_pinnings"): self.primary_pinnings,
 			unicode("secondary_pinnings"): self.secondary_pinnings
 			}
+
+	def __str__(self):
+		affinities = ""
+		if len(self.replica_affinities) == 0:
+			affinities = "None, "
+		else:
+			for uuid, count in self.replica_affinities.iteritems():
+				affinities += uuid + "=" + str(count) + ", "
+		if len(self.replica_affinities) == 0:
+			shards = "None, "
+		else:
+			for uuid, count in self.replica_affinities.iteritems():
+				shards += uuid + "=" + str(count) + ", "
+		return "Namespace(name:%s, port:%d, primary:%s, affinities:%sprimary pinnings:%s, secondary_pinnings:%s, shard boundaries:%s, blueprint:NYI)" % (self.name, self.port, self.primary_uuid, affinities, self.primary_pinnings, self.secondary_pinnings, self.shards)
+
+class DummyNamespace(Namespace):
+	def __init__(self, uuid, json_data):
+		Namespace.__init__(self, uuid, json_data)
+
+	def shards_to_json(self):
+		return self.shards
+
+	def parse_shards(self, subset_strings):
+		subsets = [ ]
+		superset = set()
+		for subset_string in subset_strings:
+			subset = u""
+			for c in subset_string:
+				if c in u"{}, ":
+					pass
+				elif c in u"abcdefghijklmnopqrstuvwxyz":
+					assert c not in superset
+					superset.add(c)
+					subset += c
+				else:
+					raise RuntimeError("Invalid value in DummyNamespace shard set")
+			assert len(subset) != 0
+			subsets.append(subset)
+		return subsets
+
+	def add_shard(self, new_subset):
+		# The shard is a string of characters, a-z, which must be unique across all shards
+		if isinstance(new_subset, str):
+			new_subset = unicode(new_subset)
+		assert isinstance(new_subset, unicode)
+		for i in range(len(self.shards)):
+			for c in new_subset:
+				if c in self.shards[i]:
+					self.shards[i]= self.shards[i].replace(c, u"")
+		self.shards.append(new_subset)
+
+	def remove_shard(self, subset):
+		if isinstance(subset, str):
+			subset = unicode(subset)
+		assert isinstance(subset, unicode)
+		assert subset in self.shards
+		assert len(self.shards) > 0
+		self.shards.remove(subset)
+		self.shards[0] += subset # Throw the old shard into the first one
+
+	def __str__(self):
+		return "Dummy" + Namespace.__str__(self)
+
+class MemcachedNamespace(Namespace):
+	def __init__(self, uuid, json_data):
+		Namespace.__init__(self, uuid, json_data)
+
+	def shards_to_json(self):
+		# Build the ridiculously formatted shard data
+		shard_json = []
+		last_split = u""
+		for split in self.shards:
+			shard_json.append(u"[\"%s\", \"%s\"]" % (last_split, split))
+			last_split = split
+		shard_json.append(u"[\"%s\", null]" % (last_split))
+		return shard_json
 
 	def parse_shards(self, shards):
 		# Build the ridiculously formatted shard data
@@ -197,25 +263,11 @@ class Namespace(object):
 		self.shards.append(split_point)
 		self.shards.sort()
 
-	def __str__(self):
-		affinities = ""
-		if len(self.replica_affinities) == 0:
-			affinities = "None, "
-		else:
-			for uuid, count in self.replica_affinities.iteritems():
-				affinities += uuid + "=" + str(count) + ", "
-		return "Namespace(name:%s, port:%d, primary:%s, affinities:%r, pinnings:%s, blueprint:NYI)" % (self.name, self.port, self.primary_uuid, self.replica_affinities, self.pinnings)
-
-class DummyNamespace(Namespace):
-	def __init__(self, uuid, json_data):
-		Namespace.__init__(self, uuid, json_data)
-
-	def __str__(self):
-		return "Dummy" + Namespace.__str__(self)
-
-class MemcachedNamespace(Namespace):
-	def __init__(self, uuid, json_data):
-		Namespace.__init__(self, uuid, json_data)
+	def remove_shard(self, split_point):
+		if isinstance(split_point, str):
+			split_point = unicode(split_point)
+		assert split_point in self.shards
+		self.shards.remove(split_point)
 
 	def __str__(self):
 		return "Memcached" + Namespace.__str__(self)
@@ -550,6 +602,16 @@ class Cluster(object):
 		assert type_namespaces[type(namespace)][namespace.uuid] is namespace
 		protocol = type_protocols[type(namespace)]
 		namespace.add_shard(split_point)
+		info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
+		time.sleep(0.2)
+		self.update_cluster_data()
+
+	def remove_namespace_shard(self, namespace, split_point, servid = None):
+		type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
+		type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
+		assert type_namespaces[type(namespace)][namespace.uuid] is namespace
+		protocol = type_protocols[type(namespace)]
+		namespace.remove_shard(split_point)
 		info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
 		time.sleep(0.2)
 		self.update_cluster_data()
