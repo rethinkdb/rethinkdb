@@ -467,8 +467,10 @@ bool memcached_protocol_t::store_t::send_backfill(
             progress_combiner.add_constituent(p);
             memcached_backfill(btree.get(), range, since_when, &callback, txn.get(), superblock, p);
         }
+        progress_out = NULL;
         return true;
     } else {
+        progress_out = NULL;
         return false;
     }
 }

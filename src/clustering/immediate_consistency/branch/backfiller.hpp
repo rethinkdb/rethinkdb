@@ -159,9 +159,11 @@ private:
 
     auto_drainer_t drainer;
     std::map<backfill_session_id_t, cond_t *> local_interruptors;
+    std::map<backfill_session_id_t, backfill_progress_t **> local_backfill_progress;
 
     typename backfiller_business_card_t<protocol_t>::backfill_mailbox_t backfill_mailbox;
     typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;
+
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP_ */
