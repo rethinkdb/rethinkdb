@@ -18,18 +18,28 @@ namespace reactor_business_card_details {
  *  - the peer is backfilling
  *  - another peer is a primary
  */
+class backfill_location_t {
+public:
+    backfill_location_t() { }
+    backfill_location_t(backfill_session_id_t _backfill_session_id, peer_id_t _peer_id, reactor_activity_id_t _activity_id)
+        : backfill_session_id(_backfill_session_id), peer_id(_peer_id), activity_id(_activity_id)
+    { }
+
+    backfill_session_id_t backfill_session_id;
+    peer_id_t peer_id;
+    reactor_activity_id_t activity_id;
+    RDB_MAKE_ME_SERIALIZABLE_3(backfill_session_id, peer_id, activity_id);
+};
 template <class protocol_t>
 class primary_when_safe_t {
 public:
     primary_when_safe_t() { }
 
-    primary_when_safe_t(const std::vector<backfill_session_id_t> &_backfills_waited_on,
-                        std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> > > > > &_progress_mboxs) 
-        : backfills_waited_on(_backfills_waited_on), progress_mboxs(_progress_mboxs)
+    primary_when_safe_t(const std::vector<backfill_location_t> &_backfills_waited_on)
+        : backfills_waited_on(_backfills_waited_on)
     { }
-    std::vector<backfill_session_id_t> backfills_waited_on;
-    std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> > > > > progress_mboxs;
-    RDB_MAKE_ME_SERIALIZABLE_2(backfills_waited_on, progress_mboxs);
+    std::vector<backfill_location_t> backfills_waited_on;
+    RDB_MAKE_ME_SERIALIZABLE_1(backfills_waited_on);
 };
 
 /* This peer is currently a primary in working order. */
