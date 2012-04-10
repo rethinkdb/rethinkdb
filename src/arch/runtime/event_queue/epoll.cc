@@ -10,7 +10,6 @@
 #include <new>
 #include <algorithm>
 #include <string>
-#include <sstream>
 
 #include "config/args.hpp"
 #include "utils.hpp"

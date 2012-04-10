@@ -3,8 +3,6 @@
 #include "errors.hpp"
 #include <boost/uuid/uuid_io.hpp>
 
-#include <sstream>
-
 #include "logger.hpp"
 
 /* raw_mailbox_t */

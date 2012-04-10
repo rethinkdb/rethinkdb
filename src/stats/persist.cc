@@ -1,7 +1,6 @@
 #include "stats/persist.hpp"
 
 #include <vector>
-#include <sstream>
 
 #include <stdlib.h>
 

@@ -7,7 +7,6 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
-#include <sstream>
 
 #include "arch/types.hpp"
 #include "parsing/util.hpp"

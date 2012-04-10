@@ -5,7 +5,6 @@
 #include <execinfo.h>
 #include <limits.h>
 #include <signal.h>
-#include <sstream>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
