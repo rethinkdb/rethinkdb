@@ -114,9 +114,6 @@ inline int deserialize(read_stream_t *s, rget_result_t *iter) {
 }
 
 
-BOOST_SERIALIZATION_SPLIT_FREE(boost::intrusive_ptr<data_buffer_t>);
-BOOST_SERIALIZATION_SPLIT_FREE(rget_result_t);
-
 RDB_MAKE_SERIALIZABLE_1(get_query_t, key);
 RDB_MAKE_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
 RDB_MAKE_SERIALIZABLE_3(get_result_t, value, flags, cas);
