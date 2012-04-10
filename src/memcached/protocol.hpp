@@ -5,10 +5,6 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/serialization/shared_ptr.hpp>
-#include <boost/serialization/split_free.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/variant.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
