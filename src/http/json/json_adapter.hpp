@@ -17,7 +17,6 @@
 #include <boost/uuid/uuid_serialize.hpp>
 
 #include "http/json.hpp"
-#include "http/json/json_adapter.hpp"
 
 /* A note about json adapter exceptions: When an operation throws an exception
  * there is no guaruntee that the target object has been left in tact.
