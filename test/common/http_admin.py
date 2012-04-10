@@ -111,20 +111,15 @@ class BadServerResponse(StandardError):
         return "Server returned error code: %d %s" % (self.status, self.reason)
 
 class Datacenter(object):
-    def __init__(self, cluster, uuid, json_data):
+    def __init__(self, uuid, json_data):
         self.uuid = uuid
         self.name = json_data[u"name"]
-        self.cluster = cluster
 
     def check(self, data):
         return data[u"name"] == self.name
 
     def to_json(self):
         return { u"name": self.name }
-
-    def rename(self, new_name):
-        self.name = new_name
-        self.cluster._get_server_for_command().do_query("POST", "/ajax/datacenters/" + self.uuid + "/name", new_name)
 
     def __str__(self):
         return "Datacenter(name:%s)" % (self.name)
@@ -505,7 +500,7 @@ class Cluster(object):
         time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
         assert len(info) == 1
         uuid, json_data = next(info.iteritems())
-        datacenter = Datacenter(self, uuid, json_data)
+        datacenter = Datacenter(uuid, json_data)
         self.datacenters[datacenter.uuid] = datacenter
         self.update_cluster_data()
         return datacenter
@@ -600,6 +595,16 @@ class Cluster(object):
         getattr(self, "%s_namespaces" % protocol)[namespace.uuid] = namespace
         self.update_cluster_data()
         return namespace
+
+    def rename(self, target, name, servid = None):
+        type_targets = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces, InternalServer: self.machines, ExternalServer: self.machines, DummyServer: self.machines, Datacenter: self.datacenters }
+        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", InternalServer: "machines", ExternalServer: "machines", DummyServer: "machines", Datacenter: "datacenters" }
+        assert type_targets[type(target)][target.uuid] is target
+        object_type = type_objects[type(target)]
+        target.name = name
+        info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s/%s/name" % (object_type, target.uuid), name)
+        time.sleep(0.2)
+        self.update_cluster_data()
 
     def add_namespace_shard(self, namespace, split_point, servid = None):
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
