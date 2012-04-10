@@ -1,8 +1,7 @@
-#ifndef  __CLUSTERING_REACTOR_JSON_ADAPTERS_TCC__
-#define __CLUSTERING_REACTOR_JSON_ADAPTERS_TCC__
+#ifndef CLUSTERING_REACTOR_JSON_ADAPTERS_TCC_
+#define CLUSTERING_REACTOR_JSON_ADAPTERS_TCC_
 
 #include "http/json.hpp"
-#include "clustering/reactor/json_adapters.hpp"
 
 namespace reactor_business_card_details {
 //json adapter for primary_when_safe
@@ -206,4 +205,4 @@ void apply_json_to(cJSON *change, reactor_business_card_t<protocol_t> *target, c
 template <class protocol_t, class ctx_t>
 void on_subfield_change(reactor_business_card_t<protocol_t> *, const ctx_t &) { }
 
-#endif
+#endif  // CLUSTERING_REACTOR_JSON_ADAPTERS_TCC_
