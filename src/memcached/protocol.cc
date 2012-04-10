@@ -186,7 +186,7 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create)
         write_message_t msg;
         key_range_t kr = key_range_t::universe();   // `operator<<` needs a non-const reference
         msg << kr;
-        int res = send_write_message(&key, &msg);
+        DEBUG_ONLY_VAR int res = send_write_message(&key, &msg);
         rassert(!res);
         set_superblock_metainfo(txn.get(), sb_buf, key.vector(), std::vector<char>());
     }
@@ -286,7 +286,7 @@ region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t:
         memcached_protocol_t::region_t region;
         {
             vector_read_stream_t key(&i->first);
-            int res = deserialize(&key, &region);
+            DEBUG_ONLY_VAR int res = deserialize(&key, &region);
             rassert(!res);
         }
 
@@ -589,7 +589,7 @@ void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metain
         vector_stream_t key;
         write_message_t msg;
         msg << i->first;
-        int res = send_write_message(&key, &msg);
+        DEBUG_ONLY_VAR int res = send_write_message(&key, &msg);
         rassert(!res);
 
         std::vector<char> value(static_cast<const char*>((*i).second.data()),

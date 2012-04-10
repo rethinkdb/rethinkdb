@@ -1,5 +1,7 @@
 #include "errors.hpp"
 
+#include <string>
+
 #include "http/http.hpp"
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/http/semilattice_app.hpp"
@@ -62,9 +64,13 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             case POST:
             {
 #ifdef NDEBUG
-                if (req.find_header_line("Content-Type") != "application/json") {
-                    logINF("Bad request, Content-Type should be application/json.\n");
-                    return http_res_t(415);
+                {
+                    // TODO: Why is this only in release mode?  Why do we even care about this header field?
+                    boost::optional<std::string> content_type = req.find_header_line("Content-Type");
+                    if (!content_type || content_type.get() != "application/json") {
+                        logINF("Bad request, Content-Type should be application/json.\n");
+                        return http_res_t(415);
+                    }
                 }
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
@@ -112,9 +118,13 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             case PUT:
             {
 #ifdef NDEBUG
-                if (req.find_header_line("Content-Type") != "application/json") {
-                    logINF("Bad request, Content-Type should be application/json.\n");
-                    return http_res_t(415);
+                {
+                    // TODO: Why is this only in release mode?  Why do we even care about this header field?
+                    boost::optional<std::string> content_type = req.find_header_line("Content-Type");
+                    if (!content_type || content_type.get() != "application/json") {
+                        logINF("Bad request, Content-Type should be application/json.\n");
+                        return http_res_t(415);
+                    }
                 }
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));

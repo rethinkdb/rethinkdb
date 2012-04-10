@@ -10,7 +10,7 @@ public:
     vector_stream_t();
     virtual ~vector_stream_t();
 
-    virtual int64_t write(const void *p, int64_t n);
+    virtual MUST_USE int64_t write(const void *p, int64_t n);
 
     const std::vector<char> &vector() { return vec_; }
 
@@ -25,7 +25,7 @@ public:
     explicit vector_read_stream_t(const std::vector<char> *vector);
     virtual ~vector_read_stream_t();
 
-    virtual int64_t read(void *p, int64_t n);
+    virtual MUST_USE int64_t read(void *p, int64_t n);
 
 private:
     int64_t pos_;

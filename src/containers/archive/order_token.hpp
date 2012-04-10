@@ -6,7 +6,7 @@
 #include "concurrency/fifo_checker.hpp"
 
 // Apparently, this is what we were doing before.  We just send/receive ignore.
-inline int deserialize(UNUSED read_stream_t *s, order_token_t *tok) {
+inline MUST_USE int deserialize(UNUSED read_stream_t *s, order_token_t *tok) {
     *tok = order_token_t::ignore;
     return 0;
 }

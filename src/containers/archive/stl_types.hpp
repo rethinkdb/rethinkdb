@@ -19,7 +19,7 @@ write_message_t &operator<<(write_message_t &msg, const std::pair<T, U> &p) {
 }
 
 template <class T, class U>
-int deserialize(read_stream_t *s, std::pair<T, U> *p) {
+MUST_USE int deserialize(read_stream_t *s, std::pair<T, U> *p) {
     int res = deserialize(s, &p->first);
     if (res) { return res; }
     res = deserialize(s, &p->second);
@@ -42,7 +42,7 @@ write_message_t &operator<<(write_message_t &msg, const std::map<K, V> &m) {
 }
 
 template <class K, class V>
-int deserialize(read_stream_t *s, std::map<K, V> *m) {
+MUST_USE int deserialize(read_stream_t *s, std::map<K, V> *m) {
     m->clear();
 
     uint64_t sz;
@@ -76,7 +76,7 @@ write_message_t &operator<<(write_message_t &msg, const std::set<T> &s) {
 }
 
 template <class T>
-int deserialize(read_stream_t *s, std::set<T> *out) {
+MUST_USE int deserialize(read_stream_t *s, std::set<T> *out) {
     out->clear();
 
     uint64_t sz;
@@ -108,7 +108,7 @@ write_message_t &operator<<(write_message_t &msg, const std::string &s) {
 }
 
 inline
-int deserialize(read_stream_t *s, std::string *out) {
+MUST_USE int deserialize(read_stream_t *s, std::string *out) {
     out->clear();
 
     int64_t sz;
@@ -152,7 +152,7 @@ write_message_t &operator<<(write_message_t &msg, const std::vector<T> &v) {
 }
 
 template <class T>
-int deserialize(read_stream_t *s, std::vector<T> *v) {
+MUST_USE int deserialize(read_stream_t *s, std::vector<T> *v) {
     v->clear();
 
     uint64_t sz;
@@ -181,7 +181,7 @@ write_message_t &operator<<(write_message_t &msg, const std::list<T> &v) {
 }
 
 template <class T>
-int deserialize(read_stream_t *s, std::list<T> *v) {
+MUST_USE int deserialize(read_stream_t *s, std::list<T> *v) {
     // Omit assertions because it's not a shame if a std::list gets corrupted.
 
     uint64_t sz;

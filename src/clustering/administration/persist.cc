@@ -68,7 +68,7 @@ void read(const std::string& file_path, machine_id_t *machine_id_out, cluster_se
     }
 
     int res = deserialize(&file, machine_id_out);
-    if (!res) { deserialize(&file, semilattice_out); }
+    if (!res) { res = deserialize(&file, semilattice_out); }
     if (res) {
         throw file_exc_t("File contents invalid.");
     }

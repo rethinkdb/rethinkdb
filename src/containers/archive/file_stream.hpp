@@ -14,7 +14,7 @@ public:
     MUST_USE bool init(const char *path);
     virtual ~blocking_read_file_stream_t();
 
-    virtual int64_t read(void *p, int64_t n);
+    virtual MUST_USE int64_t read(void *p, int64_t n);
 
 private:
     FILE *fp_;
@@ -32,7 +32,7 @@ public:
     MUST_USE bool init(const char *path);
     virtual ~blocking_write_file_stream_t();
 
-    virtual int64_t write(const void *p, int64_t n);
+    virtual MUST_USE int64_t write(const void *p, int64_t n);
 
 private:
     FILE *fp_;

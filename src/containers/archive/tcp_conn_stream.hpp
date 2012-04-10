@@ -15,8 +15,8 @@ public:
     explicit tcp_conn_stream_t(tcp_conn_t *conn);
     virtual ~tcp_conn_stream_t();
 
-    virtual int64_t read(void *p, int64_t n);
-    virtual int64_t write(const void *p, int64_t n);
+    virtual MUST_USE int64_t read(void *p, int64_t n);
+    virtual MUST_USE int64_t write(const void *p, int64_t n);
 
     void rethread(int new_thread);
 

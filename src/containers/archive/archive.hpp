@@ -16,7 +16,7 @@ class read_stream_t {
 public:
     read_stream_t() { }
     // Returns number of bytes read or 0 upon EOF, -1 upon error.
-    virtual int64_t read(void *p, int64_t n) = 0;
+    virtual MUST_USE int64_t read(void *p, int64_t n) = 0;
 protected:
     virtual ~read_stream_t() { }
 private:
@@ -24,13 +24,13 @@ private:
 };
 
 template <class T>
-int deserialize(read_stream_t *s, T *thing) {
+MUST_USE int deserialize(read_stream_t *s, T *thing) {
     return thing->rdb_deserialize(s);
 }
 
 // Returns the number of bytes written, or -1.  Returns a
 // non-negative value less than n upon EOF.
-int64_t force_read(read_stream_t *s, void *p, int64_t n);
+MUST_USE int64_t force_read(read_stream_t *s, void *p, int64_t n);
 
 class write_stream_t {
 public:
@@ -85,7 +85,7 @@ private:
     DISABLE_COPYING(write_message_t);
 };
 
-int send_message(write_stream_t *s, write_message_t *msg);
+MUST_USE int send_message(write_stream_t *s, write_message_t *msg);
 
 #define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)                \
     inline write_message_t &operator<<(write_message_t &msg, typ1 x) {  \
@@ -109,7 +109,7 @@ int send_message(write_stream_t *s, write_message_t *msg);
 #define ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(typ1, typ2, lo, hi)       \
     ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2);                   \
                                                                         \
-    inline int deserialize(read_stream_t *s, typ1 *x) {                 \
+    inline MUST_USE int deserialize(read_stream_t *s, typ1 *x) {        \
         union {                                                         \
             typ2 v;                                                     \
             char buf[sizeof(typ2)];                                     \
@@ -133,7 +133,7 @@ int send_message(write_stream_t *s, write_message_t *msg);
 #define ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(typ)                         \
     ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ, typ);                     \
                                                                         \
-    inline int deserialize(read_stream_t *s, typ *x) {                  \
+    inline MUST_USE int deserialize(read_stream_t *s, typ *x) {         \
         union {                                                         \
             typ v;                                                      \
             char buf[sizeof(typ)];                                      \
