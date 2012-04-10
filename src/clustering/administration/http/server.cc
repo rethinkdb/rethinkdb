@@ -40,6 +40,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/jquery.validate.min.js");
     white_list.insert("/js/underscore-min.js");
     white_list.insert("/images/alert-icon_small.png");
+    white_list.insert("/images/critical-issue_small.png");
     white_list.insert("/images/information-icon_small.png");
     white_list.insert("/index.html");
     file_app.reset(new file_http_app_t(white_list, path));
