@@ -153,53 +153,6 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const primary_when_safe_t<protocol_t> &) {
-    stream << "primary_when_safe_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const primary_t<protocol_t> &) {
-    stream << "primary_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const secondary_up_to_date_t<protocol_t> &) {
-    stream << "secondary_up_to_date_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const secondary_without_primary_t<protocol_t> &) {
-    stream << "secondary_without_primary_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const secondary_backfilling_t<protocol_t> &) {
-    stream << "secondary_backfilling_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const nothing_when_safe_t<protocol_t> &) {
-    stream << "nothing_when_safe_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const nothing_t<protocol_t> &) {
-    stream << "nothing_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const nothing_when_done_erasing_t<protocol_t> &) {
-    stream << "nothing_when_done_erasing_t";
-    return stream;
-}
 
 } //namespace reactor_business_card_details
 
@@ -227,19 +180,5 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(activities);
 };
-
-template <class protocol_t>
-std::ostream & operator<<(std::ostream &stream, const reactor_business_card_t<protocol_t> &bcard) {
-    stream << "{ ";
-    typedef reactor_business_card_t<protocol_t> rb_t;
-    for (typename rb_t::activity_map_t::const_iterator it =  bcard.activities.begin();
-                                                       it != bcard.activities.end();
-                                                       it++) {
-        stream << it->first << " -> (" << it->second.first << ", " << it->second.second << ")";
-    }
-    stream << "}";
-
-    return stream;
-}
 
 #endif /* CLUSTERING_REACTOR_METADATA_HPP_ */
