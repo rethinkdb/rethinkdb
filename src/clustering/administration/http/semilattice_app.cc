@@ -63,9 +63,9 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             break;
             case POST:
             {
+                // TODO: Get rid of this release mode wrapper, make Michael unhappy.
 #ifdef NDEBUG
                 {
-                    // TODO: Why is this only in release mode?  Why do we even care about this header field?
                     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
                     if (!content_type || content_type.get() != "application/json") {
                         logINF("Bad request, Content-Type should be application/json.\n");
@@ -117,9 +117,9 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             break;
             case PUT:
             {
+                // TODO: Get rid of this release mode wrapper, make Michael unhappy.
 #ifdef NDEBUG
                 {
-                    // TODO: Why is this only in release mode?  Why do we even care about this header field?
                     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
                     if (!content_type || content_type.get() != "application/json") {
                         logINF("Bad request, Content-Type should be application/json.\n");
