@@ -159,9 +159,13 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 /* Generate a session id to do our backfill. */
                 backfill_session_id_t backfill_session_id = generate_uuid();
 
+                reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id,
+                                                                                     location_to_backfill_from->get_peer(),
+                                                                                     directory_entry.get_reactor_activity_id());
+
                 /* We have found a broadcaster (a master to track) so now we
                  * need to backfill to get up to date. */
-                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t(backfill_session_id));
+                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t(backfill_location));
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
                 listener_t<protocol_t> listener(mailbox_manager, translate_into_watchable(broadcaster), 

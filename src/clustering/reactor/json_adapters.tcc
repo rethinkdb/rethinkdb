@@ -97,10 +97,9 @@ void on_subfield_change(secondary_without_primary_t<protocol_t> *, const ctx_t &
 
 //json adapter for secondary_backfilling
 template <class protocol_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(secondary_backfilling_t<protocol_t> *target, const ctx_t &) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(secondary_backfilling_t<protocol_t> *, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<std::string, ctx_t>("secondary_backfilling"));
-    res["backfill_session_id"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<backfill_session_id_t, ctx_t>(&target->backfill_session));
     return res;
 }
 

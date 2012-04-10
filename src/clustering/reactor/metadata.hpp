@@ -110,12 +110,12 @@ class secondary_backfilling_t {
 public:
     secondary_backfilling_t() { }
 
-    secondary_backfilling_t(backfill_session_id_t _backfill_session)
-        : backfill_session(_backfill_session)
+    secondary_backfilling_t(backfill_location_t  _backfill)
+        : backfill(_backfill)
     { }
 
-    backfill_session_id_t backfill_session;
-    RDB_MAKE_ME_SERIALIZABLE_1(backfill_session);
+    backfill_location_t backfill;
+    RDB_MAKE_ME_SERIALIZABLE_1(backfill);
 };
 
 /* This peer would like to erase its data and not do any job for this
