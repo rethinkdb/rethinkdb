@@ -29,12 +29,28 @@ struct hook_t {
     std::string code;
 };
 
-inline write_message_t &operator<<(write_message_t &msg, const hook_t& hook) {
-    uint8_t lang = hook.lang;
+}  // namespace riak
+
+inline write_message_t &operator<<(write_message_t &msg, const riak::hook_t& hook) {
+    int8_t lang = hook.lang;
     msg << lang;
     msg << hook.code;
     return msg;
 }
+
+inline int deserialize(read_stream_t *s, riak::hook_t *hook) {
+    int8_t lang;
+    int res = deserialize(s, &lang);
+    if (res) { return res; }
+    if (lang < riak::hook_t::JAVASCRIPT || lang > riak::hook_t::ERLANG) {
+        return -3;
+    }
+    hook->lang = riak::hook_t::lang_t(lang);
+    res = deserialize(s, &hook->code);
+    return res;
+}
+
+namespace riak {
 
 struct bucket_t {
     std::string name;

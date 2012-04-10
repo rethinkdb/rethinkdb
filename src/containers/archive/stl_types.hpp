@@ -161,7 +161,7 @@ int deserialize(read_stream_t *s, std::vector<T> *v) {
 
     v->resize(sz);
     for (uint64_t i = 0; i < sz; ++i) {
-        res = deserialize(s, &v[i]);
+        res = deserialize(s, &(*v)[i]);
         if (res) { return res; }
     }
 
