@@ -110,6 +110,21 @@ class BadServerResponse(StandardError):
     def __str__(self):
         return "Server returned error code: %d %s" % (self.status, self.reason)
 
+class ValueConflict(object):
+    def __init__(self, target, field, resolve_data):
+        self.target = target
+        self.field = field
+        self.values = [ ]
+        for value_data in resolve_data:
+            self.values.append(value_data[1])
+        print self.values
+
+    def __str__(self):
+        values = ""
+        for value in self.values:
+            values += ", \"%s\"" % value
+        return "Value conflict on field %s with possible values%s" % (self.field, values)
+
 class Datacenter(object):
     def __init__(self, uuid, json_data):
         self.uuid = uuid
@@ -415,6 +430,7 @@ class Cluster(object):
         self.memcached_namespaces = { }
         self.log_file = log_file
         self.mode = mode
+        self.conflicts = [ ]
 
     def __str__(self):
         retval = "Machines:"
@@ -606,6 +622,23 @@ class Cluster(object):
         time.sleep(0.2)
         self.update_cluster_data()
 
+    def get_conflicts(self):
+        return self.conflicts
+
+    def resolve_conflict(self, conflict, value, servid = None):
+        assert conflict in self.conflicts
+        assert value in conflict.values
+        type_targets = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces, InternalServer: self.machines, ExternalServer: self.machines, DummyServer: self.machines, Datacenter: self.datacenters }
+        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", InternalServer: "machines", ExternalServer: "machines", DummyServer: "machines", Datacenter: "datacenters" }
+        assert type_targets[type(conflict.target)][conflict.target.uuid] is conflict.target
+        object_type = type_objects[type(conflict.target)]
+        info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s/%s/%s/resolve" % (object_type, conflict.target.uuid, conflict.field), value)
+        # Remove the conflict and update the field in the target 
+        self.conflicts.remove(conflict)
+        setattr(conflict.target, conflict.field, value) # TODO: this probably won't work for certain things like shards that we represent differently locally than the strict json format
+        time.sleep(0.2)
+        self.update_cluster_data()
+
     def add_namespace_shard(self, namespace, split_point, servid = None):
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
@@ -695,9 +728,21 @@ class Cluster(object):
         return expected
 
     def _verify_cluster_data_chunk(self, local, remote):
-        for key, value in local.iteritems():
-            if not value.check(remote[key]):
-                raise ValueError("inconsistent cluster data: %r != %r" % (value.to_json(), remote[key]))
+        for uuid, obj in local.iteritems():
+            check_obj = True
+            for field, value in remote[uuid].iteritems():
+                if value == u"VALUE_IN_CONFLICT":
+                    if obj not in self.conflicts:
+                        # Get the possible values and create a value conflict object
+                        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", InternalServer: "machines", ExternalServer: "machines", DummyServer: "machines", Datacenter: "datacenters" }
+                        object_type = type_objects[type(obj)]
+                        resolve_data = self._get_server_for_command().do_query("GET", "/ajax/%s/%s/%s/resolve" % (object_type, obj.uuid, field))
+                        self.conflicts.append(ValueConflict(obj, field, resolve_data))
+                    print "Warning: value conflict"
+                    check_obj = False
+                    
+            if check_obj and not obj.check(remote[uuid]):
+                raise ValueError("inconsistent cluster data: %r != %r" % (obj.to_json(), remote[uuid]))
 
     # Check the data from the server against our data
     def _verify_cluster_data(self, data):
