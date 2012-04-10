@@ -184,6 +184,7 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
         &store2.store,
         translate_into_watchable(replier_directory_controller.get_root_view()->
             get_peer_view(cluster->get_connectivity_service()->get_me())),
+        generate_uuid(),
         &interruptor);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
@@ -250,6 +251,7 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
         &substore,
         translate_into_watchable(replier_directory_controller.get_root_view()->
             get_peer_view(cluster->get_connectivity_service()->get_me())),
+        generate_uuid(),
         &interruptor);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());

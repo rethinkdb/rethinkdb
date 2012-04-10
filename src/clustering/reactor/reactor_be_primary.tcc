@@ -4,6 +4,8 @@
 #include <exception>
 #include <vector>
 
+#include "lens.hpp"
+
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
     : version_range(_version_range), places_to_get_this_version(_places_to_get_this_version), present_in_our_store(_present_in_our_store)
@@ -170,10 +172,11 @@ void do_backfill(
         store_view_t<protocol_t> *store,
         typename protocol_t::region_t region,
         clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfiller_metadata,
+        backfill_session_id_t backfill_session_id,
         promise_t<bool> *success,
         signal_t *interruptor) THROWS_NOTHING {
     try {
-        backfillee<protocol_t>(mailbox_manager, branch_history, store, region, translate_into_watchable(backfiller_metadata), interruptor);
+        backfillee<protocol_t>(mailbox_manager, branch_history, store, region, translate_into_watchable(backfiller_metadata), backfill_session_id, interruptor);
         success->pulse(true);
     } catch (interrupted_exc_t) {
         success->pulse(false);
@@ -194,15 +197,16 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
     try {
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);
-        directory_echo_version_t version_to_wait_on = directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
-
-        /* block until all peers have acked `directory_entry` */
-        wait_for_directory_acks(version_to_wait_on, interruptor);
 
         /* In this loop we repeatedly attempt to find peers to backfill from
          * and then perform the backfill. We exit the loop either when we get
          * interrupted or we have backfilled the most up to date data. */
         while (true) {
+            directory_echo_version_t version_to_wait_on = directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
+
+            /* block until all peers have acked `directory_entry` */
+            wait_for_directory_acks(version_to_wait_on, interruptor);
+
             /* Figure out what version of the data is already present in our
              * store so we don't backfill anything prior to it. */
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token; 
@@ -223,6 +227,8 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
              * whether or not the backfill succeeded. */
             boost::ptr_vector<promise_t<bool> > promises;
 
+            std::vector<backfill_session_id_t> backfills;
+            std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> > > > > progress_mboxs;
 
             for (typename best_backfiller_map_t::iterator it =  best_backfillers.begin();
                                                           it != best_backfillers.end();
@@ -230,15 +236,35 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
                 if (it->second.present_in_our_store) {
                     continue;
                 } else {
+                    backfill_session_id_t backfill_session_id = generate_uuid();
                     promise_t<bool> *p = new promise_t<bool>;
                     promises.push_back(p);
                     coro_t::spawn_sometime(boost::bind(&do_backfill<protocol_t>,
                                                        mailbox_manager, branch_history, store,
                                                        it->first,
-                                                       it->second.places_to_get_this_version[0], p,
+                                                       it->second.places_to_get_this_version[0], 
+                                                       backfill_session_id,
+                                                       p,
                                                        interruptor));
+                    backfills.push_back(backfill_session_id);
+
+                    progress_mboxs.push_back(it->second.places_to_get_this_version[0]->subview(
+                                optional_monad_lens(
+                                    clone_ptr_t<read_lens_t<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)>, backfiller_business_card_t<protocol_t> > >(
+                                        field_lens(
+                                            &backfiller_business_card_t<protocol_t>::request_progress_mailbox
+                                        )
+                                    )
+                                )));
                 }
             }
+
+            /* Tell the other peers which backfills we're waiting on. */
+            directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t(backfills, progress_mboxs));
+
+            /* Since these don't actually modify peers behavior, just allow
+             * them to query the backfiller for progress reports there's no
+             * need to wait for acks. */
 
             bool all_succeeded = true;
             for (typename boost::ptr_vector<promise_t<bool> >::iterator it =  promises.begin();

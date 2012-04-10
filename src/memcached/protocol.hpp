@@ -288,6 +288,7 @@ public:
                 const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                 const boost::function<bool(const metainfo_t&)> &should_backfill,
                 const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
+                backfill_progress_t **progress_out,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);

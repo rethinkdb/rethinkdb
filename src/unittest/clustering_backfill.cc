@@ -116,6 +116,7 @@ void run_backfill_test() {
         &backfillee_store,
         backfillee_store.get_region(),
         translate_into_watchable(directory_manager.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me())),
+        generate_uuid(),
         &interruptor);
 
     /* Make sure everything got transferred properly */

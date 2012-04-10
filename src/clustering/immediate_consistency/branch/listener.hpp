@@ -57,6 +57,7 @@ public:
             boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
             store_view_t<protocol_t> *s,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
+            backfill_session_id_t backfill_session_id,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
@@ -146,6 +147,7 @@ public:
                 store,
                 store->get_region(),
                 replier->subview(&listener_t<protocol_t>::get_backfiller_from_replier_bcard),
+                backfill_session_id,
                 interruptor
                 );
         } catch (resource_lost_exc_t) {
