@@ -1,5 +1,8 @@
 #include "rpc/mailbox/mailbox.hpp"
 
+#include "errors.hpp"
+#include <boost/uuid/uuid_io.hpp>
+
 #include <sstream>
 
 #include "logger.hpp"
@@ -19,6 +22,10 @@ bool raw_mailbox_t::address_t::is_nil() const {
 peer_id_t raw_mailbox_t::address_t::get_peer() const {
     rassert(!is_nil(), "A nil address has no peer");
     return peer;
+}
+
+std::string raw_mailbox_t::address_t::human_readable() const {
+    return strprintf("%s:%d:%d", boost::uuids::to_string(peer.get_uuid()).c_str(), thread, mailbox_id);
 }
 
 raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, const boost::function<void(read_stream_t *, const boost::function<void()> &)> &fun) :
@@ -126,8 +133,7 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *
         dest_address.peer = message_service->get_connectivity_service()->get_me();
         dest_address.thread = dest_thread;
         dest_address.mailbox_id = dest_mailbox_id;
-        std::ostringstream buffer;
-        buffer << dest_address;
-        logDBG("Message dropped because mailbox %s no longer exists. (This doesn't necessarily indicate a bug.)\n", buffer.str().c_str());
+
+        logDBG("Message dropped because mailbox %s no longer exists. (This doesn't necessarily indicate a bug.)\n", dest_address.human_readable().c_str());
     }
 }
