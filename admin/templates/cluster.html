@@ -619,6 +619,7 @@
                         <div class="priority"></div>
                         <div class="message">
                             {{#if MACHINE_DOWN}}{{num}} machine{{pluralize_noun num}} {{pluralize_verb_to_be num}} down{{/if}}
+                            {{#if PERSISTENCE_ISSUE}}{{num}} disk{{pluralize_noun num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
                         </div>
                     </div>
                 {{/each}}
@@ -629,7 +630,7 @@
                 <div class="critical-issues">
                     <div class="priority"></div>
                     <div class="message">
-                        {{other_issues.num}} other issue{{pluralize_noun num_other_issues}}
+                        {{other_issues.num}} other issue{{pluralize_noun other_issues.num}}
                     </div>
                 </div>
             {{/if}}

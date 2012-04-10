@@ -257,6 +257,7 @@ module 'Sidebar', ->
         initialize: ->
             log_initial '(initializing) client connection status view'
             connection_status.on 'all', => @render()
+            datacenters.on 'all', => @render()
             machines.on 'all', => @render()
 
         render: ->
