@@ -443,7 +443,7 @@ bool memcached_protocol_t::store_t::send_backfill(
         const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
         const boost::function<bool(const metainfo_t&)> &should_backfill,
         const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
-        backfill_progress_t **progress_out,
+        backfill_progress_rwi_lock_wrapper_t *progress_out,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -457,7 +457,11 @@ bool memcached_protocol_t::store_t::send_backfill(
         memcached_backfill_callback_t callback(chunk_fun);
 
         traversal_progress_combiner_t progress_combiner;
-        *progress_out = &progress_combiner;
+
+        {
+            backfill_progress_write_acq_t write_to_progress(progress_out);
+            *write_to_progress.get() = &progress_combiner;
+        }
 
         for (region_map_t<memcached_protocol_t, state_timestamp_t>::const_iterator i = start_point.begin(); i != start_point.end(); i++) {
             const memcached_protocol_t::region_t& range = (*i).first;
