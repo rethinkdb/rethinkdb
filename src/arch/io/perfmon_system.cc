@@ -2,15 +2,14 @@
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-#include <vector>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/syscall.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <sstream>
-#include <iomanip>
 #include <stdarg.h>
+
+#include <vector>
 
 #include "arch/io/io_utils.hpp"
 #include "containers/printf_buffer.hpp"
@@ -154,10 +153,10 @@ struct perfmon_system_t :
     }
     void put_timestamp(perfmon_stats_t *dest) {
         timespec uptime = get_uptime();
-        std::stringstream uptime_str;
-        uptime_str << uptime.tv_sec << '.' << std::setfill('0') << std::setw(6) << uptime.tv_nsec / 1000;
 
-        (*dest)["uptime"] = uptime_str.str();
+        std::string uptime_str = strprintf("%ld.%06ld", uptime.tv_sec, uptime.tv_nsec / 1000);
+
+        (*dest)["uptime"] = uptime_str;
         (*dest)["timestamp"] = format_precise_time(get_absolute_time(uptime));
     }
 } pm_system;
