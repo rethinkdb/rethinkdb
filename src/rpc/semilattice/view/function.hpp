@@ -1,5 +1,5 @@
-#ifndef __RPC_SEMILATTICE_VIEW_FUNCTION_HPP__
-#define __RPC_SEMILATTICE_VIEW_FUNCTION_HPP__
+#ifndef RPC_SEMILATTICE_VIEW_FUNCTION_HPP_
+#define RPC_SEMILATTICE_VIEW_FUNCTION_HPP_
 #include "errors.hpp"
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>

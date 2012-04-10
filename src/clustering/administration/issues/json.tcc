@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_ISSUES_JSON_TCC__
-#define __CLUSTERING_ADMINISTRATION_ISSUES_JSON_TCC__
+#ifndef CLUSTERING_ADMINISTRATION_ISSUES_JSON_TCC_
+#define CLUSTERING_ADMINISTRATION_ISSUES_JSON_TCC_
 
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
@@ -89,4 +89,6 @@ void apply_json_to(cJSON *, local_issue_json_t *target, const ctx_t &ctx) {
 template <class ctx_t>
 void on_subfield_change(local_issue_json_t *, const ctx_t &) { }
 
-#endif
+
+
+#endif  // CLUSTERING_ADMINISTRATION_ISSUES_JSON_TCC_

@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_ISSUES_JSON_HPP__
-#define __CLUSTERING_ADMINISTRATION_ISSUES_JSON_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_ISSUES_JSON_HPP_
+#define CLUSTERING_ADMINISTRATION_ISSUES_JSON_HPP_
 
 #include <string>
 
@@ -77,4 +77,7 @@ template <class ctx_t>
 void on_subfield_change(local_issue_json_t *, const ctx_t &);
 
 #include "clustering/administration/issues/json.tcc"
-#endif
+
+
+
+#endif  // CLUSTERING_ADMINISTRATION_ISSUES_JSON_HPP_
