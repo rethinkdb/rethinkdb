@@ -494,7 +494,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
 
     rassert(!dest.is_nil());
 
-    /* We currently write the message to a `stringstream`, then
+    /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
     // to worry about having the writer run on the connection thread.
