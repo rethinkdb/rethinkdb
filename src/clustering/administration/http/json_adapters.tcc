@@ -24,22 +24,22 @@ cJSON *render_as_json(vclock_t<T> *target, const ctx_t &ctx) {
         T t = target->get();
         return render_as_json(&t, ctx);
     } catch (in_conflict_exc_t e) {
-        return cJSON_CreateString("Value in conflict\n");
+        return cJSON_CreateString("VALUE_IN_CONFLICT");
     }
 }
 
 template <class T, class ctx_t>
 cJSON *render_all_values(vclock_t<T> *target, const ctx_t &ctx) {
     cJSON *res = cJSON_CreateArray();
-    for (typename vclock_t<T>::value_map_t::iterator it  = target->values.begin();
+    for (typename vclock_t<T>::value_map_t::iterator it  =   target->values.begin();
                                                              it != target->values.end();
                                                              it++) {
         cJSON *version_value_pair = cJSON_CreateArray();
 
         //This is really bad, fix this as soon as we can render using non const references
         vclock_details::version_map_t tmp = it->first;
-        cJSON_AddItemToArray(res, render_as_json(&tmp, ctx));
-        cJSON_AddItemToArray(res, render_as_json(&it->second, ctx));
+        cJSON_AddItemToArray(version_value_pair, render_as_json(&tmp, ctx));
+        cJSON_AddItemToArray(version_value_pair, render_as_json(&it->second, ctx));
 
         cJSON_AddItemToArray(res, version_value_pair);
     }
@@ -82,6 +82,16 @@ void json_vclock_resolver_t<T, ctx_t>::apply_impl(cJSON *change, const ctx_t &ct
 }
 
 template <class T, class ctx_t>
+void json_vclock_resolver_t<T, ctx_t>::reset_impl(const ctx_t &) {
+    throw permission_denied_exc_t("Can't reset a vclock resolver.\n");
+}
+
+template <class T, class ctx_t>
+void json_vclock_resolver_t<T, ctx_t>::erase_impl(const ctx_t &) {
+    throw permission_denied_exc_t("Can't erase a vclock resolver.\n");
+}
+
+template <class T, class ctx_t>
 boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_vclock_resolver_t<T, ctx_t>::get_change_callback() {
     return boost::shared_ptr<subfield_change_functor_t<ctx_t> >();
 }
@@ -99,7 +109,7 @@ json_vclock_adapter_t<T, ctx_t>::json_vclock_adapter_t(vclock_t<T> *_target)
 template <class T, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_vclock_adapter_t<T, ctx_t>::get_subfields_impl(const ctx_t &ctx) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res = get_json_subfields(target, ctx);
-    rassert(!std_contains("resolve", res), "Programmer error: do not put anything with a \"resolve\" subfield in a vector clock.\n");
+    rassert(!std_contains(res, "resolve"), "Programmer error: do not put anything with a \"resolve\" subfield in a vector clock.\n");
     res["resolve"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_resolver_t<T, ctx_t>(target));
 
     return res;
@@ -113,6 +123,16 @@ cJSON *json_vclock_adapter_t<T, ctx_t>::render_impl(const ctx_t &ctx) {
 template <class T, class ctx_t>
 void json_vclock_adapter_t<T, ctx_t>::apply_impl(cJSON *change, const ctx_t &ctx) {
     apply_json_to(change, target, ctx);
+}
+
+template <class T, class ctx_t>
+void json_vclock_adapter_t<T, ctx_t>::reset_impl(const ctx_t &) {
+    throw permission_denied_exc_t("Can't reset a vclock adapter.\n");
+}
+
+template <class T, class ctx_t>
+void json_vclock_adapter_t<T, ctx_t>::erase_impl(const ctx_t &) {
+    throw permission_denied_exc_t("Can't erase a vclock adapter.\n");
 }
 
 template <class T, class ctx_t>

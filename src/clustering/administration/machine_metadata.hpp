@@ -42,11 +42,11 @@ RDB_MAKE_EQUALITY_COMPARABLE_2(machine_semilattice_metadata_t, datacenter, name)
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(machine_semilattice_metadata_t *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["datacenter_uuid"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<datacenter_id_t>, ctx_t>(&target->datacenter));
-    res["name"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::string>, ctx_t>(&target->name));
+    res["datacenter_uuid"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<datacenter_id_t, ctx_t>(&target->datacenter));
+    res["name"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<std::string, ctx_t>(&target->name));
 
 #ifndef NDEBUG
-    res["port_offset"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<int>, ctx_t>(&target->port_offset));
+    res["port_offset"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<int, ctx_t>(&target->port_offset));
 #endif
     return res;
 }

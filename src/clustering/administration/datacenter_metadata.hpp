@@ -4,6 +4,7 @@
 #include "errors.hpp"
 #include <boost/uuid/uuid.hpp>
 
+#include "clustering/administration/http/json_adapters.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
@@ -27,7 +28,7 @@ RDB_MAKE_EQUALITY_COMPARABLE_1(datacenter_semilattice_metadata_t, name);
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(datacenter_semilattice_metadata_t *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["name"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<vclock_t<std::string>, ctx_t>(&target->name));
+    res["name"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<std::string, ctx_t>(&target->name));
     return res;
 }
 

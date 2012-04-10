@@ -6,6 +6,7 @@
 #include <boost/uuid/uuid.hpp>
 
 #include "containers/map_sentries.hpp"
+#include "http/json.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -32,6 +33,9 @@ public:
 template <class T>
 class vclock_t {
 private:
+    template <class TT, class ctx_t>
+    friend cJSON *render_all_values(vclock_t<TT> *, const ctx_t &);
+
     template <class TT>
     friend bool operator==(const vclock_t<TT> &, const vclock_t<TT> &);
 
