@@ -408,7 +408,7 @@ class InternalServer(Server):
 class Cluster(object):
     def __init__(self, log_file = "stdout", mode = "debug"):
         try:
-            self.base_port = os.environ["RETHINKDB_BASE_PORT"]
+            self.base_port = int(os.environ["RETHINKDB_BASE_PORT"])
         except KeyError:
             self.base_port = random.randint(20000, 60000)
             print "Warning: environment variable 'RETHINKDB_BASE_PORT' not set, using random base port: " + str(self.base_port)
