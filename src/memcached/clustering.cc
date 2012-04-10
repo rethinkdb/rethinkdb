@@ -1,5 +1,4 @@
 #include "errors.hpp"
-#include <boost/variant/get.hpp>  // TODO drop this?
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/machine_metadata.hpp"
