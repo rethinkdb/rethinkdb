@@ -22,7 +22,7 @@ private:
 
 class vector_read_stream_t : public read_stream_t {
 public:
-    vector_read_stream_t(const std::vector<char> *vector);
+    explicit vector_read_stream_t(const std::vector<char> *vector);
     virtual ~vector_read_stream_t();
 
     virtual int64_t read(void *p, int64_t n);

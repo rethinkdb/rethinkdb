@@ -110,7 +110,7 @@ class secondary_backfilling_t {
 public:
     secondary_backfilling_t() { }
 
-    secondary_backfilling_t(backfill_session_id_t _backfill_session)
+    explicit secondary_backfilling_t(backfill_session_id_t _backfill_session)
         : backfill_session(_backfill_session)
     { }
 

@@ -40,7 +40,12 @@ private:
     DISABLE_COPYING(v_20_t);
 };
 
-#define ARCHIVE_CLASS_DECL(i, j) template <ARCHIVE_CL##i> struct v_##i##_t : public v_##j##_t<ARCHIVE_TL##j> { ARCHIVE_VARIANT_SERIALIZE_USING_DECL(j); ARCHIVE_VARIANT_SERIALIZE_VISITOR_METHOD(i); }
+#define ARCHIVE_CLASS_DECL(i, j)                                        \
+    template <ARCHIVE_CL##i>                                            \
+    struct v_##i##_t : public v_##j##_t<ARCHIVE_TL##j> {                \
+        ARCHIVE_VARIANT_SERIALIZE_USING_DECL(j);                        \
+        ARCHIVE_VARIANT_SERIALIZE_VISITOR_METHOD(i);                    \
+    }
 
 
 #define ARCHIVE_CL19 class T19, class T20
@@ -117,7 +122,7 @@ write_message_t &operator<<(write_message_t &msg, const boost::variant<T1, T2, T
 
 template <class T> struct archive_variant_deserialize_standin_t {
     template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
-    int do_the_deserialization(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
+    static int do_the_deserialization(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
         T v;
         int res = deserialize(s, &v);
         if (res) { return res; }
@@ -125,11 +130,11 @@ template <class T> struct archive_variant_deserialize_standin_t {
 
         return 0;
     }
- };
+};
 
 template <> struct archive_variant_deserialize_standin_t<boost::detail::variant::void_> {
     template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
-    int do_the_deserialization(UNUSED read_stream_t *s, UNUSED boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
+    static int do_the_deserialization(UNUSED read_stream_t *s, UNUSED boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
         return -3;
     }
 };
@@ -144,26 +149,26 @@ int deserialize(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8,
     }
 
     switch (n) {
-    case 1: { archive_variant_deserialize_standin_t<T1> st; return st.do_the_deserialization(s, x); }
-    case 2: { archive_variant_deserialize_standin_t<T2> st; return st.do_the_deserialization(s, x); }
-    case 3: { archive_variant_deserialize_standin_t<T3> st; return st.do_the_deserialization(s, x); }
-    case 4: { archive_variant_deserialize_standin_t<T4> st; return st.do_the_deserialization(s, x); }
-    case 5: { archive_variant_deserialize_standin_t<T5> st; return st.do_the_deserialization(s, x); }
-    case 6: { archive_variant_deserialize_standin_t<T6> st; return st.do_the_deserialization(s, x); }
-    case 7: { archive_variant_deserialize_standin_t<T7> st; return st.do_the_deserialization(s, x); }
-    case 8: { archive_variant_deserialize_standin_t<T8> st; return st.do_the_deserialization(s, x); }
-    case 9: { archive_variant_deserialize_standin_t<T9> st; return st.do_the_deserialization(s, x); }
-    case 10: { archive_variant_deserialize_standin_t<T10> st; return st.do_the_deserialization(s, x); }
-    case 11: { archive_variant_deserialize_standin_t<T11> st; return st.do_the_deserialization(s, x); }
-    case 12: { archive_variant_deserialize_standin_t<T12> st; return st.do_the_deserialization(s, x); }
-    case 13: { archive_variant_deserialize_standin_t<T13> st; return st.do_the_deserialization(s, x); }
-    case 14: { archive_variant_deserialize_standin_t<T14> st; return st.do_the_deserialization(s, x); }
-    case 15: { archive_variant_deserialize_standin_t<T15> st; return st.do_the_deserialization(s, x); }
-    case 16: { archive_variant_deserialize_standin_t<T16> st; return st.do_the_deserialization(s, x); }
-    case 17: { archive_variant_deserialize_standin_t<T17> st; return st.do_the_deserialization(s, x); }
-    case 18: { archive_variant_deserialize_standin_t<T18> st; return st.do_the_deserialization(s, x); }
-    case 19: { archive_variant_deserialize_standin_t<T19> st; return st.do_the_deserialization(s, x); }
-    case 20: { archive_variant_deserialize_standin_t<T20> st; return st.do_the_deserialization(s, x); }
+    case 1: { return archive_variant_deserialize_standin_t<T1>::do_the_deserialization(s, x); }
+    case 2: { return archive_variant_deserialize_standin_t<T2>::do_the_deserialization(s, x); }
+    case 3: { return archive_variant_deserialize_standin_t<T3>::do_the_deserialization(s, x); }
+    case 4: { return archive_variant_deserialize_standin_t<T4>::do_the_deserialization(s, x); }
+    case 5: { return archive_variant_deserialize_standin_t<T5>::do_the_deserialization(s, x); }
+    case 6: { return archive_variant_deserialize_standin_t<T6>::do_the_deserialization(s, x); }
+    case 7: { return archive_variant_deserialize_standin_t<T7>::do_the_deserialization(s, x); }
+    case 8: { return archive_variant_deserialize_standin_t<T8>::do_the_deserialization(s, x); }
+    case 9: { return archive_variant_deserialize_standin_t<T9>::do_the_deserialization(s, x); }
+    case 10: { return archive_variant_deserialize_standin_t<T10>::do_the_deserialization(s, x); }
+    case 11: { return archive_variant_deserialize_standin_t<T11>::do_the_deserialization(s, x); }
+    case 12: { return archive_variant_deserialize_standin_t<T12>::do_the_deserialization(s, x); }
+    case 13: { return archive_variant_deserialize_standin_t<T13>::do_the_deserialization(s, x); }
+    case 14: { return archive_variant_deserialize_standin_t<T14>::do_the_deserialization(s, x); }
+    case 15: { return archive_variant_deserialize_standin_t<T15>::do_the_deserialization(s, x); }
+    case 16: { return archive_variant_deserialize_standin_t<T16>::do_the_deserialization(s, x); }
+    case 17: { return archive_variant_deserialize_standin_t<T17>::do_the_deserialization(s, x); }
+    case 18: { return archive_variant_deserialize_standin_t<T18>::do_the_deserialization(s, x); }
+    case 19: { return archive_variant_deserialize_standin_t<T19>::do_the_deserialization(s, x); }
+    case 20: { return archive_variant_deserialize_standin_t<T20>::do_the_deserialization(s, x); }
 
     default:
         unreachable("impossible to reach, we already returned -3");

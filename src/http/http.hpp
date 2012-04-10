@@ -35,7 +35,7 @@ struct header_line_t {
 struct http_req_t {
     class resource_t {
     public:
-        typedef boost::tokenizer<boost::char_separator<char>,char*> tokenizer;
+        typedef boost::tokenizer<boost::char_separator<char>, char *> tokenizer;
         typedef tokenizer::iterator iterator;
 
         resource_t();

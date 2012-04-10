@@ -100,8 +100,9 @@ std::list<clone_ptr_t<global_issue_t> > pinnings_shards_mismatch_issue_tracker_t
                 }
             }
         }
-NAMESPACE_HAS_ISSUE:
-        ;
+    NAMESPACE_HAS_ISSUE:
+        (void)0;
+        // do nothing, continue around loop.
     }
 
     return res;
