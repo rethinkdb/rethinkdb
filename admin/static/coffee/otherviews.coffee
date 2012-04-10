@@ -271,7 +271,7 @@ module 'Sidebar', ->
                 # If the machine is assigned to a datacenter, include it
                 assigned_datacenter = datacenters.get(connected_machine.get('datacenter_uuid'))
                 json['datacenter_name'] = if assigned_datacenter? then assigned_datacenter.get('name') else 'Unassigned'
-                    
+
             @.$el.html @template json
 
             return @
@@ -327,7 +327,7 @@ module 'Sidebar', ->
             critical_issues = issues.filter (issue) -> issue.get('critical')
             critical_issues = _.groupBy critical_issues, (issue) -> issue.get('type')
 
-            # Get a list of all other issues (non-critical) 
+            # Get a list of all other issues (non-critical)
             other_issues = issues.filter (issue) -> not issue.get('critical')
 
             @.$el.html @template
@@ -342,7 +342,7 @@ module 'Sidebar', ->
                 other_issues:
                     exist: other_issues.length > 0
                     num: other_issues.length
-                no_issues: _.keys(critical_issues).length is 0 and other_issues.length is 0 
+                no_issues: _.keys(critical_issues).length is 0 and other_issues.length is 0
                 show_resolve_issues: window.location.hash isnt @resolve_issues_route
             return @
 
@@ -383,7 +383,7 @@ module 'ResolveIssuesView', ->
         render_issues: ->
             @.$('#resolve_issues-container-inner-placeholder').html @template_inner
                 issues_exist: if issues.length > 0 then true else false
-                
+
             issue_views = []
             issues.each (issue) ->
                 issue_views.push new ResolveIssuesView.Issue
@@ -416,13 +416,13 @@ module 'ResolveIssuesView', ->
 
                             if (response)
                                 throw "Received a non null response to a delete... this is incorrect"
-                            
+
                             # Grab the new set of issues (so we don't have to wait)
                             $.ajax
                                 url: '/ajax/issues'
                                 success: set_issues
                                 async: false
-                                
+
                             # remove the dead machine from the models
                             machines.remove(machine_to_kill.id)
 
@@ -434,6 +434,41 @@ module 'ResolveIssuesView', ->
                                 machine_name: machine_to_kill.get("name")
 
             super validator_options, { 'machine_name': machine_to_kill.get("name") }
+
+    class @ResolveVClockModal extends ClusterView.AbstractModal
+        template: Handlebars.compile $('#resolve_vclock-modal-template').html()
+        alert_tmpl: Handlebars.compile $('#resolved_vclock-alert-template').html()
+
+        initialize: ->
+            log_initial '(initializing) modal dialog: resolve vclock'
+            super @template
+
+        render: (final_value, resolution_url) ->
+            log_render '(rendering) resolve vclock'
+            validator_options =
+                submitHandler: =>
+                    $.ajax
+                        url: "/ajax/" + resolution_url
+                        type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify(final_value)
+                        success: (response) =>
+                            clear_modals()
+
+                            # Grab the new set of issues (so we don't have to wait)
+                            $.ajax
+                                url: '/ajax/issues'
+                                success: set_issues
+                                async: false
+
+                            # rerender issue view (just the issues, not the whole thing)
+                            window.app.resolve_issues_view.render_issues()
+
+                            # notify the user that we succeeded
+                            $('#user-alert-space').append @alert_tmpl
+                                final_value: final_value
+
+            super validator_options, { 'final_value': final_value }
 
     # ResolveIssuesView.Issue
     class @Issue extends Backbone.View
@@ -454,7 +489,7 @@ module 'ResolveIssuesView', ->
 
             masters = []
             replicas = []
-            
+
             # Look at all namespaces in the cluster and determine whether this machine had a master or replicas for them
             namespaces.each (namespace) ->
                 for machine_uuid, role_summary of namespace.get('blueprint').peers_roles
@@ -478,6 +513,7 @@ module 'ResolveIssuesView', ->
                 replicas: if _.isEmpty(replicas) then null else replicas
                 no_responsibilities: if (_.isEmpty(replicas) and _.isEmpty(masters)) then true else false
                 datetime: iso_date_from_unix_time @model.get('time')
+                critical: @model.get('critical')
 
             @.$el.html _template(json)
 
@@ -497,7 +533,8 @@ module 'ResolveIssuesView', ->
                    type: @model.get('contested_type')
                 )
                 datetime: iso_date_from_unix_time @model.get('time')
-            
+                critical: @model.get('critical')
+
             @.$el.html _template(json)
 
             # bind rename handlers
@@ -510,7 +547,7 @@ module 'ResolveIssuesView', ->
                             url: '/ajax/issues'
                             success: set_issues
                             async: false
-                                
+
                         # rerender issue view (just the issues, not the whole thing)
                         window.app.resolve_issues_view.render_issues()
                     )
@@ -518,15 +555,48 @@ module 'ResolveIssuesView', ->
             )
 
         render_persistence_issue: (_template) ->
-            json = datetime: iso_date_from_unix_time @model.get('time')
+            json =
+                datetime: iso_date_from_unix_time @model.get('time')
+                critical: @model.get('critical')
             @.$el.html _template(json)
 
-        render_vlock_conflict: (_template) ->
-            json = datetime: iso_date_from_unix_time @model.get('time')
+        render_vclock_conflict: (_template) ->
+            get_resolution_url = =>
+                return @model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
+
+            # grab possible conflicting values
+            $.ajax
+                url: '/ajax/' + get_resolution_url()
+                type: 'GET'
+                contentType: 'application/json'
+                async: false
+                success: (response) =>
+                    @contestants = _.map response, (x, index) -> { value: x[1], contestant_id: index }
+
+            # renderevsky
+            json =
+                datetime: iso_date_from_unix_time @model.get('time')
+                critical: @model.get('critical')
+                object_type: @model.get('object_type')
+                object_id: @model.get('object_id')
+                object_name: datacenters.get(@model.get('object_id')).get('name')
+                field: @model.get('field')
+                name_contest: @model.get('field') is 'name'
+                contestants: @contestants
             @.$el.html _template(json)
+
+            # bind resolution events
+            _.each @contestants, (contestant) =>
+                @.$('#resolve_' + contestant.contestant_id).off 'click'
+                @.$('#resolve_' + contestant.contestant_id).click (event) =>
+                    event.preventDefault()
+                    resolve_modal = new ResolveIssuesView.ResolveVClockModal
+                    resolve_modal.render contestant.value, get_resolution_url()
 
         render_unknown_issue: (_template) ->
-            json = issue_type: @model.get('type')
+            json =
+                issue_type: @model.get('type')
+                critical: @model.get('critical')
             @.$el.html _template(json)
 
         render: ->
@@ -542,7 +612,7 @@ module 'ResolveIssuesView', ->
                     @render_vclock_conflict _template
                 else
                     @render_unknown_issue @unknown_issue_template
-                        
+
             @.$('abbr.timeago').timeago()
 
             return @

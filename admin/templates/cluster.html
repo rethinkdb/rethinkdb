@@ -739,14 +739,21 @@
             </div>
         </script>
         <script id="resolve_issues-vclock_conflict-template" type="text/x-handlebars-template">
-            <div class="issue {{#if critical }}critical{{/if}}">
+            <div class="issue {{#if critical }}critical{{/if}} vclock-conflict">
                 <div class="header">
-                    <h3 class="title">Metadata problem (vclock).</h3>
+                    <h3 class="title">Cluster configuration conflict.</h3>
                     {{#if datetime}}
                         <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
                     {{/if}}
                 </div>
                 <hr />
+                <p>This issue is caused by making changes to the cluster configuration on both sides of an intermittent network connection.</p>
+                <h4>{{capitalize field}} of {{object_type}} <a href="">{{#if name_contest}}{{humanize_uuid object_id}}{{else}}{{object_name}}{{/if}}</a> has the following conflicting values:</h4>
+                <ul>
+                  {{#each contestants}}
+                  <li>{{value}} (<a id="resolve_{{contestant_id}}" href="#">use this value</a>)</li>
+                  {{/each}}
+                </ul>
             </div>
         </script>
         <script id="resolve_issues-unknown-template" type="text/x-handlebars-template">
@@ -792,6 +799,13 @@
             <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
                 <p>You successfully declared machine <span class="name">{{machine_name}}</span> dead.</p>
+            </div>
+        </script>
+
+        <script id="resolved_vclock-alert-template" type="text/x-handlebars-template">
+            <div class="alert" data-alert="alert">
+                <a class="close" href="#">&times;</a>
+                <p>You successfully resolved the configuration value to <span class="name">{{final_value}}</span>.</p>
             </div>
         </script>
 
@@ -951,6 +965,24 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn primary declare_machine_dead" type="submit" name="declare-machine-dead" value="Declare dead">Declare dead</button>
+                        <a href="#" class="btn secondary cancel">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </script>
+
+        <script id="resolve_vclock-modal-template" type="text/x-handlebars-template">
+            <div class="modal resolve_vclock">
+                <form class="form">
+                    <div class="modal-header">
+                        <a href="#" class="close">&times;</a>
+                        <h3>Resolve configuration conflict</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to use the value <strong>{{final_value}}</strong>?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn primary resolve_vclock" type="submit" name="resolve-vclock" value="Resolve">Resolve</button>
                         <a href="#" class="btn secondary cancel">Cancel</a>
                     </div>
                 </form>
