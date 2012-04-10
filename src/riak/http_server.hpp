@@ -3,8 +3,8 @@
 
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
-#include <boost/fusion/include/adapt_struct.hpp>
-#include <boost/fusion/include/io.hpp>
+// #include <boost/fusion/include/adapt_struct.hpp>
+// #include <boost/fusion/include/io.hpp>
 
 #include "http/http.hpp"
 #include "riak/riak_interface.hpp"

@@ -2,7 +2,6 @@
 #define HTPP_HTPP_HPP_
 
 #include "errors.hpp"
-#include <boost/fusion/include/io.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_array.hpp>
