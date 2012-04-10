@@ -1,3 +1,9 @@
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "concurrency/cond_var.hpp"
+#include "concurrency/wait_any.hpp"
+
 template <class outer_type, class callable_type>
 class subview_watchable_t : public watchable_t<typename boost::result_of<callable_type(outer_type)>::type> {
 public:
@@ -32,4 +38,28 @@ clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_type)>::ty
         new subview_watchable_t<value_type, callable_type>(
             lens, this
             ));
+}
+
+inline void pulse_cond_if_not_pulsed(cond_t *c) {
+    if (!c->is_pulsed()) {
+        c->pulse();
+    }
+}
+
+template<class value_type>
+template<class callable_type>
+void watchable_t<value_type>::run_until_satisfied(const callable_type &fun, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    clone_ptr_t<watchable_t<value_type> > clone_this(this->clone());
+    while (true) {
+        cond_t changed;
+        typename watchable_t<value_type>::subscription_t subs(boost::bind(&pulse_cond_if_not_pulsed, &changed));
+        {
+            typename watchable_t<value_type>::freeze_t freeze(clone_this);
+            if (fun(get())) {
+                return;
+            }
+            subs.reset(clone_this, &freeze);
+        }
+        wait_interruptible(&changed, interruptor);
+    }
 }

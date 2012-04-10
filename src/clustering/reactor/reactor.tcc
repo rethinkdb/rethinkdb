@@ -5,15 +5,29 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 
+template<class key_t, class value_t>
+std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::optional<value_t> > &map) {
+    std::map<key_t, value_t> res;
+    for (typename std::map<key_t, boost::optional<value_t> >::const_iterator it = map.begin(); it != map.end(); it++) {
+        if (it->second) {
+            res.insert(std::make_pair(it->first, it->second.get()));
+        }
+    }
+    return res;
+}
+
 template<class protocol_t>
 reactor_t<protocol_t>::reactor_t(
         mailbox_manager_t *mm,
-        clone_ptr_t<directory_rwview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > rd,
+        clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > rd,
         clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > master_directory_view,
         boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,
         store_view_t<protocol_t> *_underlying_store) THROWS_NOTHING :
-    mailbox_manager(mm), directory_echo_access(mailbox_manager, rd, reactor_business_card_t<protocol_t>()), 
+    mailbox_manager(mm),
+    reactor_directory(rd),
+    directory_echo_writer(mailbox_manager, reactor_business_card_t<protocol_t>()),
+    directory_echo_mirror(mailbox_manager, rd->subview(&collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >)),
     branch_history(bh),
     master_directory(std::map<master_id_t, master_business_card_t<protocol_t> >()),
     master_directory_copier(master_directory.get_watchable(), master_directory_view), 
@@ -35,7 +49,7 @@ reactor_t<protocol_t>::directory_entry_t::directory_entry_t(reactor_t<protocol_t
 
 template <class protocol_t>
 directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename reactor_business_card_t<protocol_t>::activity_t activity) {
-    typename directory_echo_access_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_access);
+    typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     if (!reactor_activity_id.is_nil()) {
         our_value_change.buffer.activities.erase(reactor_activity_id);
     }
@@ -46,7 +60,7 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::set(typename 
 
 template <class protocol_t>
 directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_without_changing_id(typename reactor_business_card_t<protocol_t>::activity_t activity) {
-    typename directory_echo_access_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_access);
+    typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
     rassert(!reactor_activity_id.is_nil(), "This method should only be called when an activity has already been set\n");
 
     our_value_change.buffer.activities[reactor_activity_id].second = activity;
@@ -56,7 +70,7 @@ directory_echo_version_t reactor_t<protocol_t>::directory_entry_t::update_withou
 template <class protocol_t>
 reactor_t<protocol_t>::directory_entry_t::~directory_entry_t() {
     if (!reactor_activity_id.is_nil()) {
-        typename directory_echo_access_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_access);
+        typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::our_value_change_t our_value_change(&parent->directory_echo_writer);
         our_value_change.buffer.activities.erase(reactor_activity_id);
         our_value_change.commit();
     }
@@ -156,53 +170,56 @@ void reactor_t<protocol_t>::run_role(
     }
 }
 
+template<class protocol_t>
+boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > reactor_t<protocol_t>::extract_broadcaster_from_reactor_business_card_primary(
+        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard) {
+    if (!bcard) {
+        return boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > >();
+    }
+    if (!bcard.get()) {
+        return boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > >(
+            boost::optional<broadcaster_business_card_t<protocol_t> >());
+    }
+    return boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > >(
+        boost::optional<broadcaster_business_card_t<protocol_t> >(bcard.get().get().broadcaster));
+}
+
 template <class protocol_t>
 void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t version_to_wait_on, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     blueprint_t<protocol_t> bp = blueprint_watchable->get();
     typename std::map<peer_id_t, std::map<typename protocol_t::region_t, typename blueprint_details::role_t> >::iterator it = bp.peers_roles.begin();
     for (it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
-        typename directory_echo_access_t<reactor_business_card_t<protocol_t> >::ack_waiter_t ack_waiter(&directory_echo_access, it->first, version_to_wait_on);
+        typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::ack_waiter_t ack_waiter(&directory_echo_writer, it->first, version_to_wait_on);
         wait_interruptible(&ack_waiter, interruptor);
+    }
+}
+
+template<class protocol_t, class activity_t>
+boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcard(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &bcards, peer_id_t p_id, const reactor_activity_id_t &ra_id) {
+    typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >::const_iterator it = bcards.find(p_id);
+    if (it == bcards.end()) {
+        return boost::optional<boost::optional<activity_t> >();
+    }
+    if (!it->second) {
+        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>());
+    }
+    typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second->internal.activities.find(ra_id);
+    if (jt == it->second->internal.activities.end()) {
+        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>());
+    }
+    try {
+        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>(boost::get<activity_t>(jt->second.second)));
+    } catch (boost::bad_get) {
+        crash("Tried to get an activity of an unexpected type, it is assumed "
+            "the person calling this function knows the type of the activity "
+            "they will be getting back.\n");
     }
 }
 
 template <class protocol_t>
 template <class activity_t>
-clone_ptr_t<directory_single_rview_t<boost::optional<activity_t> > > reactor_t<protocol_t>::get_directory_entry_view(peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    typedef read_lens_t<boost::optional<activity_t>, boost::optional<reactor_business_card_t<protocol_t> > > activity_read_lens_t;
-
-    class activity_lens_t : public activity_read_lens_t {
-    public:
-        explicit activity_lens_t(const reactor_activity_id_t &_ra_id) 
-            : ra_id(_ra_id)
-        { }
-
-        boost::optional<activity_t> get(const boost::optional<reactor_business_card_t<protocol_t> > &outer) const {
-            if (!outer) {
-                return boost::optional<activity_t>();
-            } else if (outer.get().activities.find(ra_id) == outer.get().activities.end()) {
-                return boost::optional<activity_t>();
-            } else {
-                try {
-                    return boost::optional<activity_t>(boost::get<activity_t>(outer.get().activities.find(ra_id)->second.second));
-                } catch (boost::bad_get) {
-                    crash("Tried to get an activity of an unexpected type, it "
-                            "is assumed the person calling this function knows "
-                            "the type of the activity they will be getting "
-                            "back.\n");
-                }
-            }
-        }
-
-        activity_lens_t *clone() const {
-            return new activity_lens_t(ra_id);
-        }
-
-    private:
-        reactor_activity_id_t ra_id;
-    };
-
-    return directory_echo_access.get_internal_view()->get_peer_view(p_id)->subview(clone_ptr_t<activity_read_lens_t>(new activity_lens_t(ra_id)));
+clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reactor_t<protocol_t>::get_directory_entry_view(peer_id_t p_id, const reactor_activity_id_t &ra_id) {
+    return reactor_directory->subview(boost::bind(&extract_activity_from_reactor_bcard<protocol_t, activity_t>, _1, p_id, ra_id));
 }
 
 #endif

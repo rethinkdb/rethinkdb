@@ -16,7 +16,7 @@ class divergent_data_exc_t : public std::exception {
 };
 
 template <class protocol_t>
-void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions, const clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > &backfiller, 
+void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions, const typename backfill_candidate_t::backfill_location_t &backfiller, 
                                                    best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history) {
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator i =  offered_backfill_versions.begin();
                                                                             i != offered_backfill_versions.end(); 
@@ -48,6 +48,36 @@ void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t
     }
 }
 
+template<class protocol_t>
+boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > extract_backfiller_from_reactor_business_card_secondary(
+        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::secondary_without_primary_t> > &bcard) {
+    if (!bcard) {
+	return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >();
+    } else if (!bcard.get()) {
+        return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >(
+            boost::optional<backfiller_business_card_t<protocol_t> >());
+    } else {
+        return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >(
+            boost::optional<backfiller_business_card_t<protocol_t> >(
+                bcard.get().get().backfiller));
+    }
+}
+
+template<class protocol_t>
+boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > extract_backfiller_from_reactor_business_card_nothing(
+        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::nothing_when_safe_t> > &bcard) {
+    if (!bcard) {
+        return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >();
+    } else if (!bcard.get()) {
+        return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >(
+            boost::optional<backfiller_business_card_t<protocol_t> >());
+    } else {
+        return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >(
+            boost::optional<backfiller_business_card_t<protocol_t> >(
+                bcard.get().get().backfiller));
+    }
+}
+
 /* Check if: 
  *      - every peer is connected 
  *      - has a reactor
@@ -64,7 +94,7 @@ void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t
  * Otherwise it will return false and best_backfiller_out will be unmodified.
  */
 template <class protocol_t>
-bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
+bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                                          const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out) 
 {
     typedef reactor_business_card_t<protocol_t> rb_t;
@@ -83,15 +113,15 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
             continue;
         }
 
-        typename std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > >::const_iterator bcard_it = reactor_directory.find(p_it->first);
+        typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >::const_iterator bcard_it = reactor_directory.find(p_it->first);
         if (bcard_it == reactor_directory.end() ||
             !bcard_it->second) {
             return false;
         }
 
         std::vector<typename protocol_t::region_t> regions;
-        for (typename rb_t::activity_map_t::const_iterator it =  (*bcard_it->second).activities.begin();
-                                                           it != (*bcard_it->second).activities.end();
+        for (typename rb_t::activity_map_t::const_iterator it =  (*bcard_it->second).internal.activities.begin();
+                                                           it != (*bcard_it->second).internal.activities.end();
                                                            it++) {
             typename protocol_t::region_t intersection = region_intersection(it->second.first, region);
             if (!region_is_empty(intersection)) {
@@ -100,14 +130,12 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
                     if (const typename rb_t::secondary_without_primary_t * secondary_without_primary = boost::get<typename rb_t::secondary_without_primary_t>(&it->second.second)) {
                         update_best_backfiller(secondary_without_primary->current_state, 
                                                get_directory_entry_view<typename rb_t::secondary_without_primary_t>(peer, it->first)->subview(
-                                                    optional_monad_lens<backfiller_business_card_t<protocol_t>, typename rb_t::secondary_without_primary_t>(
-                                                        field_lens(&rb_t::secondary_without_primary_t::backfiller))),
+                                                    &extract_backfiller_from_reactor_business_card_secondary<protocol_t>),
                                                &res, branch_history->get());
                     } else if (const typename rb_t::nothing_when_safe_t * nothing_when_safe = boost::get<typename rb_t::nothing_when_safe_t>(&it->second.second)) {
                         update_best_backfiller(nothing_when_safe->current_state, 
                                                get_directory_entry_view<typename rb_t::nothing_when_safe_t>(peer, it->first)->subview(
-                                                    optional_monad_lens<backfiller_business_card_t<protocol_t>, typename rb_t::nothing_when_safe_t>(
-                                                        field_lens(&rb_t::nothing_when_safe_t::backfiller))),
+                                                    &extract_backfiller_from_reactor_business_card_nothing<protocol_t>),
                                                &res, branch_history->get());
                     } else if(boost::get<typename rb_t::nothing_t>(&it->second.second)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
@@ -169,11 +197,11 @@ void do_backfill(
         boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
         store_view_t<protocol_t> *store,
         typename protocol_t::region_t region,
-        clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfiller_metadata,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
         promise_t<bool> *success,
         signal_t *interruptor) THROWS_NOTHING {
     try {
-        backfillee<protocol_t>(mailbox_manager, branch_history, store, region, translate_into_watchable(backfiller_metadata), interruptor);
+        backfillee<protocol_t>(mailbox_manager, branch_history, store, region, backfiller_metadata, interruptor);
         success->pulse(true);
     } catch (interrupted_exc_t) {
         success->pulse(false);
@@ -216,7 +244,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
              * input/output parameter, after this call returns best_backfillers
              * will describe how to fill the store with the most up-to-date
              * data. */
-            directory_echo_access.get_internal_view()->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, blueprint, region, &best_backfillers), interruptor);
+            reactor_directory->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, blueprint, region, &best_backfillers), interruptor);
 
             /* We may be backfilling from several sources, each requires a
              * promise be passed in which gets pulsed with a value indicating
@@ -269,17 +297,16 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
 
         directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card()));
 
-        clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > broadcaster_business_card =
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_business_card =
             get_directory_entry_view<typename reactor_business_card_t<protocol_t>::primary_t>(get_me(), directory_entry.get_reactor_activity_id())->
-                subview(optional_monad_lens<broadcaster_business_card_t<protocol_t>, typename reactor_business_card_t<protocol_t>::primary_t>(
-                    field_lens(&reactor_business_card_t<protocol_t>::primary_t::broadcaster)));
+                subview(&reactor_t<protocol_t>::extract_broadcaster_from_reactor_business_card_primary);
 
         /* listener_t expects broadcaster to be visible in the directory at the
          * time that it's constructed. It might take some time to propogate to
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
-        listener_t<protocol_t> listener(mailbox_manager, translate_into_watchable(broadcaster_business_card), branch_history, &broadcaster, interruptor);
+        listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, interruptor);
         replier_t<protocol_t> replier(&listener);
         master_t<protocol_t> master(mailbox_manager, &master_directory, &master_directory_lock, region, &broadcaster);
 

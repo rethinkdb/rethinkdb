@@ -141,16 +141,28 @@ template<class protocol_t>
 class test_reactor_t {
 public:
     test_reactor_t(reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, store_view_t<protocol_t> *store_view)
-        : blueprint_watchable(initial_blueprint),
-          reactor(&r->mailbox_manager, r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory)), 
+        : reactor_test_cluster(r),
+          blueprint_watchable(initial_blueprint),
+          reactor(&r->mailbox_manager,
+                  translate_into_watchable(r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory))), 
                   r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory)),
-                  r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), store_view)
+                  r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), store_view),
+          write_copier(reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional),
+                       r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory)))
     {
         rassert(store_view->get_region() == a_thru_z_region());
     }
 
+    reactor_test_cluster_t<protocol_t> *reactor_test_cluster;
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
     reactor_t<protocol_t> reactor;
+    watchable_write_copier_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > write_copier;
+
+private:
+    static boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > wrap_in_optional(
+            const directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > &bcard) {
+        return boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(bcard);
+    }
 };
 
 template<class protocol_t>
