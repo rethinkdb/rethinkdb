@@ -201,7 +201,7 @@ struct key_range_t {
     RDB_MAKE_ME_SERIALIZABLE_2(left, right);
 };
 
-std::ostream &operator<<(std::ostream & stream, const key_range_t &);
+std::string key_range_as_string(const key_range_t &);
 
 bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING;
 key_range_t region_intersection(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING;

@@ -74,14 +74,19 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
     }
 }
 
-std::ostream &operator<<(std::ostream & stream, const key_range_t &kr) {
-    stream << "[\"" << key_to_str(kr.left) << "\", ";
+std::string key_range_as_string(const key_range_t &kr) {
+    std::string ret;
+    ret += "[\"";
+    ret += key_to_str(kr.left);
+    ret += "\", ";
     if (kr.right.unbounded) {
-        stream << "...]";
+        ret += "...]";
     } else {
-        stream << "\"" << key_to_str(kr.right.key) << "\")";
+        ret += "\"";
+        ret += key_to_str(kr.right.key);
+        ret += "\")";
     }
-    return stream;
+    return ret;
 }
 
 bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING {

@@ -383,16 +383,17 @@ dummy_protocol_t::region_t a_thru_z_region() {
     return r;
 }
 
-std::ostream &operator<<(std::ostream &stream, dummy_protocol_t::region_t r) {
-    stream << "{ ";
+std::string to_string(dummy_protocol_t::region_t r) {
+    std::string ret = "{ ";
     for (std::set<std::string>::iterator it  = r.keys.begin();
                                          it != r.keys.end();
                                          it++) {
-        stream << *it << " ";
+        ret += *it;
+        ret += " ";
     }
-    stream << "}";
+    ret += "}";
 
-    return stream;
+    return ret;
 }
 
 }   /* namespace mock */

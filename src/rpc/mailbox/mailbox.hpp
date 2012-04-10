@@ -44,7 +44,6 @@ public:
         std::string human_readable() const;
 
     private:
-        friend std::ostream &operator<<(std::ostream &, raw_mailbox_t::address_t);
         friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(write_stream_t *)>);
         friend struct raw_mailbox_t;
         friend struct mailbox_manager_t;

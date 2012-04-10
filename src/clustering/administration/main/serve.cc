@@ -1,4 +1,4 @@
-#include <iostream>
+#include <stdio.h>
 
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
@@ -31,7 +31,7 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
 
     local_issue_tracker_t local_issue_tracker;
 
-    std::cout << "Establishing cluster node on port " << port << "..." << std::endl;
+    printf("Establishing cluster node on port %d...\n", port);
 
     connectivity_cluster_t connectivity_cluster; 
     message_multiplexer_t message_multiplexer(&connectivity_cluster);
@@ -140,7 +140,7 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
         machine_id,
         web_assets);
 
-    std::cout << "Server started; send SIGINT to stop." << std::endl;
+    printf("Server started; send SIGINT to stop.\n");
 
     wait_for_sigint();
 
