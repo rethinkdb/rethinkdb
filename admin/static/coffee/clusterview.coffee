@@ -261,6 +261,40 @@ module 'ClusterView', ->
             log_initial '(initializing) list view: namespace'
             super @template
 
+        json_for_template: =>
+            stuff = super()
+
+            stuff.nshards = 0
+            stuff.nreplicas = 0
+            stuff.nashards = 0
+            stuff.nareplicas = 0
+
+            _machines = []
+            _datacenters = []
+
+            for machine_uuid, role of @model.get('blueprint').peers_roles
+                peer_accessible = directory.get(machine_uuid)
+                _machines[_machines.length] = machine_uuid
+                _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
+                for shard, role_name of role
+                    if role_name is 'role_primary'
+                        stuff.nshards += 1
+                        if peer_accessible?
+                            stuff.nashards += 1
+                    if role_name is 'role_secondary'
+                        stuff.nreplicas += 1
+                        if peer_accessible?
+                            stuff.nareplicas += 1
+
+            stuff.nmachines = _.uniq(_machines).length
+            stuff.ndatacenters = _.uniq(_datacenters).length
+            if stuff.nshards is stuff.nashards
+                stuff.reachability = 'Live'
+            else
+                stuff.reachability = 'Down'
+
+            return stuff
+
     # Datacenter list element
     class @DatacenterListElement extends @AbstractListElement
         template: Handlebars.compile $('#cluster_view-datacenter_list_element-template').html()

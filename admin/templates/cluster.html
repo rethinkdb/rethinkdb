@@ -178,6 +178,12 @@
                 <div class="details-wrapper"">
                     <span class="name"><a href="#namespaces/{{id}}">{{name}}</a></span>
                     <span class="protocol {{protocol}}">{{protocol}}</span>
+                    <p class="details-text">
+                       <span class="status">Status: {{reachability}} ({{nashards}} of {{nshards}} masters live; {{nareplicas}} of {{nreplicas}} replicas live)</span>
+                    </p>
+                    <p class="details-text">
+                       <span class="contains">Contains: {{nshards}} shard{{pluralize_noun nshards}}, {{nreplicas}} replica{{pluralize_noun nreplicas}} on {{ndatacenters}} datacenter{{pluralize_noun ndatacenters}} across {{nmachines}} machine{{pluralize_noun nmachines}}</span>
+                    </p>
                 </div>
                 <div class="clearboth"></div>
             </td>
