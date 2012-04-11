@@ -110,7 +110,7 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
         dummy_protocol_t::write_t w;
         std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = values_inserted[key] = strprintf("%d", i);
-        (*broadcaster)->write(w, &exiter, order_source.check_in("unittest"));
+        (*broadcaster)->write(w, &exiter, NULL, order_source.check_in("unittest"));
     }
 
     /* Now send some reads */
@@ -139,7 +139,7 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
     dummy_protocol_t::write_t w;
     w.values[key] = value;
-    broadcaster->write(w, &exiter, otok);
+    broadcaster->write(w, &exiter, NULL, otok);
 }
 
 void run_backfill_test(simple_mailbox_cluster_t *cluster,

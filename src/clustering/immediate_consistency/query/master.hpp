@@ -84,9 +84,7 @@ private:
                 response = broadcaster->read(read, &exiter, otok);
             }
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(response));
-        } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {
-            send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(std::string(e.what())));
-        } catch (typename broadcaster_t<protocol_t>::insufficient_mirrors_exc_t e) {
+        } catch (cannot_perform_query_exc_t e) {
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(std::string(e.what())));
         }
     }
@@ -106,12 +104,10 @@ private:
             {
                 auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
                 fifo_enforcer_sink_t::exit_write_t exiter(it->second->sink(), token);
-                response = broadcaster->write(write, &exiter, otok);
+                response = broadcaster->write(write, &exiter, NULL, otok);
             }
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(response));
-        } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {
-            send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(std::string(e.what())));
-        } catch (typename broadcaster_t<protocol_t>::insufficient_mirrors_exc_t e) {
+        } catch (cannot_perform_query_exc_t e) {
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(std::string(e.what())));
         }
     }

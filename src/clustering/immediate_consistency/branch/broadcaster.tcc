@@ -61,7 +61,7 @@ typename protocol_t::read_response_t listener_read(
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
+typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token) THROWS_ONLY(cannot_perform_query_exc_t) {
 
     dispatchee_t *reader;
     auto_drainer_t::lock_t reader_lock;
@@ -87,15 +87,12 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
             read, timestamp, enforcer_token,
             reader_lock.get_drain_signal());
     } catch (interrupted_exc_t) {
-        throw mirror_lost_exc_t();
+        throw cannot_perform_query_exc_t("lost contact with mirror during read");
     }
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, UNUSED fifo_enforcer_sink_t::exit_write_t *lock, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
-
-    /* TODO: Make `target_ack_count` configurable */
-    int target_ack_count = 1;
+typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token) THROWS_ONLY(cannot_perform_query_exc_t) {
 
     /* We'll fill `write_wrapper` with the write that we start; we hold it in a
     shared pointer so that it stays alive while we check its `done_promise`. */
@@ -138,7 +135,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             order_sink.check_out(order_token);
 
             write_wrapper = boost::make_shared<incomplete_write_t>(
-                this, write, timestamp, target_ack_count);
+                this, write, timestamp, cb);
             incomplete_writes.push_back(write_wrapper);
 
             /* Create a reference so that `write` doesn't declare itself
@@ -173,15 +170,10 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
                 write_ref.get()->write, write_ref.get()->timestamp, enforcer_tokens[writereader],
                 writereader_lock.get_drain_signal());
         } catch (interrupted_exc_t) {
-            throw mirror_lost_exc_t();
+            throw cannot_perform_query_exc_t("lost contact with designated responder in write");
         }
-        write_ref.get()->notify_acked();
+        write_ref.get()->notify_acked(writereader->get_peer());
     }
-
-    /* Wait until `target_ack_count` has been reached, or until the write is
-    declared impossible because there are too few mirrors. */
-    bool success = write_wrapper->done_promise.wait();
-    if (!success) throw insufficient_mirrors_exc_t();
 
     return resp;
 }
@@ -269,12 +261,14 @@ void broadcaster_t<protocol_t>::dispatchee_t::downgrade(mailbox_addr_t<void()> a
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t) {
+void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t) {
 
     ASSERT_FINITE_CORO_WAITING;
     proof->assert_is_holding(&mutex);
 
-    if (readable_dispatchees.empty()) throw insufficient_mirrors_exc_t();
+    if (readable_dispatchees.empty()) {
+        throw cannot_perform_query_exc_t("no mirrors readable. this is strange because the primary mirror should be always readable.");
+    }
     *dispatchee_out = readable_dispatchees.head();
 
     /* Cycle the readable dispatchees so that the load gets distributed
@@ -294,7 +288,7 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
     } catch (interrupted_exc_t) {
         return;
     }
-    write_ref.get()->notify_acked();
+    write_ref.get()->notify_acked(mirror->get_peer());
 }
 
 template<class protocol_t>

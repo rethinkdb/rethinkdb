@@ -99,7 +99,7 @@ static void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaste
     fake_fifo_enforcement_t enforce;
     memcached_protocol_t::write_t write(set, time(NULL), 12345);
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
-    broadcaster->write(write, &exiter, otok);
+    broadcaster->write(write, &exiter, NULL, otok);
 }
 
 void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
