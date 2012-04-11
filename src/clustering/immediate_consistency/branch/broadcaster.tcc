@@ -1,6 +1,9 @@
 #include "concurrency/coro_fifo.hpp"
+#include "containers/death_runner.hpp"
 
-/* Functions to send a read or write to a mirror and wait for a response. */
+/* Functions to send a read or write to a mirror and wait for a response.
+Important: These functions must send the message before responding to
+`interruptor` being pulsed. */
 
 template<class protocol_t>
 void listener_write(
@@ -61,7 +64,7 @@ typename protocol_t::read_response_t listener_read(
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token) THROWS_ONLY(cannot_perform_query_exc_t) {
+typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
 
     dispatchee_t *reader;
     auto_drainer_t::lock_t reader_lock;
@@ -79,24 +82,34 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
         pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
         timestamp = current_timestamp;
         order_sink.check_out(order_token);
+
+        /* This is safe even if `interruptor` gets pulsed because nothing
+        checks `interruptor` until after we have sent the message. */
         enforcer_token = reader->fifo_source.enter_read();
     }
 
     try {
+        wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
         return listener_read<protocol_t>(mailbox_manager, reader->read_mailbox,
             read, timestamp, enforcer_token,
-            reader_lock.get_drain_signal());
+            &interruptor2);
     } catch (interrupted_exc_t) {
-        throw cannot_perform_query_exc_t("lost contact with mirror during read");
+        if (interruptor->is_pulsed()) {
+            throw;
+        } else {
+            throw cannot_perform_query_exc_t("lost contact with mirror during read");
+        }
     }
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token) THROWS_ONLY(cannot_perform_query_exc_t) {
+typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
 
     /* We'll fill `write_wrapper` with the write that we start; we hold it in a
     shared pointer so that it stays alive while we check its `done_promise`. */
     boost::shared_ptr<incomplete_write_t> write_wrapper;
+
+    death_runner_t dont_let_write_touch_ack_callback_after_exception;
 
     typename protocol_t::write_response_t resp;
 
@@ -138,6 +151,12 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
                 this, write, timestamp, cb);
             incomplete_writes.push_back(write_wrapper);
 
+            /* If there's an exception, this will make sure that the
+            `incomplete_write_t` object doesn't try to access `ack_callback`
+            after we exit. */
+            dont_let_write_touch_ack_callback_after_exception.fun = boost::bind(
+                &incomplete_write_t::dont_touch_ack_callback, write_wrapper.get());
+
             /* Create a reference so that `write` doesn't declare itself
             complete before we've even started */
             write_ref = incomplete_write_ref_t(write_wrapper);
@@ -148,6 +167,10 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             writers = dispatchees;
             for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
                     it != dispatchees.end(); it++) {
+                /* Once we call `enter_write()`, we have committed to sending
+                the write to every dispatchee. In particular, it's important
+                that we don't check `interruptor` until the write is on its way
+                to every dispatchee. */
                 enforcer_tokens[(*it).first] = (*it).first->fifo_source.enter_write();
             }
         }
@@ -166,14 +189,24 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
         /* ... then dispatch it to the writereader */
         try {
+            wait_any_t interruptor2(writereader_lock.get_drain_signal(), interruptor);
             resp = listener_writeread<protocol_t>(mailbox_manager, writereader->writeread_mailbox,
                 write_ref.get()->write, write_ref.get()->timestamp, enforcer_tokens[writereader],
-                writereader_lock.get_drain_signal());
+                &interruptor2);
         } catch (interrupted_exc_t) {
-            throw cannot_perform_query_exc_t("lost contact with designated responder in write");
+            if (interruptor->is_pulsed()) {
+                throw;
+            } else {
+                throw cannot_perform_query_exc_t("lost contact with designated responder in write");
+            }
         }
         write_ref.get()->notify_acked(writereader->get_peer());
     }
+
+    wait_interruptible(write_wrapper->done_promise.get_ready_signal(), interruptor);
+    if (!write_wrapper->done_promise.get_value()) {
+        throw cannot_perform_query_exc_t("insufficient mirrors to meet desired ack count");
+    } 
 
     return resp;
 }

@@ -98,24 +98,18 @@ public:
         bootstrap_store = initial_store;
     }
 
-    // lock shall be reset by this function _before_ auto_drainer_lock is reset.
-    typename protocol_t::read_response_t read(typename protocol_t::read_t r, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok) THROWS_ONLY(cannot_perform_query_exc_t);
+    typename protocol_t::read_response_t read(typename protocol_t::read_t r, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
     class ack_callback_t {
     public:
-        /* `on_ack()` and `on_done()` must not block. */
-
-        /* The return value becomes the new ack callback. The main use case for
-        this is returning `NULL` when you don't want any more notifications. */
-        virtual ack_callback_t *on_ack(peer_id_t peer) = 0;
-        virtual void on_done() = 0;
+        /* If the return value is `true`, then `write()` will return. */
+        virtual bool on_ack(peer_id_t peer) = 0;
 
     protected:
         virtual ~ack_callback_t() { }
     };
 
-    // lock shall be reset by this function _before_ auto_drainer_lock is reset.
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t tok) THROWS_ONLY(cannot_perform_query_exc_t);
+    typename protocol_t::write_response_t write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
     branch_id_t get_branch_id() {
         return branch_id;
@@ -143,25 +137,35 @@ private:
             parent(p), incomplete_count(0),
             ack_callback(cb)
         {
+            rassert(ack_callback);
         }
 
         void notify_acked(peer_id_t peer) {
-            if (ack_callback) {
-                ack_callback = ack_callback->on_ack(peer);
+            if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
+                if (ack_callback->on_ack(peer)) {
+                    done_promise.pulse(true);
+                }
             }
         }
 
         void notify_no_more_acks() {
-            if (ack_callback) {
-                ack_callback->on_done();
-            }        
+            if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
+                done_promise.pulse(false);
+            }
+        }
+
+        /* This is called if `write()` gets interrupted and it's no longer
+        safe to access `ack_callback`. If this is called, `done_promise`
+        won't get pulsed unless it already is. */
+        void dont_touch_ack_callback() {
+            ack_callback = NULL;
         }
 
         typename protocol_t::write_t write;
         transition_timestamp_t timestamp;
 
-        /* `done_promise` gets pulsed with `true` when `target_ack_count` is
-        reached, or pulsed with `false` if it will never be reached. */
+        /* `done_promise` gets pulsed with `true` when `ack_callback` is
+        satisfied, or with `false` if it will never be satisfied. */
         promise_t<bool> done_promise;
 
     private:

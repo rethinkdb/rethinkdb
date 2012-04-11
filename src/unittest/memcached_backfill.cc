@@ -99,7 +99,14 @@ static void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaste
     fake_fifo_enforcement_t enforce;
     memcached_protocol_t::write_t write(set, time(NULL), 12345);
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
-    broadcaster->write(write, &exiter, NULL, otok);
+    class : public broadcaster_t<memcached_protocol_t>::ack_callback_t {
+    public:
+        bool on_ack(peer_id_t) {
+            return true;
+        }
+    } ack_callback;
+    cond_t non_interruptor;
+    broadcaster->write(write, &exiter, &ack_callback, otok, &non_interruptor);
 }
 
 void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
@@ -163,8 +170,9 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
         memcached_protocol_t::read_t read(get, time(NULL));
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
+        cond_t non_interruptor;
         memcached_protocol_t::read_response_t response =
-            broadcaster->get()->read(read, &exiter, order_source.check_in("unittest"));
+            broadcaster->get()->read(read, &exiter, order_source.check_in("unittest"), &non_interruptor);
         get_result_t get_result = boost::get<get_result_t>(response.result);
         EXPECT_TRUE(get_result.value.get() != NULL);
         EXPECT_EQ(it->second.size(), get_result.value->size());

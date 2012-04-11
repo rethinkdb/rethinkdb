@@ -64,7 +64,7 @@ static void run_read_write_test() {
     mutex_assertion_t master_directory_lock;
 
     /* Set up a master */
-    master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &master_directory, &master_directory_lock, a_thru_z_region(), &broadcaster);
+    master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), NULL, &master_directory, &master_directory_lock, a_thru_z_region(), &broadcaster);
 
     /* Set up a namespace dispatcher */
     cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(

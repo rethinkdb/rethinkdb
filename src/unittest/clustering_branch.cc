@@ -110,7 +110,14 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
         dummy_protocol_t::write_t w;
         std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = values_inserted[key] = strprintf("%d", i);
-        (*broadcaster)->write(w, &exiter, NULL, order_source.check_in("unittest"));
+        class : public broadcaster_t<dummy_protocol_t>::ack_callback_t {
+        public:
+            bool on_ack(peer_id_t) {
+                return true;
+            }
+        } ack_callback;
+        cond_t non_interruptor;
+        (*broadcaster)->write(w, &exiter, &ack_callback, order_source.check_in("unittest"), &non_interruptor);
     }
 
     /* Now send some reads */
@@ -121,7 +128,8 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
 
         dummy_protocol_t::read_t r;
         r.keys.keys.insert((*it).first);
-        dummy_protocol_t::read_response_t resp = (*broadcaster)->read(r, &exiter, order_source.check_in("unittest"));
+        cond_t non_interruptor;
+        dummy_protocol_t::read_response_t resp = (*broadcaster)->read(r, &exiter, order_source.check_in("unittest"), &non_interruptor);
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }
@@ -139,7 +147,14 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
     dummy_protocol_t::write_t w;
     w.values[key] = value;
-    broadcaster->write(w, &exiter, NULL, otok);
+    class : public broadcaster_t<dummy_protocol_t>::ack_callback_t {
+    public:
+        bool on_ack(peer_id_t) {
+            return true;
+        }
+    } ack_callback;
+    cond_t non_interruptor;
+    broadcaster->write(w, &exiter, &ack_callback, otok, &non_interruptor);
 }
 
 void run_backfill_test(simple_mailbox_cluster_t *cluster,
