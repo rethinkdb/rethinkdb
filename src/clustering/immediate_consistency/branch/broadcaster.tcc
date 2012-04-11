@@ -61,7 +61,7 @@ typename protocol_t::read_response_t listener_read(
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, fifo_enforcer_sink_t::exit_read_t *lock, auto_drainer_t::lock_t *auto_drainer_lock, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
+typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
 
     dispatchee_t *reader;
     auto_drainer_t::lock_t reader_lock;
@@ -75,7 +75,6 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
         // gotten in line.
         mutex_t::acq_t mutex_acq(&mutex);
         lock->reset();
-        auto_drainer_lock->reset();
 
         pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
         timestamp = current_timestamp;
@@ -93,7 +92,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, UNUSED fifo_enforcer_sink_t::exit_write_t *lock, auto_drainer_t::lock_t *auto_drainer_lock, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
+typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, UNUSED fifo_enforcer_sink_t::exit_write_t *lock, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
 
     /* TODO: Make `target_ack_count` configurable */
     int target_ack_count = 1;
@@ -131,7 +130,6 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             that are starting or with new dispatchees that are joining. */
             mutex_t::acq_t mutex_acq(&mutex);
             lock->reset();
-            auto_drainer_lock->reset();
 
             ASSERT_FINITE_CORO_WAITING;
 

@@ -6,15 +6,6 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 
-/* TODO: Right now we rely on the network to deliver messages from the parsers
-to the `master_t` in the same order as the client sent them to the parsers. This
-might not be a valid assumption. Consider using a FIFO enforcer or something.
-Also, we need a way for the `master_t` to hand off the operations to the
-`broadcaster_t` while preserving order. The current method of "call a blocking
-function" doesn't cut it because we need to be able to run multiple reads and
-writes simultaneously in different coroutines and also guarantee order between
-them. */
-
 template<class protocol_t>
 class master_t {
 public:
@@ -86,11 +77,11 @@ private:
             // TODO: Remove this assertion.  Out-of-order operations (which allegedly can happen) could cause it to be wrong?
             rassert(it != sink_map.end());
 
-            auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
             typename protocol_t::read_response_t response;
             {
+                auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
                 fifo_enforcer_sink_t::exit_read_t exiter(it->second->sink(), token);
-                response = broadcaster->read(read, &exiter, &auto_drainer_lock, otok);
+                response = broadcaster->read(read, &exiter, otok);
             }
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(response));
         } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {
@@ -111,11 +102,11 @@ private:
             // TODO: Remove this assertion.  Out-of-order operations (which allegedly can hoppen) could cause it to be wrong?
             rassert(it != sink_map.end());
 
-            auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
             typename protocol_t::write_response_t response;
             {
+                auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
                 fifo_enforcer_sink_t::exit_write_t exiter(it->second->sink(), token);
-                response = broadcaster->write(write, &exiter, &auto_drainer_lock, otok);
+                response = broadcaster->write(write, &exiter, otok);
             }
             send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(response));
         } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {
