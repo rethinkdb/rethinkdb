@@ -89,7 +89,6 @@ void mock_buf_lock_t::release() {
     internal_buf->lock.unlock();
     if (deleted) internal_buf->destroy();
     acquired = false;
-    delete this;
 }
 
 void mock_buf_lock_t::release_if_acquired() {
@@ -134,13 +133,15 @@ mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, a
 }
 
 mock_buf_lock_t::~mock_buf_lock_t() {
+    release_if_acquired();
 }
 
 mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn) :
     internal_buf(NULL),
     access(txn->access),
     dirty(false),
-    deleted(false)
+    deleted(false),
+    acquired(true)
 {
     rassert(access == rwi_write);
     
