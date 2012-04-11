@@ -329,6 +329,19 @@ module 'ClusterView', ->
                     stuff.datacenter_name = 'N/A'
             else
                 stuff.datacenter_name = "Unassigned"
+
+            # primary and secondary counts
+            stuff.primary_count = 0
+            stuff.secondary_count = 0
+            for namespace in namespaces.models
+                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
+                    if machine_uuid is @model.get('id')
+                        for shard, role of peer_role
+                            if role is 'role_primary'
+                                stuff.primary_count += 1
+                            if role is 'role_secondary'
+                                stuff.secondary_count += 1
+
             return stuff
 
     class @AbstractModal extends Backbone.View
