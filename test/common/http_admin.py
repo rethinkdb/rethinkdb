@@ -155,6 +155,7 @@ class Namespace(object):
         self.blueprint = Blueprint(json_data[u"blueprint"])
         self.primary_uuid = None if json_data[u"primary_uuid"] is None else validate_uuid(json_data[u"primary_uuid"])
         self.replica_affinities = json_data[u"replica_affinities"]
+        self.ack_expectations = json_data[u"ack_expectations"]
         self.shards = self.parse_shards(json_data[u"shards"])
         self.name = json_data[u"name"]
         self.port = json_data[u"port"]
@@ -162,7 +163,14 @@ class Namespace(object):
         self.secondary_pinnings = json_data[u"secondary_pinnings"]
 
     def check(self, data):
-        return data[u"name"] == self.name and data[u"primary_uuid"] == self.primary_uuid and data[u"replica_affinities"] == self.replica_affinities and self.parse_shards(data[u"shards"]) == self.shards and data[u"port"] == self.port
+        return data[u"name"] == self.name and \
+            data[u"primary_uuid"] == self.primary_uuid and \
+            data[u"replica_affinities"] == self.replica_affinities and \
+            data[u"ack_expectations"] == self.ack_expectations and \
+            self.parse_shards(data[u"shards"]) == self.shards and \
+            data[u"port"] == self.port and \
+            data[u"primary_pinnings"] == self.primary_pinnings and \
+            data[u"secondary_pinnings"] == self.secondary_pinnings
 
     def to_json(self):
         return {
@@ -170,6 +178,7 @@ class Namespace(object):
             unicode("name"): self.name,
             unicode("primary_uuid"): self.primary_uuid,
             unicode("replica_affinities"): self.replica_affinities,
+            unicode("ack_expectations"): self.ack_expectations,
             unicode("shards"): self.shards_to_json(),
             unicode("port"): self.port,
             unicode("primary_pinnings"): self.primary_pinnings,
