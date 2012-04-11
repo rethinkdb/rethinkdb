@@ -312,10 +312,11 @@ module 'ClusterView', ->
         json_for_template: =>
             stuff = super()
             # status
-            stuff.status = "Unreachable"
-            directory.each (m) =>
-                if m.get('id') is @model.get('id')
-                    stuff.status = "Reachable"
+            stuff.reachable = directory.get(@model.get('id'))?
+            if not stuff.reachable
+                last_seen = machines.get(@model.get('id')).get('last_seen')
+                if last_seen
+                    stuff.last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
 
             # ip
             stuff.ip = "TBD"
@@ -472,15 +473,15 @@ module 'ClusterView', ->
                                 type: @item_type
                                 old_name: old_name
                                 new_name: formdata.new_name
-                            
+
                             # Call custom success function
                             if @on_success?
                                 @on_success response
 
-            super validator_options, 
+            super validator_options,
                 type: @item_type
                 old_name: @get_item_object().get('name')
-    
+
     class @AddDatacenterModal extends @AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_datacenter-alert-template').html()
