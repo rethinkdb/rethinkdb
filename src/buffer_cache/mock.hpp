@@ -153,7 +153,7 @@ private:
     // throttling is supposed to do in the real buffer cache.
     coro_fifo_t write_operation_random_delay_fifo;
 
-    segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> bufs;
+    boost::scoped_ptr< segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> > bufs;
 
     coro_fifo_t transaction_constructor_coro_fifo_;
 };
