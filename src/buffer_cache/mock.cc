@@ -92,6 +92,12 @@ void mock_buf_lock_t::release() {
     delete this;
 }
 
+void mock_buf_lock_t::release_if_acquired() {
+    if (is_acquired()) {
+        release();
+    }
+}
+
 // TODO: Add notiont of recency_dirty
 bool mock_buf_lock_t::is_deleted() const {
     return deleted;
