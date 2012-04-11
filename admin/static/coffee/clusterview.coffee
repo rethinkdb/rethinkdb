@@ -294,6 +294,21 @@ module 'ClusterView', ->
                 stuff.reachable = 'N/A'
                 stuff.status = 'N/A'
 
+            # primary, secondary, and namespace counts
+            stuff.primary_count = 0
+            stuff.secondary_count = 0
+            _namespaces = []
+            for namespace in namespaces.models
+                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
+                    if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
+                        _namespaces[_namespaces.length] = namespace
+                        for shard, role of peer_role
+                            if role is 'role_primary'
+                                stuff.primary_count += 1
+                            if role is 'role_secondary'
+                                stuff.secondary_count += 1
+            stuff.namespace_count = _.uniq(_namespaces).length
+
             return stuff
 
     # Machine list element
@@ -330,17 +345,20 @@ module 'ClusterView', ->
             else
                 stuff.datacenter_name = "Unassigned"
 
-            # primary and secondary counts
+            # primary, secondary, and namespace counts
             stuff.primary_count = 0
             stuff.secondary_count = 0
+            _namespaces = []
             for namespace in namespaces.models
                 for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
                     if machine_uuid is @model.get('id')
+                        _namespaces[_namespaces.length] = namespace
                         for shard, role of peer_role
                             if role is 'role_primary'
                                 stuff.primary_count += 1
                             if role is 'role_secondary'
                                 stuff.secondary_count += 1
+            stuff.namespace_count = _.uniq(_namespaces).length
 
             return stuff
 
