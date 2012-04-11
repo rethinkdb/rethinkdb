@@ -309,6 +309,19 @@ module 'ClusterView', ->
                                 stuff.secondary_count += 1
             stuff.namespace_count = _.uniq(_namespaces).length
 
+            # last_seen - go through the machines in the datacenter,
+            # and find last one down
+            if not stuff.reachable and stuff.total > 0
+                for machine in machines.models
+                    if machine.get('datacenter_uuid') is @model.get('id')
+                        _last_seen = machine.get('last_seen')
+                        if last_seen
+                            if _last_seen > last_seen
+                                last_seen = _last_seen
+                        else
+                            last_seen = _last_seen
+                stuff.last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
+
             return stuff
 
     # Machine list element
