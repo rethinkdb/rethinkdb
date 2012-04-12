@@ -554,6 +554,7 @@ std::pair<int, int> traversal_progress_t::numerator_and_denominator() {
         total_released_nodes += released[i];
     }
 
+    debugf("released: %d, total: %d\n", total_released_nodes, estimate_of_total_nodes);
     return std::make_pair(total_released_nodes, estimate_of_total_nodes);
 }
 
@@ -567,7 +568,7 @@ void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
 float traversal_progress_combiner_t::guess_completion() {
     debugf("Guessing completion.\n");
     on_thread_t(home_thread());
-    int numerator, denominator;
+    int numerator = 0, denominator = 0;
     for (std::vector<traversal_progress_t *>::iterator it  = constituents.begin();
                                                        it != constituents.end();
                                                        ++it) {
