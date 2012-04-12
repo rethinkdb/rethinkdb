@@ -152,7 +152,7 @@ public:
     float guess_completion();
 
 private:
-    std::vector<traversal_progress_t *> constituents;
+    boost::ptr_vector<traversal_progress_t> constituents;
 };
 
 #endif  // BTREE_PARALLEL_TRAVERSAL_HPP_

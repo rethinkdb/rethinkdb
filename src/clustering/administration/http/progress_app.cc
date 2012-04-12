@@ -15,7 +15,6 @@ template <class protocol_t>
 class get_backfiller_business_card_t : public boost::static_visitor<boost::optional<backfiller_business_card_t<protocol_t> > > {
 public:
     boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::primary_t &primary) const {
-        debugf("primary\n");
         if (primary.replier) {
             return primary.replier->backfiller_bcard;
         } else {
@@ -24,38 +23,31 @@ public:
     }
 
     boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::primary_when_safe_t &) const {
-        debugf("primary when safe\n");
         return boost::optional<backfiller_business_card_t<protocol_t> >();
     }
 
 
     boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t &secondary_up_to_date) const {
-        debugf("secondary up to date\n");
         return secondary_up_to_date.replier.backfiller_bcard;
     }
 
     boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::secondary_without_primary_t &secondary_without_primary) const {
-        debugf("secondary without primary\n");
         return secondary_without_primary.backfiller;
     }
 
     boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::secondary_backfilling_t &) const {
-        debugf("secondary backfilling\n");
         return boost::optional<backfiller_business_card_t<protocol_t> >();
     }
 
     boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::nothing_when_safe_t &nothing_when_safe) const {
-        debugf("nothing when safe\n");
         return nothing_when_safe.backfiller;
     }
 
     boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::nothing_t &) const {
-        debugf("nothing\n");
         return boost::optional<backfiller_business_card_t<protocol_t> >();
     }
 
     boost::optional<backfiller_business_card_t<protocol_t> > operator()(const typename reactor_business_card_t<protocol_t>::nothing_when_done_erasing_t &) const {
-        debugf("nothing when done erasing\n");
         return boost::optional<backfiller_business_card_t<protocol_t> >();
     }
 };
@@ -127,20 +119,40 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
 
                             for (std::vector<reactor_business_card_details::backfill_location_t>::iterator b_it  = primary_when_safe->backfills_waited_on.begin();
                                                                                                            b_it != primary_when_safe->backfills_waited_on.end();
-                                                                                                           ++it) {
-                                promise_t<float> value;
-                                mailbox_t<void(float)> resp_mbox(mbox_manager, boost::bind(&promise_t<float>::pulse, &value, _1));
+                                                                                                           ++b_it) {
+                                namespaces_directory_metadata_t<memcached_protocol_t> namespaces_directory_metadata = directory_metadata->get_value(b_it->peer_id).get().memcached_namespaces;
+
+                                if (!std_contains(namespaces_directory_metadata.reactor_bcards, n_it->first)) {
+                                    debugf("Reactor bcard not found\n");
+                                    continue;
+                                }
+
+                                if (!std_contains(namespaces_directory_metadata.reactor_bcards[n_it->first].internal.activities, b_it->activity_id)) {
+                                    debugf("Activity id not found\n");
+                                    continue;
+                                }
 
                                 std::pair<memcached_protocol_t::region_t, reactor_business_card_t<memcached_protocol_t>::activity_t> region_activity_pair = 
-                                    directory_metadata->get_value(b_it->peer_id).get().memcached_namespaces.reactor_bcards[n_it->first].internal.activities[b_it->activity_id];
+                                    namespaces_directory_metadata.reactor_bcards[n_it->first].internal.activities[b_it->activity_id];
 
                                 boost::optional<backfiller_business_card_t<memcached_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<memcached_protocol_t>(), region_activity_pair.second);
                                 if (backfiller) {
+                                    promise_t<float> value;
+                                    mailbox_t<void(float)> resp_mbox(mbox_manager, boost::bind(&promise_t<float>::pulse, &value, _1));
+
                                     send(mbox_manager, backfiller->request_progress_mailbox, b_it->backfill_session_id, resp_mbox.get_address());
                                     //TODO this needs a timeout, and an interruptor
-                                    float response = value.wait();
+                                    
+                                    signal_timer_t timer(500);
+                                    wait_any_t waiter(&timer, value.get_ready_signal());
 
-                                    cJSON_AddItemToObject(backfills, get_string(render_as_json(&region_activity_pair.first, 0)).c_str(), cJSON_CreateNumber(response));
+                                    waiter.wait();
+                                    if (value.get_ready_signal()->is_pulsed()) {
+                                        float response = value.wait();
+                                        cJSON_AddItemToObject(backfills, get_string(render_as_json(&region_activity_pair.first, 0)).c_str(), cJSON_CreateNumber(response));
+                                    } else {
+                                        cJSON_AddItemToObject(backfills, get_string(render_as_json(&region_activity_pair.first, 0)).c_str(), cJSON_CreateString("Timeout"));
+                                    }
                                 } else {
                                     cJSON_AddItemToObject(backfills, get_string(render_as_json(&region_activity_pair.first, 0)).c_str(), cJSON_CreateString("backfiller not found"));
                                 }
@@ -156,33 +168,36 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                             cJSON *backfills= cJSON_CreateObject();
                             cJSON_AddItemToObject(namespace_info, get_string(render_as_json(&a_it->second.first, 0)).c_str(), backfills);
 
-                            promise_t<float> value;
-                            mailbox_t<void(float)> resp_mbox(mbox_manager, boost::bind(&promise_t<float>::pulse, &value, _1));
-
                             namespaces_directory_metadata_t<memcached_protocol_t> namespaces_directory_metadata = directory_metadata->get_value(b_loc.peer_id).get().memcached_namespaces;
 
                             if (!std_contains(namespaces_directory_metadata.reactor_bcards, n_it->first)) {
-                                debugf("Peer does not have reactors for this namespaces\n");
                                 continue;
                             }
 
                             if (!std_contains(namespaces_directory_metadata.reactor_bcards[n_it->first].internal.activities, b_loc.activity_id)) {
-                                debugf("The peer has a reactor but it lacks this activity id: %s\n", uuid_to_str(b_loc.activity_id).c_str());
                                 continue;
                             }
 
                             std::pair<memcached_protocol_t::region_t, reactor_business_card_t<memcached_protocol_t>::activity_t> region_activity_pair = 
-                                directory_metadata->get_value(b_loc.peer_id).get().memcached_namespaces.reactor_bcards[n_it->first].internal.activities[b_loc.activity_id];
+                                namespaces_directory_metadata.reactor_bcards[n_it->first].internal.activities[b_loc.activity_id];
 
                             boost::optional<backfiller_business_card_t<memcached_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<memcached_protocol_t>(), region_activity_pair.second);
                             if (backfiller) {
-                                debugf("Sending messages\n");
-                                send(mbox_manager, backfiller->request_progress_mailbox, b_loc.backfill_session_id, resp_mbox.get_address());
-                                //TODO this needs a timeout, and an interruptor
-                                float response = value.wait();
-                                debugf("Got response\n");
+                                promise_t<float> value;
+                                mailbox_t<void(float)> resp_mbox(mbox_manager, boost::bind(&promise_t<float>::pulse, &value, _1));
 
-                                cJSON_AddItemToObject(backfills, get_string(render_as_json(&region_activity_pair.first, 0)).c_str(), cJSON_CreateNumber(response));
+                                send(mbox_manager, backfiller->request_progress_mailbox, b_loc.backfill_session_id, resp_mbox.get_address());
+
+                                signal_timer_t timer(500);
+                                wait_any_t waiter(&timer, value.get_ready_signal());
+
+                                waiter.wait();
+                                if (value.get_ready_signal()->is_pulsed()) {
+                                    float response = value.wait();
+                                    cJSON_AddItemToObject(backfills, get_string(render_as_json(&region_activity_pair.first, 0)).c_str(), cJSON_CreateNumber(response));
+                                } else {
+                                    cJSON_AddItemToObject(backfills, get_string(render_as_json(&region_activity_pair.first, 0)).c_str(), cJSON_CreateString("Timeout"));
+                                }
                             } else {
                                 cJSON_AddItemToObject(backfills, get_string(render_as_json(&region_activity_pair.first, 0)).c_str(), cJSON_CreateString("backfiller not found"));
                             }

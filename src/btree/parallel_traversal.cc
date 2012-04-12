@@ -569,11 +569,11 @@ float traversal_progress_combiner_t::guess_completion() {
     debugf("Guessing completion.\n");
     on_thread_t(home_thread());
     int numerator = 0, denominator = 0;
-    for (std::vector<traversal_progress_t *>::iterator it  = constituents.begin();
-                                                       it != constituents.end();
-                                                       ++it) {
-        debugf("this: %p, Using consitituent: %p\n", this, *it);
-        std::pair<int, int> n_and_d = (*it)->numerator_and_denominator();
+    for (boost::ptr_vector<traversal_progress_t>::iterator it  = constituents.begin();
+                                                           it != constituents.end();
+                                                           ++it) {
+        debugf("this: %p, Using consitituent: %p\n", this, &*it);
+        std::pair<int, int> n_and_d = it->numerator_and_denominator();
         if (n_and_d.first == -1) {
             return 0.0f;
         }
