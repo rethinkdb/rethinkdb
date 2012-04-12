@@ -374,11 +374,7 @@ module 'ClusterView', ->
         json_for_template: =>
             stuff = super()
             # status
-            stuff.reachable = directory.get(@model.get('id'))?
-            if not stuff.reachable
-                last_seen = machines.get(@model.get('id')).get('last_seen')
-                if last_seen
-                    stuff.last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
+            _.extend stuff, DataUtils.get_machine_reachability(@model.get('id'))
 
             # ip
             stuff.ip = "TBD"

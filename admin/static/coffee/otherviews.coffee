@@ -125,8 +125,12 @@ module 'MachineView', ->
                 for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
                     if machine_uuid is @model.get('id')
                         for shard, role of peer_roles
+                            human_readable_role = (role) ->
+                                if role is 'role_primary' then return 'master'
+                                if role is 'role_secondary' then return 'replica'
+                                return role
                             _shards[_shards.length] =
-                                role: role.replace(/^role_/, '')
+                                role: human_readable_role(role)
                                 shard: shard
                                 name: human_readable_shard shard
                 if _shards.length > 0
@@ -138,6 +142,9 @@ module 'MachineView', ->
             json = _.extend json,
                 data:
                     namespaces: _namespaces
+
+            # Reachability
+            _.extend json, DataUtils.get_machine_reachability(@model.get('id'))
 
             @.$el.html @template json
 
