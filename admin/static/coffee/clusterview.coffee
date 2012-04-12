@@ -261,6 +261,40 @@ module 'ClusterView', ->
             log_initial '(initializing) list view: namespace'
             super @template
 
+        json_for_template: =>
+            stuff = super()
+
+            stuff.nshards = 0
+            stuff.nreplicas = 0
+            stuff.nashards = 0
+            stuff.nareplicas = 0
+
+            _machines = []
+            _datacenters = []
+
+            for machine_uuid, role of @model.get('blueprint').peers_roles
+                peer_accessible = directory.get(machine_uuid)
+                _machines[_machines.length] = machine_uuid
+                _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
+                for shard, role_name of role
+                    if role_name is 'role_primary'
+                        stuff.nshards += 1
+                        if peer_accessible?
+                            stuff.nashards += 1
+                    if role_name is 'role_secondary'
+                        stuff.nreplicas += 1
+                        if peer_accessible?
+                            stuff.nareplicas += 1
+
+            stuff.nmachines = _.uniq(_machines).length
+            stuff.ndatacenters = _.uniq(_datacenters).length
+            if stuff.nshards is stuff.nashards
+                stuff.reachability = 'Live'
+            else
+                stuff.reachability = 'Down'
+
+            return stuff
+
     # Datacenter list element
     class @DatacenterListElement extends @AbstractListElement
         template: Handlebars.compile $('#cluster_view-datacenter_list_element-template').html()
@@ -294,6 +328,34 @@ module 'ClusterView', ->
                 stuff.reachable = 'N/A'
                 stuff.status = 'N/A'
 
+            # primary, secondary, and namespace counts
+            stuff.primary_count = 0
+            stuff.secondary_count = 0
+            _namespaces = []
+            for namespace in namespaces.models
+                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
+                    if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
+                        _namespaces[_namespaces.length] = namespace
+                        for shard, role of peer_role
+                            if role is 'role_primary'
+                                stuff.primary_count += 1
+                            if role is 'role_secondary'
+                                stuff.secondary_count += 1
+            stuff.namespace_count = _.uniq(_namespaces).length
+
+            # last_seen - go through the machines in the datacenter,
+            # and find last one down
+            if not stuff.reachable and stuff.total > 0
+                for machine in machines.models
+                    if machine.get('datacenter_uuid') is @model.get('id')
+                        _last_seen = machine.get('last_seen')
+                        if last_seen
+                            if _last_seen > last_seen
+                                last_seen = _last_seen
+                        else
+                            last_seen = _last_seen
+                stuff.last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
+
             return stuff
 
     # Machine list element
@@ -312,10 +374,11 @@ module 'ClusterView', ->
         json_for_template: =>
             stuff = super()
             # status
-            stuff.status = "Unreachable"
-            directory.each (m) =>
-                if m.get('id') is @model.get('id')
-                    stuff.status = "Reachable"
+            stuff.reachable = directory.get(@model.get('id'))?
+            if not stuff.reachable
+                last_seen = machines.get(@model.get('id')).get('last_seen')
+                if last_seen
+                    stuff.last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
 
             # ip
             stuff.ip = "TBD"
@@ -328,6 +391,22 @@ module 'ClusterView', ->
                     stuff.datacenter_name = 'N/A'
             else
                 stuff.datacenter_name = "Unassigned"
+
+            # primary, secondary, and namespace counts
+            stuff.primary_count = 0
+            stuff.secondary_count = 0
+            _namespaces = []
+            for namespace in namespaces.models
+                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
+                    if machine_uuid is @model.get('id')
+                        _namespaces[_namespaces.length] = namespace
+                        for shard, role of peer_role
+                            if role is 'role_primary'
+                                stuff.primary_count += 1
+                            if role is 'role_secondary'
+                                stuff.secondary_count += 1
+            stuff.namespace_count = _.uniq(_namespaces).length
+
             return stuff
 
     class @AbstractModal extends Backbone.View
@@ -472,15 +551,15 @@ module 'ClusterView', ->
                                 type: @item_type
                                 old_name: old_name
                                 new_name: formdata.new_name
-                            
+
                             # Call custom success function
                             if @on_success?
                                 @on_success response
 
-            super validator_options, 
+            super validator_options,
                 type: @item_type
                 old_name: @get_item_object().get('name')
-    
+
     class @AddDatacenterModal extends @AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_datacenter-alert-template').html()

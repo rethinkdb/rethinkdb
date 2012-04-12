@@ -424,15 +424,15 @@ module 'ResolveIssuesView', ->
                                 success: set_issues
                                 async: false
 
-                            # remove the dead machine from the models
-                            machines.remove(machine_to_kill.id)
-
                             # rerender issue view (just the issues, not the whole thing)
                             window.app.resolve_issues_view.render_issues()
 
                             # notify the user that we succeeded
                             $('#user-alert-space').append @alert_tmpl
                                 machine_name: machine_to_kill.get("name")
+
+                            # remove the dead machine from the models (this must be last)
+                            machines.remove(machine_to_kill.id)
 
             super validator_options, { 'machine_name': machine_to_kill.get("name") }
 
@@ -559,7 +559,14 @@ module 'ResolveIssuesView', ->
             json =
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
+                machine_name: machines.get(@model.get('location')).get('name')
+                machine_uuid: @model.get('location')
             @.$el.html _template(json)
+            # Declare machine dead handler
+            @.$('p a.btn').off "click"
+            @.$('p a.btn').click =>
+                declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
+                declare_dead_modal.render machines.get(@model.get('location'))
 
         render_vclock_conflict: (_template) ->
             get_resolution_url = =>

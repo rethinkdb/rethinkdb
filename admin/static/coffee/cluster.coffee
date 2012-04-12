@@ -126,7 +126,7 @@ class NavBarView extends Backbone.View
         $(window.app_events).on "on_ready", =>
             # Render every time the route changes
             window.app.on "all", @render
-    
+
     init_typeahead: ->
         $('input.search-query').typeahead
             source: (typeahead, query) ->
@@ -161,12 +161,12 @@ class NavBarView extends Backbone.View
                 $('ul.nav li#nav-datacenters').addClass('active')
             else if route is 'route:index_machines'
                 $('ul.nav li#nav-machines').addClass('active')
-        
+
         if @first_render?
             # Initialize typeahead
             @init_typeahead()
             @first_render = false
-        
+
         return @
 
 # Router for Backbone.js
@@ -367,6 +367,13 @@ set_directory = (attributes_from_server) ->
         dir_machines[dir_machines.length] = value
     directory.reset(dir_machines)
 
+set_last_seen = (last_seen) ->
+    # Expand machines model with this data
+    for machine_uuid, timestamp of last_seen
+        _m = machines.get machine_uuid
+        if _m
+            _m.set('last_seen', timestamp)
+
 $ ->
     bind_dev_tools()
 
@@ -400,6 +407,7 @@ $ ->
             $.getJSON('/ajax', apply_diffs)
             $.getJSON('/ajax/issues', set_issues)
             $.getJSON('/ajax/directory', set_directory)
+            $.getJSON('/ajax/last_seen', set_last_seen)
         else
             legacy_sync method, model, success, error
 
@@ -422,6 +430,7 @@ $ ->
     $.getJSON('/ajax', apply_diffs)
     $.getJSON('/ajax/issues', set_issues)
     $.getJSON('/ajax/directory', set_directory)
+    $.getJSON('/ajax/last_seen', set_last_seen)
 
     # Set up common DOM behavior
     $('.modal').modal
