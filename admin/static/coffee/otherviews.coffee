@@ -97,9 +97,11 @@ module 'MachineView', ->
 
         initialize: ->
             log_initial '(initializing) machine view: container'
+            @model.on 'all', @render
+            if directory.get(@model.get('id'))
+                directory.get(@model.get('id')).on 'all', @render
 
             #@model.on 'change', @update_meters
-
             #setInterval @update_sparklines, @cpu_sparkline.update_interval
             #setInterval @update_graphs, @performance_graph.update_interval
 
@@ -147,6 +149,12 @@ module 'MachineView', ->
             _.extend json, DataUtils.get_machine_reachability(@model.get('id'))
 
             @.$el.html @template json
+
+            # Hook our events
+            @.$('a.set-datacenter').click (event) =>
+                event.preventDefault()
+                set_datacenter_modal = new ClusterView.SetDatacenterModal
+                set_datacenter_modal.render [@model]
 
             return @
 

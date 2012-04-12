@@ -556,6 +556,7 @@
         <!-- Machine view -->
         <script id="machine_view-container-template" type="text/x-handlebars-template">
             <h1>Machine overview for {{name}}</h1>
+            <div id="user-alert-space"></div>
             <div class="two-panel-section">
               <div class="panel-left">
                 <h3 class="title">Machine profile</h3>
@@ -566,7 +567,7 @@
                     {{else}}
                     Unassigned 
                     {{/if}}
-                    <a class="set-datacenter" href="#">(change)</a>
+                    (<a class="set-datacenter" href="#">change</a>)
                   </p>
                   <p>Status: {{#if reachable}}Reachable{{else}}Unreachable (<abbr class="timeago" title="{{last_seen}}">since {{last_seen}}</abbr>){{/if}}</p>
                   <p>IP address: {{ip}}</p>
@@ -584,6 +585,9 @@
               <div class="two-panel-clear"></div>
             </div>
             <h3 class="title">Data on this machine</h3>
+            {{#unless data.namespaces}}
+            <p>No data found on this machine.</p>
+            {{/unless}}
             <div class="section data">
               {{#each data.namespaces}}
               <div class="namespace">
@@ -867,7 +871,7 @@
         <script id="set_datacenter-alert-template" type="text/x-handlebars-template">
             <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
-                <p>Machine {{machine_name}}'s datacenter was set to {{datacenter_name}}.</p>
+                <p>Set datacenter for machine{{pluralize_noun machine_count}} {{#each machines}}{{name}}{{/each}} to {{datacenter_name}}.</p>
             </div>
         </script>
 

@@ -645,6 +645,7 @@ module 'ClusterView', ->
 
                 submitHandler: =>
                     formdata = form_data_as_object($('form', @$modal))
+                    # TODO: We really should do one ajax request
                     for m in machines_list
                         $.ajax
                             processData: false
@@ -657,11 +658,15 @@ module 'ClusterView', ->
                                 clear_modals()
 
                                 machines.get(m.id).set(response)
-                                #TODO hook this back up
-                                #$('#user-alert-space').append (@alert_tmpl {
-                                #    datacenter_name: datacenters.find((d) -> d.get('id') == response_json.op_result.datacenter_uuid).get('name'),
-                                #    machine_name: m.get('name')
-                                #})
 
+                                # We only have to do this one
+                                if m is machines_list[machines_list.length - 1]
+                                    $('#user-alert-space').append (@alert_tmpl
+                                        datacenter_name: datacenters.get(formdata.datacenter_uuid).get('name')
+                                        machines: _.map(machines_list, (_m) ->
+                                            name: _m.get('name')
+                                        )
+                                        machine_count: machines_list.length
+                                    )
 
             super validator_options, { datacenters: (datacenter.toJSON() for datacenter in datacenters.models) }
