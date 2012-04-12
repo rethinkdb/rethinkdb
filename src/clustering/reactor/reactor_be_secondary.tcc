@@ -48,8 +48,9 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(const typename protoco
 
 template <class protocol_t>
 bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
-                                                         clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > *replier_out) {
+                                                         clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > *replier_out, reactor_activity_id_t *activity_id_out) {
     std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > > backfill_candidates;
+    std::vector<reactor_activity_id_t> activity_ids;
 
     typedef reactor_business_card_t<protocol_t> rb_t;
     typedef std::map<peer_id_t, boost::optional<rb_t> > reactor_directory_t;
@@ -76,6 +77,7 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
                                                          )
                                     )
                             );
+                            activity_ids.push_back(a_it->first);
                         }
                     } else if (const typename rb_t::secondary_up_to_date_t *secondary = boost::get<typename rb_t::secondary_up_to_date_t>(&a_it->second.second)) {
                         if (secondary->branch_id == b_id) {
@@ -83,6 +85,7 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
                                                              subview(optional_monad_lens<replier_business_card_t<protocol_t>, typename rb_t::secondary_up_to_date_t>(
                                                                 field_lens(&rb_t::secondary_up_to_date_t::replier))));
                         }
+                        activity_ids.push_back(a_it->first);
                     }
                 }
             }
@@ -95,7 +98,9 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
     if (backfill_candidates.empty()) {
         return false;
     } else {
-        *replier_out = backfill_candidates[randint(backfill_candidates.size())];
+        int selection = randint(backfill_candidates.size());
+        *replier_out = backfill_candidates[selection];
+        *activity_id_out = activity_ids[selection];
         return true;
     }
 }
@@ -111,6 +116,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
             clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > broadcaster;
             clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > location_to_backfill_from;
             branch_id_t branch_id;
+            reactor_activity_id_t activity_id;
 
             {
                 /* First we construct a backfiller which offers backfills to
@@ -147,7 +153,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 }
                 branch_id = broadcaster_business_card.get().get().branch_id;
 
-                directory_echo_access.get_internal_view()->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::find_replier_in_directory, this, region, branch_id, blueprint, _1, &location_to_backfill_from), interruptor);
+                directory_echo_access.get_internal_view()->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::find_replier_in_directory, this, region, branch_id, blueprint, _1, &location_to_backfill_from, &activity_id), interruptor);
 
                 /* Note, the backfiller goes out of scope here, that's because
                  * we're about to start backfilling from someone else and thus
@@ -161,7 +167,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
 
                 reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id,
                                                                                      location_to_backfill_from->get_peer(),
-                                                                                     directory_entry.get_reactor_activity_id());
+                                                                                     activity_id);
 
                 /* We have found a broadcaster (a master to track) so now we
                  * need to backfill to get up to date. */

@@ -133,6 +133,7 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
         port + 1000,
         semilattice_manager_cluster.get_root_view(),
         directory_manager.get_root_view(),
+        &mailbox_manager,
         &issue_aggregator,
         &last_seen_tracker,
         machine_id,
