@@ -556,45 +556,48 @@
         <!-- Machine view -->
         <script id="machine_view-container-template" type="text/x-handlebars-template">
             <h1>Machine overview for {{name}}</h1>
-            <h3 class="title">System profile</h3>
-            <div class="section summary">
-                <p class="datacenter-name">Datacenter:
+            <div class="two-panel-section">
+              <div class="panel-left">
+                <h3 class="title">Machine profile</h3>
+                <div class="section summary">
+                  <p class="datacenter-name">Datacenter:
                     {{#if assigned_to_datacenter}}
-                        <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
+                    <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
                     {{else}}
-                        Unassigned 
+                    Unassigned 
                     {{/if}}
                     <a class="set-datacenter" href="#">(change)</a>
-                </p>
-                <p>IP address: {{ip}}</p>
-                <p>
+                  </p>
+                  <p>Status: {{reachability}}</p>
+                  <p>IP address: {{ip}}</p>
+                  <p class="uptime">Uptime: {{uptime}}</p>
+                </div>
+              </div>
+              <div class="panel-right">
+                <h3 class="title">Machine resources</h3>
+                <div class="section system-resources">
+                  <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
+                  <p class="ram">RAM:</p>
+                  <p class="disk">Disk:</p>
+                </div>
+              </div>
+              <div class="two-panel-clear"></div>
             </div>
-            <h3 class="title">Resources</h3>
-            <div class="section system-resources">
-                <p class="uptime">Uptime: {{uptime}}</p>
-                <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
-                <p class="ram">RAM:</p>
-                <p class="disk">Disk:</p>
+            <h3 class="title">Data on this machine</h3>
+            <div class="section data">
+              {{#each data.namespaces}}
+              <div class="namespace">
+                <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+                <ul>
+                  {{#each shards}}
+                  <li>{{name}} ({{role}})</li>
+                  {{/each}}
+                </ul>
+              </div>
+              {{/each}}
             </div>
             <h3 class="title">Performance</h3>
             <div class="section performance-graph"></div>
-            <h3 class="title">Data on this machine</h3>
-            <div class="section data">
-                {{#if is_reachable}}
-                    {{#each data.namespaces}}
-                        <div class="namespace">
-                            <h4>Shards on namespace {{name}}:</h4>
-                            <ul>
-                            {{#each shards}}
-                                <li>{{name}}: {{role}}</li>
-                            {{/each}}
-                        </ul>
-                        </div>
-                    {{/each}}
-                {{else}}
-                    <p>This machine cannot be reached.</p>
-                {{/if}}
-            </div>
             <h3 class="title">Recent log entries</h3>
             <div class="section recent-actions"></div>
         </script>

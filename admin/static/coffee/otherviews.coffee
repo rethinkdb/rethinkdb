@@ -107,7 +107,6 @@ module 'MachineView', ->
             log_render '(rendering) machine view: container'
 
             datacenter_uuid = @model.get('datacenter_uuid')
-            directory_listing = directory.get(@model.get('id'))
             json =
                 name: @model.get('name')
                 ip: "192.168.1.#{Math.round(Math.random() * 255)}" # Fake IP, replace with real data TODO
@@ -120,20 +119,26 @@ module 'MachineView', ->
                     datacenter_name: datacenters.get(datacenter_uuid).get('name')
 
             # If the machine is reachable, add relevant json
-            if directory_listing?
-                namespaces_on_this_machine = directory_listing.get('memcached_namespaces').reactor_bcards
-                json = _.extend json,
-                    is_reachable: true
-                    data:
-                        namespaces: _.map(namespaces_on_this_machine, (activity_map, namespace_uuid) ->
-                            name: namespaces.get(namespace_uuid).get('name')
-                            shards: _.map(activity_map["activity_map"], (activity, activity_uuid) ->
-                                role = activity[1]['type']
-                                shard = activity[0]
+            _namespaces = []
+            for namespace in namespaces.models
+                _shards = []
+                for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                    if machine_uuid is @model.get('id')
+                        for shard, role of peer_roles
+                            _shards[_shards.length] =
+                                role: role.replace(/^role_/, '')
+                                shard: shard
                                 name: human_readable_shard shard
-                                status: role
-                            )
-                        )
+                if _shards.length > 0
+                    _namespaces[_namespaces.length] =
+                        shards: _shards
+                        name: namespace.get('name')
+                        uuid: namespace.id
+
+            json = _.extend json,
+                data:
+                    namespaces: _namespaces
+
             @.$el.html @template json
 
             return @

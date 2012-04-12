@@ -609,6 +609,28 @@
     ----------------------------
 */
 .namespace-view, .datacenter-view, .machine-view {
+    .two-panel-section {
+        border-bottom: thin solid #CCC;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        width: 100%;
+        .panel-left {
+            float: left;
+            width: 50%;
+        }
+        .panel-right {
+            float: left;
+        }
+        .two-panel-clear {
+            clear: both;
+        }
+        .section {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+    }
+    
     .section {
         border-bottom: thin solid #CCC;
         padding-bottom: 10px;
@@ -616,6 +638,10 @@
     }
 
     h3.title {
+        margin-bottom: 10px;
+    }
+
+    h1 {
         margin-bottom: 10px;
     }
 }
