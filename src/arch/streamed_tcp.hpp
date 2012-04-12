@@ -84,6 +84,10 @@ public:
         return conn_->is_write_open();
     }
 
+    tcp_conn_t *get_underlying_conn() {
+        return conn_.get();
+    }
+
     void rethread(int new_thread) {
         conn_->rethread(new_thread);
     }
