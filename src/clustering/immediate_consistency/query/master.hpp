@@ -6,26 +6,27 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 
-/* TODO: Right now we rely on the network to deliver messages from the parsers
-to the `master_t` in the same order as the client sent them to the parsers. This
-might not be a valid assumption. Consider using a FIFO enforcer or something.
-Also, we need a way for the `master_t` to hand off the operations to the
-`broadcaster_t` while preserving order. The current method of "call a blocking
-function" doesn't cut it because we need to be able to run multiple reads and
-writes simultaneously in different coroutines and also guarantee order between
-them. */
-
 template<class protocol_t>
 class master_t {
 public:
+    class ack_checker_t {
+    public:
+        virtual bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) = 0;
+
+    protected:
+        virtual ~ack_checker_t() { }
+    };
+
     master_t(
             mailbox_manager_t *mm,
+            ack_checker_t *ac,
             watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > *md,
             mutex_assertion_t *mdl,
             typename protocol_t::region_t region,
             broadcaster_t<protocol_t> *b)
             THROWS_ONLY(interrupted_exc_t) :
         mailbox_manager(mm),
+        ack_checker(ac),
         broadcaster(b),
         read_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_read,
                                                   this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
@@ -34,6 +35,8 @@ public:
         registrar(mm, this),
         master_directory(md), master_directory_lock(mdl),
         uuid(generate_uuid()) {
+
+        rassert(ack_checker);
 
         master_business_card_t<protocol_t> bcard(
             region,
@@ -81,23 +84,19 @@ private:
             THROWS_NOTHING
     {
         keepalive.assert_is_holding(&drainer);
+        boost::variant<typename protocol_t::read_response_t, std::string> reply;
         try {
             typename std::map<namespace_interface_id_t, parser_lifetime_t *>::iterator it = sink_map.find(parser_id);
             // TODO: Remove this assertion.  Out-of-order operations (which allegedly can happen) could cause it to be wrong?
             rassert(it != sink_map.end());
 
             auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
-            typename protocol_t::read_response_t response;
-            {
-                fifo_enforcer_sink_t::exit_read_t exiter(it->second->sink(), token);
-                response = broadcaster->read(read, &exiter, &auto_drainer_lock, otok);
-            }
-            send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(response));
-        } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {
-            send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(std::string(e.what())));
-        } catch (typename broadcaster_t<protocol_t>::insufficient_mirrors_exc_t e) {
-            send(mailbox_manager, response_address, boost::variant<typename protocol_t::read_response_t, std::string>(std::string(e.what())));
+            fifo_enforcer_sink_t::exit_read_t exiter(it->second->sink(), token);
+            reply = broadcaster->read(read, &exiter, otok, auto_drainer_lock.get_drain_signal());
+        } catch (cannot_perform_query_exc_t e) {
+            reply = e.what();
         }
+        send(mailbox_manager, response_address, reply);
     }
 
     void on_write(namespace_interface_id_t parser_id, typename protocol_t::write_t write, order_token_t otok, fifo_enforcer_write_token_t token,
@@ -106,26 +105,34 @@ private:
         THROWS_NOTHING
     {
         keepalive.assert_is_holding(&drainer);
+        boost::variant<typename protocol_t::write_response_t, std::string> reply;
         try {
             typename std::map<namespace_interface_id_t, parser_lifetime_t *>::iterator it = sink_map.find(parser_id);
             // TODO: Remove this assertion.  Out-of-order operations (which allegedly can hoppen) could cause it to be wrong?
             rassert(it != sink_map.end());
 
+            class ac_t : public broadcaster_t<protocol_t>::ack_callback_t {
+            public:
+                ac_t(master_t *p) : parent(p) { }
+                bool on_ack(peer_id_t peer) {
+                    ack_set.insert(peer);
+                    return parent->ack_checker->is_acceptable_ack_set(ack_set);
+                }
+                master_t *parent;
+                std::set<peer_id_t> ack_set;
+            } ack_checker(this);
+ 
             auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
-            typename protocol_t::write_response_t response;
-            {
-                fifo_enforcer_sink_t::exit_write_t exiter(it->second->sink(), token);
-                response = broadcaster->write(write, &exiter, &auto_drainer_lock, otok);
-            }
-            send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(response));
-        } catch (typename broadcaster_t<protocol_t>::mirror_lost_exc_t e) {
-            send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(std::string(e.what())));
-        } catch (typename broadcaster_t<protocol_t>::insufficient_mirrors_exc_t e) {
-            send(mailbox_manager, response_address, boost::variant<typename protocol_t::write_response_t, std::string>(std::string(e.what())));
+            fifo_enforcer_sink_t::exit_write_t exiter(it->second->sink(), token);
+            reply = broadcaster->write(write, &exiter, &ack_checker, otok, auto_drainer_lock.get_drain_signal());
+        } catch (cannot_perform_query_exc_t e) {
+            reply = e.what();
         }
+        send(mailbox_manager, response_address, reply);
     }
 
     mailbox_manager_t *mailbox_manager;
+    ack_checker_t *ack_checker;
     broadcaster_t<protocol_t> *broadcaster;
     std::map<namespace_interface_id_t, parser_lifetime_t *> sink_map;
     auto_drainer_t drainer;

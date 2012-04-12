@@ -25,6 +25,7 @@ void check_namespaces_for_protocol(
             check("namespace", it->first, "blueprint", it->second.get().blueprint, out);
             check("namespace", it->first, "primary_datacenter", it->second.get().primary_datacenter, out);
             check("namespace", it->first, "replica_affinities", it->second.get().replica_affinities, out);
+            check("namespace", it->first, "ack_expectations", it->second.get().ack_expectations, out);
             check("namespace", it->first, "shards", it->second.get().shards, out);
             check("namespace", it->first, "name", it->second.get().name, out);
         }
