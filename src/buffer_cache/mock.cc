@@ -42,6 +42,8 @@ block_id_t mock_buf_lock_t::get_block_id() const {
 }
 
 const void *mock_buf_lock_t::get_data_read() const {
+    rassert(acquired);
+    rassert(internal_buf->data != NULL);
     return internal_buf->data;
 }
 

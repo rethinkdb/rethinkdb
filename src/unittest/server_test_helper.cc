@@ -100,6 +100,8 @@ bool server_test_helper_t::acq_check_if_blocks_until_buf_released(buf_lock_t *ne
         }
     }
 
+    rassert(newly_acquired_block->is_acquired());
+
     return result;
 }
 
