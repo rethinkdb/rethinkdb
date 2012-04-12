@@ -531,22 +531,37 @@
         <!-- Datacenter view -->
         <script id="datacenter_view-container-template" type="text/x-handlebars-template">
             <h1>Datacenter overview for {{name}}</h1>
-            <h3 class="title">Datacenter profile</h3>
-            <div class="section summary">
-                <p class="status">Status: 
+            <div class="two-panel-section">
+              <div class="panel-left">
+                <h3 class="title">Datacenter profile</h3>
+                <div class="section summary">
+                  <p class="status">Status: 
                     {{#if is_live}}
-                        Live ({{reachable_machines}} of {{total_machines}} can be reached)
+                    Live ({{reachable_machines}} of {{total_machines}} can be reached)
                     {{else}}
-                        Down
+                    Down
                     {{/if}}
-                </p>
-                <p>Machines:</p>
-                <ul>
-                  {{#each machines}}
-                      <li><a href='#machines/{{id}}'>{{name}}</a> {{#if is_reachable }} {{else}}(cannot be reached){{/if}}</li>
-                  {{/each}}
-                </ul>
+                  </p>
+                  <p>Machines:</p>
+                  <ul>
+                    {{#each machines}}
+                    <li><a href='#machines/{{id}}'>{{name}}</a> {{#if is_reachable }} {{else}}(cannot be reached){{/if}}</li>
+                    {{/each}}
+                  </ul>
+                </div>
+              </div>
+              <div class="panel-right">
+                <h3 class="title">Datacenter resources</h3>
+                <div class="section system-resources">
+                  <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
+                  <p class="ram">RAM:</p>
+                  <p class="disk">Disk:</p>
+                </div>
+              </div>
+              <div class="two-panel-clear"></div>
             </div>
+            <h3 class="title">Data in this datacenter</h3>
+            <div class="section data"></div>
             <h3 class="title">Performance</h3>
             <div class="section performance-graph"></div>
             <h3 class="title">Recent log entries</h3>
@@ -585,10 +600,10 @@
               <div class="two-panel-clear"></div>
             </div>
             <h3 class="title">Data on this machine</h3>
-            {{#unless data.namespaces}}
-            <p>No data found on this machine.</p>
-            {{/unless}}
             <div class="section data">
+              {{#unless data.namespaces}}
+              <p>No data found on this machine.</p>
+              {{/unless}}
               {{#each data.namespaces}}
               <div class="namespace">
                 <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>

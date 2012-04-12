@@ -131,10 +131,11 @@ module 'MachineView', ->
                                 if role is 'role_primary' then return 'master'
                                 if role is 'role_secondary' then return 'replica'
                                 return role
-                            _shards[_shards.length] =
-                                role: human_readable_role(role)
-                                shard: shard
-                                name: human_readable_shard shard
+                            if role isnt 'role_nothing'
+                                _shards[_shards.length] =
+                                    role: human_readable_role(role)
+                                    shard: shard
+                                    name: human_readable_shard shard
                 if _shards.length > 0
                     _namespaces[_namespaces.length] =
                         shards: _shards

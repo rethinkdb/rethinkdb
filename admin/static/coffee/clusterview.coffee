@@ -274,17 +274,21 @@ module 'ClusterView', ->
 
             for machine_uuid, role of @model.get('blueprint').peers_roles
                 peer_accessible = directory.get(machine_uuid)
-                _machines[_machines.length] = machine_uuid
-                _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
+                machine_active_for_namespace = false
                 for shard, role_name of role
                     if role_name is 'role_primary'
+                        machine_active_for_namespace = true
                         stuff.nshards += 1
                         if peer_accessible?
                             stuff.nashards += 1
                     if role_name is 'role_secondary'
+                        machine_active_for_namespace = true
                         stuff.nreplicas += 1
                         if peer_accessible?
                             stuff.nareplicas += 1
+                if machine_active_for_namespace
+                    _machines[_machines.length] = machine_uuid
+                    _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
 
             stuff.nmachines = _.uniq(_machines).length
             stuff.ndatacenters = _.uniq(_datacenters).length
@@ -335,12 +339,16 @@ module 'ClusterView', ->
             for namespace in namespaces.models
                 for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
                     if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
-                        _namespaces[_namespaces.length] = namespace
+                        machine_active_for_namespace = false
                         for shard, role of peer_role
                             if role is 'role_primary'
+                                machine_active_for_namespace = true
                                 stuff.primary_count += 1
                             if role is 'role_secondary'
+                                machine_active_for_namespace = true
                                 stuff.secondary_count += 1
+                        if machine_active_for_namespace
+                            _namespaces[_namespaces.length] = namespace
             stuff.namespace_count = _.uniq(_namespaces).length
 
             # last_seen - go through the machines in the datacenter,
@@ -395,12 +403,16 @@ module 'ClusterView', ->
             for namespace in namespaces.models
                 for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
                     if machine_uuid is @model.get('id')
-                        _namespaces[_namespaces.length] = namespace
+                        machine_active_for_namespace = false
                         for shard, role of peer_role
                             if role is 'role_primary'
+                                machine_active_for_namespace = true
                                 stuff.primary_count += 1
                             if role is 'role_secondary'
+                                machine_active_for_namespace = true
                                 stuff.secondary_count += 1
+                        if machine_active_for_namespace
+                            _namespaces[_namespaces.length] = namespace
             stuff.namespace_count = _.uniq(_namespaces).length
 
             return stuff
