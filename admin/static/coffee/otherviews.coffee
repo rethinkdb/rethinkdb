@@ -97,9 +97,11 @@ module 'MachineView', ->
 
         initialize: ->
             log_initial '(initializing) machine view: container'
+            @model.on 'all', @render
+            if directory.get(@model.get('id'))
+                directory.get(@model.get('id')).on 'all', @render
 
             #@model.on 'change', @update_meters
-
             #setInterval @update_sparklines, @cpu_sparkline.update_interval
             #setInterval @update_graphs, @performance_graph.update_interval
 
@@ -125,10 +127,11 @@ module 'MachineView', ->
                 for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
                     if machine_uuid is @model.get('id')
                         for shard, role of peer_roles
-                            _shards[_shards.length] =
-                                role: role.replace(/^role_/, '')
-                                shard: shard
-                                name: human_readable_shard shard
+                            if role isnt 'role_nothing'
+                                _shards[_shards.length] =
+                                    role: role
+                                    shard: shard
+                                    name: human_readable_shard shard
                 if _shards.length > 0
                     _namespaces[_namespaces.length] =
                         shards: _shards
@@ -139,7 +142,16 @@ module 'MachineView', ->
                 data:
                     namespaces: _namespaces
 
+            # Reachability
+            _.extend json, DataUtils.get_machine_reachability(@model.get('id'))
+
             @.$el.html @template json
+
+            # Hook our events
+            @.$('a.set-datacenter').click (event) =>
+                event.preventDefault()
+                set_datacenter_modal = new ClusterView.SetDatacenterModal
+                set_datacenter_modal.render [@model]
 
             return @
 
@@ -193,6 +205,42 @@ module 'DatacenterView', ->
             # Machines we can actually reach in this datacenter
             reachable_machines = directory.filter (m) => machines.get(m.get('id')).get('datacenter_uuid') is @model.get('id')
 
+            # Data residing on this lovely datacenter
+            _namespaces = []
+            for namespace in namespaces.models
+                _shards = []
+                for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                    if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
+                        for shard, role of peer_roles
+                            if role isnt 'role_nothing'
+                                _shards[_shards.length] =
+                                    role: role
+                                    shard: shard
+                                    name: human_readable_shard shard
+                if _shards.length > 0
+                    # Compute number of primaries and secondaries for each shard
+                    __shards = {}
+                    for shard in _shards
+                        shard_repr = shard.shard.toString()
+                        if not __shards[shard_repr]?
+                            __shards[shard_repr] =
+                                shard: shard.shard
+                                name: human_readable_shard shard.shard
+                                nprimaries: if shard.role is 'role_primary' then 1 else 0
+                                nsecondaries: if shard.role is 'role_secondary' then 1 else 0
+                        else
+                            if shard.role is 'role_primary'
+                                __shards[shard_repr].nprimaries += 1
+                            if shard.role is 'role_secondary'
+                                __shards[shard_repr].nsecondaries += 1
+
+                    # Append the final data
+                    _namespaces[_namespaces.length] =
+                        shards: _.map(__shards, (shard, shard_repr) -> shard)
+                        name: namespace.get('name')
+                        uuid: namespace.id
+
+            # Generate json and render
             @.$el.html @template
                 name: @model.get('name')
                 machines: _.map(machines_in_datacenter, (machine) ->
@@ -203,6 +251,8 @@ module 'DatacenterView', ->
                 total_machines: machines_in_datacenter.length
                 reachable_machines: reachable_machines.length
                 is_live: reachable_machines.length > 0
+                data:
+                    namespaces: _namespaces
             return @
 
 # Sidebar view

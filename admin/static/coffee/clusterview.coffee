@@ -274,17 +274,21 @@ module 'ClusterView', ->
 
             for machine_uuid, role of @model.get('blueprint').peers_roles
                 peer_accessible = directory.get(machine_uuid)
-                _machines[_machines.length] = machine_uuid
-                _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
+                machine_active_for_namespace = false
                 for shard, role_name of role
                     if role_name is 'role_primary'
+                        machine_active_for_namespace = true
                         stuff.nshards += 1
                         if peer_accessible?
                             stuff.nashards += 1
                     if role_name is 'role_secondary'
+                        machine_active_for_namespace = true
                         stuff.nreplicas += 1
                         if peer_accessible?
                             stuff.nareplicas += 1
+                if machine_active_for_namespace
+                    _machines[_machines.length] = machine_uuid
+                    _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
 
             stuff.nmachines = _.uniq(_machines).length
             stuff.ndatacenters = _.uniq(_datacenters).length
@@ -335,12 +339,16 @@ module 'ClusterView', ->
             for namespace in namespaces.models
                 for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
                     if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
-                        _namespaces[_namespaces.length] = namespace
+                        machine_active_for_namespace = false
                         for shard, role of peer_role
                             if role is 'role_primary'
+                                machine_active_for_namespace = true
                                 stuff.primary_count += 1
                             if role is 'role_secondary'
+                                machine_active_for_namespace = true
                                 stuff.secondary_count += 1
+                        if machine_active_for_namespace
+                            _namespaces[_namespaces.length] = namespace
             stuff.namespace_count = _.uniq(_namespaces).length
 
             # last_seen - go through the machines in the datacenter,
@@ -374,11 +382,7 @@ module 'ClusterView', ->
         json_for_template: =>
             stuff = super()
             # status
-            stuff.reachable = directory.get(@model.get('id'))?
-            if not stuff.reachable
-                last_seen = machines.get(@model.get('id')).get('last_seen')
-                if last_seen
-                    stuff.last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
+            _.extend stuff, DataUtils.get_machine_reachability(@model.get('id'))
 
             # ip
             stuff.ip = "TBD"
@@ -399,12 +403,16 @@ module 'ClusterView', ->
             for namespace in namespaces.models
                 for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
                     if machine_uuid is @model.get('id')
-                        _namespaces[_namespaces.length] = namespace
+                        machine_active_for_namespace = false
                         for shard, role of peer_role
                             if role is 'role_primary'
+                                machine_active_for_namespace = true
                                 stuff.primary_count += 1
                             if role is 'role_secondary'
+                                machine_active_for_namespace = true
                                 stuff.secondary_count += 1
+                        if machine_active_for_namespace
+                            _namespaces[_namespaces.length] = namespace
             stuff.namespace_count = _.uniq(_namespaces).length
 
             return stuff
@@ -649,6 +657,7 @@ module 'ClusterView', ->
 
                 submitHandler: =>
                     formdata = form_data_as_object($('form', @$modal))
+                    # TODO: We really should do one ajax request
                     for m in machines_list
                         $.ajax
                             processData: false
@@ -661,11 +670,15 @@ module 'ClusterView', ->
                                 clear_modals()
 
                                 machines.get(m.id).set(response)
-                                #TODO hook this back up
-                                #$('#user-alert-space').append (@alert_tmpl {
-                                #    datacenter_name: datacenters.find((d) -> d.get('id') == response_json.op_result.datacenter_uuid).get('name'),
-                                #    machine_name: m.get('name')
-                                #})
 
+                                # We only have to do this one
+                                if m is machines_list[machines_list.length - 1]
+                                    $('#user-alert-space').append (@alert_tmpl
+                                        datacenter_name: datacenters.get(formdata.datacenter_uuid).get('name')
+                                        machines: _.map(machines_list, (_m) ->
+                                            name: _m.get('name')
+                                        )
+                                        machine_count: machines_list.length
+                                    )
 
             super validator_options, { datacenters: (datacenter.toJSON() for datacenter in datacenters.models) }

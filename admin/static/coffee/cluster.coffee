@@ -23,6 +23,18 @@ class MachineAttributes extends Backbone.Model
 
 class ConnectionStatus extends Backbone.Model
 
+module 'DataUtils', ->
+    @get_machine_reachability = (machine_uuid) ->
+        reachable = directory.get(machine_uuid)?
+        if not reachable
+            last_seen = machines.get(machine_uuid).get('last_seen')
+            if last_seen
+                last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
+        json =
+            reachable: reachable
+            last_seen: last_seen
+        return json
+
 class DataStream extends Backbone.Model
     max_cached: 250
     cache_ready: false
