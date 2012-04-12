@@ -561,7 +561,21 @@
               <div class="two-panel-clear"></div>
             </div>
             <h3 class="title">Data in this datacenter</h3>
-            <div class="section data"></div>
+            <div class="section data">
+              {{#unless data.namespaces}}
+              <p>No data found in this datacenter.</p>
+              {{/unless}}
+              {{#each data.namespaces}}
+              <div class="namespace">
+                <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+                <ul>
+                  {{#each shards}}
+                  <li>{{name}} ({{nprimaries}} primary{{pluralize_noun nprimaries}}, {{nsecondaries}} secondary{{pluralize_noun nsecondaries}})</li>
+                  {{/each}}
+                </ul>
+              </div>
+              {{/each}}
+            </div>
             <h3 class="title">Performance</h3>
             <div class="section performance-graph"></div>
             <h3 class="title">Recent log entries</h3>
@@ -609,7 +623,7 @@
                 <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
                 <ul>
                   {{#each shards}}
-                  <li>{{name}} ({{role}})</li>
+                  <li>{{name}} ({{humanize_role role}})</li>
                   {{/each}}
                 </ul>
               </div>

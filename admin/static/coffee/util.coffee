@@ -34,6 +34,12 @@ Handlebars.registerHelper 'capitalize', (str) -> str.charAt(0).toUpperCase() + s
 # Helpers for shortening uuids
 Handlebars.registerHelper 'humanize_uuid', (str) -> str.substr(0, 6)
 
+# Helpers for printing roles
+Handlebars.registerHelper 'humanize_role', (role) ->
+    if role is 'role_primary' then return 'master'
+    if role is 'role_secondary' then return 'replica'
+    return role
+
 # Dev utility functions and variables
 window.pause_live_data = false
 window.log_initial = (msg) -> #console.log msg
@@ -113,7 +119,7 @@ generate_fake_issues = (issues) ->
 form_data_as_object = (form) ->
     formarray = form.serializeArray()
     formdata = {}
-    for x in formarray 
+    for x in formarray
         formdata[x.name] = x.value
     return formdata
 
