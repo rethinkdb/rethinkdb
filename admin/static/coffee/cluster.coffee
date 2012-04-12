@@ -35,6 +35,28 @@ module 'DataUtils', ->
             last_seen: last_seen
         return json
 
+    @get_datacenter_reachability = (datacenter_uuid) ->
+        total = (_.filter machines.models, (m) => m.get('datacenter_uuid') == datacenter_uuid).length
+        reachable = (_.filter directory.models, (m) => machines.get(m.get('id')).get('datacenter_uuid') == datacenter_uuid).length
+
+        if reachable == 0 and total > 0
+            for machine in machines.models
+                if machine.get('datacenter_uuid') is datacenter_uuid
+                    _last_seen = machine.get('last_seen')
+                    if last_seen
+                        if _last_seen > last_seen
+                            last_seen = _last_seen
+                    else
+                        last_seen = _last_seen
+            last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
+
+        json =
+            total: total
+            reachable: reachable
+            last_seen: last_seen
+
+        return json
+
 class DataStream extends Backbone.Model
     max_cached: 250
     cache_ready: false

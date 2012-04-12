@@ -317,20 +317,8 @@ module 'ClusterView', ->
         json_for_template: =>
             stuff = super()
 
-            try
-                # total number of machines in this datacenter
-                stuff.total = (_.filter machines.models, (m) => m.get('datacenter_uuid') == @model.get('id')).length
-                # real number of machines in this datacenter
-                stuff.reachable = (_.filter directory.models, (m) => machines.get(m.get('id')).get('datacenter_uuid') == @model.get('id')).length
-                if(stuff.reachable > 0)
-                    stuff.status = 'Live'
-                else
-                    stuff.status = 'Down'
-
-            catch err
-                stuff.total = 'N/A'
-                stuff.reachable = 'N/A'
-                stuff.status = 'N/A'
+            # datacenter status
+            stuff.status = DataUtils.get_datacenter_reachability(@model.get('id'))
 
             # primary, secondary, and namespace counts
             stuff.primary_count = 0
@@ -351,19 +339,6 @@ module 'ClusterView', ->
                             _namespaces[_namespaces.length] = namespace
             stuff.namespace_count = _.uniq(_namespaces).length
 
-            # last_seen - go through the machines in the datacenter,
-            # and find last one down
-            if not stuff.reachable and stuff.total > 0
-                for machine in machines.models
-                    if machine.get('datacenter_uuid') is @model.get('id')
-                        _last_seen = machine.get('last_seen')
-                        if last_seen
-                            if _last_seen > last_seen
-                                last_seen = _last_seen
-                        else
-                            last_seen = _last_seen
-                stuff.last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
-
             return stuff
 
     # Machine list element
@@ -382,7 +357,8 @@ module 'ClusterView', ->
         json_for_template: =>
             stuff = super()
             # status
-            _.extend stuff, DataUtils.get_machine_reachability(@model.get('id'))
+            _.extend stuff,
+                status: DataUtils.get_machine_reachability(@model.get('id'))
 
             # ip
             stuff.ip = "TBD"

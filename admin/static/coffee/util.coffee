@@ -40,6 +40,25 @@ Handlebars.registerHelper 'humanize_role', (role) ->
     if role is 'role_secondary' then return 'replica'
     return role
 
+# Helpers for printing reachability
+Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
+    if status.reachable
+        result = "Reachable"
+    else
+        result = 'Unreachable (<abbr class="timeago" title="' + status.last_seen + '">since ' + status.last_seen + '</abbr>)'
+    return new Handlebars.SafeString(result);
+
+Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
+    if status.reachable > 0
+        result = 'Live'
+    else
+        result = 'Down'
+    result += ' (' + status.reachable + ' of ' + status.total + ' machines reachable)'
+    if status.reachable == 0
+        result += ' <abbr class="timeago" title="' + status.last_seen + '">since ' + status.last_seen + '</abbr>'
+
+    return new Handlebars.SafeString(result);
+
 # Dev utility functions and variables
 window.pause_live_data = false
 window.log_initial = (msg) -> #console.log msg

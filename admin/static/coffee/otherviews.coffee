@@ -143,7 +143,8 @@ module 'MachineView', ->
                     namespaces: _namespaces
 
             # Reachability
-            _.extend json, DataUtils.get_machine_reachability(@model.get('id'))
+            _.extend json,
+                status: DataUtils.get_machine_reachability(@model.get('id'))
 
             @.$el.html @template json
 
@@ -246,11 +247,9 @@ module 'DatacenterView', ->
                 machines: _.map(machines_in_datacenter, (machine) ->
                     name: machine.get('name')
                     id: machine.get('id')
-                    is_reachable: directory.get(machine.get('id'))?
+                    status: DataUtils.get_machine_reachability(machine.get('id'))
                 )
-                total_machines: machines_in_datacenter.length
-                reachable_machines: reachable_machines.length
-                is_live: reachable_machines.length > 0
+                status: DataUtils.get_datacenter_reachability(@model.get('id'))
                 data:
                     namespaces: _namespaces
             return @

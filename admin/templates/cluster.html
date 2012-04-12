@@ -197,7 +197,7 @@
                 <div class="details-wrapper"">
                     <span class="name"><a href="#datacenters/{{id}}">{{name}}</a></span>
                     <p class="details-text">
-                       <span class="status">Status: {{status}} ({{reachable}} of {{total}} machines reachable){{#if last_seen}} <abbr class="timeago" title="{{last_seen}}">since {{last_seen}}</abbr>{{/if}}</span>
+                       <span class="status">Status: {{humanize_datacenter_reachability status}}</span>
                     </p>
                     <p class="details-text">
                       <span class="Contains">Contains: {{primary_count}} primary{{pluralize_noun primary_count}}, {{secondary_count}} secondary{{pluralize_noun secondary_count}} for {{namespace_count}} namespace{{pluralize_noun namespace_count}}</span>
@@ -215,7 +215,7 @@
                 <div class="details-wrapper">
                     <span class="name"><a href="#machines/{{id}}">{{name}}</a></span>
                     <p class="details-text"> 
-                      <span class="status">Status: {{#if reachable}}Reachable{{else}}Unreachable (<abbr class="timeago" title="{{last_seen}}">since {{last_seen}}</abbr>){{/if}}</span>
+                      <span class="status">Status: {{humanize_machine_reachability status}}</span>
                     </p>
                     <p class="details-text">
                       <span class="Contains">Contains: {{primary_count}} primary{{pluralize_noun primary_count}}, {{secondary_count}} secondary{{pluralize_noun secondary_count}} for {{namespace_count}} namespace{{pluralize_noun namespace_count}}</span>
@@ -535,19 +535,7 @@
               <div class="panel-left">
                 <h3 class="title">Datacenter profile</h3>
                 <div class="section summary">
-                  <p class="status">Status: 
-                    {{#if is_live}}
-                    Live ({{reachable_machines}} of {{total_machines}} can be reached)
-                    {{else}}
-                    Down
-                    {{/if}}
-                  </p>
-                  <p>Machines:</p>
-                  <ul>
-                    {{#each machines}}
-                    <li><a href='#machines/{{id}}'>{{name}}</a> {{#if is_reachable }} {{else}}(cannot be reached){{/if}}</li>
-                    {{/each}}
-                  </ul>
+                  <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
                 </div>
               </div>
               <div class="panel-right">
@@ -559,6 +547,14 @@
                 </div>
               </div>
               <div class="two-panel-clear"></div>
+            </div>
+            <h3 class="title">Machines</h3>
+            <div class="section machine-list">
+              <ul>
+                {{#each machines}}
+                <li><a href='#machines/{{id}}'>{{name}}</a> {{humanize_machine_reachability status}}</li>
+                {{/each}}
+              </ul>
             </div>
             <h3 class="title">Data in this datacenter</h3>
             <div class="section data">
@@ -598,7 +594,7 @@
                     {{/if}}
                     (<a class="set-datacenter" href="#">change</a>)
                   </p>
-                  <p>Status: {{#if reachable}}Reachable{{else}}Unreachable (<abbr class="timeago" title="{{last_seen}}">since {{last_seen}}</abbr>){{/if}}</p>
+                  <p>Status: {{humanize_machine_reachability status}}</p>
                   <p>IP address: {{ip}}</p>
                   <p class="uptime">Uptime: {{uptime}}</p>
                 </div>
