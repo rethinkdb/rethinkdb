@@ -560,6 +560,9 @@ class Cluster(object):
         nss.update(self.dummy_namespaces)
         return self._find_thing(what, Namespace, "namespace", nss)
 
+    def get_directory(self, servid = None):
+        return self._get_server_for_command(servid).do_query("GET", "/ajax/directory")
+
     def move_server_to_datacenter(self, serv, datacenter, servid = None):
         serv = self.find_machine(serv)
         datacenter = self.find_datacenter(datacenter)
