@@ -54,7 +54,7 @@ Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
     else
         result = 'Down'
     result += ' (' + status.reachable + ' of ' + status.total + ' machines reachable)'
-    if status.reachable == 0
+    if status.reachable == 0 and status.total > 0
         result += ' <abbr class="timeago" title="' + status.last_seen + '">since ' + status.last_seen + '</abbr>'
 
     return new Handlebars.SafeString(result);
