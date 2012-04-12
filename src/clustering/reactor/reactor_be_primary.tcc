@@ -307,7 +307,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
 
         listener_t<protocol_t> listener(mailbox_manager, translate_into_watchable(broadcaster_business_card), branch_history, &broadcaster, interruptor);
         replier_t<protocol_t> replier(&listener);
-        master_t<protocol_t> master(mailbox_manager, NULL /* TODO */, &master_directory, &master_directory_lock, region, &broadcaster);
+        master_t<protocol_t> master(mailbox_manager, ack_checker, &master_directory, &master_directory_lock, region, &broadcaster);
 
         directory_entry.update_without_changing_id(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card(), replier.get_business_card()));
 
