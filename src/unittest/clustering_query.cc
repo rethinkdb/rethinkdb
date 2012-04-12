@@ -106,5 +106,127 @@ TEST(ClusteringNamespace, ReadWrite) {
     run_in_thread_pool(&run_read_write_test);
 }
 
+static void run_broadcaster_problem_test() {
+
+    /* Set up a cluster so mailboxes can be created */
+    simple_mailbox_cluster_t cluster;
+
+    /* Set up metadata meeting-places */
+    branch_history_t<dummy_protocol_t> initial_branch_metadata;
+    dummy_semilattice_controller_t<branch_history_t<dummy_protocol_t> > branch_history_controller(initial_branch_metadata);
+
+    /* Set up a branch */
+    test_store_t<dummy_protocol_t> initial_store;
+    cond_t interruptor;
+    broadcaster_t<dummy_protocol_t> broadcaster(
+        cluster.get_mailbox_manager(),
+        branch_history_controller.get_view(),
+        &initial_store.store,
+        &interruptor
+        );
+
+    simple_directory_manager_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >
+        broadcaster_metadata_controller(&cluster, 
+            boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(
+                broadcaster.get_business_card()
+            ));
+
+    listener_t<dummy_protocol_t> initial_listener(
+        cluster.get_mailbox_manager(),
+        translate_into_watchable(broadcaster_metadata_controller.get_root_view()->
+            get_peer_view(cluster.get_connectivity_service()->get_me())),
+        branch_history_controller.get_view(),
+        &broadcaster,
+        &interruptor
+        );
+
+    replier_t<dummy_protocol_t> initial_replier(&initial_listener);
+
+    /* Set up a metadata meeting-place for masters */
+    std::map<master_id_t, master_business_card_t<dummy_protocol_t> > initial_master_metadata;
+    watchable_variable_t<std::map<master_id_t, master_business_card_t<dummy_protocol_t> > > master_directory(initial_master_metadata);
+    mutex_assertion_t master_directory_lock;
+
+    /* Set up a master. The ack checker is impossible to satisfy, so every
+    write will return an error. */
+    class : public master_t<dummy_protocol_t>::ack_checker_t {
+    public:
+        bool is_acceptable_ack_set(const std::set<peer_id_t> &) {
+            return false;
+        }
+    } ack_checker;
+    master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, &master_directory, &master_directory_lock, a_thru_z_region(), &broadcaster);
+
+    /* Set up a namespace dispatcher */
+    cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(
+        cluster.get_mailbox_manager(),
+        master_directory.get_watchable()->subview(boost::bind(&wrap_in_peers_map, _1, cluster.get_connectivity_service()->get_me()))
+        );
+
+    nap(100);
+
+    order_source_t order_source;
+
+    /* Confirm that it throws an exception */
+    dummy_protocol_t::write_t w;
+    w.values["a"] = "b";
+    cond_t non_interruptor;
+    try {
+        namespace_interface.write(w, order_source.check_in("unittest"), &non_interruptor);
+        ADD_FAILURE() << "That was supposed to fail.";
+    } catch (cannot_perform_query_exc_t e) {
+        /* expected */
+    }
+}
+
+TEST(ClusteringNamespace, BroadcasterProblem) {
+    run_in_thread_pool(&run_broadcaster_problem_test);
+}
+
+static void run_missing_master_test() {
+
+    /* Set up a cluster so mailboxes can be created */
+    simple_mailbox_cluster_t cluster;
+
+    /* Set up a metadata meeting-place for masters */
+    std::map<master_id_t, master_business_card_t<dummy_protocol_t> > initial_master_metadata;
+    watchable_variable_t<std::map<master_id_t, master_business_card_t<dummy_protocol_t> > > master_directory(initial_master_metadata);
+
+    /* Set up a namespace dispatcher */
+    cluster_namespace_interface_t<dummy_protocol_t> namespace_interface(
+        cluster.get_mailbox_manager(),
+        master_directory.get_watchable()->subview(boost::bind(&wrap_in_peers_map, _1, cluster.get_connectivity_service()->get_me()))
+        );
+
+    nap(100);
+
+    order_source_t order_source;
+
+    /* Confirm that it throws an exception */
+    dummy_protocol_t::read_t r;
+    r.keys.keys.insert("a");
+    cond_t non_interruptor;
+    try {
+        namespace_interface.read(r, order_source.check_in("unittest"), &non_interruptor);
+        ADD_FAILURE() << "That wasn't supposed to work.";
+    } catch (cannot_perform_query_exc_t e) {
+        /* expected */
+    }
+
+    dummy_protocol_t::write_t w;
+    w.values["a"] = "b";
+    try {
+        namespace_interface.write(w, order_source.check_in("unittest"), &non_interruptor);
+        ADD_FAILURE() << "That was supposed to fail.";
+    } catch (cannot_perform_query_exc_t e) {
+        /* expected */
+    }
+}
+
+TEST(ClusteringNamespace, MissingMaster) {
+    run_in_thread_pool(&run_missing_master_test);
+}
+
+
 }   /* namespace unittest */
 
