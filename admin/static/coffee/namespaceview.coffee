@@ -6,21 +6,45 @@ module 'NamespaceView', ->
         className: 'namespace-view'
         template: Handlebars.compile $('#namespace_view-container-template').html()
 
-        initialize: ->
+        initialize: (id) =>
             log_initial '(initializing) namespace view: container'
+            @namespace_uuid = id
+
+        wait_for_model: =>
+            @model = namespaces.get(@namespace_uuid)
+            if not @model
+                namespaces.off 'all', @render
+                namespaces.on 'all', @render
+                return false
+
+            # Model is finally ready, bind necessary handlers
+            namespaces.off 'all', @render
+            @model.on 'all', @render
+
+            # Some additional setup
             @replicas = new NamespaceView.Replicas model: @model
             @shards = new NamespaceView.Shards model: @model
 
+            return true
+
+        render_empty: =>
+            @.$el.text 'Namespace ' + @namespace_uuid + ' is not available.'
+            return @
+
         render: =>
             log_render '(rendering) namespace view: container'
+
+            if @wait_for_model() is false
+                return @render_empty()
+
             @.$el.html @template @model.toJSON()
-            
+
             # Add the replica and shards views
             @.$('.section.replication').html @replicas.render().el
             @.$('.section.sharding').html @shards.render().el
 
             return @
-        
+
     # Replicas view
     class @Replicas extends Backbone.View
         className: 'namespace-replicas'
@@ -258,7 +282,7 @@ module 'NamespaceView', ->
                         if role == "role_primary" || role == "role_secondary"
                             blueprint_data[shard].push(machines.get(peer_id))
             return blueprint_data
-            
+
 
         # Simple utility function to generate JSON for a set of machines
         machine_json: (machine_set) -> _.map machine_set, (machine) ->
@@ -297,7 +321,7 @@ module 'NamespaceView', ->
             shards = []
 
             blueprint_data = @get_blueprint_data()
-            
+
             index = 0
             for shard, used_machines of blueprint_data
                 _used_machines = _.map(used_machines, (machine) -> machines.get(machine.id))
@@ -398,7 +422,7 @@ module 'NamespaceView', ->
                 'name': @shard.name
                 'primary_machine_dropdown':# TODO This should be the actual primary machine (faked data)
                     'shard_index': @shard.index
-                    'selected': @available_machines[0] 
+                    'selected': @available_machines[0]
                     'available_machines': _.map(@available_machines, (machine) =>
                         name: machine.get('name')
                         id: machine.id
@@ -456,7 +480,7 @@ module 'NamespaceView', ->
 
                         success: (response) =>
                             clear_modals()
-                            
+
                             namespaces.get(@namespace.id).set(response)
                             #TODO hook this up
                             #$('#user-alert-space').append @alert_tmpl {}

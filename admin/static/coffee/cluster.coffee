@@ -285,46 +285,36 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
 
         # Helper function to build the namespace view
-        build_namespace_view = (namespace) =>
-            namespace_view = new NamespaceView.Container model: namespace
+        build_namespace_view = (id) =>
+            namespace_view = new NamespaceView.Container id
             @$container.html namespace_view.render().el
 
         # Return the existing namespace from the collection if it exists
-        return build_namespace_view namespaces.get(id) if namespaces.get(id)?
-
-        # Otherwise, show an error message stating that the namespace does not exist
-        @$container.empty().text 'Namespace '+id+' does not exist.'
+        return build_namespace_view id
 
     datacenter: (id) ->
         log_router '/datacenters/' + id
         clear_modals()
 
         # Helper function to build the datacenter view
-        build_datacenter_view = (datacenter) =>
-            datacenter_view = new DatacenterView.Container model: datacenter
+        build_datacenter_view = (id) =>
+            datacenter_view = new DatacenterView.Container id
             @$container.html datacenter_view.render().el
 
         # Return the existing datacenter from the collection if it exists
-        return build_datacenter_view datacenters.get(id) if datacenters.get(id)?
-
-        # Otherwise, show an error message stating that the datacenter does not exist
-        @$container.empty().text 'Datacenter '+id+' does not exist.'
-
+        return build_datacenter_view id
 
     machine: (id) ->
         log_router '/machines/' + id
         clear_modals()
 
         # Helper function to build the machine view
-        build_machine_view = (machine) =>
-            machine_view = new MachineView.Container model: machine
+        build_machine_view = (id) =>
+            machine_view = new MachineView.Container id
             @$container.html machine_view.render().el
 
         # Return the existing machine from the collection if it exists
-        return build_machine_view machines.get(id) if machines.get(id)?
-
-        # Otherwise, show an error message stating that the machine does not exist
-        @$container.empty().text 'Machine '+id+' does not exist.'
+        return build_machine_view id
 
 modal_registry = []
 clear_modals = ->
@@ -429,10 +419,6 @@ $ ->
     # Load the data bootstrapped from the HTML template
     # reset_collections()
     reset_token()
-
-    # Log all events fired for the namespaces collection (debugging)
-    namespaces.on 'all', (event_name) ->
-        console.log 'event fired: '+event_name
 
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync

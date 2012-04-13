@@ -95,18 +95,35 @@ module 'MachineView', ->
         className: 'machine-view'
         template: Handlebars.compile $('#machine_view-container-template').html()
 
-        initialize: ->
+        initialize: (id) =>
             log_initial '(initializing) machine view: container'
-            @model.on 'all', @render
-            if directory.get(@model.get('id'))
-                directory.get(@model.get('id')).on 'all', @render
+            @machine_uuid = id
 
-            #@model.on 'change', @update_meters
-            #setInterval @update_sparklines, @cpu_sparkline.update_interval
-            #setInterval @update_graphs, @performance_graph.update_interval
+        wait_for_model: =>
+            @model = machines.get(@machine_uuid)
+            if not @model
+                machines.off 'all', @render
+                machines.on 'all', @render
+                return false
+
+            # Model is finally ready, bind necessary handlers
+            machines.off 'all', @render
+            @model.on 'all', @render
+            dir_entry = directory.get(@model.get('id'))
+            if dir_entry
+                dir_entry.on 'all', @render
+
+            return true
+
+        render_empty: =>
+            @.$el.text 'Machine ' + @machine_uuid + ' is not available.'
+            return @
 
         render: =>
             log_render '(rendering) machine view: container'
+
+            if @wait_for_model() is false
+                return @render_empty()
 
             datacenter_uuid = @model.get('datacenter_uuid')
             json =
@@ -195,11 +212,34 @@ module 'DatacenterView', ->
         className: 'datacenter-view'
         template: Handlebars.compile $('#datacenter_view-container-template').html()
 
-        initialize: ->
+        initialize: (id) =>
             log_initial '(initializing) datacenter view: container'
+            @datacenter_uuid = id
+
+        wait_for_model: =>
+            @model = datacenters.get(@datacenter_uuid)
+            if not @model
+                datacenters.off 'all', @render
+                datacenters.on 'all', @render
+                return false
+
+            # Model is finally ready, bind necessary handlers
+            datacenters.off 'all', @render
+            @model.on 'all', @render
+            machines.on 'all', @render
+            directory.on 'all', @render
+
+            return true
+
+        render_empty: =>
+            @.$el.text 'Datacenter ' + @datacenter_uuid + ' is not available.'
+            return @
 
         render: =>
             log_render('(rendering) datacenter view: container')
+
+            if @wait_for_model() is false
+                return @render_empty()
 
             # Filter all the machines for those belonging to this datacenter
             machines_in_datacenter = machines.filter (machine) => return machine.get('datacenter_uuid') is @model.get('id')
