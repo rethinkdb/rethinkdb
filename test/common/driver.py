@@ -149,6 +149,7 @@ class Process(object):
 
         self.cluster_port = cluster.metacluster.base_port + self.files.id_number * 2
         self.local_cluster_port = cluster.metacluster.base_port + self.files.id_number * 2 + 1
+        self.http_port = self.cluster_port + 1000
         self.port_offset = self.files.port_offset
 
         for other_cluster in cluster.metacluster.clusters:
