@@ -115,6 +115,8 @@ public:
 
     /* Call to enable/disable `SO_KEEPALIVE` for this socket. First version
     enables and configures it; second version disables it. */
+    /* TODO: This API is insufficient because there's no way to use it on a
+    connection before `connect()` is called. */
     void set_keepalive(int idle_seconds, int try_interval_seconds, int try_count);
     void set_keepalive();
 

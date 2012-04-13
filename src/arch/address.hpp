@@ -14,10 +14,11 @@ struct ip_address_t {
 
     bool operator==(const ip_address_t &x) const;   // Compare addresses
     bool operator!=(const ip_address_t &x) const;
+    bool operator<(const ip_address_t &x) const;
 
 public:
     /* Returns IP address in `a.b.c.d` form. */
-    std::string as_dotted_decimal();
+    std::string as_dotted_decimal() const;
 
 public:
     struct in_addr addr;
