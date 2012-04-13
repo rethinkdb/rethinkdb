@@ -1,5 +1,6 @@
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
+#include "clustering/administration/auto_reconnect.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/local_to_global.hpp"
@@ -48,6 +49,13 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
     connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run, client_port);
+
+    auto_reconnector_t auto_reconnector(
+        &connectivity_cluster,
+        &connectivity_cluster_run,
+        translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id))),
+        metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view())
+        );
 
     watchable_write_copier_t<std::list<clone_ptr_t<local_issue_t> > > copy_local_issues_to_cluster(
         local_issue_tracker.get_issues_watchable(),
@@ -143,6 +151,8 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
     std::cout << "Server started; send SIGINT to stop." << std::endl;
 
     wait_for_sigint();
+
+    std::cout << "Server got SIGINT; shutting down..." << std::endl;
 
     return true;
 }
