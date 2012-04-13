@@ -399,10 +399,10 @@
                         <tr>
                             <td class="name"><h4>{{name}}</h4></td>
                             <td class="status">
-                                <p>Master: <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> ({{humanize_machine_reachability primary.status}})</p>
+                                <p>Master: <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> {{humanize_machine_reachability primary.status}}</p>
                                 <p>Replicas: 
                                   {{#if secondaries}}
-                                  {{#each secondaries}}<a href="/#machines/{{uuid}}">{{name}}</a> ({{humanize_machine_reachability status}}); {{/each}}
+                                  {{#each secondaries}}<a href="/#machines/{{uuid}}">{{name}}</a> {{humanize_machine_reachability status}}; {{/each}}
                                   {{else}}
                                   None
                                   {{/if}}

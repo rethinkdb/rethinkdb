@@ -56,7 +56,8 @@ Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
     if status.reachable
         result = "Reachable"
     else
-        result = 'Unreachable (<abbr class="timeago" title="' + status.last_seen + '">since ' + status.last_seen + '</abbr>)'
+        _last_seen = if status.last_seen? then status.last_seen else 'unknown'
+        result = 'Unreachable (<abbr class="timeago" title="' + _last_seen + '">since ' + _last_seen + '</abbr>)'
     return new Handlebars.SafeString(result);
 
 Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
