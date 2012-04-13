@@ -383,12 +383,6 @@ module 'Sidebar', ->
             datacenters.on 'all', (model, collection) => @render()
 
         compute_connectivity: =>
-            # data centers with machines
-            dc_have_machines = []
-            machines.each (m) =>
-                if m.get('datacenter_uuid')
-                    dc_have_machines[dc_have_machines.length] = m.get('datacenter_uuid')
-            dc_have_machines = _.uniq(dc_have_machines)
             # data centers visible
             dc_visible = []
             directory.each (m) =>
@@ -400,7 +394,7 @@ module 'Sidebar', ->
                 machines_active: directory.length
                 machines_total: machines.length
                 datacenters_active: dc_visible.length
-                datacenters_total: dc_have_machines.length
+                datacenters_total: datacenters.models.length
             return conn
 
         render: =>
