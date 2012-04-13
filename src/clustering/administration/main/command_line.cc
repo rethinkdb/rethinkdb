@@ -58,10 +58,10 @@ void run_rethinkdb_create(const std::string &filepath, std::string &machine_name
     *result_out = true;
 }
 
-std::vector<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> names) {
-    std::vector<peer_address_t> peers;
+std::set<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> names) {
+    std::set<peer_address_t> peers;
     for (int i = 0; i < (int)names.size(); i++) {
-        peers.push_back(peer_address_t(ip_address_t(names[i].host), names[i].port));
+        peers.insert(peer_address_t(ip_address_t(names[i].host), names[i].port));
     }
     return peers;
 }

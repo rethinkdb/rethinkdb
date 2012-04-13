@@ -43,6 +43,10 @@ bool ip_address_t::operator!=(const ip_address_t &x) const {
     return memcmp(&addr, &x.addr, sizeof(struct in_addr));
 }
 
+bool ip_address_t::operator<(const ip_address_t &x) const {
+    return memcmp(&addr, &x.addr, sizeof(struct in_addr)) < 0;
+}
+
 ip_address_t ip_address_t::us() {
 
     char name[HOST_NAME_MAX+1];
@@ -52,9 +56,9 @@ ip_address_t ip_address_t::us() {
     return ip_address_t(name);
 }
 
-std::string ip_address_t::as_dotted_decimal() {
+std::string ip_address_t::as_dotted_decimal() const {
     char buffer[INET_ADDRSTRLEN + 1];
-    const char *result = inet_ntop(AF_INET, reinterpret_cast<void*>(&addr),
+    const char *result = inet_ntop(AF_INET, reinterpret_cast<const void*>(&addr),
         buffer, INET_ADDRSTRLEN);
     guarantee(result == buffer, "Could not format IP address");
     return std::string(buffer);
