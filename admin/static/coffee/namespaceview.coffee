@@ -505,15 +505,25 @@ module 'NamespaceView', ->
             super validator_options, json
 
 
-    compute_renderable_shards_array = (shards) ->
+    compute_renderable_shards_array = (namespace_uuid, shards) ->
         ret = []
         for i in [0...shards.length]
-            json_repr = $.parseJSON(shards[i])
+            primary_uuid = DataUtils.get_shard_primary_uuid namespace_uuid, shards[i]
+            secondary_uuids = DataUtils.get_shard_secondary_uuids namespace_uuid, shards[i]
             ret.push
-                lower: (if json_repr[0] == "" then "&minus;&infin;" else json_repr[0])
-                upper: (if json_repr[1] == null then "+&infin;" else json_repr[1])
+                name: human_readable_shard shards[i]
                 notlast: i != shards.length
                 index: i
+                primary:
+                    uuid: primary_uuid
+                    # primary_uuid may be null when a new shard hasn't hit the server yet
+                    name: if primary_uuid then machines.get(primary_uuid).get('name') else null
+                    status: if primary_uuid then DataUtils.get_machine_reachability(primary_uuid) else null
+                secondaries: _.map(secondary_uuids, (uuid) ->
+                    uuid: uuid
+                    name: machines.get(uuid).get('name')
+                    status: DataUtils.get_machine_reachability(uuid)
+                    )
         return ret
 
     # Shards view
@@ -533,14 +543,15 @@ module 'NamespaceView', ->
 
         initialize: ->
             log_initial '(initializing) namespace view: shards'
-            @model.on 'change', => @render()
+            @model.on 'change', @render
+            directory.on 'all', @render
             @shards = []
 
         render: =>
             log_render '(rendering) namespace view: shards'
 
             @.$el.html @template
-                shards: compute_renderable_shards_array(@model.get('shards'))
+                shards: compute_renderable_shards_array(@model.get('id'), @model.get('shards'))
 
             return @
 
@@ -554,7 +565,7 @@ module 'NamespaceView', ->
         initialize: (namespace, shard_set) ->
             log_initial '(initializing) modal dialog: ModifyShards'
             @namespace = namespace
-            @shards = compute_renderable_shards_array(shard_set)
+            @shards = compute_renderable_shards_array(namespace.get('id'), shard_set)
 
             # Keep an unmodified copy of the shard boundaries with which we compare against when reviewing the changes.
             @original_shard_set = _.map(shard_set, _.identity)
@@ -613,11 +624,11 @@ module 'NamespaceView', ->
 
             json =
                 namespace: @namespace.toJSON()
-                shards: compute_renderable_shards_array(@shard_set)
+                shards: compute_renderable_shards_array(@namespace.get('id'), @shard_set)
 
             super validator_options, json
 
-            shard_views = _.map(compute_renderable_shards_array(@shard_set), (shard) => new NamespaceView.ModifyShardsModalShard @namespace, shard, @)
+            shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifyShardsModalShard @namespace, shard, @)
             @.$('.shards tbody').append view.render().el for view in shard_views
 
     class @ModifyShardsModalShard extends Backbone.View
@@ -679,9 +690,6 @@ module 'NamespaceView', ->
             shards = @namespace.get('shards')
             low_shard = human_readable_shard(shards[shard_index])
             high_shard = human_readable_shard(shards[shard_index + 1])
-#lower_bound = if shard_index == 0 then "&minus;&infin;" else shards[shard_index - 1]
-#mid_bound = shards[shard_index]
-#upper_bound = if shard_index + 1 == shards.length then "+&infin;" else shards[shard_index + 1]
 
             console.log 'shards to be merged: ',[low_shard, high_shard, shards, shard_index]
 

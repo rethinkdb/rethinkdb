@@ -397,10 +397,16 @@
                 <tbody>
                     {{#each shards}}
                         <tr>
-                            <td class="name"><h4>{{lower}} to {{upper}}</h4></td>
+                            <td class="name"><h4>{{name}}</h4></td>
                             <td class="status">
-                                <p>4 of 5 replicas live</p>
-                                <p>50.3 GB of data in this shard</p>
+                                <p>Master: <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> ({{humanize_machine_reachability primary.status}})</p>
+                                <p>Replicas: 
+                                  {{#if secondaries}}
+                                  {{#each secondaries}}<a href="/#machines/{{uuid}}">{{name}}</a> ({{humanize_machine_reachability status}}); {{/each}}
+                                  {{else}}
+                                  None
+                                  {{/if}}
+                                </p>
                             </td>
                         </tr>
                     {{/each}}
@@ -436,7 +442,7 @@
 
         <script id="modify_shards_modal-shard-template" type="text/x-handlebars-template">
             {{#with shard}}
-                <td class="name"><h4>{{lower}} to {{upper}}</h4></td>
+                <td class="name"><h4>{{name}}</h4></td>
                 <td class="status">
                     <!-- TODO fake -->
                     <p>4 of 5 replicas live</p>
@@ -456,7 +462,7 @@
         <script id="modify_shards_modal-edit_shard-template" type="text/x-handlebars-template">
             <td class="name">
                 {{#with shard}}
-                    <h4>{{lower}} to {{upper}} </h4>
+                    <h4>{{name}} </h4>
                 {{/with}}
             </td>
             <td class="status" colspan="2">
