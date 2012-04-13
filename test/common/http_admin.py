@@ -231,15 +231,12 @@ class MemcachedNamespace(Namespace):
     def __str__(self):
         return "Memcached" + Namespace.__str__(self)
 
-class Server(object):
-    def __init__(self, host, http_port):
-        self.host = host
-        self.http_port = http_port
-        self.uuid = validate_uuid(self.do_query("GET", "/ajax/me"))
-        serv_info = self.do_query("GET", "/ajax/machines/" + self.uuid)
-        self.datacenter_uuid = serv_info[u"datacenter_uuid"]
-        self.name = serv_info[u"name"]
-        self.port_offset = serv_info[u"port_offset"]
+class Machine(object):
+    def __init__(self, uuid, json_data):
+        self.uuid = validate_uuid(uuid)
+        self.datacenter_uuid = json_data[u"datacenter_uuid"]
+        self.name = json_data[u"name"]
+        self.port_offset = json_data[u"port_offset"]
 
     def check(self, data):
         return data[u"datacenter_uuid"] == self.datacenter_uuid and data[u"name"] == self.name and data[u"port_offset"] == self.port_offset
@@ -247,8 +244,30 @@ class Server(object):
     def to_json(self):
         return { u"datacenter_uuid": self.datacenter_uuid, u"name": self.name, u"port_offset": self.port_offset }
 
+    def __str__(self):
+        return "Server(uuid:%s, name:%s, datacenter:%s, port_offset:%d)" % (self.uuid, self.name, self.datacenter_uuid, self.port_offset)
+
+class ClusterAccess(object):
+    def __init__(self, addresses = []):
+        for host, http_port in addresses:
+            assert isinstance(host, str)
+            assert isinstance(http_port, int)
+        self.addresses = addresses
+
+        self.machines = { }
+        self.datacenters = { }
+        self.dummy_namespaces = { }
+        self.memcached_namespaces = { }
+        self.conflicts = [ ]
+
+        self.update_cluster_data()
+
     def do_query(self, method, route, payload = None):
-        conn = HTTPConnection(self.host, self.http_port)
+        host, http_port = random.choice(self.addresses)
+        return self.do_query_specific(host, http_port, method, route, payload)
+
+    def do_query_specific(self, host, http_port, method, route, payload = None):
+        conn = HTTPConnection(host, http_port)
         conn.connect()
         if payload is not None:
             conn.request(method, route, json.dumps(payload))
@@ -259,20 +278,6 @@ class Server(object):
             return json.loads(response.read())
         else:
             raise BadServerResponse(response.status, response.reason)
-
-    def __str__(self):
-        return "Server(%s:%d, name:%s, datacenter:%s, port_offset:%d)" % (self.host, self.http_port, self.name, self.datacenter_uuid, self.port_offset)
-
-class ClusterAccess(object):
-    def __init__(self, addresses = []):
-        self.machines = { }
-        self.datacenters = { }
-        self.dummy_namespaces = { }
-        self.memcached_namespaces = { }
-        self.conflicts = [ ]
-
-        for host, port in addresses:
-            self.add_existing_machine((host, port))
 
     def __str__(self):
         retval = "Machines:"
@@ -302,23 +307,10 @@ class ClusterAccess(object):
         for i in self.datacenters.iterkeys():
             print "%s: %s" % (i, self.datacenters[i])
 
-    def _get_server_for_command(self, servid = None):
-        if servid is None:
-            for serv in self.machines.itervalues():
-                return serv
-        else:
-            return self.machines[servid]
-
-    def add_existing_machine(self, (host, http_port)):
-        serv = Server(host, http_port)
-        self.machines[serv.uuid] = serv
-        self.update_cluster_data()
-        return serv
-
-    def add_datacenter(self, name = None, servid = None):
+    def add_datacenter(self, name = None):
         if name is None:
             name = str(random.randint(0, 1000000))
-        info = self._get_server_for_command(servid).do_query("POST", "/ajax/datacenters/new", {
+        info = self.do_query("POST", "/ajax/datacenters/new", {
             "name": name
             })
         time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
@@ -348,7 +340,7 @@ class ClusterAccess(object):
             raise TypeError("Can't interpret %r as a %s" % (what, type_str))
 
     def find_machine(self, what):
-        return self._find_thing(what, Server, "machine", self.machines)
+        return self._find_thing(what, Machine, "machine", self.machines)
 
     def find_datacenter(self, what):
         return self._find_thing(what, Datacenter, "data center", self.datacenters)
@@ -360,42 +352,42 @@ class ClusterAccess(object):
         return self._find_thing(what, Namespace, "namespace", nss)
 
     def get_directory(self, servid = None):
-        return self._get_server_for_command(servid).do_query("GET", "/ajax/directory")
+        return self.do_query("GET", "/ajax/directory")
 
-    def move_server_to_datacenter(self, serv, datacenter, servid = None):
+    def move_server_to_datacenter(self, serv, datacenter):
         serv = self.find_machine(serv)
         datacenter = self.find_datacenter(datacenter)
         serv.datacenter_uuid = datacenter.uuid
-        self._get_server_for_command(servid).do_query("POST", "/ajax/machines/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
+        self.do_query("POST", "/ajax/machines/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
         time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
         self.update_cluster_data()
 
-    def move_namespace_to_datacenter(self, namespace, primary, servid = None):
+    def move_namespace_to_datacenter(self, namespace, primary):
         namespace = self.find_namespace(namespace)
         primary = None if primary is None else self.find_datacenter(primary)
         namespace.primary_uuid = primary.uuid
         if isinstance(namespace, MemcachedNamespace):
-            self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
+            self.do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
         elif isinstance(namespace, DummyNamespace):
-            self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
+            self.do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
         time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
         self.update_cluster_data()
 
-    def set_namespace_affinities(self, namespace, affinities = { }, servid = None):
+    def set_namespace_affinities(self, namespace, affinities = { }):
         namespace = self.find_namespace(namespace)
         aff_dict = { }
         for datacenter, count in affinities.iteritems():
             aff_dict[self.find_datacenter(datacenter).uuid] = count
         namespace.replica_affinities = aff_dict
         if isinstance(namespace, MemcachedNamespace):
-            self._get_server_for_command(servid).do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
+            self.do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
         elif isinstance(namespace, DummyNamespace):
-            self._get_server_for_command(servid).do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
+            self.do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
         time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
         self.update_cluster_data()
         return namespace
 
-    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, servid = None):
+    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }):
         if port is None:
             port = random.randint(20000, 60000)
         if name is None:
@@ -407,7 +399,7 @@ class ClusterAccess(object):
         aff_dict = { }
         for datacenter, count in affinities.iteritems():
             aff_dict[self.find_datacenter(datacenter).uuid] = count
-        info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/new" % protocol, {
+        info = self.do_query("POST", "/ajax/%s_namespaces/new" % protocol, {
             "name": name,
             "port": port,
             "primary_uuid": primary,
@@ -422,50 +414,50 @@ class ClusterAccess(object):
         self.update_cluster_data()
         return namespace
 
-    def rename(self, target, name, servid = None):
-        type_targets = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces, InternalServer: self.machines, ExternalServer: self.machines, Datacenter: self.datacenters }
-        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", InternalServer: "machines", ExternalServer: "machines", Datacenter: "datacenters" }
+    def rename(self, target, name):
+        type_targets = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces, Machine: self.machines, Datacenter: self.datacenters }
+        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", Machine: "machines", Datacenter: "datacenters" }
         assert type_targets[type(target)][target.uuid] is target
         object_type = type_objects[type(target)]
         target.name = name
-        info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s/%s/name" % (object_type, target.uuid), name)
+        info = self.do_query("POST", "/ajax/%s/%s/name" % (object_type, target.uuid), name)
         time.sleep(0.2)
         self.update_cluster_data()
 
     def get_conflicts(self):
         return self.conflicts
 
-    def resolve_conflict(self, conflict, value, servid = None):
+    def resolve_conflict(self, conflict, value):
         assert conflict in self.conflicts
         assert value in conflict.values
-        type_targets = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces, InternalServer: self.machines, ExternalServer: self.machines, Datacenter: self.datacenters }
-        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", InternalServer: "machines", ExternalServer: "machines", Datacenter: "datacenters" }
+        type_targets = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces, Machine: self.machines, Datacenter: self.datacenters }
+        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", Machine: "machines", Datacenter: "datacenters" }
         assert type_targets[type(conflict.target)][conflict.target.uuid] is conflict.target
         object_type = type_objects[type(conflict.target)]
-        info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s/%s/%s/resolve" % (object_type, conflict.target.uuid, conflict.field), value)
+        info = self.do_query("POST", "/ajax/%s/%s/%s/resolve" % (object_type, conflict.target.uuid, conflict.field), value)
         # Remove the conflict and update the field in the target 
         self.conflicts.remove(conflict)
         setattr(conflict.target, conflict.field, value) # TODO: this probably won't work for certain things like shards that we represent differently locally than the strict json format
         time.sleep(0.2)
         self.update_cluster_data()
 
-    def add_namespace_shard(self, namespace, split_point, servid = None):
+    def add_namespace_shard(self, namespace, split_point):
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
         protocol = type_protocols[type(namespace)]
         namespace.add_shard(split_point)
-        info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
+        info = self.do_query("POST", "/ajax/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
         time.sleep(0.2)
         self.update_cluster_data()
 
-    def remove_namespace_shard(self, namespace, split_point, servid = None):
+    def remove_namespace_shard(self, namespace, split_point):
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
         protocol = type_protocols[type(namespace)]
         namespace.remove_shard(split_point)
-        info = self._get_server_for_command(servid).do_query("POST", "/ajax/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
+        info = self.do_query("POST", "/ajax/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
         time.sleep(0.2)
         self.update_cluster_data()
 
@@ -522,12 +514,11 @@ class ClusterAccess(object):
 
     # Get the list of machines/namespaces from the cluster, verify that it is consistent across each machine
     def _verify_consistent_cluster(self):
-        expected = self._get_server_for_command().do_query("GET", "/ajax")
-        # Filter out the "me" value - it will be different on each machine
-        assert expected.pop("me") is not None
-        for i in self.machines.iterkeys():
-            actual = self.machines[i].do_query("GET", "/ajax")
-            assert actual.pop("me") == self.machines[i].uuid
+        expected = self.do_query_specific(self.addresses[0][0], self.addresses[0][1], "GET", "/ajax")
+        del expected[u"me"]
+        for address in self.addresses:
+            actual = self.do_query_specific(address[0], address[1], "GET", "/ajax")
+            del actual[u"me"]
             if actual != expected:
                 raise BadClusterData(expected, actual)
         return expected
@@ -539,9 +530,9 @@ class ClusterAccess(object):
                 if value == u"VALUE_IN_CONFLICT":
                     if obj not in self.conflicts:
                         # Get the possible values and create a value conflict object
-                        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", InternalServer: "machines", ExternalServer: "machines", Datacenter: "datacenters" }
+                        type_objects = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces", Machine: "machines", Datacenter: "datacenters" }
                         object_type = type_objects[type(obj)]
-                        resolve_data = self._get_server_for_command().do_query("GET", "/ajax/%s/%s/%s/resolve" % (object_type, obj.uuid, field))
+                        resolve_data = self.do_query("GET", "/ajax/%s/%s/%s/resolve" % (object_type, obj.uuid, field))
                         self.conflicts.append(ValueConflict(obj, field, resolve_data))
                     print "Warning: value conflict"
                     check_obj = False
@@ -558,9 +549,10 @@ class ClusterAccess(object):
 
     def update_cluster_data(self):
         data = self._verify_consistent_cluster()
-        self._pull_cluster_data(data[u"machines"], self.machines, DummyServer)
+        self._pull_cluster_data(data[u"machines"], self.machines, Machine)
         self._pull_cluster_data(data[u"datacenters"], self.datacenters, Datacenter)
         self._pull_cluster_data(data[u"dummy_namespaces"], self.dummy_namespaces, DummyNamespace)
         self._pull_cluster_data(data[u"memcached_namespaces"], self.memcached_namespaces, MemcachedNamespace)
         self._verify_cluster_data(data)
         return data
+
