@@ -468,7 +468,6 @@ bool memcached_protocol_t::store_t::send_backfill(
             repli_timestamp_t since_when = (*i).second.to_repli_timestamp(); // FIXME: this loses precision
 
             traversal_progress_t *p = new traversal_progress_t;
-            debugf("Home thread = %d\n", p->home_thread());
             progress_combiner.add_constituent(p);
             memcached_backfill(btree.get(), range, since_when, &callback, txn.get(), superblock, p);
         }

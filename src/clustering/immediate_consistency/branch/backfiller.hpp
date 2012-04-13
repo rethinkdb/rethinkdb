@@ -162,16 +162,13 @@ private:
                                    mailbox_addr_t<void(float)> response_mbox,
                                    auto_drainer_t::lock_t) {
         if (std_contains(local_backfill_progress, session_id) && local_backfill_progress[session_id]) {
-            debugf("Found the correct progress monitor.\n");
             backfill_progress_read_acq_t read_acq(local_backfill_progress[session_id]);
-            debugf("Acquired the lock.\n");
             if (*read_acq.get()) {
                 send(mailbox_manager, response_mbox, (*read_acq.get())->guess_completion());
             } else {
                 send(mailbox_manager, response_mbox, -1.0f);
             }
         } else {
-            debugf("Didn't find the correct progress monitor.\n");
             send(mailbox_manager, response_mbox, -1.0f);
         }
 
