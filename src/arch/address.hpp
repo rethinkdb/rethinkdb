@@ -30,7 +30,7 @@ private:
         msg.append(&addr, sizeof(addr));
     }
 
-    template <class T> friend int deserialize(read_stream_t *, T *);
+    friend class archive_deserializer_t;
     int rdb_deserialize(read_stream_t *s) {
         int64_t num_read = force_read(s, &addr, sizeof(addr));
         if (num_read == -1) { return -1; }

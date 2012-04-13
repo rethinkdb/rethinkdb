@@ -23,9 +23,23 @@ private:
     DISABLE_COPYING(read_stream_t);
 };
 
+// We wrap things in this class for making friend declarations more
+// compilable under gcc-4.5.
+class archive_deserializer_t {
+private:
+    template <class T> friend int deserialize(read_stream_t *s, T *thing);
+
+    template <class T>
+    static MUST_USE int deserialize(read_stream_t *s, T *thing) {
+	return thing->rdb_deserialize(s);
+    }
+
+    archive_deserializer_t();
+};
+
 template <class T>
 MUST_USE int deserialize(read_stream_t *s, T *thing) {
-    return thing->rdb_deserialize(s);
+    return archive_deserializer_t::deserialize(s, thing);
 }
 
 // Returns the number of bytes written, or -1.  Returns a

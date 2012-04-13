@@ -51,7 +51,7 @@ private:
         }
     }
 
-    template <class U> friend int deserialize(read_stream_t *, U *);
+    friend class archive_deserializer_t;
     int rdb_deserialize(read_stream_t *s) {
         rassert(!object);
         delete object;
