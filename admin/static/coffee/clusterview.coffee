@@ -653,11 +653,11 @@ module 'ClusterView', ->
                             for _m_uuid, _m of response
                                 machines.get(_m_uuid).set(_m)
 
+                            machine_names = _.map(machines_list, (_m) -> name: _m.get('name'))
                             $('#user-alert-space').append (@alert_tmpl
                                 datacenter_name: datacenters.get(formdata.datacenter_uuid).get('name')
-                                machines: _.map(machines_list, (_m) ->
-                                    name: _m.get('name')
-                                )
+                                machines_first: machine_names[0]
+                                machines_rest: machine_names.splice(1)
                                 machine_count: machines_list.length
                             )
 

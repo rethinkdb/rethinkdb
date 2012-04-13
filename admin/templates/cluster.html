@@ -896,7 +896,7 @@
         <script id="set_datacenter-alert-template" type="text/x-handlebars-template">
             <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
-                <p>Set datacenter for {{pluralize_noun "machine" machine_count}} {{#each machines}}{{name}}{{/each}} to {{datacenter_name}}.</p>
+                <p>Set datacenter for {{pluralize_noun "machine" machine_count}} {{machines_first.name}}{{#each machines_rest}}, {{name}}{{/each}} to {{datacenter_name}}.</p>
             </div>
         </script>
 
