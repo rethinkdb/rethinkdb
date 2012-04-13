@@ -633,28 +633,32 @@ module 'ClusterView', ->
 
                 submitHandler: =>
                     formdata = form_data_as_object($('form', @$modal))
-                    # TODO: We really should do one ajax request
-                    for m in machines_list
-                        $.ajax
-                            processData: false
-                            url: "/ajax/machines/#{m.id}"
-                            type: 'POST'
-                            contentType: 'application/json'
-                            data: JSON.stringify({"datacenter_uuid" : formdata.datacenter_uuid})
+                    # Prepare json to pass to the server
+                    json = {}
+                    for _m in machines_list
+                        json[_m.get('id')] =
+                            datacenter_uuid: formdata.datacenter_uuid
 
-                            success: (response) =>
-                                clear_modals()
+                    # Set the datacenters!
+                    $.ajax
+                        processData: false
+                        url: "/ajax/machines"
+                        type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify(json)
 
-                                machines.get(m.id).set(response)
+                        success: (response) =>
+                            clear_modals()
 
-                                # We only have to do this one
-                                if m is machines_list[machines_list.length - 1]
-                                    $('#user-alert-space').append (@alert_tmpl
-                                        datacenter_name: datacenters.get(formdata.datacenter_uuid).get('name')
-                                        machines: _.map(machines_list, (_m) ->
-                                            name: _m.get('name')
-                                        )
-                                        machine_count: machines_list.length
-                                    )
+                            for _m_uuid, _m of response
+                                machines.get(_m_uuid).set(_m)
+
+                            $('#user-alert-space').append (@alert_tmpl
+                                datacenter_name: datacenters.get(formdata.datacenter_uuid).get('name')
+                                machines: _.map(machines_list, (_m) ->
+                                    name: _m.get('name')
+                                )
+                                machine_count: machines_list.length
+                            )
 
             super validator_options, { datacenters: (datacenter.toJSON() for datacenter in datacenters.models) }
