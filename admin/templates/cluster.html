@@ -182,7 +182,7 @@
                        <span class="status">Status: {{reachability}} ({{nashards}} of {{nshards}} masters live; {{nareplicas}} of {{nreplicas}} replicas live)</span>
                     </p>
                     <p class="details-text">
-                       <span class="contains">Contains: {{nshards}} shard{{pluralize_noun nshards}}, {{nreplicas}} replica{{pluralize_noun nreplicas}} on {{ndatacenters}} datacenter{{pluralize_noun ndatacenters}} across {{nmachines}} machine{{pluralize_noun nmachines}}</span>
+                       <span class="contains">Contains: {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}</span>
                     </p>
                 </div>
                 <div class="clearboth"></div>
@@ -200,7 +200,7 @@
                        <span class="status">Status: {{humanize_datacenter_reachability status}}</span>
                     </p>
                     <p class="details-text">
-                      <span class="Contains">Contains: {{primary_count}} primary{{pluralize_noun primary_count}}, {{secondary_count}} secondary{{pluralize_noun secondary_count}} for {{namespace_count}} namespace{{pluralize_noun namespace_count}}</span>
+                      <span class="Contains">Contains: {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}} for {{namespace_count}} {{pluralize_noun "namespace" namespace_count}}</span>
                     </p>
                 </div>
                 <div class="clearboth"></div>
@@ -218,7 +218,7 @@
                       <span class="status">Status: {{humanize_machine_reachability status}}</span>
                     </p>
                     <p class="details-text">
-                      <span class="Contains">Contains: {{primary_count}} primary{{pluralize_noun primary_count}}, {{secondary_count}} secondary{{pluralize_noun secondary_count}} for {{namespace_count}} namespace{{pluralize_noun namespace_count}}</span>
+                      <span class="Contains">Contains: {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}} for {{namespace_count}} {{pluralize_noun "namespace" namespace_count}}</span>
                     </p>
                     <p class="details-text">
                       <span class="ip">IP: {{ip}}</span>
@@ -566,7 +566,7 @@
                 <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
                 <ul>
                   {{#each shards}}
-                  <li>{{name}} ({{nprimaries}} primary{{pluralize_noun nprimaries}}, {{nsecondaries}} secondary{{pluralize_noun nsecondaries}})</li>
+                  <li>{{name}} ({{nprimaries}} {{pluralize_noun "primary" nprimaries}}, {{nsecondaries}} {{pluralize_noun "secondary" nsecondaries}})</li>
                   {{/each}}
                 </ul>
               </div>
@@ -664,8 +664,8 @@
                     <div class="critical-issues">
                         <div class="priority"></div>
                         <div class="message">
-                            {{#if MACHINE_DOWN}}{{num}} machine{{pluralize_noun num}} {{pluralize_verb_to_be num}} down{{/if}}
-                            {{#if PERSISTENCE_ISSUE}}{{num}} disk{{pluralize_noun num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
+                            {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "machine" num}} {{pluralize_verb_to_be num}} down{{/if}}
+                            {{#if PERSISTENCE_ISSUE}}{{num}} {{pluralize_noun "disk" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
                         </div>
                     </div>
                 {{/each}}
@@ -676,7 +676,7 @@
                 <div class="critical-issues">
                     <div class="priority"></div>
                     <div class="message">
-                        {{other_issues.num}} other issue{{pluralize_noun other_issues.num}}
+                        {{other_issues.num}} other {{pluralize_noun "issue" other_issues.num}}
                     </div>
                 </div>
             {{/if}}
@@ -766,10 +766,10 @@
                     {{/if}}
                 </div>
                 <hr />
-                <h4>{{capitalize type}}{{pluralize_noun num_contestants}} with the name {{name}}:</h4>
+                <h4>{{pluralize_noun type num_contestants true}} with the name {{name}}:</h4>
                 <ul>
                 {{#each contestants}}
-                <li><a href="#{{type}}{{pluralize_noun 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
+                <li><a href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
                 {{/each}}
                 </ul>
             </div>
@@ -896,7 +896,7 @@
         <script id="set_datacenter-alert-template" type="text/x-handlebars-template">
             <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
-                <p>Set datacenter for machine{{pluralize_noun machine_count}} {{#each machines}}{{name}}{{/each}} to {{datacenter_name}}.</p>
+                <p>Set datacenter for {{pluralize_noun "machine" machine_count}} {{#each machines}}{{name}}{{/each}} to {{datacenter_name}}.</p>
             </div>
         </script>
 

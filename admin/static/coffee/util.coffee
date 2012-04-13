@@ -25,7 +25,18 @@ Handlebars.registerHelper 'ifequal', (val_a, val_b, if_block, else_block) ->
         else_block()
 
 # Helpers for pluralization of nouns and verbs
-Handlebars.registerHelper 'pluralize_noun', (num) -> if num is 1 then '' else 's'
+Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
+    if num is 1
+        result = noun
+    else
+        if noun.substr(-1) is 'y'
+            result = noun.slice(0, noun.length - 2) + "ies"
+        else
+            result = noun + "s"
+    if capitalize is true
+        result = result.charAt(0).toUpperCase() + result.slice(1);
+    return result
+
 Handlebars.registerHelper 'pluralize_verb_to_be', (num) -> if num is 1 then 'is' else 'are'
 
 # Helpers for capitalization
