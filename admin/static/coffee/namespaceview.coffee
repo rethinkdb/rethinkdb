@@ -50,9 +50,6 @@ module 'NamespaceView', ->
         className: 'namespace-replicas'
         template: Handlebars.compile $('#namespace_view-replica-template').html()
 
-        events: ->
-            'click #add-secondary-datacenter-button': 'add_secondary'
-
         initialize: ->
             # @model is a namespace.  somebody is supposed to pass model: namespace to the constructor.
             @model.on 'change', @render
@@ -77,38 +74,38 @@ module 'NamespaceView', ->
             modal.render("Are you sure you want to make " + datacenter.get('name') + " primary?")
             e.preventDefault()
 
-        add_secondary: (e, datacenter) ->
-            log_action 'add secondary clicked'
-            modal = new NamespaceView.AddSecondaryModal(@model, datacenter)
-            modal.render()
-            e.preventDefault()
-
-        remove_secondary: (e, datacenter) ->
-            log_action 'remove secondary clicked'
-            modal = new ClusterView.ConfirmationDialogModal
-            modal.render("Are you sure you want to stop replicating to " + datacenter.get('name') + "?")
-            e.preventDefault()
-
         render: =>
             log_render '(rendering) namespace view: replica'
             # Walk over json and add datacenter names to the model (in
             # addition to datacenter ids)
             secondary_affinities = {}
-            _.each @model.get('replica_affinities'), (replica_obj, id) =>
-                if id != @model.get('primary_uuid') then secondary_affinities[id] = replica_obj
+            _.each @model.get('replica_affinities'), (replica_count, id) =>
+                if id != @model.get('primary_uuid') and replica_count > 0
+                    secondary_affinities[id] = replica_count
+            # List of datacenters we're not replicating to
+            nothings = []
+            for dc in datacenters.models
+                is_primary = dc.get('id') is @model.get('primary_uuid')
+                is_secondary = dc.get('id') in _.map(secondary_affinities, (obj, id)->id)
+                if not is_primary and not is_secondary
+                    nothings[nothings.length] =
+                        id: dc.get('id')
+                        name: dc.get('name')
+            # create json
             json = _.extend @model.toJSON(),
-                'primary':
-                    'id': @model.get('primary_uuid')
-                    'name': datacenters.get(@model.get('primary_uuid')).get('name')
-                    'replicas': @model.get('replica_affinities')[@model.get('primary_uuid')]
-                    'acks' : @model.get('replica_affinities')[@model.get('primary_uuid')]
-                'secondaries':
+                primary:
+                    id: @model.get('primary_uuid')
+                    name: datacenters.get(@model.get('primary_uuid')).get('name')
+                    replicas: @model.get('replica_affinities')[@model.get('primary_uuid')]
+                    acks : @model.get('replica_affinities')[@model.get('primary_uuid')]
+                secondaries:
                     _.map secondary_affinities, (replica_count, uuid) =>
-                        'id': uuid
-                        'name': datacenters.get(uuid).get('name')
-                        'replicas': replica_count
-                        'acks': replica_count
-                'datacenters_left': datacenters.models.length > _.size(@model.get('replica_affinities'))
+                        id: uuid
+                        name: datacenters.get(uuid).get('name')
+                        replicas: replica_count
+                        acks: replica_count
+                nothings: nothings
+
             @.$el.html @template(json)
 
 
@@ -124,54 +121,13 @@ module 'NamespaceView', ->
                     @edit_machines(e, datacenters.get(dc_uuid))
                 @.$(".make-primary.#{dc_uuid}").on 'click', (e) =>
                     @make_primary(e, datacenters.get(dc_uuid))
-                @.$(".remove-secondary.#{dc_uuid}").on 'click', (e) =>
-                    @remove_secondary(e, datacenters.get(dc_uuid))
+
+            # Bind the link actions for each datacenter with no replicas
+            _.each nothings, (nothing_dc) =>
+                @.$(".edit-nothing.#{nothing_dc.id}").on 'click', (e) =>
+                    @modify_replicas(e, datacenters.get(nothing_dc.id))
 
             return @
-
-#Doesnt work TODO
-    class @AddSecondaryModal extends ClusterView.AbstractModal
-        template: Handlebars.compile $('#add_secondary-modal-template').html()
-        alert_tmpl: Handlebars.compile $('#modified_replica-alert-template').html()
-        class: 'add-secondary'
-
-        initialize: (namespace, datacenter) ->
-            log_initial '(initializing) modal dialog: add secondary'
-            @namespace = namespace
-            @datacenter = datacenter
-            super @template
-
-        render: ->
-            log_render '(rendering) add secondary dialog'
-
-            # Define the validator options
-            validator_options =
-                submitHandler: =>
-                    formdata = form_data_as_object($('form', @$modal))
-                    replica_affinities = {}
-                    replica_affinities[formdata.datacenter] = 0
-                    $.ajax
-                        processData: false
-                        url: "/ajax/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
-                        type: 'POST'
-                        contentType: 'application/json'
-                        data: JSON.stringify({"replica_affinities": replica_affinities})
-
-                        success: (response) =>
-                            clear_modals()
-
-                            namespaces.get(@namespace.id).set(response)
-                            #TODO hook this up
-                            #$('#user-alert-space').append @alert_tmpl {}
-
-            namespace = @namespace
-            _datacenters = _.filter datacenters.models, (datacenter) ->
-                    uuid = datacenter.id
-                    return (uuid isnt namespace.get('primary_uuid')) and (uuid not in _.keys namespace.get('replica_affinities'))
-            json =
-                'datacenters' : _.map(_datacenters, (datacenter) -> datacenter.toJSON())
-
-            super validator_options, json
 
     class @AddNamespaceModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#add_namespace-modal-template').html()
@@ -505,15 +461,25 @@ module 'NamespaceView', ->
             super validator_options, json
 
 
-    compute_renderable_shards_array = (shards) ->
+    compute_renderable_shards_array = (namespace_uuid, shards) ->
         ret = []
         for i in [0...shards.length]
-            json_repr = $.parseJSON(shards[i])
+            primary_uuid = DataUtils.get_shard_primary_uuid namespace_uuid, shards[i]
+            secondary_uuids = DataUtils.get_shard_secondary_uuids namespace_uuid, shards[i]
             ret.push
-                lower: (if json_repr[0] == "" then "&minus;&infin;" else json_repr[0])
-                upper: (if json_repr[1] == null then "+&infin;" else json_repr[1])
+                name: human_readable_shard shards[i]
                 notlast: i != shards.length
                 index: i
+                primary:
+                    uuid: primary_uuid
+                    # primary_uuid may be null when a new shard hasn't hit the server yet
+                    name: if primary_uuid then machines.get(primary_uuid).get('name') else null
+                    status: if primary_uuid then DataUtils.get_machine_reachability(primary_uuid) else null
+                secondaries: _.map(secondary_uuids, (uuid) ->
+                    uuid: uuid
+                    name: machines.get(uuid).get('name')
+                    status: DataUtils.get_machine_reachability(uuid)
+                    )
         return ret
 
     # Shards view
@@ -533,14 +499,15 @@ module 'NamespaceView', ->
 
         initialize: ->
             log_initial '(initializing) namespace view: shards'
-            @model.on 'change', => @render()
+            @model.on 'change', @render
+            directory.on 'all', @render
             @shards = []
 
         render: =>
             log_render '(rendering) namespace view: shards'
 
             @.$el.html @template
-                shards: compute_renderable_shards_array(@model.get('shards'))
+                shards: compute_renderable_shards_array(@model.get('id'), @model.get('shards'))
 
             return @
 
@@ -554,7 +521,7 @@ module 'NamespaceView', ->
         initialize: (namespace, shard_set) ->
             log_initial '(initializing) modal dialog: ModifyShards'
             @namespace = namespace
-            @shards = compute_renderable_shards_array(shard_set)
+            @shards = compute_renderable_shards_array(namespace.get('id'), shard_set)
 
             # Keep an unmodified copy of the shard boundaries with which we compare against when reviewing the changes.
             @original_shard_set = _.map(shard_set, _.identity)
@@ -613,11 +580,11 @@ module 'NamespaceView', ->
 
             json =
                 namespace: @namespace.toJSON()
-                shards: compute_renderable_shards_array(@shard_set)
+                shards: compute_renderable_shards_array(@namespace.get('id'), @shard_set)
 
             super validator_options, json
 
-            shard_views = _.map(compute_renderable_shards_array(@shard_set), (shard) => new NamespaceView.ModifyShardsModalShard @namespace, shard, @)
+            shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifyShardsModalShard @namespace, shard, @)
             @.$('.shards tbody').append view.render().el for view in shard_views
 
     class @ModifyShardsModalShard extends Backbone.View
@@ -679,9 +646,6 @@ module 'NamespaceView', ->
             shards = @namespace.get('shards')
             low_shard = human_readable_shard(shards[shard_index])
             high_shard = human_readable_shard(shards[shard_index + 1])
-#lower_bound = if shard_index == 0 then "&minus;&infin;" else shards[shard_index - 1]
-#mid_bound = shards[shard_index]
-#upper_bound = if shard_index + 1 == shards.length then "+&infin;" else shards[shard_index + 1]
 
             console.log 'shards to be merged: ',[low_shard, high_shard, shards, shard_index]
 

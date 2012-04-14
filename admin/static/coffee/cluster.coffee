@@ -57,6 +57,21 @@ module 'DataUtils', ->
 
         return json
 
+    @get_shard_primary_uuid = (namespace_uuid, shard) ->
+        for machine_uuid, peers_roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+            for _shard, role of peers_roles
+                if shard.toString() is _shard.toString() and role is 'role_primary'
+                    return machine_uuid
+        return null
+
+    @get_shard_secondary_uuids = (namespace_uuid, shard) ->
+        secondaries = []
+        for machine_uuid, peers_roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+            for _shard, role of peers_roles
+                if shard.toString() is _shard.toString() and role is 'role_secondary'
+                    secondaries[secondaries.length] = machine_uuid
+        return _.uniq(secondaries)
+
 class DataStream extends Backbone.Model
     max_cached: 250
     cache_ready: false
