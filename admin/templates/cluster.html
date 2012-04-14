@@ -248,8 +248,8 @@
             <table class="datacenters table">
                 <!-- Header row -->
                 <tr>
-                    <th>Role</th>
                     <th>Datacenter</th>
+                    <th>Role</th>
                     <th>Replicas</th>
                     <th>Write acks</th>
                     <th>Status</th>
@@ -258,32 +258,32 @@
                 <!-- Primary datacenter -->
                 {{#with primary }}
                 <tr>
-                    <td>Primary</td>
                     <td>{{name}}</td>
+                    <td>Primary</td>
                     <td>{{replicas}}</td>
                     <td>{{acks}}</td>
                     <td><font color="green">ok</font></td>
-                    <td><a id="edit-primary" href="#">Edit</a> | <a class="edit-machines {{this.id}}" href="#">Change machines</a></td>
+                    <td><a id="edit-primary" href="#">Edit replicas</a> | <a class="edit-machines {{this.id}}" href="#">Pin machines</a></td>
                 </tr>
                 {{/with}}
                 <!-- Secondary datacenters -->
                 {{#each secondaries}}
                 <tr>
-                    <td>Secondary</td>
                     <td>{{name}}</td>
+                    <td>Secondary</td>
                     <td>{{replicas}}</td>
                     <td>{{acks}}</td>
                     <td><font color="green">ok</font></td>
-                    <td><a class="edit-secondary {{this.id}}" href="#">Edit</a> | <a class="edit-machines {{this.id}}" href="#">Change machines</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a></td>
+                    <td><a class="edit-secondary {{this.id}}" href="#">Edit replicas</a> | <a class="edit-machines {{this.id}}" href="#">Pin machines</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a></td>
                 </tr>
                 {{/each}}
                 <!-- Rest of the datacenters (ones we're not replicating to) -->
                 {{#each nothings}}
                 <tr>
-                    <td>Nothing</td>
                     <td>{{name}}</td>
+                    <td>Nothing</td>
                     <td colspan="3">N/A</td>
-                    <td><a class="edit-nothing {{this.id}}" href="#">Edit</a></td>
+                    <td><a class="edit-nothing {{this.id}}" href="#">Edit replicas</a></td>
                 </tr>
                 {{/each}}
             </table>

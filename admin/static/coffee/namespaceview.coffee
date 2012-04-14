@@ -92,18 +92,19 @@ module 'NamespaceView', ->
                         id: dc.get('id')
                         name: dc.get('name')
             # create json
+            primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
             json = _.extend @model.toJSON(),
                 primary:
                     id: @model.get('primary_uuid')
                     name: datacenters.get(@model.get('primary_uuid')).get('name')
-                    replicas: @model.get('replica_affinities')[@model.get('primary_uuid')]
-                    acks : @model.get('replica_affinities')[@model.get('primary_uuid')]
+                    replicas: if primary_replica_count > 0 then '' + (primary_replica_count + 1) + ' (Master + ' + primary_replica_count + ')' else '1 (Master only)'
+                    acks : 'TBD'
                 secondaries:
                     _.map secondary_affinities, (replica_count, uuid) =>
                         id: uuid
                         name: datacenters.get(uuid).get('name')
                         replicas: replica_count
-                        acks: replica_count
+                        acks: 'TBD'
                 nothings: nothings
 
             @.$el.html @template(json)
@@ -298,15 +299,15 @@ module 'NamespaceView', ->
 
             # TODO (Holy TODO) this is a copy/paste of AbstractModal!  Holy crap!
             @$container.append @template
-                'datacenter': @datacenter
-                'replicas':
-                    'adding': adding
-                    'removing': removing
-                    'num_changed': num_changed
-                    'num': num_replicas
-                    'shards': shards ###### Pay attention to this this is where the action happens
-                'acks':
-                    'num': num_acks
+                datacenter: @datacenter
+                replicas:
+                    adding: adding
+                    removing: removing
+                    num_changed: num_changed
+                    num: num_replicas
+                    shards: shards ###### Pay attention to this this is where the action happens
+                acks:
+                    num: num_acks
 
             for view in shard_views
                 renderee = view.render().el
@@ -447,13 +448,12 @@ module 'NamespaceView', ->
             # Generate faked data TODO
             num_replicas = @namespace.get('replica_affinities')[@datacenter.id]
             json =
-                'namespace': @namespace.toJSON()
-                'datacenter': @datacenter.toJSON()
-                # Faked data TODO
-                'num_replicas': num_replicas
-                'num_acks': num_replicas
+                namespace: @namespace.toJSON()
+                datacenter: @datacenter.toJSON()
+                num_replicas: num_replicas
+                num_acks: 'TBD'
                 # random machines | faked TODO
-                'replica_machines': @machine_json (_.shuffle machines.models)[0...num_replicas]
+                replica_machines: @machine_json (_.shuffle machines.models)[0...num_replicas]
 
             if server_error?
                 json['server_error'] = server_error
