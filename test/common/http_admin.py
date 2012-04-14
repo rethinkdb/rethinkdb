@@ -279,6 +279,9 @@ class ClusterAccess(object):
         else:
             raise BadServerResponse(response.status, response.reason)
 
+    def wait_for_propagation(self):
+        time.sleep(1)
+
     def __str__(self):
         retval = "Machines:"
         for i in self.machines.iterkeys():
@@ -313,7 +316,7 @@ class ClusterAccess(object):
         info = self.do_query("POST", "/ajax/datacenters/new", {
             "name": name
             })
-        time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
+        self.wait_for_propagation()
         assert len(info) == 1
         uuid, json_data = next(info.iteritems())
         datacenter = Datacenter(uuid, json_data)
@@ -359,7 +362,7 @@ class ClusterAccess(object):
         datacenter = self.find_datacenter(datacenter)
         serv.datacenter_uuid = datacenter.uuid
         self.do_query("POST", "/ajax/machines/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
-        time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
+        self.wait_for_propagation()
         self.update_cluster_data()
 
     def move_namespace_to_datacenter(self, namespace, primary):
@@ -370,7 +373,7 @@ class ClusterAccess(object):
             self.do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
         elif isinstance(namespace, DummyNamespace):
             self.do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
-        time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
+        self.wait_for_propagation()
         self.update_cluster_data()
 
     def set_namespace_affinities(self, namespace, affinities = { }):
@@ -383,7 +386,7 @@ class ClusterAccess(object):
             self.do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
         elif isinstance(namespace, DummyNamespace):
             self.do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
-        time.sleep(0.2) # Give some time for the changes to hit the rest of the cluster
+        self.wait_for_propagation()
         self.update_cluster_data()
         return namespace
 
@@ -405,7 +408,7 @@ class ClusterAccess(object):
             "primary_uuid": primary,
             "replica_affinities": aff_dict
             })
-        time.sleep(0.2) # Give some time for changes to hit the rest of the cluster
+        self.wait_for_propagation()
         assert len(info) == 1
         uuid, json_data = next(info.iteritems())
         type_class = {"memcached": MemcachedNamespace, "dummy": DummyNamespace}[protocol]
@@ -421,7 +424,7 @@ class ClusterAccess(object):
         object_type = type_objects[type(target)]
         target.name = name
         info = self.do_query("POST", "/ajax/%s/%s/name" % (object_type, target.uuid), name)
-        time.sleep(0.2)
+        self.wait_for_propagation()
         self.update_cluster_data()
 
     def get_conflicts(self):
@@ -438,7 +441,7 @@ class ClusterAccess(object):
         # Remove the conflict and update the field in the target 
         self.conflicts.remove(conflict)
         setattr(conflict.target, conflict.field, value) # TODO: this probably won't work for certain things like shards that we represent differently locally than the strict json format
-        time.sleep(0.2)
+        self.wait_for_propagation()
         self.update_cluster_data()
 
     def add_namespace_shard(self, namespace, split_point):
@@ -448,7 +451,7 @@ class ClusterAccess(object):
         protocol = type_protocols[type(namespace)]
         namespace.add_shard(split_point)
         info = self.do_query("POST", "/ajax/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
-        time.sleep(0.2)
+        self.wait_for_propagation()
         self.update_cluster_data()
 
     def remove_namespace_shard(self, namespace, split_point):
@@ -458,7 +461,7 @@ class ClusterAccess(object):
         protocol = type_protocols[type(namespace)]
         namespace.remove_shard(split_point)
         info = self.do_query("POST", "/ajax/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
-        time.sleep(0.2)
+        self.wait_for_propagation()
         self.update_cluster_data()
 
     def compute_port(self, namespace, machine):
@@ -482,7 +485,9 @@ class ClusterAccess(object):
             # Use the given server directly
             machine = selector
 
-        return (machine.host, self.compute_port(namespace, machine))
+        # TODO: Fetch actual IP address from machine instead of hard-coding
+        # "localhost"
+        return ("localhost", self.compute_port(namespace, machine))
 
     def get_datacenter_in_namespace(self, namespace, primary = None):
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }

@@ -34,12 +34,11 @@ def find_rethinkdb_executable(mode = "debug"):
             return path
     raise RuntimeError("Can't find RethinkDB executable. Tried these paths: %s" % paths)
 
-# `Metacluster` represents a group of clusters. It's responsible for
-# maintaining `resunder` blocks between different clusters, as well as for
-# killing all the processes and deleting all the files if an exception is
-# thrown. It's a context manager.
-
 class Metacluster(object):
+    """A `Metacluster` is a group of clusters. It's responsible for maintaining
+    `resunder` blocks between different clusters. It's also a context manager
+    that cleans up all the processes and deletes all the files. """
+
     def __init__(self, executable_path = find_rethinkdb_executable("debug")):
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
 
@@ -54,6 +53,9 @@ class Metacluster(object):
             self.base_port = random.randint(20000, 60000)
 
     def close(self):
+        """Kills all processes and deletes all files. Also, makes the
+        `Metacluster` object invalid. Call `close()` xor `__exit__()`, not
+        both, because `__exit__()` calls `close()`. """
         assert not self.closed
         self.closed = True
         while self.clusters:
@@ -68,6 +70,14 @@ class Metacluster(object):
         self.close()
 
     def move_processes(self, source, dest, processes):
+        """Moves a group of `Process`es from one `Cluster` to another. To split
+        a cluster, create an empty cluster and use `move_processes()` to move
+        some processes from the original one to the empty one; to join two
+        clusters, move all the processes from one into the other. Note that
+        this does not tell the servers to connect to each other; unless the
+        incoming servers were connected to the existing servers before, or
+        unless you start a new server in the destination cluster to bring the
+        two groups of processes together, they may remain unconnected. """
         assert isinstance(source, Cluster)
         assert source.metacluster is self
         assert isinstance(dest, Cluster)
@@ -86,6 +96,9 @@ class Metacluster(object):
             dest.processes.add(process)
 
 class Cluster(object):
+    """A `Cluster` represents a group of `Processes` that are all connected to
+    each other (ideally, at least; see the note in `move_processes`). """
+
     def __init__(self, metacluster):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
@@ -94,7 +107,26 @@ class Cluster(object):
         self.metacluster.clusters.add(self)
         self.processes = set()
 
+    def check(self):
+        """Throws an exception if any of the processes in the cluster has
+        stopped or crashed. """
+        for proc in self.processes:
+            proc.check()
+
+    def check_and_stop(self):
+        """First checks that each process in the cluster is still running, then
+        stops them by sending SIGINT. Throws an exception if any exit with a
+        nonzero exit code. Also makes the cluster object invalid, like
+        `close()`. """
+        try:
+            while self.processes:
+                iter(self.processes).next().check_and_stop()
+        finally:
+            self.close()
+
     def close(self):
+        """Kills every process in the cluster (that is still running) and
+        makes the `Cluster` object invalid."""
         assert self.metacluster is not None
         while self.processes:
             iter(self.processes).next().close()
@@ -118,6 +150,10 @@ class Cluster(object):
             unblock_path(other_process.cluster_port, process.local_cluster_port)
 
 class Files(object):
+    """A `Files` object is a RethinkDB data directory. Each `Process` needs a
+    `Files`. To "restart" a server, create a `Files`, create a `Process`, stop
+    the process, and then start a new `Process` on the same `Files`. """
+
     def __init__(self, metacluster, name = None, port_offset = 0, log_path = "stdout"):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
@@ -140,6 +176,9 @@ class Files(object):
                 subprocess.check_call(create_args, stdout = log_file, stderr = subprocess.STDOUT)
 
 class Process(object):
+    """A `Process` object represents a running RethinkDB server. It cannot be
+    restarted; stop it and then create a new one instead. """
+
     def __init__(self, cluster, files, log_path = "stdout"):
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
@@ -185,26 +224,35 @@ class Process(object):
             raise
 
     def check(self):
+        """Throws an exception if the process has crashed or stopped. """
         assert self.process is not None
         if self.process.poll() is not None:
             raise RuntimeError("Process stopped unexpectedly with return code %d" % self.process.poll())
 
     def check_and_stop(self):
+        """Asserts that the process is still running, and then shuts it down by
+        sending `SIGINT`. Throws an exception if the exit code is nonzero. Also
+        invalidates the `Process` object like `close()`. """
         assert self.process is not None
-        self.check()
-        self.process.send_signal(signal.SIGINT)
-        start_time = time.time()
-        grace_period = 15
-        while time.time() < start_time + grace_period:
-            if self.process.poll() is not None:
-                break
-            time.sleep(1)
-        else:
-            raise RuntimeError("Process failed to stop within %d seconds after SIGINT" % grace_period)
-        if self.process.poll() != 0:
-            raise RuntimeError("Process stopped unexpectedly with return code %d after SIGINT" % self.process.poll())
+        try:
+            self.check()
+            self.process.send_signal(signal.SIGINT)
+            start_time = time.time()
+            grace_period = 15
+            while time.time() < start_time + grace_period:
+                if self.process.poll() is not None:
+                    break
+                time.sleep(1)
+            else:
+                raise RuntimeError("Process failed to stop within %d seconds after SIGINT" % grace_period)
+            if self.process.poll() != 0:
+                raise RuntimeError("Process stopped unexpectedly with return code %d after SIGINT" % self.process.poll())
+        finally:
+            self.close()
 
     def close(self):
+        """Kills the process, removes it from the cluster, and invalidates the
+        `Process` object. """
         if self.process.poll() is None:
             try:
                 self.process.send_signal(signal.SIGKILL)

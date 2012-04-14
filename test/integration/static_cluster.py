@@ -1,26 +1,31 @@
 #!/usr/bin/python
-import scenario
-import sys
-import time
+import sys, os, time
+import workload_runner
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import http_admin, driver
 from vcoptparse import *
 
-op = scenario.get_default_option_parser()
-op["protocol"] = StringFlag("--protocol", "memcached")
+op = OptParser()
 op["num-nodes"] = IntFlag("--num-nodes", 3)
+op["mode"] = IntFlag("--mode", "debug")
+op["workload"] = PositionalArg()
+op["timeout"] = IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
 
-def initialize_cluster(cluster):
-	for i in xrange(opts["num-nodes"]):
-		cluster.add_machine(name = "x" * (i + 1))
-
-	datacenter = cluster.add_datacenter(name = "Test Datacenter")
-
-	for machine in cluster.machines:
-		cluster.move_server_to_datacenter(machine, datacenter)
-
-	namespace = cluster.add_namespace(protocol = opts["protocol"], name = "Test Namespace", primary = datacenter)
-	time.sleep(8)
-	return cluster.get_namespace_host(namespace)
-
-scenario.run_scenario(opts, initialize_cluster)
+with driver.Metacluster(driver.find_rethinkdb_executable(opts["mode"])) as metacluster:
+    cluster = driver.Cluster(metacluster)
+    print "Starting cluster..."
+    processes = [driver.Process(cluster, driver.Files(metacluster))
+        for i in xrange(opts["num-nodes"])]
+    time.sleep(3)
+    print "Creating namespace..."
+    http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
+    dc = http.add_datacenter()
+    for machine_id in http.machines:
+        http.move_server_to_datacenter(machine_id, dc)
+    ns = http.add_namespace(protocol = "memcached", primary = dc)
+    time.sleep(10)
+    host, port = http.get_namespace_host(ns)
+    workload_runner.run(opts["workload"], host, port, opts["timeout"])
+    cluster.check_and_stop()
 
