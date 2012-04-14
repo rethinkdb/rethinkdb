@@ -97,7 +97,7 @@ class Metacluster(object):
 
 class Cluster(object):
     """A `Cluster` represents a group of `Processes` that are all connected to
-    each other (ideally, at least; see the note in `move_processes`). """
+    each other (ideally, anyway; see the note in `move_processes`). """
 
     def __init__(self, metacluster):
         assert isinstance(metacluster, Metacluster)
