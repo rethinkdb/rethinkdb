@@ -260,7 +260,8 @@ class Process(object):
                 pass
         self.process = None
 
-        self.log_file.close()
+        if self.log_path != "stdout":
+            self.log_file.close()
 
         for other_cluster in self.cluster.metacluster.clusters:
             if other_cluster is not self.cluster:
