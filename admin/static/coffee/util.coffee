@@ -53,11 +53,14 @@ Handlebars.registerHelper 'humanize_role', (role) ->
 
 # Helpers for printing reachability
 Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
-    if status.reachable
-        result = "Reachable"
+    if not status?
+        result = 'N/A'
     else
-        _last_seen = if status.last_seen? then status.last_seen else 'unknown'
-        result = 'Unreachable (<abbr class="timeago" title="' + _last_seen + '">since ' + _last_seen + '</abbr>)'
+        if status.reachable
+            result = "Reachable"
+        else
+            _last_seen = if status.last_seen? then status.last_seen else 'unknown'
+            result = 'Unreachable (<abbr class="timeago" title="' + _last_seen + '">since ' + _last_seen + '</abbr>)'
     return new Handlebars.SafeString(result);
 
 Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
