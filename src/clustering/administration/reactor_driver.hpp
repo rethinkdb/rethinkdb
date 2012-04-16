@@ -25,12 +25,16 @@ public:
     reactor_driver_t(mailbox_manager_t *_mbox_manager,
                      clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > _directory_view,
                      boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
+                     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                      const clone_ptr_t<directory_rview_t<machine_id_t> > &_machine_id_translation_table,
                      std::string _file_path);
 
     ~reactor_driver_t();
 
 private:
+    template<class protocol2_t>
+    friend class watchable_and_reactor_t;
+
     typedef boost::ptr_map<namespace_id_t, watchable_and_reactor_t<protocol_t> > reactor_map_t;
  
     void delete_reactor_data(auto_drainer_t::lock_t lock, typename reactor_map_t::auto_type *thing_to_delete);
@@ -41,6 +45,7 @@ private:
     boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
     clone_ptr_t<directory_rview_t<machine_id_t> > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view;
+    boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
     std::string file_path;
 
     boost::ptr_map<namespace_id_t, watchable_and_reactor_t<protocol_t> > reactor_data;

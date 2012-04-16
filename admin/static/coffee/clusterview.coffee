@@ -261,6 +261,44 @@ module 'ClusterView', ->
             log_initial '(initializing) list view: namespace'
             super @template
 
+        json_for_template: =>
+            stuff = super()
+
+            stuff.nshards = 0
+            stuff.nreplicas = 0
+            stuff.nashards = 0
+            stuff.nareplicas = 0
+
+            _machines = []
+            _datacenters = []
+
+            for machine_uuid, role of @model.get('blueprint').peers_roles
+                peer_accessible = directory.get(machine_uuid)
+                machine_active_for_namespace = false
+                for shard, role_name of role
+                    if role_name is 'role_primary'
+                        machine_active_for_namespace = true
+                        stuff.nshards += 1
+                        if peer_accessible?
+                            stuff.nashards += 1
+                    if role_name is 'role_secondary'
+                        machine_active_for_namespace = true
+                        stuff.nreplicas += 1
+                        if peer_accessible?
+                            stuff.nareplicas += 1
+                if machine_active_for_namespace
+                    _machines[_machines.length] = machine_uuid
+                    _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
+
+            stuff.nmachines = _.uniq(_machines).length
+            stuff.ndatacenters = _.uniq(_datacenters).length
+            if stuff.nshards is stuff.nashards
+                stuff.reachability = 'Live'
+            else
+                stuff.reachability = 'Down'
+
+            return stuff
+
     # Datacenter list element
     class @DatacenterListElement extends @AbstractListElement
         template: Handlebars.compile $('#cluster_view-datacenter_list_element-template').html()
@@ -279,20 +317,27 @@ module 'ClusterView', ->
         json_for_template: =>
             stuff = super()
 
-            try
-                # total number of machines in this datacenter
-                stuff.total = (_.filter machines.models, (m) => m.get('datacenter_uuid') == @model.get('id')).length
-                # real number of machines in this datacenter
-                stuff.reachable = (_.filter directory.models, (m) => machines.get(m.get('id')).get('datacenter_uuid') == @model.get('id')).length
-                if(stuff.reachable > 0)
-                    stuff.status = 'Live'
-                else
-                    stuff.status = 'Down'
+            # datacenter status
+            stuff.status = DataUtils.get_datacenter_reachability(@model.get('id'))
 
-            catch err
-                stuff.total = 'N/A'
-                stuff.reachable = 'N/A'
-                stuff.status = 'N/A'
+            # primary, secondary, and namespace counts
+            stuff.primary_count = 0
+            stuff.secondary_count = 0
+            _namespaces = []
+            for namespace in namespaces.models
+                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
+                    if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
+                        machine_active_for_namespace = false
+                        for shard, role of peer_role
+                            if role is 'role_primary'
+                                machine_active_for_namespace = true
+                                stuff.primary_count += 1
+                            if role is 'role_secondary'
+                                machine_active_for_namespace = true
+                                stuff.secondary_count += 1
+                        if machine_active_for_namespace
+                            _namespaces[_namespaces.length] = namespace
+            stuff.namespace_count = _.uniq(_namespaces).length
 
             return stuff
 
@@ -312,10 +357,8 @@ module 'ClusterView', ->
         json_for_template: =>
             stuff = super()
             # status
-            stuff.status = "Unreachable"
-            directory.each (m) =>
-                if m.get('id') is @model.get('id')
-                    stuff.status = "Reachable"
+            _.extend stuff,
+                status: DataUtils.get_machine_reachability(@model.get('id'))
 
             # ip
             stuff.ip = "TBD"
@@ -328,6 +371,26 @@ module 'ClusterView', ->
                     stuff.datacenter_name = 'N/A'
             else
                 stuff.datacenter_name = "Unassigned"
+
+            # primary, secondary, and namespace counts
+            stuff.primary_count = 0
+            stuff.secondary_count = 0
+            _namespaces = []
+            for namespace in namespaces.models
+                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
+                    if machine_uuid is @model.get('id')
+                        machine_active_for_namespace = false
+                        for shard, role of peer_role
+                            if role is 'role_primary'
+                                machine_active_for_namespace = true
+                                stuff.primary_count += 1
+                            if role is 'role_secondary'
+                                machine_active_for_namespace = true
+                                stuff.secondary_count += 1
+                        if machine_active_for_namespace
+                            _namespaces[_namespaces.length] = namespace
+            stuff.namespace_count = _.uniq(_namespaces).length
+
             return stuff
 
     class @AbstractModal extends Backbone.View
@@ -472,15 +535,15 @@ module 'ClusterView', ->
                                 type: @item_type
                                 old_name: old_name
                                 new_name: formdata.new_name
-                            
+
                             # Call custom success function
                             if @on_success?
                                 @on_success response
 
-            super validator_options, 
+            super validator_options,
                 type: @item_type
                 old_name: @get_item_object().get('name')
-    
+
     class @AddDatacenterModal extends @AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_datacenter-alert-template').html()
@@ -570,23 +633,32 @@ module 'ClusterView', ->
 
                 submitHandler: =>
                     formdata = form_data_as_object($('form', @$modal))
-                    for m in machines_list
-                        $.ajax
-                            processData: false
-                            url: "/ajax/machines/#{m.id}"
-                            type: 'POST'
-                            contentType: 'application/json'
-                            data: JSON.stringify({"datacenter_uuid" : formdata.datacenter_uuid})
+                    # Prepare json to pass to the server
+                    json = {}
+                    for _m in machines_list
+                        json[_m.get('id')] =
+                            datacenter_uuid: formdata.datacenter_uuid
 
-                            success: (response) =>
-                                clear_modals()
+                    # Set the datacenters!
+                    $.ajax
+                        processData: false
+                        url: "/ajax/machines"
+                        type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify(json)
 
-                                machines.get(m.id).set(response)
-                                #TODO hook this back up
-                                #$('#user-alert-space').append (@alert_tmpl {
-                                #    datacenter_name: datacenters.find((d) -> d.get('id') == response_json.op_result.datacenter_uuid).get('name'),
-                                #    machine_name: m.get('name')
-                                #})
+                        success: (response) =>
+                            clear_modals()
 
+                            for _m_uuid, _m of response
+                                machines.get(_m_uuid).set(_m)
+
+                            machine_names = _.map(machines_list, (_m) -> name: _m.get('name'))
+                            $('#user-alert-space').append (@alert_tmpl
+                                datacenter_name: datacenters.get(formdata.datacenter_uuid).get('name')
+                                machines_first: machine_names[0]
+                                machines_rest: machine_names.splice(1)
+                                machine_count: machines_list.length
+                            )
 
             super validator_options, { datacenters: (datacenter.toJSON() for datacenter in datacenters.models) }

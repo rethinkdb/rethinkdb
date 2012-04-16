@@ -23,6 +23,55 @@ class MachineAttributes extends Backbone.Model
 
 class ConnectionStatus extends Backbone.Model
 
+module 'DataUtils', ->
+    @get_machine_reachability = (machine_uuid) ->
+        reachable = directory.get(machine_uuid)?
+        if not reachable
+            last_seen = machines.get(machine_uuid).get('last_seen')
+            if last_seen
+                last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
+        json =
+            reachable: reachable
+            last_seen: last_seen
+        return json
+
+    @get_datacenter_reachability = (datacenter_uuid) ->
+        total = (_.filter machines.models, (m) => m.get('datacenter_uuid') == datacenter_uuid).length
+        reachable = (_.filter directory.models, (m) => machines.get(m.get('id')).get('datacenter_uuid') == datacenter_uuid).length
+
+        if reachable == 0 and total > 0
+            for machine in machines.models
+                if machine.get('datacenter_uuid') is datacenter_uuid
+                    _last_seen = machine.get('last_seen')
+                    if last_seen
+                        if _last_seen > last_seen
+                            last_seen = _last_seen
+                    else
+                        last_seen = _last_seen
+            last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
+
+        json =
+            total: total
+            reachable: reachable
+            last_seen: last_seen
+
+        return json
+
+    @get_shard_primary_uuid = (namespace_uuid, shard) ->
+        for machine_uuid, peers_roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+            for _shard, role of peers_roles
+                if shard.toString() is _shard.toString() and role is 'role_primary'
+                    return machine_uuid
+        return null
+
+    @get_shard_secondary_uuids = (namespace_uuid, shard) ->
+        secondaries = []
+        for machine_uuid, peers_roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+            for _shard, role of peers_roles
+                if shard.toString() is _shard.toString() and role is 'role_secondary'
+                    secondaries[secondaries.length] = machine_uuid
+        return _.uniq(secondaries)
+
 class DataStream extends Backbone.Model
     max_cached: 250
     cache_ready: false
@@ -126,7 +175,7 @@ class NavBarView extends Backbone.View
         $(window.app_events).on "on_ready", =>
             # Render every time the route changes
             window.app.on "all", @render
-    
+
     init_typeahead: ->
         $('input.search-query').typeahead
             source: (typeahead, query) ->
@@ -161,12 +210,12 @@ class NavBarView extends Backbone.View
                 $('ul.nav li#nav-datacenters').addClass('active')
             else if route is 'route:index_machines'
                 $('ul.nav li#nav-machines').addClass('active')
-        
+
         if @first_render?
             # Initialize typeahead
             @init_typeahead()
             @first_render = false
-        
+
         return @
 
 # Router for Backbone.js
@@ -251,46 +300,36 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
 
         # Helper function to build the namespace view
-        build_namespace_view = (namespace) =>
-            namespace_view = new NamespaceView.Container model: namespace
+        build_namespace_view = (id) =>
+            namespace_view = new NamespaceView.Container id
             @$container.html namespace_view.render().el
 
         # Return the existing namespace from the collection if it exists
-        return build_namespace_view namespaces.get(id) if namespaces.get(id)?
-
-        # Otherwise, show an error message stating that the namespace does not exist
-        @$container.empty().text 'Namespace '+id+' does not exist.'
+        return build_namespace_view id
 
     datacenter: (id) ->
         log_router '/datacenters/' + id
         clear_modals()
 
         # Helper function to build the datacenter view
-        build_datacenter_view = (datacenter) =>
-            datacenter_view = new DatacenterView.Container model: datacenter
+        build_datacenter_view = (id) =>
+            datacenter_view = new DatacenterView.Container id
             @$container.html datacenter_view.render().el
 
         # Return the existing datacenter from the collection if it exists
-        return build_datacenter_view datacenters.get(id) if datacenters.get(id)?
-
-        # Otherwise, show an error message stating that the datacenter does not exist
-        @$container.empty().text 'Datacenter '+id+' does not exist.'
-
+        return build_datacenter_view id
 
     machine: (id) ->
         log_router '/machines/' + id
         clear_modals()
 
         # Helper function to build the machine view
-        build_machine_view = (machine) =>
-            machine_view = new MachineView.Container model: machine
+        build_machine_view = (id) =>
+            machine_view = new MachineView.Container id
             @$container.html machine_view.render().el
 
         # Return the existing machine from the collection if it exists
-        return build_machine_view machines.get(id) if machines.get(id)?
-
-        # Otherwise, show an error message stating that the machine does not exist
-        @$container.empty().text 'Machine '+id+' does not exist.'
+        return build_machine_view id
 
 modal_registry = []
 clear_modals = ->
@@ -367,6 +406,13 @@ set_directory = (attributes_from_server) ->
         dir_machines[dir_machines.length] = value
     directory.reset(dir_machines)
 
+set_last_seen = (last_seen) ->
+    # Expand machines model with this data
+    for machine_uuid, timestamp of last_seen
+        _m = machines.get machine_uuid
+        if _m
+            _m.set('last_seen', timestamp)
+
 $ ->
     bind_dev_tools()
 
@@ -389,10 +435,6 @@ $ ->
     # reset_collections()
     reset_token()
 
-    # Log all events fired for the namespaces collection (debugging)
-    namespaces.on 'all', (event_name) ->
-        console.log 'event fired: '+event_name
-
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync
     Backbone.sync = (method, model, success, error) ->
@@ -400,6 +442,7 @@ $ ->
             $.getJSON('/ajax', apply_diffs)
             $.getJSON('/ajax/issues', set_issues)
             $.getJSON('/ajax/directory', set_directory)
+            $.getJSON('/ajax/last_seen', set_last_seen)
         else
             legacy_sync method, model, success, error
 
@@ -422,6 +465,7 @@ $ ->
     $.getJSON('/ajax', apply_diffs)
     $.getJSON('/ajax/issues', set_issues)
     $.getJSON('/ajax/directory', set_directory)
+    $.getJSON('/ajax/last_seen', set_last_seen)
 
     # Set up common DOM behavior
     $('.modal').modal

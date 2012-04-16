@@ -2,6 +2,7 @@
 
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
+#include "clustering/administration/auto_reconnect.hpp"
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/local_to_global.hpp"
@@ -9,6 +10,7 @@
 #include "clustering/administration/issues/name_conflict.hpp"
 #include "clustering/administration/issues/pinnings_shards_mismatch.hpp"
 #include "clustering/administration/issues/vector_clock_conflict.hpp"
+#include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
@@ -27,7 +29,7 @@
 #include "rpc/semilattice/view/member.hpp"
 #include "rpc/semilattice/view/function.hpp"
 
-bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets) {
+bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets) {
 
     local_issue_tracker_t local_issue_tracker;
 
@@ -50,6 +52,13 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
     connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run, client_port);
+
+    auto_reconnector_t auto_reconnector(
+        &connectivity_cluster,
+        &connectivity_cluster_run,
+        translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id))),
+        metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view())
+        );
 
     watchable_write_copier_t<std::list<clone_ptr_t<local_issue_t> > > copy_local_issues_to_cluster(
         local_issue_tracker.get_issues_watchable(),
@@ -95,23 +104,25 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
         translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id)))
         );
 
-    for (int i = 0; i < (int)joins.size(); i++) {
-        connectivity_cluster_run.join(joins[i]);
+    boost::scoped_ptr<initial_joiner_t> initial_joiner;
+    if (!joins.empty()) {
+        initial_joiner.reset(new initial_joiner_t(&connectivity_cluster, &connectivity_cluster_run, joins));
+        initial_joiner->get_ready_signal()->wait_lazily_unordered();   /* TODO: Listen for `SIGINT`? */
     }
-
-    /* TODO: Warn if the `join()` didn't go through. */
 
     metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
 
     reactor_driver_t<mock::dummy_protocol_t> dummy_reactor_driver(&mailbox_manager,
                                                                   directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces)), 
                                                                   metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
+                                                                  metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
                                                                   directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id)),
                                                                   filepath);
 
     reactor_driver_t<memcached_protocol_t> memcached_reactor_driver(&mailbox_manager,
                                                                     directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)), 
                                                                     metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
+                                                                    metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
                                                                     directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id)),
                                                                     filepath);
 
@@ -143,6 +154,8 @@ bool serve(const std::string &filepath, const std::vector<peer_address_t> &joins
     printf("Server started; send SIGINT to stop.\n");
 
     wait_for_sigint();
+
+    std::cout << "Server got SIGINT; shutting down..." << std::endl;
 
     return true;
 }

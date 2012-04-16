@@ -173,6 +173,18 @@ void connectivity_cluster_t::run_t::handle(
 {
     parent->assert_thread();
 
+    /* In release mode, send a heartbeat after 2 minutes of inactivity; if
+    is no reply, try 10 times at 30-second intervals. I don't know if those are
+    good production values; maybe they should be tunable. Anyway, they are too
+    long for testing; in debug mode, we should detect immediately when the
+    cluster goes down. In debug mode, we start sending probes after 3 seconds
+    and only try twice. */
+#ifdef NDEBUG
+    conn->get_underlying_conn()->set_keepalive(120, 30, 10);
+#else
+    conn->get_underlying_conn()->set_keepalive(3, 3, 2);
+#endif
+
     /* Each side sends their own ID and address, then receives the other side's.
     */
 

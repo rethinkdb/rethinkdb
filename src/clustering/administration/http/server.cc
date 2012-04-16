@@ -7,6 +7,7 @@
 #include "http/file_app.hpp"
 #include "http/http.hpp"
 #include "http/routing_app.hpp"
+#include "rpc/directory/watchable_copier.hpp"
 
 administrative_http_server_manager_t::administrative_http_server_manager_t(
         int port,
@@ -40,12 +41,13 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/jquery.validate.min.js");
     white_list.insert("/js/underscore-min.js");
     white_list.insert("/images/alert-icon_small.png");
+    white_list.insert("/images/critical-issue_small.png");
     white_list.insert("/images/information-icon_small.png");
     white_list.insert("/index.html");
     file_app.reset(new file_http_app_t(white_list, path));
 
     semilattice_app.reset(new semilattice_http_app_t(_semilattice_metadata, _directory_metadata, _us));
-    directory_app.reset(new directory_http_app_t(_directory_metadata));
+    directory_app.reset(new directory_http_app_t(translate_into_watchable(_directory_metadata)));
     issues_app.reset(new issues_http_app_t(_issue_tracker));
     stat_app.reset(new stat_http_app_t());
     last_seen_app.reset(new last_seen_http_app_t(_last_seen_tracker));

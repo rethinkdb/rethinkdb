@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/function.hpp>
+#include <boost/utility/result_of.hpp>
 
 #include "concurrency/mutex_assertion.hpp"
 #include "concurrency/pubsub.hpp"

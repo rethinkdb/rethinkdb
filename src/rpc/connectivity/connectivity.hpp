@@ -28,6 +28,9 @@ public:
     bool operator!=(const peer_address_t &a) const {
         return ip != a.ip || port != a.port;
     }
+    bool operator<(const peer_address_t &a) const {
+        return ip < a.ip || (ip == a.ip && port < a.port);
+    }
 
 private:
     RDB_MAKE_ME_SERIALIZABLE_2(ip, port);

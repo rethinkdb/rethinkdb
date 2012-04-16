@@ -1,6 +1,9 @@
 #include "concurrency/coro_fifo.hpp"
+#include "containers/death_runner.hpp"
 
-/* Functions to send a read or write to a mirror and wait for a response. */
+/* Functions to send a read or write to a mirror and wait for a response.
+Important: These functions must send the message before responding to
+`interruptor` being pulsed. */
 
 template<class protocol_t>
 void listener_write(
@@ -61,7 +64,7 @@ typename protocol_t::read_response_t listener_read(
 }
 
 template<class protocol_t>
-typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, fifo_enforcer_sink_t::exit_read_t *lock, auto_drainer_t::lock_t *auto_drainer_lock, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
+typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename protocol_t::read_t read, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
 
     dispatchee_t *reader;
     auto_drainer_t::lock_t reader_lock;
@@ -75,32 +78,38 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
         // gotten in line.
         mutex_t::acq_t mutex_acq(&mutex);
         lock->reset();
-        auto_drainer_lock->reset();
 
         pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
         timestamp = current_timestamp;
         order_sink.check_out(order_token);
+
+        /* This is safe even if `interruptor` gets pulsed because nothing
+        checks `interruptor` until after we have sent the message. */
         enforcer_token = reader->fifo_source.enter_read();
     }
 
     try {
+        wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
         return listener_read<protocol_t>(mailbox_manager, reader->read_mailbox,
             read, timestamp, enforcer_token,
-            reader_lock.get_drain_signal());
+            &interruptor2);
     } catch (interrupted_exc_t) {
-        throw mirror_lost_exc_t();
+        if (interruptor->is_pulsed()) {
+            throw;
+        } else {
+            throw cannot_perform_query_exc_t("lost contact with mirror during read");
+        }
     }
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, UNUSED fifo_enforcer_sink_t::exit_write_t *lock, auto_drainer_t::lock_t *auto_drainer_lock, order_token_t order_token) THROWS_ONLY(mirror_lost_exc_t, insufficient_mirrors_exc_t) {
-
-    /* TODO: Make `target_ack_count` configurable */
-    int target_ack_count = 1;
+typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
 
     /* We'll fill `write_wrapper` with the write that we start; we hold it in a
     shared pointer so that it stays alive while we check its `done_promise`. */
     boost::shared_ptr<incomplete_write_t> write_wrapper;
+
+    death_runner_t dont_let_write_touch_ack_callback_after_exception;
 
     typename protocol_t::write_response_t resp;
 
@@ -131,7 +140,6 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             that are starting or with new dispatchees that are joining. */
             mutex_t::acq_t mutex_acq(&mutex);
             lock->reset();
-            auto_drainer_lock->reset();
 
             ASSERT_FINITE_CORO_WAITING;
 
@@ -140,8 +148,14 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             order_sink.check_out(order_token);
 
             write_wrapper = boost::make_shared<incomplete_write_t>(
-                this, write, timestamp, target_ack_count);
+                this, write, timestamp, cb);
             incomplete_writes.push_back(write_wrapper);
+
+            /* If there's an exception, this will make sure that the
+            `incomplete_write_t` object doesn't try to access `ack_callback`
+            after we exit. */
+            dont_let_write_touch_ack_callback_after_exception.fun = boost::bind(
+                &incomplete_write_t::dont_touch_ack_callback, write_wrapper.get());
 
             /* Create a reference so that `write` doesn't declare itself
             complete before we've even started */
@@ -153,6 +167,10 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             writers = dispatchees;
             for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
                     it != dispatchees.end(); it++) {
+                /* Once we call `enter_write()`, we have committed to sending
+                the write to every dispatchee. In particular, it's important
+                that we don't check `interruptor` until the write is on its way
+                to every dispatchee. */
                 enforcer_tokens[(*it).first] = (*it).first->fifo_source.enter_write();
             }
         }
@@ -171,19 +189,24 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
         /* ... then dispatch it to the writereader */
         try {
+            wait_any_t interruptor2(writereader_lock.get_drain_signal(), interruptor);
             resp = listener_writeread<protocol_t>(mailbox_manager, writereader->writeread_mailbox,
                 write_ref.get()->write, write_ref.get()->timestamp, enforcer_tokens[writereader],
-                writereader_lock.get_drain_signal());
+                &interruptor2);
         } catch (interrupted_exc_t) {
-            throw mirror_lost_exc_t();
+            if (interruptor->is_pulsed()) {
+                throw;
+            } else {
+                throw cannot_perform_query_exc_t("lost contact with designated responder in write");
+            }
         }
-        write_ref.get()->notify_acked();
+        write_ref.get()->notify_acked(writereader->get_peer());
     }
 
-    /* Wait until `target_ack_count` has been reached, or until the write is
-    declared impossible because there are too few mirrors. */
-    bool success = write_wrapper->done_promise.wait();
-    if (!success) throw insufficient_mirrors_exc_t();
+    wait_interruptible(write_wrapper->done_promise.get_ready_signal(), interruptor);
+    if (!write_wrapper->done_promise.get_value()) {
+        throw cannot_perform_query_exc_t("insufficient mirrors to meet desired ack count");
+    } 
 
     return resp;
 }
@@ -271,12 +294,14 @@ void broadcaster_t<protocol_t>::dispatchee_t::downgrade(mailbox_addr_t<void()> a
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(insufficient_mirrors_exc_t) {
+void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t) {
 
     ASSERT_FINITE_CORO_WAITING;
     proof->assert_is_holding(&mutex);
 
-    if (readable_dispatchees.empty()) throw insufficient_mirrors_exc_t();
+    if (readable_dispatchees.empty()) {
+        throw cannot_perform_query_exc_t("no mirrors readable. this is strange because the primary mirror should be always readable.");
+    }
     *dispatchee_out = readable_dispatchees.head();
 
     /* Cycle the readable dispatchees so that the load gets distributed
@@ -296,7 +321,7 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
     } catch (interrupted_exc_t) {
         return;
     }
-    write_ref.get()->notify_acked();
+    write_ref.get()->notify_acked(mirror->get_peer());
 }
 
 template<class protocol_t>
