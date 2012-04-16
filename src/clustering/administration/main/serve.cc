@@ -155,7 +155,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     wait_for_sigint();
 
-    std::cout << "Server got SIGINT; shutting down..." << std::endl;
+    printf("Server got SIGINT; shutting down...\n");
 
     return true;
 }

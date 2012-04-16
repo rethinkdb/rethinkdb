@@ -1,6 +1,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_INITIAL_JOIN_
 #define CLUSTERING_ADMINISTRATION_MAIN_INITIAL_JOIN_
 
+#include "arch/timing.hpp"
 #include "rpc/connectivity/cluster.hpp"
 
 /* `initial_joiner_t` is the class that `rethinkdb serve` and `rethinkdb admin`

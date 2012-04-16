@@ -27,6 +27,10 @@ public:
     bool is_read_open();
     bool is_write_open();
 
+    tcp_conn_t *get_underlying_conn() {
+        return conn_;
+    }
+
 private:
     tcp_conn_t *conn_;
 

@@ -1,5 +1,6 @@
 #include "clustering/administration/auto_reconnect.hpp"
 
+#include "arch/timing.hpp"
 #include "concurrency/wait_any.hpp"
 
 auto_reconnector_t::auto_reconnector_t(
