@@ -97,7 +97,7 @@ module 'NamespaceView', ->
                 primary:
                     id: @model.get('primary_uuid')
                     name: datacenters.get(@model.get('primary_uuid')).get('name')
-                    replicas: if primary_replica_count > 0 then '' + (primary_replica_count + 1) + ' (Master + ' + primary_replica_count + ')' else '1 (Master only)'
+                    replicas: primary_replica_count + 1 # we're adding one because primary is also a replica
                     acks : 'TBD'
                 secondaries:
                     _.map secondary_affinities, (replica_count, uuid) =>
@@ -420,6 +420,18 @@ module 'NamespaceView', ->
             id: machine.get('id')
             name: machine.get('name')
 
+        adjustReplicaCount: (numreplicas, is_output) ->
+            # If the datacenter is primary for this namespace,
+            # increment the number of replicas by one, since the
+            # primary is also a replica
+            if @namespace.get('primary_uuid') is @datacenter.get('id')
+                if is_output
+                    return numreplicas + 1
+                else
+                    return numreplicas - 1
+            else
+                return numreplicas
+
         render:(server_error) ->
             log_render '(rendering) modify replicas dialog'
 
@@ -428,7 +440,7 @@ module 'NamespaceView', ->
                 submitHandler: =>
                     formdata = form_data_as_object($('form', @$modal))
                     replica_affinities_to_send = {}
-                    replica_affinities_to_send[formdata.datacenter] = parseInt(formdata.num_replicas)
+                    replica_affinities_to_send[formdata.datacenter] = @adjustReplicaCount(parseInt(formdata.num_replicas), false)
                     $.ajax
                         processData: false
                         url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
@@ -445,12 +457,12 @@ module 'NamespaceView', ->
                             clear_modals()
                             @render(response.responseText)
 
-            # Generate faked data TODO
+            # Compute json ...
             num_replicas = @namespace.get('replica_affinities')[@datacenter.id]
             json =
                 namespace: @namespace.toJSON()
                 datacenter: @datacenter.toJSON()
-                num_replicas: num_replicas
+                num_replicas: @adjustReplicaCount(num_replicas, true)
                 num_acks: 'TBD'
                 # random machines | faked TODO
                 replica_machines: @machine_json (_.shuffle machines.models)[0...num_replicas]

@@ -4,12 +4,35 @@
 #include "http/json.hpp"
 
 namespace reactor_business_card_details {
+//json adapter concept for backfill location
+template <class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(backfill_location_t *target, const ctx_t &) {
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
+    res["backfill_session_id"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<backfill_session_id_t, ctx_t>(&target->backfill_session_id));
+    res["peer_id"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<peer_id_t, ctx_t>(&target->peer_id));
+    res["activity_id"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<reactor_activity_id_t, ctx_t>(&target->activity_id));
+    return res;
+}
+
+template <class ctx_t>
+cJSON *render_as_json(backfill_location_t *target, const ctx_t &ctx) {
+    return render_as_directory(target, ctx);
+}
+
+template <class ctx_t>
+void apply_json_to(cJSON *, backfill_location_t *, const ctx_t &) {
+    throw permission_denied_exc_t("Can't write to backfill_location_t  objects.\n");
+}
+
+template <class ctx_t>
+void on_subfield_change(backfill_location_t *, const ctx_t &) { }
+
+
 //json adapter for primary_when_safe
 template <class protocol_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(primary_when_safe_t<protocol_t> *target, const ctx_t &) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(primary_when_safe_t<protocol_t> *, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<std::string, ctx_t>("primary_when_safe"));
-    res["backfill_session_ids"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<std::vector<backfill_session_id_t>, ctx_t>(&target->backfills_waited_on));
     return res;
 }
 
@@ -100,7 +123,7 @@ template <class protocol_t, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(secondary_backfilling_t<protocol_t> *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<std::string, ctx_t>("secondary_backfilling"));
-    res["backfill_session_id"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<backfill_session_id_t, ctx_t>(&target->backfill_session));
+    res["backfiller"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<backfill_location_t, ctx_t>(&target->backfill));
     return res;
 }
 

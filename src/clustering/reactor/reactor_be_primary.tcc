@@ -7,8 +7,9 @@
 #include "lens.hpp"
 
 template <class protocol_t>
-reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
-    : version_range(_version_range), places_to_get_this_version(_places_to_get_this_version), present_in_our_store(_present_in_our_store)
+reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, std::vector<reactor_activity_id_t> _activity_ids, bool _present_in_our_store)
+    : version_range(_version_range), places_to_get_this_version(_places_to_get_this_version), 
+      activity_ids(_activity_ids), present_in_our_store(_present_in_our_store)
 { }
 
 class divergent_data_exc_t : public std::exception {
@@ -19,7 +20,7 @@ class divergent_data_exc_t : public std::exception {
 
 template <class protocol_t>
 void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions, const clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > &backfiller, 
-                                                   best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history) {
+                                                   reactor_activity_id_t activity_id, best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history) {
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator i =  offered_backfill_versions.begin();
                                                                             i != offered_backfill_versions.end(); 
                                                                             i++) {
@@ -36,10 +37,12 @@ void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t
             } else if (incumbent.latest == challenger.latest && 
                        incumbent.is_coherent() == challenger.is_coherent()) {
                 j->second.places_to_get_this_version.push_back(backfiller);
+                j->second.activity_ids.push_back(activity_id);
             } else if (version_is_ancestor(branch_history, incumbent.latest, challenger.latest, j->first) ||
                        (incumbent.latest == challenger.latest && challenger.is_coherent() && !incumbent.is_coherent())) {
                 j->second = backfill_candidate_t(challenger, 
                                                              std::vector<typename backfill_candidate_t::backfill_location_t>(1, backfiller), 
+                                                             std::vector<reactor_activity_id_t>(1, activity_id),
                                                              false);
             } else {
                 //if we get here our incumbent is better than the challenger.
@@ -104,12 +107,14 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
                                                get_directory_entry_view<typename rb_t::secondary_without_primary_t>(peer, it->first)->subview(
                                                     optional_monad_lens<backfiller_business_card_t<protocol_t>, typename rb_t::secondary_without_primary_t>(
                                                         field_lens(&rb_t::secondary_without_primary_t::backfiller))),
+                                               it->first,
                                                &res, branch_history->get());
                     } else if (const typename rb_t::nothing_when_safe_t * nothing_when_safe = boost::get<typename rb_t::nothing_when_safe_t>(&it->second.second)) {
                         update_best_backfiller(nothing_when_safe->current_state, 
                                                get_directory_entry_view<typename rb_t::nothing_when_safe_t>(peer, it->first)->subview(
                                                     optional_monad_lens<backfiller_business_card_t<protocol_t>, typename rb_t::nothing_when_safe_t>(
                                                         field_lens(&rb_t::nothing_when_safe_t::backfiller))),
+                                               it->first,
                                                &res, branch_history->get());
                     } else if(boost::get<typename rb_t::nothing_t>(&it->second.second)) {
                         //Everything's fine this peer cannot obstruct us so we shall proceed
@@ -160,6 +165,7 @@ template <class protocol_t>
 typename reactor_t<protocol_t>::backfill_candidate_t reactor_t<protocol_t>::make_backfill_candidate_from_binary_blob(const binary_blob_t &b) {
     return backfill_candidate_t(binary_blob_t::get<version_range_t>(b),
                                              std::vector<typename backfill_candidate_t::backfill_location_t>(),
+                                             std::vector<reactor_activity_id_t>(),
                                             true);
 }
 
@@ -227,8 +233,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
              * whether or not the backfill succeeded. */
             boost::ptr_vector<promise_t<bool> > promises;
 
-            std::vector<backfill_session_id_t> backfills;
-            std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> > > > > progress_mboxs;
+            std::vector<reactor_business_card_details::backfill_location_t> backfills;
 
             for (typename best_backfiller_map_t::iterator it =  best_backfillers.begin();
                                                           it != best_backfillers.end();
@@ -246,21 +251,16 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
                                                        backfill_session_id,
                                                        p,
                                                        interruptor));
-                    backfills.push_back(backfill_session_id);
+                    reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id, 
+                                                                                         it->second.places_to_get_this_version[0]->get_peer(), 
+                                                                                         it->second.activity_ids[0]);
 
-                    progress_mboxs.push_back(it->second.places_to_get_this_version[0]->subview(
-                                optional_monad_lens(
-                                    clone_ptr_t<read_lens_t<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)>, backfiller_business_card_t<protocol_t> > >(
-                                        field_lens(
-                                            &backfiller_business_card_t<protocol_t>::request_progress_mailbox
-                                        )
-                                    )
-                                )));
+                    backfills.push_back(backfill_location);
                 }
             }
 
             /* Tell the other peers which backfills we're waiting on. */
-            directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t(backfills, progress_mboxs));
+            directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t(backfills));
 
             /* Since these don't actually modify peers behavior, just allow
              * them to query the backfiller for progress reports there's no
