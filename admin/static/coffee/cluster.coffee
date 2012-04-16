@@ -72,6 +72,15 @@ module 'DataUtils', ->
                     secondaries[secondaries.length] = machine_uuid
         return _.uniq(secondaries)
 
+    @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
+        namespace = namespaces.get(namespace_uuid)
+        datacenter = datacenters.get(datacenter_uuid)
+        acks = namespace.get('ack_expectations')[datacenter.get('id')]
+        if acks?
+            return acks
+        else
+            return 0
+
 class DataStream extends Backbone.Model
     max_cached: 250
     cache_ready: false

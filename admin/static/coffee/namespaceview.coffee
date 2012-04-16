@@ -98,13 +98,13 @@ module 'NamespaceView', ->
                     id: @model.get('primary_uuid')
                     name: datacenters.get(@model.get('primary_uuid')).get('name')
                     replicas: primary_replica_count + 1 # we're adding one because primary is also a replica
-                    acks : 'TBD'
+                    acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
                 secondaries:
                     _.map secondary_affinities, (replica_count, uuid) =>
                         id: uuid
                         name: datacenters.get(uuid).get('name')
                         replicas: replica_count
-                        acks: 'TBD'
+                        acks: DataUtils.get_ack_expectations(@model.get('id'), uuid)
                 nothings: nothings
 
             @.$el.html @template(json)
@@ -441,11 +441,15 @@ module 'NamespaceView', ->
                     formdata = form_data_as_object($('form', @$modal))
                     replica_affinities_to_send = {}
                     replica_affinities_to_send[formdata.datacenter] = @adjustReplicaCount(parseInt(formdata.num_replicas), false)
+                    ack_expectations_to_send = {}
+                    ack_expectations_to_send[formdata.datacenter] = parseInt(formdata.num_acks)
                     $.ajax
                         processData: false
                         url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                         type: 'POST'
-                        data: JSON.stringify({ "replica_affinities": replica_affinities_to_send })
+                        data: JSON.stringify
+                            replica_affinities: replica_affinities_to_send
+                            ack_expectations: ack_expectations_to_send
 
                         success: (response) =>
                             clear_modals()
@@ -463,7 +467,7 @@ module 'NamespaceView', ->
                 namespace: @namespace.toJSON()
                 datacenter: @datacenter.toJSON()
                 num_replicas: @adjustReplicaCount(num_replicas, true)
-                num_acks: 'TBD'
+                num_acks: DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.get('id'))
                 # random machines | faked TODO
                 replica_machines: @machine_json (_.shuffle machines.models)[0...num_replicas]
 
