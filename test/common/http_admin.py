@@ -267,7 +267,7 @@ class ClusterAccess(object):
         return self.do_query_specific(host, http_port, method, route, payload)
 
     def do_query_specific(self, host, http_port, method, route, payload = None):
-        conn = HTTPConnection(host, http_port)
+        conn = HTTPConnection(host, http_port, timeout = 10)
         conn.connect()
         if payload is not None:
             conn.request(method, route, json.dumps(payload))

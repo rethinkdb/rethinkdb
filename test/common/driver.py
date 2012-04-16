@@ -87,10 +87,15 @@ class Metacluster(object):
             assert process.cluster is source
             process.cluster = None
             source.processes.remove(process)
-        for process in processes:
-            source._block_process(process)
-        for process in processes:
-            dest._unblock_process(process)
+        try:
+            for process in processes:
+                source._block_process(process)
+            for process in processes:
+                dest._unblock_process(process)
+        except Exception:
+            for process in processes:
+                process.close()
+            raise
         for process in processes:
             process.cluster = dest
             dest.processes.add(process)
@@ -263,12 +268,15 @@ class Process(object):
         if self.log_path != "stdout":
             self.log_file.close()
 
-        for other_cluster in self.cluster.metacluster.clusters:
-            if other_cluster is not self.cluster:
-                other_cluster._unblock_process(self)
-        
-        self.cluster.processes.remove(self)
-        self.cluster = None
+        # `self.cluster` might be `None` if we crash in the middle of
+        # `move_processes()`.
+        if self.cluster is not None:
+            for other_cluster in self.cluster.metacluster.clusters:
+                if other_cluster is not self.cluster:
+                    other_cluster._unblock_process(self)
+
+            self.cluster.processes.remove(self)
+            self.cluster = None
 
 if __name__ == "__main__":
     with Metacluster() as mc:
