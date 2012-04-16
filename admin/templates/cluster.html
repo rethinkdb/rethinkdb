@@ -301,10 +301,6 @@
                 {{#if server_error}}
                     <p class="server-error alert alert-error"> {{server_error}} </p>
                 {{/if}}
-                <h4>Set the replica properties</h4>
-                <div class="existing-replicas">
-                    <p><strong>Current replicas:</strong> {{#comma_separated replica_machines}}<a href="/#machines/{{this.id}}">{{this.name}}</a>{{/comma_separated}}</p>
-                </div>
                 <div class="info">
                     <p>You can specify the <strong>number of replicas</strong> to use per shard for this datacenter.</p>
                     <p>The <strong>number of acks</strong> specifies how many replicas in this datacenter must acknowledge a write before an operation succeeds.</p>
@@ -313,20 +309,21 @@
                     <input name="datacenter" type="hidden" value="{{datacenter.id}}" />
                     <div class="clearfix">
                     <label for="replicas">
-                        <p>Number of replicas:</p>
-                        <p class="current">Current replicas: {{num_replicas}}</p>
+                        <h4>Number of replicas</h4>
                     </label>
                     <div class="input">
                         <input class="xlarge" name="num_replicas" type="text" value="{{num_replicas}}"/>
+                        <p class="current">Current replicas: {{num_replicas}}</p>
                     </div>
                     </div>
+                    <hr />
                     <div class="clearfix">
                     <label for="acks">
-                        <p>Number of acks from datacenter <a href="/#datacenters/{{datacenter.id}}">{{datacenter.name}}</a>:</p>
-                        <p class="current">Current acks: {{num_acks}}</p>
+                        <h4>Number of acks</h4>
                     </label>
                     <div class="input">
                         <input class="xlarge" name="num_acks" type="text" value="{{num_acks}}"/>
+                        <p class="current">Current acks: {{num_acks}}</p>
                     </div>
                     </div>
                 </fieldset>
