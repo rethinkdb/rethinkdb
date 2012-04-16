@@ -368,10 +368,13 @@
                         <tr>
                             <td class="name"><h4>{{name}}</h4></td>
                             <td class="status">
-                                <p>Master: <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> {{humanize_machine_reachability primary.status}}</p>
-                                <p>Replicas: 
+                                <p><strong>Master:</strong> <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> {{humanize_machine_reachability primary.status}}</p>
+                                <p><strong>Replicas:</strong>
                                   {{#if secondaries}}
-                                  {{#each secondaries}}<a href="/#machines/{{uuid}}">{{name}}</a> {{humanize_machine_reachability status}}; {{/each}}
+                                  <ul>
+                                  {{#each secondaries}}
+                                  <li><a href="/#machines/{{uuid}}">{{name}}</a> {{humanize_machine_reachability status}}{{/each}}</li>
+                                  </ul>
                                   {{else}}
                                   None
                                   {{/if}}
@@ -1026,7 +1029,7 @@
                     <input type="hidden" name="datacenter" value="{{datacenter.id}}" />
                     <div class="modal-header">
                         <a href="#" class="close">&times;</a>
-                        <h3>Machines for namespace <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a> in datacenter <a href="/#datacenters/{{datacenter.id}}">{{datacenter.name}}</a></h3>
+                        <h3>Machines for namespace <a href="/#namespaces/{{namespace_uuid}}">{{namespace_name}}</a> in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a></h3>
                     </div>
                     <div class="modal-body">
                         <div class="replica-plan">

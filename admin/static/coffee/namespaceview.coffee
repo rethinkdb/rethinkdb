@@ -242,8 +242,6 @@ module 'NamespaceView', ->
         # TODO
         alert_tmpl: Handlebars.compile $('#modified_replica-alert-template').html()
 
-        # TODO should the class be different?  What is class used for?
-        class: 'modify-replicas'
         events: -> _.extend super,
             'click .commit-plan': 'commit_plan'
 
@@ -330,7 +328,10 @@ module 'NamespaceView', ->
 
             # TODO (Holy TODO) this is a copy/paste of AbstractModal!  Holy crap!
             @$container.append @template
-                datacenter: @datacenter
+                datacenter_uuid: @datacenter.get('id')
+                datacenter_name: @datacenter.get('name')
+                namespace_uuid: @namespace.get('id')
+                namespace_name: @namespace.get('name')
                 replicas:
                     adding: adding
                     removing: removing
