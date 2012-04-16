@@ -217,6 +217,8 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(val);
     };
 
+    typedef traversal_progress_combiner_t backfill_progress_t;
+
     class store_t : public store_view_t<memcached_protocol_t> {
         typedef region_map_t<memcached_protocol_t, binary_blob_t> metainfo_t;
 
@@ -266,7 +268,7 @@ public:
                 const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                 const boost::function<bool(const metainfo_t&)> &should_backfill,
                 const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
-                backfill_progress_rwi_lock_wrapper_t *progress_out,
+                backfill_progress_t *progress_out,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);

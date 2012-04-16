@@ -443,7 +443,7 @@ bool memcached_protocol_t::store_t::send_backfill(
         const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
         const boost::function<bool(const metainfo_t&)> &should_backfill,
         const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
-        backfill_progress_rwi_lock_wrapper_t *progress_out,
+        backfill_progress_t *progress,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -456,25 +456,16 @@ bool memcached_protocol_t::store_t::send_backfill(
     if (should_backfill(metainfo)) {
         memcached_backfill_callback_t callback(chunk_fun);
 
-        traversal_progress_combiner_t progress_combiner;
-
-        {
-            backfill_progress_write_acq_t write_to_progress(progress_out);
-            *write_to_progress.get() = &progress_combiner;
-        }
-
         for (region_map_t<memcached_protocol_t, state_timestamp_t>::const_iterator i = start_point.begin(); i != start_point.end(); i++) {
             const memcached_protocol_t::region_t& range = (*i).first;
             repli_timestamp_t since_when = (*i).second.to_repli_timestamp(); // FIXME: this loses precision
 
             traversal_progress_t *p = new traversal_progress_t;
-            progress_combiner.add_constituent(p);
+            progress->add_constituent(p);
             memcached_backfill(btree.get(), range, since_when, &callback, txn.get(), superblock, p);
         }
-        progress_out = NULL;
         return true;
     } else {
-        progress_out = NULL;
         return false;
     }
 }

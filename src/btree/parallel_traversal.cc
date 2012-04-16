@@ -473,7 +473,7 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
 }
 
 void traversal_progress_t::inform(int level, action_t action, node_type_t type) {
-    on_thread_t(home_thread());
+    assert_thread();
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
     rassert(level >= 0);
     if (size_t(level) >= learned.size()) {
@@ -507,7 +507,7 @@ void traversal_progress_t::inform(int level, action_t action, node_type_t type) 
 }
 
 float traversal_progress_t::guess_completion() {
-    on_thread_t(home_thread());
+    assert_thread();
     std::pair<int, int> num_and_denom = numerator_and_denominator();
     if (num_and_denom.first == -1) {
         return 0.0;
@@ -517,7 +517,7 @@ float traversal_progress_t::guess_completion() {
 }
 
 std::pair<int, int> traversal_progress_t::numerator_and_denominator() {
-    on_thread_t(home_thread());
+    assert_thread();
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 
     if (height == -1) {
@@ -551,12 +551,12 @@ std::pair<int, int> traversal_progress_t::numerator_and_denominator() {
 }
 
 void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
-    on_thread_t(home_thread());
+    assert_thread();
     constituents.push_back(c);
 }
 
 float traversal_progress_combiner_t::guess_completion() {
-    on_thread_t(home_thread());
+    assert_thread();
     int numerator = 0, denominator = 0;
     for (boost::ptr_vector<traversal_progress_t>::iterator it  = constituents.begin();
                                                            it != constituents.end();

@@ -94,8 +94,8 @@ private:
         map_insertion_sentry_t<backfill_session_id_t, cond_t *> be_interruptible(&local_interruptors, session_id, &local_interruptor);
 
         /* Set up a local progress monitor so people can query us for progress. */
-        backfill_progress_rwi_lock_wrapper_t local_progress;
-        map_insertion_sentry_t<backfill_session_id_t, backfill_progress_rwi_lock_wrapper_t *> display_progress(&local_backfill_progress, session_id, &local_progress);
+        typename protocol_t::backfill_progress_t local_progress;
+        map_insertion_sentry_t<backfill_session_id_t, typename protocol_t::backfill_progress_t *> display_progress(&local_backfill_progress, session_id, &local_progress);
 
         /* Set up a cond that gets pulsed if we're interrupted by either the
         backfillee stopping or the backfiller destructor being called, but don't
@@ -162,12 +162,7 @@ private:
                                    mailbox_addr_t<void(float)> response_mbox,
                                    auto_drainer_t::lock_t) {
         if (std_contains(local_backfill_progress, session_id) && local_backfill_progress[session_id]) {
-            backfill_progress_read_acq_t read_acq(local_backfill_progress[session_id]);
-            if (*read_acq.get()) {
-                send(mailbox_manager, response_mbox, (*read_acq.get())->guess_completion());
-            } else {
-                send(mailbox_manager, response_mbox, -1.0f);
-            }
+            send(mailbox_manager, response_mbox, local_backfill_progress[session_id]->guess_completion());
         } else {
             send(mailbox_manager, response_mbox, -1.0f);
         }
@@ -182,7 +177,7 @@ private:
 
     auto_drainer_t drainer;
     std::map<backfill_session_id_t, cond_t *> local_interruptors;
-    std::map<backfill_session_id_t, backfill_progress_rwi_lock_wrapper_t *> local_backfill_progress;
+    std::map<backfill_session_id_t, typename protocol_t::backfill_progress_t *> local_backfill_progress;
 
     typename backfiller_business_card_t<protocol_t>::backfill_mailbox_t backfill_mailbox;
     typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;
