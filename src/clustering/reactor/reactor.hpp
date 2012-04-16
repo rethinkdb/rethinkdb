@@ -77,15 +77,16 @@ private:
         typedef clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfill_location_t;
 
         std::vector<backfill_location_t> places_to_get_this_version;
+        std::vector<reactor_activity_id_t> activity_ids;
         bool present_in_our_store;
 
-        backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store);
+        backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, std::vector<reactor_activity_id_t> _activity_ids, bool _present_in_our_store);
     };
 
     typedef region_map_t<protocol_t, backfill_candidate_t> best_backfiller_map_t;
 
     void update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions, const clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > &backfiller, 
-                                best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history);
+                                reactor_activity_id_t activity_id, best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history);
 
     bool is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                       const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out);
@@ -97,7 +98,7 @@ private:
                                        clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > *broadcaster_out);
 
     bool find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
-                                      clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > *replier_out);
+                                      clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > *replier_out, reactor_activity_id_t *activity_out);
 
     void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;

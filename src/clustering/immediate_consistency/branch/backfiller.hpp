@@ -93,6 +93,10 @@ private:
         cond_t local_interruptor;
         map_insertion_sentry_t<backfill_session_id_t, cond_t *> be_interruptible(&local_interruptors, session_id, &local_interruptor);
 
+        /* Set up a local progress monitor so people can query us for progress. */
+        typename protocol_t::backfill_progress_t local_progress;
+        map_insertion_sentry_t<backfill_session_id_t, typename protocol_t::backfill_progress_t *> display_progress(&local_backfill_progress, session_id, &local_progress);
+
         /* Set up a cond that gets pulsed if we're interrupted by either the
         backfillee stopping or the backfiller destructor being called, but don't
         wait on that cond yet. */
@@ -114,7 +118,6 @@ private:
             store->new_read_token(send_backfill_token);
 
             /* Actually perform the backfill */
-            backfill_progress_t *progress;
             store->send_backfill(
                 region_map_transform<protocol_t, version_range_t, state_timestamp_t>(
                     start_point,
@@ -122,7 +125,7 @@ private:
                     ),
                 boost::bind(&backfiller_t<protocol_t>::confirm_and_send_metainfo, this, _1, start_point, end_point_cont),
                 send_fun,
-                &progress,
+                local_backfill_progress[session_id],
                 send_backfill_token,
                 &interrupted
                 );
@@ -159,8 +162,12 @@ private:
                                    mailbox_addr_t<void(float)> response_mbox,
                                    auto_drainer_t::lock_t) {
         if (std_contains(local_backfill_progress, session_id) && local_backfill_progress[session_id]) {
-            send(mailbox_manager, response_mbox, (*local_backfill_progress[session_id])->guess_completion());
+            send(mailbox_manager, response_mbox, local_backfill_progress[session_id]->guess_completion());
+        } else {
+            send(mailbox_manager, response_mbox, -1.0f);
         }
+
+        //TODO indicate an error has occurred
     }
 
     mailbox_manager_t *mailbox_manager;
@@ -170,7 +177,7 @@ private:
 
     auto_drainer_t drainer;
     std::map<backfill_session_id_t, cond_t *> local_interruptors;
-    std::map<backfill_session_id_t, backfill_progress_t **> local_backfill_progress;
+    std::map<backfill_session_id_t, typename protocol_t::backfill_progress_t *> local_backfill_progress;
 
     typename backfiller_business_card_t<protocol_t>::backfill_mailbox_t backfill_mailbox;
     typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;

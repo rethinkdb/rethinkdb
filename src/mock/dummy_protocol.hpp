@@ -80,6 +80,12 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_3(key, value, timestamp);
     };
 
+    struct backfill_progress_t {
+        float guess_completion() {
+            return -1.0f;
+        }
+    };
+
     class store_t : public store_view_t<dummy_protocol_t> {
     public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
@@ -99,7 +105,7 @@ public:
                 const metainfo_t& new_metainfo, const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         bool send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
-                const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, backfill_progress_t **progress_out, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+                const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, backfill_progress_t *progress, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         void receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         void reset_data(dummy_protocol_t::region_t subregion, const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
