@@ -461,23 +461,19 @@ module 'ClusterView', ->
             log_initial '(initializing) modal dialog: confirmation'
             super @template
 
-        render: (message, url, data, alert_tmpl) =>
+        render: (message, url, data, on_success) =>
             log_render '(rendering) add secondary dialog'
 
             # Define the validator options
             validator_options =
                 submitHandler: =>
-                    $('form', @$modal).ajaxSubmit
-                        url: url ? '/ajax/foobarbaz'  # TODO get rid of foobarbaz, make callers be rightful
+                    $.ajax
+                        processData: false
+                        url: url
                         type: 'POST'
+                        contentType: 'application/json'
                         data: data
-
-                        success: (response) =>
-                            clear_modals()
-
-                            response_json = $.parseJSON response
-                            apply_diffs response_json.diffs
-                            $('#user-alert-space').append alert_tmpl response_json.op_result
+                        success: on_success
 
             super validator_options, { 'message': message }
 

@@ -67,11 +67,33 @@ module 'NamespaceView', ->
             modal.render()
             e.preventDefault()
 
-        make_primary: (e) ->
+        make_primary: (e, new_dc) ->
             log_action 'make primary clicked'
-            datacenter = datacenters.get @model.get('primary_uuid')
             modal = new ClusterView.ConfirmationDialogModal
-            modal.render("Are you sure you want to make " + datacenter.get('name') + " primary?")
+            # Increase replica affinities in the old primary
+            # datacenter by one, since we're gonna loose the
+            # primary replica. Decrease replica affinities in the
+            # new datacenter by one, for the same reason. We don't
+            # have to worry about this number going negative,
+            # since we can't make primary a datacenter with no
+            # replicas.
+            new_affinities = {}
+            new_affinities[@model.get('primary_uuid')] = DataUtils.get_replica_affinities(@model.get('id'), @model.get('primary_uuid')) + 1
+            new_affinities[new_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), new_dc.get('id')) - 1
+            data =
+                primary_uuid: new_dc.get('id')
+                replica_affinities: new_affinities
+            modal.render("Are you sure you want to make datacenter " + new_dc.get('name') + " primary?",
+                "/ajax/memcached_namespaces/" + @model.get('id'),
+                JSON.stringify(data),
+                (response) =>
+                    clear_modals()
+                    diff = {}
+                    diff[@model.get('id')] = response
+                    apply_to_collection(namespaces, add_protocol_tag(diff, "memcached"))
+                    # Grab the latest view of things
+                    #$('#user-alert-space').append alert_tmpl response_json.op_result
+                )
             e.preventDefault()
 
         render: =>
