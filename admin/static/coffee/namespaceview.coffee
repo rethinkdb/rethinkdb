@@ -49,6 +49,7 @@ module 'NamespaceView', ->
     class @Replicas extends Backbone.View
         className: 'namespace-replicas'
         template: Handlebars.compile $('#namespace_view-replica-template').html()
+        alert_tmpl: Handlebars.compile $('#changed_primary_dc-replica-template').html()
 
         initialize: ->
             # @model is a namespace.  somebody is supposed to pass model: namespace to the constructor.
@@ -77,8 +78,9 @@ module 'NamespaceView', ->
             # have to worry about this number going negative,
             # since we can't make primary a datacenter with no
             # replicas.
+            old_dc = datacenters.get(@model.get('primary_uuid'))
             new_affinities = {}
-            new_affinities[@model.get('primary_uuid')] = DataUtils.get_replica_affinities(@model.get('id'), @model.get('primary_uuid')) + 1
+            new_affinities[old_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), old_dc.get('id')) + 1
             new_affinities[new_dc.get('id')] = DataUtils.get_replica_affinities(@model.get('id'), new_dc.get('id')) - 1
             data =
                 primary_uuid: new_dc.get('id')
@@ -92,7 +94,14 @@ module 'NamespaceView', ->
                     diff[@model.get('id')] = response
                     apply_to_collection(namespaces, add_protocol_tag(diff, "memcached"))
                     # Grab the latest view of things
-                    #$('#user-alert-space').append alert_tmpl response_json.op_result
+                    $('#user-alert-space').append (@alert_tmpl
+                        namespace_uuid: @model.get('id')
+                        namespace_name: @model.get('name')
+                        datacenter_uuid: new_dc.get('id')
+                        datacenter_name: new_dc.get('name')
+                        old_datacenter_uuid: old_dc.get('id')
+                        old_datacenter_name: old_dc.get('name')
+                        )
                 )
             e.preventDefault()
 
@@ -230,7 +239,7 @@ module 'NamespaceView', ->
 
     class @EditMachinesModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#edit_machines-modal-template').html()
-        # TODO is this the right template name, etc
+        # TODO
         alert_tmpl: Handlebars.compile $('#modified_replica-alert-template').html()
 
         # TODO should the class be different?  What is class used for?
@@ -426,7 +435,6 @@ module 'NamespaceView', ->
 
     class @ModifyReplicasModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#modify_replicas-modal-template').html()
-        # TODO: Do we ever use this alert tmpl?
         alert_tmpl: Handlebars.compile $('#modified_replica-alert-template').html()
 
         class: 'modify-replicas'
@@ -465,6 +473,18 @@ module 'NamespaceView', ->
                     replica_affinities_to_send[formdata.datacenter] = @adjustReplicaCount(parseInt(formdata.num_replicas), false)
                     ack_expectations_to_send = {}
                     ack_expectations_to_send[formdata.datacenter] = parseInt(formdata.num_acks)
+
+                    # prepare data for success template in case we succeed
+                    old_replicas = @adjustReplicaCount(DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id), true)
+                    new_replicas = parseInt(formdata.num_replicas)
+                    console.log old_replicas, new_replicas
+                    modified_replicas = new_replicas isnt old_replicas
+                    old_acks = DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.id)
+                    new_acks = parseInt(formdata.num_acks)
+                    modified_acks = new_acks isnt old_acks
+                    datacenter_uuid = formdata.datacenter
+                    datacenter_name = datacenters.get(datacenter_uuid).get('name')
+
                     $.ajax
                         processData: false
                         url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
@@ -477,14 +497,23 @@ module 'NamespaceView', ->
                             clear_modals()
 
                             namespaces.get(@namespace.id).set(response)
-                            #TODO hook this up
-                            #$('#user-alert-space').append @alert_tmpl {}
+                            if modified_replicas or modified_acks
+                                $('#user-alert-space').append (@alert_tmpl
+                                    modified_replicas: modified_replicas
+                                    old_replicas: old_replicas
+                                    new_replicas: new_replicas
+                                    modified_acks: modified_acks
+                                    old_acks: old_acks
+                                    new_acks: new_acks
+                                    datacenter_uuid: datacenter_uuid
+                                    datacenter_name: datacenter_name
+                                    )
                         error: (response, unused, unused_2) =>
                             clear_modals()
                             @render(response.responseText)
 
             # Compute json ...
-            num_replicas = @namespace.get('replica_affinities')[@datacenter.id]
+            num_replicas = DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id)
             json =
                 namespace: @namespace.toJSON()
                 datacenter: @datacenter.toJSON()
@@ -506,7 +535,7 @@ module 'NamespaceView', ->
             secondary_uuids = DataUtils.get_shard_secondary_uuids namespace_uuid, shards[i]
             ret.push
                 name: human_readable_shard shards[i]
-                notlast: i != shards.length
+                notlast: i != shards.length - 1
                 index: i
                 primary:
                     uuid: primary_uuid
@@ -608,12 +637,8 @@ module 'NamespaceView', ->
 
                         success: (response) =>
                             clear_modals()
-
                             namespaces.get(@namespace.id).set(response)
-
-                            # should be empty.
-                            # TODO hook this up
-                            #$('#user-alert-space').append(@alert_tmpl({}))
+                            $('#user-alert-space').append(@alert_tmpl({}))
 
 
             json =
