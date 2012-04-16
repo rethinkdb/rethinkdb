@@ -249,9 +249,11 @@ else:
         directory = "cluster_directory_%d" % i
         os.system("rm -rf " + directory)
         if (i == 0):
-            kids += [subprocess.Popen(["../build/debug/rethinkdb", "--port", str(port), "--directory", directory, "--name", random.choice(names), "--port-offset", str(i+port)])]
+            cl = ["../build/debug/rethinkdb", "--port", str(port), "--directory", directory, "--name", random.choice(names), "--port-offset", str(i+port)]
+            kids += [subprocess.Popen(cl)]
         else:
-            kids += [subprocess.Popen(["../build/debug/rethinkdb", "--port", str(port+i), "--directory", directory, "--name", random.choice(names), "--join", "newton:%d" % port, "--port-offset", str(i+port)])]
+            cl = ["../build/debug/rethinkdb", "--port", str(port+i), "--directory", directory, "--name", random.choice(names), "--join", "newton:%d" % port, "--port-offset", str(i+port)]
+            kids += [subprocess.Popen(cl)]
         time.sleep(1)
 
     time.sleep(1)

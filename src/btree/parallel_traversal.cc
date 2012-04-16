@@ -474,6 +474,7 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
 
 void traversal_progress_t::inform(int level, action_t action, node_type_t type) {
     assert_thread();
+    rassert(learned.size() == acquired.size() && acquired.size() == released.size());
     rassert(level >= 0);
     if (size_t(level) >= learned.size()) {
         learned.resize(level + 1, 0);
@@ -502,6 +503,7 @@ void traversal_progress_t::inform(int level, action_t action, node_type_t type) 
         unreachable();
         break;
     }
+    rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 }
 
 float traversal_progress_t::guess_completion() {
@@ -554,11 +556,12 @@ void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
 }
 
 float traversal_progress_combiner_t::guess_completion() {
-    int numerator, denominator;
-    for (boost::ptr_vector<traversal_progress_t *>::iterator it  = constituents.begin();
-                                                             it != constituents.end();
-                                                             ++it) {
-        std::pair<int, int> n_and_d = (*it)->numerator_and_denominator();
+    assert_thread();
+    int numerator = 0, denominator = 0;
+    for (boost::ptr_vector<traversal_progress_t>::iterator it  = constituents.begin();
+                                                           it != constituents.end();
+                                                           ++it) {
+        std::pair<int, int> n_and_d = it->numerator_and_denominator();
         if (n_and_d.first == -1) {
             return 0.0f;
         }
