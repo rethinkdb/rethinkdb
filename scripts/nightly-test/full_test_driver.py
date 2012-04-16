@@ -249,7 +249,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
     tests_as_list.sort(compare_tests)
 
     tests = { }
-    for number, test in enumerate(tests_as_list) {
+    for number, test in enumerate(tests_as_list):
         tests[str(number + 1)] = test
 
     # Run tests
