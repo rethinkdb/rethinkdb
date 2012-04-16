@@ -95,19 +95,37 @@ module 'MachineView', ->
         className: 'machine-view'
         template: Handlebars.compile $('#machine_view-container-template').html()
 
-        initialize: ->
+        initialize: (id) =>
             log_initial '(initializing) machine view: container'
+            @machine_uuid = id
 
-            #@model.on 'change', @update_meters
+        wait_for_model: =>
+            @model = machines.get(@machine_uuid)
+            if not @model
+                machines.off 'all', @render
+                machines.on 'all', @render
+                return false
 
-            #setInterval @update_sparklines, @cpu_sparkline.update_interval
-            #setInterval @update_graphs, @performance_graph.update_interval
+            # Model is finally ready, bind necessary handlers
+            machines.off 'all', @render
+            @model.on 'all', @render
+            dir_entry = directory.get(@model.get('id'))
+            if dir_entry
+                dir_entry.on 'all', @render
+
+            return true
+
+        render_empty: =>
+            @.$el.text 'Machine ' + @machine_uuid + ' is not available.'
+            return @
 
         render: =>
             log_render '(rendering) machine view: container'
 
+            if @wait_for_model() is false
+                return @render_empty()
+
             datacenter_uuid = @model.get('datacenter_uuid')
-            directory_listing = directory.get(@model.get('id'))
             json =
                 name: @model.get('name')
                 ip: "192.168.1.#{Math.round(Math.random() * 255)}" # Fake IP, replace with real data TODO
@@ -120,21 +138,38 @@ module 'MachineView', ->
                     datacenter_name: datacenters.get(datacenter_uuid).get('name')
 
             # If the machine is reachable, add relevant json
-            if directory_listing?
-                namespaces_on_this_machine = directory_listing.get('memcached_namespaces').reactor_bcards
-                json = _.extend json,
-                    is_reachable: true
-                    data:
-                        namespaces: _.map(namespaces_on_this_machine, (activity_map, namespace_uuid) ->
-                            name: namespaces.get(namespace_uuid).get('name')
-                            shards: _.map(activity_map["activity_map"], (activity, activity_uuid) ->
-                                role = activity[1]['type']
-                                shard = activity[0]
-                                name: human_readable_shard shard
-                                status: role
-                            )
-                        )
+            _namespaces = []
+            for namespace in namespaces.models
+                _shards = []
+                for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                    if machine_uuid is @model.get('id')
+                        for shard, role of peer_roles
+                            if role isnt 'role_nothing'
+                                _shards[_shards.length] =
+                                    role: role
+                                    shard: shard
+                                    name: human_readable_shard shard
+                if _shards.length > 0
+                    _namespaces[_namespaces.length] =
+                        shards: _shards
+                        name: namespace.get('name')
+                        uuid: namespace.id
+
+            json = _.extend json,
+                data:
+                    namespaces: _namespaces
+
+            # Reachability
+            _.extend json,
+                status: DataUtils.get_machine_reachability(@model.get('id'))
+
             @.$el.html @template json
+
+            # Hook our events
+            @.$('a.set-datacenter').click (event) =>
+                event.preventDefault()
+                set_datacenter_modal = new ClusterView.SetDatacenterModal
+                set_datacenter_modal.render [@model]
 
             return @
 
@@ -177,27 +212,86 @@ module 'DatacenterView', ->
         className: 'datacenter-view'
         template: Handlebars.compile $('#datacenter_view-container-template').html()
 
-        initialize: ->
+        initialize: (id) =>
             log_initial '(initializing) datacenter view: container'
+            @datacenter_uuid = id
+
+        wait_for_model: =>
+            @model = datacenters.get(@datacenter_uuid)
+            if not @model
+                datacenters.off 'all', @render
+                datacenters.on 'all', @render
+                return false
+
+            # Model is finally ready, bind necessary handlers
+            datacenters.off 'all', @render
+            @model.on 'all', @render
+            machines.on 'all', @render
+            directory.on 'all', @render
+
+            return true
+
+        render_empty: =>
+            @.$el.text 'Datacenter ' + @datacenter_uuid + ' is not available.'
+            return @
 
         render: =>
             log_render('(rendering) datacenter view: container')
+
+            if @wait_for_model() is false
+                return @render_empty()
 
             # Filter all the machines for those belonging to this datacenter
             machines_in_datacenter = machines.filter (machine) => return machine.get('datacenter_uuid') is @model.get('id')
             # Machines we can actually reach in this datacenter
             reachable_machines = directory.filter (m) => machines.get(m.get('id')).get('datacenter_uuid') is @model.get('id')
 
+            # Data residing on this lovely datacenter
+            _namespaces = []
+            for namespace in namespaces.models
+                _shards = []
+                for machine_uuid, peer_roles of namespace.get('blueprint').peers_roles
+                    if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
+                        for shard, role of peer_roles
+                            if role isnt 'role_nothing'
+                                _shards[_shards.length] =
+                                    role: role
+                                    shard: shard
+                                    name: human_readable_shard shard
+                if _shards.length > 0
+                    # Compute number of primaries and secondaries for each shard
+                    __shards = {}
+                    for shard in _shards
+                        shard_repr = shard.shard.toString()
+                        if not __shards[shard_repr]?
+                            __shards[shard_repr] =
+                                shard: shard.shard
+                                name: human_readable_shard shard.shard
+                                nprimaries: if shard.role is 'role_primary' then 1 else 0
+                                nsecondaries: if shard.role is 'role_secondary' then 1 else 0
+                        else
+                            if shard.role is 'role_primary'
+                                __shards[shard_repr].nprimaries += 1
+                            if shard.role is 'role_secondary'
+                                __shards[shard_repr].nsecondaries += 1
+
+                    # Append the final data
+                    _namespaces[_namespaces.length] =
+                        shards: _.map(__shards, (shard, shard_repr) -> shard)
+                        name: namespace.get('name')
+                        uuid: namespace.id
+
+            # Generate json and render
             @.$el.html @template
                 name: @model.get('name')
                 machines: _.map(machines_in_datacenter, (machine) ->
                     name: machine.get('name')
                     id: machine.get('id')
-                    is_reachable: directory.get(machine.get('id'))?
+                    status: DataUtils.get_machine_reachability(machine.get('id'))
                 )
-                total_machines: machines_in_datacenter.length
-                reachable_machines: reachable_machines.length
-                is_live: reachable_machines.length > 0
+                status: DataUtils.get_datacenter_reachability(@model.get('id'))
+                data:
+                    namespaces: _namespaces
             return @
 
 # Sidebar view
@@ -257,6 +351,7 @@ module 'Sidebar', ->
         initialize: ->
             log_initial '(initializing) client connection status view'
             connection_status.on 'all', => @render()
+            datacenters.on 'all', => @render()
             machines.on 'all', => @render()
 
         render: ->
@@ -271,7 +366,7 @@ module 'Sidebar', ->
                 # If the machine is assigned to a datacenter, include it
                 assigned_datacenter = datacenters.get(connected_machine.get('datacenter_uuid'))
                 json['datacenter_name'] = if assigned_datacenter? then assigned_datacenter.get('name') else 'Unassigned'
-                    
+
             @.$el.html @template json
 
             return @
@@ -288,12 +383,6 @@ module 'Sidebar', ->
             datacenters.on 'all', (model, collection) => @render()
 
         compute_connectivity: =>
-            # data centers with machines
-            dc_have_machines = []
-            machines.each (m) =>
-                if m.get('datacenter_uuid')
-                    dc_have_machines[dc_have_machines.length] = m.get('datacenter_uuid')
-            dc_have_machines = _.uniq(dc_have_machines)
             # data centers visible
             dc_visible = []
             directory.each (m) =>
@@ -305,7 +394,7 @@ module 'Sidebar', ->
                 machines_active: directory.length
                 machines_total: machines.length
                 datacenters_active: dc_visible.length
-                datacenters_total: dc_have_machines.length
+                datacenters_total: datacenters.models.length
             return conn
 
         render: =>
@@ -327,7 +416,7 @@ module 'Sidebar', ->
             critical_issues = issues.filter (issue) -> issue.get('critical')
             critical_issues = _.groupBy critical_issues, (issue) -> issue.get('type')
 
-            # Get a list of all other issues (non-critical) 
+            # Get a list of all other issues (non-critical)
             other_issues = issues.filter (issue) -> not issue.get('critical')
 
             @.$el.html @template
@@ -342,7 +431,7 @@ module 'Sidebar', ->
                 other_issues:
                     exist: other_issues.length > 0
                     num: other_issues.length
-                no_issues: _.keys(critical_issues).length is 0 and other_issues.length is 0 
+                no_issues: _.keys(critical_issues).length is 0 and other_issues.length is 0
                 show_resolve_issues: window.location.hash isnt @resolve_issues_route
             return @
 
@@ -383,7 +472,7 @@ module 'ResolveIssuesView', ->
         render_issues: ->
             @.$('#resolve_issues-container-inner-placeholder').html @template_inner
                 issues_exist: if issues.length > 0 then true else false
-                
+
             issue_views = []
             issues.each (issue) ->
                 issue_views.push new ResolveIssuesView.Issue
@@ -416,15 +505,12 @@ module 'ResolveIssuesView', ->
 
                             if (response)
                                 throw "Received a non null response to a delete... this is incorrect"
-                            
+
                             # Grab the new set of issues (so we don't have to wait)
                             $.ajax
                                 url: '/ajax/issues'
                                 success: set_issues
                                 async: false
-                                
-                            # remove the dead machine from the models
-                            machines.remove(machine_to_kill.id)
 
                             # rerender issue view (just the issues, not the whole thing)
                             window.app.resolve_issues_view.render_issues()
@@ -433,7 +519,45 @@ module 'ResolveIssuesView', ->
                             $('#user-alert-space').append @alert_tmpl
                                 machine_name: machine_to_kill.get("name")
 
+                            # remove the dead machine from the models (this must be last)
+                            machines.remove(machine_to_kill.id)
+
             super validator_options, { 'machine_name': machine_to_kill.get("name") }
+
+    class @ResolveVClockModal extends ClusterView.AbstractModal
+        template: Handlebars.compile $('#resolve_vclock-modal-template').html()
+        alert_tmpl: Handlebars.compile $('#resolved_vclock-alert-template').html()
+
+        initialize: ->
+            log_initial '(initializing) modal dialog: resolve vclock'
+            super @template
+
+        render: (final_value, resolution_url) ->
+            log_render '(rendering) resolve vclock'
+            validator_options =
+                submitHandler: =>
+                    $.ajax
+                        url: "/ajax/" + resolution_url
+                        type: 'POST'
+                        contentType: 'application/json'
+                        data: JSON.stringify(final_value)
+                        success: (response) =>
+                            clear_modals()
+
+                            # Grab the new set of issues (so we don't have to wait)
+                            $.ajax
+                                url: '/ajax/issues'
+                                success: set_issues
+                                async: false
+
+                            # rerender issue view (just the issues, not the whole thing)
+                            window.app.resolve_issues_view.render_issues()
+
+                            # notify the user that we succeeded
+                            $('#user-alert-space').append @alert_tmpl
+                                final_value: final_value
+
+            super validator_options, { 'final_value': final_value }
 
     # ResolveIssuesView.Issue
     class @Issue extends Backbone.View
@@ -454,7 +578,7 @@ module 'ResolveIssuesView', ->
 
             masters = []
             replicas = []
-            
+
             # Look at all namespaces in the cluster and determine whether this machine had a master or replicas for them
             namespaces.each (namespace) ->
                 for machine_uuid, role_summary of namespace.get('blueprint').peers_roles
@@ -478,6 +602,7 @@ module 'ResolveIssuesView', ->
                 replicas: if _.isEmpty(replicas) then null else replicas
                 no_responsibilities: if (_.isEmpty(replicas) and _.isEmpty(masters)) then true else false
                 datetime: iso_date_from_unix_time @model.get('time')
+                critical: @model.get('critical')
 
             @.$el.html _template(json)
 
@@ -497,7 +622,8 @@ module 'ResolveIssuesView', ->
                    type: @model.get('contested_type')
                 )
                 datetime: iso_date_from_unix_time @model.get('time')
-            
+                critical: @model.get('critical')
+
             @.$el.html _template(json)
 
             # bind rename handlers
@@ -510,7 +636,7 @@ module 'ResolveIssuesView', ->
                             url: '/ajax/issues'
                             success: set_issues
                             async: false
-                                
+
                         # rerender issue view (just the issues, not the whole thing)
                         window.app.resolve_issues_view.render_issues()
                     )
@@ -518,15 +644,55 @@ module 'ResolveIssuesView', ->
             )
 
         render_persistence_issue: (_template) ->
-            json = datetime: iso_date_from_unix_time @model.get('time')
+            json =
+                datetime: iso_date_from_unix_time @model.get('time')
+                critical: @model.get('critical')
+                machine_name: machines.get(@model.get('location')).get('name')
+                machine_uuid: @model.get('location')
+            @.$el.html _template(json)
+            # Declare machine dead handler
+            @.$('p a.btn').off "click"
+            @.$('p a.btn').click =>
+                declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
+                declare_dead_modal.render machines.get(@model.get('location'))
+
+        render_vclock_conflict: (_template) ->
+            get_resolution_url = =>
+                return @model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
+
+            # grab possible conflicting values
+            $.ajax
+                url: '/ajax/' + get_resolution_url()
+                type: 'GET'
+                contentType: 'application/json'
+                async: false
+                success: (response) =>
+                    @contestants = _.map response, (x, index) -> { value: x[1], contestant_id: index }
+
+            # renderevsky
+            json =
+                datetime: iso_date_from_unix_time @model.get('time')
+                critical: @model.get('critical')
+                object_type: @model.get('object_type')
+                object_id: @model.get('object_id')
+                object_name: datacenters.get(@model.get('object_id')).get('name')
+                field: @model.get('field')
+                name_contest: @model.get('field') is 'name'
+                contestants: @contestants
             @.$el.html _template(json)
 
-        render_vlock_conflict: (_template) ->
-            json = datetime: iso_date_from_unix_time @model.get('time')
-            @.$el.html _template(json)
+            # bind resolution events
+            _.each @contestants, (contestant) =>
+                @.$('#resolve_' + contestant.contestant_id).off 'click'
+                @.$('#resolve_' + contestant.contestant_id).click (event) =>
+                    event.preventDefault()
+                    resolve_modal = new ResolveIssuesView.ResolveVClockModal
+                    resolve_modal.render contestant.value, get_resolution_url()
 
         render_unknown_issue: (_template) ->
-            json = issue_type: @model.get('type')
+            json =
+                issue_type: @model.get('type')
+                critical: @model.get('critical')
             @.$el.html _template(json)
 
         render: ->
@@ -542,7 +708,7 @@ module 'ResolveIssuesView', ->
                     @render_vclock_conflict _template
                 else
                     @render_unknown_issue @unknown_issue_template
-                        
+
             @.$('abbr.timeago').timeago()
 
             return @

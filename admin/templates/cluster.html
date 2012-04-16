@@ -178,6 +178,12 @@
                 <div class="details-wrapper"">
                     <span class="name"><a href="#namespaces/{{id}}">{{name}}</a></span>
                     <span class="protocol {{protocol}}">{{protocol}}</span>
+                    <p class="details-text">
+                       <span class="status">Status: {{reachability}} ({{nashards}} of {{nshards}} masters live; {{nareplicas}} of {{nreplicas}} replicas live)</span>
+                    </p>
+                    <p class="details-text">
+                       <span class="contains">Contains: {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}</span>
+                    </p>
                 </div>
                 <div class="clearboth"></div>
             </td>
@@ -191,7 +197,10 @@
                 <div class="details-wrapper"">
                     <span class="name"><a href="#datacenters/{{id}}">{{name}}</a></span>
                     <p class="details-text">
-                       <span class="status">Status: {{status}} ({{reachable}} of {{total}} machines reachable)</span>
+                       <span class="status">Status: {{humanize_datacenter_reachability status}}</span>
+                    </p>
+                    <p class="details-text">
+                      <span class="Contains">Contains: {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}} for {{namespace_count}} {{pluralize_noun "namespace" namespace_count}}</span>
                     </p>
                 </div>
                 <div class="clearboth"></div>
@@ -205,11 +214,16 @@
             <td class="details">
                 <div class="details-wrapper">
                     <span class="name"><a href="#machines/{{id}}">{{name}}</a></span>
+                    <p class="details-text"> 
+                      <span class="status">Status: {{humanize_machine_reachability status}}</span>
+                    </p>
                     <p class="details-text">
-                       <span class="status">Status: {{status}}</span>
-                       <span class="ip">IP: {{ip}}</span>
-                       <span class="machine-datacenter">Datacenter: {{datacenter_name}}</span>
-                    </div>
+                      <span class="Contains">Contains: {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}} for {{namespace_count}} {{pluralize_noun "namespace" namespace_count}}</span>
+                    </p>
+                    <p class="details-text">
+                      <span class="ip">IP: {{ip}}</span>
+                      <span class="machine-datacenter">Datacenter: {{datacenter_name}}</span>
+                    </p>
                 </div>
                 <div class="clearboth"></div>
             </td>
@@ -232,75 +246,47 @@
 
         <script id="namespace_view-replica-template" type="text/x-handlebars-template">
             <table class="datacenters table">
+                <!-- Header row -->
                 <tr>
-                    <th>Name</th>
+                    <th>Datacenter</th>
+                    <th>Role</th>
                     <th>Replicas</th>
                     <th>Write acks</th>
-                    <th>Health</th>
-                    <th>Command</th>
+                    <th>Status</th>
+                    <th>&nbsp;</th>
                 </tr>
-                <tr>
-                    <td colspan="5"><strong>Primary datacenter</strong></td>
-                </tr>
+                <!-- Primary datacenter -->
                 {{#with primary }}
                 <tr>
                     <td>{{name}}</td>
+                    <td>Primary</td>
                     <td>{{replicas}}</td>
                     <td>{{acks}}</td>
                     <td><font color="green">ok</font></td>
-                    <td><a id="edit-primary" href="#">Edit</a> | <a class="edit-machines {{this.id}}" href="#">Change machines</a></td>
+                    <td><a id="edit-primary" href="#">Edit replicas</a> | <a class="edit-machines {{this.id}}" href="#">Pin machines</a></td>
                 </tr>
                 {{/with}}
-                <tr>
-                    <td colspan="5"><strong>Secondary datacenters</strong></td>
-                </tr>
+                <!-- Secondary datacenters -->
                 {{#each secondaries}}
                 <tr>
                     <td>{{name}}</td>
+                    <td>Secondary</td>
                     <td>{{replicas}}</td>
                     <td>{{acks}}</td>
-                    <td><font color="green">ok</td>
-                    <td><a class="edit-secondary {{this.id}}" href="#">Edit</a> | <a class="edit-machines {{this.id}}" href="#">Change machines</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a> | <a class="remove-secondary {{id}}" href="#">Remove</a></td>
+                    <td><font color="green">ok</font></td>
+                    <td><a class="edit-secondary {{this.id}}" href="#">Edit replicas</a> | <a class="edit-machines {{this.id}}" href="#">Pin machines</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a></td>
+                </tr>
+                {{/each}}
+                <!-- Rest of the datacenters (ones we're not replicating to) -->
+                {{#each nothings}}
+                <tr>
+                    <td>{{name}}</td>
+                    <td>None</td>
+                    <td colspan="3">N/A</td>
+                    <td><a class="edit-nothing {{this.id}}" href="#">Edit replicas</a></td>
                 </tr>
                 {{/each}}
             </table>
-            <div id="add-secondary-datacenter">
-                {{#if datacenters_left}}
-                    <a id="add-secondary-datacenter-button" href="#">Add secondary</a>
-                {{/if}}
-                {{#unless datacenters_left}}
-                    <p>We're replicating to all datacenters.</p>
-                {{/unless}}
-            </div>
-        </script>
-
-        <script id="add_secondary-modal-template" type="text/x-handlebars-template">
-            <div class="modal add-secondary">
-                <form class="form">
-                    <div class="modal-header">
-                        <h3>Add a secondary data center</h3>
-                    </div>
-                    <div class="modal-body">
-                        <fieldset>
-                            <legend>Datacenter details</legend>
-                            <div class="clearfix">
-                                <label for="datacenter">Select a datacenter:</label>
-                                <div class="input">
-                                    <select class="datacenter" name="datacenter">
-                                        {{#each datacenters}}
-                                        <option value="{{this.id}}">{{this.name}}</option>
-                                        {{/each}}
-                                    </select>
-                                </div>
-                            </div>
-                        </fieldset>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn add-secondary" type="submit" name="add-secondary" value="Add secondary">Add secondary</button>
-                        <a href="#" class="btn secondary cancel">Cancel</a>
-                    </div>
-                </form>
-            </div>
         </script>
 
     <script id="modify_replicas-modal-template" type="text/x-handlebars-template">
@@ -383,10 +369,16 @@
                 <tbody>
                     {{#each shards}}
                         <tr>
-                            <td class="name"><h4>{{lower}} to {{upper}}</h4></td>
+                            <td class="name"><h4>{{name}}</h4></td>
                             <td class="status">
-                                <p>4 of 5 replicas live</p>
-                                <p>50.3 GB of data in this shard</p>
+                                <p>Master: <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> {{humanize_machine_reachability primary.status}}</p>
+                                <p>Replicas: 
+                                  {{#if secondaries}}
+                                  {{#each secondaries}}<a href="/#machines/{{uuid}}">{{name}}</a> {{humanize_machine_reachability status}}; {{/each}}
+                                  {{else}}
+                                  None
+                                  {{/if}}
+                                </p>
                             </td>
                         </tr>
                     {{/each}}
@@ -422,7 +414,7 @@
 
         <script id="modify_shards_modal-shard-template" type="text/x-handlebars-template">
             {{#with shard}}
-                <td class="name"><h4>{{lower}} to {{upper}}</h4></td>
+                <td class="name"><h4>{{name}}</h4></td>
                 <td class="status">
                     <!-- TODO fake -->
                     <p>4 of 5 replicas live</p>
@@ -442,7 +434,7 @@
         <script id="modify_shards_modal-edit_shard-template" type="text/x-handlebars-template">
             <td class="name">
                 {{#with shard}}
-                    <h4>{{lower}} to {{upper}} </h4>
+                    <h4>{{name}} </h4>
                 {{/with}}
             </td>
             <td class="status" colspan="2">
@@ -517,21 +509,46 @@
         <!-- Datacenter view -->
         <script id="datacenter_view-container-template" type="text/x-handlebars-template">
             <h1>Datacenter overview for {{name}}</h1>
-            <h3 class="title">Datacenter profile</h3>
-            <div class="section summary">
-                <p class="status">Status: 
-                    {{#if is_live}}
-                        Live ({{reachable_machines}} of {{total_machines}} can be reached)
-                    {{else}}
-                        Down
-                    {{/if}}
-                </p>
-                <p>Machines:</p>
+            <div class="two-panel-section">
+              <div class="panel-left">
+                <h3 class="title">Datacenter profile</h3>
+                <div class="section summary">
+                  <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
+                </div>
+              </div>
+              <div class="panel-right">
+                <h3 class="title">Datacenter resources</h3>
+                <div class="section system-resources">
+                  <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
+                  <p class="ram">RAM:</p>
+                  <p class="disk">Disk:</p>
+                </div>
+              </div>
+              <div class="two-panel-clear"></div>
+            </div>
+            <h3 class="title">Machines</h3>
+            <div class="section machine-list">
+              <ul>
+                {{#each machines}}
+                <li><a href='#machines/{{id}}'>{{name}}</a> {{humanize_machine_reachability status}}</li>
+                {{/each}}
+              </ul>
+            </div>
+            <h3 class="title">Data in this datacenter</h3>
+            <div class="section data">
+              {{#unless data.namespaces}}
+              <p>No data found in this datacenter.</p>
+              {{/unless}}
+              {{#each data.namespaces}}
+              <div class="namespace">
+                <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
                 <ul>
-                  {{#each machines}}
-                      <li><a href='#machines/{{id}}'>{{name}}</a> {{#if is_reachable }} {{else}}(cannot be reached){{/if}}</li>
+                  {{#each shards}}
+                  <li>{{name}} ({{nprimaries}} {{pluralize_noun "primary" nprimaries}}, {{nsecondaries}} {{pluralize_noun "secondary" nsecondaries}})</li>
                   {{/each}}
                 </ul>
+              </div>
+              {{/each}}
             </div>
             <h3 class="title">Performance</h3>
             <div class="section performance-graph"></div>
@@ -542,45 +559,52 @@
         <!-- Machine view -->
         <script id="machine_view-container-template" type="text/x-handlebars-template">
             <h1>Machine overview for {{name}}</h1>
-            <h3 class="title">System profile</h3>
-            <div class="section summary">
-                <p class="datacenter-name">Datacenter:
+            <div id="user-alert-space"></div>
+            <div class="two-panel-section">
+              <div class="panel-left">
+                <h3 class="title">Machine profile</h3>
+                <div class="section summary">
+                  <p class="datacenter-name">Datacenter:
                     {{#if assigned_to_datacenter}}
-                        <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
+                    <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
                     {{else}}
-                        Unassigned 
+                    Unassigned 
                     {{/if}}
-                    <a class="set-datacenter" href="#">(change)</a>
-                </p>
-                <p>IP address: {{ip}}</p>
-                <p>
+                    (<a class="set-datacenter" href="#">change</a>)
+                  </p>
+                  <p>Status: {{humanize_machine_reachability status}}</p>
+                  <p>IP address: {{ip}}</p>
+                  <p class="uptime">Uptime: {{uptime}}</p>
+                </div>
+              </div>
+              <div class="panel-right">
+                <h3 class="title">Machine resources</h3>
+                <div class="section system-resources">
+                  <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
+                  <p class="ram">RAM:</p>
+                  <p class="disk">Disk:</p>
+                </div>
+              </div>
+              <div class="two-panel-clear"></div>
             </div>
-            <h3 class="title">Resources</h3>
-            <div class="section system-resources">
-                <p class="uptime">Uptime: {{uptime}}</p>
-                <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
-                <p class="ram">RAM:</p>
-                <p class="disk">Disk:</p>
+            <h3 class="title">Data on this machine</h3>
+            <div class="section data">
+              {{#unless data.namespaces}}
+              <p>No data found on this machine.</p>
+              {{/unless}}
+              {{#each data.namespaces}}
+              <div class="namespace">
+                <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+                <ul>
+                  {{#each shards}}
+                  <li>{{name}} ({{humanize_role role}})</li>
+                  {{/each}}
+                </ul>
+              </div>
+              {{/each}}
             </div>
             <h3 class="title">Performance</h3>
             <div class="section performance-graph"></div>
-            <h3 class="title">Data on this machine</h3>
-            <div class="section data">
-                {{#if is_reachable}}
-                    {{#each data.namespaces}}
-                        <div class="namespace">
-                            <h4>Shards on namespace {{name}}:</h4>
-                            <ul>
-                            {{#each shards}}
-                                <li>{{name}}: {{role}}</li>
-                            {{/each}}
-                        </ul>
-                        </div>
-                    {{/each}}
-                {{else}}
-                    <p>This machine cannot be reached.</p>
-                {{/if}}
-            </div>
             <h3 class="title">Recent log entries</h3>
             <div class="section recent-actions"></div>
         </script>
@@ -618,7 +642,8 @@
                     <div class="critical-issues">
                         <div class="priority"></div>
                         <div class="message">
-                            {{#if MACHINE_DOWN}}{{num}} machine{{pluralize_noun num}} {{pluralize_verb_to_be num}} down{{/if}}
+                            {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "machine" num}} {{pluralize_verb_to_be num}} down{{/if}}
+                            {{#if PERSISTENCE_ISSUE}}{{num}} {{pluralize_noun "disk" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
                         </div>
                     </div>
                 {{/each}}
@@ -629,7 +654,7 @@
                 <div class="critical-issues">
                     <div class="priority"></div>
                     <div class="message">
-                        {{other_issues.num}} other issue{{pluralize_noun num_other_issues}}
+                        {{other_issues.num}} other {{pluralize_noun "issue" other_issues.num}}
                     </div>
                 </div>
             {{/if}}
@@ -719,10 +744,10 @@
                     {{/if}}
                 </div>
                 <hr />
-                <h4>{{capitalize type}}{{pluralize_noun num_contestants}} with the name {{name}}:</h4>
+                <h4>{{pluralize_noun type num_contestants true}} with the name {{name}}:</h4>
                 <ul>
                 {{#each contestants}}
-                <li><a href="#{{type}}{{pluralize_noun 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
+                <li><a href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
                 {{/each}}
                 </ul>
             </div>
@@ -736,17 +761,26 @@
                     {{/if}}
                 </div>
                 <hr />
+                <p>Disk is inaccessible on machine <a href="/#machines/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the machine, or declare it dead.<p>
+                <p><a class="btn large danger">Declare Dead</a></p>
             </div>
         </script>
         <script id="resolve_issues-vclock_conflict-template" type="text/x-handlebars-template">
-            <div class="issue {{#if critical }}critical{{/if}}">
+            <div class="issue {{#if critical }}critical{{/if}} vclock-conflict">
                 <div class="header">
-                    <h3 class="title">Metadata problem (vclock).</h3>
+                    <h3 class="title">Cluster configuration conflict.</h3>
                     {{#if datetime}}
                         <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
                     {{/if}}
                 </div>
                 <hr />
+                <p>This issue is caused by making changes to the cluster configuration on both sides of an intermittent network connection.</p>
+                <h4>{{capitalize field}} of {{object_type}} <a href="">{{#if name_contest}}{{humanize_uuid object_id}}{{else}}{{object_name}}{{/if}}</a> has the following conflicting values:</h4>
+                <ul>
+                  {{#each contestants}}
+                  <li>{{value}} (<a id="resolve_{{contestant_id}}" href="#">use this value</a>)</li>
+                  {{/each}}
+                </ul>
             </div>
         </script>
         <script id="resolve_issues-unknown-template" type="text/x-handlebars-template">
@@ -795,6 +829,13 @@
             </div>
         </script>
 
+        <script id="resolved_vclock-alert-template" type="text/x-handlebars-template">
+            <div class="alert" data-alert="alert">
+                <a class="close" href="#">&times;</a>
+                <p>You successfully resolved the configuration value to <span class="name">{{final_value}}</span>.</p>
+            </div>
+        </script>
+
         <script id="added_datacenter-alert-template" type="text/x-handlebars-template">
             <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
@@ -833,7 +874,7 @@
         <script id="set_datacenter-alert-template" type="text/x-handlebars-template">
             <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
-                <p>Machine {{machine_name}}'s datacenter was set to {{datacenter_name}}.</p>
+                <p>Set datacenter for {{pluralize_noun "machine" machine_count}} {{machines_first.name}}{{#each machines_rest}}, {{name}}{{/each}} to {{datacenter_name}}.</p>
             </div>
         </script>
 
@@ -951,6 +992,24 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn primary declare_machine_dead" type="submit" name="declare-machine-dead" value="Declare dead">Declare dead</button>
+                        <a href="#" class="btn secondary cancel">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </script>
+
+        <script id="resolve_vclock-modal-template" type="text/x-handlebars-template">
+            <div class="modal resolve_vclock">
+                <form class="form">
+                    <div class="modal-header">
+                        <a href="#" class="close">&times;</a>
+                        <h3>Resolve configuration conflict</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to use the value <strong>{{final_value}}</strong>?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn primary resolve_vclock" type="submit" name="resolve-vclock" value="Resolve">Resolve</button>
                         <a href="#" class="btn secondary cancel">Cancel</a>
                     </div>
                 </form>

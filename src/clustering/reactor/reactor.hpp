@@ -1,6 +1,7 @@
 #ifndef CLUSTERING_REACTOR_REACTOR_HPP_
 #define CLUSTERING_REACTOR_REACTOR_HPP_
 
+#include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/metadata.hpp"
@@ -15,6 +16,7 @@ class reactor_t {
 public:
     reactor_t(
             mailbox_manager_t *mailbox_manager,
+            typename master_t<protocol_t>::ack_checker_t *ack_checker_,
             clone_ptr_t<directory_rwview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > reactor_directory,
             clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > master_directory_view,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
@@ -128,6 +130,8 @@ private:
     clone_ptr_t<directory_single_rview_t<boost::optional<activity_t> > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);
 
     mailbox_manager_t *mailbox_manager;
+
+    typename master_t<protocol_t>::ack_checker_t *ack_checker;
 
     directory_echo_access_t<reactor_business_card_t<protocol_t> > directory_echo_access;
     boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
