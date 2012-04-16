@@ -226,10 +226,10 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
 
     # Plan what tests to run
 
-    tests = [ ]
+    tests_as_list = [ ]
 
     def do_test(command_line, repeat = 1, inputs = []):
-        tests.append({
+        tests_as_list.append({
             "inputs": [os.path.join("rethinkdb", i) for i in inputs],
             "command_line": command_line,
             "repeat": repeat
@@ -246,7 +246,11 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
 
     def compare_tests(t1, t2):
         return cmp(t1["command_line"], t2["command_line"])
-    tests.sort(compare_tests)
+    tests_as_list.sort(compare_tests)
+
+    tests = { }
+    for number, test in enumerate(tests_as_list) {
+        tests[str(number + 1)] = test
 
     # Run tests
 
@@ -267,8 +271,8 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
         except Exception, e:
             result_log.write("tests", name, "rounds", round, status = "bug", traceback = traceback.format_exc())
     funs = []
-    for number, test in enumerate(tests):
-        name = str(number + 1)
+    for name in tests:
+        test = tests[name]
         missing_prereqs = [i for i in test["inputs"] if not os.path.exists(i)]
         if not missing_prereqs:
             os.mkdir(os.path.join("tests", name))
