@@ -734,6 +734,12 @@
         }
     }
 
+    hr {
+       margin-top: 0;
+       margin-bottom: 10px;
+       border-top: thin solid @grayLighter;
+       width: 55%;
+    }
     form {
         .xlarge {
             width: 45%;
@@ -748,12 +754,12 @@
             text-align: left;
             p {
                 margin-bottom: 6px;
-                &.current {
-                    font-size: 12px;
-                    line-height: 24px;
-                    color: @gray;
-                }
             }
+        }
+        p.current {
+            font-size: 12px;
+            line-height: 24px;
+            color: @gray;
         }
     }
 
@@ -793,7 +799,7 @@
     /* Override Bootstrap */
     fieldset {
         padding-top: 0px;
-        padding-bottom: 15px;
+        padding-bottom: 0;
         margin-bottom: 0;
 
         label { padding-right: 20px; }
