@@ -90,7 +90,7 @@ def run_test(test_id, command):
         with database_lock:
             database["%d.result" % test_id] = { "status": "running" }
         with file(os.path.join(test_dir, "output.txt"), "w") as output_file:
-            proc = subprocess32.Popen(command, shell = True, stdout = output_file, stderr = output_file, cwd = box_dir, preexec_fn = lambda: os.setpgid(0, 0))
+            proc = subprocess32.Popen(command, shell = True, stdout = output_file, stderr = output_file, cwd = box_dir, start_new_session = True)
             running_tasks[test_id]["proc"] = proc
             rc = proc.wait()
         with database_lock:
