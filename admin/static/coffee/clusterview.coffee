@@ -1,104 +1,61 @@
 
 # Main cluster view: list of datacenters, machines, and namespaces
 module 'ClusterView', ->
-
-    # Container for each tab
-    # TODO: Is it okay for these three view types to have the same className?
-    class @NamespacesContainer extends Backbone.View
-        className: 'cluster-view'
-        template: Handlebars.compile $('#namespaces_container-template').html()
-
-        initialize: ->
-            log_initial '(initializing) NamespacesContainer'
-
-            @list_view = new ClusterView.NamespaceList
-                collection: @options.namespaces
-                element_view_class: ClusterView.NamespaceListElement
-
-        render: =>
-            log_render '(rendering) NamespacesContainer'
-            @.$el.html @template()
-            $('#namespaces-panel', @el).html(@list_view.render().el)
-            return @
-
-    class @DatacentersContainer extends Backbone.View
-        className: 'cluster-view'
-        template: Handlebars.compile $('#datacenters_container-template').html()
-
-        initialize: ->
-            log_initial '(initializing) DatacentersContainer'
-
-            @list_view = new ClusterView.DatacenterList
-                collection: @options.datacenters
-                element_view_class: ClusterView.DatacenterListElement
-
-        render: =>
-            log_render '(rendering) DatacentersContainer'
-            @.$el.html @template()
-            $('#datacenters-panel', @el).html(@list_view.render().el)
-            return @
-
-    class @MachinesContainer extends Backbone.View
-        className: 'cluster-view'
-        template: Handlebars.compile $('#machines_container-template').html()
-
-        initialize: ->
-            log_initial '(initializing) MachinesContainer'
-
-            @list_view = new ClusterView.MachineList
-                collection: @options.machines
-                element_view_class: ClusterView.MachineListElement
-
-        render: =>
-            log_render '(rendering) MachinesContainer'
-            @.$el.html @template()
-            $('#machines-panel', @el).html(@list_view.render().el)
-            return @
-
     # Abstract list container: holds an action bar and the list elements
     class @AbstractList extends Backbone.View
         # Use a generic template by default for a list
-        template: Handlebars.compile $('#cluster_view-abstract_list-template').html()
+        template: Handlebars.compile $('#abstract_list-template').html()
 
-        className: 'list'
-
-        initialize: ->
-            log_initial '(initializing) list view: ' + class_name @collection
-            @container = 'tbody'
+        initialize: (collection, element_view_class, filter) ->
+            #log_initial '(initializing) list view: ' + class_name @collection
+            @container = 'tbody.list'
             # List of element views
             @element_views = []
+            
+            @collection = collection
+            @element_view_class = element_view_class
+            # This filter defines which models from the collection should be represented by this list.
+            # If one was not provided, define a filter that allows all models
+            if filter?
+                @filter = filter
+            else
+                @filter = (model) -> true
 
             # Initially we need to populate the element views list
             @reset_element_views()
 
             # Collection is reset, create all new views
             @collection.on 'reset', (collection) =>
-                console.log 'reset detected, adding models to collection ' + class_name collection
+                #console.log 'reset detected, adding models to collection ' + class_name collection
                 @reset_element_views()
                 @render()
 
             # When an element is added to the collection, create a view for it
             @collection.on 'add', (model, collection) =>
-                @add_element model
-                @render()
+                # Make sure the model is relevant for this list before we add it
+                if @filter model
+                    @add_element model
+                    @render()
 
             @collection.on 'remove', (model, collection) =>
-                # Find any views that are based on the model being removed
-                matching_views = (view for view in @element_views when view.model is model)
+                # Make sure the model is relevant for this list before we remove it
+                if @filter model
+                    # Find any views that are based on the model being removed
+                    matching_views = (view for view in @element_views when view.model is model)
 
-                # For all matching views, remove the view from the DOM and from the known element views list
-                for view in matching_views
-                    view.remove()
-                    @element_views = _.without @element_views, view
+                    # For all matching views, remove the view from the DOM and from the known element views list
+                    for view in matching_views
+                        view.remove()
+                        @element_views = _.without @element_views, view
 
         render: =>
-            log_render '(rendering) list view: ' + class_name @collection
+            #log_render '(rendering) list view: ' + class_name @collection
             # Render and append the list template to the DOM
             @.$el.html(@template({}))
 
-            log_action '#render_elements of collection ' + class_name @collection
+            #log_action '#render_elements of collection ' + class_name @collection
             # Render the view for each element in the list
-            $(@container, @el).append(view.render().el) for view in @element_views
+            @.$(@container).append(view.render().el) for view in @element_views
 
             # Check whether buttons for actions on at least one element should be enabled
             @elements_selected()
@@ -111,12 +68,13 @@ module 'ClusterView', ->
             view.remove() for view in @element_views
             @element_views = []
 
-            # Add an element view for each element in the list
-            @add_element model for model in @collection.models
+            # Add an element view for each model in the collection that's relevant for this list
+            for model in @collection.models
+                @add_element model if @filter model
 
         add_element: (element) =>
             # adds a list element view to element_views
-            element_view = new @options.element_view_class
+            element_view = new @element_view_class
                 model: element
                 collection: @collection
 
@@ -139,7 +97,7 @@ module 'ClusterView', ->
 
     class @NamespaceList extends @AbstractList
         # Use a namespace-specific template for the namespace list
-        template: Handlebars.compile $('#cluster_view-namespace_list-template').html()
+        template: Handlebars.compile $('#namespace_list-template').html()
 
         # Extend the generic list events
         events: ->
@@ -152,8 +110,8 @@ module 'ClusterView', ->
             @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
-            super
-
+            super namespaces, ClusterView.NamespaceListElement
+                
         add_namespace: (event) =>
             log_action 'add namespace button clicked'
             @add_namespace_dialog.render()
@@ -168,7 +126,7 @@ module 'ClusterView', ->
 
     class @DatacenterList extends @AbstractList
         # Use a datacenter-specific template for the datacenter list
-        template: Handlebars.compile $('#cluster_view-datacenter_list-template').html()
+        template: Handlebars.compile $('#server_list-template').html()
 
         # Extend the generic list events
         events:
@@ -179,7 +137,16 @@ module 'ClusterView', ->
             @add_datacenter_dialog = new ClusterView.AddDatacenterModal
             @remove_datacenter_dialog = new ClusterView.RemoveDatacenterModal
 
+            super datacenters, ClusterView.DatacenterListElement
+
+            @unassigned_machines = new ClusterView.MachineList(null)
+
+        render: =>
             super
+            
+            @.$('tbody.unassigned-machines .machine-list').html @unassigned_machines.render().el 
+
+            return @
 
         add_datacenter: (event) =>
             log_action 'add datacenter button clicked'
@@ -194,16 +161,16 @@ module 'ClusterView', ->
 
     class @MachineList extends @AbstractList
         # Use a machine-specific template for the machine list
-        template: Handlebars.compile $('#cluster_view-machine_list-template').html()
+        template: Handlebars.compile $('#machine_list-template').html()
 
         # Extend the generic list events
         events:
             'click a.btn.set-datacenter': 'set_datacenter'
 
-        initialize: ->
+        initialize: (datacenter_uuid) ->
             @set_datacenter_dialog = new ClusterView.SetDatacenterModal
 
-            super
+            super machines, ClusterView.MachineListElement, (model) -> model.get('datacenter_uuid') is datacenter_uuid
 
         set_datacenter: (event) =>
             log_action 'set datacenter button clicked'
@@ -224,11 +191,10 @@ module 'ClusterView', ->
             @template = template
             @selected = false
 
-            @model.on 'change', =>
-                @render()
+            @model.on 'change', => @render()
 
         render: =>
-            log_render '(rendering) list element view: ' + class_name @model
+            #log_render '(rendering) list element view: ' + class_name @model
             @.$el.html @template(@json_for_template())
             @mark_selection()
             @delegateEvents()
@@ -255,7 +221,7 @@ module 'ClusterView', ->
 
     # Namespace list element
     class @NamespaceListElement extends @AbstractListElement
-        template: Handlebars.compile $('#cluster_view-namespace_list_element-template').html()
+        template: Handlebars.compile $('#namespace_list_element-template').html()
 
         initialize: ->
             log_initial '(initializing) list view: namespace'
@@ -301,17 +267,18 @@ module 'ClusterView', ->
 
     # Datacenter list element
     class @DatacenterListElement extends @AbstractListElement
-        template: Handlebars.compile $('#cluster_view-datacenter_list_element-template').html()
+        template: Handlebars.compile $('#datacenter_list_element-template').html()
 
         initialize: ->
             log_initial '(initializing) list view: datacenter'
+
+            @machine_list = new ClusterView.MachineList @model.get('id')
+
             # Any of these models may affect the view, so rerender
-            directory.on 'all', =>
-                @render()
-            machines.on 'all', =>
-                @render()
-            datacenters.on 'all', =>
-                @render()
+            directory.on 'all', => @render()
+            machines.on 'all', => @render()
+            datacenters.on 'all', => @render()
+
             super @template
 
         json_for_template: =>
@@ -341,15 +308,22 @@ module 'ClusterView', ->
 
             return stuff
 
+        render: =>
+            super
+
+            # Attach a list of available machines to the given datacenter
+            @.$('.machine-list').html @machine_list.render().el
+
+            return @
+
     # Machine list element
     class @MachineListElement extends @AbstractListElement
-        template: Handlebars.compile $('#cluster_view-machine_list_element-template').html()
+        template: Handlebars.compile $('#machine_list_element-template').html()
 
         initialize: ->
             log_initial '(initializing) list view: machine'
 
-            directory.on 'all', =>
-                @render()
+            directory.on 'all', => @render()
 
             # Load abstract list element view with the machine template
             super @template

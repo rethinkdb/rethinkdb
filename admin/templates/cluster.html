@@ -20,8 +20,7 @@
                 <ul class="nav">
                   <li id="nav-dashboard"><a href="#dashboard">Dashboard</a></li>
                   <li id="nav-namespaces"><a href="#namespaces">Namespaces</a></li>
-                  <li id="nav-datacenters"><a href="#datacenters">Datacenters</a></li>
-                  <li id="nav-machines"><a href="#machines">Machines</a></li>
+                  <li id="nav-servers"><a href="#servers">Servers</a></li>
                 </ul>
 
                 <ul class="right-nav nav pull-right">
@@ -108,27 +107,8 @@
             {{/each}}
         </script>
 
-        <!-- Cluster view -->
-        <script id="namespaces_container-template" type="text/x-handlebars-template">
-            <h1>Namespaces overview</h1>
-            <div id="user-alert-space"></div>
-            <div id="namespaces-panel" class="rdb-content"></div>
-        </script>
-
-        <script id="datacenters_container-template" type="text/x-handlebars-template">
-            <h1>Datacenters overview</h1>
-            <div id="user-alert-space"></div>
-            <div id="datacenters-panel" class="rdb-content"></div>
-        </script>
-
-        <script id="machines_container-template" type="text/x-handlebars-template">
-            <h1>Machines overview</h1>
-            <div id="user-alert-space"></div>
-            <div id="machines-panel" class="rdb-content"></div>
-        </script>
-
         <!-- Cluster view: lists -->
-        <script id="cluster_view-abstract_list-template" type="text/x-handlebars-template">
+        <script id="abstract_list-template" type="text/x-handlebars-template">
             <div class="actions-bar">
             </div>
             <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
@@ -137,40 +117,60 @@
             </table>
         </script>
 
-        <script id="cluster_view-namespace_list-template" type="text/x-handlebars-template">
-            <div class="actions-bar">
-                <a href="#" class="btn add-namespace">Add namespace</a>
-                <a href="#" class="btn for-multiple-elements disabled remove-namespace">Remove selected namespaces</a>
+        <script id="namespace_list-template" type="text/x-handlebars-template">
+            <h1>Namespaces in the cluster</h1>
+            <div id="user-alert-space"></div>
+            <div id="namespace-list">
+                <div class="actions-bar">
+                    <a href="#" class="btn add-namespace">Add namespace</a>
+                    <a href="#" class="btn for-multiple-elements disabled remove-namespace">Remove selected namespaces</a>
+                </div>
+                <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
+                    <tbody class="list">
+                    </tbody>
+                </table>
             </div>
-            <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
-                <tbody>
-                </tbody>
-            </table>
         </script>
 
-        <script id="cluster_view-datacenter_list-template" type="text/x-handlebars-template">
-            <div class="actions-bar">
-                <a href="#" class="btn add-datacenter">Add datacenter</a>
-                <a href="#" class="btn for-multiple-elements disabled remove-datacenter">Remove selected datacenters</a>
+        <script id="server_list-template" type="text/x-handlebars-template">
+            <h1>Servers connected to the cluster</h1>
+            <div id="user-alert-space"></div>
+            <div id="server-list">
+                <div class="actions-bar">
+                    <a href="#" class="btn add-datacenter">Add datacenter</a>
+                    <a href="#" class="btn for-multiple-elements disabled remove-datacenter">Remove selected datacenters</a>
+                </div>
+                <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
+                    <tbody class="list">
+                    </tbody>
+                    <tbody class="unassigned-machines">
+                        <tr>
+                            <td></td>
+                            <td class="details">
+                                <div class="details-wrapper"">
+                                    <span class="name">Unassigned machines</span>
+                                </div>
+                                <div class="clearboth"></div>
+                                <div class="machine-list"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-            <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
-                <tbody>
-                </tbody>
-            </table>
         </script>
 
-        <script id="cluster_view-machine_list-template" type="text/x-handlebars-template">
+        <script id="machine_list-template" type="text/x-handlebars-template">
             <div class="actions-bar">
                 <a href="#" class="btn for-multiple-elements disabled set-datacenter">Set datacenter</a>
             </div>
             <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
-                <tbody>
+                <tbody class="list">
                 </tbody>
             </table>
         </script>
 
         <!-- Cluster view: list elements -->
-        <script id="cluster_view-namespace_list_element-template" type="text/x-handlebars-template">
+        <script id="namespace_list_element-template" type="text/x-handlebars-template">
             <td>
                 <input type="checkbox"></input>
             </td>
@@ -189,7 +189,7 @@
             </td>
         </script>
 
-        <script id="cluster_view-datacenter_list_element-template" type="text/x-handlebars-template">
+        <script id="datacenter_list_element-template" type="text/x-handlebars-template">
             <td>
                 <input type="checkbox"></input>
             </td>
@@ -204,10 +204,11 @@
                     </p>
                 </div>
                 <div class="clearboth"></div>
+                <div class="machine-list"></div>
             </td>
         </script>
 
-        <script id="cluster_view-machine_list_element-template" type="text/x-handlebars-template">
+        <script id="machine_list_element-template" type="text/x-handlebars-template">
             <td>
                 <input type="checkbox"></input>
             </td>
@@ -289,56 +290,55 @@
             </table>
         </script>
 
-    <script id="modify_replicas-modal-template" type="text/x-handlebars-template">
-    <div class="modal modify-replicas">
-        <form class="form">
-        <div class="modal-header">
-            <a href="#" class="close">&times;</a>
-            <h3>Replication for namespace <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a> in datacenter <a href="/#datacenters/{{datacenter.id}}">{{datacenter.name}}</a></h3>
-        </div>
-        <div class="modal-body">
-            <div class="replica-attributes">
-                {{#if server_error}}
-                    <p class="server-error alert alert-error"> {{server_error}} </p>
-                {{/if}}
-                <div class="info">
-                    <p>You can specify the <strong>number of replicas</strong> to use per shard for this datacenter.</p>
-                    <p>The <strong>number of acks</strong> specifies how many replicas in this datacenter must acknowledge a write before an operation succeeds.</p>
+        <script id="modify_replicas-modal-template" type="text/x-handlebars-template">
+        <div class="modal modify-replicas">
+            <form class="form">
+                <div class="modal-header">
+                    <a href="#" class="close">&times;</a>
+                    <h3>Replication for namespace <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a> in datacenter <a href="/#datacenters/{{datacenter.id}}">{{datacenter.name}}</a></h3>
                 </div>
-                <fieldset>
-                    <input name="datacenter" type="hidden" value="{{datacenter.id}}" />
-                    <div class="clearfix">
-                    <label for="replicas">
-                        <h4>Number of replicas:</h4>
-                    </label>
-                    <div class="input">
-                        <input class="xlarge" name="num_replicas" type="text" value="{{num_replicas}}"/>
-                        <p class="current">Current replicas: {{num_replicas}}</p>
+                <div class="modal-body">
+                    <div class="replica-attributes">
+                        {{#if server_error}}
+                            <p class="server-error alert alert-error"> {{server_error}} </p>
+                        {{/if}}
+                        <div class="info">
+                            <p>You can specify the <strong>number of replicas</strong> to use per shard for this datacenter.</p>
+                            <p>The <strong>number of acks</strong> specifies how many replicas in this datacenter must acknowledge a write before an operation succeeds.</p>
+                        </div>
+                        <fieldset>
+                            <input name="datacenter" type="hidden" value="{{datacenter.id}}" />
+                            <div class="clearfix">
+                            <label for="replicas">
+                                <h4>Number of replicas:</h4>
+                            </label>
+                            <div class="input">
+                                <input class="xlarge" name="num_replicas" type="text" value="{{num_replicas}}"/>
+                                <p class="current">Current replicas: {{num_replicas}}</p>
+                            </div>
+                            </div>
+                            <hr />
+                            <div class="clearfix">
+                            <label for="acks">
+                                <h4>Number of acks:</h4>
+                            </label>
+                            <div class="input">
+                                <input class="xlarge" name="num_acks" type="text" value="{{num_acks}}"/>
+                                <p class="current">Current acks: {{num_acks}}</p>
+                            </div>
+                        </fieldset>
+                        <div class="clearboth"></div>
+                        </div>
+                        <div class="replica-plan">
                     </div>
-                    </div>
-                    <hr />
-                    <div class="clearfix">
-                    <label for="acks">
-                        <h4>Number of acks:</h4>
-                    </label>
-                    <div class="input">
-                        <input class="xlarge" name="num_acks" type="text" value="{{num_acks}}"/>
-                        <p class="current">Current acks: {{num_acks}}</p>
-                    </div>
-                    </div>
-                </fieldset>
-                <div class="clearboth"></div>
                 </div>
-                <div class="replica-plan">
-            </div>
+                <div class="modal-footer">
+                                <button class="btn primary commit-plan" type="submit" name="commit-plan" value="Commit plan">Commit changes</button>
+                    <a href="#" class="btn modify-replicas cancel">Cancel</a>
+                </div>
+            </form>
         </div>
-        <div class="modal-footer">
-                        <button class="btn primary commit-plan" type="submit" name="commit-plan" value="Commit plan">Commit changes</button>
-            <a href="#" class="btn modify-replicas cancel">Cancel</a>
-        </div>
-        </form>
-    </div>
-    </script>
+        </script>
 
         <script id="modify_replicas_modal-replica_plan-template" type="text/x-handlebars-template">
             {{#with replicas }}
@@ -479,25 +479,25 @@
             </td>
         </script>
 
-    <script id="modify_shards_modal-sharding_plan-edit_datacenter-template" type="text/x-handlebars-template">
-    <td class="name"><h4>{{name}}</h4></td>
-    <td class="machines">
-        <p class="delta">
-        {{#each machine_dropdowns}}
-            <select name="machine" class="small machine-for-shard">
-            {{#each available_machines}}
-                <option {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
+        <script id="modify_shards_modal-sharding_plan-edit_datacenter-template" type="text/x-handlebars-template">
+        <td class="name"><h4>{{name}}</h4></td>
+        <td class="machines">
+            <p class="delta">
+            {{#each machine_dropdowns}}
+                <select name="machine" class="small machine-for-shard">
+                {{#each available_machines}}
+                    <option {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
+                {{/each}}
+                </select>
             {{/each}}
-            </select>
-        {{/each}}
-           will be added.
-        </p>
-        <p class="existing-replicas">
-        Existing replicas for this shard and in this datacenter are on {{#comma_separated existing_machines}}<a href="/#machines/{{this.id}}">{{this.name}}</a>{{/comma_separated}}
-        </p>
-    </td>
-    <td class="change-machines">(<a class="save-datacenter" href="#">save</a>)</td>
-    </script>
+               will be added.
+            </p>
+            <p class="existing-replicas">
+            Existing replicas for this shard and in this datacenter are on {{#comma_separated existing_machines}}<a href="/#machines/{{this.id}}">{{this.name}}</a>{{/comma_separated}}
+            </p>
+        </td>
+        <td class="change-machines">(<a class="save-datacenter" href="#">save</a>)</td>
+        </script>
 
         <script id="modify_shards-alert-template" type="text/x-handlebars-template">
             <div class="alert" data-alert="alert">

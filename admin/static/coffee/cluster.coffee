@@ -224,10 +224,8 @@ class NavBarView extends Backbone.View
                 $('ul.nav li#nav-dashboard').addClass('active')
             else if route is 'route:index_namespaces'
                 $('ul.nav li#nav-namespaces').addClass('active')
-            else if route is 'route:index_datacenters'
-                $('ul.nav li#nav-datacenters').addClass('active')
-            else if route is 'route:index_machines'
-                $('ul.nav li#nav-machines').addClass('active')
+            else if route is 'route:index_servers'
+                $('ul.nav li#nav-servers').addClass('active')
 
         if @first_render?
             # Initialize typeahead
@@ -242,9 +240,8 @@ class BackboneCluster extends Backbone.Router
         '': 'dashboard'
         'namespaces': 'index_namespaces'
         'namespaces/:id': 'namespace'
-        'datacenters': 'index_datacenters'
+        'servers': 'index_servers'
         'datacenters/:id': 'datacenter'
-        'machines': 'index_machines'
         'machines/:id': 'machine'
         'dashboard': 'dashboard'
         'resolve_issues': 'resolve_issues'
@@ -255,18 +252,10 @@ class BackboneCluster extends Backbone.Router
 
         @$container = $('#cluster')
 
-        @namespaces_cluster_view = new ClusterView.NamespacesContainer
-            namespaces: namespaces
-
-        @datacenters_cluster_view = new ClusterView.DatacentersContainer
-            datacenters: datacenters
-
-        @machines_cluster_view = new ClusterView.MachinesContainer
-            machines: machines
-
-        @dashboard_view = new DashboardView
-
-        @navbar_view = new NavBarView
+        @namespace_list = new ClusterView.NamespaceList
+        @server_list = new ClusterView.DatacenterList
+        @dashboard = new DashboardView
+        @navbar = new NavBarView
 
         # Add and render the sidebar (visible across all views)
         @$sidebar = $('#sidebar')
@@ -277,41 +266,36 @@ class BackboneCluster extends Backbone.Router
         # Render navbar for the first time
         @render_navbar()
 
-        @resolve_issues_view = new ResolveIssuesView.Container
-        @events_view = new EventsView.Container
+        @resolve_issues = new ResolveIssuesView.Container
+        @events = new EventsView.Container
 
     render_sidebar: -> @$sidebar.html @sidebar.render().el
-    render_navbar: -> $('#navbar-container').html @navbar_view.render().el
+    render_navbar: -> $('#navbar-container').html @navbar.render().el
 
     index_namespaces: ->
         log_router '/index_namespaces'
         clear_modals()
-        @$container.html @namespaces_cluster_view.render().el
+        @$container.html @namespace_list.render().el
 
-    index_datacenters: ->
-        log_router '/index_datacenters'
+    index_servers: ->
+        log_router '/index_servers'
         clear_modals()
-        @$container.html @datacenters_cluster_view.render().el
-
-    index_machines: ->
-        log_router '/index_machines'
-        clear_modals()
-        @$container.html @machines_cluster_view.render().el
+        @$container.html @server_list.render().el
 
     dashboard: ->
         log_router '/dashboard'
         clear_modals()
-        @$container.html @dashboard_view.render().el
+        @$container.html @dashboard.render().el
 
     resolve_issues: ->
         log_router '/resolve_issues'
         clear_modals()
-        @$container.html @resolve_issues_view.render().el
+        @$container.html @resolve_issues.render().el
 
     events: ->
         log_router '/events'
         clear_modals()
-        @$container.html @events_view.render().el
+        @$container.html @events.render().el
 
     namespace: (id) ->
         log_router '/namespaces/' + id
