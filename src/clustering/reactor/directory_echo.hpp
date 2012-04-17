@@ -5,11 +5,9 @@
 #include <boost/optional.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
+#include "concurrency/watchable.hpp"
 #include "rpc/directory/view.hpp"
 #include "rpc/mailbox/typed.hpp"
-
-template<class internal_t>
-class directory_echo_access_t;
 
 typedef int directory_echo_version_t;
 
@@ -17,71 +15,81 @@ template<class internal_t>
 class directory_echo_wrapper_t {
 public:
     directory_echo_wrapper_t() { }
-    directory_echo_wrapper_t(internal_t i, directory_echo_version_t v, const mailbox_addr_t<void(peer_id_t, directory_echo_version_t)> &am) :
-        internal(i), version(v), ack_mailbox(am) { }
-
     internal_t internal;
+private:
+    template<class internal2_t>
+    friend class directory_echo_writer_t;
+    template<class internal2_t>
+    friend class directory_echo_mirror_t;
+    directory_echo_wrapper_t(const internal_t &i, directory_echo_version_t v, const mailbox_addr_t<void(peer_id_t, directory_echo_version_t)> &am) :
+        internal(i), version(v), ack_mailbox(am) { }
     directory_echo_version_t version;
     mailbox_addr_t<void(peer_id_t, directory_echo_version_t)> ack_mailbox;
-
     RDB_MAKE_ME_SERIALIZABLE_3(internal, version, ack_mailbox);
 };
 
 template<class internal_t>
-class directory_echo_access_t {
+class directory_echo_writer_t {
 public:
     class our_value_change_t {
     public:
-        explicit our_value_change_t(directory_echo_access_t *p);
+        explicit our_value_change_t(directory_echo_writer_t *p);
         directory_echo_version_t commit();
     private:
-        directory_echo_access_t *parent;
-        directory_write_service_t::our_value_lock_acq_t acq;
+        directory_echo_writer_t *parent;
+        mutex_assertion_t::acq_t lock_acq;
     public:
         internal_t buffer;
     };
 
     class ack_waiter_t : public signal_t {
     public:
-        ack_waiter_t(directory_echo_access_t *parent, peer_id_t peer, directory_echo_version_t version);
+        ack_waiter_t(directory_echo_writer_t *parent, peer_id_t peer, directory_echo_version_t version);
     private:
-        friend class directory_echo_access_t;
+        friend class directory_echo_writer_t;
         boost::scoped_ptr<multimap_insertion_sentry_t<directory_echo_version_t, ack_waiter_t *> > map_entry;
     };
 
-    directory_echo_access_t(
+    directory_echo_writer_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<directory_rwview_t<boost::optional<directory_echo_wrapper_t<internal_t> > > > mv,
             const internal_t &initial);
 
-    ~directory_echo_access_t();
-
-    clone_ptr_t<directory_rview_t<boost::optional<internal_t> > > get_internal_view();
+    clone_ptr_t<watchable_t<directory_echo_wrapper_t<internal_t> > > get_watchable() {
+        return value_watchable.get_watchable();
+    }
 
 private:
-    void on_connect(peer_id_t peer);
-
-    void on_disconnect(peer_id_t peer);
-
-    void on_change(peer_id_t peer);
-
-    void ack_version(mailbox_addr_t<void(peer_id_t, directory_echo_version_t)> peer, directory_echo_version_t version, auto_drainer_t::lock_t);
-
     void on_ack(peer_id_t peer, directory_echo_version_t version, auto_drainer_t::lock_t);
 
-    mailbox_manager_t *mailbox_manager;
-    clone_ptr_t<directory_rwview_t<boost::optional<directory_echo_wrapper_t<internal_t> > > > metadata_view;
-
-    directory_echo_version_t our_version;
-    std::map<peer_id_t, directory_echo_version_t> last_seen, last_acked;
+    std::map<peer_id_t, directory_echo_version_t> last_acked;
     std::map<peer_id_t, std::multimap<directory_echo_version_t, ack_waiter_t *> > waiters;
-
     mutex_assertion_t ack_lock;
 
     auto_drainer_t drainer;
     mailbox_t<void(peer_id_t, directory_echo_version_t)> ack_mailbox;
-    boost::ptr_map<peer_id_t, directory_read_service_t::peer_value_subscription_t> peer_value_subscriptions;
-    connectivity_service_t::peers_list_subscription_t peers_list_subscription;
+
+    watchable_variable_t<directory_echo_wrapper_t<internal_t> > value_watchable;
+    mutex_assertion_t value_lock;
+    directory_echo_version_t version;
+};
+
+template<class internal_t>
+class directory_echo_mirror_t {
+public:
+    directory_echo_mirror_t(
+            mailbox_manager_t *mm,
+            const clone_ptr_t<watchable_t<std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > > > &peers);
+
+private:
+    void on_change();
+    void ack_version(
+            mailbox_t<void(peer_id_t, directory_echo_version_t)>::address_t peer,
+            directory_echo_version_t version, auto_drainer_t::lock_t);
+    mailbox_manager_t *mailbox_manager;
+    clone_ptr_t<watchable_t<std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > > > peers;
+    std::map<peer_id_t, directory_echo_version_t> last_seen;
+    auto_drainer_t drainer;
+    typename watchable_t<std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > >::subscription_t sub;
 };
 
 #endif /* CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP_ */

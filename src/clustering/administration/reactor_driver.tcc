@@ -116,6 +116,11 @@ public:
     }
 
 private:
+    static boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > wrap_in_optional(
+            const directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > &wr) {
+        return boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(wr);
+    }
+
     void initialize_reactor() {
         int res = access(get_file_name().c_str(), R_OK | W_OK);
         if (res == 0) {
@@ -148,7 +153,12 @@ private:
             directory_view->subview(field_lens(&namespaces_directory_metadata_t<protocol_t>::master_maps))->subview(
                 assumed_member_lens<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > >(namespace_id));
 
-        reactor.reset(new reactor_t<protocol_t>(parent->mbox_manager, this, reactor_directory, master_directory, parent->branch_history, watchable.get_watchable(), store.get()));
+        reactor.reset(new reactor_t<protocol_t>(parent->mbox_manager, this, translate_into_watchable(reactor_directory), master_directory, parent->branch_history, watchable.get_watchable(), store.get()));
+
+        write_copier.reset(new watchable_write_copier_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >(
+            reactor->get_reactor_directory()->subview(&watchable_and_reactor_t<protocol_t>::wrap_in_optional),
+            reactor_directory
+            ));
 
         reactor_has_been_initialized.pulse();
     }
@@ -162,6 +172,7 @@ private:
 
     boost::scoped_ptr<typename protocol_t::store_t> store;
     boost::scoped_ptr<reactor_t<protocol_t> > reactor;
+    boost::scoped_ptr<watchable_write_copier_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > write_copier;
 };
 
 template <class protocol_t>

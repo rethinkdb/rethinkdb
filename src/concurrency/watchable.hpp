@@ -7,6 +7,7 @@
 
 #include "concurrency/mutex_assertion.hpp"
 #include "concurrency/pubsub.hpp"
+#include "concurrency/signal.hpp"
 #include "containers/clone_ptr.hpp"
 
 template <class value_t>
@@ -60,6 +61,9 @@ public:
 
     template<class callable_type>
     clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_t)>::type> > subview(const callable_type &lens);
+
+    template<class callable_type>
+    void run_until_satisfied(const callable_type &fun, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 protected:
     watchable_t() { }
