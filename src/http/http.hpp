@@ -135,9 +135,10 @@ class http_server_t {
 public:
     http_server_t(int port, http_app_t *application);
 private:
-    void handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &conn);
+    void handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &conn, auto_drainer_t::lock_t);
     boost::scoped_ptr<tcp_listener_t> tcp_listener;
     http_app_t *application;
+    auto_drainer_t auto_drainer;
 };
 
 std::string percent_escaped_string(const std::string &s);
