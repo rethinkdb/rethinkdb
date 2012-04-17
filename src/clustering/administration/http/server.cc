@@ -11,6 +11,7 @@
 
 administrative_http_server_manager_t::administrative_http_server_manager_t(
         int port,
+        mailbox_manager_t *mbox_manager,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata, 
         clone_ptr_t<directory_rview_t<cluster_directory_metadata_t> > _directory_metadata,
         global_issue_tracker_t *_issue_tracker,
@@ -18,6 +19,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         boost::uuids::uuid _us,
         std::string path)
 {
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > _directory_watchable = translate_into_watchable(_directory_metadata);
+
     std::set<std::string> white_list;
     white_list.insert("/cluster.css");
     white_list.insert("/cluster.html");
@@ -49,7 +52,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     semilattice_app.reset(new semilattice_http_app_t(_semilattice_metadata, _directory_metadata, _us));
     directory_app.reset(new directory_http_app_t(translate_into_watchable(_directory_metadata)));
     issues_app.reset(new issues_http_app_t(_issue_tracker));
-    stat_app.reset(new stat_http_app_t());
+    stat_app.reset(new stat_http_app_t(mbox_manager, _directory_watchable));
     last_seen_app.reset(new last_seen_http_app_t(_last_seen_tracker));
 
     std::map<std::string, http_app_t *> ajax_routes;

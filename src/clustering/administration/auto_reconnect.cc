@@ -13,7 +13,7 @@ auto_reconnector_t::auto_reconnector_t(
     machine_metadata(machine_metadata_),
     machine_id_translation_table_subs(boost::bind(&auto_reconnector_t::on_connect_or_disconnect, this))
 {
-    typename watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
+    watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
     machine_id_translation_table_subs.reset(machine_id_translation_table, &freeze);
     on_connect_or_disconnect();
 }
@@ -54,14 +54,14 @@ static const float backoff_growth_rate = 1.5;
 void auto_reconnector_t::try_reconnect(machine_id_t machine, peer_address_t last_known_address, auto_drainer_t::lock_t keepalive) {
     
     cond_t cond;
-    typename semilattice_read_view_t<machines_semilattice_metadata_t>::subscription_t subs(
+    semilattice_read_view_t<machines_semilattice_metadata_t>::subscription_t subs(
         boost::bind(&auto_reconnector_t::pulse_if_machine_declared_dead, this, machine, &cond),
         machine_metadata);
     pulse_if_machine_declared_dead(machine, &cond);
-    typename watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t subs2(
+    watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t subs2(
         boost::bind(&auto_reconnector_t::pulse_if_machine_reconnected, this, machine, &cond));
     {
-        typename watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
+        watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
         subs2.reset(machine_id_translation_table, &freeze);
         pulse_if_machine_reconnected(machine, &cond);
     }

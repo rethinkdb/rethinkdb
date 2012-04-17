@@ -44,8 +44,15 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
     semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, semilattice_metadata);
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster);
 
+    // Initialize the stat manager before the directory manager so that we
+    // could initialize the cluster directory metadata with the proper
+    // stat_manager mailbox address
+    stat_manager_t stat_manager(&mailbox_manager);
+
+    cluster_directory_metadata_t cluster_directory_metadata_iv(machine_id, stat_manager.get_address());
+
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
-    directory_readwrite_manager_t<cluster_directory_metadata_t> directory_manager(&directory_manager_client, cluster_directory_metadata_t(machine_id));
+    directory_readwrite_manager_t<cluster_directory_metadata_t> directory_manager(&directory_manager_client, cluster_directory_metadata_iv);
     message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_manager);
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
@@ -142,6 +149,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     administrative_http_server_manager_t administrative_http_interface(
         port + 1000,
+        &mailbox_manager,
         semilattice_manager_cluster.get_root_view(),
         directory_manager.get_root_view(),
         &issue_aggregator,

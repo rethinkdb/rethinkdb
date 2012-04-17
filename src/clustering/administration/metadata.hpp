@@ -9,6 +9,7 @@
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/machine_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/administration/stat_manager.hpp"
 #include "http/json/json_adapter.hpp"
 #include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
@@ -60,7 +61,7 @@ void on_subfield_change(cluster_semilattice_metadata_t *, const ctx_t &) { }
 class cluster_directory_metadata_t {
 public:
     cluster_directory_metadata_t() { }
-    explicit cluster_directory_metadata_t(machine_id_t mid) : machine_id(mid) { }
+    explicit cluster_directory_metadata_t(machine_id_t mid, const get_stats_mailbox_address_t& _stats_mailbox) : machine_id(mid), get_stats_mailbox_address(_stats_mailbox) { }
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
@@ -68,9 +69,10 @@ public:
     /* Tell the other peers what our machine ID is */
     machine_id_t machine_id;
 
+    get_stats_mailbox_address_t get_stats_mailbox_address;
     std::list<clone_ptr_t<local_issue_t> > local_issues;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(dummy_namespaces, memcached_namespaces, machine_id, local_issues);
+    RDB_MAKE_ME_SERIALIZABLE_5(dummy_namespaces, memcached_namespaces, machine_id, get_stats_mailbox_address, local_issues);
 };
 
 // json adapter concept for directory_echo_wrapper_t

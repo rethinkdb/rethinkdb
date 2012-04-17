@@ -37,7 +37,7 @@ private:
 
     auto_drainer_t drainer;
 
-    typename watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t machine_id_translation_table_subs;
+    watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t machine_id_translation_table_subs;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_AUTO_RECONNECT_HPP_ */

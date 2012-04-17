@@ -1,43 +1,52 @@
-#include "errors.hpp"
-#include <boost/tokenizer.hpp>
 #include <string>
 #include <set>
+
+#include "errors.hpp"
+#include <boost/ptr_container/ptr_map.hpp>
+
 #include "clustering/administration/http/stat_app.hpp"
-#include "perfmon.hpp"
+#include "clustering/administration/stat_manager.hpp"
 #include "http/json.hpp"
+#include "perfmon.hpp"
+#include "rpc/mailbox/mailbox.hpp"
 
-static boost::char_separator<char> stat_name_sep(",", "", boost::drop_empty_tokens);
+class stats_request_record_t {
+public:
+    stats_request_record_t(mailbox_manager_t *mbox_manager)
+        : response_mailbox(mbox_manager, boost::bind(&promise_t<stat_manager_t::stats_t>::pulse, &stats, _1))
+    { }
+    promise_t<stat_manager_t::stats_t> stats;
+    mailbox_t<void(stat_manager_t::stats_t)> response_mailbox;
+};
 
-stat_http_app_t::stat_http_app_t() {
-}
+typedef std::map<peer_id_t, cluster_directory_metadata_t> peers_to_metadata_t;
 
-http_res_t stat_http_app_t::handle(const http_req_t &req) {
+stat_http_app_t::stat_http_app_t(mailbox_manager_t *_mbox_manager,
+                                 clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >& _directory)
+    : mbox_manager(_mbox_manager), directory(_directory) 
+{ }
+
+http_res_t stat_http_app_t::handle(const http_req_t &) {
     scoped_cJSON_t body(cJSON_CreateObject());
 
-    perfmon_stats_t stats;
-    perfmon_get_stats(&stats, true);
-    
-    boost::optional<std::string> stat_names_q = req.find_query_param("q");
-    boost::optional<std::set<std::string> > stat_names;
-    if (!stat_names_q) {
-        // THIS SPACE WAS INTENTIONALLY LEFT BLANK: return all stats, stat_names map should be boost::none
-    } else {
-        // return only the requested stats
-        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-        typedef tokenizer::iterator stat_name_iterator;
+   peers_to_metadata_t peers_to_metadata = directory->get();
 
-        tokenizer t(stat_names_q.get(), stat_name_sep);
-        stat_names.reset(std::set<std::string>());
-        for (stat_name_iterator it = t.begin(); it != t.end(); ++it) {
-            stat_names.get().insert(*it);
-        }
+    typedef boost::ptr_map<machine_id_t, stats_request_record_t> stats_promises_t;
+    stats_promises_t stats_promises;
+
+    for (peers_to_metadata_t::iterator it  = peers_to_metadata.begin();
+                                       it != peers_to_metadata.end();
+                                       ++it) {
+        machine_id_t tmp = it->second.machine_id; //due to boost bug with not accepting const keys for insert
+        stats_request_record_t *req_record = new stats_request_record_t(mbox_manager);
+        stats_promises.insert(tmp, req_record);
+        send(mbox_manager, it->second.get_stats_mailbox_address, req_record->response_mailbox.get_address(), std::set<stat_manager_t::stat_id_t>());
     }
-    for (perfmon_stats_t::iterator it = stats.begin(); it != stats.end(); ++it) {
-        if (!(!stat_names) && stat_names->find(it->first) == stat_names->end()) {
-            continue;
-        } else {
-            cJSON_AddItemToObject(body.get(), it->first.c_str(), cJSON_CreateString(it->second.c_str()));
-        }
+
+    for (stats_promises_t::iterator it = stats_promises.begin(); it != stats_promises.end(); ++it) {
+        machine_id_t machine = it->first;
+        stat_manager_t::stats_t stats = it->second->stats.wait();
+        cJSON_AddItemToObject(body.get(), uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
     }
 
     http_res_t res(200);
