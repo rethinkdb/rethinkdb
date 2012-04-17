@@ -3,12 +3,17 @@
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "clustering/administration/http/stat_app.hpp"
 #include "clustering/administration/stat_manager.hpp"
 #include "http/json.hpp"
 #include "perfmon.hpp"
 #include "rpc/mailbox/mailbox.hpp"
+
+static const char * STAT_REQ_TIMEOUT_PARAM = "timeout";
+static const uint64_t DEFAULT_STAT_REQ_TIMEOUT_MS = 1000;
+static const uint64_t MAX_STAT_REQ_TIMEOUT_MS = 600*1000;
 
 class stats_request_record_t {
 public:
@@ -26,13 +31,36 @@ stat_http_app_t::stat_http_app_t(mailbox_manager_t *_mbox_manager,
     : mbox_manager(_mbox_manager), directory(_directory) 
 { }
 
-http_res_t stat_http_app_t::handle(const http_req_t &) {
+http_res_t stat_http_app_t::handle(const http_req_t &req) {
     scoped_cJSON_t body(cJSON_CreateObject());
 
    peers_to_metadata_t peers_to_metadata = directory->get();
 
     typedef boost::ptr_map<machine_id_t, stats_request_record_t> stats_promises_t;
     stats_promises_t stats_promises;
+
+    // This is a ridiculous piece of code, considering its functionality.
+    // FIXME: write nice functions that let simplify this parameter conversion/checking.
+    boost::optional<std::string> timeout_param = req.find_query_param(STAT_REQ_TIMEOUT_PARAM);
+    uint64_t timeout;
+    if (timeout_param) {
+        std::string& timeout_str = timeout_param.get();
+        const char *end = NULL;
+        timeout = strtoul_strict(timeout_str.c_str(), &end, 10);
+        if (timeout == 0 || timeout > MAX_STAT_REQ_TIMEOUT_MS) {
+            http_res_t res(400);
+            res.set_body("application/text", "Invalid timeout value");
+            return res;
+        }
+    } else {
+        timeout = DEFAULT_STAT_REQ_TIMEOUT_MS;
+    }
+
+    /* If a machine has disconnected, or the mailbox for the
+     * get_stat function  has gone out of existence we'll never get a response.
+     * Thus we need to have a time out.
+     */
+    signal_timer_t timer(static_cast<int>(timeout)); // WTF? why is it accepting an int? negative milliseconds, anyone?
 
     for (peers_to_metadata_t::iterator it  = peers_to_metadata.begin();
                                        it != peers_to_metadata.end();
@@ -45,8 +73,15 @@ http_res_t stat_http_app_t::handle(const http_req_t &) {
 
     for (stats_promises_t::iterator it = stats_promises.begin(); it != stats_promises.end(); ++it) {
         machine_id_t machine = it->first;
-        stat_manager_t::stats_t stats = it->second->stats.wait();
-        cJSON_AddItemToObject(body.get(), uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
+
+        signal_t * stats_ready = it->second->stats.get_ready_signal();
+        wait_any_t waiter(&timer, stats_ready);
+        waiter.wait();
+
+        if (stats_ready->is_pulsed()) {
+            stat_manager_t::stats_t stats = it->second->stats.wait();
+            cJSON_AddItemToObject(body.get(), uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
+        }
     }
 
     http_res_t res(200);
