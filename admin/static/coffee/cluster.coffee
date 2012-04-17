@@ -57,6 +57,39 @@ module 'DataUtils', ->
 
         return json
 
+    @get_shard_primary_uuid = (namespace_uuid, shard) ->
+        for machine_uuid, peers_roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+            for _shard, role of peers_roles
+                if shard.toString() is _shard.toString() and role is 'role_primary'
+                    return machine_uuid
+        return null
+
+    @get_shard_secondary_uuids = (namespace_uuid, shard) ->
+        secondaries = []
+        for machine_uuid, peers_roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+            for _shard, role of peers_roles
+                if shard.toString() is _shard.toString() and role is 'role_secondary'
+                    secondaries[secondaries.length] = machine_uuid
+        return _.uniq(secondaries)
+
+    @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
+        namespace = namespaces.get(namespace_uuid)
+        datacenter = datacenters.get(datacenter_uuid)
+        acks = namespace.get('ack_expectations')[datacenter.get('id')]
+        if acks?
+            return acks
+        else
+            return 0
+
+    @get_replica_affinities = (namespace_uuid, datacenter_uuid) ->
+        namespace = namespaces.get(namespace_uuid)
+        datacenter = datacenters.get(datacenter_uuid)
+        affs = namespace.get('replica_affinities')[datacenter.get('id')]
+        if affs?
+            return affs
+        else
+            return 0
+
 class DataStream extends Backbone.Model
     max_cached: 250
     cache_ready: false

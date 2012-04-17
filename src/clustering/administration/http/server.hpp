@@ -1,6 +1,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 
+#include "clustering/administration/http/progress_app.hpp"
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/last_seen_tracker.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -25,6 +26,7 @@ public:
         mailbox_manager_t *mbox_manager,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata, 
         clone_ptr_t<directory_rview_t<cluster_directory_metadata_t> > _directory_metadata,
+        mailbox_manager_t *mbox_manager,
         global_issue_tracker_t *_issue_tracker,
         last_seen_tracker_t *_last_seen_tracker,
         boost::uuids::uuid _us,
@@ -40,6 +42,7 @@ private:
     boost::scoped_ptr<last_seen_http_app_t> last_seen_app;
     boost::scoped_ptr<routing_http_app_t> ajax_routing_app;
     boost::scoped_ptr<routing_http_app_t> root_routing_app;
+    boost::scoped_ptr<progress_app_t> progress_app;
     boost::scoped_ptr<http_server_t> server;
 };
 

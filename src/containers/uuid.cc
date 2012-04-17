@@ -5,6 +5,7 @@
 #include "errors.hpp"
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "utils.hpp"
 
@@ -21,9 +22,7 @@ boost::uuids::uuid generate_uuid() {
 }
 
 std::string uuid_to_str(boost::uuids::uuid id) {
-    std::stringstream ss;
-    ss << id;
-    return ss.str();
+    return boost::lexical_cast<std::string>(id);
 }
 
 boost::uuids::uuid str_to_uuid(const std::string& uuid) {

@@ -32,7 +32,7 @@ workloads = [
 
 for workload in workloads:
     do_test(
-        "test/integration/static_cluster.py '%s'" % workload,
+        "test/scenarios/static_cluster.py '%s'" % workload,
         repeat = 3,
-        inputs = ["build/debug/rethinkdb", "test/integration/static_cluster.py", "test/workloads", "test/common/http_admin.py", "test/common/line.py"]
+        inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads"]
         )

@@ -14,6 +14,7 @@
 
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/binary_blob.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -208,12 +209,6 @@ region_map_t<protocol_t, new_t> region_map_transform(const region_map_t<protocol
     return region_map_t<protocol_t, new_t>(new_pairs.begin(), new_pairs.end());
 }
 
-class backfill_progress_t {
-public:
-    virtual float guess_completion() = 0;
-    virtual ~backfill_progress_t() { }
-};
-
 /* `store_view_t` is an abstract class that represents a region of a key-value
 store for some protocol. It's templatized on the protocol (`protocol_t`). It
 covers some `protocol_t::region_t`, which is returned by `get_region()`.
@@ -291,7 +286,7 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
-            backfill_progress_t **progress_out,
+            typename protocol_t::backfill_progress_t *progress,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -429,7 +424,7 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
-            backfill_progress_t **p,
+            typename protocol_t::backfill_progress_t *p,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {

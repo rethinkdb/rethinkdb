@@ -30,7 +30,7 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
         result = noun
     else
         if noun.substr(-1) is 'y'
-            result = noun.slice(0, noun.length - 2) + "ies"
+            result = noun.slice(0, noun.length - 1) + "ies"
         else
             result = noun + "s"
     if capitalize is true
@@ -53,10 +53,14 @@ Handlebars.registerHelper 'humanize_role', (role) ->
 
 # Helpers for printing reachability
 Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
-    if status.reachable
-        result = "Reachable"
+    if not status?
+        result = 'N/A'
     else
-        result = 'Unreachable (<abbr class="timeago" title="' + status.last_seen + '">since ' + status.last_seen + '</abbr>)'
+        if status.reachable
+            result = "Reachable"
+        else
+            _last_seen = if status.last_seen? then status.last_seen else 'unknown'
+            result = 'Unreachable (<abbr class="timeago" title="' + _last_seen + '">since ' + _last_seen + '</abbr>)'
     return new Handlebars.SafeString(result);
 
 Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
