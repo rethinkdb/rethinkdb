@@ -293,3 +293,75 @@ void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock) {
     blob_t blob(data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
     blob.clear(txn);
 }
+
+void insert_root(block_id_t root_id, superblock_t* sb) {
+    sb->set_root_block_id(root_id);
+    sb->release(); //XXX it's a little bit weird that we release this from here.
+}
+
+void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority) {
+    rassert(ZERO_EVICTION_PRIORITY < stat_block_eviction_priority);
+
+    block_id_t node_id = sb->get_stat_block_id();
+
+    if (node_id == NULL_BLOCK_ID) {
+        //Create a block
+        buf_lock_t temp_lock(txn);
+        //Make the stat block be the default constructed statblock
+        *reinterpret_cast<btree_statblock_t *>(temp_lock.get_data_major_write()) = btree_statblock_t();
+        sb->set_stat_block_id(temp_lock.get_block_id());
+
+        temp_lock.set_eviction_priority(stat_block_eviction_priority);
+    }
+}
+
+inline void get_btree_superblock(transaction_t *txn, access_t access, got_superblock_t *got_superblock_out) {
+    buf_lock_t tmp_buf(txn, SUPERBLOCK_ID, access);
+    boost::scoped_ptr<superblock_t> tmp_sb(new real_superblock_t(tmp_buf));
+    tmp_sb->set_eviction_priority(ZERO_EVICTION_PRIORITY);
+    got_superblock_out->sb.swap(tmp_sb);
+}
+
+void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, 
+                          repli_timestamp_t tstamp, order_token_t token, bool snapshotted, 
+                          const boost::shared_ptr<cache_account_t> &cache_account, 
+                          got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
+    slice->assert_thread();
+
+    slice->pre_begin_transaction_sink_.check_out(token);
+    order_token_t begin_transaction_token = (is_read_mode(access) ? slice->pre_begin_transaction_read_mode_source_ : slice->pre_begin_transaction_write_mode_source_).check_in(token.tag() + "+begin_transaction_token");
+    if (is_read_mode(access)) {
+        begin_transaction_token = begin_transaction_token.with_read_mode();
+    }
+    txn_out.reset(new transaction_t(slice->cache(), access, expected_change_count, tstamp));
+    txn_out->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
+
+    if (cache_account) {
+        txn_out->set_account(cache_account);
+    }
+    if (snapshotted) {
+        txn_out->snapshot();
+    }
+
+    get_btree_superblock(txn_out.get(), access, got_superblock_out);
+}
+
+void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, 
+                                 repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out, 
+                                 boost::scoped_ptr<transaction_t>& txn_out) {
+    get_btree_superblock(slice, access, expected_change_count, tstamp, token, false, boost::shared_ptr<cache_account_t>(), got_superblock_out, txn_out);
+}
+
+void get_btree_superblock_for_backfilling(btree_slice_t *slice, order_token_t token, 
+                                                 got_superblock_t *got_superblock_out, 
+                                                 boost::scoped_ptr<transaction_t>& txn_out) {
+    get_btree_superblock(slice, rwi_read_sync, 0, repli_timestamp_t::distant_past, token, true, slice->get_backfill_account(), got_superblock_out, txn_out);
+}
+
+void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token, 
+                                             bool snapshotted, got_superblock_t *got_superblock_out, 
+                                             boost::scoped_ptr<transaction_t>& txn_out) {
+    rassert(is_read_mode(access));
+    get_btree_superblock(slice, access, 0, repli_timestamp_t::distant_past, token, snapshotted, boost::shared_ptr<cache_account_t>(), got_superblock_out, txn_out);
+}
+

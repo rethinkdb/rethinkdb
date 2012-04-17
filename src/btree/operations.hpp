@@ -278,6 +278,31 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
 void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
 
+/* Set sb to have root id as its root block and release sb */
+void insert_root(block_id_t root_id, superblock_t* sb);
+
+/* Create a stat block for the superblock if it doesn't already have one. */
+void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority);
+
+void get_btree_superblock(transaction_t *txn, access_t access, got_superblock_t *got_superblock_out);
+
+void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, 
+                          repli_timestamp_t tstamp, order_token_t token, bool snapshotted, 
+                          const boost::shared_ptr<cache_account_t> &cache_account, 
+                          got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
+
+void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, 
+                                 repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out, 
+                                 boost::scoped_ptr<transaction_t>& txn_out);
+
+void get_btree_superblock_for_backfilling(btree_slice_t *slice, order_token_t token, 
+                                                 got_superblock_t *got_superblock_out, 
+                                                 boost::scoped_ptr<transaction_t>& txn_out);
+
+void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token, 
+                                             bool snapshotted, got_superblock_t *got_superblock_out, 
+                                             boost::scoped_ptr<transaction_t>& txn_out);
+
 #include "btree/operations.tcc"
 
 #endif  // BTREE_OPERATIONS_HPP_

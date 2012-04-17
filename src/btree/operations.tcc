@@ -17,14 +17,9 @@
 // relevant.
 
 
-inline void insert_root(block_id_t root_id, superblock_t* sb) {
-    sb->set_root_block_id(root_id);
-    sb->release();
-}
-
 // Get a root block given a superblock, or make a new root if there isn't one.
 template <class Value>
-void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority) {
+void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t *sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority) {
     rassert(!buf_out->is_acquired());
     rassert(ZERO_EVICTION_PRIORITY < root_eviction_priority);
 
@@ -44,7 +39,6 @@ void get_root(value_sizer_t<Value> *sizer, transaction_t *txn, superblock_t* sb,
         buf_out->set_eviction_priority(root_eviction_priority);
     }
 }
-
 
 // Split the node if necessary. If the node is a leaf_node, provide the new
 // value that will be inserted; if it's an internal node, provide NULL (we
@@ -163,48 +157,6 @@ void check_and_handle_underfull(value_sizer_t<Value> *sizer, transaction_t *txn,
         }
     }
 }
-
-inline void get_btree_superblock(transaction_t *txn, access_t access, got_superblock_t *got_superblock_out) {
-    buf_lock_t tmp_buf(txn, SUPERBLOCK_ID, access);
-    boost::scoped_ptr<superblock_t> tmp_sb(new real_superblock_t(tmp_buf));
-    tmp_sb->set_eviction_priority(ZERO_EVICTION_PRIORITY);
-    got_superblock_out->sb.swap(tmp_sb);
-}
-
-inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, bool snapshotted, const boost::shared_ptr<cache_account_t> &cache_account, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
-    slice->assert_thread();
-
-    slice->pre_begin_transaction_sink_.check_out(token);
-    order_token_t begin_transaction_token = (is_read_mode(access) ? slice->pre_begin_transaction_read_mode_source_ : slice->pre_begin_transaction_write_mode_source_).check_in(token.tag() + "+begin_transaction_token");
-    if (is_read_mode(access)) {
-        begin_transaction_token = begin_transaction_token.with_read_mode();
-    }
-    txn_out.reset(new transaction_t(slice->cache(), access, expected_change_count, tstamp));
-    txn_out->set_token(slice->post_begin_transaction_checkpoint_.check_through(begin_transaction_token));
-
-    if (cache_account) {
-        txn_out->set_account(cache_account);
-    }
-    if (snapshotted) {
-        txn_out->snapshot();
-    }
-
-    get_btree_superblock(txn_out.get(), access, got_superblock_out);
-}
-
-inline void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
-    get_btree_superblock(slice, access, expected_change_count, tstamp, token, false, boost::shared_ptr<cache_account_t>(), got_superblock_out, txn_out);
-}
-
-inline void get_btree_superblock_for_backfilling(btree_slice_t *slice, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
-    get_btree_superblock(slice, rwi_read_sync, 0, repli_timestamp_t::distant_past, token, true, slice->get_backfill_account(), got_superblock_out, txn_out);
-}
-
-inline void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token, bool snapshotted, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
-    rassert(is_read_mode(access));
-    get_btree_superblock(slice, access, 0, repli_timestamp_t::distant_past, token, snapshotted, boost::shared_ptr<cache_account_t>(), got_superblock_out, txn_out);
-}
-
 
 template <class Value>
 void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority) {

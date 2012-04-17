@@ -49,7 +49,14 @@ struct btree_superblock_t {
     static const block_magic_t expected_magic;
 };
 
+struct btree_statblock_t {
+    //The total number of keys in the btree
+    int population;
 
+    btree_statblock_t()
+        : population(0)
+    { }
+};
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct internal_node_t {
