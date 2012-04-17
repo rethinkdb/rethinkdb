@@ -26,7 +26,6 @@ public:
         mailbox_manager_t *mbox_manager,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata, 
         clone_ptr_t<directory_rview_t<cluster_directory_metadata_t> > _directory_metadata,
-        mailbox_manager_t *mbox_manager,
         global_issue_tracker_t *_issue_tracker,
         last_seen_tracker_t *_last_seen_tracker,
         boost::uuids::uuid _us,
