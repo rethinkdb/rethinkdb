@@ -21,8 +21,13 @@ public:
     // If we hold a lock on a super block, swap it into swapee
     // (might swap in an empty buf_lock_t if we don't have an actual superblock)
     virtual void swap_buf(buf_lock_t &swapee) = 0;
+
     virtual block_id_t get_root_block_id() const = 0;
     virtual void set_root_block_id(const block_id_t new_root_block) = 0;
+
+    virtual block_id_t get_stat_block_id() const = 0;
+    virtual void set_stat_block_id(block_id_t new_stat_block) = 0;
+
     virtual void set_eviction_priority(eviction_priority_t eviction_priority) = 0;
     virtual eviction_priority_t get_eviction_priority() = 0;
 
@@ -39,9 +44,15 @@ public:
     void release();
     buf_lock_t *get() { return &sb_buf_; }
     void swap_buf(buf_lock_t &swapee);
+
     block_id_t get_root_block_id() const;
     void set_root_block_id(const block_id_t new_root_block);
+
+    block_id_t get_stat_block_id() const;
+    void set_stat_block_id(block_id_t new_stat_block);
+
     block_id_t get_delete_queue_block() const;
+
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
 
@@ -76,8 +87,17 @@ public:
     void set_root_block_id(const block_id_t new_root_block) {
         root_block_id_ = new_root_block;
     }
+
     block_id_t get_delete_queue_block() const {
         return NULL_BLOCK_ID;
+    }
+
+    block_id_t get_stat_block_id() const {
+        crash("Not implemented\n");
+    }
+
+    void set_stat_block_id(block_id_t) {
+        crash("Not implemented\n");
     }
 
     void set_eviction_priority(UNUSED eviction_priority_t eviction_priority) {

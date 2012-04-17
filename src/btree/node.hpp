@@ -37,6 +37,7 @@ private:
 struct btree_superblock_t {
     block_magic_t magic;
     block_id_t root_block;
+    block_id_t stat_block;
 
     // We are unnecessarily generous with the amount of space
     // allocated here, but there's nothing else to push out of the
