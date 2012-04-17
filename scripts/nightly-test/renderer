@@ -183,6 +183,11 @@ function SortedTableRenderer(headers, rowRendererFunc) {
         for (var name in data) {
             keys.push(name);
         }
+        keys.sort(function(x, y) {
+            var xi = parseInt(x);
+            var yi = parseInt(y);
+            return (xi > yi) ? 1 : (xi < yi) ? -1 : 0;
+            });
         this.tableRenderer.setOrder([]);
         this.tableRenderer.setObjects(data);
         this.tableRenderer.setOrder(keys);
