@@ -505,29 +505,21 @@
 
 /*
     ----------------------------
-    List view
+    List views
     ----------------------------
 */
+#namespace-list, #server-list {
+    border: @panel_border;
+    .border-radius(0 0 @border_radius @border_radius);
+    margin-top: 20px;
+    margin-bottom: 20px;
 
-.cluster-view {
-    ul.browser-tabs {
-        margin-top: 20px;
-        margin-bottom: 0;
-    }
     .actions-bar {
         padding: 12px;
         .panel-gradient;
     }
 
-    .rdb-content {
-        border: @panel_border;
-        .border-radius(0 0 @border_radius @border_radius);
-        margin-top: 20px;
-        margin-bottom: 20px;
-
-    }
-
-    .rdb-content table {
+    table {
         margin-bottom: 0;
         border: 0;
         td + td { border-left: 0; }
@@ -565,25 +557,21 @@
             }
         }
     }
+}
 
-    #namespaces-panel {
-        span.protocol {
-            background: @gray;
-            color: @white;
-            font-size: 0.8em;
-            padding: 0.4em;
-            text-transform: uppercase;
-            font-weight: bold;
-            float: right;
+#namespace-list {
+    span.protocol {
+        background: @gray;
+        color: @white;
+        font-size: 0.8em;
+        padding: 0.4em;
+        text-transform: uppercase;
+        font-weight: bold;
+        float: right;
 
-            &.riak { background-color: @riak_color; }
-            &.redis { background-color: @redis_color; }
-            &.memcached {  background-color: @memcached_color;  }
-        }
-    }
-
-    #browser-tabs {
-        margin-bottom: 0;
+        &.riak { background-color: @riak_color; }
+        &.redis { background-color: @redis_color; }
+        &.memcached {  background-color: @memcached_color;  }
     }
 }
 
