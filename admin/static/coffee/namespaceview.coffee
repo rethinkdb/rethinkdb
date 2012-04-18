@@ -277,12 +277,24 @@ module 'NamespaceView', ->
                 @change_hints_state = false
                 @render_inner()
 
+            # Bind change events on the dropdowns and make sure the
+            # user doesn't select the same machine twice
+            @.$('.pinned_machine_choice').change (e) =>
+                selected_machines = _.map @.$('.pinned_machine_choice option:[selected]'), (opt) -> $(opt).attr('value')
+                for dropdown in @.$('.pinned_machine_choice')
+                    selected_option = $(dropdown).find(':selected')[0]
+                    for option in $('option', dropdown)
+                        if $(option).attr('value') in selected_machines
+                            $(option).attr('disabled', 'disabled') unless option is selected_option
+                        else
+                            $(option).removeAttr('disabled')
+
             return @
 
         render: ->
             validator_options =
                 submitHandler: =>
-                    # TODO: What happens when multiple machines are the same? BAAAAD user
+                    # TODO: Initial pinnings
                     # TODO: What happens if they just hit 'commit'? How do we remove pinnings? Checkbox?
                     # TODO: Let them know if pinnings are out of sync with shards (or blow pinnings away)
                     # TODO: Reporting/assigning pinnings when the shard changed (or blow them away)
