@@ -56,7 +56,10 @@ void on_subfield_change(cluster_semilattice_metadata_t *, const ctx_t &) { }
 class cluster_directory_metadata_t {
 public:
     cluster_directory_metadata_t() { }
-    explicit cluster_directory_metadata_t(machine_id_t mid) : machine_id(mid) { }
+    cluster_directory_metadata_t(
+            machine_id_t mid,
+            const mailbox_addr_t<void(mailbox_addr_t<void(std::vector<std::string>)>)> &lmb) : 
+        machine_id(mid), log_mailbox(lmb) { }
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
@@ -64,9 +67,11 @@ public:
     /* Tell the other peers what our machine ID is */
     machine_id_t machine_id;
 
+    mailbox_addr_t<void(mailbox_addr_t<void(std::vector<std::string>)>)> log_mailbox;
+
     std::list<clone_ptr_t<local_issue_t> > local_issues;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(dummy_namespaces, memcached_namespaces, machine_id, local_issues);
+    RDB_MAKE_ME_SERIALIZABLE_5(dummy_namespaces, memcached_namespaces, machine_id, log_mailbox, local_issues);
 };
 
 // json adapter concept for directory_echo_wrapper_t

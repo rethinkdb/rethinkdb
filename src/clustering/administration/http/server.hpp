@@ -1,7 +1,6 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 
-#include "clustering/administration/http/progress_app.hpp"
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/last_seen_tracker.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -16,6 +15,8 @@ class directory_http_app_t;
 class issues_http_app_t;
 class stat_http_app_t;
 class last_seen_http_app_t;
+class log_http_app_t;
+class progress_app_t;
 
 class administrative_http_server_manager_t {
 
@@ -38,9 +39,10 @@ private:
     boost::scoped_ptr<issues_http_app_t> issues_app;
     boost::scoped_ptr<stat_http_app_t> stat_app;
     boost::scoped_ptr<last_seen_http_app_t> last_seen_app;
+    boost::scoped_ptr<log_http_app_t> log_app;
+    boost::scoped_ptr<progress_app_t> progress_app;
     boost::scoped_ptr<routing_http_app_t> ajax_routing_app;
     boost::scoped_ptr<routing_http_app_t> root_routing_app;
-    boost::scoped_ptr<progress_app_t> progress_app;
     boost::scoped_ptr<http_server_t> server;
 };
 

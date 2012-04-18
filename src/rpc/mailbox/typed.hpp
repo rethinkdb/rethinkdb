@@ -23,8 +23,8 @@ template<class invalid_proto_t> class mailbox_addr_t {
 template<>
 class mailbox_addr_t< void() > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void() >;
 
@@ -79,8 +79,8 @@ void send(mailbox_manager_t *src, mailbox_t< void() >::address_t dest) {
 template<class arg0_t>
 class mailbox_addr_t< void(arg0_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t) >;
 
@@ -141,8 +141,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t) >::address_t 
 template<class arg0_t, class arg1_t>
 class mailbox_addr_t< void(arg0_t, arg1_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t) >;
 
@@ -207,8 +207,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t) >::ad
 template<class arg0_t, class arg1_t, class arg2_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t) >;
 
@@ -277,8 +277,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >;
 
@@ -351,8 +351,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >;
 
@@ -429,8 +429,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >;
 
@@ -511,8 +511,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >;
 
@@ -597,8 +597,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >;
 
@@ -687,8 +687,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >;
 
@@ -781,8 +781,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >;
 
@@ -879,8 +879,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >;
 
@@ -981,8 +981,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >;
 
@@ -1087,8 +1087,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >;
 
@@ -1197,8 +1197,8 @@ void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
 class mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > {
 public:
-    bool is_nil() { return addr.is_nil(); }
-    peer_id_t get_peer() { return addr.get_peer(); }
+    bool is_nil() const { return addr.is_nil(); }
+    peer_id_t get_peer() const { return addr.get_peer(); }
 
     friend class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >;
 

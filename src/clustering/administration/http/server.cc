@@ -1,14 +1,32 @@
+#include "clustering/administration/http/server.hpp"
 
 #include "clustering/administration/http/directory_app.hpp"
 #include "clustering/administration/http/issues_app.hpp"
 #include "clustering/administration/http/last_seen_app.hpp"
+#include "clustering/administration/http/log_app.hpp"
+#include "clustering/administration/http/progress_app.hpp"
 #include "clustering/administration/http/semilattice_app.hpp"
-#include "clustering/administration/http/server.hpp"
 #include "clustering/administration/http/stat_app.hpp"
 #include "http/file_app.hpp"
 #include "http/http.hpp"
 #include "http/routing_app.hpp"
 #include "rpc/directory/watchable_copier.hpp"
+
+std::map<peer_id_t, mailbox_addr_t<void(mailbox_addr_t<void(std::vector<std::string>)>)> > get_log_mailbox(const std::map<peer_id_t, cluster_directory_metadata_t> &md) {
+    std::map<peer_id_t, mailbox_addr_t<void(mailbox_addr_t<void(std::vector<std::string>)>)> > out;
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.begin(); it != md.end(); it++) {
+        out.insert(std::make_pair(it->first, it->second.log_mailbox));
+    }
+    return out;
+}
+
+std::map<peer_id_t, machine_id_t> get_machine_id(const std::map<peer_id_t, cluster_directory_metadata_t> &md) {
+    std::map<peer_id_t, machine_id_t> out;
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.begin(); it != md.end(); it++) {
+        out.insert(std::make_pair(it->first, it->second.machine_id));
+    }
+    return out;
+}
 
 administrative_http_server_manager_t::administrative_http_server_manager_t(
         int port,
@@ -53,6 +71,10 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     issues_app.reset(new issues_http_app_t(_issue_tracker));
     stat_app.reset(new stat_http_app_t());
     last_seen_app.reset(new last_seen_http_app_t(_last_seen_tracker));
+    log_app.reset(new log_http_app_t(mbox_manager,
+        translate_into_watchable(_directory_metadata)->subview(&get_log_mailbox),
+        translate_into_watchable(_directory_metadata)->subview(&get_machine_id)
+        ));
     progress_app.reset(new progress_app_t(_directory_metadata, mbox_manager));
 
     std::map<std::string, http_app_t *> ajax_routes;
@@ -60,6 +82,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     ajax_routes["issues"] = issues_app.get();
     ajax_routes["stat"] = stat_app.get();
     ajax_routes["last_seen"] = last_seen_app.get();
+    ajax_routes["log"] = log_app.get();
     ajax_routes["progress"] = progress_app.get();
     ajax_routing_app.reset(new routing_http_app_t(semilattice_app.get(), ajax_routes));
 
