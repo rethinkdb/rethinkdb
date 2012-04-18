@@ -6,14 +6,19 @@ module 'ClusterView', ->
         # Use a generic template by default for a list
         template: Handlebars.compile $('#abstract_list-template').html()
 
-        initialize: (collection, element_view_class, filter) ->
+        # Abstract lists take several arguments
+        #   collection: Backbone collection that backs the list
+        #   element_view_class: Backbone view that each element in the list will be rendered with
+        #   container: JQuery selector string specifying the div that each element view will be appended to
+        #   filter: optional filter that defines what elements to use from the collection using a truth test 
+        #           (function whose argument is a Backbone model and whose output is true/false)
+        initialize: (collection, element_view_class, container, filter) ->
             #log_initial '(initializing) list view: ' + class_name @collection
-            @container = 'tbody.list'
-            # List of element views
-            @element_views = []
-            
             @collection = collection
+            @element_views = []
+            @container = container
             @element_view_class = element_view_class
+
             # This filter defines which models from the collection should be represented by this list.
             # If one was not provided, define a filter that allows all models
             if filter?
@@ -83,7 +88,7 @@ module 'ClusterView', ->
 
         elements_selected: =>
             # Identify buttons for actions on at least one element
-            $actions = $('.actions-bar a.btn.for-multiple-elements', @el)
+            $actions = $('.actions-bar a.btn.for-multiple-elements')
 
             # If at least one element is selected, enable these buttons
             $actions.toggleClass 'disabled', @get_selected_elements().length < 1
@@ -110,7 +115,7 @@ module 'ClusterView', ->
             @add_namespace_dialog = new NamespaceView.AddNamespaceModal
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
-            super namespaces, ClusterView.NamespaceListElement
+            super namespaces, ClusterView.NamespaceListElement, 'tbody.list'
                 
         add_namespace: (event) =>
             log_action 'add namespace button clicked'
@@ -132,19 +137,22 @@ module 'ClusterView', ->
         events:
             'click a.btn.add-datacenter': 'add_datacenter'
             'click a.btn.remove-datacenter': 'remove_datacenter'
+            'click .unassigned-machines .row.header': 'collapse_unassigned_machines'
 
         initialize: ->
             @add_datacenter_dialog = new ClusterView.AddDatacenterModal
             @remove_datacenter_dialog = new ClusterView.RemoveDatacenterModal
 
-            super datacenters, ClusterView.DatacenterListElement
+            super datacenters, ClusterView.DatacenterListElement, 'div.datacenters'
 
             @unassigned_machines = new ClusterView.MachineList(null)
 
         render: =>
             super
             
-            @.$('tbody.unassigned-machines .machine-list').html @unassigned_machines.render().el 
+            $machines_row = @.$('.unassigned-machines .row.machines')
+            $('.machine-list', $machines_row).html @unassigned_machines.render().el 
+            $machines_row.hide()
 
             return @
 
@@ -159,6 +167,9 @@ module 'ClusterView', ->
                 @remove_datacenter_dialog.render @get_selected_elements()
             event.preventDefault()
 
+        collapse_unassigned_machines: =>
+            @.$('.unassigned-machines .row.machines').slideToggle('fast')
+
     class @MachineList extends @AbstractList
         # Use a machine-specific template for the machine list
         template: Handlebars.compile $('#machine_list-template').html()
@@ -170,7 +181,7 @@ module 'ClusterView', ->
         initialize: (datacenter_uuid) ->
             @set_datacenter_dialog = new ClusterView.SetDatacenterModal
 
-            super machines, ClusterView.MachineListElement, (model) -> model.get('datacenter_uuid') is datacenter_uuid
+            super machines, ClusterView.MachineListElement, 'tbody.list', (model) -> model.get('datacenter_uuid') is datacenter_uuid
 
         set_datacenter: (event) =>
             log_action 'set datacenter button clicked'
@@ -179,7 +190,7 @@ module 'ClusterView', ->
             event.preventDefault()
 
     # Abstract list element that shows basic info about the element and is clickable
-    class @AbstractListElement extends Backbone.View
+    class @CheckboxListElement extends Backbone.View
         tagName: 'tr'
         className: 'element'
 
@@ -220,7 +231,7 @@ module 'ClusterView', ->
 
 
     # Namespace list element
-    class @NamespaceListElement extends @AbstractListElement
+    class @NamespaceListElement extends @CheckboxListElement
         template: Handlebars.compile $('#namespace_list_element-template').html()
 
         initialize: ->
@@ -228,13 +239,13 @@ module 'ClusterView', ->
             super @template
 
         json_for_template: =>
-            stuff = super()
+            json = _.extend super(),
+                nshards: 0
+                nreplicas: 0
+                nashards: 0
+                nareplicas: 0
 
-            stuff.nshards = 0
-            stuff.nreplicas = 0
-            stuff.nashards = 0
-            stuff.nareplicas = 0
-
+            # machine and datacenter counts
             _machines = []
             _datacenters = []
 
@@ -244,30 +255,36 @@ module 'ClusterView', ->
                 for shard, role_name of role
                     if role_name is 'role_primary'
                         machine_active_for_namespace = true
-                        stuff.nshards += 1
+                        json.nshards += 1
                         if peer_accessible?
-                            stuff.nashards += 1
+                            json.nashards += 1
                     if role_name is 'role_secondary'
                         machine_active_for_namespace = true
-                        stuff.nreplicas += 1
+                        json.nreplicas += 1
                         if peer_accessible?
-                            stuff.nareplicas += 1
+                            json.nareplicas += 1
                 if machine_active_for_namespace
                     _machines[_machines.length] = machine_uuid
                     _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
 
-            stuff.nmachines = _.uniq(_machines).length
-            stuff.ndatacenters = _.uniq(_datacenters).length
-            if stuff.nshards is stuff.nashards
-                stuff.reachability = 'Live'
+            json.nmachines = _.uniq(_machines).length
+            json.ndatacenters = _.uniq(_datacenters).length
+            if json.nshards is json.nashards
+                json.reachability = 'Live'
             else
-                stuff.reachability = 'Down'
+                json.reachability = 'Down'
 
-            return stuff
+            return json
 
     # Datacenter list element
-    class @DatacenterListElement extends @AbstractListElement
+    class @DatacenterListElement extends Backbone.View
         template: Handlebars.compile $('#datacenter_list_element-template').html()
+
+        tagName: 'div'
+        className: 'datacenter element'
+
+        events: ->
+            'click .row.header': 'collapse'
 
         initialize: ->
             log_initial '(initializing) list view: datacenter'
@@ -282,14 +299,12 @@ module 'ClusterView', ->
             super @template
 
         json_for_template: =>
-            stuff = super()
-
-            # datacenter status
-            stuff.status = DataUtils.get_datacenter_reachability(@model.get('id'))
+            json = _.extend @model.toJSON(),
+                status: DataUtils.get_datacenter_reachability(@model.get('id'))
+                primary_count: 0
+                secondary_count: 0
 
             # primary, secondary, and namespace counts
-            stuff.primary_count = 0
-            stuff.secondary_count = 0
             _namespaces = []
             for namespace in namespaces.models
                 for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
@@ -298,26 +313,30 @@ module 'ClusterView', ->
                         for shard, role of peer_role
                             if role is 'role_primary'
                                 machine_active_for_namespace = true
-                                stuff.primary_count += 1
+                                json.primary_count += 1
                             if role is 'role_secondary'
                                 machine_active_for_namespace = true
-                                stuff.secondary_count += 1
+                                json.secondary_count += 1
                         if machine_active_for_namespace
                             _namespaces[_namespaces.length] = namespace
-            stuff.namespace_count = _.uniq(_namespaces).length
+            json.namespace_count = _.uniq(_namespaces).length
 
-            return stuff
+            return json
 
         render: =>
-            super
+            @.$el.html @template(@json_for_template())
 
             # Attach a list of available machines to the given datacenter
             @.$('.machine-list').html @machine_list.render().el
+            @.$('.row.machines').hide()
 
             return @
 
+        collapse: =>
+            @.$('.row.machines').slideToggle()
+
     # Machine list element
-    class @MachineListElement extends @AbstractListElement
+    class @MachineListElement extends @CheckboxListElement
         template: Handlebars.compile $('#machine_list_element-template').html()
 
         initialize: ->
@@ -329,26 +348,13 @@ module 'ClusterView', ->
             super @template
 
         json_for_template: =>
-            stuff = super()
-            # status
-            _.extend stuff,
+            json = _.extend super(),
                 status: DataUtils.get_machine_reachability(@model.get('id'))
-
-            # ip
-            stuff.ip = "TBD"
-            # grab datacenter name
-            if @model.get('datacenter_uuid')
-                # We need this in case the server disconnects/reconnects
-                try
-                    stuff.datacenter_name = datacenters.find((d) => d.get('id') == @model.get('datacenter_uuid')).get('name')
-                catch err
-                    stuff.datacenter_name = 'N/A'
-            else
-                stuff.datacenter_name = "Unassigned"
+                ip: 'TBD'
+                primary_count: 0
+                secondary_count: 0
 
             # primary, secondary, and namespace counts
-            stuff.primary_count = 0
-            stuff.secondary_count = 0
             _namespaces = []
             for namespace in namespaces.models
                 for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
@@ -357,15 +363,15 @@ module 'ClusterView', ->
                         for shard, role of peer_role
                             if role is 'role_primary'
                                 machine_active_for_namespace = true
-                                stuff.primary_count += 1
+                                json.primary_count += 1
                             if role is 'role_secondary'
                                 machine_active_for_namespace = true
-                                stuff.secondary_count += 1
+                                json.secondary_count += 1
                         if machine_active_for_namespace
                             _namespaces[_namespaces.length] = namespace
-            stuff.namespace_count = _.uniq(_namespaces).length
+            json.namespace_count = _.uniq(_namespaces).length
 
-            return stuff
+            return json
 
     class @AbstractModal extends Backbone.View
         className: 'modal-parent'

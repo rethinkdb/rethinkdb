@@ -508,16 +508,20 @@
     List views
     ----------------------------
 */
-#namespace-list, #server-list {
+
+.actions-bar {
     border: @panel_border;
     .border-radius(0 0 @border_radius @border_radius);
-    margin-top: 20px;
-    margin-bottom: 20px;
+    padding: 12px;
+    margin: 10px 0;
+    .panel-gradient;
+}
 
-    .actions-bar {
-        padding: 12px;
-        .panel-gradient;
-    }
+.namespace-list, .machine-list {
+    border: @panel_border;
+    .border-radius(0 0 @border_radius @border_radius);
+    margin-top: 10px;
+    margin-bottom: 20px;
 
     table {
         margin-bottom: 0;
@@ -538,28 +542,43 @@
             }
         }
 
-        .details-wrapper {
-            padding: 10px;
+        .details {
+            padding: 5px;
 
-            span.name {
+            h3.name {
+                line-height: 1em;
+                margin-bottom: 0.3em;
                 font-weight: bold;
                 font-size: 1.2em;
                 color: @grayDark;
-            }
-
-            p.details-text {
-                margin-top: 10px;
-                margin-bottom: 0;
-
-                span {
-                    margin-right: 20px;
-                }
             }
         }
     }
 }
 
-#namespace-list {
+.server-list {
+    margin-top: 20px;
+
+    .datacenter .collapsed, .unassigned-machines .collapsed {
+        background: url('/images/circle_plus.png') no-repeat center top;
+        width: 32px;
+        height: 32px;
+    }
+    .datacenter {
+        h3.name { 
+            line-height: 1em;
+            margin-bottom: 0.5em;
+        }
+        .actions { text-align: right; }
+    }
+    > .details {
+        margin-top: 10px;
+    }
+}
+
+.namespace-list {
+    margin-top: 20px;
+
     span.protocol {
         background: @gray;
         color: @white;
@@ -588,10 +607,8 @@
     }
 }
 
-.alert{
-    .name {
-        font-weight: bold;
-    }
+.alert .name {
+    font-weight: bold;
 }
 
 /*

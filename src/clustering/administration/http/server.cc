@@ -32,6 +32,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/bootstrap/bootstrap-modal.js");
     white_list.insert("/js/bootstrap/bootstrap-tab.js");
     white_list.insert("/js/bootstrap/bootstrap-typeahead.js");
+    white_list.insert("/js/bootstrap/bootstrap-collapse.js");
     white_list.insert("/js/d3.v2.min.js");
     white_list.insert("/js/date-en-US.js");
     white_list.insert("/js/flot/jquery.flot.js");
@@ -47,6 +48,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/alert-icon_small.png");
     white_list.insert("/images/critical-issue_small.png");
     white_list.insert("/images/information-icon_small.png");
+    white_list.insert("/images/circle_plus.png");
+    white_list.insert("/images/circle_minus.png");
     white_list.insert("/index.html");
     file_app.reset(new file_http_app_t(white_list, path));
 

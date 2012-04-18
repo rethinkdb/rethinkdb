@@ -120,11 +120,11 @@
         <script id="namespace_list-template" type="text/x-handlebars-template">
             <h1>Namespaces in the cluster</h1>
             <div id="user-alert-space"></div>
-            <div id="namespace-list">
-                <div class="actions-bar">
-                    <a href="#" class="btn add-namespace">Add namespace</a>
-                    <a href="#" class="btn for-multiple-elements disabled remove-namespace">Remove selected namespaces</a>
-                </div>
+            <div class="actions-bar">
+                <a href="#" class="btn add-namespace">Add namespace</a>
+                <a href="#" class="btn for-multiple-elements disabled remove-namespace">Remove selected namespaces</a>
+            </div>
+            <div class="namespace-list">
                 <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
                     <tbody class="list">
                     </tbody>
@@ -135,34 +135,32 @@
         <script id="server_list-template" type="text/x-handlebars-template">
             <h1>Servers connected to the cluster</h1>
             <div id="user-alert-space"></div>
-            <div id="server-list">
-                <div class="actions-bar">
-                    <a href="#" class="btn add-datacenter">Add datacenter</a>
-                    <a href="#" class="btn for-multiple-elements disabled remove-datacenter">Remove selected datacenters</a>
+            <div class="actions-bar">
+                <a href="#" class="btn add-datacenter">Add datacenter</a>
+                <a href="#" class="btn for-multiple-elements disabled set-datacenter">Set datacenter</a>
+            </div>
+            <div class="server-list list">
+                <div class="datacenters"></div>
+                <div class="unassigned-machines">
+                    <div class="row header">
+                        <div class="span1">
+                            <div class="collapsed"></div>
+                        </div>
+                        <div class="span8">
+                            <h3 class="name">Unassigned machines</h3>
+                        </div>
+                    </div>
+                    <div class="row machines">
+                        <div class="span1"><p></p></div>
+                        <div class="span8">
+                            <div class="machine-list"></div>
+                        </div>
+                    </div>
                 </div>
-                <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
-                    <tbody class="list">
-                    </tbody>
-                    <tbody class="unassigned-machines">
-                        <tr>
-                            <td></td>
-                            <td class="details">
-                                <div class="details-wrapper"">
-                                    <span class="name">Unassigned machines</span>
-                                </div>
-                                <div class="clearboth"></div>
-                                <div class="machine-list"></div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </script>
 
         <script id="machine_list-template" type="text/x-handlebars-template">
-            <div class="actions-bar">
-                <a href="#" class="btn for-multiple-elements disabled set-datacenter">Set datacenter</a>
-            </div>
             <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
                 <tbody class="list">
                 </tbody>
@@ -174,59 +172,56 @@
             <td>
                 <input type="checkbox"></input>
             </td>
-            <td class="details">
-                <div class="details-wrapper"">
-                    <span class="name"><a href="#namespaces/{{id}}">{{name}}</a></span>
+            <td>
+                <div class="details">
+                    <h3 class="name"><a href="#namespaces/{{id}}">{{name}}</a></h3>
                     <span class="protocol {{protocol}}">{{protocol}}</span>
-                    <p class="details-text">
-                       <span class="status">Status: {{reachability}} ({{nashards}} of {{nshards}} masters live; {{nareplicas}} of {{nreplicas}} replicas live)</span>
-                    </p>
-                    <p class="details-text">
-                       <span class="contains">Contains: {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}</span>
-                    </p>
+                    <p><span class="status">Status: {{reachability}} ({{nashards}} of {{nshards}} masters live; {{nareplicas}} of {{nreplicas}} replicas live)</span></p>
+                    <p><span class="contains">Contains: {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}</span></p>
                 </div>
                 <div class="clearboth"></div>
             </td>
         </script>
 
         <script id="datacenter_list_element-template" type="text/x-handlebars-template">
-            <td>
-                <input type="checkbox"></input>
-            </td>
-            <td class="details">
-                <div class="details-wrapper"">
-                    <span class="name"><a href="#datacenters/{{id}}">{{name}}</a></span>
-                    <p class="details-text">
-                       <span class="status">Status: {{humanize_datacenter_reachability status}}</span>
-                    </p>
-                    <p class="details-text">
-                      <span class="Contains">Contains: {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}} for {{namespace_count}} {{pluralize_noun "namespace" namespace_count}}</span>
-                    </p>
+            <div class="row header">
+                <div class="span1">
+                    <div class="collapsed"></div>
                 </div>
-                <div class="clearboth"></div>
-                <div class="machine-list"></div>
-            </td>
+                <div class="span6">
+                    <h3 class="name"><a href="#datacenters/{{id}}">{{name}}</a></h3>
+                    <div class="details">
+                        <p><span class="status">Status: {{humanize_datacenter_reachability status}}</span></p>
+                        <p><span class="Contains">Contains: {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}} for {{namespace_count}} {{pluralize_noun "namespace" namespace_count}}</span></p>
+                    </div>
+                </div>
+                <div class="span2">
+                    <div class="actions">
+                        <p>(<a href="btn remove-datacenter">remove this datacenter</a>)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="row machines">
+                <div class="span1"><p></p></div>
+                <div class="span8">
+                    <div class="machine-list"></div>
+                </div>
+            </div>
         </script>
 
         <script id="machine_list_element-template" type="text/x-handlebars-template">
             <td>
                 <input type="checkbox"></input>
             </td>
-            <td class="details">
-                <div class="details-wrapper">
-                    <span class="name"><a href="#machines/{{id}}">{{name}}</a></span>
-                    <p class="details-text"> 
-                      <span class="status">Status: {{humanize_machine_reachability status}}</span>
+            <td>
+                <div class="details">
+                    <h3 class="name"><a href="#machines/{{id}}">{{name}}</a></h3>
+                    <p>
+                        <span class="status">Status: {{humanize_machine_reachability status}}</span>
+                        | <span class="ip">IP: {{ip}}</span>
                     </p>
-                    <p class="details-text">
-                      <span class="Contains">Contains: {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}} for {{namespace_count}} {{pluralize_noun "namespace" namespace_count}}</span>
-                    </p>
-                    <p class="details-text">
-                      <span class="ip">IP: {{ip}}</span>
-                      <span class="machine-datacenter">Datacenter: {{datacenter_name}}</span>
-                    </p>
+                    <p><span class="Contains">Contains: {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}} for {{namespace_count}} {{pluralize_noun "namespace" namespace_count}}</span></p>
                 </div>
-                <div class="clearboth"></div>
             </td>
         </script>
 
@@ -1242,6 +1237,7 @@
         <script type="text/javascript" src="js/bootstrap/bootstrap-modal.js"></script>
         <script type="text/javascript" src="js/bootstrap/bootstrap-alert.js"></script>
         <script type="text/javascript" src="js/bootstrap/bootstrap-typeahead.js"></script>
+        <script type="text/javascript" src="js/bootstrap/bootstrap-collapse.js"></script>
         <script type="text/javascript" src="js/jquery.sparkline.min.js"></script>
         <script type="text/javascript" src="js/jquery.validate.min.js"></script>
         <script type="text/javascript" src="js/jquery.hotkeys.js"></script>
