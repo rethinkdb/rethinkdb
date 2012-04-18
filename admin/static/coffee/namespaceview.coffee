@@ -260,11 +260,12 @@ module 'NamespaceView', ->
             dc_machines = _.map DataUtils.get_datacenter_machines(@secondary.datacenter_uuid), (m) ->
                 machine_name: m.get('name')
                 machine_uuid: m.get('id')
-            @.$('.modal-body').html @template_inner _.extend @secondary,
+            json = _.extend @secondary,
                 change_hints: @change_hints_state
                 pinnings: pinnings
                 dc_machines: dc_machines
                 replica_count: @secondary.machines.length
+            @.$('.modal-body').html(@template_inner json)
 
             # Bind change assignment hints action
             @.$('#btn_change_hints').click (e) =>
@@ -283,9 +284,10 @@ module 'NamespaceView', ->
                 submitHandler: =>
                     # TODO: What happens when multiple machines are the same? BAAAAD user
                     # TODO: What happens if they just hit 'commit'? How do we remove pinnings? Checkbox?
-                    # TODO: Let them know if pinnings are out of sync with shards
-                    # TODO: Reporting/assigning pinnings when the shard changed
-                    # TODO: Informing them that pinnings and shards don't match up
+                    # TODO: Let them know if pinnings are out of sync with shards (or blow pinnings away)
+                    # TODO: Reporting/assigning pinnings when the shard changed (or blow them away)
+                    # TODO: Informing them that pinnings and shards don't match up (or blow them away!)
+                    # TODO: confirmation alert, applying changes
                     pinned_machines = _.filter @.$('form').serializeArray(), (obj) -> obj.name is 'pinned_machine_uuid'
                     output = {}
                     output[@secondary.shard] = _.map pinned_machines, (m)->m.value
@@ -315,7 +317,7 @@ module 'NamespaceView', ->
                         #     @render(response.responseText)
 
             # Render the modal
-            super validator_options, {}
+            super validator_options, @secondary
 
             # Render our fun inner lady bits
             @render_inner()
@@ -498,18 +500,13 @@ module 'NamespaceView', ->
                     name: if primary_uuid then machines.get(primary_uuid).get('name') else null
                     status: if primary_uuid then DataUtils.get_machine_reachability(primary_uuid) else null
                 secondaries: _.map(secondary_uuids, (machine_uuids, datacenter_uuid) ->
-                    j = 0
-                    json =
-                        datacenter_uuid: datacenter_uuid
-                        datacenter_name: datacenters.get(datacenter_uuid).get('name')
-                        machines: _.map(machine_uuids, (machine_uuid) ->
-                            json =
-                                uuid: machine_uuid
-                                name: machines.get(machine_uuid).get('name')
-                                status: DataUtils.get_machine_reachability(machine_uuid)
-                            return json
-                            )
-                    return json
+                    datacenter_uuid: datacenter_uuid
+                    datacenter_name: datacenters.get(datacenter_uuid).get('name')
+                    machines: _.map(machine_uuids, (machine_uuid) ->
+                        uuid: machine_uuid
+                        name: machines.get(machine_uuid).get('name')
+                        status: DataUtils.get_machine_reachability(machine_uuid)
+                        )
                     )
         return ret
 
