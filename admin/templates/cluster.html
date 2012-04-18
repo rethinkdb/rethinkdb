@@ -1062,9 +1062,9 @@
                 <!-- We render this the same number of times there are replicas. -->
                 {{#each machines}}
                 <li>
-                  <select name="pinned_machine_uuid">
-                    {{#each ../dc_machines}}
-                    <option value="{{machine_uuid}}">{{machine_name}}</option>
+                  <select class="pinned_machine_choice" name="pinned_machine_uuid">
+                    {{#each dc_machines}}
+                    <option value="{{machine_uuid}}" {{#if selected}}selected="selected"{{/if}}>{{machine_name}}</option>
                     {{/each}}
                   </select>
                 </li>
