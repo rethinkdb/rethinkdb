@@ -154,6 +154,9 @@ public:
         value.swap(other.value);
     }
 
+    //Stat block when modifications are made using this class the statblock is update
+    block_id_t stat_block;
+
 private:
     DISABLE_COPYING(keyvalue_location_t);
 };

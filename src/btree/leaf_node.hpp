@@ -1263,8 +1263,10 @@ bool lookup(value_sizer_t<V> *sizer, const leaf_node_t *node, const btree_key_t 
     if (find_key(node, key, &index)) {
         const entry_t *ent = get_entry(node, node->pair_offsets[index]);
         if (entry_is_live(ent)) {
-            const V *val = entry_value<V>(ent);
-            memcpy(value_out, val, sizer->size(val));
+            if (value_out) {
+                const V *val = entry_value<V>(ent);
+                memcpy(value_out, val, sizer->size(val));
+            }
             return true;
         }
     }
