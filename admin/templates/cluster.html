@@ -1063,8 +1063,8 @@
                 {{#each machines}}
                 <li>
                   <select class="pinned_machine_choice" name="pinned_machine_uuid">
-                    {{#each ../dc_machines}}
-                    <option value="{{machine_uuid}}">{{machine_name}}</option>
+                    {{#each dc_machines}}
+                    <option value="{{machine_uuid}}" {{#if selected}}selected="selected"{{/if}}>{{machine_name}}</option>
                     {{/each}}
                   </select>
                 </li>

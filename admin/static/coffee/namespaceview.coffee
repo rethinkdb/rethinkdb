@@ -242,6 +242,16 @@ module 'NamespaceView', ->
             @change_hints_state = false
             super @template
 
+        disable_used_options: ->
+            selected_machines = _.map @.$('.pinned_machine_choice option:[selected]'), (opt) -> $(opt).attr('value')
+            for dropdown in @.$('.pinned_machine_choice')
+                selected_option = $(dropdown).find(':selected')[0]
+                for option in $('option', dropdown)
+                    if $(option).attr('value') in selected_machines
+                        $(option).attr('disabled', 'disabled') unless option is selected_option
+                    else
+                        $(option).removeAttr('disabled')
+
         render_inner: ->
             # compute pinnings for the shard
             pinnings = null
@@ -256,14 +266,37 @@ module 'NamespaceView', ->
                     machine_uuid: m.get('id')
                 return json
 
-            # render vendor shmender blender
-            dc_machines = _.map DataUtils.get_datacenter_machines(@secondary.datacenter_uuid), (m) ->
-                machine_name: m.get('name')
-                machine_uuid: m.get('id')
+            # compute all machines in the datacenter (note, it's
+            # important to generate a new object every time because we
+            # extend each one differently later)
+            generate_dc_machines_arr = =>
+                _.map DataUtils.get_datacenter_machines(@secondary.datacenter_uuid), (m) ->
+                    machine_name: m.get('name')
+                    machine_uuid: m.get('id')
+
+            # Extend each machine entry with dc_machines array. Add
+            # 'selected' markings, first for pinned machines, then for
+            # random available machines to make sure the same machine
+            # isn't selected twice by default.
+            available_machines = _.pluck generate_dc_machines_arr(), 'machine_uuid'
+            available_pinnings = _.pluck pinnings, 'machine_uuid'
+            for m in @secondary.machines
+                _dc_machines = generate_dc_machines_arr()
+                pin = null
+                if available_pinnings.length > 0
+                    pin = available_pinnings.splice(0, 1)[0]
+                    available_machines = _.without available_machines, pin
+                else
+                    pin = available_machines.splice(0, 1)[0]
+                for _m in _dc_machines
+                    if _m.machine_uuid is pin
+                        _m['selected'] = true
+                m['dc_machines'] = _dc_machines
+
+            # render vendor shmender blender zender
             json = _.extend @secondary,
                 change_hints: @change_hints_state
                 pinnings: pinnings
-                dc_machines: dc_machines
                 replica_count: @secondary.machines.length
             @.$('.modal-body').html(@template_inner json)
 
@@ -280,26 +313,21 @@ module 'NamespaceView', ->
             # Bind change events on the dropdowns and make sure the
             # user doesn't select the same machine twice
             @.$('.pinned_machine_choice').change (e) =>
-                selected_machines = _.map @.$('.pinned_machine_choice option:[selected]'), (opt) -> $(opt).attr('value')
-                for dropdown in @.$('.pinned_machine_choice')
-                    selected_option = $(dropdown).find(':selected')[0]
-                    for option in $('option', dropdown)
-                        if $(option).attr('value') in selected_machines
-                            $(option).attr('disabled', 'disabled') unless option is selected_option
-                        else
-                            $(option).removeAttr('disabled')
+                @disable_used_options()
+
+            # Disable used options on first render
+            @disable_used_options()
 
             return @
 
         render: ->
             validator_options =
                 submitHandler: =>
-                    # TODO: Initial pinnings
                     # TODO: What happens if they just hit 'commit'? How do we remove pinnings? Checkbox?
-                    # TODO: Let them know if pinnings are out of sync with shards (or blow pinnings away)
-                    # TODO: Reporting/assigning pinnings when the shard changed (or blow them away)
-                    # TODO: Informing them that pinnings and shards don't match up (or blow them away!)
+                    # TODO: Remove pinnings when a new sharding plan is committed (and inform the user)
                     # TODO: confirmation alert, applying changes
+                    # TODO: adjust pinnings if they change the number of replicas :(
+                    # TODO: master
                     pinned_machines = _.filter @.$('form').serializeArray(), (obj) -> obj.name is 'pinned_machine_uuid'
                     output = {}
                     output[@secondary.shard] = _.map pinned_machines, (m)->m.value
