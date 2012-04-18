@@ -266,16 +266,25 @@ class ClusterAccess(object):
         host, http_port = random.choice(self.addresses)
         return self.do_query_specific(host, http_port, method, route, payload)
 
+    def do_query_plaintext(self, method, route, payload = None):
+        host, http_port = random.choice(self.addresses)
+        return self.do_query_specific_plaintext(host, http_port, method, route, payload)
+
     def do_query_specific(self, host, http_port, method, route, payload = None):
+        if payload is not None:
+            payload = json.dumps(payload)
+        return json.loads(self.do_query_specific_plaintext(host, http_port, method, route, payload))
+
+    def do_query_specific_plaintext(self, host, http_port, method, route, payload = None):
         conn = HTTPConnection(host, http_port, timeout = 10)
         conn.connect()
         if payload is not None:
-            conn.request(method, route, json.dumps(payload))
+            conn.request(method, route, payload)
         else:
             conn.request(method, route)
         response = conn.getresponse()
         if response.status == 200:
-            return json.loads(response.read())
+            return response.read()
         else:
             raise BadServerResponse(response.status, response.reason)
 
@@ -354,8 +363,11 @@ class ClusterAccess(object):
         nss.update(self.dummy_namespaces)
         return self._find_thing(what, Namespace, "namespace", nss)
 
-    def get_directory(self, servid = None):
+    def get_directory(self):
         return self.do_query("GET", "/ajax/directory")
+
+    def get_log(self, machine_id):
+        return self.do_query_plaintext("GET", "/ajax/log/" + machine_id)
 
     def move_server_to_datacenter(self, serv, datacenter):
         serv = self.find_machine(serv)
