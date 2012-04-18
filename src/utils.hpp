@@ -122,28 +122,22 @@ private:
 };
 
 int randint(int n);
-
-
-
 std::string rand_string(int len);
 
 bool begins_with_minus(const char *string);
-// strtoul() and strtoull() will for some reason not fail if the input
-// begins with a minus sign. strtoul_strict() and strtoull_strict()
-// do.  Also we fix the constness of the end parameter.
-int64_t strtol_strict(const char *string, const char **end, int base);
-uint64_t strtoul_strict(const char *string, const char **end, int base);
-uint64_t strtoull_strict(const char *string, const char **end, int base);
+// strtoul() and strtoull() will for some reason not fail if the input begins
+// with a minus sign. strtou64_strict() does.  Also we fix the constness of the
+// end parameter.
+int64_t strtoi64_strict(const char *string, const char **end, int base);
+uint64_t strtou64_strict(const char *string, const char **end, int base);
 
-
+// These functions return false and set the result to 0 if the conversion fails or
+// does not consume the whole string.
+MUST_USE bool strtoi64_strict(const std::string &str, int base, int64_t *out_result);
+MUST_USE bool strtou64_strict(const std::string &str, int base, uint64_t *out_result);
 
 std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-
 std::string vstrprintf(const char *format, va_list ap);
-
-
-
-// Precise time (time+nanoseconds) for logging, etc.
 
 /* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
 succeeds, it returns the result as a `std::string`. If it fails, it throws
@@ -155,6 +149,7 @@ struct demangle_failed_exc_t : public std::exception {
 };
 std::string demangle_cpp_name(const char *mangled_name);
 
+// Precise time (time+nanoseconds) for logging, etc.
 struct precise_time_t : public tm {
     uint32_t ns;    // nanoseconds since the start of the second
                     // beware:

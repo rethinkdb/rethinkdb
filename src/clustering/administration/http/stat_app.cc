@@ -47,7 +47,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
     if (timeout_param) {
         std::string& timeout_str = timeout_param.get();
         const char *end = NULL;
-        timeout = strtoul_strict(timeout_str.c_str(), &end, 10);
+        timeout = strtou64_strict(timeout_str.c_str(), &end, 10);
         if (timeout == 0 || timeout > MAX_STAT_REQ_TIMEOUT_MS) {
             http_res_t res(400);
             res.set_body("application/text", "Invalid timeout value");

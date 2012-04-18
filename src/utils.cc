@@ -308,9 +308,8 @@ bool begins_with_minus(const char *string) {
     return *string == '-';
 }
 
-int64_t strtol_strict(const char *string, const char **end, int base) {
-    // It's okay to have long, that's what strtol returns.
-    // We convert it to int64_t (which is the same thing, or bigger).
+int64_t strtoi64_strict(const char *string, const char **end, int base) {
+    CT_ASSERT(sizeof(long) == sizeof(int64_t));
     long result = strtol(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if ((result == LONG_MAX || result == LONG_MIN) && errno == ERANGE) {
         *end = string;
@@ -319,13 +318,12 @@ int64_t strtol_strict(const char *string, const char **end, int base) {
     return result;
 }
 
-uint64_t strtoul_strict(const char *string, const char **end, int base) {
+uint64_t strtou64_strict(const char *string, const char **end, int base) {
     if (begins_with_minus(string)) {
         *end = string;
         return 0;
     }
-    // It's okay to have an unsigned long, that's what strtoul returns.
-    // We convert it to uint64_t (which is the same thing, or bigger).
+    CT_ASSERT(sizeof(unsigned long) == sizeof(uint64_t));
     unsigned long result = strtoul(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if (result == ULONG_MAX && errno == ERANGE) {
         *end = string;
@@ -334,19 +332,28 @@ uint64_t strtoul_strict(const char *string, const char **end, int base) {
     return result;
 }
 
-uint64_t strtoull_strict(const char *string, const char **end, int base) {
-    if (begins_with_minus(string)) {
-        *end = string;
-        return 0;
+bool strtoi64_strict(const std::string &str, int base, int64_t *out_result) {
+    const char *end;
+    int64_t result = strtoi64_strict(str.c_str(), &end,  base);
+    if (end != str.c_str() + str.length() || (result == 0 && end == str.c_str())) {
+        *out_result = 0;
+        return false;
+    } else {
+        *out_result = result;
+        return true;
     }
-    // It's okay to have an unsigned long long, that's what strtoull returns.
-    // We convert it to uint64_t (which is the same thing).
-    unsigned long long result = strtoull(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if (result == ULLONG_MAX && errno == ERANGE) {
-        *end = string;
-        return 0;
+}
+
+bool strtou64_strict(const std::string &str, int base, uint64_t *out_result) {
+    const char *end;
+    uint64_t result = strtou64_strict(str.c_str(), &end,  base);
+    if (end != str.c_str() + str.length() || (result == 0 && end == str.c_str())) {
+        *out_result = 0;
+        return false;
+    } else {
+        *out_result = result;
+        return true;
     }
-    return result;
 }
 
 int gcd(int x, int y) {
