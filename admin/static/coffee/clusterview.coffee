@@ -11,7 +11,7 @@ module 'ClusterView', ->
             @container = 'tbody.list'
             # List of element views
             @element_views = []
-            
+
             @collection = collection
             @element_view_class = element_view_class
             # This filter defines which models from the collection should be represented by this list.
@@ -111,7 +111,7 @@ module 'ClusterView', ->
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
             super namespaces, ClusterView.NamespaceListElement
-                
+
         add_namespace: (event) =>
             log_action 'add namespace button clicked'
             @add_namespace_dialog.render()
@@ -143,8 +143,8 @@ module 'ClusterView', ->
 
         render: =>
             super
-            
-            @.$('tbody.unassigned-machines .machine-list').html @unassigned_machines.render().el 
+
+            @.$('tbody.unassigned-machines .machine-list').html @unassigned_machines.render().el
 
             return @
 
@@ -399,7 +399,8 @@ module 'ClusterView', ->
         render: (validator_options, template_data) =>
             # Add the modal generated from the template to the container, and show it
             template_data = {} if not template_data?
-            @$container.append @template template_data
+            @$container.html @template template_data
+
             # Note: Bootstrap's modal JS moves the modal from the container element to the end of the body tag in the DOM
             @$modal = $('.modal', @$container).modal
                 'show': true

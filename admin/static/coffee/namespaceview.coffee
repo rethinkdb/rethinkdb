@@ -62,12 +62,6 @@ module 'NamespaceView', ->
             modal.render()
             e.preventDefault()
 
-        edit_machines: (e, datacenter) ->
-            log_action 'edit machines clicked'
-            modal = new NamespaceView.EditMachinesModal @model, datacenter
-            modal.render()
-            e.preventDefault()
-
         make_primary: (e, new_dc) ->
             log_action 'make primary clicked'
             modal = new ClusterView.ConfirmationDialogModal
@@ -149,8 +143,6 @@ module 'NamespaceView', ->
             _.each _.keys(@model.get('replica_affinities')), (dc_uuid) =>
                 @.$(".edit-secondary.#{dc_uuid}").on 'click', (e) =>
                     @modify_replicas(e, datacenters.get(dc_uuid))
-                @.$(".edit-machines.#{dc_uuid}").on 'click', (e) =>
-                    @edit_machines(e, datacenters.get(dc_uuid))
                 @.$(".make-primary.#{dc_uuid}").on 'click', (e) =>
                     @make_primary(e, datacenters.get(dc_uuid))
 
@@ -238,133 +230,95 @@ module 'NamespaceView', ->
             super validator_options, { 'namespaces': array_for_template }
 
     class @EditMachinesModal extends ClusterView.AbstractModal
-        template: Handlebars.compile $('#edit_machines-modal-template').html()
+        template: Handlebars.compile $('#edit_machines-modal-template-outer').html()
+        template_inner: Handlebars.compile $('#edit_machines-modal-template-inner').html()
         # TODO
         alert_tmpl: Handlebars.compile $('#modified_replica-alert-template').html()
 
-        events: -> _.extend super,
-            'click .commit-plan': 'commit_plan'
-
-        initialize: (namespace, datacenter) ->
+        initialize: (namespace, secondary) ->
             console.log '(initializing) modal dialog: modify replicas review changes'
             @namespace = namespace
-            @datacenter = datacenter
+            @secondary = secondary
+            @change_hints_state = false
             super @template
 
-        get_blueprint_data: ->
-            #First we need to get the data in a manageable form the schema of this is:
-            blueprint_data = {} #a map from shards to machines
+        render_inner: ->
+            # compute pinnings for the shard
+            pinnings = null
+            _pinnings = @namespace.get('secondary_pinnings')
+            for shard, pins of _pinnings
+                if shard.toString() is @secondary.shard.toString()
+                    pinnings = pins
+            pinnings = _.map pinnings, (mid) ->
+                m = machines.get(mid)
+                json =
+                    machine_name: m.get('name')
+                    machine_uuid: m.get('id')
+                return json
 
-            #Initialize the data
-            for shard in @namespace.get('shards')
-                blueprint_data[shard] = []
+            # render vendor shmender blender
+            dc_machines = _.map DataUtils.get_datacenter_machines(@secondary.datacenter_uuid), (m) ->
+                machine_name: m.get('name')
+                machine_uuid: m.get('id')
+            @.$('.modal-body').html @template_inner _.extend @secondary,
+                change_hints: @change_hints_state
+                pinnings: pinnings
+                dc_machines: dc_machines
+                replica_count: @secondary.machines.length
 
-            for peer_id, shards_to_roles of @namespace.get('blueprint').peers_roles
-                if (machines.get(peer_id).get('datacenter_uuid') == @datacenter.id)
-                    #This machine is in the correct datacenter and thus relevant
+            # Bind change assignment hints action
+            @.$('#btn_change_hints').click (e) =>
+                e.preventDefault()
+                @change_hints_state = true
+                @render_inner()
+            @.$('#btn_change_hints_cancel').click (e) =>
+                e.preventDefault()
+                @change_hints_state = false
+                @render_inner()
 
-                    #Iterate the shards
-                    for shard, role of shards_to_roles
-                        if role == "role_primary" || role == "role_secondary"
-                            blueprint_data[shard].push(machines.get(peer_id))
-            return blueprint_data
+            return @
 
-
-        # Simple utility function to generate JSON for a set of machines
-        machine_json: (machine_set) -> _.map machine_set, (machine) ->
-            id: machine.get('id')
-            name: machine.get('name')
-
-        commit_plan: ->
-            form_fields = $('form', @$modal).serializeArray()
-            console.log 'commit changes!', $('form', @$modal).serializeArray()
-
-
-        render: (num_replicas, num_acks) ->
-            log_render "(rendering) modify replicas review changes dialog with #{num_replicas} replicas, #{num_acks} acks."
-
+        render: ->
             validator_options =
                 submitHandler: =>
-                    $('form', @$modal).ajaxSubmit
-                        url: '/ajax/namespaces/' + @namespace.id + '/edit_machines?token='+token
+                    # TODO: What happens when multiple machines are the same? BAAAAD user
+                    # TODO: What happens if they just hit 'commit'? How do we remove pinnings? Checkbox?
+                    # TODO: Let them know if pinnings are out of sync with shards
+                    # TODO: Reporting/assigning pinnings when the shard changed
+                    # TODO: Informing them that pinnings and shards don't match up
+                    pinned_machines = _.filter @.$('form').serializeArray(), (obj) -> obj.name is 'pinned_machine_uuid'
+                    output = {}
+                    output[@secondary.shard] = _.map pinned_machines, (m)->m.value
+                    output =
+                        secondary_pinnings: output
+                    $.ajax
+                        processData: false
+                        url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                         type: 'POST'
+                        data: JSON.stringify(output)
                         success: (response) =>
                             clear_modals()
+                            namespaces.get(@namespace.id).set(response)
+                        #     if modified_replicas or modified_acks
+                        #         $('#user-alert-space').append (@alert_tmpl
+                        #             modified_replicas: modified_replicas
+                        #             old_replicas: old_replicas
+                        #             new_replicas: new_replicas
+                        #             modified_acks: modified_acks
+                        #             old_acks: old_acks
+                        #             new_acks: new_acks
+                        #             datacenter_uuid: datacenter_uuid
+                        #             datacenter_name: datacenter_name
+                        #             )
+                        # error: (response, unused, unused_2) =>
+                        #     clear_modals()
+                        #     @render(response.responseText)
 
-                            apply_diffs(response)
-                            #TODO hook this up
-                            #$('#user-alert-space').append @alert_tmpl {}
+            # Render the modal
+            super validator_options, {}
 
-
-            num_changed = 0
-            adding = false
-            removing = false
-
-            #Get all the potential machines
-            filtered_machines = machines.filter (machine) => machine.get('datacenter_uuid') is @datacenter.id
-
-            # Build shards for template
-            shards = []
-
-            blueprint_data = @get_blueprint_data()
-
-            index = 0
-            for shard, used_machines of blueprint_data
-                _used_machines = _.map(used_machines, (machine) -> machines.get(machine.id))
-                console.log 'used_machines is', _used_machines
-                shards.push
-                    'name': human_readable_shard(shard)
-                    'machines': filtered_machines #The machines which could be used for this shard
-                    'existing_machines': _used_machines
-                    'index': index
-                index++
-
-            console.log 'and all machines is', machines, 'filtered machines', filtered_machines
-            console.log 'and datacenter is', @datacenter, 'with id', @datacenter.get('id')
-
-
-            # Create a view for each shard
-            shard_views = _.map shards, (shard) -> new ReplicaPlanShard filtered_machines, shard
-
-            # TODO (Holy TODO) this is a copy/paste of AbstractModal!  Holy crap!
-            @$container.append @template
-                datacenter_uuid: @datacenter.get('id')
-                datacenter_name: @datacenter.get('name')
-                namespace_uuid: @namespace.get('id')
-                namespace_name: @namespace.get('name')
-                replicas:
-                    adding: adding
-                    removing: removing
-                    num_changed: num_changed
-                    num: num_replicas
-                    shards: shards ###### Pay attention to this this is where the action happens
-                acks:
-                    num: num_acks
-
-            for view in shard_views
-                renderee = view.render().el
-                console.log 'appending shard_view..', renderee
-                $('.shards tbody', @$container).append renderee
-
-            # Note: Bootstrap's modal JS moves the modal from the container element to the end of the body tag in the DOM
-            @$modal = $('.modal', @$container).modal
-                'show': true
-                'backdrop': true
-                'keyboard': true
-            .on 'hidden', =>
-                # Removes the modal dialog from the DOM
-                @$modal.remove()
-
-            # Define @el to be the modal (the root of the view), make sure events perform on it
-            @.setElement(@$modal)
-            @.delegateEvents()
-
-            # Fill in the passed validator options with default options
-            validator_options = _.defaults validator_options, @validator_defaults
-            @validator = $('form', @$modal).validate validator_options
-
-            register_modal @
-
+            # Render our fun inner lady bits
+            @render_inner()
 
     class ReplicaPlanShard extends Backbone.View
         template: Handlebars.compile $('#modify_replica_modal-replica_plan-shard-template').html()
@@ -478,7 +432,6 @@ module 'NamespaceView', ->
                     # prepare data for success template in case we succeed
                     old_replicas = @adjustReplicaCount(DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id), true)
                     new_replicas = parseInt(formdata.num_replicas)
-                    console.log old_replicas, new_replicas
                     modified_replicas = new_replicas isnt old_replicas
                     old_acks = DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.id)
                     new_acks = parseInt(formdata.num_acks)
@@ -536,6 +489,7 @@ module 'NamespaceView', ->
             secondary_uuids = DataUtils.get_shard_secondary_uuids namespace_uuid, shards[i]
             ret.push
                 name: human_readable_shard shards[i]
+                shard: shards[i]
                 notlast: i != shards.length - 1
                 index: i
                 primary:
@@ -543,10 +497,19 @@ module 'NamespaceView', ->
                     # primary_uuid may be null when a new shard hasn't hit the server yet
                     name: if primary_uuid then machines.get(primary_uuid).get('name') else null
                     status: if primary_uuid then DataUtils.get_machine_reachability(primary_uuid) else null
-                secondaries: _.map(secondary_uuids, (uuid) ->
-                    uuid: uuid
-                    name: machines.get(uuid).get('name')
-                    status: DataUtils.get_machine_reachability(uuid)
+                secondaries: _.map(secondary_uuids, (machine_uuids, datacenter_uuid) ->
+                    j = 0
+                    json =
+                        datacenter_uuid: datacenter_uuid
+                        datacenter_name: datacenters.get(datacenter_uuid).get('name')
+                        machines: _.map(machine_uuids, (machine_uuid) ->
+                            json =
+                                uuid: machine_uuid
+                                name: machines.get(machine_uuid).get('name')
+                                status: DataUtils.get_machine_reachability(machine_uuid)
+                            return json
+                            )
+                    return json
                     )
         return ret
 
@@ -574,8 +537,21 @@ module 'NamespaceView', ->
         render: =>
             log_render '(rendering) namespace view: shards'
 
+            shards_array = compute_renderable_shards_array(@model.get('id'), @model.get('shards'))
             @.$el.html @template
-                shards: compute_renderable_shards_array(@model.get('id'), @model.get('shards'))
+                shards: shards_array
+
+            # Bind events to 'assign machine' links
+            for shard in shards_array
+                @.$('#assign_master_' + shard.index).click (e) =>
+                    e.preventDefault()
+                for secondary in shard.secondaries
+                    @.$('#assign_machines_' + shard.index + '_' + secondary.datacenter_uuid).click (e) =>
+                        e.preventDefault()
+                        modal = new NamespaceView.EditMachinesModal @model, _.extend secondary,
+                            name: shard.name
+                            shard: shard.shard
+                        modal.render()
 
             return @
 
