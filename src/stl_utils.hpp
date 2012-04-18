@@ -28,6 +28,8 @@ bool std_exists_such_that(const container_t &, boost::function<bool(typename con
 template <class container_t>
 void std_forall_pairs(const container_t &, boost::function<void(typename container_t::const_iterator, typename container_t::const_iterator)>);
 
+//Note this function is kind of a hack because if you try to access with a
+//default value it will insert that value.
 template <class container_t>
 typename container_t::mapped_type &get_with_default(container_t &, const typename container_t::key_type &, const typename container_t::mapped_type &);
 

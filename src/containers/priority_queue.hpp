@@ -55,6 +55,9 @@ public:
     void update(int);
 public:
     void validate();
+
+private:
+    DISABLE_COPYING(priority_queue_t);
 };
 
 #include "containers/priority_queue.tcc"

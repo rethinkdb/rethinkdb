@@ -250,8 +250,13 @@ bool notf(bool x);
 
 std::string read_file(const char *path);
 
-std::vector<std::string> parse_as_path(const std::string &);
-std::string render_as_path(const std::vector<std::string> &);
+struct path_t {
+    std::vector<std::string> nodes;
+    bool is_absolute;
+};
+
+path_t parse_as_path(const std::string &);
+std::string render_as_path(const path_t &);
 
 
 #endif // UTILS_HPP_
