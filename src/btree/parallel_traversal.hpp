@@ -92,7 +92,8 @@ struct btree_traversal_helper_t {
     // This is free to call mark_deleted.
     virtual void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                                 const btree_key_t *left_exclusive_or_null,
-                                const btree_key_t *right_inclusive_or_null) = 0;
+                                const btree_key_t *right_inclusive_or_null,
+                                int *population_change_out) = 0;
 
     virtual void postprocess_internal_node(buf_lock_t *internal_node_buf) = 0;
 
