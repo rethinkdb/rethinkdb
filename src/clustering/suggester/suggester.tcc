@@ -125,7 +125,8 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
                     cost = 3.0;
                 }
 
-                if (!std_contains(secondary_pinnings, it->first)) {
+
+                if (!std_contains(secondary_pinnings, jt->first)) {
                     cost += 4.0;
                 }
 
