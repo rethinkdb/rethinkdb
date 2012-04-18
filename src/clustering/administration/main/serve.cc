@@ -51,10 +51,18 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     log_file_server_t log_file_server(&mailbox_manager, &log_file_writer);
 
+    // Initialize the stat manager before the directory manager so that we
+    // could initialize the cluster directory metadata with the proper
+    // stat_manager mailbox address
+    stat_manager_t stat_manager(&mailbox_manager);
+
+    cluster_directory_metadata_t cluster_directory_metadata_iv(
+        machine_id,
+        stat_manager.get_address(),
+        log_file_server.get_business_card());
+
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
-    directory_readwrite_manager_t<cluster_directory_metadata_t> directory_manager(&directory_manager_client,
-        cluster_directory_metadata_t(machine_id, log_file_server.get_business_card())
-        );
+    directory_readwrite_manager_t<cluster_directory_metadata_t> directory_manager(&directory_manager_client, cluster_directory_metadata_iv);
     message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_manager);
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
@@ -151,9 +159,9 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     administrative_http_server_manager_t administrative_http_interface(
         port + 1000,
+        &mailbox_manager,
         semilattice_manager_cluster.get_root_view(),
         directory_manager.get_root_view(),
-        &mailbox_manager,
         &issue_aggregator,
         &last_seen_tracker,
         machine_id,

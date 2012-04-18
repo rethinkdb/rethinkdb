@@ -28,17 +28,32 @@ TEST(UtilsTest, StrtofooStrict) {
 
     const char *end;
 
-    ASSERT_EQ(0, strtoul_strict(test1, &end, 10));
-    ASSERT_EQ(1024, strtoul_strict(test2, &end, 10));
-    ASSERT_EQ(0, strtoul_strict(test3, &end, 10));
-    ASSERT_EQ(123, strtoul_strict(test4, &end, 10));
+    ASSERT_EQ(0, strtou64_strict(test1, &end, 10));
+    ASSERT_EQ(1024, strtou64_strict(test2, &end, 10));
+    ASSERT_EQ(0, strtou64_strict(test3, &end, 10));
+    ASSERT_EQ(123, strtou64_strict(test4, &end, 10));
     ASSERT_FALSE(strncmp("lskdjf", end, 6));
 
-    ASSERT_EQ(0, strtoull_strict(test1, &end, 10));
-    ASSERT_EQ(1024, strtoull_strict(test2, &end, 10));
-    ASSERT_EQ(0, strtoull_strict(test3, &end, 10));
-    ASSERT_EQ(123, strtoull_strict(test4, &end, 10));
-    ASSERT_FALSE(strncmp("lskdjf", end, 6));
+    bool success;
+    uint64_t u_res;
+    int64_t i_res;
+
+    success = strtou64_strict(std::string(test1), 10, &u_res);
+    ASSERT_TRUE(!success && u_res == 0);
+    success = strtoi64_strict(std::string(test1), 10, &i_res);
+    ASSERT_TRUE(success && i_res == -1024);
+    success = strtou64_strict(std::string(test2), 10, &u_res);
+    ASSERT_TRUE(success && u_res == 1024);
+    success = strtoi64_strict(std::string(test2), 10, &i_res);
+    ASSERT_TRUE(success && i_res == 1024);
+    success = strtou64_strict(std::string(test3), 10, &u_res);
+    ASSERT_TRUE(!success && u_res == 0);
+    success = strtoi64_strict(std::string(test3), 10, &i_res);
+    ASSERT_TRUE(!success && i_res == 0);
+    success = strtou64_strict(std::string(test4), 10, &u_res);
+    ASSERT_TRUE(!success && u_res == 0);
+    success = strtoi64_strict(std::string(test4), 10, &i_res);
+    ASSERT_TRUE(!success && i_res == 0);
 }
 
 TEST(UtilsTest, PreciseTime) {

@@ -369,7 +369,7 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
     if (!str_to_key(key, key_out)) return false;
 
     const char *invalid_char;
-    int64_t open_flag = strtol_strict(flag, &invalid_char, 10);
+    int64_t open_flag = strtoi64_strict(flag, &invalid_char, 10);
     if (*invalid_char != '\0') return false;
 
     switch (open_flag) {
@@ -419,7 +419,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
 
     /* Parse max items count */
     const char *invalid_char;
-    uint64_t max_items = strtoull_strict(argv[5], &invalid_char, 10);
+    uint64_t max_items = strtou64_strict(argv[5], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq.done_argparsing();
         pipeliner_acq.begin_write();
@@ -664,7 +664,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     pm_storage_key_size.record((float) key.size);
 
     /* Next parse the flags */
-    mcflags_t mcflags = strtoul_strict(argv[2], &invalid_char, 10);
+    mcflags_t mcflags = strtou64_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq->done_argparsing();
         pipeliner_acq->begin_write();
@@ -675,7 +675,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     }
 
     /* Now parse the expiration time */
-    exptime_t exptime = strtoul_strict(argv[3], &invalid_char, 10);
+    exptime_t exptime = strtou64_strict(argv[3], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq->done_argparsing();
         pipeliner_acq->begin_write();
@@ -704,7 +704,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     }
 
     /* Now parse the value length */
-    size_t value_size = strtoul_strict(argv[4], &invalid_char, 10);
+    size_t value_size = strtou64_strict(argv[4], &invalid_char, 10);
     // Check for signed 32 bit max value for Memcached compatibility...
     if (*invalid_char != '\0' || value_size >= (1u << 31) - 1) {
         pipeliner_acq->done_argparsing();
@@ -719,7 +719,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     /* If a "cas", parse the cas_command unique */
     cas_t unique = NO_CAS_SUPPLIED;
     if (sc == cas_command) {
-        unique = strtoull_strict(argv[5], &invalid_char, 10);
+        unique = strtou64_strict(argv[5], &invalid_char, 10);
         if (*invalid_char != '\0') {
             pipeliner_acq->done_argparsing();
             pipeliner_acq->begin_write();
@@ -842,7 +842,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool i, i
 
     /* Parse amount to change by */
     const char *invalid_char;
-    uint64_t delta = strtoull_strict(argv[2], &invalid_char, 10);
+    uint64_t delta = strtou64_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq.done_argparsing();
         pipeliner_acq.begin_write();
