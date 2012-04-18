@@ -65,12 +65,16 @@ module 'DataUtils', ->
         return null
 
     @get_shard_secondary_uuids = (namespace_uuid, shard) ->
-        secondaries = []
+        # We're organizing secondaries per datacenter
+        secondaries = {}
         for machine_uuid, peers_roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+            datacenter_uuid = machines.get(machine_uuid).get('datacenter_uuid')
             for _shard, role of peers_roles
                 if shard.toString() is _shard.toString() and role is 'role_secondary'
-                    secondaries[secondaries.length] = machine_uuid
-        return _.uniq(secondaries)
+                    if not secondaries[datacenter_uuid]?
+                        secondaries[datacenter_uuid] = []
+                    secondaries[datacenter_uuid][secondaries[datacenter_uuid].length] = machine_uuid
+        return secondaries
 
     @get_ack_expectations = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
@@ -89,6 +93,9 @@ module 'DataUtils', ->
             return affs
         else
             return 0
+
+    @get_datacenter_machines = (datacenter_uuid) ->
+        return _.filter(machines.models, (m) -> m.get('datacenter_uuid') is datacenter_uuid)
 
 class DataStream extends Backbone.Model
     max_cached: 250
