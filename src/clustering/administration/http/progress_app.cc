@@ -12,6 +12,10 @@
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 
+static const char * PROGRESS_REQ_TIMEOUT_PARAM = "timeout";
+static const uint64_t DEFAULT_PROGRESS_REQ_TIMEOUT_MS = 500;
+static const uint64_t MAX_PROGRESS_REQ_TIMEOUT_MS = 60*1000;
+
 /* A record of a request made to another peer for progress on a backfill. */
 class request_record_t {
 public:
@@ -294,10 +298,21 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
 
     /* If a machine has disconnected, or the mailbox for the
      * backfill has gone out of existence we'll never get a
-     * response. Thus we need to have a time out. This one is
-     * for 500 ms. TODO make it so the http request can set the
-     * timeout. */
-    signal_timer_t timer(DEFAULT_PROGRESS_REQ_TIMEOUT);
+     * response. Thus we need to have a time out.
+     * We parse the 'timeout' query parameter here if it is
+     * present, and if not, just use the default value of 500ms.
+     */
+    boost::optional<std::string> timeout_param = req.find_query_param(PROGRESS_REQ_TIMEOUT_PARAM);
+    uint64_t timeout = DEFAULT_PROGRESS_REQ_TIMEOUT_MS;
+    if (timeout_param) {
+        if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_PROGRESS_REQ_TIMEOUT_MS) {
+            http_res_t res(400);
+            res.set_body("application/text", "Invalid timeout value");
+            return res;
+        }
+    }
+
+    signal_timer_t timer(timeout);
 
     /* Now we write a bunch of nested for loops to iterate through each layer,
      * this is annoying but hopefully it's pretty clear what's going on. */

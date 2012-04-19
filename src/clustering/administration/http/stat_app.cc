@@ -14,7 +14,7 @@
 
 static const char * STAT_REQ_TIMEOUT_PARAM = "timeout";
 static const uint64_t DEFAULT_STAT_REQ_TIMEOUT_MS = 1000;
-static const uint64_t MAX_STAT_REQ_TIMEOUT_MS = 600*1000;
+static const uint64_t MAX_STAT_REQ_TIMEOUT_MS = 60*1000;
 
 class stats_request_record_t {
 public:
@@ -40,21 +40,15 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
     typedef boost::ptr_map<machine_id_t, stats_request_record_t> stats_promises_t;
     stats_promises_t stats_promises;
 
-    // This is a ridiculous piece of code, considering its functionality.
-    // FIXME: write nice functions that let simplify this parameter conversion/checking.
+    // Parse the 'timeout' query parameter
     boost::optional<std::string> timeout_param = req.find_query_param(STAT_REQ_TIMEOUT_PARAM);
-    uint64_t timeout;
+    uint64_t timeout = DEFAULT_STAT_REQ_TIMEOUT_MS;
     if (timeout_param) {
-        std::string& timeout_str = timeout_param.get();
-        const char *end = NULL;
-        timeout = strtou64_strict(timeout_str.c_str(), &end, 10);
-        if (timeout == 0 || timeout > MAX_STAT_REQ_TIMEOUT_MS) {
+        if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_STAT_REQ_TIMEOUT_MS) {
             http_res_t res(400);
             res.set_body("application/text", "Invalid timeout value");
             return res;
         }
-    } else {
-        timeout = DEFAULT_STAT_REQ_TIMEOUT_MS;
     }
 
     /* If a machine has disconnected, or the mailbox for the

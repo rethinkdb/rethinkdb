@@ -6,8 +6,6 @@
 #include "http/http.hpp"
 #include "rpc/directory/read_view.hpp"
 
-#define DEFAULT_PROGRESS_REQ_TIMEOUT 500
-
 class progress_app_t : public http_app_t {
 public:
     progress_app_t(clone_ptr_t<directory_rview_t<cluster_directory_metadata_t> > _directory_metadata, mailbox_manager_t *_mbox_manager);
