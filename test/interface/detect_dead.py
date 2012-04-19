@@ -4,10 +4,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.
 import driver, http_admin
 from vcoptparse import *
 
-op = OptParser()
-op["log_file"] = StringFlag("--log-file", "stdout")
-opts = op.parse(sys.argv)
-
 with driver.Metacluster() as metacluster:
     cluster1 = driver.Cluster(metacluster)
     print "Spinning up two processes..."

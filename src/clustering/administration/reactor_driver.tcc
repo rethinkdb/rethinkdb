@@ -63,6 +63,7 @@ public:
 
         /* The reactor must be destroyed before we remove the entry from
          * the directory map. C'est la vie. */
+        write_copier.reset();
         reactor.reset();
 
         {
