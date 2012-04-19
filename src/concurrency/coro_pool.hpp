@@ -16,10 +16,11 @@ all of its tasks and draining its `passive_producer_t` before its destructor
 returns. */
 
 class coro_pool_t :
+    private availability_callback_t,
     public home_thread_mixin_t
 {
 public:
-    coro_pool_t(size_t worker_count_, availability_t * const available_);
+    coro_pool_t(size_t worker_count, availability_t *const available);
     virtual ~coro_pool_t();
     void rethread(int new_thread);
 

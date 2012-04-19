@@ -5,14 +5,14 @@
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 
-coro_pool_t::coro_pool_t(size_t worker_count_, availability_t * const available_) :
-    available(available_),
-    max_worker_count(worker_count_),
+coro_pool_t::coro_pool_t(size_t _worker_count, availability_t * const _available) :
+    available(_available),
+    max_worker_count(_worker_count),
     active_worker_count(0)
 {
     rassert(max_worker_count > 0);
     on_source_availability_changed();   // Start process if necessary
-    available->set_callback(boost::bind(&coro_pool_t::on_source_availability_changed, this));
+    available->set_callback(this);
 }
 
 coro_pool_t::~coro_pool_t() {
