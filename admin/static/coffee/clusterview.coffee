@@ -145,14 +145,13 @@ module 'ClusterView', ->
 
             super datacenters, ClusterView.DatacenterListElement, 'div.datacenters'
 
-            @unassigned_machines = new ClusterView.MachineList(null)
+            @unassigned_machines = new ClusterView.UnassignedMachinesListElement()
+            window.um = @unassigned_machines
 
         render: =>
             super
             
-            $machines_row = @.$('.unassigned-machines .row.machines')
-            $('.machine-list', $machines_row).html @unassigned_machines.render().el 
-            $machines_row.hide()
+            @.$('.unassigned-machines').html @unassigned_machines.render().el 
 
             return @
 
@@ -189,7 +188,7 @@ module 'ClusterView', ->
                 @set_datacenter_dialog.render @get_selected_elements()
             event.preventDefault()
 
-    # Abstract list element that shows basic info about the element and is clickable
+    # Abstract list element that show info about the element and has a checkbox
     class @CheckboxListElement extends Backbone.View
         tagName: 'tr'
         className: 'element'
@@ -228,7 +227,6 @@ module 'ClusterView', ->
             # Toggle the selected class  and check / uncheck  its checkbox
             @.$el.toggleClass 'selected', @selected
             $(':checkbox', @el).prop 'checked', @selected
-
 
     # Namespace list element
     class @NamespaceListElement extends @CheckboxListElement
@@ -276,27 +274,55 @@ module 'ClusterView', ->
 
             return json
 
+
+    class @CollapsibleListElement extends Backbone.View
+        events: ->
+            'click .header': 'toggle_showing'
+
+        initialize: ->
+            @showing = true
+
+        render: =>
+            @show_no_transition()
+            @delegateEvents()
+
+        toggle_showing: =>
+            @showing = not @showing
+            @show()
+
+        show_no_transition: =>
+            @.$('.machine-list').toggle @showing
+            @swap_arrow()
+
+        show: =>
+            @.$('.machine-list').slideToggle()
+            @swap_arrow()
+
+        swap_arrow: =>
+            $arrow = @.$('.collapsed, .expanded')
+            if @showing
+                $arrow.removeClass('collapsed').addClass('expanded')
+            else
+                $arrow.removeClass('expanded').addClass('collapsed')
+
+
     # Datacenter list element
-    class @DatacenterListElement extends Backbone.View
+    class @DatacenterListElement extends @CollapsibleListElement
         template: Handlebars.compile $('#datacenter_list_element-template').html()
 
-        tagName: 'div'
         className: 'datacenter element'
-
-        events: ->
-            'click .row.header': 'collapse'
 
         initialize: ->
             log_initial '(initializing) list view: datacenter'
 
+            super
+
             @machine_list = new ClusterView.MachineList @model.get('id')
 
             # Any of these models may affect the view, so rerender
-            directory.on 'all', => @render()
-            machines.on 'all', => @render()
-            datacenters.on 'all', => @render()
-
-            super @template
+            directory.on 'all', @render
+            machines.on 'all', @render
+            datacenters.on 'all', @render
 
         json_for_template: =>
             json = _.extend @model.toJSON(),
@@ -328,12 +354,32 @@ module 'ClusterView', ->
 
             # Attach a list of available machines to the given datacenter
             @.$('.machine-list').html @machine_list.render().el
-            @.$('.row.machines').hide()
+
+            super
 
             return @
 
-        collapse: =>
-            @.$('.row.machines').slideToggle()
+    class @UnassignedMachinesListElement extends @CollapsibleListElement
+        template: Handlebars.compile $('#unassigned_machines_list_element-template').html()
+
+        className: 'unassigned-machines element'
+
+        initialize: ->
+            super
+
+            @machine_list = new ClusterView.MachineList null
+
+            machines.on 'all', @render
+
+        render: =>
+            @.$el.html @template()
+
+            # Attach a list of available machines to the given datacenter
+            @.$('.machine-list').html @machine_list.render().el
+
+            super
+
+            return @
 
     # Machine list element
     class @MachineListElement extends @CheckboxListElement

@@ -141,22 +141,7 @@
             </div>
             <div class="server-list list">
                 <div class="datacenters"></div>
-                <div class="unassigned-machines">
-                    <div class="row header">
-                        <div class="span1">
-                            <div class="collapsed"></div>
-                        </div>
-                        <div class="span8">
-                            <h3 class="name">Unassigned machines</h3>
-                        </div>
-                    </div>
-                    <div class="row machines">
-                        <div class="span1"><p></p></div>
-                        <div class="span8">
-                            <div class="machine-list"></div>
-                        </div>
-                    </div>
-                </div>
+                <div class="unassigned-machines"></div>
             </div>
         </script>
 
@@ -185,27 +170,34 @@
 
         <script id="datacenter_list_element-template" type="text/x-handlebars-template">
             <div class="row header">
-                <div class="span1">
-                    <div class="collapsed"></div>
-                </div>
-                <div class="span6">
-                    <h3 class="name"><a href="#datacenters/{{id}}">{{name}}</a></h3>
-                    <div class="details">
+                <div class="span7">
+                    <div class="expanded icon"></div>
+                    <h3 class="datacenter name"><a href="#datacenters/{{id}}">{{name}}</a></h3>
+                    <div class="datacenter details">
                         <p><span class="status">Status: {{humanize_datacenter_reachability status}}</span></p>
                         <p><span class="Contains">Contains: {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}} for {{namespace_count}} {{pluralize_noun "namespace" namespace_count}}</span></p>
                     </div>
                 </div>
                 <div class="span2">
-                    <div class="actions">
+                    <div class="datacenter actions">
                         <p>(<a href="btn remove-datacenter">remove this datacenter</a>)</p>
                     </div>
                 </div>
             </div>
-            <div class="row machines">
-                <div class="span1"><p></p></div>
-                <div class="span8">
-                    <div class="machine-list"></div>
-                </div>
+            <div class="machine-list"></div>
+            <div class="summary expanded">
+                6 machines
+            </div>
+        </script>
+
+        <script id="unassigned_machines_list_element-template" type="text/x-handlebars-template">
+            <div class="header">
+                <div class="expanded icon"></div>
+                <h3 class="datacenter name">Unassigned machines</h3>
+            </div>
+            <div class="machine-list"></div>
+            <div class="summary expanded">
+                6 machines
             </div>
         </script>
 
@@ -1237,7 +1229,6 @@
         <script type="text/javascript" src="js/bootstrap/bootstrap-modal.js"></script>
         <script type="text/javascript" src="js/bootstrap/bootstrap-alert.js"></script>
         <script type="text/javascript" src="js/bootstrap/bootstrap-typeahead.js"></script>
-        <script type="text/javascript" src="js/bootstrap/bootstrap-collapse.js"></script>
         <script type="text/javascript" src="js/jquery.sparkline.min.js"></script>
         <script type="text/javascript" src="js/jquery.validate.min.js"></script>
         <script type="text/javascript" src="js/jquery.hotkeys.js"></script>

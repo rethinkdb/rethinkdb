@@ -559,20 +559,44 @@
 .server-list {
     margin-top: 20px;
 
-    .datacenter .collapsed, .unassigned-machines .collapsed {
-        background: url('/images/circle_plus.png') no-repeat center top;
-        width: 32px;
-        height: 32px;
-    }
-    .datacenter {
-        h3.name { 
-            line-height: 1em;
-            margin-bottom: 0.5em;
+    .icon {
+        width: 16px;
+        height: 16px;
+        float: left;
+        &.collapsed {
+            background: url('/images/mini_right-arrow.png') no-repeat center top;
         }
-        .actions { text-align: right; }
+        &.expanded {
+            background: url('/images/mini_down-arrow.png') no-repeat center top;
+            margin-top: 3px;
+        }
     }
-    > .details {
+
+    .summary {
+        &.expanded { display: none; }
+
+        &.collapsed {
+           margin-top: 10px;
+           margin-bottom: 20px;
+           border-bottom: thin solid @grayLight;
+           margin-left: 28px;
+        }
+    }
+
+    h3.datacenter.name { 
+        line-height: 1em;
+        margin-bottom: 1em;
+        margin-left: 28px;
+    }
+
+    .datacenter.actions { text-align: right; }
+
+    .datacenter.details {
         margin-top: 10px;
+        margin-left: 28px;
+    }
+    .machine-list {
+        margin-left: 28px;
     }
 }
 

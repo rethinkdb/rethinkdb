@@ -48,8 +48,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/alert-icon_small.png");
     white_list.insert("/images/critical-issue_small.png");
     white_list.insert("/images/information-icon_small.png");
-    white_list.insert("/images/circle_plus.png");
-    white_list.insert("/images/circle_minus.png");
+    white_list.insert("/images/mini_right-arrow.png");
+    white_list.insert("/images/mini_down-arrow.png");
     white_list.insert("/index.html");
     file_app.reset(new file_http_app_t(white_list, path));
 
