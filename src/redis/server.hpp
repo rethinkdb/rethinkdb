@@ -1,9 +1,8 @@
 #ifndef REDIS_SERVER_HPP_
 #define REDIS_SERVER_HPP_
 
-#include "arch/arch.hpp"
-
 // Just for this dummy namespace interface thing until clustering is better prepared
+#include "concurrency/auto_drainer.hpp"
 #include "redis/redis.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/dummy_namespace_interface.hpp"

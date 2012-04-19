@@ -1,5 +1,7 @@
 #include "clustering/administration/logger.hpp"
 
+#include <stdarg.h>
+
 #include "errors.hpp"
 #include <boost/scoped_array.hpp>
 

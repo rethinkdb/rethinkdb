@@ -4,7 +4,7 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
-#include "arch/io/network.hpp"
+#include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/archive/tcp_conn_stream.hpp"
@@ -24,6 +24,8 @@ public:
             int port,
             message_handler_t *message_handler,
             int client_port = 0) THROWS_NOTHING;
+
+        ~run_t();
 
         /* Attaches the cluster this node is part of to another existing
         cluster. May only be called on home thread. Returns immediately (it does
@@ -133,7 +135,7 @@ public:
         auto_drainer_t drainer;
 
         /* This must be destroyed before `drainer` is. */
-        tcp_listener_t listener;
+        tcp_listener_t *listener;
     };
 
     connectivity_cluster_t() THROWS_NOTHING;
