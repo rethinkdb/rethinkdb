@@ -1037,12 +1037,12 @@
             </div>
         </script>
 
-        <script id="edit_machines-modal-template-outer" type="text/x-handlebars-template">
+        <script id="edit_replica_machines-modal-template-outer" type="text/x-handlebars-template">
             <div class="modal modify-replicas">
                 <form class="form">
                     <div class="modal-header">
                         <a href="#" class="close">&times;</a>
-                        <h3>{{#if changing_primary}}Master machine{{else}}Replica machines{{/if}} for shard {{name}} in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a></h3>
+                        <h3>Replica machines for shard {{name}} in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a></h3>
                     </div>
                     <div class="modal-body">
                     </div>
@@ -1053,7 +1053,7 @@
                 </form>
             </div>
         </script>
-        <script id="edit_machines-modal-template-inner" type="text/x-handlebars-template">
+        <script id="edit_replica_machines-modal-template-inner" type="text/x-handlebars-template">
           <div class="current-replicas">
             {{#if change_hints}}
               <h4>Change replica assignments:</h4>
@@ -1079,6 +1079,44 @@
                 {{/each}}
               </ul>
               <a id="btn_change_hints" href="#">Change assignments</a>
+              {{/if}}
+          </div>
+        </script>
+
+        <script id="edit_master_machine-modal-template-outer" type="text/x-handlebars-template">
+            <div class="modal modify-master">
+                <form class="form">
+                    <div class="modal-header">
+                        <a href="#" class="close">&times;</a>
+                        <h3>Master machine for shard {{name}} in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a></h3>
+                    </div>
+                    <div class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn primary commit-plan" type="submit" name="commit-plan" value="Commit changes">Commit changes</button>
+                        <a href="#" class="btn edit-machines cancel">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </script>
+        <script id="edit_master_machine-modal-template-inner" type="text/x-handlebars-template">
+          <div class="current-master">
+            {{#if change_hints}}
+              <h4>Change master assignment:</h4>
+              <ul>
+                <li>
+                  <select class="pinned_machine_choice" name="pinned_master_uuid">
+                    {{#each dc_machines}}
+                    <option value="{{machine_uuid}}" {{#if selected}}selected="selected"{{/if}}>{{machine_name}}</option>
+                    {{/each}}
+                  </select>
+                </li>
+              </ul>
+              <a id="btn_change_hints_cancel" href="#">Cancel</a>
+              {{else}}
+              <h4>Current master assignment:</h4>
+              <li><a href="/#machines/{{master_uuid}}">{{master_name}}</a> {{humanize_machine_reachability master_status}}</li>
+              <a id="btn_change_hints" href="#">Change assignment</a>
               {{/if}}
           </div>
         </script>

@@ -229,13 +229,13 @@ module 'NamespaceView', ->
             array_for_template = _.map namespaces_to_delete, (namespace) -> namespace.toJSON()
             super validator_options, { 'namespaces': array_for_template }
 
-    class @EditMachinesModal extends ClusterView.AbstractModal
-        template: Handlebars.compile $('#edit_machines-modal-template-outer').html()
-        template_inner: Handlebars.compile $('#edit_machines-modal-template-inner').html()
+    class @EditReplicaMachinesModal extends ClusterView.AbstractModal
+        template: Handlebars.compile $('#edit_replica_machines-modal-template-outer').html()
+        template_inner: Handlebars.compile $('#edit_replica_machines-modal-template-inner').html()
         alert_tmpl: Handlebars.compile $('#edit_machines-alert-template').html()
 
         initialize: (namespace, secondary) ->
-            console.log '(initializing) modal dialog: modify replicas review changes'
+            console.log '(initializing) modal dialog: modify replica assignments changes'
             @namespace = namespace
             @secondary = secondary
             _.extend @secondary,
@@ -341,6 +341,90 @@ module 'NamespaceView', ->
 
             # Render the modal
             super validator_options, @secondary
+
+            # Render our fun inner lady bits
+            @render_inner()
+
+    class @EditMasterMachineModal extends ClusterView.AbstractModal
+        template: Handlebars.compile $('#edit_master_machine-modal-template-outer').html()
+        template_inner: Handlebars.compile $('#edit_master_machine-modal-template-inner').html()
+        alert_tmpl: Handlebars.compile $('#edit_machines-alert-template').html()
+
+        initialize: (namespace, shard) ->
+            console.log '(initializing) modal dialog: modify master assignment'
+            @namespace = namespace
+            @shard = shard
+            @master_uuid = DataUtils.get_shard_primary_uuid(namespace.get('id'), @shard)
+            @change_hints_state = false
+            super @template
+
+
+        render_inner: ->
+            # compute all machines in the primary datacenter
+            dc_machines = _.map DataUtils.get_datacenter_machines(@namespace.get('primary_uuid')), (m) =>
+                    machine_name: m.get('name')
+                    machine_uuid: m.get('id')
+                    selected: @master_uuid is m.get('id')
+
+            # render vendor shmender blender zender
+            json =
+                dc_machines: dc_machines
+                change_hints: @change_hints_state
+                master_uuid: @master_uuid
+                master_name: machines.get(@master_uuid).get('name')
+                master_status: DataUtils.get_machine_reachability(@master_uuid)
+            @.$('.modal-body').html(@template_inner json)
+
+            # Bind change assignment hints action
+            @.$('#btn_change_hints').click (e) =>
+                e.preventDefault()
+                @change_hints_state = true
+                @render_inner()
+            @.$('#btn_change_hints_cancel').click (e) =>
+                e.preventDefault()
+                @change_hints_state = false
+                @render_inner()
+
+            return @
+
+        render: ->
+            validator_options =
+                submitHandler: =>
+                    pinned_master = _.find @.$('form').serializeArray(), (obj) -> obj.name is 'pinned_master_uuid'
+                    if not pinned_master?
+                        # If they didn't specify the pin, do nothing
+                        clear_modals()
+                        return
+                    # We need to remove the new master pin from the secondary pinnings
+                    secondary_pins = _.find @namespace.get('secondary_pinnings'), (pins, shard) =>
+                        return shard.toString() is @shard.toString()
+                    secondary_pins = _.filter secondary_pins, (uuid) =>
+                        console.log uuid, pinned_master.value, uuid isnt pinned_master.value
+                        return uuid isnt pinned_master.value
+
+                    # Whooo
+                    output_master = {}
+                    output_master[@shard] = pinned_master.value
+                    output_secondaries = {}
+                    output_secondaries[@shard] = secondary_pins
+                    output =
+                        primary_pinnings: output_master
+                        secondary_pinnings: output_secondaries
+                    $.ajax
+                        processData: false
+                        url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                        type: 'POST'
+                        data: JSON.stringify(output)
+                        success: (response) =>
+                            clear_modals()
+                            namespaces.get(@namespace.id).set(response)
+                            $('#user-alert-space').append (@alert_tmpl {})
+
+            # Render the modal
+            super validator_options,
+                name: human_readable_shard @shard
+                datacenter_uuid: @namespace.get('primary_uuid')
+                datacenter_name: datacenters.get(@namespace.get('primary_uuid')).get('name')
 
             # Render our fun inner lady bits
             @render_inner()
@@ -487,15 +571,17 @@ module 'NamespaceView', ->
             @shards = []
 
         bind_edit_machines: (shard) ->
-            # TODO: deal with this later
+            # Master assignments
             @.$('#assign_master_' + shard.index).click (e) =>
                 e.preventDefault()
+                modal = new NamespaceView.EditMasterMachineModal @model, shard.shard
+                modal.render()
 
             # Fucking JS closures
             bind_shard = (shard, secondary) =>
                 @.$('#assign_machines_' + shard.index + '_' + secondary.datacenter_uuid).click (e) =>
                     e.preventDefault()
-                    modal = new NamespaceView.EditMachinesModal @model, _.extend secondary,
+                    modal = new NamespaceView.EditReplicaMachinesModal @model, _.extend secondary,
                         name: shard.name
                         shard: shard.shard
                     modal.render()
