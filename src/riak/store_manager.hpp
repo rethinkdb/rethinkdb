@@ -27,6 +27,7 @@ structures into a metadata file or metadata_store of some kind.
 
 #include "riak/structures.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "serializer/config.hpp"
 
 

@@ -63,7 +63,6 @@ if __name__ == "__main__":
 
     print "#include \"containers/archive/archive.hpp\""
     print "#include \"containers/archive/stl_types.hpp\""
-    print "#include \"containers/archive/boost_types.hpp\""
     print
 
     print """
