@@ -48,16 +48,3 @@ void coro_pool_t::rethread(int new_thread) {
     real_home_thread = new_thread;
     coro_drain_semaphore.rethread(new_thread);
 }
-
-coro_pool_boost_t::coro_pool_boost_t(size_t worker_count_, passive_producer_t<boost::function<void()> > *source_) :
-    coro_pool_t(worker_count_, source_->available),
-    source(source_)
-{ }
-
-coro_pool_boost_t::~coro_pool_boost_t()
-{ }
-
-void coro_pool_boost_t::run_internal()
-{
-    source->pop()();
-}

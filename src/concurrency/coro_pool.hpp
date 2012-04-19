@@ -1,9 +1,6 @@
 #ifndef CONCURRENCY_CORO_POOL_HPP_
 #define CONCURRENCY_CORO_POOL_HPP_
 
-#include "utils.hpp"
-#include <boost/function.hpp>
-
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 
@@ -35,18 +32,6 @@ private:
     availability_t * const available;
     int max_worker_count, active_worker_count;
     auto_drainer_t coro_drain_semaphore;
-};
-
-class coro_pool_boost_t :
-    public coro_pool_t
-{
-private:
-    passive_producer_t<boost::function<void()> > *source;
-    void run_internal();
-
-public:
-    coro_pool_boost_t(size_t worker_count_, passive_producer_t<boost::function<void()> > *source_);
-    ~coro_pool_boost_t();
 };
 
 template <class Param>
