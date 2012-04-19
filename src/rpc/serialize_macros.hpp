@@ -6,7 +6,6 @@ Please modify '../scripts/generate_serialize_macros.py' instead of modifying thi
 
 #include "containers/archive/archive.hpp"
 #include "containers/archive/stl_types.hpp"
-#include "containers/archive/boost_types.hpp"
 
 /* The purpose of these macros is to make it easier to serialize and
 unserialize data types that consist of a simple series of fields, each of which

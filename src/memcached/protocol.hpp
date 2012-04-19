@@ -12,12 +12,13 @@
 #include "btree/operations.hpp"
 #include "btree/backfill.hpp"
 #include "buffer_cache/types.hpp"
+#include "containers/archive/boost_types.hpp"
+#include "containers/iterators.hpp"
 #include "memcached/queries.hpp"
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "timestamps.hpp"
-#include "containers/iterators.hpp"
 
 inline write_message_t &operator<<(write_message_t &msg, const boost::intrusive_ptr<data_buffer_t> &buf) {
     if (buf) {
