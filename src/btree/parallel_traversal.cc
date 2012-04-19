@@ -274,12 +274,20 @@ void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblo
 
     buf_lock_t * superblock_buf = static_cast<real_superblock_t*>(got_superblock.sb.get())->get(); // TODO: Ugh
 
+    const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
+
     /* Make sure there's a stat block*/
     ensure_stat_block(txn, got_superblock.sb.get(), incr_priority(ZERO_EVICTION_PRIORITY));
 
-    const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
-
+    /* Record the stat block for updating populations later */
     state.stat_block = superblock->stat_block;
+
+    {
+        /* Give the helper a look at the stat block */
+        buf_lock_t stat_block(txn, state.stat_block, rwi_read);
+        helper->read_stat_block(&stat_block);
+    }
+
     
     if (helper->progress) {
         helper->progress->inform(0, traversal_progress_t::LEARN, traversal_progress_t::INTERNAL);
@@ -393,8 +401,14 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t *buf, int level,
 
     state->helper->process_a_leaf(state->transaction_ptr, buf, left_exclusive_or_null, right_inclusive_or_null, &population_change);
 
-    buf_lock_t stat_block(state->transaction_ptr, state->stat_block, rwi_write);
-    reinterpret_cast<btree_statblock_t *>(stat_block.get_data_major_write())->population += population_change;
+    if (state->helper->btree_node_mode() != rwi_write) {
+        rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
+    } else if (population_change != 0) {
+        buf_lock_t stat_block(state->transaction_ptr, state->stat_block, rwi_write);
+        reinterpret_cast<btree_statblock_t *>(stat_block.get_data_major_write())->population += population_change;
+    } else {
+        //don't aquire the block to not change the value
+    }
 
     delete buf;
     if (state->helper->progress) {

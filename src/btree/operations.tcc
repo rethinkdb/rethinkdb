@@ -165,6 +165,7 @@ void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_
     value_sizer_t<void> *sizer = &v_sizer;
 
     ensure_stat_block(txn, keyvalue_location_out->sb.get(), incr_priority(ZERO_EVICTION_PRIORITY));
+    keyvalue_location_out->stat_block = keyvalue_location_out->sb->get_stat_block_id();
 
     buf_lock_t last_buf;
     buf_lock_t buf;

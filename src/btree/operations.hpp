@@ -131,7 +131,7 @@ private:
 template <class Value>
 class keyvalue_location_t {
 public:
-    keyvalue_location_t() : there_originally_was_value(false) { }
+    keyvalue_location_t() : there_originally_was_value(false), stat_block(NULL_BLOCK_ID) { }
 
     boost::scoped_ptr<superblock_t> sb;
 

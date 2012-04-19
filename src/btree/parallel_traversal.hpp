@@ -89,6 +89,12 @@ struct btree_traversal_helper_t {
         : progress(NULL)
     { }
 
+    //Before any of these other functions are called the helper gets a chance
+    //to look at the stat block and possibly record some values of interest
+    //Notice the values in the stat block do not reflect changes which are
+    //still traversing the tree at the time this is called.
+    virtual void read_stat_block(buf_lock_t *) { }
+
     // This is free to call mark_deleted.
     virtual void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                                 const btree_key_t *left_exclusive_or_null,
@@ -103,6 +109,7 @@ struct btree_traversal_helper_t {
 
     virtual access_t btree_superblock_mode() = 0;
     virtual access_t btree_node_mode() = 0;
+
 
     virtual ~btree_traversal_helper_t() { }
 
