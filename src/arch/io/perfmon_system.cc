@@ -124,7 +124,7 @@ struct perfmon_system_t :
     public perfmon_t
 {
     bool have_reported_error;
-    perfmon_system_t() : perfmon_t(false), have_reported_error(false) { }
+    perfmon_system_t() : perfmon_t(false), have_reported_error(false), start_time(time(NULL)) { }
 
     void *begin_stats() {
         return NULL;
@@ -152,13 +152,12 @@ struct perfmon_system_t :
         (*dest)["memory_real[bytes]"] = strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE));
     }
     void put_timestamp(perfmon_stats_t *dest) {
-        timespec uptime = get_uptime();
-
-        std::string uptime_str = strprintf("%ld.%06ld", uptime.tv_sec, uptime.tv_nsec / 1000);
-
-        (*dest)["uptime"] = uptime_str;
-        (*dest)["timestamp"] = format_precise_time(get_absolute_time(uptime));
+        time_t now = time(NULL);
+        (*dest)["uptime"] = strprintf("%d", now - start_time);
+        (*dest)["timestamp"] = format_time(now);
     }
+
+    time_t start_time;
 } pm_system;
 
 /* Some of the stats need to be polled periodically. Call this function periodically on each

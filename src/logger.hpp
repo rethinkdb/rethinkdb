@@ -5,19 +5,19 @@
 This header file exists so that anything can call them without having to include
 the same things that `clustering/administration/logger.hpp` does. */
 
-enum log_level_t { DBG = 0, INF = 1, WRN, ERR };
+enum log_level_t { log_level_debug = 0, log_level_info = 1, log_level_warn, log_level_error };
 
 void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...)
     __attribute__ ((format (printf, 4, 5)));
 
 #ifndef NDEBUG
-#define logDBG(fmt, args...) log_internal(__FILE__, __LINE__, DBG, (fmt), ##args)
+#define logDBG(fmt, args...) log_internal(__FILE__, __LINE__, log_level_debug, (fmt), ##args)
 #else
 #define logDBG(fmt, args...) ((void)0)
 #endif
 
-#define logINF(fmt, args...) log_internal(__FILE__, __LINE__, INF, (fmt), ##args)
-#define logWRN(fmt, args...) log_internal(__FILE__, __LINE__, WRN, (fmt), ##args)
-#define logERR(fmt, args...) log_internal(__FILE__, __LINE__, ERR, (fmt), ##args)
+#define logINF(fmt, args...) log_internal(__FILE__, __LINE__, log_level_info, (fmt), ##args)
+#define logWRN(fmt, args...) log_internal(__FILE__, __LINE__, log_level_warn, (fmt), ##args)
+#define logERR(fmt, args...) log_internal(__FILE__, __LINE__, log_level_error, (fmt), ##args)
 
 #endif // LOGGER_HPP_

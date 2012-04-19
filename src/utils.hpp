@@ -166,12 +166,14 @@ timespec get_uptime();              // returns relative time since initialize_pr
 precise_time_t get_absolute_time(const timespec& relative_time); // converts relative time to absolute
 precise_time_t get_time_now();      // equivalent to get_absolute_time(get_uptime())
 
-// formatted precise time:
-// yyyy-mm-dd hh:mm:ss.MMMMMM   (26 characters)
-const size_t formatted_precise_time_length = 26;    // not including null
+// formatted time:
+// yyyy-mm-dd hh:mm:ss   (19 characters)
+const size_t formatted_precise_time_length = 19;    // not including null
 
-void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars);
-std::string format_precise_time(const precise_time_t& time);
+void format_time(time_t time, char* buf, size_t max_chars);
+std::string format_time(time_t time);
+
+time_t parse_time(const std::string &str) THROWS_ONLY(std::runtime_error);
 
 /* Printing binary data to stdout in a nice format */
 
