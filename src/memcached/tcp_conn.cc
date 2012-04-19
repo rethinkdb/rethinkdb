@@ -3,11 +3,12 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "memcached/parser.hpp"
+#include "arch/io/network.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
-#include "perfmon.hpp"
 #include "logger.hpp"
+#include "memcached/parser.hpp"
+#include "perfmon.hpp"
 
 struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_t {
     explicit tcp_conn_memcached_interface_t(tcp_conn_t *c) : conn(c) { }
@@ -98,9 +99,12 @@ perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600), false);
 memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcached_protocol_t> *namespace_if_) 
     : port(_port), namespace_if(namespace_if_),
       next_thread(0),
-      tcp_listener(port, boost::bind(&memcache_listener_t::handle,
-                                     this, auto_drainer_t::lock_t(&drainer), _1))
-{ }
+      tcp_listener(new tcp_listener_t(port, boost::bind(&memcache_listener_t::handle,
+                                                        this, auto_drainer_t::lock_t(&drainer), _1))) { }
+
+memcache_listener_t::~memcache_listener_t() {
+    delete tcp_listener;
+}
 
 class memcache_conn_closing_subscription_t : public signal_t::subscription_t {
 public:

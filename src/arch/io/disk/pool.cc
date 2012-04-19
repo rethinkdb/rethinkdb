@@ -10,7 +10,7 @@ pool_diskmgr_t::pool_diskmgr_t(
       blocker_pool(MAX_CONCURRENT_IO_REQUESTS, queue),
       n_pending(0) {
     if (source->available->get()) pump();
-    source->available->set_callback(boost::bind(&pool_diskmgr_t::on_source_availability_changed, this));
+    source->available->set_callback(this);
 }
 
 pool_diskmgr_t::~pool_diskmgr_t() {

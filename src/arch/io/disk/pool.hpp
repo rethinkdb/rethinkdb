@@ -9,7 +9,7 @@
 /* The pool disk manager uses a thread pool in conjunction with synchronous
 (blocking) IO calls to asynchronously run IO requests. */
 
-class pool_diskmgr_t {
+class pool_diskmgr_t : private availability_callback_t {
 public:
     struct action_t : private blocker_pool_t::job_t {
 
@@ -62,6 +62,8 @@ private:
     void on_source_availability_changed();
     int n_pending;
     void pump();
+
+    DISABLE_COPYING(pool_diskmgr_t);
 };
 
 #endif /* ARCH_IO_DISK_POOL_HPP_ */

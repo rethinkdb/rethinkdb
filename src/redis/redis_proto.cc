@@ -1,6 +1,7 @@
 #include "errors.hpp"
-#include <boost/variant.hpp>
 #include <boost/algorithm/string.hpp>
+
+#include "arch/io/network.hpp"
 #include "redis/redis_proto.hpp"
 
 class RedisTypeError : public ParseError {

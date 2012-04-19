@@ -2,7 +2,6 @@
 #define PROTOCOL_REDIS_PUBSUB_HPP_
 
 #include "concurrency/rwi_lock.hpp"
-#include "arch/arch.hpp"
 #include "redis/redis_output.hpp"
 #include <map>
 #include <list>

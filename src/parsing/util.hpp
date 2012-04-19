@@ -2,8 +2,7 @@
 #define PARSING_UTIL_HPP_
 
 #include <string>
-#include <alloca.h>
-#include "arch/io/network.hpp"
+
 #include "arch/types.hpp"
 #include "utils.hpp"
 

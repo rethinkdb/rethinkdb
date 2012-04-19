@@ -1,9 +1,6 @@
 #ifndef RWI_LOCK_HPP_
 #define RWI_LOCK_HPP_
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-
 #include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"
 
@@ -19,6 +16,16 @@ struct lock_available_callback_t {
 public:
     virtual ~lock_available_callback_t() {}
     virtual void on_lock_available() = 0;
+};
+
+struct lock_in_line_callback_t {
+public:
+    lock_in_line_callback_t() { }
+    virtual void on_in_line() = 0;
+protected:
+    virtual ~lock_in_line_callback_t() { }
+private:
+    DISABLE_COPYING(lock_in_line_callback_t);
 };
 
 /**
@@ -45,7 +52,7 @@ public:
 
     // You are encouraged to use `read_acq_t` and `write_acq_t` instead of
     // `co_lock()`.
-    void co_lock(access_t access, boost::function<void()> call_when_in_line = 0);
+    void co_lock(access_t access, lock_in_line_callback_t *call_when_in_line = 0);
 
     // Call if you've locked for read or write, or upgraded to write,
     // and are now unlocking.
@@ -128,11 +135,15 @@ private:
 };
 
 inline void swap(rwi_lock_t::read_acq_t &a1, rwi_lock_t::read_acq_t &a2) {
-    std::swap(a1.lock, a2.lock);
+    rwi_lock_t *tmp = a1.lock;
+    a1.lock = a2.lock;
+    a2.lock = tmp;
 }
 
 inline void swap(rwi_lock_t::write_acq_t &a1, rwi_lock_t::write_acq_t &a2) {
-    std::swap(a1.lock, a2.lock);
+    rwi_lock_t *tmp = a1.lock;
+    a1.lock = a2.lock;
+    a2.lock = tmp;
 }
 
 #endif // RWI_LOCK_HPP_

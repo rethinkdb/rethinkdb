@@ -8,18 +8,19 @@
 #include <stdexcept>
 
 #include "utils.hpp"
+#include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
-#include "arch/runtime/event_queue.hpp"
-#include "arch/io/io_utils.hpp"
+
 #include "arch/address.hpp"
+#include "arch/io/event_watcher.hpp"
+#include "arch/io/io_utils.hpp"
+#include "arch/runtime/event_queue.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "containers/intrusive_list.hpp"
 #include "perfmon_types.hpp"
-#include "arch/io/event_watcher.hpp"
-#include "containers/intrusive_list.hpp"
 
 class side_coro_handler_t;
 

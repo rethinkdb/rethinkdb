@@ -1,5 +1,7 @@
 #include "redis/redis_output.hpp"
 
+#include "arch/io/network.hpp"
+
 //Output functions
 //These take the results of a redis_interface_t method and send them out on the wire.
 //Handling both input and output here means that this class is solely responsible for
