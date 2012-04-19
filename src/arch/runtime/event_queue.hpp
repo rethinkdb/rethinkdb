@@ -3,9 +3,7 @@
 
 #include <signal.h>
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <string>
 
 #include "perfmon_types.hpp"
 #include "arch/runtime/runtime_utils.hpp"

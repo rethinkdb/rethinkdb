@@ -1,8 +1,13 @@
 #ifndef ARCH_RUNTIME_THREAD_POOL_HPP_
 #define ARCH_RUNTIME_THREAD_POOL_HPP_
 
-#include <map>
 #include <pthread.h>
+
+#include <map>
+
+#include "errors.hpp"
+#include <boost/function.hpp>
+
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/system_event.hpp"
