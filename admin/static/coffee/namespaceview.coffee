@@ -546,11 +546,14 @@ module 'NamespaceView', ->
                 messages: { }
                 submitHandler: =>
                     formdata = form_data_as_object($('form', @$modal))
+                    empty_master_pin = {}
+                    empty_master_pin[JSON.stringify(["", null])] = null
+                    empty_replica_pins = {}
+                    empty_replica_pins[JSON.stringify(["", null])] = []
                     json =
                         shards: @shard_set
-                        # TODO: We need to reset all pinnings on shard changes (this currently doesn't work)
-                        primary_pinnings: {}
-                        secondary_pinnings: {}
+                        primary_pinnings: empty_master_pin
+                        secondary_pinnings: empty_replica_pins
                     # TODO detect when there are no changes.
                     $.ajax
                         processData: false
