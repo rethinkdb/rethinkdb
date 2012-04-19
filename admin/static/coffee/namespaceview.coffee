@@ -246,6 +246,16 @@ module 'NamespaceView', ->
             @change_hints_state = false
             super @template
 
+
+        get_currently_pinned: ->
+            # Grab pinned machines for this shard
+            currently_pinned = _.find @namespace.get('secondary_pinnings'), (pins, shard) =>
+                return JSON.stringify(@secondary.shard) is JSON.stringify(shard)
+            # Filter out the ones for our datacenter, since we're changing them
+            currently_pinned = _.filter currently_pinned, (uuid) =>
+                return machines.get(uuid).get('datacenter_uuid') isnt @secondary.datacenter_uuid
+            return currently_pinned
+
         disable_used_options: ->
             # Make sure the same machine cannot be selected
             # twice. Also disable the machine used for the master.
@@ -316,7 +326,7 @@ module 'NamespaceView', ->
                         clear_modals()
                         return
                     output = {}
-                    output[@secondary.shard] = _.map pinned_machines, (m)->m.value
+                    output[@secondary.shard] = _.union (_.map pinned_machines, (m)->m.value), @get_currently_pinned()
                     output =
                         secondary_pinnings: output
                     $.ajax
@@ -476,6 +486,23 @@ module 'NamespaceView', ->
             directory.on 'all', @render
             @shards = []
 
+        bind_edit_machines: (shard) ->
+            # TODO: deal with this later
+            @.$('#assign_master_' + shard.index).click (e) =>
+                e.preventDefault()
+
+            # Fucking JS closures
+            bind_shard = (shard, secondary) =>
+                @.$('#assign_machines_' + shard.index + '_' + secondary.datacenter_uuid).click (e) =>
+                    e.preventDefault()
+                    modal = new NamespaceView.EditMachinesModal @model, _.extend secondary,
+                        name: shard.name
+                        shard: shard.shard
+                    modal.render()
+
+            for secondary in shard.secondaries
+                bind_shard shard, secondary
+
         render: =>
             log_render '(rendering) namespace view: shards'
 
@@ -485,15 +512,7 @@ module 'NamespaceView', ->
 
             # Bind events to 'assign machine' links
             for shard in shards_array
-                @.$('#assign_master_' + shard.index).click (e) =>
-                    e.preventDefault()
-                for secondary in shard.secondaries
-                    @.$('#assign_machines_' + shard.index + '_' + secondary.datacenter_uuid).click (e) =>
-                        e.preventDefault()
-                        modal = new NamespaceView.EditMachinesModal @model, _.extend secondary,
-                            name: shard.name
-                            shard: shard.shard
-                        modal.render()
+                @bind_edit_machines(shard)
 
             return @
 
