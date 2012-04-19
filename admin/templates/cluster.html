@@ -1048,16 +1048,8 @@
         </script>
         <script id="edit_machines-modal-template-inner" type="text/x-handlebars-template">
           <div class="current-replicas">
-            <h4>Current replicas:</h4>
-            <ul>
-              {{#each machines}}
-              <li><a href="/#machines/{{uuid}}">{{name}}</a> {{humanize_machine_reachability status}}</li>
-              {{/each}}
-            </ul>
-          </div>
-          <div class="current-replicas">
-            <h4>Machine assignment hints:</h4>
             {{#if change_hints}}
+              <h4>Change replica assignments:</h4>
               <ul>
                 <!-- We render this the same number of times there are replicas. -->
                 {{#each machines}}
@@ -1070,19 +1062,17 @@
                 </li>
                 {{/each}}
               </ul>
-            <a id="btn_change_hints_cancel" href="#">Cancel</a>
-            {{else}}
-            {{#if pinnings}}
-            <ul>
-              {{#each pinnings}}
-              <li><a href="/#machines/{{machine_uuid}}">{{machine_name}}</a></li>
-              {{/each}}
-            </ul>
-            {{else}}
-            <p>No machine assignment hints found.</p>
-            {{/if}}
-            <a id="btn_change_hints" href="#">Change hints</a>
-            {{/if}}
+              <p>* Replicas cannot be assigned to <a href="/#machines/{{primary_uuid}}">{{primary_name}}</a> because it's a master for this shard.</p>
+              <a id="btn_change_hints_cancel" href="#">Cancel</a>
+              {{else}}
+              <h4>Current replica assignments:</h4>
+              <ul>
+                {{#each machines}}
+                <li><a href="/#machines/{{uuid}}">{{name}}</a> {{humanize_machine_reachability status}}</li>
+                {{/each}}
+              </ul>
+              <a id="btn_change_hints" href="#">Change hints</a>
+              {{/if}}
           </div>
         </script>
 

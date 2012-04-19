@@ -239,33 +239,28 @@ module 'NamespaceView', ->
             console.log '(initializing) modal dialog: modify replicas review changes'
             @namespace = namespace
             @secondary = secondary
+            _.extend @secondary,
+                primary_uuid: DataUtils.get_shard_primary_uuid(namespace.get('id'), @secondary.shard)
+            _.extend @secondary,
+                primary_name: machines.get(@secondary.primary_uuid).get('name')
+
             @change_hints_state = false
             super @template
 
         disable_used_options: ->
+            # Make sure the same machine cannot be selected
+            # twice. Also disable the machine used for the master.
             selected_machines = _.map @.$('.pinned_machine_choice option:[selected]'), (opt) -> $(opt).attr('value')
             for dropdown in @.$('.pinned_machine_choice')
                 selected_option = $(dropdown).find(':selected')[0]
                 for option in $('option', dropdown)
-                    if $(option).attr('value') in selected_machines
+                    mid = $(option).attr('value')
+                    if mid in selected_machines or mid is @secondary.primary_uuid
                         $(option).attr('disabled', 'disabled') unless option is selected_option
                     else
                         $(option).removeAttr('disabled')
 
         render_inner: ->
-            # compute pinnings for the shard
-            pinnings = null
-            _pinnings = @namespace.get('secondary_pinnings')
-            for shard, pins of _pinnings
-                if shard.toString() is @secondary.shard.toString()
-                    pinnings = pins
-            pinnings = _.map pinnings, (mid) ->
-                m = machines.get(mid)
-                json =
-                    machine_name: m.get('name')
-                    machine_uuid: m.get('id')
-                return json
-
             # compute all machines in the datacenter (note, it's
             # important to generate a new object every time because we
             # extend each one differently later)
@@ -275,19 +270,13 @@ module 'NamespaceView', ->
                     machine_uuid: m.get('id')
 
             # Extend each machine entry with dc_machines array. Add
-            # 'selected' markings, first for pinned machines, then for
-            # random available machines to make sure the same machine
-            # isn't selected twice by default.
-            available_machines = _.pluck generate_dc_machines_arr(), 'machine_uuid'
-            available_pinnings = _.pluck pinnings, 'machine_uuid'
+            # 'selected' markings, for the machines that are actually
+            # used.
+            actual_machines = _.pluck @secondary.machines, 'uuid'
             for m in @secondary.machines
                 _dc_machines = generate_dc_machines_arr()
-                pin = null
-                if available_pinnings.length > 0
-                    pin = available_pinnings.splice(0, 1)[0]
-                    available_machines = _.without available_machines, pin
-                else
-                    pin = available_machines.splice(0, 1)[0]
+                pin = actual_machines.splice(0, 1)[0]
+                actual_machines = _.without actual_machines, pin
                 for _m in _dc_machines
                     if _m.machine_uuid is pin
                         _m['selected'] = true
@@ -296,7 +285,6 @@ module 'NamespaceView', ->
             # render vendor shmender blender zender
             json = _.extend @secondary,
                 change_hints: @change_hints_state
-                pinnings: pinnings
                 replica_count: @secondary.machines.length
             @.$('.modal-body').html(@template_inner json)
 
@@ -326,7 +314,7 @@ module 'NamespaceView', ->
                     # TODO: What happens if they just hit 'commit'? How do we remove pinnings? Checkbox?
                     # TODO: Remove pinnings when a new sharding plan is committed (and inform the user)
                     # TODO: confirmation alert, applying changes
-                    # TODO: adjust pinnings if they change the number of replicas :(
+                    # TODO: when a pinned machine moves to a different datacenter
                     # TODO: master
                     pinned_machines = _.filter @.$('form').serializeArray(), (obj) -> obj.name is 'pinned_machine_uuid'
                     output = {}
