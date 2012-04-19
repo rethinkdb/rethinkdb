@@ -492,6 +492,20 @@ mc_buf_lock_t::mc_buf_lock_t() :
     subtree_recency(repli_timestamp_t::invalid)
 { }
 
+
+class boost_function_in_line_callback_t : public lock_in_line_callback_t {
+public:
+    boost_function_in_line_callback_t(boost::function<void()> *callee) : callee_(callee) { }
+    void on_in_line() {
+        if (*callee_) {
+            (*callee_)();
+        }
+    };
+private:
+    boost::function<void()> *callee_;
+};
+
+
 /* Constructor to obtain a buffer lock within a transaction */
 mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id, access_t mode_, boost::function<void()> call_when_in_line) :
     acquired(false),
@@ -580,7 +594,8 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
         ticks_t lock_start_time;
         // the top version is the right one for us; acquire a lock of the appropriate type first
         pm_bufs_acquiring.begin(&lock_start_time);
-        inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
+        boost_function_in_line_callback_t in_line_cb(&call_when_in_line);
+        inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, &in_line_cb);
         pm_bufs_acquiring.end(&lock_start_time);
 
         // It's possible that, now that we've acquired the lock, that

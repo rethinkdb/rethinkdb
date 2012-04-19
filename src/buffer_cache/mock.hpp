@@ -2,6 +2,7 @@
 #define BUFFER_CACHE_MOCK_HPP_
 
 #include "errors.hpp"
+#include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
