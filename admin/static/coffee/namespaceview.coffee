@@ -232,8 +232,7 @@ module 'NamespaceView', ->
     class @EditMachinesModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#edit_machines-modal-template-outer').html()
         template_inner: Handlebars.compile $('#edit_machines-modal-template-inner').html()
-        # TODO
-        alert_tmpl: Handlebars.compile $('#modified_replica-alert-template').html()
+        alert_tmpl: Handlebars.compile $('#edit_machines-alert-template').html()
 
         initialize: (namespace, secondary) ->
             console.log '(initializing) modal dialog: modify replicas review changes'
@@ -311,12 +310,11 @@ module 'NamespaceView', ->
         render: ->
             validator_options =
                 submitHandler: =>
-                    # TODO: What happens if they just hit 'commit'? How do we remove pinnings? Checkbox?
-                    # TODO: Remove pinnings when a new sharding plan is committed (and inform the user)
-                    # TODO: confirmation alert, applying changes
-                    # TODO: when a pinned machine moves to a different datacenter
-                    # TODO: master
                     pinned_machines = _.filter @.$('form').serializeArray(), (obj) -> obj.name is 'pinned_machine_uuid'
+                    if pinned_machines.length is 0
+                        # If they didn't specify any pins, there is nothing to do
+                        clear_modals()
+                        return
                     output = {}
                     output[@secondary.shard] = _.map pinned_machines, (m)->m.value
                     output =
@@ -329,94 +327,13 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
                             namespaces.get(@namespace.id).set(response)
-                        #     if modified_replicas or modified_acks
-                        #         $('#user-alert-space').append (@alert_tmpl
-                        #             modified_replicas: modified_replicas
-                        #             old_replicas: old_replicas
-                        #             new_replicas: new_replicas
-                        #             modified_acks: modified_acks
-                        #             old_acks: old_acks
-                        #             new_acks: new_acks
-                        #             datacenter_uuid: datacenter_uuid
-                        #             datacenter_name: datacenter_name
-                        #             )
-                        # error: (response, unused, unused_2) =>
-                        #     clear_modals()
-                        #     @render(response.responseText)
+                            $('#user-alert-space').append (@alert_tmpl {})
 
             # Render the modal
             super validator_options, @secondary
 
             # Render our fun inner lady bits
             @render_inner()
-
-    class ReplicaPlanShard extends Backbone.View
-        template: Handlebars.compile $('#modify_replica_modal-replica_plan-shard-template').html()
-        editable_tmpl: Handlebars.compile $('#modify_replica_modal-replica_plan-edit_shard-template').html()
-
-        tagName: 'tr'
-        class: 'shard-row'
-
-        events: ->
-            'click .edit': 'edit'
-
-        initialize: (machines_in_datacenter, shard) ->
-            @shard = shard
-            @available_machines = machines_in_datacenter
-
-        render: ->
-            console.log 'rendering with shard.machines being', @shard.machines, 'and existing =', @shard.existing_machines
-            @.$el.html @template
-                'adding': false
-                'removing': false
-                'name': @shard.name
-                'shard_index': @shard.index
-                'machines': _.map(@shard.machines, (machine) =>
-                    machine:
-                        name: machine.get('name')
-                        id: machine.id
-                    shard_index: @shard.index
-                )
-                'existing_secondary_machines': _.map(@shard.existing_machines, (machine) =>
-                    machine:
-                        name: machine.get('name')
-                        id: machine.id
-                    shard_index: @shard.index
-                )
-                'existing_primary_machine': # TODO This should be the actual primary machine (faked data)
-                    name: @shard.existing_machines[0].get('name')
-                    id: @shard.existing_machines[0].id
-
-            return @
-
-        edit: (e) ->
-            console.log 'edit-rending with shard.machines being', @shard.machines
-            @.$el.html @editable_tmpl
-                'name': @shard.name
-                'primary_machine_dropdown':# TODO This should be the actual primary machine (faked data)
-                    'shard_index': @shard.index
-                    'selected': @available_machines[0]
-                    'available_machines': _.map(@available_machines, (machine) =>
-                        name: machine.get('name')
-                        id: machine.id
-                    )
-                'secondary_machine_dropdowns': _.map(@shard.machines, (machine) =>
-                    'shard_index': @shard.index
-                    'selected': machine
-                    'available_machines': _.map(@available_machines, (machine) =>
-                        name: machine.get('name')
-                        id: machine.id
-                    )
-                )
-                'adding': @shard.adding
-                'removing': @shard.removing
-                'existing_machines': _.map(@shard.existing_machines, (machine) =>
-                    machine: machine
-                    shard_index: @shard.index
-                )
-
-            e.preventDefault()
-            return @
 
     class @ModifyReplicasModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#modify_replicas-modal-template').html()
@@ -629,14 +546,18 @@ module 'NamespaceView', ->
                 messages: { }
                 submitHandler: =>
                     formdata = form_data_as_object($('form', @$modal))
+                    json =
+                        shards: @shard_set
+                        # TODO: We need to reset all pinnings on shard changes (this currently doesn't work)
+                        primary_pinnings: {}
+                        secondary_pinnings: {}
                     # TODO detect when there are no changes.
                     $.ajax
                         processData: false
                         url: "/ajax/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
                         type: 'POST'
                         contentType: 'application/json'
-                        data: JSON.stringify({"shards": @shard_set})
-
+                        data: JSON.stringify(json)
                         success: (response) =>
                             clear_modals()
                             namespaces.get(@namespace.id).set(response)

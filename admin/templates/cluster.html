@@ -509,7 +509,7 @@
         <script id="modify_shards-alert-template" type="text/x-handlebars-template">
             <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
-                <p>You successfully modified the shard plan.</p>
+                <p>You successfully modified the shard plan. Machine assignments for this namespace have been reset.</p>
             </div>
         </script>
 
@@ -878,6 +878,13 @@
             </div>
         </script>
 
+        <script id="edit_machines-alert-template" type="text/x-handlebars-template">
+            <div class="alert" data-alert="alert">
+                <a class="close" href="#">&times;</a>
+                <p>You successfully changed machine assignments.</p>
+            </div>
+        </script>
+
         <script id="changed_primary_dc-replica-template" type="text/x-handlebars-template">
             <div class="alert" data-alert="alert">
                 <a class="close" href="#">&times;</a>
@@ -1035,7 +1042,7 @@
                 <form class="form">
                     <div class="modal-header">
                         <a href="#" class="close">&times;</a>
-                        <h3>Replica machines for shard {{name}} in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a></h3>
+                        <h3>{{#if changing_primary}}Master machine{{else}}Replica machines{{/if}} for shard {{name}} in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a></h3>
                     </div>
                     <div class="modal-body">
                     </div>
@@ -1074,80 +1081,6 @@
               <a id="btn_change_hints" href="#">Change hints</a>
               {{/if}}
           </div>
-        </script>
-
-        <script id="modify_replica_modal-replica_plan-shard-template" type="text/x-handlebars-template">
-            <td class="name"><h4>{{name}}</h4></td>
-            <td class="machines">
-                <p class="existing-primary">Primary replica for this shard: <a href='/#machines/{{existing_primary_machine.id}}'>{{existing_primary_machine.name}}</a></p>
-                <p class="existing-secondaries">
-                    Secondary replicas for this shard:
-                    {{#comma_separated existing_secondary_machines}}<input type="hidden" name="machine_for_{{shard_index}}" value="{{machine.id}}"><a href='/#machines/{{machine.id}}'>{{machine.name}}</a>{{/comma_separated}}
-                </p>
-            </td>
-            <td class="change-machines">
-                (<a class="edit" href="#">change</a>)
-            </td>
-        </script>
-
-        <script id="modify_replica_modal-replica_plan-edit_shard-template" type="text/x-handlebars-template">
-            <td class="name"><h4>{{name}}</h4></td>
-            <td class="machines">
-                <div class="delta">
-                    <p>Primary replica for this shard:</p>
-                        {{#with primary_machine_dropdown}}
-                            <select name="machine_for_{{shard_index}}" class="small primary-for-replica">
-                            {{#each available_machines}}
-                                <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
-                            {{/each}}
-                            </select>
-                        {{/with}}
-                    <p>Secondary replicas for this shard:</p>
-                    {{#each secondary_machine_dropdowns}}
-                        <select name="machine_for_{{shard_index}}" class="small secondary-for-replica">
-                        {{#each available_machines}}
-                            <option value="{{this.id}}" {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
-                        {{/each}}
-                        </select>
-                    {{/each}}
-                </div>
-            </td>
-        </script>
-
-        <script id="modify_replicas_review_changes-modal-template" type="text/x-handlebars-template">
-            <div class="modal modify-replicas">
-                <form class="form">
-                <input type="hidden" name="datacenter" value="{{datacenter.id}}">
-                <div class="modal-header">
-                    <a href="#" class="close">&times;</a>
-                    <h3>Replication for namespace <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a> in datacenter <a href="/#datacenters/{{datacenter.id}}">{{datacenter.name}}</a></h3>
-                </div>
-                <div class="modal-body">
-                    <div class="replica-plan">
-                    {{#if replicas.adding}}
-                        <h4 class="replicas">Adding {{replicas.num_changed}} replicas</h4>
-                    {{else}}
-                        {{#if replicas.removing}}
-                        <h4>Removing {{replicas.num_changed}} replicas</h4>
-                        {{else}}
-                        <h4>No replica changes</h4>
-                        {{/if}}
-                    {{/if}}
-                    <table class="shards">
-                        <tbody>
-                        </tbody>
-                    </table>
-                    <h5 class="acks">Replicas on this datacenter will require {{acks.num}} acks.</h5>
-                    </div>
-                    <input type="hidden" name="num_acks" value="{{acks.num}}">
-                    <input type="hidden" name="num_replicas" value="{{replicas.num}}">
-                </div>
-                <div class="modal-footer">
-                    <a href="#" class="btn commit-plan primary">Commit changes</a>
-                    <a href="#" class="btn modify-replicas cancel">Cancel</a>
-                </div>
-                </form>
-            </div>
         </script>
 
         <script id="add_datacenter-modal-template" type="text/x-handlebars-template">
