@@ -261,7 +261,7 @@
                 <tr>
                     <td>{{name}}</td>
                     <td>Primary</td>
-                    <td>{{replicas}}</td>
+                    <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "machine" total_machines}})</td>
                     <td>{{acks}}</td>
                     <td><font color="green">ok</font></td>
                     <td><a id="edit-primary" href="#">Edit replicas</a></td>
@@ -272,7 +272,7 @@
                 <tr>
                     <td>{{name}}</td>
                     <td>Secondary</td>
-                    <td>{{replicas}}</td>
+                    <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "machine" total_machines}})</td>
                     <td>{{acks}}</td>
                     <td><font color="green">ok</font></td>
                     <td><a class="edit-secondary {{this.id}}" href="#">Edit replicas</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a></td>
@@ -290,7 +290,7 @@
             </table>
         </script>
 
-        <script id="modify_replicas-modal-template" type="text/x-handlebars-template">
+        <script id="modify_replicas-modal-template-outer" type="text/x-handlebars-template">
         <div class="modal modify-replicas">
             <form class="form">
                 <div class="modal-header">
@@ -298,39 +298,6 @@
                     <h3>Replication for namespace <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a> in datacenter <a href="/#datacenters/{{datacenter.id}}">{{datacenter.name}}</a></h3>
                 </div>
                 <div class="modal-body">
-                    <div class="replica-attributes">
-                        {{#if server_error}}
-                            <p class="server-error alert alert-error"> {{server_error}} </p>
-                        {{/if}}
-                        <div class="info">
-                            <p>You can specify the <strong>number of replicas</strong> to use per shard for this datacenter.</p>
-                            <p>The <strong>number of acks</strong> specifies how many replicas in this datacenter must acknowledge a write before an operation succeeds.</p>
-                        </div>
-                        <fieldset>
-                            <input name="datacenter" type="hidden" value="{{datacenter.id}}" />
-                            <div class="clearfix">
-                            <label for="replicas">
-                                <h4>Number of replicas:</h4>
-                            </label>
-                            <div class="input">
-                                <input class="xlarge" name="num_replicas" type="text" value="{{num_replicas}}"/>
-                                <p class="current">Current replicas: {{num_replicas}}</p>
-                            </div>
-                            </div>
-                            <hr />
-                            <div class="clearfix">
-                            <label for="acks">
-                                <h4>Number of acks:</h4>
-                            </label>
-                            <div class="input">
-                                <input class="xlarge" name="num_acks" type="text" value="{{num_acks}}"/>
-                                <p class="current">Current acks: {{num_acks}}</p>
-                            </div>
-                        </fieldset>
-                        <div class="clearboth"></div>
-                        </div>
-                        <div class="replica-plan">
-                    </div>
                 </div>
                 <div class="modal-footer">
                                 <button class="btn primary commit-plan" type="submit" name="commit-plan" value="Commit plan">Commit changes</button>
@@ -338,6 +305,42 @@
                 </div>
             </form>
         </div>
+        </script>
+        
+        <script id="modify_replicas-modal-template-inner" type="text/x-handlebars-template">
+          <div class="replica-attributes">
+          {{#if error_msg}}
+          <p class="server-error alert alert-error"> {{error_msg}} </p>
+          {{/if}}
+          <div class="info">
+            <p>You can specify the <strong>number of replicas</strong> to use per shard for this datacenter.</p>
+            <p>The <strong>number of acks</strong> specifies how many replicas in this datacenter must acknowledge a write before an operation succeeds.</p>
+          </div>
+          <fieldset>
+            <input name="datacenter" type="hidden" value="{{datacenter.id}}" />
+            <div class="clearfix">
+              <label for="replicas">
+                <h4>Number of replicas:</h4>
+              </label>
+              <div class="input">
+                <input class="xlarge" name="num_replicas" type="text" value="{{num_replicas}}"/>
+                <p class="current">Current replicas: {{num_replicas}}</p>
+                <p class="max">Max replicas: {{total_machines}}</p>
+              </div>
+            </div>
+            <hr />
+            <div class="clearfix">
+              <label for="acks">
+                <h4>Number of acks:</h4>
+              </label>
+              <div class="input">
+                <input class="xlarge" name="num_acks" type="text" value="{{num_acks}}"/>
+                <p class="current">Current acks: {{num_acks}}</p>
+              </div>
+          </fieldset>
+          <div class="clearboth"></div>
+          </div>
+          </div>
         </script>
 
         <script id="modify_replicas_modal-replica_plan-template" type="text/x-handlebars-template">

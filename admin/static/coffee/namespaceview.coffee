@@ -123,12 +123,14 @@ module 'NamespaceView', ->
                     id: @model.get('primary_uuid')
                     name: datacenters.get(@model.get('primary_uuid')).get('name')
                     replicas: primary_replica_count + 1 # we're adding one because primary is also a replica
+                    total_machines: DataUtils.get_datacenter_machines(@model.get('primary_uuid')).length
                     acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
                 secondaries:
                     _.map secondary_affinities, (replica_count, uuid) =>
                         id: uuid
                         name: datacenters.get(uuid).get('name')
                         replicas: replica_count
+                        total_machines: DataUtils.get_datacenter_machines(uuid).length
                         acks: DataUtils.get_ack_expectations(@model.get('id'), uuid)
                 nothings: nothings
 
@@ -430,7 +432,8 @@ module 'NamespaceView', ->
             @render_inner()
 
     class @ModifyReplicasModal extends ClusterView.AbstractModal
-        template: Handlebars.compile $('#modify_replicas-modal-template').html()
+        template_inner: Handlebars.compile $('#modify_replicas-modal-template-inner').html()
+        template: Handlebars.compile $('#modify_replicas-modal-template-outer').html()
         alert_tmpl: Handlebars.compile $('#modified_replica-alert-template').html()
 
         class: 'modify-replicas'
@@ -439,6 +442,9 @@ module 'NamespaceView', ->
             log_initial '(initializing) modal dialog: modify replicas'
             @namespace = namespace
             @datacenter = datacenter
+            @total_machines = DataUtils.get_datacenter_machines(@datacenter.get('id')).length
+            @nreplicas = @adjustReplicaCount(DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id), true)
+            @nacks = DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.get('id'))
             super @template
 
         # Simple utility function to generate JSON for a set of machines
@@ -458,25 +464,59 @@ module 'NamespaceView', ->
             else
                 return numreplicas
 
-        render:(server_error) ->
-            log_render '(rendering) modify replicas dialog'
+        render_inner: (error_msg) ->
+            log_render '(rendering) modify replicas dialog (inner)'
+            # Compute json ...
+            json =
+                namespace: @namespace.toJSON()
+                datacenter: @datacenter.toJSON()
+                num_replicas: @nreplicas
+                total_machines: @total_machines
+                num_acks: @nacks
+            if error_msg?
+                json['error_msg'] = error_msg
+
+            # Render!
+            @.$('.modal-body').html(@template_inner json)
+
+
+        render: ->
+            log_render '(rendering) modify replicas dialog (outer)'
 
             # Define the validator options
             validator_options =
                 submitHandler: =>
                     formdata = form_data_as_object($('form', @$modal))
+
+                    # validate first
+                    msg = ''
+                    @nreplicas = parseInt(formdata.num_replicas)
+                    @nacks = parseInt(formdata.num_acks)
+
+                    if @nreplicas > @total_machines
+                        msg += 'The number of replicas (' + @nreplicas + ') cannot exceed the total number of machines (' + @total_machines + ').'
+                        @render_inner msg
+                        return
+                    if @nreplicas is 0 and @namespace.get('primary_uuid') is @datacenter.get('id')
+                        msg += 'The number of replicas must be at least one because ' + @datacenter.get('name') + ' is the primary datacenter for this namespace.'
+                        @render_inner msg
+                        return
+                    if @nacks > @nreplicas
+                        msg += 'The number of acks (' + @nacks + ') cannot exceed the total number of replicas (' + @nreplicas + ').'
+                        @render_inner msg
+                        return
+
+                    # Generate json
                     replica_affinities_to_send = {}
-                    replica_affinities_to_send[formdata.datacenter] = @adjustReplicaCount(parseInt(formdata.num_replicas), false)
+                    replica_affinities_to_send[formdata.datacenter] = @adjustReplicaCount(@nreplicas, false)
                     ack_expectations_to_send = {}
-                    ack_expectations_to_send[formdata.datacenter] = parseInt(formdata.num_acks)
+                    ack_expectations_to_send[formdata.datacenter] = @nacks
 
                     # prepare data for success template in case we succeed
                     old_replicas = @adjustReplicaCount(DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id), true)
-                    new_replicas = parseInt(formdata.num_replicas)
-                    modified_replicas = new_replicas isnt old_replicas
+                    modified_replicas = @nreplicas isnt old_replicas
                     old_acks = DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.id)
-                    new_acks = parseInt(formdata.num_acks)
-                    modified_acks = new_acks isnt old_acks
+                    modified_acks = @nacks isnt old_acks
                     datacenter_uuid = formdata.datacenter
                     datacenter_name = datacenters.get(datacenter_uuid).get('name')
 
@@ -496,31 +536,21 @@ module 'NamespaceView', ->
                                 $('#user-alert-space').append (@alert_tmpl
                                     modified_replicas: modified_replicas
                                     old_replicas: old_replicas
-                                    new_replicas: new_replicas
+                                    new_replicas: @nreplicas
                                     modified_acks: modified_acks
                                     old_acks: old_acks
-                                    new_acks: new_acks
+                                    new_acks: @nacks
                                     datacenter_uuid: datacenter_uuid
                                     datacenter_name: datacenter_name
                                     )
                         error: (response, unused, unused_2) =>
-                            clear_modals()
-                            @render(response.responseText)
+                            @render_inner(response.responseText)
 
-            # Compute json ...
-            num_replicas = DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id)
             json =
                 namespace: @namespace.toJSON()
                 datacenter: @datacenter.toJSON()
-                num_replicas: @adjustReplicaCount(num_replicas, true)
-                num_acks: DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.get('id'))
-                # random machines | faked TODO
-                replica_machines: @machine_json (_.shuffle machines.models)[0...num_replicas]
-
-            if server_error?
-                json['server_error'] = server_error
-
             super validator_options, json
+            @render_inner()
 
 
     compute_renderable_shards_array = (namespace_uuid, shards) ->
