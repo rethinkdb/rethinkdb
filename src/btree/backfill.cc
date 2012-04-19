@@ -12,6 +12,7 @@
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "protocol_api.hpp"
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 

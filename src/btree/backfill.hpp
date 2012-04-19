@@ -2,7 +2,6 @@
 #define BTREE_BACKFILL_HPP_
 
 #include "btree/node.hpp"
-#include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/types.hpp"
@@ -25,6 +24,8 @@ public:
 timestamps are greater than or equal than `since_when` but which reached the
 tree before `btree_backfill()` was called. It may also find changes that
 happened before `since_when`. */
+
+class traversal_progress_t;
 
 void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
                                 agnostic_backfill_callback_t *callback, transaction_t *txn, got_superblock_t& superblock, traversal_progress_t *);

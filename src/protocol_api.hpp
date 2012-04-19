@@ -52,14 +52,16 @@ protected:
 
 /* Exceptions thrown by functions operating on `protocol_t::region_t` */
 
-struct bad_region_exc_t : public std::exception {
+class bad_region_exc_t : public std::exception {
+public:
     const char *what() const throw () {
         return "The set you're trying to compute cannot be expressed as a "
             "`region_t`.";
     }
 };
 
-struct bad_join_exc_t : public std::exception {
+class bad_join_exc_t : public std::exception {
+public:
     const char *what() const throw () {
         return "You need to give a non-overlapping set of regions.";
     }

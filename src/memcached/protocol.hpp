@@ -11,10 +11,12 @@
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"
 #include "btree/backfill.hpp"
+#include "btree/parallel_traversal.hpp"  // TODO: sigh
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/iterators.hpp"
 #include "memcached/queries.hpp"
+#include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "serializer/log/log_serializer.hpp"
