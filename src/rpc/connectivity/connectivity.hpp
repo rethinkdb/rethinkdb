@@ -48,8 +48,8 @@ public:
         return p.uuid < uuid;
     }
 
-    peer_id_t() 
-        : uuid(boost::uuids::nil_uuid()) 
+    peer_id_t()
+        : uuid(boost::uuids::nil_uuid())
     { }
 
     explicit peer_id_t(boost::uuids::uuid u) : uuid(u) { }
