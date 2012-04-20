@@ -8,7 +8,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
-#include "btree/slice.hpp"
 #include "btree/backfill.hpp"
 #include "btree/parallel_traversal.hpp"  // TODO: sigh
 #include "buffer_cache/mirrored/config.hpp"

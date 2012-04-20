@@ -1,6 +1,7 @@
 #include "memcached/btree/backfill.hpp"
 
 #include "btree/parallel_traversal.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "memcached/btree/btree_data_provider.hpp"
 #include "memcached/btree/node.hpp"
