@@ -11,7 +11,6 @@
 #include "serializer/log/log_serializer.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
-#include "btree/node_functions.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"

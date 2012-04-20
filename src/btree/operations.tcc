@@ -1,6 +1,6 @@
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
-#include "btree/node_functions.hpp"
+#include "btree/node.hpp"
 #include "btree/slice.hpp"
 #include "btree/buf_patches.hpp"
 #include "buffer_cache/buffer_cache.hpp"
