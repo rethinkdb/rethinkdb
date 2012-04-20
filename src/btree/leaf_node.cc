@@ -139,15 +139,13 @@ repli_timestamp_t get_timestamp(const leaf_node_t *node, int offset) {
 struct entry_iter_t {
     int offset;
 
-    template <class V>
-    void step(value_sizer_t<V> *sizer, const leaf_node_t *node) {
+    void step(value_sizer_t<void> *sizer, const leaf_node_t *node) {
         rassert(!done(sizer));
 
         offset += entry_size(sizer, get_entry(node, offset)) + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0);
     }
 
-    template <class V>
-    bool done(value_sizer_t<V> *sizer) const {
+    bool done(value_sizer_t<void> *sizer) const {
         int bs = sizer->block_size().value();
         rassert(offset <= bs, "offset=%d, bs=%d", offset, bs);
         return offset == bs;
