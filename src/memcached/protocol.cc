@@ -18,7 +18,7 @@
 #include "serializer/config.hpp"
 
 
-write_message_t &operator<<(write_message_t &msg, const boost::intrusive_ptr<data_buffer_t> &buf) {
+write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf) {
     if (buf) {
         bool exists = true;
         msg << exists;
@@ -32,7 +32,7 @@ write_message_t &operator<<(write_message_t &msg, const boost::intrusive_ptr<dat
     return msg;
 }
 
-int deserialize(read_stream_t *s, boost::intrusive_ptr<data_buffer_t> *buf) {
+int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf) {
     bool exists;
     int res = deserialize(s, &exists);
     if (res) { return res; }
@@ -74,7 +74,7 @@ write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
         const key_with_data_buffer_t &kv = pair.get();
 
         const std::string &key = kv.key;
-        const boost::intrusive_ptr<data_buffer_t> &data = kv.value_provider;
+        const intrusive_ptr_t<data_buffer_t> &data = kv.value_provider;
         bool next = true;
         msg << next;
         msg << key;
@@ -99,7 +99,7 @@ int deserialize(read_stream_t *s, rget_result_t *iter) {
         std::string key;
         res = deserialize(s, &key);
         if (res) { return res; }
-        boost::intrusive_ptr<data_buffer_t> data;
+        intrusive_ptr_t<data_buffer_t> data;
         res = deserialize(s, &data);
         if (res) { return res; }
 

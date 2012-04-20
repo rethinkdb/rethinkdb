@@ -17,8 +17,8 @@
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 
-write_message_t &operator<<(write_message_t &msg, const boost::intrusive_ptr<data_buffer_t> &buf);
-int deserialize(read_stream_t *s, boost::intrusive_ptr<data_buffer_t> *buf);
+write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf);
+int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);
 write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter);
 int deserialize(read_stream_t *s, rget_result_t *iter);
 

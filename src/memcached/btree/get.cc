@@ -25,7 +25,7 @@ get_result_t memcached_get(const store_key_t &store_key, btree_slice_t *slice, e
         return get_result_t();
     }
 
-    boost::intrusive_ptr<data_buffer_t> dp = value_to_data_buffer(value, txn);
+    intrusive_ptr_t<data_buffer_t> dp = value_to_data_buffer(value, txn);
 
     return get_result_t(dp, value->mcflags(), 0);
 }
