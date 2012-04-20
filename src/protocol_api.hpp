@@ -50,21 +50,6 @@ protected:
     virtual ~namespace_interface_t() { }
 };
 
-/* Exceptions thrown by functions operating on `protocol_t::region_t` */
-
-struct bad_region_exc_t : public std::exception {
-    const char *what() const throw () {
-        return "The set you're trying to compute cannot be expressed as a "
-            "`region_t`.";
-    }
-};
-
-struct bad_join_exc_t : public std::exception {
-    const char *what() const throw () {
-        return "You need to give a non-overlapping set of regions.";
-    }
-};
-
 /* Some `protocol_t::region_t` functions can be implemented in terms of other
 functions. Here are default implementations for those functions. */
 
@@ -109,7 +94,10 @@ public:
         for (const_iterator it = begin(); it != end(); it++) {
             regions.push_back(it->first);
         }
-        return region_join(regions);
+        typename protocol_t::region_t join;
+        region_join_result_t join_result = region_join(regions, &join);
+        rassert(join_result == REGION_JOIN_OK);
+        return join;
     }
 
     const_iterator begin() const {

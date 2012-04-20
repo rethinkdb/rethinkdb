@@ -11,6 +11,7 @@
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/registrant.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "containers/archive/order_token.hpp"
 #include "protocol_api.hpp"
 
@@ -234,13 +235,18 @@ private:
 
         /* Check if they form a proper cover */
         typename protocol_t::region_t join;
-        try {
-            join = region_join(*regions_out);
-        } catch (bad_region_exc_t) {
+        region_join_result_t join_result = region_join(*regions_out, &join);
+        switch (join_result) {
+        case REGION_JOIN_BAD_REGION:
             throw cannot_perform_query_exc_t("No master available");
-        } catch (bad_join_exc_t) {
+        case REGION_JOIN_BAD_JOIN:
             throw cannot_perform_query_exc_t("Multiple masters available");
+        case REGION_JOIN_OK:
+            break;
+        default:
+            unreachable();
         }
+
         if (join != target_region) {
             throw cannot_perform_query_exc_t("No master available");
         }

@@ -4,123 +4,35 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/optional.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
-#include "btree/slice.hpp"
-#include "btree/operations.hpp"
 #include "btree/backfill.hpp"
+#include "btree/parallel_traversal.hpp"  // TODO: sigh
+#include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "memcached/queries.hpp"
+#include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "serializer/log/log_serializer.hpp"
 #include "timestamps.hpp"
-#include "containers/iterators.hpp"
 
-inline write_message_t &operator<<(write_message_t &msg, const boost::intrusive_ptr<data_buffer_t> &buf) {
-    if (buf) {
-        bool exists = true;
-        msg << exists;
-        int64_t size = buf->size();
-        msg << size;
-        msg.append(buf->buf(), buf->size());
-    } else {
-        bool exists = false;
-        msg << exists;
-    }
-    return msg;
-}
+write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf);
+int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);
+write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter);
+int deserialize(read_stream_t *s, rget_result_t *iter);
 
-inline int deserialize(read_stream_t *s, boost::intrusive_ptr<data_buffer_t> *buf) {
-    bool exists;
-    int res = deserialize(s, &exists);
-    if (res) { return res; }
-    if (exists) {
-        int64_t size;
-        int res = deserialize(s, &size);
-        if (res) { return res; }
-        if (size < 0) { return -3; }
-        *buf = data_buffer_t::create(size);
-        int64_t num_read = force_read(s, (*buf)->buf(), size);
-
-        if (num_read == -1) { return -1; }
-        if (num_read < size) { return -2; }
-        rassert(num_read == size);
-    }
-    return 0;
-}
-
-template<typename T>
-class vector_backed_one_way_iterator_t : public one_way_iterator_t<T> {
-    typename std::vector<T> data;
-    size_t pos;
-public:
-    vector_backed_one_way_iterator_t() : pos(0) { }
-    void push_back(T &v) { data.push_back(v); }
-    typename boost::optional<T> next() {
-        if (pos < data.size()) {
-            return boost::optional<T>(data[pos++]);
-        } else {
-            return boost::optional<T>();
-        }
-    }
-    void prefetch() { }
-};
-
-
-inline write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
-    while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
-        const key_with_data_buffer_t &kv = pair.get();
-
-        const std::string &key = kv.key;
-        const boost::intrusive_ptr<data_buffer_t> &data = kv.value_provider;
-        bool next = true;
-        msg << next;
-        msg << key;
-        msg << data;
-    }
-    bool next = false;
-    msg << next;
-    return msg;
-}
-
-inline int deserialize(read_stream_t *s, rget_result_t *iter) {
-    *iter = rget_result_t(new vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
-    bool next;
-    for (;;) {
-        int res = deserialize(s, &next);
-        if (res) { return res; }
-        if (!next) {
-            return 0;
-        }
-
-        // TODO: See the load function above.  I'm guessing this code is never used.
-        std::string key;
-        res = deserialize(s, &key);
-        if (res) { return res; }
-        boost::intrusive_ptr<data_buffer_t> data;
-        res = deserialize(s, &data);
-        if (res) { return res; }
-
-        // You'll note that we haven't put the values in the vector-backed iterator.  Neither does the load function above...
-    }
-
-}
-
-
-RDB_MAKE_SERIALIZABLE_1(get_query_t, key);
-RDB_MAKE_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
-RDB_MAKE_SERIALIZABLE_3(get_result_t, value, flags, cas);
-RDB_MAKE_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
-RDB_MAKE_SERIALIZABLE_1(get_cas_mutation_t, key);
-RDB_MAKE_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
-RDB_MAKE_SERIALIZABLE_2(delete_mutation_t, key, dont_put_in_delete_queue);
-RDB_MAKE_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount);
-RDB_MAKE_SERIALIZABLE_2(incr_decr_result_t, res, new_value);
-RDB_MAKE_SERIALIZABLE_3(append_prepend_mutation_t, kind, key, data);
-RDB_MAKE_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, cas_or_zero);
+RDB_DECLARE_SERIALIZABLE(get_query_t);
+RDB_DECLARE_SERIALIZABLE(rget_query_t);
+RDB_DECLARE_SERIALIZABLE(get_result_t);
+RDB_DECLARE_SERIALIZABLE(key_with_data_buffer_t);
+RDB_DECLARE_SERIALIZABLE(get_cas_mutation_t);
+RDB_DECLARE_SERIALIZABLE(sarc_mutation_t);
+RDB_DECLARE_SERIALIZABLE(delete_mutation_t);
+RDB_DECLARE_SERIALIZABLE(incr_decr_mutation_t);
+RDB_DECLARE_SERIALIZABLE(incr_decr_result_t);
+RDB_DECLARE_SERIALIZABLE(append_prepend_mutation_t);
+RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
 /* `memcached_protocol_t` is a container struct. It's never actually
 instantiated; it just exists to pass around all the memcached-related types and
@@ -248,6 +160,7 @@ public:
 
     public:
         store_t(const std::string& filename, bool create);
+        ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
         void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);

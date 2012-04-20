@@ -159,12 +159,12 @@ private:
     }
 
     void request_backfill_progress(backfill_session_id_t session_id,
-                                   mailbox_addr_t<void(float)> response_mbox,
+                                   mailbox_addr_t<void(std::pair<int, int>)> response_mbox,
                                    auto_drainer_t::lock_t) {
         if (std_contains(local_backfill_progress, session_id) && local_backfill_progress[session_id]) {
             send(mailbox_manager, response_mbox, local_backfill_progress[session_id]->guess_completion());
         } else {
-            send(mailbox_manager, response_mbox, -1.0f);
+            send(mailbox_manager, response_mbox, std::make_pair(-1, -1));
         }
 
         //TODO indicate an error has occurred

@@ -10,7 +10,7 @@ linux_aio_submit_sync_t::linux_aio_submit_sync_t(
     if (source->available->get()) pump();
 
     /* Register so we get notified when requests come in */
-    source->available->set_callback(boost::bind(&linux_aio_submit_sync_t::on_source_availability_changed, this));
+    source->available->set_callback(this);
 }
 
 linux_aio_submit_sync_t::~linux_aio_submit_sync_t() {

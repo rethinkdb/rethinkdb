@@ -5,6 +5,7 @@
 #include <vector>
 
 struct linux_aio_submit_sync_t :
+    private availability_callback_t,
     public linux_diskmgr_aio_t::submit_strategy_t
 {
     linux_aio_submit_sync_t(linux_aio_context_t *context, passive_producer_t<iocb *> *source);

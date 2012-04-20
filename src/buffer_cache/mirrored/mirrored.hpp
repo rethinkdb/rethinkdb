@@ -4,6 +4,7 @@
 #include <map>
 
 #include "errors.hpp"
+#include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -70,7 +71,7 @@ class mc_inner_buf_t : public evictable_t,
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, file_account_t *io_account);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 
     // Create an entirely new buf
     static mc_inner_buf_t *allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
@@ -82,7 +83,7 @@ class mc_inner_buf_t : public evictable_t,
 
     // Informs us that a certain data buffer (whether the current one or one used by a
     // buf_snapshot_t) has been written back to disk; used by writeback
-    void update_data_token(const void *data, const boost::intrusive_ptr<standard_block_token_t>& token);
+    void update_data_token(const void *data, const intrusive_ptr_t<standard_block_token_t>& token);
 
     // If required, make a snapshot of the data before being overwritten with new_version
     bool snapshot_if_needed(version_id_t new_version, bool leave_clone);
@@ -108,7 +109,7 @@ private:
     // The snapshot version id of the block.
     version_id_t version_id;
     /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
-    boost::intrusive_ptr<standard_block_token_t> data_token;
+    intrusive_ptr_t<standard_block_token_t> data_token;
 
     // A lock for loading the block.
     rwi_lock_t lock;
@@ -364,10 +365,10 @@ private:
     void on_transaction_commit(transaction_t *txn);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 
 private:
-    void offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    void offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
     void maybe_unregister_read_ahead_callback();
 

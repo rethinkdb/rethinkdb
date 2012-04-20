@@ -12,13 +12,17 @@
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 
+static const char * PROGRESS_REQ_TIMEOUT_PARAM = "timeout";
+static const uint64_t DEFAULT_PROGRESS_REQ_TIMEOUT_MS = 500;
+static const uint64_t MAX_PROGRESS_REQ_TIMEOUT_MS = 60*1000;
+
 /* A record of a request made to another peer for progress on a backfill. */
 class request_record_t {
 public:
-    promise_t<float> *promise;
-    mailbox_t<void(float)> *resp_mbox;
+    promise_t<std::pair<int, int> > *promise;
+    mailbox_t<void(std::pair<int, int>)> *resp_mbox;
 
-    request_record_t(promise_t<float> *_promise, mailbox_t<void(float)> *_resp_mbox)
+    request_record_t(promise_t<std::pair<int, int> > *_promise, mailbox_t<void(std::pair<int, int>)> *_resp_mbox)
         : promise(_promise), resp_mbox(_resp_mbox)
     { }
 
@@ -130,8 +134,8 @@ void send_backfill_requests::operator()<reactor_business_card_t<memcached_protoc
 
         boost::optional<backfiller_business_card_t<memcached_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<memcached_protocol_t>(), region_activity_pair.second);
         if (backfiller) {
-            promise_t<float> *value = new promise_t<float>;
-            mailbox_t<void(float)> *resp_mbox = new mailbox_t<void(float)>(mbox_manager, boost::bind(&promise_t<float>::pulse, value, _1));
+            promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
+            mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(mbox_manager, boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1));
 
             send(mbox_manager, backfiller->request_progress_mailbox, b_it->backfill_session_id, resp_mbox->get_address());
 
@@ -163,8 +167,8 @@ void send_backfill_requests::operator()<reactor_business_card_t<memcached_protoc
 
     boost::optional<backfiller_business_card_t<memcached_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<memcached_protocol_t>(), region_activity_pair.second);
     if (backfiller) {
-        promise_t<float> *value = new promise_t<float>;
-        mailbox_t<void(float)> *resp_mbox = new mailbox_t<void(float)>(mbox_manager, boost::bind(&promise_t<float>::pulse, value, _1));
+        promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
+        mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(mbox_manager, boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1));
 
         send(mbox_manager, backfiller->request_progress_mailbox, b_loc.backfill_session_id, resp_mbox->get_address());
 
@@ -294,10 +298,21 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
 
     /* If a machine has disconnected, or the mailbox for the
      * backfill has gone out of existence we'll never get a
-     * response. Thus we need to have a time out. This one is
-     * for 500 ms. TODO make it so the http request can set the
-     * timeout. */
-    signal_timer_t timer(DEFAULT_PROGRESS_REQ_TIMEOUT);
+     * response. Thus we need to have a time out.
+     * We parse the 'timeout' query parameter here if it is
+     * present, and if not, just use the default value of 500ms.
+     */
+    boost::optional<std::string> timeout_param = req.find_query_param(PROGRESS_REQ_TIMEOUT_PARAM);
+    uint64_t timeout = DEFAULT_PROGRESS_REQ_TIMEOUT_MS;
+    if (timeout_param) {
+        if (!strtou64_strict(timeout_param.get(), 10, &timeout) || timeout == 0 || timeout > MAX_PROGRESS_REQ_TIMEOUT_MS) {
+            http_res_t res(400);
+            res.set_body("application/text", "Invalid timeout value");
+            return res;
+        }
+    }
+
+    signal_timer_t timer(timeout);
 
     /* Now we write a bunch of nested for loops to iterate through each layer,
      * this is annoying but hopefully it's pretty clear what's going on. */
@@ -331,10 +346,14 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                      * complete. */
                     wait_any_t waiter(&timer, r_it->second->promise->get_ready_signal());
                     waiter.wait();
+
                     if (r_it->second->promise->get_ready_signal()->is_pulsed()) {
                         /* The promise is pulsed, we got an answer. */
-                        float response = r_it->second->promise->wait();
-                        cJSON_AddItemToObject(activity_info, get_string(render_as_json(&r, 0)).c_str(), cJSON_CreateNumber(response));
+                        std::pair<int, int> response = r_it->second->promise->wait();
+                        cJSON *pair = cJSON_CreateArray();
+                        cJSON_AddItemToArray(pair, cJSON_CreateNumber(response.first));
+                        cJSON_AddItemToArray(pair, cJSON_CreateNumber(response.second));
+                        cJSON_AddItemToObject(activity_info, get_string(render_as_json(&r, 0)).c_str(), pair);
                     } else {
                         /* The promise is not pulsed.. we timed out. */
                         cJSON_AddItemToObject(activity_info, get_string(render_as_json(&r, 0)).c_str(), cJSON_CreateString("Timeout"));

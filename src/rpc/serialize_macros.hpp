@@ -6,7 +6,6 @@ Please modify '../scripts/generate_serialize_macros.py' instead of modifying thi
 
 #include "containers/archive/archive.hpp"
 #include "containers/archive/stl_types.hpp"
-#include "containers/archive/boost_types.hpp"
 
 /* The purpose of these macros is to make it easier to serialize and
 unserialize data types that consist of a simple series of fields, each of which
@@ -27,15 +26,21 @@ this error, we declare a dummy "extern int" in RDB_MAKE_ME_SERIALIZABLE_*().
 This is a noop at the global scope, but produces a (somewhat weird) error in
 the class scope. */
 
-#define RDB_MAKE_SERIALIZABLE_0(type_t) \
-    inline write_message_t &operator<<(UNUSED write_message_t &msg, UNUSED const type_t &thing) { \
+#define RDB_DECLARE_SERIALIZABLE(type_t) \
+    write_message_t &operator<<(write_message_t &, const type_t &); \
+    int deserialize(read_stream_t *s, type_t *thing);
+
+#define RDB_EXPAND_SERIALIZABLE_0(function_attr, type_t) \
+    function_attr write_message_t &operator<<(UNUSED write_message_t &msg, UNUSED const type_t &thing) { \
     return msg; \
     } \
-    inline int deserialize(UNUSED read_stream_t *s, UNUSED type_t *thing) { \
+    function_attr int deserialize(UNUSED read_stream_t *s, UNUSED type_t *thing) { \
         int res = 0; \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_0(...) RDB_EXPAND_SERIALIZABLE_0(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_0(...) RDB_EXPAND_SERIALIZABLE_0(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_0() \
     friend class write_message_t; \
@@ -48,18 +53,20 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_1(type_t, field1) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_1(function_attr, type_t, field1) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_1(...) RDB_EXPAND_SERIALIZABLE_1(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_1(...) RDB_EXPAND_SERIALIZABLE_1(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_1(field1) \
     friend class write_message_t; \
@@ -75,13 +82,13 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_2(type_t, field1, field2) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_2(function_attr, type_t, field1, field2) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -89,7 +96,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_2(...) RDB_EXPAND_SERIALIZABLE_2(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_2(...) RDB_EXPAND_SERIALIZABLE_2(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_2(field1, field2) \
     friend class write_message_t; \
@@ -108,14 +117,14 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_3(type_t, field1, field2, field3) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_3(function_attr, type_t, field1, field2, field3) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -125,7 +134,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_3(...) RDB_EXPAND_SERIALIZABLE_3(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_3(...) RDB_EXPAND_SERIALIZABLE_3(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_3(field1, field2, field3) \
     friend class write_message_t; \
@@ -147,15 +158,15 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_4(type_t, field1, field2, field3, field4) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_4(function_attr, type_t, field1, field2, field3, field4) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
         msg << thing.field4; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -167,7 +178,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_4(...) RDB_EXPAND_SERIALIZABLE_4(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_4(...) RDB_EXPAND_SERIALIZABLE_4(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_4(field1, field2, field3, field4) \
     friend class write_message_t; \
@@ -192,8 +205,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_5(type_t, field1, field2, field3, field4, field5) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_5(function_attr, type_t, field1, field2, field3, field4, field5) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -201,7 +214,7 @@ the class scope. */
         msg << thing.field5; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -215,7 +228,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_5(...) RDB_EXPAND_SERIALIZABLE_5(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_5(...) RDB_EXPAND_SERIALIZABLE_5(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_5(field1, field2, field3, field4, field5) \
     friend class write_message_t; \
@@ -243,8 +258,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_6(type_t, field1, field2, field3, field4, field5, field6) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_6(function_attr, type_t, field1, field2, field3, field4, field5, field6) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -253,7 +268,7 @@ the class scope. */
         msg << thing.field6; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -269,7 +284,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_6(...) RDB_EXPAND_SERIALIZABLE_6(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_6(...) RDB_EXPAND_SERIALIZABLE_6(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_6(field1, field2, field3, field4, field5, field6) \
     friend class write_message_t; \
@@ -300,8 +317,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_7(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -311,7 +328,7 @@ the class scope. */
         msg << thing.field7; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -329,7 +346,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_7(...) RDB_EXPAND_SERIALIZABLE_7(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_7(...) RDB_EXPAND_SERIALIZABLE_7(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_7(field1, field2, field3, field4, field5, field6, field7) \
     friend class write_message_t; \
@@ -363,8 +382,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_8(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -375,7 +394,7 @@ the class scope. */
         msg << thing.field8; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -395,7 +414,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_8(...) RDB_EXPAND_SERIALIZABLE_8(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_8(...) RDB_EXPAND_SERIALIZABLE_8(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_8(field1, field2, field3, field4, field5, field6, field7, field8) \
     friend class write_message_t; \
@@ -432,8 +453,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_9(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -445,7 +466,7 @@ the class scope. */
         msg << thing.field9; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -467,7 +488,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_9(...) RDB_EXPAND_SERIALIZABLE_9(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_9(...) RDB_EXPAND_SERIALIZABLE_9(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_9(field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     friend class write_message_t; \
@@ -507,8 +530,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_10(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -521,7 +544,7 @@ the class scope. */
         msg << thing.field10; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -545,7 +568,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_10(...) RDB_EXPAND_SERIALIZABLE_10(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_10(...) RDB_EXPAND_SERIALIZABLE_10(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_10(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     friend class write_message_t; \
@@ -588,8 +613,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_11(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -603,7 +628,7 @@ the class scope. */
         msg << thing.field11; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -629,7 +654,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_11(...) RDB_EXPAND_SERIALIZABLE_11(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_11(...) RDB_EXPAND_SERIALIZABLE_11(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_11(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     friend class write_message_t; \
@@ -675,8 +702,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_12(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -691,7 +718,7 @@ the class scope. */
         msg << thing.field12; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -719,7 +746,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_12(...) RDB_EXPAND_SERIALIZABLE_12(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_12(...) RDB_EXPAND_SERIALIZABLE_12(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_12(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     friend class write_message_t; \
@@ -768,8 +797,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_13(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -785,7 +814,7 @@ the class scope. */
         msg << thing.field13; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -815,7 +844,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_13(...) RDB_EXPAND_SERIALIZABLE_13(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_13(...) RDB_EXPAND_SERIALIZABLE_13(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_13(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     friend class write_message_t; \
@@ -867,8 +898,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_14(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -885,7 +916,7 @@ the class scope. */
         msg << thing.field14; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -917,7 +948,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_14(...) RDB_EXPAND_SERIALIZABLE_14(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_14(...) RDB_EXPAND_SERIALIZABLE_14(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_14(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     friend class write_message_t; \
@@ -972,8 +1005,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_15(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -991,7 +1024,7 @@ the class scope. */
         msg << thing.field15; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -1025,7 +1058,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_15(...) RDB_EXPAND_SERIALIZABLE_15(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_15(...) RDB_EXPAND_SERIALIZABLE_15(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_15(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     friend class write_message_t; \
@@ -1083,8 +1118,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_16(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1103,7 +1138,7 @@ the class scope. */
         msg << thing.field16; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -1139,7 +1174,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_16(...) RDB_EXPAND_SERIALIZABLE_16(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_16(...) RDB_EXPAND_SERIALIZABLE_16(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_16(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     friend class write_message_t; \
@@ -1200,8 +1237,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_17(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1221,7 +1258,7 @@ the class scope. */
         msg << thing.field17; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -1259,7 +1296,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_17(...) RDB_EXPAND_SERIALIZABLE_17(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_17(...) RDB_EXPAND_SERIALIZABLE_17(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_17(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     friend class write_message_t; \
@@ -1323,8 +1362,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_18(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1345,7 +1384,7 @@ the class scope. */
         msg << thing.field18; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -1385,7 +1424,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_18(...) RDB_EXPAND_SERIALIZABLE_18(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_18(...) RDB_EXPAND_SERIALIZABLE_18(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_18(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     friend class write_message_t; \
@@ -1452,8 +1493,8 @@ the class scope. */
     }
 
 
-#define RDB_MAKE_SERIALIZABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
-    inline write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+#define RDB_EXPAND_SERIALIZABLE_19(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
+    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1475,7 +1516,7 @@ the class scope. */
         msg << thing.field19; \
     return msg; \
     } \
-    inline int deserialize(read_stream_t *s, type_t *thing) { \
+    function_attr int deserialize(read_stream_t *s, type_t *thing) { \
         int res = 0; \
         res = deserialize(s, &thing->field1); \
         if (res) { return res; } \
@@ -1517,7 +1558,9 @@ the class scope. */
         if (res) { return res; } \
         return res; \
     } \
-    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
+    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;
+#define RDB_MAKE_SERIALIZABLE_19(...) RDB_EXPAND_SERIALIZABLE_19(inline, __VA_ARGS__)
+#define RDB_IMPL_SERIALIZABLE_19(...) RDB_EXPAND_SERIALIZABLE_19(, __VA_ARGS__)
 
 #define RDB_MAKE_ME_SERIALIZABLE_19(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     friend class write_message_t; \

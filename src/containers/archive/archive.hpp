@@ -37,6 +37,18 @@ private:
     archive_deserializer_t();
 };
 
+const int ARCHIVE_SUCCESS = 0;
+const int ARCHIVE_SOCK_ERROR = -1;
+const int ARCHIVE_SOCK_EOF = -2;
+const int ARCHIVE_RANGE_ERROR = -3;
+const int ARCHIVE_GENERIC_ERROR = 1;
+
+// The deserialize function returns 0 upon success, a positive or
+// negative error code upon failure.  -1 means there was an error on
+// the socket, -2 means EOF on the socket, -3 means a "range error",
+// +1 means specific error info was discarded, the error code got used
+// as a boolean.
+
 template <class T>
 MUST_USE int deserialize(read_stream_t *s, T *thing) {
     return archive_deserializer_t::deserialize(s, thing);
@@ -112,12 +124,6 @@ MUST_USE int send_message(write_stream_t *s, write_message_t *msg);
         return msg;                                                     \
     }
 
-// The deserialize function returns 0 upon success, a positive or
-// negative error code upon failure.  -1 means there was an error on
-// the socket, -2 means EOF on the socket, -3 means a "range error",
-// +1 means specific error info was discarded, the error code got used
-// as a boolean.
-
 // Makes typ1 serializable, sending a typ2 over the wire.  Has range
 // checking on the closed interval [lo, hi] when deserializing.
 #define ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(typ1, typ2, lo, hi)       \
@@ -130,16 +136,16 @@ MUST_USE int send_message(write_stream_t *s, write_message_t *msg);
         } u;                                                            \
         int64_t res = force_read(s, u.buf, sizeof(typ2));               \
         if (res == -1) {                                                \
-            return -1;                                                  \
+            return ARCHIVE_SOCK_ERROR;                                  \
         }                                                               \
         if (res < int64_t(sizeof(typ2))) {                              \
-            return -2;                                                  \
+            return ARCHIVE_SOCK_EOF;                                    \
         }                                                               \
         if (u.v < typ2(lo) || u.v > typ2(hi)) {                         \
-            return -3;                                                  \
+            return ARCHIVE_RANGE_ERROR;                                 \
         }                                                               \
         *x = typ1(u.v);                                                 \
-        return 0;                                                       \
+        return ARCHIVE_SUCCESS;                                         \
     }
 
 // Designed for <stdint.h>'s u?int[0-9]+_t types, which are just sent
@@ -154,13 +160,13 @@ MUST_USE int send_message(write_stream_t *s, write_message_t *msg);
         } u;                                                            \
         int64_t res = force_read(s, u.buf, sizeof(typ));                \
         if (res == -1) {                                                \
-            return -1;                                                  \
+            return ARCHIVE_SOCK_ERROR;                                  \
         }                                                               \
         if (res < int64_t(sizeof(typ))) {                               \
-            return -2;                                                  \
+            return ARCHIVE_SOCK_EOF;                                    \
         }                                                               \
         *x = u.v;                                                       \
-        return 0;                                                       \
+        return ARCHIVE_SUCCESS;                                         \
     }
 
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(int8_t);
@@ -176,6 +182,14 @@ ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(double);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
 
+namespace boost { namespace uuids {
+
+struct uuid;
+
+} }  // namespace boost::uuids
+
+write_message_t &operator<<(write_message_t &msg, const boost::uuids::uuid &uuid);
+MUST_USE int deserialize(read_stream_t *s, boost::uuids::uuid *uuid);
 
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

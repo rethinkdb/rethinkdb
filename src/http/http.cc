@@ -179,6 +179,9 @@ http_server_t::http_server_t(int port, http_app_t *_application) : application(_
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
 }
 
+http_server_t::~http_server_t() { }
+
+
 std::string human_readable_status(int code) {
     switch(code) {
     case 200:

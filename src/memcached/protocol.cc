@@ -15,6 +15,112 @@
 #include "memcached/btree/rget.hpp"
 #include "memcached/btree/set.hpp"
 #include "memcached/queries.hpp"
+#include "serializer/config.hpp"
+
+
+write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf) {
+    if (buf) {
+        bool exists = true;
+        msg << exists;
+        int64_t size = buf->size();
+        msg << size;
+        msg.append(buf->buf(), buf->size());
+    } else {
+        bool exists = false;
+        msg << exists;
+    }
+    return msg;
+}
+
+int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf) {
+    bool exists;
+    int res = deserialize(s, &exists);
+    if (res) { return res; }
+    if (exists) {
+        int64_t size;
+        int res = deserialize(s, &size);
+        if (res) { return res; }
+        if (size < 0) { return ARCHIVE_RANGE_ERROR; }
+        *buf = data_buffer_t::create(size);
+        int64_t num_read = force_read(s, (*buf)->buf(), size);
+
+        if (num_read == -1) { return ARCHIVE_SOCK_ERROR; }
+        if (num_read < size) { return ARCHIVE_SOCK_EOF; }
+        rassert(num_read == size);
+    }
+    return ARCHIVE_SUCCESS;
+}
+
+template<typename T>
+class vector_backed_one_way_iterator_t : public one_way_iterator_t<T> {
+    typename std::vector<T> data;
+    size_t pos;
+public:
+    vector_backed_one_way_iterator_t() : pos(0) { }
+    void push_back(T &v) { data.push_back(v); }
+    typename boost::optional<T> next() {
+        if (pos < data.size()) {
+            return boost::optional<T>(data[pos++]);
+        } else {
+            return boost::optional<T>();
+        }
+    }
+    void prefetch() { }
+};
+
+
+write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
+    while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
+        const key_with_data_buffer_t &kv = pair.get();
+
+        const std::string &key = kv.key;
+        const intrusive_ptr_t<data_buffer_t> &data = kv.value_provider;
+        bool next = true;
+        msg << next;
+        msg << key;
+        msg << data;
+    }
+    bool next = false;
+    msg << next;
+    return msg;
+}
+
+int deserialize(read_stream_t *s, rget_result_t *iter) {
+    *iter = rget_result_t(new vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
+    bool next;
+    for (;;) {
+        int res = deserialize(s, &next);
+        if (res) { return res; }
+        if (!next) {
+            return ARCHIVE_SUCCESS;
+        }
+
+        // TODO: See the load function above.  I'm guessing this code is never used.
+        std::string key;
+        res = deserialize(s, &key);
+        if (res) { return res; }
+        intrusive_ptr_t<data_buffer_t> data;
+        res = deserialize(s, &data);
+        if (res) { return res; }
+
+        // You'll note that we haven't put the values in the vector-backed iterator.  Neither does the load function above...
+    }
+}
+
+RDB_IMPL_SERIALIZABLE_1(get_query_t, key);
+RDB_IMPL_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
+RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
+RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
+RDB_IMPL_SERIALIZABLE_1(get_cas_mutation_t, key);
+RDB_IMPL_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
+RDB_IMPL_SERIALIZABLE_2(delete_mutation_t, key, dont_put_in_delete_queue);
+RDB_IMPL_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount);
+RDB_IMPL_SERIALIZABLE_2(incr_decr_result_t, res, new_value);
+RDB_IMPL_SERIALIZABLE_3(append_prepend_mutation_t, kind, key, data);
+RDB_IMPL_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, cas_or_zero);
+
+
+
 
 /* `memcached_protocol_t::read_t::get_region()` */
 
@@ -191,6 +297,8 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create)
         set_superblock_metainfo(txn.get(), sb_buf, key.vector(), std::vector<char>());
     }
 }
+
+memcached_protocol_t::store_t::~store_t() { }
 
 void memcached_protocol_t::store_t::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) {
     fifo_enforcer_read_token_t token = token_source.enter_read();

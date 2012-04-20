@@ -2,6 +2,7 @@
 #define BUFFER_CACHE_MOCK_HPP_
 
 #include "errors.hpp"
+#include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -136,7 +137,7 @@ public:
 
     boost::shared_ptr<cache_account_t> create_account(UNUSED int priority) { return boost::shared_ptr<cache_account_t>(); }
 
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 
     bool contains_block(block_id_t id);
 

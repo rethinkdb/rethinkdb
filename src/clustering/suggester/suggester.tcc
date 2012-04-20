@@ -10,17 +10,21 @@ struct priority_t {
     machine_id_t machine_id;
 
     bool pinned;
+    bool would_rob_secondary;
     int redundancy_cost;
     float backfill_cost;
 
     priority_t() { }
 
-    priority_t(machine_id_t _machine_id, bool _pinned, 
+    priority_t(machine_id_t _machine_id, bool _pinned, bool _would_rob_secondary,
                int _redundancy_cost, float _backfill_cost)
-        : machine_id(_machine_id), pinned(_pinned), 
+        : machine_id(_machine_id), pinned(_pinned), would_rob_secondary(_would_rob_secondary),
           redundancy_cost(_redundancy_cost), backfill_cost(_backfill_cost)
     { }
 };
+
+//It's easier to think about this function if you imagine it as the answer to:
+//is y of higher priority than x
 
 bool operator<(const priority_t &x, const priority_t &y) {
 //CONTINUE:
@@ -32,7 +36,15 @@ bool operator<(const priority_t &x, const priority_t &y) {
         return true;
     }
 
-    //Round 2: Redundancy.
+    //Round 2: Would Rob Secondary.
+    //F I G H T
+    if (x.would_rob_secondary && !y.would_rob_secondary) {
+        return true;
+    } else if (y.would_rob_secondary && !x.would_rob_secondary) {
+        return false;
+    }
+
+    //Round 3: Redundancy.
     //F I G H T
     if (x.redundancy_cost < y.redundancy_cost) {
         return false;
@@ -40,7 +52,7 @@ bool operator<(const priority_t &x, const priority_t &y) {
         return true;
     }
 
-    //Round 3: Backfill cost.
+    //Round 4: Backfill cost.
     //F I G H T
     if (x.backfill_cost < y.backfill_cost) {
         return false;
@@ -139,7 +151,6 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
         const std::set<machine_id_t> &secondary_pinnings,
         std::map<machine_id_t, int> *primary_usage,
         std::map<machine_id_t, int> *secondary_usage) {
-    debugf("Suggest blueprint for shards\n");
 
     std::map<machine_id_t, typename blueprint_details::role_t> sub_blueprint;
 
@@ -147,10 +158,11 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
     for (std::map<machine_id_t, datacenter_id_t>::const_iterator it = machine_data_centers.begin();
             it != machine_data_centers.end(); it++) {
         if (it->second == primary_datacenter) {
-            bool pinned = !std_contains(primary_pinnings, it->first);
+            bool pinned = std_contains(primary_pinnings, it->first);
+
+            bool would_rob_secondary = std_contains(secondary_pinnings, it->first);
 
             int redundancy_cost = get_with_default(*primary_usage, it->first, 0);
-            debugf("Redundancy cost: %d\n", redundancy_cost);
 
             float backfill_cost;
             if (std_contains(directory, it->first)) {
@@ -159,7 +171,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
                 backfill_cost = 3.0;
             }
 
-            primary_candidates.push(priority_t(it->first, pinned, redundancy_cost, backfill_cost));
+            primary_candidates.push(priority_t(it->first, pinned, would_rob_secondary, redundancy_cost, backfill_cost));
         }
     }
     machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
@@ -177,6 +189,8 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
 
                 int redundancy_cost = get_with_default(*secondary_usage, jt->first, 0);
 
+                bool would_rob_secondary = false; //we're the secondary, we shan't be robbing ourselves
+
                 float backfill_cost;
                 if (std_contains(directory, jt->first)) {
                     backfill_cost = estimate_cost_to_get_up_to_date(directory.find(jt->first)->second, shard);
@@ -184,7 +198,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
                     backfill_cost = 3.0;
                 }
 
-                secondary_candidates.push(priority_t(jt->first, pinned, redundancy_cost, backfill_cost));
+                secondary_candidates.push(priority_t(jt->first, pinned, would_rob_secondary, redundancy_cost, backfill_cost));
             }
         }
         std::vector<machine_id_t> secondaries = pick_n_best(&secondary_candidates, it->second, it->first);

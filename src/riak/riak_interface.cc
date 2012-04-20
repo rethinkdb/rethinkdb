@@ -154,7 +154,7 @@ riak_interface_t::set_result_t riak_interface_t::store_object(UNUSED object_t ob
 
     /*
     fake_key_modification_callback_t<riak_value_t> fake_cb;
-    value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore, &fake_cb);
+    // NOPE value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore, &fake_cb);
 
     if (!txn.value()) {
         scoped_malloc<riak_value_t> tmp(MAX_RIAK_VALUE_SIZE);
@@ -212,29 +212,6 @@ riak_interface_t::set_result_t riak_interface_t::store_object(UNUSED object_t ob
 }
 
 bool riak_interface_t::delete_object(UNUSED std::string key) {
-    /* std::list<std::string> sm_key;
-    sm_key.push_back("riak"); sm_key.push_back(bucket);
-    btree_slice_t *slice = get_slice(sm_key);
-
-    if (!slice) {
-        // if we're doing a set we need to create the slice
-        slice = create_slice(sm_key);
-    } */
-
-    /*
-    fake_key_modification_callback_t<riak_value_t> fake_cb;
-    value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(key).key(), repli_timestamp_t::invalid, order_token_t::ignore, &fake_cb);
-
-    blob_t blob(txn.value()->contents, blob::btree_maxreflen);
-    blob.clear(txn.get_txn());
-
-    if (txn.value()) {
-        txn.value().reset();
-        return true;
-    } else {
-        return false;
-    }
-    */
     not_implemented();
     crash("Not implemented");
 }

@@ -161,14 +161,21 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
         }
         /* This returns false if the peers reactor is missing an activity for
          * some sub region. It crashes if they overlap. */
-        try {
-            if (region_join(regions) != region) {
+        typename protocol_t::region_t join;
+        region_join_result_t join_result = region_join(regions, &join);
+
+        switch (join_result) {
+        case REGION_JOIN_OK:
+            if (join != region) {
                 return false;
             }
-        } catch (bad_region_exc_t) {
+            break;
+        case REGION_JOIN_BAD_REGION:
             return false;
-        } catch (bad_join_exc_t) {
+        case REGION_JOIN_BAD_JOIN:
             crash("Overlapping activities in directory, this can only happen due to programmer error.\n");
+        default:
+            unreachable();
         }
     }
 

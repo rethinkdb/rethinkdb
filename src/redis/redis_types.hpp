@@ -188,8 +188,8 @@ public:
             unreachable();
             break;
         }
-        
-        rassert(NULL);    
+
+        rassert(NULL);
         return 0;
     }
 

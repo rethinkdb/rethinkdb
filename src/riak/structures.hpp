@@ -43,7 +43,7 @@ inline int deserialize(read_stream_t *s, riak::hook_t *hook) {
     int res = deserialize(s, &lang);
     if (res) { return res; }
     if (lang < riak::hook_t::JAVASCRIPT || lang > riak::hook_t::ERLANG) {
-        return -3;
+        return ARCHIVE_RANGE_ERROR;
     }
     hook->lang = riak::hook_t::lang_t(lang);
     res = deserialize(s, &hook->code);

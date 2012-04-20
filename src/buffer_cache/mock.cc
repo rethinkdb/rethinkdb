@@ -113,6 +113,18 @@ mock_buf_lock_t::mock_buf_lock_t() :
     acquired(false)
 { }
 
+class function_in_line_callback_t : public lock_in_line_callback_t {
+public:
+    function_in_line_callback_t(boost::function<void()> *callee) : callee_(callee) { }
+    void on_in_line() {
+        if (*callee_) {
+            (*callee_)();
+        }
+    };
+private:
+    boost::function<void()> *callee_;
+};
+
 mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line) :
     internal_buf(txn->cache->bufs->get(block_id)),
     access(mode),
@@ -125,7 +137,9 @@ mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, a
     rassert(block_id < txn->cache->bufs->get_size());
     rassert(internal_buf);
 
-    internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
+    function_in_line_callback_t cb(&call_when_in_line);
+
+    internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, &cb);
 
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok || mode == rwi_read_sync)) {
         internal_buf->subtree_recency = txn->recency_timestamp;
@@ -259,7 +273,7 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED const boost::intrusive_ptr<standard_block_token_t>& token, UNUSED repli_timestamp_t recency_timestamp) {
+bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED const intrusive_ptr_t<standard_block_token_t>& token, UNUSED repli_timestamp_t recency_timestamp) {
     // We never use read-ahead.
     return false;
 }

@@ -8,6 +8,7 @@
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 class btree_slice_t;
 
@@ -157,31 +158,6 @@ private:
 };
 
 
-template <class Value>
-class value_txn_t {
-public:
-    value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority);
-    value_txn_t(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token, key_modification_callback_t<Value> *km_callback);
-
-    ~value_txn_t();
-
-    scoped_malloc<Value>& value();
-
-    transaction_t *get_txn();
-
-private:
-    btree_key_t *key;
-    boost::scoped_ptr<transaction_t> txn;
-    keyvalue_location_t<Value> kv_location;
-    repli_timestamp_t tstamp;
-    eviction_priority_t *root_eviction_priority;
-
-    // Not owned by this object.
-    key_modification_callback_t<Value> *km_callback;
-
-    DISABLE_COPYING(value_txn_t);
-};
-
 
 
 template <class Value>
@@ -257,6 +233,20 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
 
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
 void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
+
+void insert_root(block_id_t root_id, superblock_t* sb);
+void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority);
+void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
+                            const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority);
+void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
+                                buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
+                                const btree_key_t *key);
+void get_btree_superblock(transaction_t *txn, access_t access, got_superblock_t *got_superblock_out);
+void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, bool snapshotted, const boost::shared_ptr<cache_account_t> &cache_account, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
+void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
+void get_btree_superblock_for_backfilling(btree_slice_t *slice, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
+void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token, bool snapshotted, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
+
 
 #include "btree/operations.tcc"
 

@@ -268,14 +268,14 @@ public:
         public home_thread_mixin_t {
         writeback_t *parent;
         mc_buf_lock_t *buf;
-        boost::intrusive_ptr<standard_block_token_t> token;
+        intrusive_ptr_t<standard_block_token_t> token;
 
     private:
         friend class buf_writer_t;
         cond_t finished_;
 
     public:
-        void on_write_launched(const boost::intrusive_ptr<standard_block_token_t>& tok) {
+        void on_write_launched(const intrusive_ptr_t<standard_block_token_t>& tok) {
             token = tok;
             if (continue_on_thread(home_thread(), this)) on_thread_switch();
         }
@@ -415,8 +415,9 @@ void writeback_t::do_concurrent_flush() {
     // Once transaction has completed, perform cleanup.
     for (size_t i = 0; i < state.serializer_writes.size(); ++i) {
         const serializer_write_t &write = state.serializer_writes[i];
-        const serializer_write_t::delete_t *del = boost::get<serializer_write_t::delete_t>(&write.action);
-        if (!del) break;
+        if (write.action_type != serializer_write_t::DELETE) {
+            break;
+        }
 
         // All deleted blocks are now reflected in the serializer's LBA and will not get offered as
         // read-ahead blocks anymore. Therefore we can remove them from our reject_read_ahead_blocks

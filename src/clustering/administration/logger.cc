@@ -1,6 +1,8 @@
 #include "clustering/administration/logger.hpp"
 
 #include <fcntl.h>
+#include <stdarg.h>
+#include <sys/stat.h>
 
 #include "errors.hpp"
 #include <boost/lexical_cast.hpp>
