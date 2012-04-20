@@ -9,7 +9,7 @@
 #include "containers/iterators.hpp"
 #include "memcached/btree/append_prepend.hpp"
 #include "memcached/btree/delete.hpp"
-#include "memcached/btree/disribution.hpp"
+#include "memcached/btree/distribution.hpp"
 #include "memcached/btree/erase_range.hpp"
 #include "memcached/btree/get.hpp"
 #include "memcached/btree/get_cas.hpp"
