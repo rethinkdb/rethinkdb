@@ -5,7 +5,6 @@
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "clustering/immediate_consistency/query/namespace_interface.hpp"
-#include "memcached/protocol.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
