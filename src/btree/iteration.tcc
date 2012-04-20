@@ -24,7 +24,7 @@ boost::optional<key_value_pair_t<V> > leaf_iterator_t<V>::next() {
         done();
         return boost::none;
     } else {
-        const V *value = iter.get_value<V>(leaf);
+        const V *value = static_cast<const V *>(iter.get_value(leaf));
         iter.step(leaf);
         return boost::make_optional(key_value_pair_t<V>(sizer.get(), key_to_str(k), value));
     }
