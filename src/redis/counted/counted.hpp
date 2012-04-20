@@ -1,11 +1,12 @@
 #ifndef COUNTED_HPP_
 #define COUNTED_HPP_
 
+#include <stack>
+
 #include "buffer_cache/blob.hpp"
 #include "redis/redis_types.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/types.hpp"
 #include "containers/iterators.hpp"
-#include <stack>
 
 /*
 struct sub_ref_t {
@@ -79,14 +80,7 @@ struct counted_btree_t {
         std::string member();
 
     private:
-        struct stack_frame_t {
-            stack_frame_t() : index(0) {;}
-
-            unsigned index;
-            buf_lock_t blk;
-        private:
-            DISABLE_COPYING(stack_frame_t);
-        };
+        struct stack_frame_t;
 
         transaction_t *txn;
         block_size_t blksize;

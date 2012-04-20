@@ -483,6 +483,15 @@ counted_btree_t::iterator_t counted_btree_t::score_iterator(float score_min, flo
     return iterator_t(root->node_id, txn, blksize, score_min, score_max);
 }
 
+struct counted_btree_t::iterator_t::stack_frame_t {
+    stack_frame_t() : index(0) {;}
+
+    unsigned index;
+    buf_lock_t blk;
+private:
+    DISABLE_COPYING(stack_frame_t);
+};
+
 counted_btree_t::iterator_t::iterator_t(block_id_t root, transaction_t *txn_, block_size_t& blksize_, float score_min, float score_max) :
     txn(txn_),
     blksize(blksize_),
