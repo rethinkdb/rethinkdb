@@ -19,7 +19,6 @@
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "serializer/log/log_serializer.hpp"
 #include "timestamps.hpp"
 
 inline write_message_t &operator<<(write_message_t &msg, const boost::intrusive_ptr<data_buffer_t> &buf) {

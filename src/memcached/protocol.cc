@@ -15,6 +15,7 @@
 #include "memcached/btree/rget.hpp"
 #include "memcached/btree/set.hpp"
 #include "memcached/queries.hpp"
+#include "serializer/config.hpp"
 
 
 

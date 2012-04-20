@@ -1,4 +1,8 @@
 #include "clustering/administration/persist.hpp"
+
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include "containers/archive/file_stream.hpp"
 
 namespace metadata_persistence {
