@@ -36,40 +36,6 @@ private:
 
 namespace leaf {
 
-// A leaf node is a set of key/value, key/value/modification_time, and
-// key/deletion_time tuples with distinct keys, where modification
-// time or deletion time is omitted for sufficiently old entries.  A
-// key/deletion_time entry says that the key was recently deleted.
-//
-// In particular, all the modification times and deletions after a
-// certain time are recorded, and those before a certain time are
-// omitted.  You'll note that we don't have deletion entries that omit
-// a timestamp.
-
-// Leaf nodes support efficient key lookup and efficient key-order
-// iteration, and efficient iteration in order of descending
-// modification time.  The details of implementation are described
-// later.
-
-
-// These codes can appear as the first byte of a leaf node entry (see
-// below) (values 250 or smaller are just key sizes for key/value
-// pairs).
-
-// Means we have a deletion entry.
-const int DELETE_ENTRY_CODE = 255;
-
-// Means we have a skipped entry exactly one byte long.
-const int SKIP_ENTRY_CODE_ONE = 254;
-
-// Means we have a skipped entry exactly two bytes long.
-const int SKIP_ENTRY_CODE_TWO = 253;
-
-// Means we have a skipped entry exactly N bytes long, of form { uint8_t 252; uint16_t N; char garbage[]; }
-const int SKIP_ENTRY_CODE_MANY = 252;
-
-// A reserved meaningless value.
-const int SKIP_ENTRY_RESERVED = 251;
 
 // We must maintain timestamps and deletion entries as best we can,
 // with the following limitations.  The number of timestamps stored
@@ -80,9 +46,14 @@ const int SKIP_ENTRY_RESERVED = 251;
 // with a 4084 block size, if the five most recent operations were
 // deletions of 250-byte keys, we would only be required to store the
 // 2 most recent deletions and the 2 most recent timestamps.
-
+//
+// These parameters are in the header because some unit tests are
+// based on them.
 const int MANDATORY_TIMESTAMPS = 5;
 const int DELETION_RESERVE_FRACTION = 10;
+
+
+
 
 // The leaf node begins with the following struct layout.
 struct leaf_node_t {
@@ -107,7 +78,6 @@ struct leaf_node_t {
     // The pair offsets.
     uint16_t pair_offsets[];
 };
-
 
 
 

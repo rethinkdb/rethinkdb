@@ -79,7 +79,7 @@ public:
         leaf::init(&sizer_, node_);
         Print();
     }
-    ~LeafNodeTracker() { delete[] node_; }
+    ~LeafNodeTracker() { delete[] reinterpret_cast<char *>(node_); }
 
     bool Insert(const std::string& key, const std::string& value) {
         // printf("\n\nInserting %s\n\n", key.c_str());

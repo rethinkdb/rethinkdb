@@ -3,6 +3,44 @@
 namespace leaf {
 
 
+// A leaf node is a set of key/value, key/value/modification_time, and
+// key/deletion_time tuples with distinct keys, where modification
+// time or deletion time is omitted for sufficiently old entries.  A
+// key/deletion_time entry says that the key was recently deleted.
+//
+// In particular, all the modification times and deletions after a
+// certain time are recorded, and those before a certain time are
+// omitted.  You'll note that we don't have deletion entries that omit
+// a timestamp.
+
+// Leaf nodes support efficient key lookup and efficient key-order
+// iteration, and efficient iteration in order of descending
+// modification time.  The details of implementation are described
+// later.
+
+
+// These codes can appear as the first byte of a leaf node entry (see
+// below) (values 250 or smaller are just key sizes for key/value
+// pairs).
+
+// Means we have a deletion entry.
+const int DELETE_ENTRY_CODE = 255;
+
+// Means we have a skipped entry exactly one byte long.
+const int SKIP_ENTRY_CODE_ONE = 254;
+
+// Means we have a skipped entry exactly two bytes long.
+const int SKIP_ENTRY_CODE_TWO = 253;
+
+// Means we have a skipped entry exactly N bytes long, of form { uint8_t 252; uint16_t N; char garbage[]; }
+const int SKIP_ENTRY_CODE_MANY = 252;
+
+// A reserved meaningless value.
+const int SKIP_ENTRY_RESERVED = 251;
+
+
+
+
 
 // Entries are contiguously connected to the end of a btree
 // block. Here's what a full leaf node looks like.
