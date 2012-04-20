@@ -99,39 +99,15 @@ const btree_key_t *entry_key(const entry_t *p) {
     }
 }
 
-template <class V>
-const V *entry_value(const entry_t *p) {
+const void *entry_value(const entry_t *p) {
     if (entry_is_deletion(p)) {
         return NULL;
     } else {
-        return reinterpret_cast<const V *>(reinterpret_cast<const char *>(p) + entry_key(p)->full_size());
+        return reinterpret_cast<const char *>(p) + entry_key(p)->full_size();
     }
 }
 
-template <class V>
-bool entry_fits(value_sizer_t<V> *sizer, const entry_t *p, int size) {
-    if (size < 1) {
-        return false;
-    }
-
-    uint8_t code = *reinterpret_cast<const uint8_t *>(p);
-    switch (code) {
-    case DELETE_ENTRY_CODE:
-        return entry_key(p)->fits(size - 1);
-    case SKIP_ENTRY_CODE_ONE:
-        return true;
-    case SKIP_ENTRY_CODE_TWO:
-        return size >= 2;
-    case SKIP_ENTRY_CODE_MANY:
-        return size >= 3 && size >= 3 + *reinterpret_cast<const uint16_t *>(1 + reinterpret_cast<const char *>(p));
-    default:
-        rassert(code <= MAX_KEY_SIZE);
-        return entry_key(p)->fits(size) && sizer->fits(entry_value<V>(p), size - entry_key(p)->full_size());
-    }
-}
-
-template <class V>
-int entry_size(value_sizer_t<V> *sizer, const entry_t *p) {
+int entry_size(value_sizer_t<void> *sizer, const entry_t *p) {
     uint8_t code = *reinterpret_cast<const uint8_t *>(p);
     switch (code) {
     case DELETE_ENTRY_CODE:
@@ -144,7 +120,7 @@ int entry_size(value_sizer_t<V> *sizer, const entry_t *p) {
         return 3 + *reinterpret_cast<const uint16_t *>(1 + reinterpret_cast<const char *>(p));
     default:
         rassert(code <= MAX_KEY_SIZE);
-        return entry_key(p)->full_size() + sizer->size(entry_value<V>(p));
+        return entry_key(p)->full_size() + sizer->size(entry_value(p));
     }
 }
 
@@ -197,7 +173,7 @@ void strprint_entry(std::string& out, value_sizer_t<void> *sizer, const entry_t 
         const btree_key_t *key = entry_key(entry);
         out += strprintf("%.*s:", int(key->size), key->contents);
         out += strprintf("[entry size=%d]", entry_size(sizer, entry));
-        out += strprintf("[value size=%d]", sizer->size(entry_value<void>(entry)));
+        out += strprintf("[value size=%d]", sizer->size(entry_value(entry)));
     } else if (entry_is_deletion(entry)) {
         const btree_key_t *key = entry_key(entry);
         out += strprintf("%.*s:[deletion]", int(key->size), key->contents);
@@ -247,7 +223,7 @@ void print_entry(FILE *fp, value_sizer_t<void> *sizer, const entry_t *entry) {
         const btree_key_t *key = entry_key(entry);
         fprintf(fp, "%.*s:", int(key->size), key->contents);
         fprintf(fp, "[entry size=%d]", entry_size(sizer, entry));
-        fprintf(fp, "[value size=%d]", sizer->size(entry_value<void>(entry)));
+        fprintf(fp, "[value size=%d]", sizer->size(entry_value(entry)));
     } else if (entry_is_deletion(entry)) {
         const btree_key_t *key = entry_key(entry);
         fprintf(fp, "%.*s:[deletion]", int(key->size), key->contents);
@@ -378,7 +354,7 @@ bool fsck(value_sizer_t<void> *sizer, const btree_key_t *left_exclusive_or_null,
 
         const entry_t *ent = get_entry(node, offset);
         if (entry_is_live(ent)) {
-            const void *value = entry_value<void>(ent);
+            const void *value = entry_value(ent);
             int space = sizer->block_size().value() - (reinterpret_cast<const char *>(value) - reinterpret_cast<const char *>(node));
             if (!sizer->fits(value, space)) {
                 *msg_out = strprintf("problem with key %.*s: value does not fit\n", entry_key(ent)->size, entry_key(ent)->contents);
@@ -1162,7 +1138,7 @@ bool lookup(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_key
     if (find_key(node, key, &index)) {
         const entry_t *ent = get_entry(node, node->pair_offsets[index]);
         if (entry_is_live(ent)) {
-            const void *val = entry_value<void>(ent);
+            const void *val = entry_value(ent);
             memcpy(value_out, val, sizer->size(val));
             return true;
         }
@@ -1349,7 +1325,7 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
             const entry_t *ent = get_entry(node, iter.offset);
 
             if (entry_is_live(ent)) {
-                cb->key_value(entry_key(ent), entry_value<void>(ent), tstamp);
+                cb->key_value(entry_key(ent), entry_value(ent), tstamp);
             } else if (entry_is_deletion(ent) && include_deletions) {
                 cb->deletion(entry_key(ent), tstamp);
             }
@@ -1384,7 +1360,7 @@ const void *live_iter_t::get_value(const leaf_node_t *node) const {
     if (index_ == node->num_pairs) {
         return NULL;
     } else {
-        return entry_value<void>(get_entry(node, node->pair_offsets[index_]));
+        return entry_value(get_entry(node, node->pair_offsets[index_]));
     }
 }
 
