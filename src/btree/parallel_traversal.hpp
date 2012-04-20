@@ -1,11 +1,10 @@
 #ifndef BTREE_PARALLEL_TRAVERSAL_HPP_
 #define BTREE_PARALLEL_TRAVERSAL_HPP_
 
-#include "errors.hpp"
+#include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#include "btree/internal_node.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "containers/scoped_malloc.hpp"
