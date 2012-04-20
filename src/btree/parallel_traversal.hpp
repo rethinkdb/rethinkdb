@@ -52,7 +52,12 @@ public:
                                             const btree_key_t **left_excl_bound_out,
                                             const btree_key_t **right_incl_bound_out) const;
 
+    int get_level() {
+        crash("Not implemented\n");
+    }
+
 private:
+    int level;
     scoped_malloc<internal_node_t> node_;
     block_id_t forced_block_id_;
     const btree_key_t *left_exclusive_or_null_;

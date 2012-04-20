@@ -112,8 +112,10 @@ inline int deserialize(read_stream_t *s, rget_result_t *iter) {
 
 RDB_MAKE_SERIALIZABLE_1(get_query_t, key);
 RDB_MAKE_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
+RDB_MAKE_SERIALIZABLE_1(distribution_get_query_t, max_depth);
 RDB_MAKE_SERIALIZABLE_3(get_result_t, value, flags, cas);
 RDB_MAKE_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
+RDB_MAKE_SERIALIZABLE_1(distribution_result_t, key_counts);
 RDB_MAKE_SERIALIZABLE_1(get_cas_mutation_t, key);
 RDB_MAKE_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
 RDB_MAKE_SERIALIZABLE_2(delete_mutation_t, key, dont_put_in_delete_queue);
@@ -133,7 +135,7 @@ public:
     struct temporary_cache_t { };
 
     struct read_response_t {
-        typedef boost::variant<get_result_t, rget_result_t> result_t;
+        typedef boost::variant<get_result_t, rget_result_t, distribution_result_t> result_t;
 
         read_response_t() { }
         read_response_t(const read_response_t& r) : result(r.result) { }
@@ -144,7 +146,7 @@ public:
     };
 
     struct read_t {
-        typedef boost::variant<get_query_t, rget_query_t> query_t;
+        typedef boost::variant<get_query_t, rget_query_t, distribution_get_query_t> query_t;
 
         key_range_t get_region() const THROWS_NOTHING;
         read_t shard(const key_range_t &region) const THROWS_NOTHING;
