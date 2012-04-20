@@ -81,24 +81,6 @@ private:
     static const int GENERIC_BLOCKER_THREAD_COUNT = 2;
     blocker_pool_t* generic_blocker_pool;
 
-    template<class T>
-    struct generic_job_t :
-        public blocker_pool_t::job_t
-    {
-        void run() {
-            retval = fn();
-        }
-
-        void done() {
-            // Now that the function is done, resume execution of the suspended task
-            suspended->notify_sometime();
-        }
-
-        boost::function<T()> fn;
-        coro_t* suspended;
-        T retval;
-    };
-
 public:
     pthread_t pthreads[MAX_THREADS];
     linux_thread_t *threads[MAX_THREADS];
@@ -118,6 +100,24 @@ public:
 
 private:
     DISABLE_COPYING(linux_thread_pool_t);
+};
+
+template<class T>
+struct generic_job_t :
+    public blocker_pool_t::job_t
+{
+    void run() {
+        retval = fn();
+    }
+
+    void done() {
+        // Now that the function is done, resume execution of the suspended task
+        suspended->notify_sometime();
+    }
+
+    boost::function<T()> fn;
+    coro_t* suspended;
+    T retval;
 };
 
 // Function to handle blocking calls in a separate thread pool
