@@ -145,7 +145,13 @@ class dummy_namespace_interface_t :
 public:
     dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards, std::vector<boost::shared_ptr<store_view_t<protocol_t> > > stores) {
         /* Make sure shards are non-overlapping and stuff */
-        region_join(shards);
+        {
+            typename protocol_t::region_t join;
+            region_join_result_t result = region_join(shards, &join);
+            if (result != REGION_JOIN_OK) {
+                throw std::runtime_error("bad region join");
+            }
+        }
         rassert(stores.size() == shards.size());
 
         std::vector<typename dummy_sharder_t<protocol_t>::timestamper_and_region_t> shards_of_this_db;

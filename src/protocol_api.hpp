@@ -111,7 +111,10 @@ public:
         for (const_iterator it = begin(); it != end(); it++) {
             regions.push_back(it->first);
         }
-        return region_join(regions);
+        typename protocol_t::region_t join;
+        region_join_result_t join_result = region_join(regions, &join);
+        rassert(join_result == REGION_JOIN_OK);
+        return join;
     }
 
     const_iterator begin() const {

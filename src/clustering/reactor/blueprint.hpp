@@ -39,8 +39,8 @@ public:
         region_to_role_map_t ref_role_map = peers_roles.begin()->second;
         std::set<typename protocol_t::region_t> ref_regions = keys(ref_role_map);
 
-        //calling this just to trigger some exceptions
-        region_join(std::vector<typename protocol_t::region_t>(ref_regions.begin(), ref_regions.end()));
+        typename protocol_t::region_t join;
+        rassert(REGION_JOIN_OK == region_join(std::vector<typename protocol_t::region_t>(ref_regions.begin(), ref_regions.end()), &join));
 
         for (typename role_map_t::const_iterator it =  peers_roles.begin();
                                                  it != peers_roles.end();

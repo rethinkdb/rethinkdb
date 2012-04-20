@@ -137,15 +137,18 @@ dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dum
     return i;
 }
 
-dummy_protocol_t::region_t region_join(const std::vector<dummy_protocol_t::region_t>& vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t) {
+region_join_result_t region_join(const std::vector<dummy_protocol_t::region_t>& vec, dummy_protocol_t::region_t *out) THROWS_NOTHING {
     dummy_protocol_t::region_t u;
     for (std::vector<dummy_protocol_t::region_t>::const_iterator it = vec.begin(); it != vec.end(); it++) {
-        for (std::set<std::string>::iterator it2 = (*it).keys.begin(); it2 != (*it).keys.end(); it2++) {
-            if (u.keys.count(*it2) != 0) throw bad_join_exc_t();
+        for (std::set<std::string>::iterator it2 = it->keys.begin(); it2 != it->keys.end(); it2++) {
+            if (u.keys.count(*it2) != 0) {
+                return REGION_JOIN_BAD_JOIN;
+            }
             u.keys.insert(*it2);
         }
     }
-    return u;
+    *out = u;
+    return REGION_JOIN_OK;
 }
 
 std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protocol_t::region_t &a, const std::vector<dummy_protocol_t::region_t>& b) {
