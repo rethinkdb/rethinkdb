@@ -18,6 +18,95 @@
 #include "serializer/config.hpp"
 
 
+write_message_t &operator<<(write_message_t &msg, const boost::intrusive_ptr<data_buffer_t> &buf) {
+    if (buf) {
+        bool exists = true;
+        msg << exists;
+        int64_t size = buf->size();
+        msg << size;
+        msg.append(buf->buf(), buf->size());
+    } else {
+        bool exists = false;
+        msg << exists;
+    }
+    return msg;
+}
+
+int deserialize(read_stream_t *s, boost::intrusive_ptr<data_buffer_t> *buf) {
+    bool exists;
+    int res = deserialize(s, &exists);
+    if (res) { return res; }
+    if (exists) {
+        int64_t size;
+        int res = deserialize(s, &size);
+        if (res) { return res; }
+        if (size < 0) { return -3; }
+        *buf = data_buffer_t::create(size);
+        int64_t num_read = force_read(s, (*buf)->buf(), size);
+
+        if (num_read == -1) { return -1; }
+        if (num_read < size) { return -2; }
+        rassert(num_read == size);
+    }
+    return 0;
+}
+
+template<typename T>
+class vector_backed_one_way_iterator_t : public one_way_iterator_t<T> {
+    typename std::vector<T> data;
+    size_t pos;
+public:
+    vector_backed_one_way_iterator_t() : pos(0) { }
+    void push_back(T &v) { data.push_back(v); }
+    typename boost::optional<T> next() {
+        if (pos < data.size()) {
+            return boost::optional<T>(data[pos++]);
+        } else {
+            return boost::optional<T>();
+        }
+    }
+    void prefetch() { }
+};
+
+
+write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
+    while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
+        const key_with_data_buffer_t &kv = pair.get();
+
+        const std::string &key = kv.key;
+        const boost::intrusive_ptr<data_buffer_t> &data = kv.value_provider;
+        bool next = true;
+        msg << next;
+        msg << key;
+        msg << data;
+    }
+    bool next = false;
+    msg << next;
+    return msg;
+}
+
+int deserialize(read_stream_t *s, rget_result_t *iter) {
+    *iter = rget_result_t(new vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
+    bool next;
+    for (;;) {
+        int res = deserialize(s, &next);
+        if (res) { return res; }
+        if (!next) {
+            return 0;
+        }
+
+        // TODO: See the load function above.  I'm guessing this code is never used.
+        std::string key;
+        res = deserialize(s, &key);
+        if (res) { return res; }
+        boost::intrusive_ptr<data_buffer_t> data;
+        res = deserialize(s, &data);
+        if (res) { return res; }
+
+        // You'll note that we haven't put the values in the vector-backed iterator.  Neither does the load function above...
+    }
+}
+
 
 /* `memcached_protocol_t::read_t::get_region()` */
 
