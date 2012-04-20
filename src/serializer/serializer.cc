@@ -1,6 +1,3 @@
-#include <boost/bind.hpp>
-#include <boost/variant.hpp>
-
 #include "serializer/serializer.hpp"
 #include "arch/arch.hpp"
 
@@ -34,29 +31,33 @@ serializer_t::block_write(const void *buf, file_account_t *io_account, iocallbac
     return serializer_block_write(this, buf, io_account, cb);
 }
 
-// do_write implementation
-serializer_write_t::serializer_write_t(block_id_t _block_id, action_t _action)
-    : block_id(_block_id), action(_action) { }
-
 serializer_write_t serializer_write_t::make_touch(block_id_t block_id, repli_timestamp_t recency) {
-    touch_t touch;
-    touch.recency = recency;
-    return serializer_write_t(block_id, touch);
+    serializer_write_t w;
+    w.block_id = block_id;
+    w.action_type = TOUCH;
+    w.action.touch.recency = recency;
+    return w;
 }
 
 serializer_write_t serializer_write_t::make_update(
         block_id_t block_id, repli_timestamp_t recency, const void *buf,
         iocallback_t *io_callback, serializer_write_launched_callback_t *launch_callback)
 {
-    update_t update;
-    update.buf = buf, update.recency = recency, update.io_callback = io_callback,
-        update.launch_callback = launch_callback;
-    return serializer_write_t(block_id, update);
+    serializer_write_t w;
+    w.block_id = block_id;
+    w.action_type = UPDATE;
+    w.action.update.buf = buf;
+    w.action.update.recency = recency;
+    w.action.update.io_callback = io_callback;
+    w.action.update.launch_callback = launch_callback;
+    return w;
 }
 
 serializer_write_t serializer_write_t::make_delete(block_id_t block_id) {
-    delete_t del;
-    return serializer_write_t(block_id, del);
+    serializer_write_t w;
+    w.block_id = block_id;
+    w.action_type = DELETE;
+    return w;
 }
 
 struct write_cond_t : public cond_t, public iocallback_t {
@@ -69,32 +70,27 @@ struct write_cond_t : public cond_t, public iocallback_t {
     iocallback_t *callback;
 };
 
-struct write_performer_t : public boost::static_visitor<void> {
-    serializer_t *serializer;
-    file_account_t *io_account;
-    std::vector<write_cond_t*> *block_write_conds;
-    index_write_op_t *op;
-    write_performer_t(serializer_t *ser, file_account_t *acct,
-                      std::vector<write_cond_t*> *conds, index_write_op_t *_op)
-        : serializer(ser), io_account(acct), block_write_conds(conds), op(_op) {}
-
-    void operator()(const serializer_write_t::update_t &update) {
-        block_write_conds->push_back(new write_cond_t(update.io_callback));
-        op->token = serializer->block_write(update.buf, op->block_id, io_account, block_write_conds->back());
-        if (update.launch_callback)
-            update.launch_callback->on_write_launched(op->token.get());
-        op->recency = update.recency;
-    }
-
-    void operator()(UNUSED const serializer_write_t::delete_t &del) {
+void perform_write(const serializer_write_t *write, serializer_t *ser, file_account_t *acct, std::vector<write_cond_t *> *conds, index_write_op_t *op) {
+    switch (write->action_type) {
+    case serializer_write_t::UPDATE: {
+        conds->push_back(new write_cond_t(write->action.update.io_callback));
+        op->token = ser->block_write(write->action.update.buf, op->block_id, acct, conds->back());
+        if (write->action.update.launch_callback) {
+            write->action.update.launch_callback->on_write_launched(op->token.get());
+        }
+        op->recency = write->action.update.recency;
+    } break;
+    case serializer_write_t::DELETE: {
         op->token = boost::intrusive_ptr<standard_block_token_t>();
         op->recency = repli_timestamp_t::invalid;
+    } break;
+    case serializer_write_t::TOUCH: {
+        op->recency = write->action.touch.recency;
     }
-
-    void operator()(const serializer_write_t::touch_t &touch) {
-        op->recency = touch.recency;
+    default:
+        unreachable();
     }
-};
+}
 
 void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes, file_account_t *io_account) {
     ser->assert_thread();
@@ -105,10 +101,11 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t>& writes,
 
     // Step 1: Write buffers to disk and assemble index operations
     for (size_t i = 0; i < writes.size(); ++i) {
-        const serializer_write_t& write = writes[i];
-        index_write_op_t op(write.block_id);
-        write_performer_t performer(ser, io_account, &block_write_conds, &op);
-        boost::apply_visitor(performer, write.action);
+        const serializer_write_t *write = &writes[i];
+        index_write_op_t op(write->block_id);
+
+        perform_write(write, ser, io_account, &block_write_conds, &op);
+
         index_write_ops.push_back(op);
     }
 

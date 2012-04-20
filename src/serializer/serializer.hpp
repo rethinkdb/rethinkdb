@@ -5,7 +5,6 @@
 
 #include "utils.hpp"
 #include <boost/optional.hpp>
-#include <boost/variant/variant.hpp>
 
 #include "arch/types.hpp"
 #include "serializer/types.hpp"
@@ -123,31 +122,24 @@ struct serializer_write_launched_callback_t {
 struct serializer_write_t {
     block_id_t block_id;
 
-    struct update_t {
-        const void *buf;
-        repli_timestamp_t recency;
-        iocallback_t *io_callback;
-        serializer_write_launched_callback_t *launch_callback;
-    };
-
-    struct delete_t {
-        char __unused_field;
-    };
-
-    struct touch_t {
-        repli_timestamp_t recency;
-    };
-
-    // if none, indicates just a recency update.
-    typedef boost::variant<update_t, delete_t, touch_t> action_t;
-    action_t action;
+    enum { UPDATE, DELETE, TOUCH } action_type;
+    union {
+        struct {
+            const void *buf;
+            repli_timestamp_t recency;
+            iocallback_t *io_callback;
+            serializer_write_launched_callback_t *launch_callback;
+        } update;
+        struct {
+            repli_timestamp_t recency;
+        } touch;
+    } action;
 
     static serializer_write_t make_touch(block_id_t block_id, repli_timestamp_t recency);
     static serializer_write_t make_update(block_id_t block_id, repli_timestamp_t recency, const void *buf,
                                           iocallback_t *io_callback = NULL,
                                           serializer_write_launched_callback_t *launch_callback = NULL);
     static serializer_write_t make_delete(block_id_t block_id);
-    serializer_write_t(block_id_t block_id, action_t action);
 };
 
 /* A bad wrapper for doing block writes and index writes.

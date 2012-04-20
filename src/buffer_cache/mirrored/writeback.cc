@@ -415,8 +415,9 @@ void writeback_t::do_concurrent_flush() {
     // Once transaction has completed, perform cleanup.
     for (size_t i = 0; i < state.serializer_writes.size(); ++i) {
         const serializer_write_t &write = state.serializer_writes[i];
-        const serializer_write_t::delete_t *del = boost::get<serializer_write_t::delete_t>(&write.action);
-        if (!del) break;
+        if (write.action_type != serializer_write_t::DELETE) {
+            break;
+        }
 
         // All deleted blocks are now reflected in the serializer's LBA and will not get offered as
         // read-ahead blocks anymore. Therefore we can remove them from our reject_read_ahead_blocks
