@@ -70,14 +70,12 @@ const int SKIP_ENTRY_RESERVED = 251;
 struct entry_t;
 struct value_t;
 
-inline
 bool entry_is_deletion(const entry_t *p) {
     uint8_t x = *reinterpret_cast<const uint8_t *>(p);
     rassert(x != SKIP_ENTRY_RESERVED);
     return x == DELETE_ENTRY_CODE;
 }
 
-inline
 bool entry_is_live(const entry_t *p) {
     uint8_t x = *reinterpret_cast<const uint8_t *>(p);
     rassert(x != SKIP_ENTRY_RESERVED);
@@ -85,12 +83,10 @@ bool entry_is_live(const entry_t *p) {
     return x <= MAX_KEY_SIZE;
 }
 
-inline
 bool entry_is_skip(const entry_t *p) {
     return !entry_is_deletion(p) && !entry_is_live(p);
 }
 
-inline
 const btree_key_t *entry_key(const entry_t *p) {
     if (entry_is_deletion(p)) {
         return reinterpret_cast<const btree_key_t *>(1 + reinterpret_cast<const char *>(p));
@@ -124,22 +120,18 @@ int entry_size(value_sizer_t<void> *sizer, const entry_t *p) {
     }
 }
 
-inline
 const entry_t *get_entry(const leaf_node_t *node, int offset) {
     return reinterpret_cast<const entry_t *>(reinterpret_cast<const char *>(node) + offset + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0));
 }
 
-inline
 entry_t *get_entry(leaf_node_t *node, int offset) {
     return reinterpret_cast<entry_t *>(reinterpret_cast<char *>(node) + offset + (offset < node->tstamp_cutpoint ? sizeof(repli_timestamp_t) : 0));
 }
 
-inline
 char *get_at_offset(leaf_node_t *node, int offset) {
     return reinterpret_cast<char *>(node) + offset;
 }
 
-inline
 repli_timestamp_t get_timestamp(const leaf_node_t *node, int offset) {
     return *reinterpret_cast<const repli_timestamp_t *>(reinterpret_cast<const char *>(node) + offset);
 }
