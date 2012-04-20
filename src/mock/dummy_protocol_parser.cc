@@ -86,7 +86,7 @@ void dummy_protocol_parser_maker_t::on_change() {
             //We're feeling lucky
             namespace_id_t tmp = it->first;
             parsers.insert(tmp, new parser_and_namespace_if_t(it->first, this, port));
-            logINF("Setup a parser on %d\n", port);
+            logINF("Setup a parser on %d", port);
         } else if (parsers.find(it->first) != parsers.end() && it->second.is_deleted()) {
             //The namespace has been deleted... get rid of the parser
             parsers.erase(it->first);

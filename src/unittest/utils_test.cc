@@ -56,39 +56,12 @@ TEST(UtilsTest, StrtofooStrict) {
     ASSERT_TRUE(!success && i_res == 0);
 }
 
-TEST(UtilsTest, PreciseTime) {
-    precise_time_t precise_time;
-    precise_time.tm_sec = 4;
-    precise_time.tm_min = 4;
-    precise_time.tm_mday = 4;
-    precise_time.tm_hour = 4;
-    precise_time.tm_mon = 4;
-    precise_time.tm_year = 110;
-    precise_time.tm_wday = 4;
-    precise_time.tm_yday = 243;
-    precise_time.tm_isdst = -1;
-    precise_time.ns = 102948;
-
-    char buf[100];
-    format_precise_time(precise_time, buf, 100);
-
-    EXPECT_EQ(std::string("2010-05-04T04:04:04.000102"), std::string(buf, buf + strnlen(buf, 100)));
-
-    struct timespec zerotime;
-    zerotime.tv_sec = 0;
-    zerotime.tv_nsec = 0;
-    set_precise_time_offset(zerotime, 0);
-
-    struct timespec timespec;
-    timespec.tv_sec = 1203731445;
-    timespec.tv_nsec = 1203745;
-    precise_time = get_absolute_time(timespec);
-
-    format_precise_time(precise_time, buf, 100);
-
-    EXPECT_EQ(std::string("2008-02-23T01:50:45.001203"), std::string(buf, buf + strnlen(buf, 100)));
-    EXPECT_EQ(format_precise_time(precise_time), std::string(buf, buf + strnlen(buf, 100)));
-    initialize_precise_time();
+TEST(UtilsTest, Time) {
+    time_t time = 1334799841;
+    std::string formatted = format_time(time);
+    EXPECT_EQ("2012-04-18T06:44:01", formatted);
+    time_t parsed = parse_time(formatted);
+    EXPECT_EQ(time, parsed);
 }
 
 TEST(UtilsTest, SizedStrcmp)

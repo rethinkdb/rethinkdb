@@ -20,10 +20,11 @@ int deserialize(read_stream_t *s, local_issue_t **issue_ptr) {
         return ARCHIVE_RANGE_ERROR;
     }
 
-    metadata_persistence::persistence_issue_t *p = new metadata_persistence::persistence_issue_t;
-    res = deserialize(s, p);
+    std::string desc;
+    res = deserialize(s, &desc);
     if (res) { return res; }
-    *issue_ptr = p;
+
+    *issue_ptr = new metadata_persistence::persistence_issue_t(desc);
 
     return ARCHIVE_SUCCESS;
 }

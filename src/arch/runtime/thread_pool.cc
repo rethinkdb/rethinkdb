@@ -285,7 +285,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
 
         for (std::map<std::string, size_t>::iterator i = total_coroutine_counts.begin();
              i != total_coroutine_counts.end(); ++i) {
-            logDBG("%ld coroutines ran with type %s\n", i->second, i->first.c_str());
+            logDBG("%ld coroutines ran with type %s", i->second, i->first.c_str());
         }
     }
 #endif
@@ -406,7 +406,7 @@ void linux_thread_t::on_event(int events) {
     // so it can shut down.
 
     if (events != poll_event_in) {
-        logERR("Unexpected event mask: %d\n", events);
+        logERR("Unexpected event mask: %d", events);
     }
 }
 

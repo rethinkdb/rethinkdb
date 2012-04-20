@@ -12,8 +12,8 @@
 #include "http/routing_app.hpp"
 #include "rpc/directory/watchable_copier.hpp"
 
-std::map<peer_id_t, mailbox_addr_t<void(mailbox_addr_t<void(std::vector<std::string>)>)> > get_log_mailbox(const std::map<peer_id_t, cluster_directory_metadata_t> &md) {
-    std::map<peer_id_t, mailbox_addr_t<void(mailbox_addr_t<void(std::vector<std::string>)>)> > out;
+std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const std::map<peer_id_t, cluster_directory_metadata_t> &md) {
+    std::map<peer_id_t, log_server_business_card_t> out;
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.begin(); it != md.end(); it++) {
         out.insert(std::make_pair(it->first, it->second.log_mailbox));
     }

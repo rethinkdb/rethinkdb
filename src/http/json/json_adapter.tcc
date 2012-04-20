@@ -765,7 +765,7 @@ void apply_as_directory(cJSON *change, T *target, const ctx_t &ctx) {
     while ((val = it.next())) {
         if (elements.find(val->string) == elements.end()) {
 #ifndef NDEBUG
-            logERR("Error, couldn't find element %s in adapter map.\n", val->string);
+            logERR("Error, couldn't find element %s in adapter map.", val->string);
 #else
             throw schema_mismatch_exc_t(strprintf("Couldn't find element %s.", val->string));
 #endif
