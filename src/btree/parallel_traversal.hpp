@@ -6,7 +6,6 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "btree/internal_node.hpp"
-#include "btree/operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "containers/scoped_malloc.hpp"
@@ -18,6 +17,7 @@ class parent_releaser_t;
 class btree_slice_t;
 struct btree_key_t;
 struct internal_node_t;
+class got_superblock_t;
 
 struct acquisition_start_callback_t {
     virtual void on_started_acquisition() = 0;

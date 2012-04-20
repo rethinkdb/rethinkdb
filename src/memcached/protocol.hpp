@@ -9,9 +9,9 @@
 #include <boost/variant.hpp>
 
 #include "btree/slice.hpp"
-#include "btree/operations.hpp"
 #include "btree/backfill.hpp"
 #include "btree/parallel_traversal.hpp"  // TODO: sigh
+#include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/iterators.hpp"
@@ -251,6 +251,7 @@ public:
 
     public:
         store_t(const std::string& filename, bool create);
+        ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
         void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);

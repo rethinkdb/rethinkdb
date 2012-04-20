@@ -6,8 +6,9 @@
 #include "arch/runtime/runtime.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
-#include "btree/node.hpp"
 #include "btree/internal_node.hpp"
+#include "btree/node.hpp"
+#include "btree/operations.hpp"
 
 
 // Traversal
