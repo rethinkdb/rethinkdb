@@ -8,6 +8,7 @@
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 class btree_slice_t;
 

@@ -7,7 +7,6 @@
 #include "errors.hpp"
 #include "btree/node.hpp"
 #include "btree/buf_patches.hpp"
-#include "buffer_cache/buffer_cache.hpp"
 
 // TODO: Could key_modification_proof_t not go in this file?
 

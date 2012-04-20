@@ -1,5 +1,9 @@
 #include "btree/leaf_node.hpp"
 
+#include <algorithm>
+
+#include "buffer_cache/buffer_cache.hpp"
+
 namespace leaf {
 
 
