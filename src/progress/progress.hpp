@@ -7,13 +7,18 @@
 
 #include "arch/timing.hpp"
 
-class progress_bar_t : public repeating_timer_callback_t {
+struct progress_bar_draw_callback_t {
+    virtual void draw() = 0;
+protected:
+    ~progress_bar_draw_callback_t() { }
+};
+
+class progress_bar_t {
 public:
-    progress_bar_t(const std::string&, int);
+    progress_bar_t(const std::string&);
     virtual ~progress_bar_t();
 
-    void refresh();
-    virtual void draw() = 0;
+    void refresh(progress_bar_draw_callback_t *);
     void reset_bar();
     void draw_bar(float, int eta = -1);
 
@@ -33,33 +38,45 @@ private:
     // The number of refreshes we have begun so far.
     int total_refreshes;
 
-    // The timer.  It is important that we destroy this before doing
-    // anything blocking in the destructor.
-    repeating_timer_t timer;
-
     DISABLE_COPYING(progress_bar_t);
 };
 
-class counter_progress_bar_t : public progress_bar_t {
+class counter_progress_bar_t : public repeating_timer_callback_t, public progress_bar_draw_callback_t {
 public:
     counter_progress_bar_t(const std::string&, int, int redraw_interval_ms = 100);
+    virtual ~counter_progress_bar_t() { }
+
     void operator++();
 private:
     void draw();
+    void on_ring();
 
     int count, expected_count;
+
+    progress_bar_t progress_bar;
+
+    repeating_timer_t timer;
+
+    DISABLE_COPYING(counter_progress_bar_t);
 };
 
 // File progress bar watches as you use a file to see how fast you're
 // using it, it does not ever write or read from the file.
-class file_progress_bar_t : public progress_bar_t {
+class file_progress_bar_t : public repeating_timer_callback_t, public progress_bar_draw_callback_t {
 public:
     file_progress_bar_t(const std::string&, FILE *, int redraw_interval_ms = 100);
+    virtual ~file_progress_bar_t() { }
+
 private:
     void draw();
+    void on_ring();
 
     FILE *file;
     int file_size;
+
+    progress_bar_t progress_bar;
+
+    repeating_timer_t timer;
 };
 
 #endif //PROGRESS_HPP_
