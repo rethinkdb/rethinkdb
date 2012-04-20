@@ -2,7 +2,8 @@
 #define BTREE_ERASE_RANGE_HPP_
 
 #include "errors.hpp"
-#include "btree/operations.hpp"
+#include "btree/node.hpp"
+#include "buffer_cache/types.hpp"
 
 class btree_slice_t;
 struct store_key_t;

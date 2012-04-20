@@ -1,5 +1,7 @@
-#include "containers/buffer_group.hpp"
 #include "memcached/btree/set.hpp"
+
+#include "buffer_cache/buffer_cache.hpp"
+#include "containers/buffer_group.hpp"
 #include "memcached/btree/modify_oper.hpp"
 
 struct memcached_set_oper_t : public memcached_modify_oper_t {

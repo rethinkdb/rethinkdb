@@ -4,6 +4,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/runtime/runtime.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/promise.hpp"
 #include "memcached/btree/btree_data_provider.hpp"
 #include "memcached/btree/modify_oper.hpp"
