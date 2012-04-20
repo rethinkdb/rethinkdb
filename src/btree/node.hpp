@@ -1,6 +1,7 @@
 #ifndef BTREE_NODE_HPP_
 #define BTREE_NODE_HPP_
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
