@@ -1,5 +1,8 @@
 #include "clustering/administration/http/log_app.hpp"
 
+#include "errors.hpp"
+#include <boost/lexical_cast.hpp>
+
 #include "arch/timing.hpp"
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 
@@ -57,6 +60,22 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
         }
     }
 
+    int max_length = 100;
+    time_t min_timestamp = 0, max_timestamp = time(NULL) + 100;
+    try {
+        if (boost::optional<std::string> max_length_string = req.find_query_param("max_length")) {
+            max_length = boost::lexical_cast<int>(max_length_string.get());
+        }
+        if (boost::optional<std::string> min_timestamp_string = req.find_query_param("min_timestamp")) {
+            min_timestamp = boost::lexical_cast<int>(min_timestamp_string.get());
+        }
+        if (boost::optional<std::string> max_timestamp_string = req.find_query_param("max_timestamp")) {
+            max_timestamp = boost::lexical_cast<int>(max_timestamp_string.get());
+        }
+    } catch (boost::bad_lexical_cast) {
+        return http_res_t(400);
+    }
+
     std::vector<peer_id_t> peer_ids;
     for (std::vector<machine_id_t>::iterator it = machine_ids.begin(); it != machine_ids.end(); it++) {
         peer_id_t pid = machine_id_to_peer_id(*it, machine_id_translation_table->get());
@@ -72,7 +91,7 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
     pmap(peer_ids.size(), boost::bind(
         &log_http_app_t::fetch_logs, this, _1,
         machine_ids, peer_ids,
-        100, 0, time(NULL),
+        max_length, min_timestamp, max_timestamp,
         map_to_fill.get(),
         &non_interruptor));
 
