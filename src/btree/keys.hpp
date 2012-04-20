@@ -10,10 +10,6 @@
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
-class bad_join_exc_t;
-class bad_region_exc_t;
-
-
 struct store_key_t {
     uint8_t size;
     char contents[MAX_KEY_SIZE];

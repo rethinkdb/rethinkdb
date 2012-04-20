@@ -50,23 +50,6 @@ protected:
     virtual ~namespace_interface_t() { }
 };
 
-/* Exceptions thrown by functions operating on `protocol_t::region_t` */
-
-class bad_region_exc_t : public std::exception {
-public:
-    const char *what() const throw () {
-        return "The set you're trying to compute cannot be expressed as a "
-            "`region_t`.";
-    }
-};
-
-class bad_join_exc_t : public std::exception {
-public:
-    const char *what() const throw () {
-        return "You need to give a non-overlapping set of regions.";
-    }
-};
-
 /* Some `protocol_t::region_t` functions can be implemented in terms of other
 functions. Here are default implementations for those functions. */
 
