@@ -40,8 +40,8 @@ void signal_timer_t::on_timer_ring(void *v_timer) {
 
 // repeating_timer_t
 
-repeating_timer_t::repeating_timer_t(int frequency_ms, const boost::function<void()>& _ring) :
-    ring(_ring) {
+repeating_timer_t::repeating_timer_t(int frequency_ms, repeating_timer_callback_t *_ringee) :
+    ringee(_ringee) {
     rassert(frequency_ms > 0);
     timer = add_timer(frequency_ms, &repeating_timer_t::on_timer_ring, this);
 }
@@ -50,16 +50,16 @@ repeating_timer_t::~repeating_timer_t() {
     cancel_timer(timer);
 }
 
-void call_ringer(const boost::function<void()> &ringer) {
+void call_ringer(repeating_timer_callback_t *ringee) {
     // It would be very easy for a user of repeating_timer_t to have
     // object lifetime errors, if their ring function blocks.  So we
     // have this assertion.
     ASSERT_FINITE_CORO_WAITING;
-    ringer();
+    ringee->on_ring();
 }
 
 void repeating_timer_t::on_timer_ring(void *v_timer) {
     // Spawn _now_, otherwise the reating_timer_t lifetime might end
     // before ring gets used.
-    coro_t::spawn_now(boost::bind(call_ringer, boost::ref(reinterpret_cast<repeating_timer_t *>(v_timer)->ring)));
+    coro_t::spawn_now(boost::bind(call_ringer, reinterpret_cast<repeating_timer_t *>(v_timer)->ringee));
 }
