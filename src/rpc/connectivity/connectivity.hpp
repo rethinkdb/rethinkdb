@@ -12,7 +12,6 @@
 #include "arch/address.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/signal.hpp"
-#include "containers/archive/boost_types.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class peer_address_t {

@@ -4,6 +4,9 @@
 
 #include <algorithm>
 
+#include "errors.hpp"
+#include <boost/uuid/uuid.hpp>
+
 int64_t force_read(read_stream_t *s, void *p, int64_t n) {
     rassert(n >= 0);
 
@@ -53,6 +56,22 @@ int send_write_message(write_stream_t *s, write_message_t *msg) {
         }
         rassert(res == p->size);
     }
+    return 0;
+}
+
+
+write_message_t &operator<<(write_message_t &msg, const boost::uuids::uuid &uuid) {
+    msg.append(uuid.data, boost::uuids::uuid::static_size());
+    return msg;
+}
+
+MUST_USE int deserialize(read_stream_t *s, boost::uuids::uuid *uuid) {
+    int64_t sz = boost::uuids::uuid::static_size();
+    int64_t res = force_read(s, uuid->data, sz);
+
+    if (res == -1) { return -1; }
+    if (res < sz) { return -2; }
+    rassert(res == sz);
     return 0;
 }
 

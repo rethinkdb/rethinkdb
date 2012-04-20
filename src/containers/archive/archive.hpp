@@ -176,6 +176,14 @@ ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(double);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
 
+namespace boost { namespace uuids {
+
+class uuid;
+
+} }  // namespace boost::uuids
+
+write_message_t &operator<<(write_message_t &msg, const boost::uuids::uuid &uuid);
+MUST_USE int deserialize(read_stream_t *s, boost::uuids::uuid *uuid);
 
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

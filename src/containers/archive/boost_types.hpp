@@ -4,7 +4,6 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
-#include <boost/uuid/uuid.hpp>
 
 #include "containers/archive/archive.hpp"
 
@@ -175,22 +174,6 @@ MUST_USE int deserialize(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6
     }
 
     unreachable("impossible to reach, we return from every case of the switch statement");
-}
-
-
-inline write_message_t &operator<<(write_message_t &msg, const boost::uuids::uuid &uuid) {
-    msg.append(uuid.data, boost::uuids::uuid::static_size());
-    return msg;
-}
-
-inline MUST_USE int deserialize(read_stream_t *s, boost::uuids::uuid *uuid) {
-    int64_t sz = boost::uuids::uuid::static_size();
-    int64_t res = force_read(s, uuid->data, sz);
-
-    if (res == -1) { return -1; }
-    if (res < sz) { return -2; }
-    rassert(res == sz);
-    return 0;
 }
 
 
