@@ -1,5 +1,8 @@
 #include "arch/timing.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/arch.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/wait_any.hpp"
@@ -47,6 +50,16 @@ repeating_timer_t::~repeating_timer_t() {
     cancel_timer(timer);
 }
 
+void call_ringer(const boost::function<void()> &ringer) {
+    // It would be very easy for a user of repeating_timer_t to have
+    // object lifetime errors, if their ring function blocks.  So we
+    // have this assertion.
+    ASSERT_FINITE_CORO_WAITING;
+    ringer();
+}
+
 void repeating_timer_t::on_timer_ring(void *v_timer) {
-    coro_t::spawn(reinterpret_cast<repeating_timer_t *>(v_timer)->ring);
+    // Spawn _now_, otherwise the reating_timer_t lifetime might end
+    // before ring gets used.
+    coro_t::spawn_now(boost::bind(call_ringer, boost::ref(reinterpret_cast<repeating_timer_t *>(v_timer)->ring)));
 }
