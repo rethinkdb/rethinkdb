@@ -167,47 +167,6 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
 }
 
 template <class Value>
-value_txn_t<Value>::value_txn_t(btree_key_t *_key,
-                                keyvalue_location_t<Value>& _kv_location,
-                                repli_timestamp_t _tstamp,
-                                key_modification_callback_t<Value> *_km_callback,
-                                eviction_priority_t *_root_eviction_priority)
-    : key(_key), tstamp(_tstamp), root_eviction_priority(_root_eviction_priority), km_callback(_km_callback)
-{
-    kv_location.swap(_kv_location);
-}
-
-template <class Value>
-value_txn_t<Value>::value_txn_t(btree_slice_t *slice, btree_key_t *_key, const repli_timestamp_t _tstamp, const order_token_t token,
-                                key_modification_callback_t<Value> *_km_callback)
-    : key(_key), tstamp(_tstamp), root_eviction_priority(&slice->root_eviction_priority), km_callback(_km_callback)
-{
-    got_superblock_t can_haz_superblock;
-
-    get_btree_superblock(slice, rwi_write, 1, tstamp, token, &can_haz_superblock, txn);
-
-    keyvalue_location_t<Value> _kv_location;
-    find_keyvalue_location_for_write(txn.get(), &can_haz_superblock, key, &_kv_location, &slice->root_eviction_priority);
-
-    kv_location.swap(_kv_location);
-}
-
-template <class Value>
-value_txn_t<Value>::~value_txn_t() {
-    apply_keyvalue_change(txn.get(), &kv_location, key, tstamp, false, km_callback, root_eviction_priority);
-}
-
-template <class Value>
-scoped_malloc<Value>& value_txn_t<Value>::value() {
-    return kv_location.value;
-}
-
-template <class Value>
-transaction_t *value_txn_t<Value>::get_txn() {
-    return txn.get();
-}
-
-template <class Value>
 void get_value_read(btree_slice_t *slice, btree_key_t *key, order_token_t token, keyvalue_location_t<Value> *kv_location_out, boost::scoped_ptr<transaction_t>& txn_out) {
     got_superblock_t got_superblock;
     get_btree_superblock_for_reading(slice, rwi_read, token, false, &got_superblock, txn_out);
