@@ -22,17 +22,17 @@ int deserialize(read_stream_t *s, boost::intrusive_ptr<data_buffer_t> *buf);
 write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter);
 int deserialize(read_stream_t *s, rget_result_t *iter);
 
-RDB_MAKE_SERIALIZABLE_1(get_query_t, key);
-RDB_MAKE_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
-RDB_MAKE_SERIALIZABLE_3(get_result_t, value, flags, cas);
-RDB_MAKE_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
-RDB_MAKE_SERIALIZABLE_1(get_cas_mutation_t, key);
-RDB_MAKE_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
-RDB_MAKE_SERIALIZABLE_2(delete_mutation_t, key, dont_put_in_delete_queue);
-RDB_MAKE_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount);
-RDB_MAKE_SERIALIZABLE_2(incr_decr_result_t, res, new_value);
-RDB_MAKE_SERIALIZABLE_3(append_prepend_mutation_t, kind, key, data);
-RDB_MAKE_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, cas_or_zero);
+RDB_DECLARE_SERIALIZABLE(get_query_t);
+RDB_DECLARE_SERIALIZABLE(rget_query_t);
+RDB_DECLARE_SERIALIZABLE(get_result_t);
+RDB_DECLARE_SERIALIZABLE(key_with_data_buffer_t);
+RDB_DECLARE_SERIALIZABLE(get_cas_mutation_t);
+RDB_DECLARE_SERIALIZABLE(sarc_mutation_t);
+RDB_DECLARE_SERIALIZABLE(delete_mutation_t);
+RDB_DECLARE_SERIALIZABLE(incr_decr_mutation_t);
+RDB_DECLARE_SERIALIZABLE(incr_decr_result_t);
+RDB_DECLARE_SERIALIZABLE(append_prepend_mutation_t);
+RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
 /* `memcached_protocol_t` is a container struct. It's never actually
 instantiated; it just exists to pass around all the memcached-related types and

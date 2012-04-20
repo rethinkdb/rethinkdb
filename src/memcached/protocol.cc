@@ -107,6 +107,20 @@ int deserialize(read_stream_t *s, rget_result_t *iter) {
     }
 }
 
+RDB_IMPL_SERIALIZABLE_1(get_query_t, key);
+RDB_IMPL_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
+RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
+RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
+RDB_IMPL_SERIALIZABLE_1(get_cas_mutation_t, key);
+RDB_IMPL_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
+RDB_IMPL_SERIALIZABLE_2(delete_mutation_t, key, dont_put_in_delete_queue);
+RDB_IMPL_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount);
+RDB_IMPL_SERIALIZABLE_2(incr_decr_result_t, res, new_value);
+RDB_IMPL_SERIALIZABLE_3(append_prepend_mutation_t, kind, key, data);
+RDB_IMPL_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, cas_or_zero);
+
+
+
 
 /* `memcached_protocol_t::read_t::get_region()` */
 
