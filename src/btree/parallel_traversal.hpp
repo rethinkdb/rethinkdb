@@ -129,8 +129,7 @@ public:
 
     void inform(int level, action_t, node_type_t);
 
-    float guess_completion();
-    std::pair<int, int> numerator_and_denominator();
+    std::pair<int, int> guess_completion();
 
 private:
     std::vector<int> learned; //How many nodes at each level we believe exist
@@ -147,7 +146,7 @@ public:
     traversal_progress_combiner_t() { }
 
     void add_constituent(traversal_progress_t *);
-    float guess_completion();
+    std::pair<int, int> guess_completion();
 
 private:
     boost::ptr_vector<traversal_progress_t> constituents;
