@@ -60,7 +60,7 @@ MUST_USE int deserialize(read_stream_t *s, std::map<K, V> *m) {
         position = m->insert(position, p);
     }
 
-    return 0;
+    return ARCHIVE_SUCCESS;
 }
 
 template <class T>
@@ -92,7 +92,7 @@ MUST_USE int deserialize(read_stream_t *s, std::set<T> *out) {
         position = out->insert(position, value);
     }
 
-    return 0;
+    return ARCHIVE_SUCCESS;
 }
 
 inline
@@ -116,7 +116,7 @@ MUST_USE int deserialize(read_stream_t *s, std::string *out) {
     if (res) { return res; }
 
     if (sz < 0) {
-        return -3;
+        return ARCHIVE_RANGE_ERROR;
     }
 
     // Unfortunately we have to do an extra copy before dumping data
@@ -126,17 +126,17 @@ MUST_USE int deserialize(read_stream_t *s, std::string *out) {
 
     int64_t num_read = force_read(s, v.data(), sz);
     if (num_read == -1) {
-        return -1;
+        return ARCHIVE_SOCK_ERROR;
     }
     if (num_read < sz) {
-        return -2;
+        return ARCHIVE_SOCK_EOF;
     }
 
     rassert(num_read == sz, "force_read returned an invalid value %ld", num_read);
 
     out->assign(v.data(), v.size());
 
-    return 0;
+    return ARCHIVE_SUCCESS;
 }
 
 template <class T>
@@ -165,7 +165,7 @@ MUST_USE int deserialize(read_stream_t *s, std::vector<T> *v) {
         if (res) { return res; }
     }
 
-    return 0;
+    return ARCHIVE_SUCCESS;
 }
 
 // TODO: Stop using std::list! What are you thinking?
@@ -195,7 +195,7 @@ MUST_USE int deserialize(read_stream_t *s, std::list<T> *v) {
         if (res) { return res; }
     }
 
-    return 0;
+    return ARCHIVE_SUCCESS;
 }
 
 

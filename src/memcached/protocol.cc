@@ -40,15 +40,15 @@ int deserialize(read_stream_t *s, boost::intrusive_ptr<data_buffer_t> *buf) {
         int64_t size;
         int res = deserialize(s, &size);
         if (res) { return res; }
-        if (size < 0) { return -3; }
+        if (size < 0) { return ARCHIVE_RANGE_ERROR; }
         *buf = data_buffer_t::create(size);
         int64_t num_read = force_read(s, (*buf)->buf(), size);
 
-        if (num_read == -1) { return -1; }
-        if (num_read < size) { return -2; }
+        if (num_read == -1) { return ARCHIVE_SOCK_ERROR; }
+        if (num_read < size) { return ARCHIVE_SOCK_EOF; }
         rassert(num_read == size);
     }
-    return 0;
+    return ARCHIVE_SUCCESS;
 }
 
 template<typename T>
@@ -92,7 +92,7 @@ int deserialize(read_stream_t *s, rget_result_t *iter) {
         int res = deserialize(s, &next);
         if (res) { return res; }
         if (!next) {
-            return 0;
+            return ARCHIVE_SUCCESS;
         }
 
         // TODO: See the load function above.  I'm guessing this code is never used.

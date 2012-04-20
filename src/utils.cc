@@ -28,7 +28,7 @@ write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp) {
     return msg << tstamp.time;
 }
 
-int deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {
+MUST_USE int deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {
     return deserialize(s, &tstamp->time);
 }
 

@@ -8,7 +8,7 @@ int deserialize(read_stream_t *s, local_issue_t **issue_ptr) {
     if (res) { return res; }
     if (!exists) {
         *issue_ptr = NULL;
-        return 0;
+        return ARCHIVE_SUCCESS;
     }
 
     int8_t code;
@@ -16,12 +16,14 @@ int deserialize(read_stream_t *s, local_issue_t **issue_ptr) {
     if (res) { return res; }
 
     // The only subclass is persistence_issue_t.
-    if (code != local_issue_t::PERSISTENCE_ISSUE_CODE) { return -3; }
+    if (code != local_issue_t::PERSISTENCE_ISSUE_CODE) {
+        return ARCHIVE_RANGE_ERROR;
+    }
 
     metadata_persistence::persistence_issue_t *p = new metadata_persistence::persistence_issue_t;
     res = deserialize(s, p);
     if (res) { return res; }
     *issue_ptr = p;
 
-    return 0;
+    return ARCHIVE_SUCCESS;
 }
