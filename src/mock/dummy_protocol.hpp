@@ -80,8 +80,8 @@ public:
     };
 
     struct backfill_progress_t {
-        float guess_completion() {
-            return -1.0f;
+        std::pair<int, int> guess_completion() {
+            return std::make_pair(-1, -1);
         }
     };
 

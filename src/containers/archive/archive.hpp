@@ -178,7 +178,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
 
 namespace boost { namespace uuids {
 
-class uuid;
+struct uuid;
 
 } }  // namespace boost::uuids
 
