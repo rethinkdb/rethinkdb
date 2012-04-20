@@ -99,7 +99,7 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
 
 void format_time(time_t time, char* buf, size_t max_chars) {
     struct tm t;
-    struct tm *res1 = gmtime_r(&time, &t);
+    struct tm *res1 = localtime_r(&time, &t);
     guarantee_err(res1 == &t, "gmtime_r() failed.");
     int res2 = snprintf(buf, max_chars,
         "%04d-%02d-%02dT%02d:%02d:%02d",

@@ -48,33 +48,34 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
     const char *p = s.c_str();
     const char *start_timestamp = p;
     while (*p && *p != ' ') p++;
-    if (!*p) throw std::runtime_error("cannot parse log message");
+    if (!*p) throw std::runtime_error("cannot parse log message (1)");
     const char *end_timestamp = p;
     p++;
     const char *start_uptime_ipart = p;
     while (*p && *p != '.') p++;
-    if (!*p) throw std::runtime_error("cannot parse log message");
+    if (!*p) throw std::runtime_error("cannot parse log message (2)");
     const char *end_uptime_ipart = p;
     p++;
     const char *start_uptime_fpart = p;
     while (*p && *p != 's') p++;
-    if (!*p) throw std::runtime_error("cannot parse log message");
+    if (!*p) throw std::runtime_error("cannot parse log message (3)");
     const char *end_uptime_fpart = p;
     p++;
-    if (*p != ' ') throw std::runtime_error("cannot parse log message");
+    if (*p != ' ') throw std::runtime_error("cannot parse log message (4)");
     p++;
     const char *start_level = p;
     while (*p && *p != ':') p++;
-    if (*p != ':') throw std::runtime_error("cannot parse log message");
+    if (*p != ':') throw std::runtime_error("cannot parse log message (5)");
     const char *end_level = p;
     p++;
-    if (*p != ' ') throw std::runtime_error("cannot parse log message");
+    if (*p != ' ') throw std::runtime_error("cannot parse log message (6)");
+    p++;
     const char *start_message = p;
     while (*p && *p != '\n') p++;
-    if (!*p) throw std::runtime_error("cannot parse log message");
+    if (!*p) throw std::runtime_error("cannot parse log message (7)");
     const char *end_message = p;
     p++;
-    if (*p) throw std::runtime_error("cannot parse log message");
+    if (*p) throw std::runtime_error("cannot parse log message (8)");
 
     time_t timestamp = parse_time(std::string(start_timestamp, end_timestamp - start_timestamp));
     struct timespec uptime;
@@ -82,7 +83,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
         uptime.tv_sec = boost::lexical_cast<int>(std::string(start_uptime_ipart, end_uptime_ipart - start_uptime_ipart));
         uptime.tv_nsec = 1e3 * boost::lexical_cast<int>(std::string(start_uptime_fpart, end_uptime_fpart - start_uptime_fpart));
     } catch (boost::bad_lexical_cast) {
-        throw std::runtime_error("cannot parse log message");
+        throw std::runtime_error("cannot parse log message (9)");
     }
     log_level_t level = parse_log_level(std::string(start_level, end_level - start_level));
     std::string message = std::string(start_message, end_message - start_message);
@@ -102,11 +103,12 @@ public:
             fd(open(filename.c_str(), O_RDONLY)),
             current_chunk(new char[chunk_size]) {
         throw_unless(fd.get() != -1, strprintf("could not open '%s' for reading.", filename.c_str()));
-        off64_t size = lseek(fd.get(), SEEK_END, 0);
-        throw_unless(size >= 0, "could not seek to end of file");
-        remaining_in_current_chunk = size % chunk_size;
-        current_chunk_start = size - remaining_in_current_chunk;
-        int res = pread(fd.get(), current_chunk.get(), remaining_in_current_chunk, current_chunk_start);
+        struct stat64 stat;
+        int res = fstat64(fd.get(), &stat);
+        throw_unless(res == 0, "could not determine size of log file");
+        remaining_in_current_chunk = stat.st_size % chunk_size;
+        current_chunk_start = stat.st_size - remaining_in_current_chunk;
+        res = pread(fd.get(), current_chunk.get(), remaining_in_current_chunk, current_chunk_start);
         throw_unless(res == remaining_in_current_chunk, "could not read from file");
     }
 
@@ -134,6 +136,7 @@ public:
                 }
             } else {
                 *out = std::string(current_chunk.get() + p, remaining_in_current_chunk - p) + *out;
+                remaining_in_current_chunk = p;
                 return true;
             }
         }
@@ -233,7 +236,7 @@ bool log_writer_t::write_blocking(const log_message_t &msg, std::string *error_o
     }
     std::string formatted = format_log_message(msg);
     int res = ::write(fd.get(), formatted.data(), formatted.length());
-    if (res != 0) {
+    if (res != int(formatted.length())) {
         *error_out = std::string("cannot write to log file: ") + strerror(errno);
         return false;
     }
@@ -245,6 +248,9 @@ bool log_writer_t::tail_blocking(int max_lines, time_t min_timestamp, time_t max
         file_reverse_reader_t reader(filename);
         std::string line;
         while (int(messages_out->size()) < max_lines && reader.get_next(&line) && !*cancel) {
+            if (line == "" || line[line.length() - 1] != '\n') {
+                continue;
+            }
             log_message_t lm = parse_log_message(line);
             if (lm.timestamp > max_timestamp) continue;
             if (lm.timestamp < min_timestamp) break;

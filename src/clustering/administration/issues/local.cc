@@ -18,10 +18,11 @@ int deserialize(read_stream_t *s, local_issue_t **issue_ptr) {
     // The only subclass is persistence_issue_t.
     if (code != local_issue_t::PERSISTENCE_ISSUE_CODE) { return -3; }
 
-    metadata_persistence::persistence_issue_t *p = new metadata_persistence::persistence_issue_t;
-    res = deserialize(s, p);
+    std::string desc;
+    res = deserialize(s, &desc);
     if (res) { return res; }
-    *issue_ptr = p;
+
+    *issue_ptr = new metadata_persistence::persistence_issue_t(desc);
 
     return 0;
 }

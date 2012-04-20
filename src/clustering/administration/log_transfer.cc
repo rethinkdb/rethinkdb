@@ -12,15 +12,21 @@ log_server_business_card_t log_server_t::get_business_card() {
 }
 
 void log_server_t::handle_request(int max_lines, time_t min_timestamp, time_t max_timestamp, log_server_business_card_t::result_mailbox_t::address_t cont, auto_drainer_t::lock_t keepalive) {
+    std::string error;
     try {
         std::vector<log_message_t> messages =
             writer->tail(max_lines, min_timestamp, max_timestamp, keepalive.get_drain_signal());
         send(mailbox_manager, cont, log_server_business_card_t::result_t(messages));
+        return;
     } catch (std::runtime_error e) {
-        send(mailbox_manager, cont, log_server_business_card_t::result_t(e.what()));
+        error = e.what();
     } catch (interrupted_exc_t) {
         /* don't respond; we'll shut down in a moment */
+        return;
     }
+    /* Hack around the fact that we can't call a blocking function (e.g.
+    `send()` from within a `catch`-block. */
+    send(mailbox_manager, cont, log_server_business_card_t::result_t(error));
 }
 
 std::vector<log_message_t> fetch_log_file(
