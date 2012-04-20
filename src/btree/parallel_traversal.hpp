@@ -9,7 +9,6 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "containers/scoped_malloc.hpp"
-#include "protocol_api.hpp"
 
 struct btree_superblock_t;
 class traversal_state_t;
