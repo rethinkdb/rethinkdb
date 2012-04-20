@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -149,26 +150,9 @@ struct demangle_failed_exc_t : public std::exception {
 };
 std::string demangle_cpp_name(const char *mangled_name);
 
-// Precise time (time+nanoseconds) for logging, etc.
-struct precise_time_t : public tm {
-    uint32_t ns;    // nanoseconds since the start of the second
-                    // beware:
-                    //   tm::tm_year is number of years since 1970,
-                    //   tm::tm_mon is number of months since January,
-                    //   tm::tm_sec is from 0 to 60 (to account for leap seconds)
-                    // For more information see man gmtime(3)
-};
-
-void initialize_precise_time();     // should be called during startup
-void set_precise_time_offset(timespec hi_res_clock, time_t low_res_clock);  // used in unit-tests
-timespec get_uptime();              // returns relative time since initialize_precise_time(),
-                                    // can return low precision time if clock_gettime call fails
-precise_time_t get_absolute_time(const timespec& relative_time); // converts relative time to absolute
-precise_time_t get_time_now();      // equivalent to get_absolute_time(get_uptime())
-
 // formatted time:
 // yyyy-mm-dd hh:mm:ss   (19 characters)
-const size_t formatted_precise_time_length = 19;    // not including null
+const size_t formatted_time_length = 19;    // not including null
 
 void format_time(time_t time, char* buf, size_t max_chars);
 std::string format_time(time_t time);

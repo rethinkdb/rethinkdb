@@ -32,9 +32,9 @@
 
 bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets) {
 
-    log_file_writer_t log_file_writer(filepath + "/log_file");
-
     local_issue_tracker_t local_issue_tracker;
+
+    log_writer_t log_writer(filepath + "/log_file", &local_issue_tracker);
 
     printf("Establishing cluster node on port %d...\n", port);
 
@@ -49,7 +49,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
     semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster(&semilattice_manager_client, semilattice_metadata);
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster);
 
-    log_file_server_t log_file_server(&mailbox_manager, &log_file_writer);
+    log_server_t log_server(&mailbox_manager, &log_writer);
 
     // Initialize the stat manager before the directory manager so that we
     // could initialize the cluster directory metadata with the proper
@@ -59,7 +59,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
     cluster_directory_metadata_t cluster_directory_metadata_iv(
         machine_id,
         stat_manager.get_address(),
-        log_file_server.get_business_card());
+        log_server.get_business_card());
 
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
     directory_readwrite_manager_t<cluster_directory_metadata_t> directory_manager(&directory_manager_client, cluster_directory_metadata_iv);

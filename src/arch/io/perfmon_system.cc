@@ -142,7 +142,7 @@ struct perfmon_system_t :
         } catch (proc_pid_stat_exc_t e) {
             if (!have_reported_error) {
                 logWRN("Error in reporting system stats: %s (Further errors like this will "
-                    "be suppressed.)\n", e.what());
+                    "be suppressed.)", e.what());
                 have_reported_error = true;
             }
             return;
@@ -153,7 +153,7 @@ struct perfmon_system_t :
     }
     void put_timestamp(perfmon_stats_t *dest) {
         time_t now = time(NULL);
-        (*dest)["uptime"] = strprintf("%d", now - start_time);
+        (*dest)["uptime"] = strprintf("%d", int(difftime(start_time, now)));
         (*dest)["timestamp"] = format_time(now);
     }
 
@@ -183,7 +183,7 @@ void poll_system_stats(void *) {
     } catch (proc_pid_stat_exc_t e) {
         if (!TLS_get_have_reported_stats_error()) {
             logWRN("Error in reporting per-thread stats: %s (Further errors like this will "
-                "be suppressed.)\n", e.what());
+                "be suppressed.)", e.what());
             TLS_set_have_reported_stats_error(true);
         }
     }

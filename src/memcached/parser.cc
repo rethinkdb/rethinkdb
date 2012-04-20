@@ -1098,7 +1098,7 @@ bool parse_debug_command(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, st
 
 /* Handle memcached, takes a txt_memcached_handler_t and handles the memcached commands that come in on it */
 void handle_memcache(memcached_interface_t *interface, namespace_interface_t<memcached_protocol_t> *nsi, int max_concurrent_queries_per_connection) {
-    logDBG("Opened memcached stream: %p\n", coro_t::self());
+    logDBG("Opened memcached stream: %p", coro_t::self());
 
     /* This object just exists to group everything together so we don't have to pass a lot of
     context around. */
@@ -1252,6 +1252,6 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
     pipeliner_acq.begin_write();
     pipeliner_acq.end_write();
 
-    logDBG("Closed memcached stream: %p\n", coro_t::self());
+    logDBG("Closed memcached stream: %p", coro_t::self());
 }
 

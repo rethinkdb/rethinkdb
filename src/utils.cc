@@ -99,9 +99,9 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
 
 void format_time(time_t time, char* buf, size_t max_chars) {
     struct tm t;
-    struct tm *res1 = gmtime_r(time, &t);
-    guarantee_err(res1 == NULL, "gmtime_r() failed.");
-    int res = snprintf(buf, max_chars,
+    struct tm *res1 = gmtime_r(&time, &t);
+    guarantee_err(res1 == &t, "gmtime_r() failed.");
+    int res2 = snprintf(buf, max_chars,
         "%04d-%02d-%02dT%02d:%02d:%02d",
         t.tm_year+1900,
         t.tm_mon+1,
@@ -109,8 +109,8 @@ void format_time(time_t time, char* buf, size_t max_chars) {
         t.tm_hour,
         t.tm_min,
         t.tm_sec);
-    (void) res;
-    rassert(0 <= res);
+    (void) res2;
+    rassert(0 <= res2);
 }
 
 std::string format_time(time_t time) {
@@ -121,26 +121,25 @@ std::string format_time(time_t time) {
 
 time_t parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
     struct tm t;
-    int year, mon, mday, hour, min, sec, us;
-    int res = sscanf(str.c_str(),
+    int res1 = sscanf(str.c_str(),
         "%04d-%02d-%02dT%02d:%02d:%02d",
-        &t.year,
-        &t.mon,
-        &t.mday,
-        &t.hour,
-        &t.min,
-        &t.sec);
-    if (res != 6) {
+        &t.tm_year,
+        &t.tm_mon,
+        &t.tm_mday,
+        &t.tm_hour,
+        &t.tm_min,
+        &t.tm_sec);
+    if (res1 != 6) {
         throw std::runtime_error("badly formatted time");
     }
-    t.year -= 1900;
-    t.mon -= 1;
-    t.isdst = -1;
-    time_t res = mktime(&t);
-    if (res == -1) {
+    t.tm_year -= 1900;
+    t.tm_mon -= 1;
+    t.tm_isdst = -1;
+    time_t res2 = mktime(&t);
+    if (res2 == -1) {
         throw std::runtime_error("invalid time");
     }
-    return res;
+    return res2;
 }
 
 #ifndef NDEBUG

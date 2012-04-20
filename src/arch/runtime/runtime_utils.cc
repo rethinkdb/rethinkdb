@@ -93,7 +93,7 @@ void pet_watchdog() {
             uint64_t delta = get_and_check_clock_cycles(watchdog_start_time, MAX_WATCHDOG_DELTA);
 
             if (delta != 0) {
-                logWRN("task triggered watchdog, elapsed cycles: %lu, running coroutine: %s\n", delta,
+                logWRN("task triggered watchdog, elapsed cycles: %lu, running coroutine: %s", delta,
                     (coro_t::self() == NULL) ? "n/a" : coro_t::self()->get_coroutine_type().c_str());
             }
         }

@@ -45,7 +45,7 @@ timerfd_provider_t::~timerfd_provider_t() {
 
 void timerfd_provider_t::on_event(int events) {
     if (events != poll_event_in) {
-        logERR("Unexpected event mask: %d\n", events);
+        logERR("Unexpected event mask: %d", events);
     }
 
     int res;

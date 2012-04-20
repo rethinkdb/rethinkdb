@@ -43,7 +43,7 @@ timer_handler_t::~timer_handler_t() {
             /* This is an error. However, the best way to debug this error is to have
             the timer token leak and have Valgrind tell us where the leaked block originated
             from. So we just write a warning message. */
-            logERR("Internal error: leaked timer.\n");
+            logERR("Internal error: leaked timer.");
         }
     }
 }

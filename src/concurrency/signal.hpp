@@ -40,7 +40,7 @@ public:
 
     class subscription_t : public home_thread_mixin_t {
     public:
-	subscription_t() : subs(this) { }
+        subscription_t() : subs(this) { }
         void reset(signal_t *s = NULL) {
             if (s) {
                 mutex_assertion_t::acq_t acq(&s->lock);
@@ -54,10 +54,10 @@ public:
             }
         }
 
-	virtual void run() = 0;
+        virtual void run() = 0;
     private:
-	publisher_t<subscription_t *>::subscription_t subs;
-	DISABLE_COPYING(subscription_t);
+        publisher_t<subscription_t *>::subscription_t subs;
+        DISABLE_COPYING(subscription_t);
     };
 
     /* The coro that calls `wait_lazily_ordered()` will be pushed onto the event
