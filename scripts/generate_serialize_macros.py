@@ -15,15 +15,15 @@ $ ../scripts/generate_serialize_macros.py > rpc/serialize_macros.hpp
 
 
 def generate_make_serializable_macro(nfields):
-    print "#define RDB_MAKE_SERIALIZABLE_%d(type_t%s) \\" % \
+    print "#define RDB_EXPAND_SERIALIZABLE_%d(function_attr, type_t%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
-    print "    inline write_message_t &operator<<(%swrite_message_t &msg, %sconst type_t &thing) { \\" % (zeroarg, zeroarg)
+    print "    function_attr write_message_t &operator<<(%swrite_message_t &msg, %sconst type_t &thing) { \\" % (zeroarg, zeroarg)
     for i in xrange(nfields):
         print "        msg << thing.field%d; \\" % (i + 1)
     print "    return msg; \\"
     print "    } \\"
-    print "    inline int deserialize(%sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg)
+    print "    function_attr int deserialize(%sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg)
     print "        int res = 0; \\"
     for i in xrange(nfields):
         print "        res = deserialize(s, &thing->field%d); \\" % (i + 1)
@@ -31,7 +31,9 @@ def generate_make_serializable_macro(nfields):
     print "        return res; \\"
     print "    } \\"
     # See the note in the comment below.
-    print "    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;"
+    print "    extern int dont_use_RDB_EXPAND_SERIALIZABLE_within_a_class_body;"
+    print "#define RDB_MAKE_SERIALIZABLE_%d(...) RDB_EXPAND_SERIALIZABLE_%d(inline, __VA_ARGS__)" % (nfields, nfields)
+    print "#define RDB_IMPL_SERIALIZABLE_%d(...) RDB_EXPAND_SERIALIZABLE_%d(, __VA_ARGS__)" % (nfields, nfields)
 
 def generate_make_me_serializable_macro(nfields):
     print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \
@@ -85,6 +87,10 @@ this error, we declare a dummy "extern int" in RDB_MAKE_ME_SERIALIZABLE_*().
 This is a noop at the global scope, but produces a (somewhat weird) error in
 the class scope. */
     """.strip()
+    print
+    print "#define RDB_DECLARE_SERIALIZABLE(type_t) \\"
+    print "    write_message_t &operator<<(write_message_t &, const type_t &); \\"
+    print "    int deserialize(read_stream_t *s, type_t *thing);"
     print
 
     for nfields in xrange(20):
