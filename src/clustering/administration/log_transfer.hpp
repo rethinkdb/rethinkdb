@@ -3,6 +3,7 @@
 
 #include "clustering/administration/logger.hpp"
 #include "clustering/resource.hpp"
+#include "containers/archive/boost_types.hpp"
 
 class log_server_business_card_t {
 public:

@@ -9,6 +9,7 @@
 #include "errors.hpp"
 #include <boost/circular_buffer.hpp>
 
+#include "arch/io/io_utils.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "logger.hpp"
 #include "rpc/mailbox/typed.hpp"
