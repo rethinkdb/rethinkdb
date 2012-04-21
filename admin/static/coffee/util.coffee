@@ -57,23 +57,23 @@ Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
         result = 'N/A'
     else
         if status.reachable
-            result = "Reachable"
+            result = "<span class='label label-success'>Reachable</span>"
         else
             _last_seen = if status.last_seen? then status.last_seen else 'unknown'
-            result = 'Unreachable (<abbr class="timeago" title="' + _last_seen + '">since ' + _last_seen + '</abbr>)'
+            result = "<span class='label label-important'>Unreachable</span> (<abbr class='timeago' title='#{_last_seen}'>since #{_last_seen}</abbr>)"
     return new Handlebars.SafeString(result);
 
 Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
     if status.reachable > 0
-        result = 'Live'
+        result = "<span class='label label-success'>Live</span>"
     else
         if status.total > 0
-            result = 'Down'
+            result = "<span class='label label-important'>Down</span>"
         else
-            result = 'Empty'
-    result += ' (' + status.reachable + ' of ' + status.total + ' machines reachable)'
+            result = "<span class='label'>Empty</span>"
+    result += "(#{status.reachable} of #{status.total} machines reachable)"
     if status.reachable == 0 and status.total > 0
-        result += ' <abbr class="timeago" title="' + status.last_seen + '">since ' + status.last_seen + '</abbr>'
+        result += " <abbr class='timeago' title='#{status.last_seen}'>since #{status.last_seen}</abbr>"
 
     return new Handlebars.SafeString(result);
 

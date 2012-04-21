@@ -171,34 +171,30 @@
         <script id="datacenter_list_element-template" type="text/x-handlebars-template">
             <div class="row header">
                 <div class="span7">
-                    <div class="expanded icon"></div>
-                    <h3 class="datacenter name"><a href="#datacenters/{{id}}">{{name}}</a></h3>
+                    <div class="expanded arrow"></div>
+                    <h3 class="datacenter name"><span class="element-type label label-inverse">Datacenter</span><a href="#datacenters/{{id}}">{{name}}</a></h3>
                     <div class="datacenter details">
-                        <p><span class="status">Status: {{humanize_datacenter_reachability status}}</span></p>
-                        <p><span class="Contains">Contains: {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}} for {{namespace_count}} {{pluralize_noun "namespace" namespace_count}}</span></p>
+                        <p class="status">{{humanize_datacenter_reachability status}}</p>
+                        <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Namespaces: {{namespace_count}}</p>
                     </div>
                 </div>
                 <div class="span2">
                     <div class="datacenter actions">
-                        <p>(<a href="btn remove-datacenter">remove this datacenter</a>)</p>
+                        <p>(<a href="#" class="remove-datacenter">remove this datacenter</a>)</p>
                     </div>
                 </div>
             </div>
             <div class="machine-list"></div>
-            <div class="summary expanded">
-                6 machines
-            </div>
+            <div class="summary expanded"></div>
         </script>
 
         <script id="unassigned_machines_list_element-template" type="text/x-handlebars-template">
             <div class="header">
-                <div class="expanded icon"></div>
+                <div class="expanded arrow"></div>
                 <h3 class="datacenter name">Unassigned machines</h3>
             </div>
             <div class="machine-list"></div>
-            <div class="summary expanded">
-                6 machines
-            </div>
+            <div class="summary expanded"></div>
         </script>
 
         <script id="machine_list_element-template" type="text/x-handlebars-template">
@@ -206,13 +202,14 @@
                 <input type="checkbox"></input>
             </td>
             <td>
-                <div class="details">
-                    <h3 class="name"><a href="#machines/{{id}}">{{name}}</a></h3>
-                    <p>
-                        <span class="status">Status: {{humanize_machine_reachability status}}</span>
-                        | <span class="ip">IP: {{ip}}</span>
-                    </p>
-                    <p><span class="Contains">Contains: {{primary_count}} {{pluralize_noun "primary" primary_count}}, {{secondary_count}} {{pluralize_noun "secondary" secondary_count}} for {{namespace_count}} {{pluralize_noun "namespace" namespace_count}}</span></p>
+                <div class="machine details">
+                    <h3 class="name">
+                        <span class="element-type label label-info">Machine</span><a href="#machines/{{id}}">{{name}}</a>
+                        <p class="status">{{humanize_machine_reachability status}}</p>
+                    </h3>
+                    {{#unless unassigned_machine}}
+                        <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Namespaces: {{namespace_count}}</p>
+                    {{/unless}}
                 </div>
             </td>
         </script>
@@ -1176,12 +1173,7 @@
                                 reduced to zero.
                             </p>
                         </div>
-                        <p>Are you sure you want to remove these datacenters:</p>
-                        <ul class="datacenter-list">
-                            {{#each datacenters}}
-                                <li><a href="#datacenters/{{id}}" target="_blank">{{name}}</a></li>
-                            {{/each}}
-                        </ul>
+                        <p>Are you sure you want to remove the datacenter <a href="#datacenters/{{datacenter.id}}" target="_blank">{{datacenter.name}}</a>?</p>
                     </div>
                     <div class="modal-footer">
                         <button class="btn primary remove-datacenter" type="submit" name="remove-datacenter" value="Remove datacenter">Remove datacenters</button>
