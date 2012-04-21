@@ -48,8 +48,8 @@ private:
     void install_on_thread(int i);
     void uninstall_on_thread(int i);
     void write(const log_message_t &msg);
-    bool write_blocking(const log_message_t &msg, std::string *error_out);
-    bool tail_blocking(int max_lines, time_t min_timestamp, time_t max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out);
+    void write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out);
+    void tail_blocking(int max_lines, time_t min_timestamp, time_t max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out);
     std::string filename;
     struct timespec uptime_reference;
     mutex_t write_mutex;

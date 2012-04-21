@@ -181,8 +181,10 @@ std::vector<log_message_t> log_writer_t::tail(int max_lines, time_t min_timestam
 
     std::vector<log_message_t> log_messages;
     std::string error_message;
-    bool ok = thread_pool_t::run_in_blocker_pool<bool>(
-        boost::bind(&log_writer_t::tail_blocking, this, max_lines, min_timestamp, max_timestamp, &cancel, &log_messages, &error_message));
+
+
+    bool ok;
+    thread_pool_t::run_in_blocker_pool(boost::bind(&log_writer_t::tail_blocking, this, max_lines, min_timestamp, max_timestamp, &cancel, &log_messages, &error_message, &ok));
     if (ok) {
         if (cancel) {
             throw interrupted_exc_t();
@@ -212,8 +214,8 @@ void log_writer_t::uninstall_on_thread(int i) {
 void log_writer_t::write(const log_message_t &lm) {
     mutex_t::acq_t write_mutex_acq(&write_mutex);
     std::string error_message;
-    bool ok = thread_pool_t::run_in_blocker_pool<bool>(
-        boost::bind(&log_writer_t::write_blocking, this, lm, &error_message));
+    bool ok;
+    thread_pool_t::run_in_blocker_pool(boost::bind(&log_writer_t::write_blocking, this, lm, &error_message, &ok));
     if (ok) {
         issue.reset();
     } else {
@@ -228,24 +230,27 @@ void log_writer_t::write(const log_message_t &lm) {
     }
 }
 
-bool log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out) {
+void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out) {
     if (fd.get() == -1) {
         fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
         if (fd.get() == -1) {
             *error_out = std::string("cannot open log file: ") + strerror(errno);
-            return false;
+            *ok_out = false;
+            return;
         }
     }
     std::string formatted = format_log_message(msg);
     int res = ::write(fd.get(), formatted.data(), formatted.length());
     if (res != int(formatted.length())) {
         *error_out = std::string("cannot write to log file: ") + strerror(errno);
-        return false;
+        *ok_out = false;
+        return;
     }
-    return true;
+    *ok_out = true;
+    return;
 }
 
-bool log_writer_t::tail_blocking(int max_lines, time_t min_timestamp, time_t max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out) {
+void log_writer_t::tail_blocking(int max_lines, time_t min_timestamp, time_t max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
     try {
         file_reverse_reader_t reader(filename);
         std::string line;
@@ -258,10 +263,12 @@ bool log_writer_t::tail_blocking(int max_lines, time_t min_timestamp, time_t max
             if (lm.timestamp < min_timestamp) break;
             messages_out->push_back(lm);
         }
-        return true;
+        *ok_out = true;
+        return;
     } catch (std::runtime_error &e) {
         *error_out = e.what();
-        return false;
+        *ok_out = false;
+        return;
     }
 }
 

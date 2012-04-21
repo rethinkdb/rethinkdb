@@ -1,13 +1,13 @@
 #include <errno.h>
-#include <unistd.h>
-#include <signal.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "arch/runtime/thread_pool.hpp"
-#include "errors.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime.hpp"
-#include <signal.h>
-#include <fcntl.h>
+#include "errors.hpp"
 #include "logger.hpp"
 
 const int SEGV_STACK_SIZE = 8126;

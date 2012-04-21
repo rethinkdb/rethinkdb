@@ -10,6 +10,10 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+void do_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res, int *retval) {
+    *retval = getaddrinfo(node, service, hints, res);
+}
+
 ip_address_t::ip_address_t(const std::string &host) {
 
     /* Use hint to make sure we get a IPv4 address that we can use with TCP */
@@ -24,9 +28,11 @@ ip_address_t::ip_address_t(const std::string &host) {
     hint.ai_next = NULL;
 
     struct addrinfo *addr_possibilities;
+
     // Because getaddrinfo may block, send it to a blocker thread and give up execution in the meantime
-    boost::function<int()> fn = boost::bind(getaddrinfo, host.c_str(), static_cast<const char*>(NULL), &hint, &addr_possibilities);
-    int res = thread_pool_t::run_in_blocker_pool(fn);
+    int res;
+    boost::function<void ()> fn = boost::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL), &hint, &addr_possibilities, &res);
+    thread_pool_t::run_in_blocker_pool(fn);
     guarantee_err(res == 0, "getaddrinfo() failed");
 
     struct sockaddr_in *addr_in = reinterpret_cast<struct sockaddr_in *>(addr_possibilities->ai_addr);
