@@ -575,6 +575,7 @@ module 'NamespaceView', ->
                         uuid: machine_uuid
                         name: machines.get(machine_uuid).get('name')
                         status: DataUtils.get_machine_reachability(machine_uuid)
+                        backfill_progress: DataUtils.get_backfill_progress(namespace_uuid, shards[i], machine_uuid)
                         )
                     )
         return ret
@@ -598,6 +599,7 @@ module 'NamespaceView', ->
             log_initial '(initializing) namespace view: shards'
             @model.on 'change', @render
             directory.on 'all', @render
+            progress_list.on 'all', @render
             @shards = []
 
         bind_edit_machines: (shard) ->
@@ -793,49 +795,3 @@ module 'NamespaceView', ->
 
             e.preventDefault()
 
-    # to be modified TODO
-    class @ShardingPlanDatacenter extends Backbone.View
-        template: Handlebars.compile $('#modify_shards_modal-sharding_plan-datacenter-template').html()
-        editable_tmpl: Handlebars.compile $('#modify_shards_modal-sharding_plan-edit_datacenter-template').html()
-
-        tagName: 'tr'
-        class: 'datacenter-row'
-
-        events: ->
-            'click .edit': 'edit'
-
-        # Simple utility function to generate JSON for a set of machines
-        machine_json: (machine_set) ->
-            _.map machine_set, (machine) ->
-                id: machine.get('id')
-                name: machine.get('name')
-
-        # Simple utility function to generate JSON based on replica affinities
-        datacenter_json: (datacenter, num_replicas) =>
-            name: datacenter.get('name')
-            # random machines for the delta | faked TODO
-            machines: @machine_json (_.shuffle machines.models)[0..num_replicas]
-            # all machines | faked TODO
-            existing_machines: @machine_json machines.models
-
-        initialize: (datacenter, num_replicas) ->
-            @datacenter = datacenter['datacenter']
-            @num_replicas = num_replicas
-
-        render: =>
-            # all datacenters | faked TODO
-            @.$el.html @template @datacenter_json @datacenter, @num_replicas
-            return @
-
-        edit: (e) =>
-            json = @datacenter_json @datacenter, @num_replicas
-            console.log 'json is ',json
-            @.$el.html @editable_tmpl _.extend json,
-                'machine_dropdowns': _.map(json.machines, (machine) =>
-                    'selected': machine
-                    # should be just the machines belonging to the datacenter, but for now it's all machines | faked TODO
-                    'available_machines': @machine_json machines.models
-                )
-
-
-            e.preventDefault()
