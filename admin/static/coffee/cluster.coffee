@@ -202,7 +202,7 @@ class NavBarView extends Backbone.View
             window.app.on "all", @render
 
     init_typeahead: ->
-        $('input.search-query').typeahead
+        @.$('input.search-query').typeahead
             source: (typeahead, query) ->
                 _machines = _.map machines.models, (machine) ->
                     uuid: machine.get('id')
