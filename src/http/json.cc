@@ -27,6 +27,13 @@ cJSON *scoped_cJSON_t::release() {
     return tmp;
 }
 
+void scoped_cJSON_t::reset(cJSON *v) {
+    if (val) {
+        cJSON_Delete(val);
+    }
+    val = v;
+}
+
 json_iterator_t::json_iterator_t(cJSON *target) {
     node = target->child;
 }

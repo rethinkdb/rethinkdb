@@ -16,6 +16,7 @@ public:
     ~scoped_cJSON_t();
     cJSON *get() const;
     cJSON *release();
+    void reset(cJSON *);
 };
 
 class json_iterator_t {
