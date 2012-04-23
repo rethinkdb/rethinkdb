@@ -66,6 +66,14 @@ std::string cJSON_print_std_string(cJSON *json) {
     return res;
 }
 
+std::string cJSON_print_unformatted_std_string(cJSON *json) {
+    char *s = cJSON_PrintUnformatted(json);
+    std::string res(s);
+    free(s);
+
+    return res;
+}
+
 void project(cJSON *json, std::set<std::string> keys) {
     rassert(json->type == cJSON_Object);
 

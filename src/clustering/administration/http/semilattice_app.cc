@@ -99,12 +99,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                         absolute_change.reset(cJSON_CreateObject());
                         cJSON_AddItemToObject(absolute_change.get(), it->c_str(), inner.release());
                     }
-                    std::string msg = cJSON_print_std_string(absolute_change.get());
-                    for (int i = 0; i < int(msg.length()); i++) {
-                        if (msg[i] == '\n') {
-                            msg[i] = ' ';
-                        }
-                    }
+                    std::string msg = cJSON_print_unformatted_std_string(absolute_change.get());
                     logINF("Applying data %s", msg.c_str());
                 }
 
