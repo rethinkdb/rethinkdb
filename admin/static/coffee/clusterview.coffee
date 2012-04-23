@@ -329,9 +329,8 @@ module 'ClusterView', ->
 
         swap_divs: =>
             $arrow = @.$('.arrow.collapsed, .arrow.expanded')
-            $summary = @.$('.summary.collapsed, .summary.expanded')
 
-            for div in [$arrow, $summary]
+            for div in [$arrow]
                 if @showing
                     div.removeClass('collapsed').addClass('expanded')
                 else
@@ -367,6 +366,7 @@ module 'ClusterView', ->
                 status: DataUtils.get_datacenter_reachability(@model.get('id'))
                 primary_count: 0
                 secondary_count: 0
+                no_machines: @machine_list.element_views.length is 0
 
             # primary, secondary, and namespace counts
             _namespaces = []
