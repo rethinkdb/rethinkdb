@@ -162,9 +162,10 @@ module 'DataUtils', ->
             # replicating from
             senders_activity_id = []
             if activity_type is 'secondary_backfilling'
-                 senders_activity_id.push(activity.value[1].backfiller.activity_id)
-            # else if activity_type is 'primary_when_safe'
-            #    TODO
+                senders_activity_id.push(activity.value[1].backfiller.activity_id)
+            else if activity_type is 'primary_when_safe'
+                for backfiller in activity.value[1].backfillers
+                    senders_activity_id.push(backfiller.activity_id)
 
 
             # Now we're organized by shards we're back-filling
@@ -219,7 +220,6 @@ module 'DataUtils', ->
             replicated_blocks: -1
             block_info_available: false
             ratio_available: false
-            from_machines: []
         agg_json = _.reduce(_output_json, ((agg, val) ->
             if val.block_info_available
                 agg.total_blocks      = 0 if agg.total_blocks is -1
@@ -227,9 +227,6 @@ module 'DataUtils', ->
                 agg.total_blocks      += val.total_blocks
                 agg.replicated_blocks += val.replicated_blocks
                 agg.block_info_available = true
-                agg.from_machines.push
-                    machine_id: val.machine_id
-                    machine_name: val.machine_name
             if val.ratio_available
                 agg.ratio_available = true
             return agg
