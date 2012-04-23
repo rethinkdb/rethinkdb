@@ -272,30 +272,35 @@ void log_writer_t::tail_blocking(int max_lines, time_t min_timestamp, time_t max
     }
 }
 
+void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
+    on_thread_t thread_switcher(writer->home_thread());
+
+    time_t timestamp = time(NULL);
+
+    struct timespec uptime;
+    int res = clock_gettime(CLOCK_MONOTONIC, &uptime);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    if (uptime.tv_nsec < writer->uptime_reference.tv_nsec) {
+        uptime.tv_nsec += 1000000000;
+        uptime.tv_sec -= 1;
+    }
+    uptime.tv_nsec -= writer->uptime_reference.tv_nsec;
+    uptime.tv_sec -= writer->uptime_reference.tv_sec;
+
+    writer->write(log_message_t(timestamp, uptime, level, message));
+}
+
 /* Declared in `logger.hpp`, not `clustering/administration/logger.hpp` like the
 other things in this file. */
 void log_internal(UNUSED const char *src_file, UNUSED int src_line, UNUSED log_level_t level, const char *format, ...) {
     if (log_writer_t *writer = global_log_writer) {
         auto_drainer_t::lock_t lock(global_log_drainer);
-        on_thread_t thread_switcher(writer->home_thread());
-
-        //time_t timestamp = time(NULL);
-
-        struct timespec uptime;
-        int res = clock_gettime(CLOCK_MONOTONIC, &uptime);
-        guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
-        if (uptime.tv_nsec < writer->uptime_reference.tv_nsec) {
-            uptime.tv_nsec += 1000000000;
-            uptime.tv_sec -= 1;
-        }
-        uptime.tv_nsec -= writer->uptime_reference.tv_nsec;
-        uptime.tv_sec -= writer->uptime_reference.tv_sec;
 
         va_list args;
         va_start(args, format);
         std::string message = vstrprintf(format, args);
         va_end(args);
 
-        //writer->write(log_message_t(timestamp, uptime, level, message));
+        coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
     }
 }
