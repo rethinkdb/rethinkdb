@@ -135,26 +135,6 @@ bool deep_fsck(block_getter_t *getter, block_size_t bs, const char *ref, int max
 
 class blob_t {
 public:
-    //Used to iterate over an exposed region of a blob
-    class iterator {
-    public:
-        iterator(boost::shared_ptr<buffer_group_t>, boost::shared_ptr<blob_acq_t>);
-        iterator(const iterator &);
-        char& operator*();
-        void operator++();
-        bool at_end();
-        
-    private:
-        void increment_buffer();
-
-        boost::shared_ptr<buffer_group_t> bg;
-        boost::shared_ptr<blob_acq_t> acq;
-
-        buffer_group_t::buffer_t current_buffer;
-        unsigned cur_buffer_index;
-        unsigned next_buffer;
-    };
-
     // maxreflen must be less than the block size minus 4 bytes.
     blob_t(char *ref, int maxreflen);
 
@@ -174,10 +154,6 @@ public:
     // used.
     void expose_region(transaction_t *txn, access_t mode, int64_t offset, int64_t size, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
     void expose_all(transaction_t *txn, access_t mode, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
-
-
-    // Alternate interface that returns an iterator to the exposed region.
-    iterator expose_region(transaction_t *txn, access_t mode, int64_t offset, int64_t size);
 
     // Appends size bytes of garbage data to the blob.
     void append_region(transaction_t *txn, int64_t size);
