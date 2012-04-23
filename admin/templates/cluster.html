@@ -227,6 +227,8 @@
             <div class="section replication"></div>
             <h3 class="title">Sharding settings</h3>
             <div class="section sharding"></div>
+            <h3 class="title">Recent log entries</h3>
+            <div class="section recent-actions"></div>
         </script>
 
         <script id="namespace_view-replica-template" type="text/x-handlebars-template">
@@ -1188,7 +1190,6 @@
                             <label for="datacenter_uuid">Select a datacenter</label>
                             <div class="clearfix">
                                 <select class="datacenter_uuid" name="datacenter_uuid">
-                                    <option value=""></option>
                                     {{#each datacenters}}
                                         <option value="{{this.id}}">{{this.name}}</option>
                                     {{/each}}
