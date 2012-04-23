@@ -77,6 +77,10 @@ Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
 
     return new Handlebars.SafeString(result);
 
+# Register some useful partials
+Handlebars.registerPartial 'backfill_progress_summary', $('#backfill_progress_summary-partial').html()
+Handlebars.registerPartial 'backfill_progress_details', $('#backfill_progress_details-partial').html()
+
 # Dev utility functions and variables
 window.pause_live_data = false
 window.log_initial = (msg) -> #console.log msg

@@ -568,6 +568,7 @@ module 'NamespaceView', ->
                     # primary_uuid may be null when a new shard hasn't hit the server yet
                     name: if primary_uuid then machines.get(primary_uuid).get('name') else null
                     status: if primary_uuid then DataUtils.get_machine_reachability(primary_uuid) else null
+                    backfill_progress: if primary_uuid then DataUtils.get_backfill_progress(namespace_uuid, shards[i], primary_uuid) else null
                 secondaries: _.map(secondary_uuids, (machine_uuids, datacenter_uuid) ->
                     datacenter_uuid: datacenter_uuid
                     datacenter_name: datacenters.get(datacenter_uuid).get('name')

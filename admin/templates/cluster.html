@@ -348,6 +348,23 @@
             {{/with}}
         </script>
 
+        <script id="backfill_progress_summary-partial" type="text/x-handlebars-template">
+{{#if backfill_progress}}replicating{{#if backfill_progress.ratio_available}} from {{#comma_separated backfill_progress.replication_details}}<a href="/#machines/{{machine_id}}">{{machine_name}}</a>{{/comma_separated}}{{/if}}{{else}}up to date{{/if}}
+        </script>
+        
+        <script id="backfill_progress_details-partial" type="text/x-handlebars-template">
+          {{#if backfill_progress}}
+          {{#if backfill_progress.ratio_available}}
+          <div class="progress progress-striped active">
+            <div class="bar"
+                 style="width: {{backfill_progress.percentage}}%;"></div>
+          </div>
+          <p>{{backfill_progress.percentage}}%{{#if backfill_progress.block_info_available}}, {{backfill_progress.replicated_blocks}} of {{backfill_progress.total_blocks}} blocks remaining{{/if}}</p>
+          {{else}}
+          <p>Replication progress information is unavailable.</p>
+          {{/if}}
+          {{/if}}
+        </script>
         <script id="namespace_view-sharding-template" type="text/x-handlebars-template">
             <table class="shards table">
                 <tbody>
@@ -356,8 +373,10 @@
                             <td class="name"><h4>{{name}}</h4></td>
                             <td class="status">
                                 <p>
-                                  <strong>Master:</strong> <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> {{humanize_machine_reachability primary.status}}
-                                  <br /><a id="assign_master_{{index}}" href="#">Assign master</a>
+                                  <strong>Master:</strong> <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> {{humanize_machine_reachability primary.status}}{{#if primary.status.reachable}}{{> backfill_progress_summary primary}}{{/if}}</span>
+                                  <br />
+                                  {{> backfill_progress_details primary}}
+                                  <a id="assign_master_{{index}}" href="#">Assign master</a>
                                 </p>
                                   {{#if secondaries}}
                                   {{#each secondaries}}
@@ -367,19 +386,9 @@
                                     <li>
                                       <p>
                                         <a href="/#machines/{{uuid}}">{{name}}</a>
-                                        <span>{{humanize_machine_reachability status}}{{#if status.reachable}}{{#if backfill_progress}}, replicating{{#if backfill_progress.ratio_available}} from {{#comma_separated backfill_progress.replication_details}}<a href="/#machines/{{machine_id}}">{{machine_name}}</a>{{/comma_separated}}{{/if}}{{else}}, up to date{{/if}}{{/if}}</span>
+                                        <span>{{humanize_machine_reachability status}}{{#if status.reachable}}{{> backfill_progress_summary}}{{/if}}</span>
                                       </p>
-                                      {{#if backfill_progress}}
-                                        {{#if backfill_progress.ratio_available}}
-                                          <div class="progress progress-striped active">
-                                            <div class="bar"
-                                                 style="width: {{backfill_progress.percentage}}%;"></div>
-                                            </div>
-                                          <p>{{backfill_progress.percentage}}%{{#if backfill_progress.block_info_available}}, {{backfill_progress.replicated_blocks}} of {{backfill_progress.total_blocks}} blocks remaining{{/if}}</p>
-                                        {{else}}
-                                          <p>Replication progress information is unavailable.</p>
-                                        {{/if}}
-                                      {{/if}}
+                                      {{> backfill_progress_details}}
                                     </li>
                                     {{/each}}
                                     </ul>
