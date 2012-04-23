@@ -1,10 +1,5 @@
-/*
-Using fork from here: https://gist.github.com/1866577
-For additional functionality
-*/
-
 /* =============================================================
- * bootstrap-typeahead.js v2.0.0
+ * bootstrap-typeahead.js v2.0.2
  * http://twitter.github.com/bootstrap/javascript.html#typeahead
  * =============================================================
  * Copyright 2012 Twitter, Inc.
@@ -34,8 +29,6 @@ For additional functionality
     this.highlighter = this.options.highlighter || this.highlighter
     this.$menu = $(this.options.menu).appendTo('body')
     this.source = this.options.source
-    this.onselect = this.options.onselect
-    this.strings = true
     this.shown = false
     this.listen()
   }
@@ -45,17 +38,9 @@ For additional functionality
     constructor: Typeahead
 
   , select: function () {
-      var val = JSON.parse(this.$menu.find('.active').attr('data-value'))
-        , text
-
-      if (!this.strings) text = val[this.options.property]
-      else text = val
-
-      this.$element.val(text)
-
-      if (typeof this.onselect == "function")
-          this.onselect(val)
-
+      var val = this.$menu.find('.active').attr('data-value')
+      this.$element.val(val)
+      this.$element.change();
       return this.hide()
     }
 
@@ -84,25 +69,6 @@ For additional functionality
       var that = this
         , items
         , q
-        , value
-
-      this.query = this.$element.val()
-
-      if (typeof this.source == "function") {
-        value = this.source(this, this.query)
-        if (value) this.process(value)
-      } else {
-        this.process(this.source)
-      }
-    }
-
-  , process: function (results) {
-      var that = this
-        , items
-        , q
-
-      if (results.length && typeof results[0] != "string")
-          this.strings = false
 
       this.query = this.$element.val()
 
@@ -110,9 +76,7 @@ For additional functionality
         return this.shown ? this.hide() : this
       }
 
-      items = $.grep(results, function (item) {
-        if (!that.strings)
-          item = item[that.options.property]
+      items = $.grep(this.source, function (item) {
         if (that.matcher(item)) return item
       })
 
@@ -134,14 +98,10 @@ For additional functionality
         , caseSensitive = []
         , caseInsensitive = []
         , item
-        , sortby
 
       while (item = items.shift()) {
-        if (this.strings) sortby = item
-        else sortby = item[this.options.property]
-
-        if (!sortby.toLowerCase().indexOf(this.query.toLowerCase())) beginswith.push(item)
-        else if (~sortby.indexOf(this.query)) caseSensitive.push(item)
+        if (!item.toLowerCase().indexOf(this.query.toLowerCase())) beginswith.push(item)
+        else if (~item.indexOf(this.query)) caseSensitive.push(item)
         else caseInsensitive.push(item)
       }
 
@@ -158,9 +118,7 @@ For additional functionality
       var that = this
 
       items = $(items).map(function (i, item) {
-        i = $(that.options.item).attr('data-value', JSON.stringify(item))
-        if (!that.strings)
-            item = item[that.options.property]
+        i = $(that.options.item).attr('data-value', item)
         i.find('a').html(that.highlighter(item))
         return i[0]
       })
@@ -208,9 +166,6 @@ For additional functionality
     }
 
   , keyup: function (e) {
-      e.stopPropagation()
-      e.preventDefault()
-
       switch(e.keyCode) {
         case 40: // down arrow
         case 38: // up arrow
@@ -223,6 +178,7 @@ For additional functionality
           break
 
         case 27: // escape
+          if (!this.shown) return
           this.hide()
           break
 
@@ -230,10 +186,11 @@ For additional functionality
           this.lookup()
       }
 
+      e.stopPropagation()
+      e.preventDefault()
   }
 
   , keypress: function (e) {
-      e.stopPropagation()
       if (!this.shown) return
 
       switch(e.keyCode) {
@@ -253,12 +210,12 @@ For additional functionality
           this.next()
           break
       }
+
+      e.stopPropagation()
     }
 
   , blur: function (e) {
       var that = this
-      e.stopPropagation()
-      e.preventDefault()
       setTimeout(function () { that.hide() }, 150)
     }
 
@@ -294,8 +251,6 @@ For additional functionality
   , items: 8
   , menu: '<ul class="typeahead dropdown-menu"></ul>'
   , item: '<li><a href="#"></a></li>'
-  , onselect: null
-  , property: 'value'
   }
 
   $.fn.typeahead.Constructor = Typeahead
