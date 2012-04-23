@@ -22,7 +22,7 @@ void semilattice_http_app_t::fill_in_blueprints(cluster_semilattice_metadata_t *
 
     std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > reactor_directory;
     std::map<peer_id_t, machine_id_t> machine_id_translation_table;
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = translate_into_watchable(directory_metadata)->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_metadata->get();
     for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator it = directory.begin(); it != directory.end(); it++) {
         reactor_directory.insert(std::make_pair(it->first, it->second.memcached_namespaces));
         machine_id_translation_table.insert(std::make_pair(it->first, it->second.machine_id));
@@ -37,7 +37,7 @@ void semilattice_http_app_t::fill_in_blueprints(cluster_semilattice_metadata_t *
 
 semilattice_http_app_t::semilattice_http_app_t(
         const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,
-        const clone_ptr_t<directory_rview_t<cluster_directory_metadata_t> > &_directory_metadata,
+        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         boost::uuids::uuid _us)
     : semilattice_metadata(_semilattice_metadata), directory_metadata(_directory_metadata), us(_us) { }
 

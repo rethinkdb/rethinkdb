@@ -71,7 +71,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/index.html");
     file_app.reset(new file_http_app_t(white_list, path));
 
-    semilattice_app.reset(new semilattice_http_app_t(_semilattice_metadata, _directory_metadata, _us));
+    semilattice_app.reset(new semilattice_http_app_t(_semilattice_metadata, translate_into_watchable(_directory_metadata), _us));
     directory_app.reset(new directory_http_app_t(translate_into_watchable(_directory_metadata)));
     issues_app.reset(new issues_http_app_t(_issue_tracker));
     stat_app.reset(new stat_http_app_t(mbox_manager, _directory_watchable));
