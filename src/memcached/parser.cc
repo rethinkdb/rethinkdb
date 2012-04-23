@@ -369,7 +369,7 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
     if (!str_to_key(key, key_out)) return false;
 
     const char *invalid_char;
-    int64_t open_flag = strtol_strict(flag, &invalid_char, 10);
+    int64_t open_flag = strtoi64_strict(flag, &invalid_char, 10);
     if (*invalid_char != '\0') return false;
 
     switch (open_flag) {
@@ -419,7 +419,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
 
     /* Parse max items count */
     const char *invalid_char;
-    uint64_t max_items = strtoull_strict(argv[5], &invalid_char, 10);
+    uint64_t max_items = strtou64_strict(argv[5], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq.done_argparsing();
         pipeliner_acq.begin_write();
@@ -461,7 +461,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
             const key_with_data_buffer_t& kv = pair.get();
 
             const std::string& key = kv.key;
-            const boost::intrusive_ptr<data_buffer_t>& dp = kv.value_provider;
+            const intrusive_ptr_t<data_buffer_t>& dp = kv.value_provider;
 
             rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->size());
             rh->write_from_data_provider(dp.get());
@@ -499,7 +499,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                          pipeliner_acq_t *pipeliner_acq_raw,
                          storage_command_t sc,
                          store_key_t key,
-                         const boost::intrusive_ptr<data_buffer_t>& data,
+                         const intrusive_ptr_t<data_buffer_t>& data,
                          storage_metadata_t metadata,
                          bool noreply,
                          order_token_t token) {
@@ -664,7 +664,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     pm_storage_key_size.record((float) key.size);
 
     /* Next parse the flags */
-    mcflags_t mcflags = strtoul_strict(argv[2], &invalid_char, 10);
+    mcflags_t mcflags = strtou64_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq->done_argparsing();
         pipeliner_acq->begin_write();
@@ -675,7 +675,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     }
 
     /* Now parse the expiration time */
-    exptime_t exptime = strtoul_strict(argv[3], &invalid_char, 10);
+    exptime_t exptime = strtou64_strict(argv[3], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq->done_argparsing();
         pipeliner_acq->begin_write();
@@ -704,7 +704,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     }
 
     /* Now parse the value length */
-    size_t value_size = strtoul_strict(argv[4], &invalid_char, 10);
+    size_t value_size = strtou64_strict(argv[4], &invalid_char, 10);
     // Check for signed 32 bit max value for Memcached compatibility...
     if (*invalid_char != '\0' || value_size >= (1u << 31) - 1) {
         pipeliner_acq->done_argparsing();
@@ -719,7 +719,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
     /* If a "cas", parse the cas_command unique */
     cas_t unique = NO_CAS_SUPPLIED;
     if (sc == cas_command) {
-        unique = strtoull_strict(argv[5], &invalid_char, 10);
+        unique = strtou64_strict(argv[5], &invalid_char, 10);
         if (*invalid_char != '\0') {
             pipeliner_acq->done_argparsing();
             pipeliner_acq->begin_write();
@@ -746,7 +746,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 
     /* Read the data off the socket. For now we always read the data into a buffer. In the
        future we may want to be able to stream the data to its destination. */
-    boost::intrusive_ptr<data_buffer_t> dp = data_buffer_t::create(value_size);
+    intrusive_ptr_t<data_buffer_t> dp = data_buffer_t::create(value_size);
     char crlf_buf[2];
     try {
         rh->read(dp->buf(), value_size);
@@ -842,7 +842,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool i, i
 
     /* Parse amount to change by */
     const char *invalid_char;
-    uint64_t delta = strtoull_strict(argv[2], &invalid_char, 10);
+    uint64_t delta = strtou64_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
         pipeliner_acq.done_argparsing();
         pipeliner_acq.begin_write();
@@ -1024,7 +1024,7 @@ void do_quickset(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, st
             pipeliner_acq->end_write();
             return;
         }
-        boost::intrusive_ptr<data_buffer_t> value = data_buffer_t::create(args_copy[i + 1].size());
+        intrusive_ptr_t<data_buffer_t> value = data_buffer_t::create(args_copy[i + 1].size());
         memcpy(value->buf(), args_copy[i + 1].data(), value->size());
 
         set_result_t res;
@@ -1098,7 +1098,7 @@ bool parse_debug_command(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, st
 
 /* Handle memcached, takes a txt_memcached_handler_t and handles the memcached commands that come in on it */
 void handle_memcache(memcached_interface_t *interface, namespace_interface_t<memcached_protocol_t> *nsi, int max_concurrent_queries_per_connection) {
-    logDBG("Opened memcached stream: %p\n", coro_t::self());
+    logDBG("Opened memcached stream: %p", coro_t::self());
 
     /* This object just exists to group everything together so we don't have to pass a lot of
     context around. */
@@ -1252,6 +1252,6 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
     pipeliner_acq.begin_write();
     pipeliner_acq.end_write();
 
-    logDBG("Closed memcached stream: %p\n", coro_t::self());
+    logDBG("Closed memcached stream: %p", coro_t::self());
 }
 

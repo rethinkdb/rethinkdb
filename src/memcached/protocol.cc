@@ -1,15 +1,11 @@
 #include "memcached/protocol.hpp"
 
-#include "errors.hpp"
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/iterators.hpp"
-#include "containers/vector_stream.hpp"
+#include "containers/archive/vector_stream.hpp"
 #include "memcached/btree/append_prepend.hpp"
 #include "memcached/btree/delete.hpp"
 #include "memcached/btree/erase_range.hpp"
@@ -19,6 +15,112 @@
 #include "memcached/btree/rget.hpp"
 #include "memcached/btree/set.hpp"
 #include "memcached/queries.hpp"
+#include "serializer/config.hpp"
+
+
+write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf) {
+    if (buf) {
+        bool exists = true;
+        msg << exists;
+        int64_t size = buf->size();
+        msg << size;
+        msg.append(buf->buf(), buf->size());
+    } else {
+        bool exists = false;
+        msg << exists;
+    }
+    return msg;
+}
+
+int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf) {
+    bool exists;
+    int res = deserialize(s, &exists);
+    if (res) { return res; }
+    if (exists) {
+        int64_t size;
+        int res = deserialize(s, &size);
+        if (res) { return res; }
+        if (size < 0) { return ARCHIVE_RANGE_ERROR; }
+        *buf = data_buffer_t::create(size);
+        int64_t num_read = force_read(s, (*buf)->buf(), size);
+
+        if (num_read == -1) { return ARCHIVE_SOCK_ERROR; }
+        if (num_read < size) { return ARCHIVE_SOCK_EOF; }
+        rassert(num_read == size);
+    }
+    return ARCHIVE_SUCCESS;
+}
+
+template<typename T>
+class vector_backed_one_way_iterator_t : public one_way_iterator_t<T> {
+    typename std::vector<T> data;
+    size_t pos;
+public:
+    vector_backed_one_way_iterator_t() : pos(0) { }
+    void push_back(T &v) { data.push_back(v); }
+    typename boost::optional<T> next() {
+        if (pos < data.size()) {
+            return boost::optional<T>(data[pos++]);
+        } else {
+            return boost::optional<T>();
+        }
+    }
+    void prefetch() { }
+};
+
+
+write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
+    while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
+        const key_with_data_buffer_t &kv = pair.get();
+
+        const std::string &key = kv.key;
+        const intrusive_ptr_t<data_buffer_t> &data = kv.value_provider;
+        bool next = true;
+        msg << next;
+        msg << key;
+        msg << data;
+    }
+    bool next = false;
+    msg << next;
+    return msg;
+}
+
+int deserialize(read_stream_t *s, rget_result_t *iter) {
+    *iter = rget_result_t(new vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
+    bool next;
+    for (;;) {
+        int res = deserialize(s, &next);
+        if (res) { return res; }
+        if (!next) {
+            return ARCHIVE_SUCCESS;
+        }
+
+        // TODO: See the load function above.  I'm guessing this code is never used.
+        std::string key;
+        res = deserialize(s, &key);
+        if (res) { return res; }
+        intrusive_ptr_t<data_buffer_t> data;
+        res = deserialize(s, &data);
+        if (res) { return res; }
+
+        // You'll note that we haven't put the values in the vector-backed iterator.  Neither does the load function above...
+    }
+}
+
+RDB_IMPL_SERIALIZABLE_1(get_query_t, key);
+RDB_IMPL_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
+RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
+RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
+RDB_IMPL_SERIALIZABLE_1(get_cas_mutation_t, key);
+RDB_IMPL_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
+RDB_IMPL_SERIALIZABLE_2(delete_mutation_t, key, dont_put_in_delete_queue);
+RDB_IMPL_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount);
+RDB_IMPL_SERIALIZABLE_2(incr_decr_result_t, res, new_value);
+RDB_IMPL_SERIALIZABLE_3(append_prepend_mutation_t, kind, key, data);
+RDB_IMPL_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, cas_or_zero);
+
+
+
 
 /* `memcached_protocol_t::read_t::get_region()` */
 
@@ -145,8 +247,6 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     return responses[0];
 }
 
-namespace arc = boost::archive;
-
 memcached_protocol_t::store_t::store_t(const std::string& filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::universe()) {
     if (create) {
         standard_serializer_t::create(
@@ -187,15 +287,18 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create)
         get_btree_superblock(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, txn);
         buf_lock_t* sb_buf = superblock.get_real_buf();
         clear_superblock_metainfo(txn.get(), sb_buf);
-        vector_streambuf_t<> key;
-        {
-            arc::binary_oarchive key_archive(key, arc::no_header);
-            key_range_t kr = key_range_t::universe();   // `operator<<` needs a non-const reference
-            key_archive << kr;
-        }
+
+        vector_stream_t key;
+        write_message_t msg;
+        key_range_t kr = key_range_t::universe();   // `operator<<` needs a non-const reference
+        msg << kr;
+        DEBUG_ONLY_VAR int res = send_write_message(&key, &msg);
+        rassert(!res);
         set_superblock_metainfo(txn.get(), sb_buf, key.vector(), std::vector<char>());
     }
 }
+
+memcached_protocol_t::store_t::~store_t() { }
 
 void memcached_protocol_t::store_t::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) {
     fifo_enforcer_read_token_t token = token_source.enter_read();
@@ -286,13 +389,13 @@ region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t:
 
     std::vector<std::pair<memcached_protocol_t::region_t, binary_blob_t> > result;
     for (std::vector<std::pair<std::vector<char>, std::vector<char> > >::iterator i = kv_pairs.begin(); i != kv_pairs.end(); ++i) {
-        vector_streambuf_t<> key((*i).first);
-        const std::vector<char> &value = (*i).second;
+        const std::vector<char> &value = i->second;
 
         memcached_protocol_t::region_t region;
         {
-            arc::binary_iarchive region_archive(key, arc::no_header);
-            region_archive >> region;
+            vector_read_stream_t key(&i->first);
+            DEBUG_ONLY_VAR int res = deserialize(&key, &region);
+            rassert(!res);
         }
 
         result.push_back(std::make_pair(
@@ -443,7 +546,7 @@ bool memcached_protocol_t::store_t::send_backfill(
         const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
         const boost::function<bool(const metainfo_t&)> &should_backfill,
         const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
-        backfill_progress_t **progress_out,
+        backfill_progress_t *progress,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -456,21 +559,16 @@ bool memcached_protocol_t::store_t::send_backfill(
     if (should_backfill(metainfo)) {
         memcached_backfill_callback_t callback(chunk_fun);
 
-        traversal_progress_combiner_t progress_combiner;
-        *progress_out = &progress_combiner;
-
         for (region_map_t<memcached_protocol_t, state_timestamp_t>::const_iterator i = start_point.begin(); i != start_point.end(); i++) {
             const memcached_protocol_t::region_t& range = (*i).first;
             repli_timestamp_t since_when = (*i).second.to_repli_timestamp(); // FIXME: this loses precision
 
             traversal_progress_t *p = new traversal_progress_t;
-            progress_combiner.add_constituent(p);
+            progress->add_constituent(p);
             memcached_backfill(btree.get(), range, since_when, &callback, txn.get(), superblock, p);
         }
-        progress_out = NULL;
         return true;
     } else {
-        progress_out = NULL;
         return false;
     }
 }
@@ -590,11 +688,12 @@ void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metain
     clear_superblock_metainfo(txn, sb_buf);
 
     for (region_map_t<memcached_protocol_t, binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
-        vector_streambuf_t<> key;
-        {
-            arc::binary_oarchive key_archive(key, arc::no_header);
-            key_archive << (*i).first;
-        }
+
+        vector_stream_t key;
+        write_message_t msg;
+        msg << i->first;
+        DEBUG_ONLY_VAR int res = send_write_message(&key, &msg);
+        rassert(!res);
 
         std::vector<char> value(static_cast<const char*>((*i).second.data()),
                                 static_cast<const char*>((*i).second.data()) + (*i).second.size());

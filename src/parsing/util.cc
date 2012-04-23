@@ -1,5 +1,9 @@
 #include "parsing/util.hpp"
 
+#include <alloca.h>
+
+#include "arch/io/network.hpp"
+
 LineParser::LineParser(tcp_conn_t *conn_) : conn(conn_) {
     peek();
     bytes_read = 0;
@@ -21,6 +25,8 @@ std::string LineParser::readLine() {
 // Both ensures that next line read is exactly bytes long and is able
 // to operate more efficiently than readLine.
 std::string LineParser::readLineOf(size_t bytes) {
+    // TODO: Don't use alloca for fuck's sake.
+
     // Since we know exactly how much we want to read we'll buffer ourselves
     // +2 is for expected terminating CRLF
     char *buff = static_cast<char *>(alloca(bytes + 2));

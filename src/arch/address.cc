@@ -10,6 +10,10 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+void do_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res, int *retval) {
+    *retval = getaddrinfo(node, service, hints, res);
+}
+
 ip_address_t::ip_address_t(const std::string &host) {
 
     /* Use hint to make sure we get a IPv4 address that we can use with TCP */
@@ -24,9 +28,11 @@ ip_address_t::ip_address_t(const std::string &host) {
     hint.ai_next = NULL;
 
     struct addrinfo *addr_possibilities;
+
     // Because getaddrinfo may block, send it to a blocker thread and give up execution in the meantime
-    boost::function<int()> fn = boost::bind(getaddrinfo, host.c_str(), static_cast<const char*>(NULL), &hint, &addr_possibilities);
-    int res = thread_pool_t::run_in_blocker_pool(fn);
+    int res;
+    boost::function<void ()> fn = boost::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL), &hint, &addr_possibilities, &res);
+    thread_pool_t::run_in_blocker_pool(fn);
     guarantee_err(res == 0, "getaddrinfo() failed");
 
     struct sockaddr_in *addr_in = reinterpret_cast<struct sockaddr_in *>(addr_possibilities->ai_addr);
@@ -43,6 +49,10 @@ bool ip_address_t::operator!=(const ip_address_t &x) const {
     return memcmp(&addr, &x.addr, sizeof(struct in_addr));
 }
 
+bool ip_address_t::operator<(const ip_address_t &x) const {
+    return memcmp(&addr, &x.addr, sizeof(struct in_addr)) < 0;
+}
+
 ip_address_t ip_address_t::us() {
 
     char name[HOST_NAME_MAX+1];
@@ -52,9 +62,9 @@ ip_address_t ip_address_t::us() {
     return ip_address_t(name);
 }
 
-std::string ip_address_t::as_dotted_decimal() {
+std::string ip_address_t::as_dotted_decimal() const {
     char buffer[INET_ADDRSTRLEN + 1];
-    const char *result = inet_ntop(AF_INET, reinterpret_cast<void*>(&addr),
+    const char *result = inet_ntop(AF_INET, reinterpret_cast<const void*>(&addr),
         buffer, INET_ADDRSTRLEN);
     guarantee(result == buffer, "Could not format IP address");
     return std::string(buffer);

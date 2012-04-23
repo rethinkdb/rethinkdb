@@ -89,14 +89,11 @@ template <typename T, typename Cmp = std::less<T> >
 class merge_ordered_data_iterator_t : public one_way_iterator_t<T> {
 public:
     typedef boost::shared_ptr<one_way_iterator_t<T> > mergee_t;
-    typedef std::set<mergee_t> mergees_t;
 
-    typedef std::pair<T, mergee_t> heap_elem_t;
-    typedef std::vector<heap_elem_t> heap_container_t;
 
 
     merge_ordered_data_iterator_t() : mergees(), next_to_pop_from(),
-        merge_heap(first_greater<T, mergee_t, Cmp>(), heap_container_t()) { }
+        merge_heap(first_greater<T, mergee_t, Cmp>(), std::vector<std::pair<T, mergee_t> >()) { }
 
     virtual ~merge_ordered_data_iterator_t() {
         done();
@@ -116,7 +113,7 @@ public:
         // if we are getting the first element, we have to request the data from all of the mergees
         if (!next_to_pop_from.get()) {
             prefetch();
-            for (typename mergees_t::iterator it = mergees.begin(); it != mergees.end();) {
+            for (typename std::set<mergee_t>::iterator it = mergees.begin(); it != mergees.end();) {
                 mergee_t mergee = *it;
                 typename boost::optional<T> mergee_next = mergee->next();
                 if (mergee_next) {
@@ -142,7 +139,7 @@ public:
             return boost::none;
         }
 
-        heap_elem_t top = merge_heap.top();
+        std::pair<T, mergee_t> top = merge_heap.top();
         merge_heap.pop();
         next_to_pop_from = top.second;
 
@@ -151,7 +148,7 @@ public:
         return boost::make_optional(top.first);
     }
     void prefetch() {
-        typename mergees_t::iterator it;
+        typename std::set<mergee_t>::iterator it;
         for (it = mergees.begin(); it != mergees.end(); it++) {
             (*it)->prefetch();
         }
@@ -160,9 +157,9 @@ private:
     void done() {
         mergees.clear();
     }
-    mergees_t mergees;
+    std::set<mergee_t> mergees;
     mergee_t next_to_pop_from;
-    typename std::priority_queue<heap_elem_t, heap_container_t, first_greater<T, mergee_t, Cmp> > merge_heap;
+    typename std::priority_queue<std::pair<T, mergee_t>, std::vector<std::pair<T, mergee_t> >, first_greater<T, mergee_t, Cmp> > merge_heap;
 
 };
 

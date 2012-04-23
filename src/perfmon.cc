@@ -3,8 +3,6 @@
 #include <stdarg.h>
 #include <math.h>
 
-#include <sstream>
-
 #include "utils.hpp"
 #include <boost/bind.hpp>
 

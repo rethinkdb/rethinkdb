@@ -210,6 +210,9 @@
             h3 {
                 line-height: 1em;
             }
+            h3, .datetime {
+                margin-left: 35px;
+            }
         }
 
         hr {
@@ -502,29 +505,25 @@
 
 /*
     ----------------------------
-    List view
+    List views
     ----------------------------
 */
 
-.cluster-view {
-    ul.browser-tabs {
-        margin-top: 20px;
-        margin-bottom: 0;
-    }
-    .actions-bar {
-        padding: 12px;
-        .panel-gradient;
-    }
+.actions-bar {
+    border: @panel_border;
+    .border-radius(0 0 @border_radius @border_radius);
+    padding: 12px;
+    margin: 10px 0;
+    .panel-gradient;
+}
 
-    .rdb-content {
-        border: @panel_border;
-        .border-radius(0 0 @border_radius @border_radius);
-        margin-top: 20px;
-        margin-bottom: 20px;
+.namespace-list, .machine-list {
+    border: @panel_border;
+    .border-radius(0 0 @border_radius @border_radius);
+    margin-top: 10px;
+    margin-bottom: 20px;
 
-    }
-
-    .rdb-content table {
+    table {
         margin-bottom: 0;
         border: 0;
         td + td { border-left: 0; }
@@ -543,44 +542,111 @@
             }
         }
 
-        .details-wrapper {
-            padding: 10px;
+        .details {
+            padding: 5px;
 
-            span.name {
+            h3.name {
+                line-height: 1em;
+                margin-bottom: 0.3em;
                 font-weight: bold;
                 font-size: 1.2em;
                 color: @grayDark;
             }
-
-            p.details-text {
-                margin-top: 10px;
-                margin-bottom: 0;
-
-                span {
-                    margin-right: 20px;
-                }
-            }
         }
     }
+}
 
-    #namespaces-panel {
-        span.protocol {
-            background: @gray;
-            color: @white;
-            font-size: 0.8em;
-            padding: 0.4em;
-            text-transform: uppercase;
-            font-weight: bold;
-            float: right;
+.server-list {
+    margin-top: 20px;
 
-            &.riak { background-color: @riak_color; }
-            &.redis { background-color: @redis_color; }
-            &.memcached {  background-color: @memcached_color;  }
-        }
+    .label.element-type {
+        text-transform: uppercase;
+        font-size: 10px;
+        margin-right: 15px;
+        display: inline-block;
+        margin-top: -3px;
     }
 
-    #browser-tabs {
+
+    .datacenter.details p, .machine.details p {
+        font-size: 11px;
+        text-transform: uppercase;
         margin-bottom: 0;
+    }
+
+    .datacenter.details p.status .label {
+        vertical-align: text-top;
+        font-size: 10px;
+        margin-right: 5px;
+    }
+
+    .machine.details p.status {
+        .label {
+            vertical-align: text-top;
+            font-size: 10px;
+        }
+        float: right;
+    }
+
+    .header {
+        cursor: pointer;
+    }
+
+    .arrow {
+        width: 16px;
+        height: 16px;
+        float: left;
+        &.collapsed {
+            background: url('/images/mini_right-arrow.png') no-repeat center top;
+        }
+        &.expanded {
+            background: url('/images/mini_down-arrow.png') no-repeat center top;
+            margin-top: 3px;
+        }
+    }
+
+    .summary {
+        &.expanded { display: none; }
+
+        &.collapsed {
+           margin-top: 10px;
+           margin-bottom: 20px;
+           border-bottom: thin solid @grayLight;
+           margin-left: 28px;
+        }
+    }
+
+    h3.datacenter.name { 
+        line-height: 1em;
+        margin-left: 28px;
+    }
+
+    .datacenter.actions { text-align: right; }
+
+    .datacenter.details {
+        margin-top: 10px;
+        margin-left: 28px;
+    }
+    .machine-list {
+        margin-left: 28px;
+    }
+}
+
+.namespace-list {
+    margin-top: 20px;
+
+    span.protocol {
+        background: @gray;
+        color: @white;
+        font-size: 0.8em;
+        padding: 0.4em;
+        text-transform: uppercase;
+        font-weight: bold;
+        float: right;
+
+        &.riak { background-color: @riak_color; }
+        &.redis { background-color: @redis_color; }
+        &.memcached {  background-color: @memcached_color;  }
     }
 }
 
@@ -597,10 +663,8 @@
     }
 }
 
-.alert{
-    .name {
-        font-weight: bold;
-    }
+.alert .name {
+    font-weight: bold;
 }
 
 /*
@@ -609,6 +673,28 @@
     ----------------------------
 */
 .namespace-view, .datacenter-view, .machine-view {
+    .two-panel-section {
+        border-bottom: thin solid #CCC;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        width: 100%;
+        .panel-left {
+            float: left;
+            width: 50%;
+        }
+        .panel-right {
+            float: left;
+        }
+        .two-panel-clear {
+            clear: both;
+        }
+        .section {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+    }
+    
     .section {
         border-bottom: thin solid #CCC;
         padding-bottom: 10px;
@@ -616,6 +702,10 @@
     }
 
     h3.title {
+        margin-bottom: 10px;
+    }
+
+    h1 {
         margin-bottom: 10px;
     }
 }
@@ -644,6 +734,9 @@
                 width: 15%;
             }
         } 
+        div.progress {
+            width: 200px;
+        }
     }
 
     /* Override Bootstrap */
@@ -652,6 +745,8 @@
         th, td {
             border-top: none;
             border-bottom: thin solid @grayLighter;
+            margin: 0;
+            padding: 0;
         }
     }
     /* End override */
@@ -703,6 +798,12 @@
         }
     }
 
+    hr {
+       margin-top: 0;
+       margin-bottom: 10px;
+       border-top: thin solid @grayLighter;
+       width: 55%;
+    }
     form {
         .xlarge {
             width: 45%;
@@ -717,12 +818,15 @@
             text-align: left;
             p {
                 margin-bottom: 6px;
-                &.current {
-                    font-size: 12px;
-                    line-height: 24px;
-                    color: @gray;
-                }
             }
+        }
+        p.current, p.max {
+            font-size: 12px;
+            line-height: 24px;
+            color: @gray;
+        }
+        p.current {
+            margin-bottom: 0;
         }
     }
 
@@ -762,7 +866,7 @@
     /* Override Bootstrap */
     fieldset {
         padding-top: 0px;
-        padding-bottom: 15px;
+        padding-bottom: 0;
         margin-bottom: 0;
 
         label { padding-right: 20px; }

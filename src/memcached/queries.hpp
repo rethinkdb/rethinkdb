@@ -6,14 +6,12 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/intrusive_ptr.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/variant.hpp>
-#include <boost/serialization/binary_object.hpp>
 
 #include "btree/keys.hpp"
 #include "config/args.hpp"
 #include "containers/data_buffer.hpp"
+#include "containers/intrusive_ptr.hpp"
 #include "utils.hpp"
 
 typedef uint32_t mcflags_t;
@@ -35,13 +33,13 @@ struct get_query_t {
 };
 
 struct get_result_t {
-    get_result_t(const boost::intrusive_ptr<data_buffer_t>& v, mcflags_t f, cas_t c) :
+    get_result_t(const intrusive_ptr_t<data_buffer_t>& v, mcflags_t f, cas_t c) :
         value(v), flags(f), cas(c) { }
     get_result_t() :
         value(), flags(0), cas(0) { }
 
     // NULL means not found.
-    boost::intrusive_ptr<data_buffer_t> value;
+    intrusive_ptr_t<data_buffer_t> value;
 
     mcflags_t flags;
     cas_t cas;
@@ -54,6 +52,8 @@ enum rget_bound_mode_t {
     rget_bound_closed,   // Include boundary key
     rget_bound_none   // Ignore boundary key and go all the way to the left/right side of the tree
 };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(rget_bound_mode_t, int8_t, rget_bound_open, rget_bound_none);
 
 struct rget_query_t {
     rget_bound_mode_t left_mode;
@@ -70,9 +70,9 @@ struct rget_query_t {
 struct key_with_data_buffer_t {
     std::string key;
     mcflags_t mcflags;
-    boost::intrusive_ptr<data_buffer_t> value_provider;
+    intrusive_ptr_t<data_buffer_t> value_provider;
 
-    key_with_data_buffer_t(const std::string& _key, mcflags_t _mcflags, const boost::intrusive_ptr<data_buffer_t>& _value_provider)
+    key_with_data_buffer_t(const std::string& _key, mcflags_t _mcflags, const intrusive_ptr_t<data_buffer_t>& _value_provider)
         : key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
 
     struct less {
@@ -100,11 +100,15 @@ enum add_policy_t {
     add_policy_no
 };
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(add_policy_t, int8_t, add_policy_yes, add_policy_no);
+
 enum replace_policy_t {
     replace_policy_yes,
     replace_policy_if_cas_matches,
     replace_policy_no
 };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(replace_policy_t, int8_t, replace_policy_yes, replace_policy_no);
 
 #define NO_CAS_SUPPLIED 0
 
@@ -114,7 +118,7 @@ struct sarc_mutation_t {
 
     /* The value to give the key; must not be NULL.
     TODO: Should NULL mean a deletion? */
-    boost::intrusive_ptr<data_buffer_t> data;
+    intrusive_ptr_t<data_buffer_t> data;
 
     /* The flags to store with the value */
     mcflags_t flags;
@@ -134,7 +138,7 @@ struct sarc_mutation_t {
     cas_t old_cas;
 
     sarc_mutation_t() { }
-    sarc_mutation_t(const store_key_t& key_, const boost::intrusive_ptr<data_buffer_t>& data_, mcflags_t flags_, exptime_t exptime_, add_policy_t add_policy_, replace_policy_t replace_policy_, cas_t old_cas_) :
+    sarc_mutation_t(const store_key_t& key_, const intrusive_ptr_t<data_buffer_t>& data_, mcflags_t flags_, exptime_t exptime_, add_policy_t add_policy_, replace_policy_t replace_policy_, cas_t old_cas_) :
         key(key_), data(data_), flags(flags_), exptime(exptime_), add_policy(add_policy_), replace_policy(replace_policy_), old_cas(old_cas_) { }
 };
 
@@ -149,6 +153,8 @@ enum set_result_t {
     /* Returned if the value to be stored is too big */
     sr_too_large,
 };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(set_result_t, int8_t, sr_stored, sr_too_large);
 
 /* `delete` */
 
@@ -169,12 +175,16 @@ enum delete_result_t {
     dr_not_found,
 };
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(delete_result_t, int8_t, dr_deleted, dr_not_found);
+
 /* `incr`, `decr` */
 
 enum incr_decr_kind_t {
     incr_decr_INCR,
     incr_decr_DECR
 };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(incr_decr_kind_t, int8_t, incr_decr_INCR, incr_decr_DECR);
 
 struct incr_decr_mutation_t {
     incr_decr_kind_t kind;
@@ -197,17 +207,21 @@ struct incr_decr_result_t {
     explicit incr_decr_result_t(result_t r, uint64_t n = 0) : res(r), new_value(n) { }
 };
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(incr_decr_result_t::result_t, int8_t, incr_decr_result_t::idr_success, incr_decr_result_t::idr_not_numeric);
+
 /* `append`, `prepend` */
 
 enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(append_prepend_kind_t, int8_t, append_prepend_APPEND, append_prepend_PREPEND);
+
 struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
     store_key_t key;
-    boost::intrusive_ptr<data_buffer_t> data;
+    intrusive_ptr_t<data_buffer_t> data;
 
     append_prepend_mutation_t() { }
-    append_prepend_mutation_t(append_prepend_kind_t kind_, const store_key_t &key_, const boost::intrusive_ptr<data_buffer_t> &data_) :
+    append_prepend_mutation_t(append_prepend_kind_t kind_, const store_key_t &key_, const intrusive_ptr_t<data_buffer_t> &data_) :
         kind(kind_), key(key_), data(data_) { }
 };
 
@@ -216,5 +230,7 @@ enum append_prepend_result_t {
     apr_too_large,
     apr_not_found,
 };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(append_prepend_result_t, int8_t, apr_success, apr_not_found);
 
 #endif /* MEMCACHED_QUERIES_HPP_ */

@@ -69,7 +69,7 @@ bool is_not_expired(key_value_pair_t<memcached_value_t>& pair, exptime_t effecti
 
 key_with_data_buffer_t pair_to_key_with_data_buffer(transaction_t *txn, key_value_pair_t<memcached_value_t>& pair) {
     on_thread_t th(txn->home_thread());
-    boost::intrusive_ptr<data_buffer_t> data_provider(value_to_data_buffer(reinterpret_cast<memcached_value_t *>(pair.value.get()), txn));
+    intrusive_ptr_t<data_buffer_t> data_provider(value_to_data_buffer(reinterpret_cast<memcached_value_t *>(pair.value.get()), txn));
     return key_with_data_buffer_t(pair.key, reinterpret_cast<memcached_value_t *>(pair.value.get())->mcflags(), data_provider);
 }
 

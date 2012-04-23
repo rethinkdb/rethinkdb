@@ -1,6 +1,4 @@
 #include "errors.hpp"
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
 #include <boost/make_shared.hpp>
 
 #include "concurrency/pmap.hpp"
@@ -109,38 +107,65 @@ publisher_t<boost::function<void()> > *semilattice_manager_t<metadata_t>::root_v
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::write_metadata(std::ostream &stream, metadata_t md) {
-    // We must be on the connection thread.
-    stream << 'M';
-    boost::archive::binary_oarchive archive(stream);
-    archive << md;
+void semilattice_manager_t<metadata_t>::write_metadata(write_stream_t *stream, metadata_t md) {
+    write_message_t msg;
+    uint8_t code = 'M';
+    msg << code;
+    msg << md;
+    int res = send_write_message(stream, &msg);
+    if (res) {
+        throw fake_archive_exc_t();
+    }
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::write_ping(std::ostream &stream, int ping_id) {
-    // We must be on the connection thread.
-    stream << 'P';
-    stream.write(reinterpret_cast<const char *>(&ping_id), sizeof(ping_id));
+void semilattice_manager_t<metadata_t>::write_ping(write_stream_t *stream, int ping_id) {
+    write_message_t msg;
+    uint8_t code = 'P';
+    msg << code;
+
+    // TODO: Why are we sending an int over the wire.  Figure out what type ping_id should actually be.
+    // TODO: IS 32 BITS ENOUGH???  I don't know.
+    int32_t ping_id_32_bit = ping_id;
+    msg << ping_id_32_bit;
+
+    int res = send_write_message(stream, &msg);
+    if (res) {
+        throw fake_archive_exc_t();
+    }
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::write_ping_response(std::ostream &stream, int ping_id) {
+void semilattice_manager_t<metadata_t>::write_ping_response(write_stream_t *stream, int ping_id) {
+    write_message_t msg;
+    uint8_t code = 'R';
+    msg << code;
+    int32_t ping_id_32_bit = ping_id;
+    msg << ping_id_32_bit;
+
     // We must be on the connection thread
-    stream << 'R';
-    stream.write(reinterpret_cast<const char *>(&ping_id), sizeof(ping_id));
+    int res = send_write_message(stream, &msg);
+    if (res) {
+        throw fake_archive_exc_t();
+    }
 }
 
 template<class metadata_t>
-void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, std::istream &stream) {
-    char code;
-    stream >> code;
+void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, read_stream_t *stream) {
+    uint8_t code;
+    {
+        int res = deserialize(stream, &code);
+        if (res) { throw fake_archive_exc_t(); }
+    }
 
     // TODO: Hard-coded constants.
     if (code == 'M') {
         metadata_t added_metadata;
         {
-            boost::archive::binary_iarchive archive(stream);
-            archive >> added_metadata;
+            int res = deserialize(stream, &added_metadata);
+            if (res) {
+                throw fake_archive_exc_t();
+            }
         }
         coro_t::spawn_sometime(boost::bind(
             &semilattice_manager_t<metadata_t>::join_metadata_locally_on_home_thread, this,
@@ -150,16 +175,31 @@ void semilattice_manager_t<metadata_t>::on_message(peer_id_t sender, std::istrea
     } else if (code == 'P') {
         // Good news: We never leave the connection thread.
         // TODO: We should not be sending an int over the wire.
+        // Yay ^^^
+
         int ping_id;
-        stream.read(reinterpret_cast<char *>(&ping_id), sizeof(ping_id));
+        {
+            int32_t ping_id_32_bit;
+            int res = deserialize(stream, &ping_id_32_bit);
+            if (res) { throw fake_archive_exc_t(); }
+            ping_id = ping_id_32_bit;
+        }
+
         coro_t::spawn_sometime(boost::bind(
             &semilattice_manager_t<metadata_t>::send_ping_response_to_peer, this,
             sender, ping_id, auto_drainer_t::lock_t(drainers.get())
             ));
 
     } else if (code == 'R') {
+
         int ping_id;
-        stream.read(reinterpret_cast<char *>(&ping_id), sizeof(ping_id));
+        {
+            int32_t ping_id_32_bit;
+            int res = deserialize(stream, &ping_id_32_bit);
+            if (res) { throw fake_archive_exc_t(); }
+            ping_id = ping_id_32_bit;
+        }
+
         coro_t::spawn_sometime(boost::bind(
             &semilattice_manager_t<metadata_t>::release_ping_waiter_on_home_thread, this,
             ping_id, auto_drainer_t::lock_t(drainers.get())

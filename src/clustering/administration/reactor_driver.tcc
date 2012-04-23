@@ -40,20 +40,18 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
  * a std::pair. This class is used to hold a reactor and a watchable that
  * it's watching. */
 template <class protocol_t>
-class watchable_and_reactor_t {
+class watchable_and_reactor_t : private master_t<protocol_t>::ack_checker_t {
 public:
-    watchable_and_reactor_t(mailbox_manager_t *_mbox_manager, 
+    watchable_and_reactor_t(reactor_driver_t<protocol_t> *parent_, 
                             clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > _directory_view,
                             namespace_id_t _namespace_id,
-                            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > _branch_history,
                             const blueprint_t<protocol_t> &bp,
-                            const std::string &_file_path)
-        : watchable(bp),
-          mbox_manager(_mbox_manager),
-          directory_view(_directory_view),
-          namespace_id(_namespace_id),
-          branch_history(_branch_history),
-          file_path(_file_path)
+                            const std::string &_file_path) :
+        watchable(bp),
+        parent(parent_),
+        directory_view(_directory_view),
+        namespace_id(_namespace_id),
+        file_path(_file_path)
     {
         coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this));
     }
@@ -65,6 +63,7 @@ public:
 
         /* The reactor must be destroyed before we remove the entry from
          * the directory map. C'est la vie. */
+        write_copier.reset();
         reactor.reset();
 
         {
@@ -80,7 +79,48 @@ public:
     }
 
     watchable_variable_t<blueprint_t<protocol_t> > watchable;
+
+    bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) {
+        /* There are a bunch of weird corner cases: what if the namespace was
+        deleted? What if we got an ack from a machine but then it was declared
+        dead? What if the namespaces `expected_acks` field is in conflict? We
+        handle the weird cases by erring on the side of reporting that there
+        are not enough acks yet. If a machine's `expected_acks` field is in
+        conflict, for example, then all writes will report that there are not
+        enough acks. That's a bit weird, but fortunately it can't lead to data
+        corruption. */
+        std::multiset<datacenter_id_t> acks_by_dc;
+        for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); it++) {
+            boost::optional<machine_id_t> translation = parent->machine_id_translation_table->get_value(*it);
+            if (!translation) continue;
+            machines_semilattice_metadata_t mmd = parent->machines_view->get();
+            machines_semilattice_metadata_t::machine_map_t::iterator jt = mmd.machines.find(*translation);
+            if (jt == mmd.machines.end()) continue;
+            if (jt->second.is_deleted()) continue;
+            if (jt->second.get().datacenter.in_conflict()) continue;
+            datacenter_id_t dc = jt->second.get().datacenter.get();
+            acks_by_dc.insert(dc);
+        }
+        namespaces_semilattice_metadata_t<protocol_t> nmd = parent->namespaces_view->get();
+        typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
+            nmd.namespaces.find(namespace_id);
+        if (it == nmd.namespaces.end()) return false;
+        if (it->second.is_deleted()) return false;
+        if (it->second.get().ack_expectations.in_conflict()) return false;
+        std::map<datacenter_id_t, int> expected_acks = it->second.get().ack_expectations.get();
+        for (std::map<datacenter_id_t, int>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); kt++) {
+            if (int(acks_by_dc.count(kt->first)) < kt->second) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 private:
+    static boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > wrap_in_optional(
+            const directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > &wr) {
+        return boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(wr);
+    }
 
     void initialize_reactor() {
         int res = access(get_file_name().c_str(), R_OK | W_OK);
@@ -114,27 +154,33 @@ private:
             directory_view->subview(field_lens(&namespaces_directory_metadata_t<protocol_t>::master_maps))->subview(
                 assumed_member_lens<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > >(namespace_id));
 
-        reactor.reset(new reactor_t<protocol_t>(mbox_manager, reactor_directory, master_directory, branch_history, watchable.get_watchable(), store.get()));
+        reactor.reset(new reactor_t<protocol_t>(parent->mbox_manager, this, translate_into_watchable(reactor_directory), master_directory, parent->branch_history, watchable.get_watchable(), store.get()));
+
+        write_copier.reset(new watchable_write_copier_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >(
+            reactor->get_reactor_directory()->subview(&watchable_and_reactor_t<protocol_t>::wrap_in_optional),
+            reactor_directory
+            ));
 
         reactor_has_been_initialized.pulse();
     }
 
     cond_t reactor_has_been_initialized;
 
-    mailbox_manager_t *mbox_manager;
+    reactor_driver_t<protocol_t> *parent;
     clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > directory_view;
     namespace_id_t namespace_id;
-    boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
     std::string file_path;
 
     boost::scoped_ptr<typename protocol_t::store_t> store;
     boost::scoped_ptr<reactor_t<protocol_t> > reactor;
+    boost::scoped_ptr<watchable_write_copier_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > write_copier;
 };
 
 template <class protocol_t>
 reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
                  clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > _directory_view,
                  boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
+                 boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                  const clone_ptr_t<directory_rview_t<machine_id_t> > &_machine_id_translation_table,
                  std::string _file_path)
     : mbox_manager(_mbox_manager),
@@ -142,6 +188,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
       branch_history(metadata_field(&namespaces_semilattice_metadata_t<protocol_t>::branch_history, _namespaces_view)),
       machine_id_translation_table(_machine_id_translation_table),
       namespaces_view(_namespaces_view),
+      machines_view(machines_view_),
       file_path(_file_path),
       semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
       connectivity_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), boost::bind(&reactor_driver_t<protocol_t>::on_change, this))
@@ -201,10 +248,9 @@ void reactor_driver_t<protocol_t>::on_change() {
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(mbox_manager,
+                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(this,
                                 directory_view,
                                 it->first,
-                                branch_history,
                                 bp,
                                 file_path));
                 } else {

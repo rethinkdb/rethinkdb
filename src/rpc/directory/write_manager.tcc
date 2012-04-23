@@ -84,19 +84,29 @@ void directory_write_manager_t<metadata_t>::send_update(peer_id_t peer, const me
 }
 
 template<class metadata_t>
-void directory_write_manager_t<metadata_t>::write_initialization(std::ostream &os, const metadata_t &initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state) THROWS_NOTHING {
-    os.put('I');
-    boost::archive::binary_oarchive archive(os);
-    archive << initial_value;
-    archive << metadata_fifo_state;
+void directory_write_manager_t<metadata_t>::write_initialization(write_stream_t *os, const metadata_t &initial_value, fifo_enforcer_source_t::state_t metadata_fifo_state) THROWS_NOTHING {
+    write_message_t msg;
+    uint8_t code = 'I';
+    msg << code;
+    msg << initial_value;
+    msg << metadata_fifo_state;
+    int res = send_write_message(os, &msg);
+    if (res) {
+        throw fake_archive_exc_t();
+    }
 }
 
 template<class metadata_t>
-void directory_write_manager_t<metadata_t>::write_update(std::ostream &os, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token) THROWS_NOTHING {
-    os.put('U');
-    boost::archive::binary_oarchive archive(os);
-    archive << new_value;
-    archive << metadata_fifo_token;
+void directory_write_manager_t<metadata_t>::write_update(write_stream_t *os, const metadata_t &new_value, fifo_enforcer_write_token_t metadata_fifo_token) THROWS_NOTHING {
+    write_message_t msg;
+    uint8_t code = 'U';
+    msg << code;
+    msg << new_value;
+    msg << metadata_fifo_token;
+    int res = send_write_message(os, &msg);
+    if (res) {
+        throw fake_archive_exc_t();
+    }
 }
 
 template<class metadata_t>

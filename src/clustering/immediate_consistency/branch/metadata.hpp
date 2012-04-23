@@ -4,9 +4,6 @@
 #include <map>
 
 #include "errors.hpp"
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/variant.hpp>
-#include <boost/serialization/vector.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/variant.hpp>
 
@@ -153,7 +150,7 @@ struct backfiller_business_card_t {
 
 
     /* Mailboxes used for requesting the progress of a backfill */
-    typedef mailbox_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> request_progress_mailbox_t;
+    typedef mailbox_t<void(backfill_session_id_t, mailbox_addr_t<void(std::pair<int,int>)>)> request_progress_mailbox_t;
     typedef mailbox_t<void(float)> receive_progress_mailbox_t;
 
     backfiller_business_card_t() { }

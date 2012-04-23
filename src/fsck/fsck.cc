@@ -142,7 +142,7 @@ int run_fsck(int argc, char **argv) {
     fsck::parse_cmd_args(argc, argv, &config);
 
     if (config.log_file_name != "") {
-        log_file = fopen(config.log_file_name.c_str(), "w");
+        // log_file = fopen(config.log_file_name.c_str(), "w");
     }
 
     if (check_files(&config)) {

@@ -1,7 +1,7 @@
 #include <stdexcept>
 #include <functional>
 #include <list>
-#include <iostream>
+
 #include "containers/iterators.hpp"
 #include "unittest/gtest.hpp"
 
@@ -55,40 +55,59 @@ private:
 
 // Helper functions
 
-std::list<int> parse_list_of_ints(const std::string &l) {
+std::list<int> parse_list_of_ints(const std::string &_l) {
+    std::string l = _l;
+    l += " ";
+
     std::list<int> result;
-    std::stringstream str(l);
-    while (!str.eof()) {
-        int v;
-        str >> v;
-        result.push_back(v);
+    std::string w;
+    for (int i = 0, e = l.size(); i < e; ++i) {
+        if (l[i] != ' ') {
+            w.push_back(l[i]);
+        } else if (!w.empty()) {
+            int v = atoi(w.c_str());
+            rassert(v != 0);
+            result.push_back(v);
+
+            w.clear();
+        }
     }
+
+    rassert(w.empty(), "we put a space at the end of l for a reason!");
+
     return result;
 }
 
 // parse the string "1 2 3 | 42 56 | 13" into a list of lists of integers, using '|' as a list separator
-test_iterator::data_blocks_t parse_data_blocks(const std::string &db) {
+test_iterator::data_blocks_t parse_data_blocks(const std::string &_db) {
+    std::string db = _db;
+    db += " ";
     test_iterator::data_blocks_t result;
-    std::stringstream str(db);
-    std::list<int> current_list;
-    while (!str.eof()) {
-        std::string w;
+    std::string w;
+    std::list<int> current_list;  // oh god
 
-        if ((str >> w).fail())
-            break;
-
-        if (w == "|") {
-            result.push_back(current_list);
-            current_list = std::list<int>();
-        } else {
-            int v;
-            if ((std::stringstream(w) >> v).fail())
-                break;
-            current_list.push_back(v);
+    for (int i = 0, e = db.size(); i < e; ++i) {
+        if (db[i] != ' ') {
+            w.push_back(db[i]);
+        } else if (!w.empty()) {
+            if (w == "|") {
+                result.push_back(current_list);
+                current_list.clear();
+            } else {
+                int v = atoi(w.c_str());
+                rassert(v != 0);
+                current_list.push_back(v);
+            }
+            w.clear();
         }
     }
-    if (!current_list.empty())
+
+    rassert(w.empty(), "we put a space at the end of db for a reason!");
+
+    if (!current_list.empty()) {
         result.push_back(current_list);
+    }
+
     return result;
 }
 

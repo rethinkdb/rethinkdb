@@ -25,14 +25,11 @@ structures into a metadata file or metadata_store of some kind.
 #include <map>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/variant.hpp>
-
 #include "riak/structures.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/archive/boost_types.hpp"
+#include "rpc/serialize_macros.hpp"
+#include "serializer/types.hpp"
 #include "serializer/config.hpp"
 
 
@@ -52,11 +49,6 @@ private:
     store_id_t(int _raw_id) : raw_id(_raw_id) {
     }
     int raw_id;
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & raw_id;
-    }
 }; */
 
 /* ---- Name mapping ---- */
@@ -121,10 +113,7 @@ public:
 private:
     std::map<identifier_t, store_id_t> id_map;
 
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & id_map;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_1(id_map);
 }; */
 
 // A few examples...
@@ -149,41 +138,19 @@ ________________________________________________________________________________
 struct memcached_store_metadata_t {
     int tcp_port;
 private:
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & tcp_port;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_1(tcp_port);
 };
 
 typedef riak::bucket_t riak_store_metadata_t;
 
-namespace boost {
-namespace serialization {
-template<class Archive>
-void serialize(Archive &ar, riak_store_metadata_t &m, const unsigned int) {
-    ar & m.name;
-    ar & m.n_val;
-    ar & m.allow_mult;
-    ar & m.last_write_wins;
-    ar & m.precommit;
-    ar & m.postcommit;
-    ar & m.r;
-    ar & m.w;
-    ar & m.dw; 
-    ar & m.rw;
-    ar & m.backend;
-}
-} //namespace boost
-} //namespace serialization
+RDB_MAKE_SERIALIZABLE_11(riak_store_metadata_t, name, n_val, allow_mult, last_write_wins, precommit, postcommit, r, w, dw, rw, backend);
+
 
 /* struct riak_store_metadata_t {
 //obviously a lot more is going to go in here, this is just a place holder
     int n_val;
 private:
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & n_val;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_1(n_val);
 }; */
 
 // This is just some non-sense type, basically meaning "void". We can't use void
@@ -201,31 +168,6 @@ typedef boost::variant<invalid_variant_t, standard_serializer_t::config_t> store
 // Add your underlying store types here... (these must be creatable based on the information of the corresponding store_config)
 // The store types (i.e. what's inside the pointer) must provide RTTI (have a virtual member)
 typedef boost::variant<boost::shared_ptr<invalid_variant_t>, boost::shared_ptr<standard_serializer_t> > store_object_t;
-
-// This visitor must be extended if new types of store configs are added
-class store_loader_t : public boost::static_visitor<store_object_t> {
-public:
-    store_object_t operator()(standard_serializer_t::config_t &config) const {
-        struct : public promise_t<bool>, 
-                 public log_serializer_t::check_callback_t
-        { 
-            void on_serializer_check(bool is_existing) { pulse(is_existing); }
-        } existing_cb;
-        log_serializer_t::check_existing(config.private_dynamic_config.db_filename.c_str(), &existing_cb);
-
-        if (!existing_cb.wait()) {
-            log_serializer_t::create(config.dynamic_config, config.private_dynamic_config, config.static_config);
-        }
-        return store_object_t(boost::shared_ptr<standard_serializer_t>(
-                new standard_serializer_t(config.dynamic_config, config.private_dynamic_config)));
-    }
-
-    // Add implementations for other store_config types here...
-    store_object_t operator()(invalid_variant_t) const {
-        crash("Tried to create an invalid store\n");
-        return store_object_t();
-    }
-};
 
 /* ---- Store manager ---- */
 
@@ -256,16 +198,7 @@ struct store_t {
     store_config_t store_config; // Required for re-creating store. Must be serializable
 
     // Creates store based on the data in store_config
-    void load_store() {
-        // First unload the current store, if any exists
-        // (this is useful in case the current and new store are using the same
-        //  underlying files, for example if you just changed some configuration
-        //  option in the store_config and want to re-create the store to apply
-        //  those changes)
-        store = boost::shared_ptr<invalid_variant_t>();
-        // Now load the new store
-        store = boost::apply_visitor(store_loader_t(), store_config);
-    }
+    void load_store();
 
     // Returns NULL if the corresponding interface is not implemented by the store.
     // How you use get_store_interface() is to get a certain interface of the store.
@@ -300,13 +233,9 @@ private:
         }
     };
 
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & store_metadata;
-        ar & store_config;
-        // store is not serialized. Instead it can be re-created after unserializing by
-        // calling load_store().
-    }
+    RDB_MAKE_ME_SERIALIZABLE_2(store_metadata, store_config);
+    // store is not serialized. Instead it can be re-created after unserializing by
+    // calling load_store().
 };
 
 /*
@@ -376,22 +305,11 @@ public:
 private:
     store_map_t store_map;
 
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & store_map; // Magic boost serialization handles the store_t pointers automatically
-    }
+    // Magic boost serialization handles the store_t pointers automatically
+    RDB_MAKE_ME_SERIALIZABLE_1(store_map);
 
     DISABLE_COPYING(store_manager_t);
 };
-
-namespace boost {
-namespace serialization {
-template<class Archive>
-void serialize(Archive &ar, std::list<std::string> &target, const unsigned int) {
-    ar & target;
-}
-} //namespace boost
-} //namespace serialization
 
 
 #endif  /* STORE_MANAGER_HPP_ */

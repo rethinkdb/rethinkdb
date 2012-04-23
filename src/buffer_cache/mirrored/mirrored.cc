@@ -139,7 +139,7 @@ private:
     serializer_data_ptr_t data;
 
     // Our block token to the serializer.
-    boost::intrusive_ptr<standard_block_token_t> token;
+    intrusive_ptr_t<standard_block_token_t> token;
 
     // The recency of the snapshot we hold.
     repli_timestamp_t subtree_recency;
@@ -218,7 +218,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_accou
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
@@ -458,7 +458,7 @@ bool mc_inner_buf_t::safe_to_unload() {
 }
 
 // TODO (sam): Look at who's passing this void pointer.
-void mc_inner_buf_t::update_data_token(const void *the_data, const boost::intrusive_ptr<standard_block_token_t>& token) {
+void mc_inner_buf_t::update_data_token(const void *the_data, const intrusive_ptr_t<standard_block_token_t>& token) {
     cache->assert_thread();
     // TODO (sam): Obviously this comparison is disgusting.
     if (data.equals(the_data)) {
@@ -491,6 +491,20 @@ mc_buf_lock_t::mc_buf_lock_t() :
     data(NULL),
     subtree_recency(repli_timestamp_t::invalid)
 { }
+
+
+class boost_function_in_line_callback_t : public lock_in_line_callback_t {
+public:
+    boost_function_in_line_callback_t(boost::function<void()> *callee) : callee_(callee) { }
+    void on_in_line() {
+        if (*callee_) {
+            (*callee_)();
+        }
+    };
+private:
+    boost::function<void()> *callee_;
+};
+
 
 /* Constructor to obtain a buffer lock within a transaction */
 mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id, access_t mode_, boost::function<void()> call_when_in_line) :
@@ -580,7 +594,8 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
         ticks_t lock_start_time;
         // the top version is the right one for us; acquire a lock of the appropriate type first
         pm_bufs_acquiring.begin(&lock_start_time);
-        inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
+        boost_function_in_line_callback_t in_line_cb(&call_when_in_line);
+        inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, &in_line_cb);
         pm_bufs_acquiring.end(&lock_start_time);
 
         // It's possible that, now that we've acquired the lock, that
@@ -1509,13 +1524,13 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
     do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, token, recency_timestamp));
     return true;
 }
 
-void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     assert_thread();
 
     // Check that the offered block is allowed to be accepted at the current time

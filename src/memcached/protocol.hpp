@@ -4,108 +4,35 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/optional.hpp>
-#include <boost/serialization/shared_ptr.hpp>
-#include <boost/serialization/split_free.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/variant.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
-#include "btree/slice.hpp"
-#include "btree/operations.hpp"
 #include "btree/backfill.hpp"
+#include "btree/parallel_traversal.hpp"  // TODO: sigh
+#include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "memcached/queries.hpp"
+#include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "serializer/log/log_serializer.hpp"
 #include "timestamps.hpp"
-#include "containers/iterators.hpp"
 
-namespace boost {
-namespace serialization {
+write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf);
+int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);
+write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter);
+int deserialize(read_stream_t *s, rget_result_t *iter);
 
-template<class Archive> void save(Archive &ar, const boost::intrusive_ptr<data_buffer_t> &buf, UNUSED const unsigned int version) {
-    if (buf) {
-        bool exists = true;
-        ar << exists;
-        int64_t size = buf->size();
-        ar << size;
-        ar.save_binary(buf.get()->buf(), buf.get()->size());
-    } else {
-        bool exists = false;
-        ar << exists;
-    }
-}
-
-template<class Archive> void load(Archive &ar, boost::intrusive_ptr<data_buffer_t> &value, UNUSED const unsigned int version) {
-    bool exists;
-    ar >> exists;
-    if (exists) {
-        int64_t size;
-        ar >> size;
-        value = data_buffer_t::create(size);
-        ar.load_binary(value->buf(), size);
-    } else {
-        value.reset();
-    }
-}
-
-template<class Archive> void save(Archive &ar, rget_result_t &iter, UNUSED const unsigned int version) {
-    while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
-        const key_with_data_buffer_t& kv = pair.get();
-
-        const std::string& key = kv.key;
-        const boost::intrusive_ptr<data_buffer_t>& data = kv.value_provider;
-        ar << true << key << data;
-    }
-    ar << false;
-}
-
-template<typename T>
-class vector_backed_one_way_iterator_t : public one_way_iterator_t<T> {
-    typename std::vector<T> data;
-    size_t pos;
-public:
-    vector_backed_one_way_iterator_t() : pos(0) { }
-    void push_back(T &v) { data.push_back(v); }
-    typename boost::optional<T> next() {
-        if (pos < data.size()) {
-            return boost::optional<T>(data[pos++]);
-        } else {
-            return boost::optional<T>();
-        }
-    }
-    void prefetch() { }
-};
-
-template<class Archive> void load(Archive &ar, rget_result_t &iter, UNUSED const unsigned int version) {
-    iter = rget_result_t(new vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
-    bool next;
-    while (ar >> next, next) {
-        std::string key;
-        boost::intrusive_ptr<data_buffer_t> data;
-        ar >> key >> data;
-    }
-}
-
-}}
-
-BOOST_SERIALIZATION_SPLIT_FREE(boost::intrusive_ptr<data_buffer_t>);
-BOOST_SERIALIZATION_SPLIT_FREE(rget_result_t);
-
-RDB_MAKE_SERIALIZABLE_1(get_query_t, key);
-RDB_MAKE_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
-RDB_MAKE_SERIALIZABLE_3(get_result_t, value, flags, cas);
-RDB_MAKE_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
-RDB_MAKE_SERIALIZABLE_1(get_cas_mutation_t, key);
-RDB_MAKE_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
-RDB_MAKE_SERIALIZABLE_2(delete_mutation_t, key, dont_put_in_delete_queue);
-RDB_MAKE_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount);
-RDB_MAKE_SERIALIZABLE_2(incr_decr_result_t, res, new_value);
-RDB_MAKE_SERIALIZABLE_3(append_prepend_mutation_t, kind, key, data);
-RDB_MAKE_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, cas_or_zero);
+RDB_DECLARE_SERIALIZABLE(get_query_t);
+RDB_DECLARE_SERIALIZABLE(rget_query_t);
+RDB_DECLARE_SERIALIZABLE(get_result_t);
+RDB_DECLARE_SERIALIZABLE(key_with_data_buffer_t);
+RDB_DECLARE_SERIALIZABLE(get_cas_mutation_t);
+RDB_DECLARE_SERIALIZABLE(sarc_mutation_t);
+RDB_DECLARE_SERIALIZABLE(delete_mutation_t);
+RDB_DECLARE_SERIALIZABLE(incr_decr_mutation_t);
+RDB_DECLARE_SERIALIZABLE(incr_decr_result_t);
+RDB_DECLARE_SERIALIZABLE(append_prepend_mutation_t);
+RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
 /* `memcached_protocol_t` is a container struct. It's never actually
 instantiated; it just exists to pass around all the memcached-related types and
@@ -217,6 +144,8 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(val);
     };
 
+    typedef traversal_progress_combiner_t backfill_progress_t;
+
     class store_t : public store_view_t<memcached_protocol_t> {
         typedef region_map_t<memcached_protocol_t, binary_blob_t> metainfo_t;
 
@@ -231,6 +160,7 @@ public:
 
     public:
         store_t(const std::string& filename, bool create);
+        ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
         void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);
@@ -266,7 +196,7 @@ public:
                 const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                 const boost::function<bool(const metainfo_t&)> &should_backfill,
                 const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
-                backfill_progress_t **progress_out,
+                backfill_progress_t *progress_out,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);

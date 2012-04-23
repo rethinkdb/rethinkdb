@@ -8,12 +8,11 @@
 
 #include "errors.hpp"
 #include <boost/function.hpp>
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/utility.hpp>   /* for `std::pair` serialization */
 #include <boost/scoped_ptr.hpp>
 
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/binary_blob.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -49,21 +48,6 @@ public:
 
 protected:
     virtual ~namespace_interface_t() { }
-};
-
-/* Exceptions thrown by functions operating on `protocol_t::region_t` */
-
-struct bad_region_exc_t : public std::exception {
-    const char *what() const throw () {
-        return "The set you're trying to compute cannot be expressed as a "
-            "`region_t`.";
-    }
-};
-
-struct bad_join_exc_t : public std::exception {
-    const char *what() const throw () {
-        return "You need to give a non-overlapping set of regions.";
-    }
 };
 
 /* Some `protocol_t::region_t` functions can be implemented in terms of other
@@ -110,7 +94,10 @@ public:
         for (const_iterator it = begin(); it != end(); it++) {
             regions.push_back(it->first);
         }
-        return region_join(regions);
+        typename protocol_t::region_t join;
+        DEBUG_ONLY_VAR region_join_result_t join_result = region_join(regions, &join);
+        rassert(join_result == REGION_JOIN_OK);
+        return join;
     }
 
     const_iterator begin() const {
@@ -208,12 +195,6 @@ region_map_t<protocol_t, new_t> region_map_transform(const region_map_t<protocol
     return region_map_t<protocol_t, new_t>(new_pairs.begin(), new_pairs.end());
 }
 
-class backfill_progress_t {
-public:
-    virtual float guess_completion() = 0;
-    virtual ~backfill_progress_t() { }
-};
-
 /* `store_view_t` is an abstract class that represents a region of a key-value
 store for some protocol. It's templatized on the protocol (`protocol_t`). It
 covers some `protocol_t::region_t`, which is returned by `get_region()`.
@@ -291,7 +272,7 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
-            backfill_progress_t **progress_out,
+            typename protocol_t::backfill_progress_t *progress,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -429,7 +410,7 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
-            backfill_progress_t **p,
+            typename protocol_t::backfill_progress_t *p,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {

@@ -12,6 +12,7 @@
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "protocol_api.hpp"
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 
@@ -19,7 +20,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         assert_thread();
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
-        struct : public leaf::entry_reception_callback_t<void> {
+        struct : public leaf::entry_reception_callback_t {
             void lost_deletions() {
                 cb->on_delete_range(left_exclusive_or_null, right_inclusive_or_null);
             }

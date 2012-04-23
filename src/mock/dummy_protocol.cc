@@ -1,17 +1,13 @@
 #include "mock/dummy_protocol.hpp"
 
-#include <fstream>
-
 #include "errors.hpp"
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
 #include <boost/scoped_ptr.hpp>
-#include <boost/serialization/map.hpp>
 
 #include "arch/timing.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/file_stream.hpp"
 
 namespace mock {
 
@@ -141,15 +137,18 @@ dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dum
     return i;
 }
 
-dummy_protocol_t::region_t region_join(const std::vector<dummy_protocol_t::region_t>& vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t) {
+region_join_result_t region_join(const std::vector<dummy_protocol_t::region_t>& vec, dummy_protocol_t::region_t *out) THROWS_NOTHING {
     dummy_protocol_t::region_t u;
     for (std::vector<dummy_protocol_t::region_t>::const_iterator it = vec.begin(); it != vec.end(); it++) {
-        for (std::set<std::string>::iterator it2 = (*it).keys.begin(); it2 != (*it).keys.end(); it2++) {
-            if (u.keys.count(*it2) != 0) throw bad_join_exc_t();
+        for (std::set<std::string>::iterator it2 = it->keys.begin(); it2 != it->keys.end(); it2++) {
+            if (u.keys.count(*it2) != 0) {
+                return REGION_JOIN_BAD_JOIN;
+            }
             u.keys.insert(*it2);
         }
     }
-    return u;
+    *out = u;
+    return REGION_JOIN_OK;
 }
 
 std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protocol_t::region_t &a, const std::vector<dummy_protocol_t::region_t>& b) {
@@ -182,22 +181,29 @@ dummy_protocol_t::store_t::store_t(const std::string& fn, bool create) : store_v
     if (create) {
         initialize_empty();
     } else {
-        std::ifstream stream(filename.c_str(), std::ios::in);
-        rassert(!stream.fail());
-        boost::archive::text_iarchive i(stream);
-        i >> metainfo;
-        i >> values;
-        i >> timestamps;
+        blocking_read_file_stream_t stream;
+        DEBUG_ONLY_VAR bool success = stream.init(filename.c_str());
+        rassert(success);
+        int res = deserialize(&stream, &metainfo);
+        if (res) { throw fake_archive_exc_t(); }
+        res = deserialize(&stream, &values);
+        if (res) { throw fake_archive_exc_t(); }
+        res = deserialize(&stream, &timestamps);
+        if (res) { throw fake_archive_exc_t(); }
     }
 }
 
 dummy_protocol_t::store_t::~store_t() {
     if (filename != "") {
-        std::ofstream stream(filename.c_str(), std::ios::out);
-        boost::archive::text_oarchive o(stream);
-        o << metainfo;
-        o << values;
-        o << timestamps;
+        blocking_write_file_stream_t stream;
+        DEBUG_ONLY_VAR bool success = stream.init(filename.c_str());
+        rassert(success);
+        write_message_t msg;
+        msg << metainfo;
+        msg << values;
+        msg << timestamps;
+        int res = send_write_message(&stream, &msg);
+        if (res) { throw fake_archive_exc_t(); }
     }
 }
 
@@ -293,7 +299,7 @@ dummy_protocol_t::write_response_t dummy_protocol_t::store_t::write(DEBUG_ONLY(c
 }
 
 bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
-        const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, backfill_progress_t **, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, backfill_progress_t *, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), start_point.get_domain()));
 
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
@@ -380,16 +386,17 @@ dummy_protocol_t::region_t a_thru_z_region() {
     return r;
 }
 
-std::ostream &operator<<(std::ostream &stream, dummy_protocol_t::region_t r) {
-    stream << "{ ";
+std::string to_string(dummy_protocol_t::region_t r) {
+    std::string ret = "{ ";
     for (std::set<std::string>::iterator it  = r.keys.begin();
                                          it != r.keys.end();
                                          it++) {
-        stream << *it << " ";
+        ret += *it;
+        ret += " ";
     }
-    stream << "}";
+    ret += "}";
 
-    return stream;
+    return ret;
 }
 
 }   /* namespace mock */

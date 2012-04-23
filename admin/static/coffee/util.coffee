@@ -25,7 +25,18 @@ Handlebars.registerHelper 'ifequal', (val_a, val_b, if_block, else_block) ->
         else_block()
 
 # Helpers for pluralization of nouns and verbs
-Handlebars.registerHelper 'pluralize_noun', (num) -> if num is 1 then '' else 's'
+Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
+    if num is 1
+        result = noun
+    else
+        if noun.substr(-1) is 'y'
+            result = noun.slice(0, noun.length - 1) + "ies"
+        else
+            result = noun + "s"
+    if capitalize is true
+        result = result.charAt(0).toUpperCase() + result.slice(1);
+    return result
+
 Handlebars.registerHelper 'pluralize_verb_to_be', (num) -> if num is 1 then 'is' else 'are'
 
 # Helpers for capitalization
@@ -33,6 +44,38 @@ Handlebars.registerHelper 'capitalize', (str) -> str.charAt(0).toUpperCase() + s
 
 # Helpers for shortening uuids
 Handlebars.registerHelper 'humanize_uuid', (str) -> str.substr(0, 6)
+
+# Helpers for printing roles
+Handlebars.registerHelper 'humanize_role', (role) ->
+    if role is 'role_primary' then return 'master'
+    if role is 'role_secondary' then return 'replica'
+    return role
+
+# Helpers for printing reachability
+Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
+    if not status?
+        result = 'N/A'
+    else
+        if status.reachable
+            result = "<span class='label label-success'>Reachable</span>"
+        else
+            _last_seen = if status.last_seen? then status.last_seen else 'unknown'
+            result = "<span class='label label-important'>Unreachable</span> (<abbr class='timeago' title='#{_last_seen}'>since #{_last_seen}</abbr>)"
+    return new Handlebars.SafeString(result);
+
+Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
+    if status.reachable > 0
+        result = "<span class='label label-success'>Live</span>"
+    else
+        if status.total > 0
+            result = "<span class='label label-important'>Down</span>"
+        else
+            result = "<span class='label'>Empty</span>"
+    result += "(#{status.reachable} of #{status.total} machines reachable)"
+    if status.reachable == 0 and status.total > 0
+        result += " <abbr class='timeago' title='#{status.last_seen}'>since #{status.last_seen}</abbr>"
+
+    return new Handlebars.SafeString(result);
 
 # Dev utility functions and variables
 window.pause_live_data = false
@@ -113,7 +156,7 @@ generate_fake_issues = (issues) ->
 form_data_as_object = (form) ->
     formarray = form.serializeArray()
     formdata = {}
-    for x in formarray 
+    for x in formarray
         formdata[x.name] = x.value
     return formdata
 

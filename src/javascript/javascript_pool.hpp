@@ -6,7 +6,7 @@
 #include "errors.hpp"
 #include <boost/function.hpp>  // for function
 
-#include "API/JSBase.h"
+#include <API/JSBase.h>
 #include "errors.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/event_queue.hpp"

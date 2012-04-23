@@ -58,10 +58,10 @@ void run_rethinkdb_create(const std::string &filepath, std::string &machine_name
     *result_out = true;
 }
 
-std::vector<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> names) {
-    std::vector<peer_address_t> peers;
+std::set<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> names) {
+    std::set<peer_address_t> peers;
     for (int i = 0; i < (int)names.size(); i++) {
-        peers.push_back(peer_address_t(ip_address_t(names[i].host), names[i].port));
+        peers.insert(peer_address_t(ip_address_t(names[i].host), names[i].port));
     }
     return peers;
 }
@@ -158,6 +158,10 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             std::map<datacenter_id_t, int> affinities;
             affinities.insert(std::make_pair(datacenter_id, 0));
             namespace_metadata.replica_affinities = vclock_t<std::map<datacenter_id_t, int> >(affinities, our_machine_id);
+
+            std::map<datacenter_id_t, int> ack_expectations;
+            ack_expectations.insert(std::make_pair(datacenter_id, 1));
+            namespace_metadata.ack_expectations = vclock_t<std::map<datacenter_id_t, int> >(ack_expectations, our_machine_id);
 
             std::set<key_range_t> shards;
             shards.insert(key_range_t::universe());
@@ -294,9 +298,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     int client_port = 0;
 #endif
 
-    std::vector<std::string> web_path = parse_as_path(argv[0]);
-    web_path.pop_back();
-    web_path.push_back("web");
+    path_t web_path = parse_as_path(argv[0]);
+    web_path.nodes.pop_back();
+    web_path.nodes.push_back("web");
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins, port, client_port, &result, render_as_path(web_path)));
@@ -325,9 +329,9 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     int client_port = 0;
 #endif
 
-    std::vector<std::string> web_path = parse_as_path(argv[0]);
-    web_path.pop_back();
-    web_path.push_back("web");
+    path_t web_path = parse_as_path(argv[0]);
+    web_path.nodes.pop_back();
+    web_path.nodes.push_back("web");
     
     bool result;
 #ifndef NDEBUG

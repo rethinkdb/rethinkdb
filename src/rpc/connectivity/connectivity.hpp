@@ -5,18 +5,13 @@
 
 #include "utils.hpp"
 #include <boost/function.hpp>
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/base_object.hpp>
-#include <boost/serialization/binary_object.hpp>
-#include <boost/serialization/utility.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-#include <boost/uuid/uuid_serialize.hpp>
 
 #include "arch/address.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/signal.hpp"
+#include "rpc/serialize_macros.hpp"
 
 class peer_address_t {
 public:
@@ -31,13 +26,12 @@ public:
     bool operator!=(const peer_address_t &a) const {
         return ip != a.ip || port != a.port;
     }
+    bool operator<(const peer_address_t &a) const {
+        return ip < a.ip || (ip == a.ip && port < a.port);
+    }
 
 private:
-    friend class ::boost::serialization::access;
-    template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
-        ar & ip;
-        ar & port;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_2(ip, port);
 };
 
 /* `peer_id_t` is a wrapper around a `boost::uuids::uuid`. Each newly
@@ -54,13 +48,13 @@ public:
         return p.uuid < uuid;
     }
 
-    peer_id_t() 
-        : uuid(boost::uuids::nil_uuid()) 
+    peer_id_t()
+        : uuid(boost::uuids::nil_uuid())
     { }
 
     explicit peer_id_t(boost::uuids::uuid u) : uuid(u) { }
 
-    boost::uuids::uuid get_uuid() {
+    boost::uuids::uuid get_uuid() const {
         return uuid;
     }
 
@@ -70,19 +64,11 @@ public:
 
 private:
     friend class connectivity_cluster_t;
-    friend std::ostream &operator<<(std::ostream &, peer_id_t);
 
     boost::uuids::uuid uuid;
 
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
-        ar & uuid;
-    }
+    RDB_MAKE_ME_SERIALIZABLE_1(uuid);
 };
-
-inline std::ostream &operator<<(std::ostream &stream, peer_id_t id) {
-    return stream << id.uuid;
-}
 
 /* A `connectivity_service_t` is an object that keeps track of peers that are
 connected to us. It's an abstract class because there may be multiple types of

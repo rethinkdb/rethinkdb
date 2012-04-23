@@ -6,11 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/serialization/binary_object.hpp>
-
 #include "config/args.hpp"
-#include "protocol_api.hpp" // FIXME: ugh!
+#include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
 struct store_key_t {
@@ -88,10 +85,27 @@ struct store_key_t {
         return sized_strcmp(contents, size, k.contents, k.size);
     }
 
-    friend class boost::serialization::access;
-    template<typename Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & size;
-        ar & boost::serialization::make_binary_object(contents, size);
+    void rdb_serialize(write_message_t &msg) const {
+        uint8_t sz = size;
+        msg << sz;
+        msg.append(contents, sz);
+    }
+
+    template <class T> friend int deserialize(read_stream_t *, T *);
+    int rdb_deserialize(read_stream_t *s) {
+        uint8_t sz;
+        int res = deserialize(s, &sz);
+        if (res) { return res; }
+        int64_t num_read = force_read(s, contents, sz);
+        if (num_read == -1) {
+            return -1;
+        }
+        if (num_read < sz) {
+            return -2;
+        }
+        rassert(num_read == sz);
+        size = sz;
+        return 0;
     }
 };
 
@@ -186,17 +200,5 @@ struct key_range_t {
 
     RDB_MAKE_ME_SERIALIZABLE_2(left, right);
 };
-
-std::ostream &operator<<(std::ostream & stream, const key_range_t &);
-
-bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING;
-key_range_t region_intersection(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING;
-key_range_t region_join(const std::vector<key_range_t> &vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t);
-bool region_overlaps(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING;
-std::vector<key_range_t> region_subtract_many(key_range_t a, const std::vector<key_range_t>& b);
-
-bool operator==(key_range_t, key_range_t) THROWS_NOTHING;
-bool operator!=(key_range_t, key_range_t) THROWS_NOTHING;
-bool operator<(const key_range_t &, const key_range_t &) THROWS_NOTHING;
 
 #endif // BTREE_KEYS_HPP_

@@ -3,9 +3,7 @@
 
 #include "config/args.hpp"
 #include "utils.hpp"
-
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/access.hpp>
+#include "containers/archive/archive.hpp"
 
 #define NEVER_FLUSH -1
 
@@ -61,17 +59,38 @@ struct mirrored_cache_config_t {
     int io_priority_reads;
     int io_priority_writes;
 
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, UNUSED const unsigned int version) {
-        ar & max_size;
-        ar & wait_for_flush;
-        ar & flush_timer_ms;
-        ar & max_dirty_size;
-        ar & flush_dirty_size;
-        ar & flush_waiting_threshold;
-        ar & max_concurrent_flushes;
-        ar & io_priority_reads;
-        ar & io_priority_writes;
+    void rdb_serialize(write_message_t &msg) const {
+        msg << max_size;
+        msg << wait_for_flush;
+        msg << flush_timer_ms;
+        msg << max_dirty_size;
+        msg << flush_dirty_size;
+        msg << flush_waiting_threshold;
+        msg << max_concurrent_flushes;
+        msg << io_priority_reads;
+        msg << io_priority_writes;
+    }
+
+    int rdb_deserialize(read_stream_t *s) {
+        int res = 0;
+        res = deserialize(s, &max_size);
+        if (res) { return res; }
+        res = deserialize(s, &wait_for_flush);
+        if (res) { return res; }
+        res = deserialize(s, &flush_timer_ms);
+        if (res) { return res; }
+        res = deserialize(s, &max_dirty_size);
+        if (res) { return res; }
+        res = deserialize(s, &flush_dirty_size);
+        if (res) { return res; }
+        res = deserialize(s, &flush_waiting_threshold);
+        if (res) { return res; }
+        res = deserialize(s, &max_concurrent_flushes);
+        if (res) { return res; }
+        res = deserialize(s, &io_priority_reads);
+        if (res) { return res; }
+        res = deserialize(s, &io_priority_writes);
+        return res;
     }
 };
 

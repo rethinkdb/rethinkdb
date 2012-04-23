@@ -92,9 +92,9 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
                             machine_data_centers
                             )));
             } catch (cannot_satisfy_goals_exc_t &e) {
-                logERR("Namespace %s has unsatisfiable goals\n", uuid_to_str(it->first).c_str());
+                logERR("Namespace %s has unsatisfiable goals", uuid_to_str(it->first).c_str());
             } catch (in_conflict_exc_t &e) {
-                logERR("Namespace %s has internal conflicts\n", uuid_to_str(it->first).c_str());
+                logERR("Namespace %s has internal conflicts", uuid_to_str(it->first).c_str());
             }
         }
     }

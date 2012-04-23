@@ -50,13 +50,13 @@ private:
         publisher_t<boost::function<void()> > *get_publisher();
     };
 
-    static void write_metadata(std::ostream &stream, metadata_t md);
-    static void write_ping(std::ostream &stream, int ping_id);
-    static void write_ping_response(std::ostream &stream, int ping_id);
+    static void write_metadata(write_stream_t *stream, metadata_t md);
+    static void write_ping(write_stream_t *stream, int ping_id);
+    static void write_ping_response(write_stream_t *stream, int ping_id);
 
     /* These are called in a blocking fashion by the message service or by the
     `connectivity_service_t`. */
-    void on_message(peer_id_t, std::istream&);
+    void on_message(peer_id_t, read_stream_t *);
     void on_connect(peer_id_t);
     void on_disconnect(peer_id_t);
 

@@ -1,5 +1,6 @@
-#include "btree/keys.hpp"
-//#include "protocol_api.hpp"
+#include "memcached/region.hpp"
+
+#include <algorithm>
 
 /* Comparison operators for `key_range_t::right_bound_t` are declared in here
 because nothing outside of this file ever needs them. */
@@ -74,14 +75,19 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
     }
 }
 
-std::ostream &operator<<(std::ostream & stream, const key_range_t &kr) {
-    stream << "[\"" << key_to_str(kr.left) << "\", ";
+std::string key_range_as_string(const key_range_t &kr) {
+    std::string ret;
+    ret += "[\"";
+    ret += key_to_str(kr.left);
+    ret += "\", ";
     if (kr.right.unbounded) {
-        stream << "...]";
+        ret += "...]";
     } else {
-        stream << "\"" << key_to_str(kr.right.key) << "\")";
+        ret += "\"";
+        ret += key_to_str(kr.right.key);
+        ret += "\")";
     }
-    return stream;
+    return ret;
 }
 
 bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING {
@@ -108,37 +114,39 @@ static bool compare_range_by_left(const key_range_t &r1, const key_range_t &r2) 
     return r1.left < r2.left;
 }
 
-key_range_t region_join(const std::vector<key_range_t> &vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t) {
+region_join_result_t region_join(const std::vector<key_range_t> &vec, key_range_t *out) THROWS_NOTHING {
     if (vec.empty()) {
-        return key_range_t::empty();
+        *out = key_range_t::empty();
+        return REGION_JOIN_OK;
     } else {
         std::vector<key_range_t> sorted = vec;
         std::sort(sorted.begin(), sorted.end(), &compare_range_by_left);
         key_range_t::right_bound_t cursor = key_range_t::right_bound_t(sorted[0].left);
         for (int i = 0; i < (int)sorted.size(); i++) {
             if (cursor < key_range_t::right_bound_t(sorted[i].left)) {
-                /* There's a gap between this region and the region on its left,
-                so their union isn't a `key_range_t`. */
-                throw bad_region_exc_t();
+                return REGION_JOIN_BAD_REGION;
             } else if (cursor > key_range_t::right_bound_t(sorted[i].left)) {
-                /* This region overlaps with the region on its left, so the join
-                is bad. */
-                throw bad_join_exc_t();
+                return REGION_JOIN_BAD_JOIN;
             } else {
                 /* The regions match exactly; move on to the next one. */
                 cursor = sorted[i].right;
             }
         }
-        key_range_t union_;
-        union_.left = sorted[0].left;
-        union_.right = cursor;
-        return union_;
+        key_range_t key_union;
+        key_union.left = sorted[0].left;
+        key_union.right = cursor;
+        *out = key_union;
+        return REGION_JOIN_OK;
     }
 }
 
+bool region_is_empty(const key_range_t &r) {
+    return key_range_t::right_bound_t(r.left) == r.right;
+}
+
 bool region_overlaps(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING {
-    return (key_range_t::right_bound_t(r1.left) < r2.right && 
-            key_range_t::right_bound_t(r2.left) < r1.right && 
+    return (key_range_t::right_bound_t(r1.left) < r2.right &&
+            key_range_t::right_bound_t(r2.left) < r1.right &&
             !region_is_empty(r1) && !region_is_empty(r2));
 }
 

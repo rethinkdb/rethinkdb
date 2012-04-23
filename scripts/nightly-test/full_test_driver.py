@@ -226,17 +226,14 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
 
     # Plan what tests to run
 
-    tests = { }
-    test_counter = 1
+    tests_as_list = [ ]
 
     def do_test(command_line, repeat = 1, inputs = []):
-        global test_counter
-        tests[str(test_counter)] = {
+        tests_as_list.append({
             "inputs": [os.path.join("rethinkdb", i) for i in inputs],
             "command_line": command_line,
             "repeat": repeat
-            }
-        test_counter += 1
+            })
 
     for (dirpath, dirname, filenames) in os.walk("rethinkdb/test/full_test/"):
         for filename in filenames:
@@ -246,6 +243,14 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
                 execfile(full_path, {"__builtins__": __builtins__, "do_test": do_test})
             except Exception, e:
                 traceback.print_exc()
+
+    def compare_tests(t1, t2):
+        return cmp(t1["command_line"], t2["command_line"])
+    tests_as_list.sort(compare_tests)
+
+    tests = { }
+    for number, test in enumerate(tests_as_list):
+        tests[str(number + 1)] = test
 
     # Run tests
 

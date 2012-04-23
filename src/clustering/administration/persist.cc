@@ -1,11 +1,9 @@
-#include <fstream>
-
-#include "errors.hpp"
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/serialization/export.hpp>
-
 #include "clustering/administration/persist.hpp"
+
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include "containers/archive/file_stream.hpp"
 
 namespace metadata_persistence {
 
@@ -37,40 +35,46 @@ void create(const std::string& file_path, machine_id_t machine_id, const cluster
         throw file_exc_t("Could not create directory: " + errno_to_string(errno));
     }
 
-    std::ofstream file(metadata_file(file_path).c_str(), std::ios_base::trunc | std::ios_base::out);
-    if (file.fail()) {
-        throw file_exc_t("Could not write to file.");
+    blocking_write_file_stream_t file;
+    if (!file.init(metadata_file(file_path).c_str())) {
+        throw file_exc_t("Could not create file.");
     }
 
-    boost::archive::text_oarchive archive(file);
-    archive << machine_id;
-    archive << semilattice;
+    write_message_t msg;
+    msg << machine_id;
+    msg << semilattice;
+
+    res = send_write_message(&file, &msg);
+    if (res) {
+        throw file_exc_t("Could not write to file.");
+    }
 }
 
 void update(const std::string& file_path, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice) THROWS_ONLY(file_exc_t) {
-    std::ofstream file(metadata_file(file_path).c_str(), std::ios_base::trunc | std::ios_base::out);
-    if (file.fail()) {
+    blocking_write_file_stream_t file;
+    if (!file.init(metadata_file(file_path).c_str())) {
+        throw file_exc_t("Could not create file.");
+    }
+    write_message_t msg;
+    msg << machine_id;
+    msg << semilattice;
+    int res = send_write_message(&file, &msg);
+    if (res) {
         throw file_exc_t("Could not write to file.");
     }
-
-    boost::archive::text_oarchive archive(file);
-    archive << machine_id;
-    archive << semilattice;
 }
 
 void read(const std::string& file_path, machine_id_t *machine_id_out, cluster_semilattice_metadata_t *semilattice_out) THROWS_ONLY(file_exc_t) {
 
-    std::ifstream file(metadata_file(file_path).c_str(), std::ios_base::in);
-    if (file.fail()) {
-        throw file_exc_t("Could not read from file.");
+    blocking_read_file_stream_t file;
+    if (!file.init(metadata_file(file_path).c_str())) {
+        throw file_exc_t("Could not open file for read.");
     }
 
-    try {
-        boost::archive::text_iarchive archive(file);
-        archive >> *machine_id_out;
-        archive >> *semilattice_out;
-    } catch (boost::archive::archive_exception e) {
-        throw file_exc_t(std::string("File contents invalid: ") + e.what());
+    int res = deserialize(&file, machine_id_out);
+    if (!res) { res = deserialize(&file, semilattice_out); }
+    if (res) {
+        throw file_exc_t("File contents invalid.");
     }
 }
 
@@ -101,8 +105,4 @@ void semilattice_watching_persister_t::dump() {
 }
 
 }  // namespace metadata_persistence
-
-/* Necessary so that we can serialize `persistence_issue_t` in the form of a
-`clone_ptr_t<local_issue_t>` */
-BOOST_CLASS_EXPORT(metadata_persistence::persistence_issue_t)
 

@@ -27,8 +27,7 @@ protected:
     virtual uint16_t get_data_size() const;
 
 private:
-    template <class V>
-    friend void leaf_patched_insert(value_sizer_t<V> *sizer, buf_lock_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
+    friend void leaf_patched_insert(value_sizer_t<void> *sizer, buf_lock_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
 
     leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const void *value, uint8_t key_size, const char *key_contents, repli_timestamp_t insertion_time);
 

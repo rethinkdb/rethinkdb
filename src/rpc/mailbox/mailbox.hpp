@@ -1,6 +1,7 @@
 #ifndef RPC_MAILBOX_MAILBOX_HPP_
 #define RPC_MAILBOX_MAILBOX_HPP_
 
+#include "containers/archive/archive.hpp"
 #include "rpc/connectivity/cluster.hpp"
 
 struct mailbox_manager_t;
@@ -20,7 +21,7 @@ private:
     typedef int id_t;
     id_t mailbox_id;
 
-    boost::function<void(std::istream &, const boost::function<void()> &)> callback;
+    boost::function<void(read_stream_t *, const boost::function<void()> &)> callback;
 
     DISABLE_COPYING(raw_mailbox_t);
 
@@ -39,18 +40,15 @@ public:
         fails. */
         peer_id_t get_peer() const;
 
+        // Returns a friendly human-readable peer:thread:mailbox_id string.
+        std::string human_readable() const;
+
     private:
-        friend std::ostream &operator<<(std::ostream &, raw_mailbox_t::address_t);
-        friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(std::ostream&)>);
+        friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(write_stream_t *)>);
         friend struct raw_mailbox_t;
         friend struct mailbox_manager_t;
 
-        friend class ::boost::serialization::access;
-        template<class Archive> void serialize(Archive & ar, UNUSED const unsigned int version) {
-            ar & peer;
-            ar & thread;
-            ar & mailbox_id;
-        }
+        RDB_MAKE_ME_SERIALIZABLE_3(peer, thread, mailbox_id);
 
         /* The peer on which the mailbox is located */
         peer_id_t peer;
@@ -62,15 +60,11 @@ public:
         id_t mailbox_id;
     };
 
-    raw_mailbox_t(mailbox_manager_t *, const boost::function<void(std::istream &, const boost::function<void()> &)> &);
+    raw_mailbox_t(mailbox_manager_t *, const boost::function<void(read_stream_t *, const boost::function<void()> &)> &);
     ~raw_mailbox_t();
 
     address_t get_address();
 };
-
-inline std::ostream &operator<<(std::ostream &s, raw_mailbox_t::address_t a) {
-    return s << a.peer << ":" << a.thread << ":" << a.mailbox_id;
-}
 
 /* `send()` sends a message to a mailbox. It is safe to call `send()` outside of
 a coroutine; it does not block. If the mailbox does not exist or the peer is
@@ -79,7 +73,7 @@ inaccessible, `send()` will silently fail. */
 void send(
     mailbox_manager_t *src,
     raw_mailbox_t::address_t dest,
-    boost::function<void(std::ostream&)> message
+    boost::function<void(write_stream_t *)> message
     );
 
 /* `mailbox_manager_t` uses a `message_service_t` to provide mailbox capability.
@@ -100,7 +94,7 @@ public:
 
 private:
     friend struct raw_mailbox_t;
-    friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(std::ostream&)>);
+    friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, boost::function<void(write_stream_t *)>);
 
     message_service_t *message_service;
 
@@ -113,8 +107,8 @@ private:
     };
     one_per_thread_t<mailbox_table_t> mailbox_tables;
 
-    static void write_mailbox_message(std::ostream&, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, boost::function<void(std::ostream&)> writer);
-    void on_message(peer_id_t, std::istream&);
+    static void write_mailbox_message(write_stream_t *stream, int dest_thread, raw_mailbox_t::id_t dest_mailbox_id, boost::function<void(write_stream_t *)> writer);
+    void on_message(peer_id_t, read_stream_t *stream);
 };
 
 #endif /* RPC_MAILBOX_MAILBOX_HPP_ */

@@ -1,5 +1,6 @@
 #include "unittest/gtest.hpp"
 
+#include "arch/timing.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -19,9 +20,10 @@ You can send to a `dummy_mailbox_t` with `send()`. */
 struct dummy_mailbox_t {
 private:
     std::set<int> inbox;
-    void on_message(std::istream &stream, const boost::function<void()> &on_done) {
+    void on_message(read_stream_t *stream, const boost::function<void()> &on_done) {
         int i;
-        stream >> i;
+        int res = deserialize(stream, &i);
+        if (res) { throw fake_archive_exc_t(); }
         on_done();
         inbox.insert(i);
     }
@@ -35,8 +37,12 @@ public:
     raw_mailbox_t mailbox;
 };
 
-void write_integer(int i, std::ostream &stream) {
-    stream << i;
+void write_integer(int i, write_stream_t *stream) {
+    write_message_t msg;
+    int32_t i_32 = i;
+    msg << i_32;
+    int res = send_write_message(stream, &msg);
+    if (res) { throw fake_archive_exc_t(); }
 }
 
 void send(mailbox_manager_t *c, raw_mailbox_t::address_t dest, int message) {

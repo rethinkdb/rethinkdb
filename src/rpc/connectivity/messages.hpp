@@ -1,7 +1,13 @@
 #ifndef RPC_CONNECTIVITY_MESSAGES_HPP_
 #define RPC_CONNECTIVITY_MESSAGES_HPP_
 
-#include "rpc/connectivity/connectivity.hpp"
+#include "errors.hpp"
+#include <boost/function.hpp>
+
+class connectivity_service_t;
+class peer_id_t;
+class read_stream_t;
+class write_stream_t;
 
 /* `message_service_t` is an abstract superclass for things that let you send
 messages to other nodes. `message_handler_t` is an abstract superclass for
@@ -39,10 +45,7 @@ destructor is called. */
 
 class message_service_t  {
 public:
-    virtual void send_message(
-            peer_id_t dest_peer,
-            const boost::function<void(std::ostream &)> &writer
-            ) = 0;
+    virtual void send_message(peer_id_t dest_peer, const boost::function<void(write_stream_t *)> &writer) = 0;
     virtual connectivity_service_t *get_connectivity_service() = 0;
 protected:
     virtual ~message_service_t() { }
@@ -50,10 +53,7 @@ protected:
 
 class message_handler_t {
 public:
-    virtual void on_message(
-            peer_id_t source_peer,
-            std::istream &stream_from_peer
-            ) = 0;
+    virtual void on_message(peer_id_t source_peer, read_stream_t *) = 0;
 protected:
     virtual ~message_handler_t() { }
 };

@@ -1,9 +1,6 @@
 #ifndef ARCH_TIMING_HPP_
 #define ARCH_TIMING_HPP_
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-
 #include "concurrency/signal.hpp"
 
 /* Coroutine function that delays for some number of milliseconds. */
@@ -34,15 +31,25 @@ private:
 /* Construct a repeating_timer_t to start a repeating timer. It will call its function
 when the timer "rings". */
 
-struct repeating_timer_t {
+class repeating_timer_callback_t {
+public:
+    virtual void on_ring() = 0;
+protected:
+    ~repeating_timer_callback_t() { }
+};
 
-    repeating_timer_t(int frequency_ms, const boost::function<void()>& ring);
+class repeating_timer_t {
+public:
+
+    repeating_timer_t(int frequency_ms, repeating_timer_callback_t *ringee);
     ~repeating_timer_t();
 
 private:
     static void on_timer_ring(void *v_timer);
     timer_token_t *timer;
-    boost::function<void()> ring;
+    repeating_timer_callback_t *ringee;
+
+    DISABLE_COPYING(repeating_timer_t);
 };
 
 #endif /* ARCH_TIMING_HPP_ */

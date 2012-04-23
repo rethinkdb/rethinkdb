@@ -36,15 +36,7 @@ public:
         rassert(inactive_accounts.empty());
     }
 
-    class account_t :
-        public intrusive_list_node_t<account_t>
-    {
-        struct calls_on_availability_changed_t {
-            account_t *parent_;
-            explicit calls_on_availability_changed_t(account_t *parent) : parent_(parent) { }
-            void operator()() { parent_->on_availability_changed(); }
-        };
-
+    class account_t : private availability_callback_t, public intrusive_list_node_t<account_t> {
     public:
         account_t(accounting_queue_t *p, passive_producer_t<value_t> *s, int _shares)
             : parent(p), source(s), shares(_shares), active(false) {
@@ -55,7 +47,7 @@ public:
             } else {
                 parent->inactive_accounts.push_back(this);
             }
-            source->available->set_callback(calls_on_availability_changed_t(this));
+            source->available->set_callback(this);
             parent->available_control.set_available(!parent->active_accounts.empty());
         }
         ~account_t() {
@@ -72,7 +64,7 @@ public:
     private:
         friend class accounting_queue_t;
 
-        void on_availability_changed() {
+        void on_source_availability_changed() {
             parent->assert_thread();
             if (source->available->get() && !active) {
                 parent->inactive_accounts.remove(this);

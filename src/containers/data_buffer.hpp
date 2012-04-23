@@ -1,8 +1,9 @@
 #ifndef CONTAINERS_DATA_BUFFER_HPP_
 #define CONTAINERS_DATA_BUFFER_HPP_
 
+#include "containers/archive/archive.hpp"
+#include "containers/intrusive_ptr.hpp"
 #include "errors.hpp"
-#include <boost/intrusive_ptr.hpp>
 
 struct data_buffer_t {
 private:
@@ -21,12 +22,12 @@ public:
         free(p);
     }
 
-    static boost::intrusive_ptr<data_buffer_t> create(int64_t size) {
+    static intrusive_ptr_t<data_buffer_t> create(int64_t size) {
         rassert(sizeof(data_buffer_t) == 16);
         data_buffer_t *b = reinterpret_cast<data_buffer_t *>(malloc(sizeof(data_buffer_t) + size));
         b->ref_count_ = 0;
         b->size_ = size;
-        return boost::intrusive_ptr<data_buffer_t>(b);
+        return intrusive_ptr_t<data_buffer_t>(b);
     }
 
     char *buf() { return bytes_; }
@@ -46,6 +47,7 @@ inline void intrusive_ptr_release(data_buffer_t *buffer) {
         data_buffer_t::destroy(buffer);
     }
 }
+
 
 
 

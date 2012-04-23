@@ -8,7 +8,6 @@
 
 #include "utils.hpp"
 #include <boost/function.hpp>
-#include <boost/serialization/set.hpp>
 
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
@@ -80,6 +79,12 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_3(key, value, timestamp);
     };
 
+    struct backfill_progress_t {
+        std::pair<int, int> guess_completion() {
+            return std::make_pair(-1, -1);
+        }
+    };
+
     class store_t : public store_view_t<dummy_protocol_t> {
     public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
@@ -99,7 +104,7 @@ public:
                 const metainfo_t& new_metainfo, const dummy_protocol_t::write_t &write, transition_timestamp_t timestamp, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         bool send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point, const boost::function<bool(const metainfo_t&)> &should_backfill,
-                const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, backfill_progress_t **progress_out, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+                const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, backfill_progress_t *progress, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         void receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
         void reset_data(dummy_protocol_t::region_t subregion, const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
@@ -122,11 +127,11 @@ public:
 
 dummy_protocol_t::region_t a_thru_z_region();
 
-std::ostream &operator<<(std::ostream &stream, dummy_protocol_t::region_t);
+std::string to_string(dummy_protocol_t::region_t);
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
-dummy_protocol_t::region_t region_join(const std::vector<dummy_protocol_t::region_t> &vec) THROWS_ONLY(bad_join_exc_t, bad_region_exc_t);
+MUST_USE region_join_result_t region_join(const std::vector<dummy_protocol_t::region_t> &vec, dummy_protocol_t::region_t *out) THROWS_NOTHING;
 std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protocol_t::region_t &a, const std::vector<dummy_protocol_t::region_t>& b);
 
 bool operator==(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);

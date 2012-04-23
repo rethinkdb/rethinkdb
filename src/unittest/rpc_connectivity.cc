@@ -1,5 +1,7 @@
 #include "unittest/gtest.hpp"
 
+#include "arch/runtime/thread_pool.hpp"
+#include "arch/timing.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
@@ -58,15 +60,20 @@ public:
     }
 
 private:
-    void on_message(peer_id_t peer, std::istream &stream) {
+    void on_message(peer_id_t peer, read_stream_t *stream) {
         int i;
-        stream >> i;
+        int res = deserialize(stream, &i);
+        if (res) { throw fake_archive_exc_t(); }
         on_thread_t th(home_thread());
         inbox[i] = peer;
         timing[i] = sequence_number++;
     }
-    static void write(int i, std::ostream &stream) {
-        stream << i;
+    static void write(int i, write_stream_t *stream) {
+        write_message_t msg;
+        int32_t i_32 = i;
+        msg << i_32;
+        int res = send_write_message(stream, &msg);
+        if (res) { throw fake_archive_exc_t(); }
     }
 
     message_service_t *service;
@@ -482,22 +489,26 @@ public:
         service(s),
         got_spectrum(false)
         { }
-    static void dump_spectrum(std::ostream &stream) {
+    static void dump_spectrum(write_stream_t *stream) {
         char spectrum[CHAR_MAX - CHAR_MIN + 1];
         for (int i = CHAR_MIN; i <= CHAR_MAX; i++) spectrum[i - CHAR_MIN] = i;
-        stream.write(spectrum, CHAR_MAX - CHAR_MIN + 1);
+        int64_t res = stream->write(spectrum, CHAR_MAX - CHAR_MIN + 1);
+        if (res != CHAR_MAX - CHAR_MIN + 1) { throw fake_archive_exc_t(); }
     }
     void send_spectrum(peer_id_t peer) {
         service->send_message(peer, &dump_spectrum);
     }
-    void on_message(peer_id_t, std::istream &stream) {
+    void on_message(peer_id_t, read_stream_t *stream) {
         char spectrum[CHAR_MAX - CHAR_MIN + 1];
-        stream.read(spectrum, CHAR_MAX - CHAR_MIN + 1);
-        int eof = stream.peek();
+        int64_t res = force_read(stream, spectrum, CHAR_MAX - CHAR_MIN + 1);
+        if (res != CHAR_MAX - CHAR_MIN + 1) { throw fake_archive_exc_t(); }
+
+        char blah;
+        int64_t eofres = force_read(stream, &blah, 1);
         for (int i = CHAR_MIN; i <= CHAR_MAX; i++) {
             EXPECT_EQ(spectrum[i - CHAR_MIN], i);
         }
-        EXPECT_EQ(eof, EOF);
+        EXPECT_EQ(0, eofres);
         got_spectrum = true;
     }
     message_service_t *service;

@@ -8,18 +8,19 @@
 #include <stdexcept>
 
 #include "utils.hpp"
+#include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
-#include "arch/runtime/event_queue.hpp"
-#include "arch/io/io_utils.hpp"
+
 #include "arch/address.hpp"
+#include "arch/io/event_watcher.hpp"
+#include "arch/io/io_utils.hpp"
+#include "arch/runtime/event_queue.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "containers/intrusive_list.hpp"
 #include "perfmon_types.hpp"
-#include "arch/io/event_watcher.hpp"
-#include "containers/intrusive_list.hpp"
 
 class side_coro_handler_t;
 
@@ -112,6 +113,13 @@ public:
 
     /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
     bool is_write_open();
+
+    /* Call to enable/disable `SO_KEEPALIVE` for this socket. First version
+    enables and configures it; second version disables it. */
+    /* TODO: This API is insufficient because there's no way to use it on a
+    connection before `connect()` is called. */
+    void set_keepalive(int idle_seconds, int try_interval_seconds, int try_count);
+    void set_keepalive();
 
     /* Put a `perfmon_rate_monitor_t` here if you want to record stats on how fast data is being
     transmitted over the network. */
@@ -235,6 +243,10 @@ public:
     // Must get called exactly once during lifetime of this object.
     // Call it on the thread you'll use the connection on.
     void ennervate(boost::scoped_ptr<linux_tcp_conn_t>& tcp_conn);
+
+    // Must get called exactly once during lifetime of this object.
+    // Call it on the thread you'll use the connection on.
+    void ennervate(linux_tcp_conn_t **tcp_conn_out);
 
 private:
     friend class linux_tcp_listener_t;

@@ -5,6 +5,7 @@
 #include <boost/optional.hpp>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "rpc/serialize_macros.hpp"
 
 /* `reactor_business_card_t` is the way that each peer tells peers what's
 currently happening on this machine. Each `reactor_business_card_t` only applies
@@ -18,18 +19,28 @@ namespace reactor_business_card_details {
  *  - the peer is backfilling
  *  - another peer is a primary
  */
+class backfill_location_t {
+public:
+    backfill_location_t() { }
+    backfill_location_t(backfill_session_id_t _backfill_session_id, peer_id_t _peer_id, reactor_activity_id_t _activity_id)
+        : backfill_session_id(_backfill_session_id), peer_id(_peer_id), activity_id(_activity_id)
+    { }
+
+    backfill_session_id_t backfill_session_id;
+    peer_id_t peer_id;
+    reactor_activity_id_t activity_id;
+    RDB_MAKE_ME_SERIALIZABLE_3(backfill_session_id, peer_id, activity_id);
+};
 template <class protocol_t>
 class primary_when_safe_t {
 public:
     primary_when_safe_t() { }
 
-    primary_when_safe_t(const std::vector<backfill_session_id_t> &_backfills_waited_on,
-                        std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> > > > > &_progress_mboxs) 
-        : backfills_waited_on(_backfills_waited_on), progress_mboxs(_progress_mboxs)
+    primary_when_safe_t(const std::vector<backfill_location_t> &_backfills_waited_on)
+        : backfills_waited_on(_backfills_waited_on)
     { }
-    std::vector<backfill_session_id_t> backfills_waited_on;
-    std::vector<clone_ptr_t<directory_single_rview_t<boost::optional<mailbox_addr_t<void(backfill_session_id_t, mailbox_addr_t<void(float)>)> > > > > progress_mboxs;
-    RDB_MAKE_ME_SERIALIZABLE_2(backfills_waited_on, progress_mboxs);
+    std::vector<backfill_location_t> backfills_waited_on;
+    RDB_MAKE_ME_SERIALIZABLE_1(backfills_waited_on);
 };
 
 /* This peer is currently a primary in working order. */
@@ -100,12 +111,12 @@ class secondary_backfilling_t {
 public:
     secondary_backfilling_t() { }
 
-    secondary_backfilling_t(backfill_session_id_t _backfill_session)
-        : backfill_session(_backfill_session)
+    secondary_backfilling_t(backfill_location_t  _backfill)
+        : backfill(_backfill)
     { }
 
-    backfill_session_id_t backfill_session;
-    RDB_MAKE_ME_SERIALIZABLE_1(backfill_session);
+    backfill_location_t backfill;
+    RDB_MAKE_ME_SERIALIZABLE_1(backfill);
 };
 
 /* This peer would like to erase its data and not do any job for this
@@ -131,6 +142,7 @@ public:
  * the we would like to display in the ui. */
 template <class protocol_t>
 class nothing_when_done_erasing_t {
+public:
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
@@ -138,56 +150,10 @@ class nothing_when_done_erasing_t {
  * primary or a secondary. */
 template <class protocol_t>
 class nothing_t {
+public:
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const primary_when_safe_t<protocol_t> &) {
-    stream << "primary_when_safe_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const primary_t<protocol_t> &) {
-    stream << "primary_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const secondary_up_to_date_t<protocol_t> &) {
-    stream << "secondary_up_to_date_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const secondary_without_primary_t<protocol_t> &) {
-    stream << "secondary_without_primary_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const secondary_backfilling_t<protocol_t> &) {
-    stream << "secondary_backfilling_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const nothing_when_safe_t<protocol_t> &) {
-    stream << "nothing_when_safe_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const nothing_t<protocol_t> &) {
-    stream << "nothing_t";
-    return stream;
-}
-
-template <class protocol_t>
-std::ostream &operator<<(std::ostream &stream, const nothing_when_done_erasing_t<protocol_t> &) {
-    stream << "nothing_when_done_erasing_t";
-    return stream;
-}
 
 } //namespace reactor_business_card_details
 
@@ -215,19 +181,5 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(activities);
 };
-
-template <class protocol_t>
-std::ostream & operator<<(std::ostream &stream, const reactor_business_card_t<protocol_t> &bcard) {
-    stream << "{ ";
-    typedef reactor_business_card_t<protocol_t> rb_t;
-    for (typename rb_t::activity_map_t::const_iterator it =  bcard.activities.begin();
-                                                       it != bcard.activities.end();
-                                                       it++) {
-        stream << it->first << " -> (" << it->second.first << ", " << it->second.second << ")";
-    }
-    stream << "}";
-
-    return stream;
-}
 
 #endif /* CLUSTERING_REACTOR_METADATA_HPP_ */

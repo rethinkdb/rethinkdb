@@ -1,5 +1,7 @@
 #include "arch/io/blocker_pool.hpp"
 
+#include <string.h>
+
 // IO thread function
 void* blocker_pool_t::event_loop(void *arg) {
 

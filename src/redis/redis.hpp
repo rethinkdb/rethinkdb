@@ -1,17 +1,24 @@
 #ifndef PROTOCOL_REDIS_REDIS_HPP_
 #define PROTOCOL_REDIS_REDIS_HPP_
 
-#include "arch/arch.hpp"
-#include "utils.hpp"
-#include "redis/redis_types.hpp"
+#include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
+
 #include <deque>
 #include <vector>
 #include <string>
 
+
 // For key ranges, we'll split this when I figure stuff out
-#include "memcached/protocol.hpp"
+// #include "memcached/protocol.hpp"
+
+#include "btree/slice.hpp"
+#include "concurrency/fifo_checker.hpp"
+#include "redis/redis_types.hpp"
+#include "timestamps.hpp"
+#include "utils.hpp"
+
 
 struct redis_protocol_t {
 

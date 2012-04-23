@@ -183,6 +183,19 @@ function SortedTableRenderer(headers, rowRendererFunc) {
         for (var name in data) {
             keys.push(name);
         }
+        keys.sort(function(x, y) {
+            var xi = parseInt(x);
+            var yi = parseInt(y);
+            if (isNaN(xi) && isNaN(yi)) {
+                return (x > y) ? 1 : (x < y) ? -1 : 0;
+            } else if (isNaN(xi)) {
+                return -1;
+            } else if (isNaN(yi)) {
+                return 1;
+            } else {
+                return (xi > yi) ? 1 : (xi < yi) ? -1 : 0;
+            }
+            });
         this.tableRenderer.setOrder([]);
         this.tableRenderer.setObjects(data);
         this.tableRenderer.setOrder(keys);

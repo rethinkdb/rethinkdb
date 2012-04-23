@@ -2,6 +2,7 @@
 
 
 #include <stdio.h>
+#include <string.h>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>

@@ -7,6 +7,8 @@
 #include <boost/shared_array.hpp>
 
 #include "buffer_cache/types.hpp"
+#include "containers/archive/archive.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "containers/iterators.hpp"
 
 class riak_value_t;
@@ -26,6 +28,29 @@ struct hook_t {
     } lang;
     std::string code;
 };
+
+}  // namespace riak
+
+inline write_message_t &operator<<(write_message_t &msg, const riak::hook_t& hook) {
+    int8_t lang = hook.lang;
+    msg << lang;
+    msg << hook.code;
+    return msg;
+}
+
+inline int deserialize(read_stream_t *s, riak::hook_t *hook) {
+    int8_t lang;
+    int res = deserialize(s, &lang);
+    if (res) { return res; }
+    if (lang < riak::hook_t::JAVASCRIPT || lang > riak::hook_t::ERLANG) {
+        return ARCHIVE_RANGE_ERROR;
+    }
+    hook->lang = riak::hook_t::lang_t(lang);
+    res = deserialize(s, &hook->code);
+    return res;
+}
+
+namespace riak {
 
 struct bucket_t {
     std::string name;
@@ -192,25 +217,5 @@ struct luwak_props_t {
 
 /* For the purposes of clustering many of the riak data structures will need to
  * be serialized. They're all done down here to make them less intrusive */
-
-/* namespace boost {
-namespace serialization {
-
-template <class Archive>
-void serialize(Archive & ar, riak::link_t & link, const unsigned int) {
-    ar & link.bucket;
-    ar & link.key;
-    ar & link.tag;
-}
-
-template <class Archive>
-void serialize(Archive & ar, riak::object_t & object, const unsigned int) {
-    ar & object.ETag;
-    ar & object.bucket;
-    ar & object.content;
-}
-
-} //namespace serialization
-} //namespace boost */
 
 #endif  // RIAK_STRUCTURES_HPP_

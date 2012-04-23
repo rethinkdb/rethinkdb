@@ -176,8 +176,11 @@ void test_header_parser() {
 }
 
 http_server_t::http_server_t(int port, http_app_t *_application) : application(_application) {
-    tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1)));
+    tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
 }
+
+http_server_t::~http_server_t() { }
+
 
 std::string human_readable_status(int code) {
     switch(code) {
@@ -213,7 +216,7 @@ void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) 
     conn->write(res.body.c_str(), res.body.size());
 }
 
-void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
+void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
     boost::scoped_ptr<tcp_conn_t> conn;
     nconn->ennervate(conn);
 

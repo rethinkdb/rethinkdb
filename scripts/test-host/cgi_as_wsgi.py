@@ -9,7 +9,7 @@ Application that runs a CGI script.
 """
 import os
 import sys
-import subprocess
+import subprocess32
 import urllib
 try:
     import select
@@ -60,11 +60,11 @@ class CGIApplication(object):
                 old += '&'
             cgi_environ['QUERY_STRING'] = old + self.query_string
         cgi_environ['SCRIPT_FILENAME'] = self.script
-        proc = subprocess.Popen(
+        proc = subprocess32.Popen(
             [self.script],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdin=subprocess32.PIPE,
+            stdout=subprocess32.PIPE,
+            stderr=subprocess32.PIPE,
             env=cgi_environ,
             cwd=os.path.dirname(self.script),
             )
@@ -164,7 +164,7 @@ def proc_communicate_yielding_stdout(proc, stdin=None, stderr=None):
     series of strings. Wait for process to terminate.
 
     Note: this is taken from the posix version of
-    subprocess.Popen.communicate, but made more general through the
+    subprocess32.Popen.communicate, but made more general through the
     use of file-like objects.
     """
     read_set = []

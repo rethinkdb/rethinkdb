@@ -2,8 +2,6 @@
 #define CONCURRENCY_QUEUE_PASSIVE_PRODUCER_HPP_
 
 #include "errors.hpp"
-#include "utils.hpp"
-#include <boost/function.hpp>
 
 /* A passive producer is an object (often a queue) that a consumer can read from
 by calling a method. It's called "passive" because the consumer calls a method
@@ -23,23 +21,32 @@ before it, and when `availability_t` is a separate object they can all share the
 same `availability_t`. `availability_control_t` is a concrete subclass of
 `availability_t` that can actually be instantiated. */
 
+class availability_callback_t {
+public:
+    availability_callback_t() { }
+    virtual void on_source_availability_changed() = 0;
+protected:
+    virtual ~availability_callback_t() { }
+    DISABLE_COPYING(availability_callback_t);
+};
+
 class availability_t {
 public:
-    availability_t() : available(false) { }
+    availability_t() : available(false), callback(NULL) { }
     bool get() { return available; }
-    void set_callback(const boost::function<void()>& fun) {
+    void set_callback(availability_callback_t *cb) {
         rassert(!callback);
-        rassert(fun);
-        callback = fun;
+        rassert(cb);
+        callback = cb;
     }
     void unset_callback() {
         rassert(callback);
-        callback = 0;
+        callback = NULL;
     }
 private:
     friend class availability_control_t;
     bool available;
-    boost::function<void()> callback;
+    availability_callback_t *callback;
 
     DISABLE_COPYING(availability_t);
 };
@@ -51,7 +58,7 @@ public:
         if (available != a) {
             available = a;
             if (callback) {
-                callback();
+                callback->on_source_availability_changed();
             }
         }
     }

@@ -4,6 +4,7 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
+#include "arch/timing.hpp"
 #include "rpc/semilattice/view.hpp"
 
 /* `dummy_semilattice_controller_t` exposes a `semilattice_readwrite_view_t`

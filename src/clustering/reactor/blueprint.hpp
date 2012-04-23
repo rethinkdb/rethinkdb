@@ -1,9 +1,7 @@
 #ifndef CLUSTERING_REACTOR_BLUEPRINT_HPP_
 #define CLUSTERING_REACTOR_BLUEPRINT_HPP_
 
-#include "utils.hpp"
-#include <boost/optional.hpp>
-
+#include "containers/archive/archive.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "stl_utils.hpp"
@@ -15,6 +13,9 @@ enum role_t {
     role_secondary,
     role_nothing
 };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(role_t, int8_t, role_primary, role_nothing);
+
 } //namespace blueprint_details
 
 template<class protocol_t>
@@ -35,8 +36,8 @@ public:
         region_to_role_map_t ref_role_map = peers_roles.begin()->second;
         std::set<typename protocol_t::region_t> ref_regions = keys(ref_role_map);
 
-        //calling this just to trigger some exceptions
-        region_join(std::vector<typename protocol_t::region_t>(ref_regions.begin(), ref_regions.end()));
+        typename protocol_t::region_t join;
+        rassert(REGION_JOIN_OK == region_join(std::vector<typename protocol_t::region_t>(ref_regions.begin(), ref_regions.end()), &join));
 
         for (typename role_map_t::const_iterator it =  peers_roles.begin();
                                                  it != peers_roles.end();

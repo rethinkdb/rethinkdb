@@ -1,5 +1,5 @@
-#ifndef __RPC_SEMILATTICE_VIEW_FUNCTION_TCC__
-#define  __RPC_SEMILATTICE_VIEW_FUNCTION_TCC__
+#ifndef RPC_SEMILATTICE_VIEW_FUNCTION_TCC_
+#define RPC_SEMILATTICE_VIEW_FUNCTION_TCC_
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
@@ -93,4 +93,4 @@ boost::shared_ptr<semilattice_readwrite_view_t<inner_t> > metadata_function(
         extractor, outer);
 }
 
-#endif
+#endif  // RPC_SEMILATTICE_VIEW_FUNCTION_TCC_

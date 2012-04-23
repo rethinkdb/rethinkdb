@@ -1,25 +1,22 @@
 #include "rpc/connectivity/cluster.hpp"
 
-#include <sstream>
-#include <ios>
+#include "arch/io/network.hpp"
 
-#include "utils.hpp"
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/serialization/base_object.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/map.hpp>
+#ifndef NDEBUG
+#include "arch/timing.hpp"
+#endif  // NDEBUG
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
+#include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
 #include "do_on_thread.hpp"
+#include "utils.hpp"
 
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
         message_handler_t *mh,
         int client_port) THROWS_NOTHING :
-
     parent(p), message_handler(mh),
 
     /* This sets `parent->current_run` to `this`. It's necessary to do it in the
@@ -43,14 +40,16 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     /* The local port to use when connecting to the cluster port of peers */
     cluster_client_port(client_port),
 
-    listener(port, boost::bind(
-        &connectivity_cluster_t::run_t::on_new_connection,
-        this,
-        _1,
-        auto_drainer_t::lock_t(&drainer)
-        ))
-{
+    listener(new tcp_listener_t(port, boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
+                                                  this,
+                                                  _1,
+                                                  auto_drainer_t::lock_t(&drainer)
+                                                  ))) {
     parent->assert_thread();
+}
+
+connectivity_cluster_t::run_t::~run_t() {
+    delete listener;
 }
 
 void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING {
@@ -65,7 +64,7 @@ void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING 
         ));
 }
 
-connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, peer_id_t id, streamed_tcp_conn_t *c, peer_address_t a) THROWS_NOTHING :
+connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, peer_id_t id, tcp_conn_stream_t *c, peer_address_t a) THROWS_NOTHING :
     conn(c), address(a), session_id(generate_uuid()),
     parent(p), peer(id),
     drainers(new boost::scoped_ptr<auto_drainer_t>[get_num_threads()])
@@ -125,9 +124,15 @@ void connectivity_cluster_t::run_t::connection_entry_t::uninstall_this(int targe
     drainers[get_thread_id()].reset();
 }
 
-void connectivity_cluster_t::run_t::on_new_connection(boost::scoped_ptr<streamed_tcp_conn_t> &conn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::on_new_connection(boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
     parent->assert_thread();
-    handle(conn.get(), boost::none, boost::none, lock);
+
+    // conn gets owned by the tcp_conn_stream_t.
+    tcp_conn_t *conn;
+    nconn->ennervate(&conn);
+    boost::scoped_ptr<tcp_conn_stream_t> conn_stream(new tcp_conn_stream_t(conn));
+
+    handle(conn_stream.get(), boost::none, boost::none, lock);
 }
 
 void connectivity_cluster_t::run_t::join_blocking(
@@ -136,7 +141,7 @@ void connectivity_cluster_t::run_t::join_blocking(
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
     parent->assert_thread();
     try {
-        streamed_tcp_conn_t conn(address.ip, address.port, cluster_client_port);
+        tcp_conn_stream_t conn(address.ip, address.port, cluster_client_port);
         handle(&conn, expected_id, boost::optional<peer_address_t>(address), drainer_lock);
     } catch (tcp_conn_t::connect_failed_exc_t) {
         /* Ignore */
@@ -145,7 +150,7 @@ void connectivity_cluster_t::run_t::join_blocking(
 
 class cluster_conn_closing_subscription_t : public signal_t::subscription_t {
 public:
-    explicit cluster_conn_closing_subscription_t(streamed_tcp_conn_t *conn) : conn_(conn) { }
+    explicit cluster_conn_closing_subscription_t(tcp_conn_stream_t *conn) : conn_(conn) { }
 
     virtual void run() {
         if (conn_->is_read_open()) {
@@ -156,50 +161,69 @@ public:
         }
     }
 private:
-    streamed_tcp_conn_t *conn_;
+    tcp_conn_stream_t *conn_;
     DISABLE_COPYING(cluster_conn_closing_subscription_t);
 };
-
 
 void connectivity_cluster_t::run_t::handle(
         /* `conn` should remain valid until `handle()` returns. `handle()` does
         not take ownership of `conn`. */
-        streamed_tcp_conn_t *conn,
+        tcp_conn_stream_t *conn,
         boost::optional<peer_id_t> expected_id,
         boost::optional<peer_address_t> expected_address,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING
 {
     parent->assert_thread();
 
+    /* In release mode, send a heartbeat after 2 minutes of inactivity; if
+    is no reply, try 10 times at 30-second intervals. I don't know if those are
+    good production values; maybe they should be tunable. Anyway, they are too
+    long for testing; in debug mode, we should detect immediately when the
+    cluster goes down. In debug mode, we start sending probes after 3 seconds
+    and only try twice. */
+#ifdef NDEBUG
+    conn->get_underlying_conn()->set_keepalive(120, 30, 10);
+#else
+    conn->get_underlying_conn()->set_keepalive(3, 3, 2);
+#endif
+
     /* Each side sends their own ID and address, then receives the other side's.
     */
 
-    try {
-        boost::archive::binary_oarchive sender(conn->get_ostream());
-        sender << parent->me;
-        sender << routing_table[parent->me];
-    } catch (boost::archive::archive_exception) {
-        /* We expect that sending can fail due to a network problem. If that
-        happens, just ignore it. If sending fails for some other reason, then
-        the programmer should learn about it, so we rethrow the exception. */
-        if (!conn->is_write_open()) {
-            return;
-        } else {
-            throw;
+    {
+        write_message_t msg;
+        msg << parent->me;
+        msg << routing_table[parent->me];
+        int res = send_write_message(conn, &msg);
+
+        if (res == -1) {
+            /* We expect that sending can fail due to a network
+               problem. If that happens, just ignore it. If sending
+               fails for some other reason, then the programmer should
+               learn about it, so we throw the exception. */
+            if (!conn->is_write_open()) {
+                return;
+            } else {
+                throw fake_archive_exc_t();
+            }
         }
+        rassert(res == 0);
     }
 
     peer_id_t other_id;
     peer_address_t other_address;
-    try {
-        boost::archive::binary_iarchive receiver(conn->get_istream());
-        receiver >> other_id;
-        receiver >> other_address;
-    } catch (boost::archive::archive_exception) {
-        if (!conn->is_read_open()) {
-            return;
-        } else {
-            throw;
+    {
+        int res = deserialize(conn, &other_id);
+        if (!res) {
+            res = deserialize(conn, &other_address);
+        }
+
+        if (res) {
+            if (!conn->is_read_open()) {
+                return;
+            } else {
+                throw fake_archive_exc_t();
+            }
         }
     }
 
@@ -276,26 +300,28 @@ void connectivity_cluster_t::run_t::handle(
 
         /* We're good to go! Transmit the routing table to the follower, so it
         knows we're in. */
-        try {
-            boost::archive::binary_oarchive sender(conn->get_ostream());
-            sender << routing_table_to_send;
-        } catch (boost::archive::archive_exception) {
-            if (!conn->is_write_open()) {
-                return;
-            } else {
-                throw;
+        {
+            write_message_t msg;
+            msg << routing_table_to_send;
+            int res = send_write_message(conn, &msg);
+            if (res) {
+                if (!conn->is_write_open()) {
+                    return;
+                } else {
+                    throw fake_archive_exc_t();
+                }
             }
         }
 
         /* Receive the follower's routing table */
-        try {
-            boost::archive::binary_iarchive receiver(conn->get_istream());
-            receiver >> other_routing_table;
-        } catch (boost::archive::archive_exception) {
-            if (!conn->is_read_open()) {
-                return;
-            } else {
-                throw;
+        {
+            int res = deserialize(conn, &other_routing_table);
+            if (res) {
+                if (!conn->is_read_open()) {
+                    return;
+                } else {
+                    throw fake_archive_exc_t();
+                }
             }
         }
 
@@ -304,14 +330,14 @@ void connectivity_cluster_t::run_t::handle(
         /* Receive the leader's routing table. (If our connection has lost a
         conflict, then the leader will close the connection instead of sending
         the routing table. */
-        try {
-            boost::archive::binary_iarchive receiver(conn->get_istream());
-            receiver >> other_routing_table;
-        } catch (boost::archive::archive_exception) {
-            if (!conn->is_read_open()) {
-                return;
-            } else {
-                throw;
+        {
+            int res = deserialize(conn, &other_routing_table);
+            if (res) {
+                if (!conn->is_read_open()) {
+                    return;
+                } else {
+                    throw fake_archive_exc_t();
+                }
             }
         }
 
@@ -340,14 +366,16 @@ void connectivity_cluster_t::run_t::handle(
         }
 
         /* Send our routing table to the leader */
-        try {
-            boost::archive::binary_oarchive sender(conn->get_ostream());
-            sender << routing_table_to_send;
-        } catch (boost::archive::archive_exception) {
-            if (!conn->is_write_open()) {
-                return;
-            } else {
-                throw;
+        {
+            write_message_t msg;
+            msg << routing_table_to_send;
+            int res = send_write_message(conn, &msg);
+            if (res) {
+                if (!conn->is_write_open()) {
+                    return;
+                } else {
+                    throw fake_archive_exc_t();
+                }
             }
         }
     }
@@ -379,9 +407,9 @@ void connectivity_cluster_t::run_t::handle(
 
     cross_thread_signal_t connection_thread_drain_signal(drainer_lock.get_drain_signal(), chosen_thread);
 
-    rethread_streamed_tcp_conn_t unregister_conn(conn, INVALID_THREAD);
+    rethread_tcp_conn_stream_t unregister_conn(conn, INVALID_THREAD);
     on_thread_t conn_threader(chosen_thread);
-    rethread_streamed_tcp_conn_t reregister_conn(conn, get_thread_id());
+    rethread_tcp_conn_stream_t reregister_conn(conn, get_thread_id());
 
     // Make sure that if we're ordered to shut down, any pending read
     // or write gets interrupted.
@@ -405,14 +433,17 @@ void connectivity_cluster_t::run_t::handle(
                 std::string message;
                 {
                     assert(get_thread_id() == chosen_thread);
-                    boost::archive::binary_iarchive receiver(conn->get_istream());
-                    receiver >> message;
+                    int res = deserialize(conn, &message);
+                    if (res) {
+                        throw fake_archive_exc_t();
+                    }
                 }
 
-                std::stringstream stream(message, std::stringstream::in | std::stringstream::binary);
-                message_handler->on_message(other_id, stream);
+                std::vector<char> vec(message.begin(), message.end());
+                vector_read_stream_t stream(&vec);
+                message_handler->on_message(other_id, &stream);
             }
-        } catch (boost::archive::archive_exception) {
+        } catch (fake_archive_exc_t) {
             /* The exception broke us out of the loop, and that's what we
             wanted. This could either be because we lost contact with the peer
             or because the cluster is shutting down and `close_conn()` got
@@ -469,24 +500,24 @@ connectivity_service_t *connectivity_cluster_t::get_connectivity_service() THROW
     return this;
 }
 
-void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<void(std::ostream&)> &writer) THROWS_NOTHING {
+void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<void(write_stream_t *)> &writer) THROWS_NOTHING {
     // We could be on _any_ thread.
 
     rassert(!dest.is_nil());
 
-    /* We currently write the message to a `stringstream`, then
+    /* We currently write the message to a vector_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
     // to worry about having the writer run on the connection thread.
-    std::stringstream buffer(std::ios_base::out | std::stringstream::binary);
+    vector_stream_t buffer;
     {
         ASSERT_FINITE_CORO_WAITING;
-        writer(buffer);
+        writer(&buffer);
     }
 
 #ifdef CLUSTER_MESSAGE_DEBUGGING
     std::cerr << "from " << me << " to " << dest << std::endl;
-    print_hd(buffer.str().data(), 0, buffer.str().size());
+    print_hd(buffer.vector().data(), 0, buffer.vector().size());
 #endif
 
 #ifndef NDEBUG
@@ -519,8 +550,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
         /* We're sending a message to ourself */
         rassert(dest == me);
         // We could be on any thread here! Oh no!
-        std::stringstream buffer2(buffer.str(), std::stringstream::in | std::stringstream::binary);
-        current_run->message_handler->on_message(me, buffer2);
+        vector_read_stream_t buffer2(&buffer.vector());
+        current_run->message_handler->on_message(me, &buffer2);
 
     } else {
         rassert(dest != me);
@@ -530,16 +561,18 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
         to send on the same connection. */
         mutex_t::acq_t acq(&conn_structure->send_mutex);
 
-        try {
-            boost::archive::binary_oarchive sender(conn_structure->conn->get_ostream());
-            std::string buffer_str = buffer.str();
-            sender << buffer_str;
-        } catch (boost::archive::archive_exception) {
-            /* Close the other half of the connection to make sure that
-            `connectivity_cluster_t::run_t::handle()` notices that something is
-            up */
-            if (conn_structure->conn->is_read_open()) {
-                conn_structure->conn->shutdown_read();
+        {
+            write_message_t msg;
+            std::string buffer_str(buffer.vector().begin(), buffer.vector().end());
+            msg << buffer_str;
+            int res = send_write_message(conn_structure->conn, &msg);
+            if (res) {
+                /* Close the other half of the connection to make sure that
+                   `connectivity_cluster_t::run_t::handle()` notices that something is
+                   up */
+                if (conn_structure->conn->is_read_open()) {
+                    conn_structure->conn->shutdown_read();
+                }
             }
         }
     }

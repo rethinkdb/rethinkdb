@@ -6,8 +6,9 @@
 #include "arch/runtime/runtime.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
-#include "btree/node.hpp"
 #include "btree/internal_node.hpp"
+#include "btree/node.hpp"
+#include "btree/operations.hpp"
 
 
 // Traversal
@@ -474,6 +475,7 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
 
 void traversal_progress_t::inform(int level, action_t action, node_type_t type) {
     assert_thread();
+    rassert(learned.size() == acquired.size() && acquired.size() == released.size());
     rassert(level >= 0);
     if (size_t(level) >= learned.size()) {
         learned.resize(level + 1, 0);
@@ -502,19 +504,10 @@ void traversal_progress_t::inform(int level, action_t action, node_type_t type) 
         unreachable();
         break;
     }
+    rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 }
 
-float traversal_progress_t::guess_completion() {
-    assert_thread();
-    std::pair<int, int> num_and_denom = numerator_and_denominator();
-    if (num_and_denom.first == -1) {
-        return 0.0;
-    } else {
-        return float(num_and_denom.first)/float(num_and_denom.second);
-    }
-}
-
-std::pair<int, int> traversal_progress_t::numerator_and_denominator() {
+std::pair<int, int> traversal_progress_t::guess_completion() {
     assert_thread();
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 
@@ -553,20 +546,21 @@ void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
     constituents.push_back(c);
 }
 
-float traversal_progress_combiner_t::guess_completion() {
-    int numerator, denominator;
-    for (boost::ptr_vector<traversal_progress_t *>::iterator it  = constituents.begin();
-                                                             it != constituents.end();
-                                                             ++it) {
-        std::pair<int, int> n_and_d = (*it)->numerator_and_denominator();
+std::pair<int, int> traversal_progress_combiner_t::guess_completion() {
+    assert_thread();
+    int numerator = 0, denominator = 0;
+    for (boost::ptr_vector<traversal_progress_t>::iterator it  = constituents.begin();
+                                                           it != constituents.end();
+                                                           ++it) {
+        std::pair<int, int> n_and_d = it->guess_completion();
         if (n_and_d.first == -1) {
-            return 0.0f;
+            return std::make_pair(-1, -1);
         }
 
         numerator += n_and_d.first;
         denominator += n_and_d.second;
     }
 
-    return float(numerator) / float(denominator);
+    return std::make_pair(numerator, denominator);
 }
 

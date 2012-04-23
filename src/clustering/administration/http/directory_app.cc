@@ -1,9 +1,9 @@
+#include <string>
+
 #include "errors.hpp"
 #include <boost/lexical_cast.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/scoped_ptr.hpp>
-#include <string>
-#include <sstream>
 
 #include "http/http.hpp"
 #include "clustering/administration/http/directory_app.hpp"
@@ -22,13 +22,17 @@ cJSON *directory_http_app_t::get_metadata_json(cluster_directory_metadata_t& met
         json_adapter_if_t<namespace_metadata_ctx_t>::json_adapter_map_t subfields = json_adapter_head->get_subfields(json_ctx);
         if (subfields.find(*it) == subfields.end()) {
             // format an error message
-            std::stringstream error;
-            error << "Unknown component '" << *it << "' in path '";
+            std::string error;
+            error += "Unknown component '";
+            error += *it;
+            error += "' in path '";
             for (http_req_t::resource_t::iterator pre_it = path_begin; pre_it != it; ++pre_it) {
-                error << *pre_it << '/';
+                error += *pre_it;
+                error += '/';
             }
-            error << *it << "'";
-            throw schema_mismatch_exc_t(error.str());
+            error += *it;
+            error += "'";
+            throw schema_mismatch_exc_t(error);
         }
         json_adapter_head = subfields[*it];
     }
@@ -79,12 +83,12 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
         unreachable();
     } catch (schema_mismatch_exc_t &e) {
         http_res_t res(404);
-        logINF("HTTP request threw a schema_mismatch_exc_t with what =:\n %s\n", e.what());
+        logINF("HTTP request threw a schema_mismatch_exc_t with what = %s", e.what());
         res.set_body("application/text", e.what());
         return res;
     } catch (permission_denied_exc_t &e) {
         http_res_t res(403); // TODO: should that be 405 Method Not Allowed?
-        logINF("HTTP request threw a permission_denied_exc_t with what =:\n %s\n", e.what());
+        logINF("HTTP request threw a permission_denied_exc_t with what = %s", e.what());
         res.set_body("application/text", e.what());
         return res;
     }

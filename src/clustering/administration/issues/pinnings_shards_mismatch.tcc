@@ -1,8 +1,7 @@
-#ifndef __CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMTACH_TCC__
-#define __CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMTACH_TCC__
+#ifndef CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMTACH_TCC_
+#define CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMTACH_TCC_
 
 #include "clustering/administration/http/json_adapters.hpp"
-#include "clustering/administration/issues/pinnings_shards_mismatch.hpp"
 #include "http/json/json_adapter.hpp"
 #include "utils.hpp"
 
@@ -101,11 +100,12 @@ std::list<clone_ptr_t<global_issue_t> > pinnings_shards_mismatch_issue_tracker_t
                 }
             }
         }
-NAMESPACE_HAS_ISSUE:
-        ;
+    NAMESPACE_HAS_ISSUE:
+        (void)0;
+        // do nothing, continue around loop.
     }
 
     return res;
 }
 
-#endif
+#endif  // CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMTACH_TCC_

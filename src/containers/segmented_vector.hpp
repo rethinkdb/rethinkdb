@@ -28,13 +28,17 @@ public:
 
 public:
     element_t &operator[](size_t i) {
-        return const_cast<element_t &>(const_get(i));
+        return get(i);
     }
 
     const element_t &operator[](size_t i) const {
         return const_get(i);
     }
-    
+
+    element_t &get(size_t i) {
+        return const_cast<element_t &>(const_get(i));
+    }
+
     size_t get_size() const {
         return size;
     }

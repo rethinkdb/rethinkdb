@@ -1,5 +1,9 @@
 #include "unittest/gtest.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "containers/archive/archive.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/joins/map.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -16,32 +20,27 @@ public:
     sl_int_t() { }
     explicit sl_int_t(uint64_t initial) : i(initial) { }
     uint64_t i;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(i);
 };
 
 void semilattice_join(sl_int_t *a, sl_int_t b) {
     a->i |= b.i;
 }
 
-template<class archive_t>
-void serialize(archive_t &a, sl_int_t &i, UNUSED unsigned int version) {
-    a & i.i;
-}
+
 
 class sl_pair_t {
 public:
     sl_pair_t(sl_int_t x_, sl_int_t y_) : x(x_), y(y_) { }
     sl_int_t x, y;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(x, y);
 };
 
 void semilattice_join(sl_pair_t *a, sl_pair_t b) {
     semilattice_join(&a->x, b.x);
     semilattice_join(&a->y, b.y);
-}
-
-template<class archive_t>
-void serialize(archive_t &a, sl_pair_t &p, UNUSED unsigned int version) {
-    a & p.x;
-    a & p.y;
 }
 
 template<class T>

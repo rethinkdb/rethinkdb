@@ -1,8 +1,8 @@
 #include "errors.hpp"
-#include <boost/variant/get.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/machine_metadata.hpp"
+#include "containers/archive/order_token.hpp"
 #include "memcached/clustering.hpp"
 #include "memcached/tcp_conn.hpp"
 
@@ -61,7 +61,7 @@ void memcached_parser_maker_t::on_change() {
             //We're feeling lucky
             namespace_id_t tmp = it->first;
             parsers.insert(tmp, new parser_and_namespace_if_t(it->first, this, port));
-            logINF("Setup an mc parser on %d\n", port);
+            logINF("Setup an mc parser on %d", port);
         } else if (parsers.find(it->first) != parsers.end() && !it->second.is_deleted() && 
                    parsers.find(it->first)->second->parser.port != get_port(it->second.get()
 #ifndef NDEBUG
@@ -79,7 +79,7 @@ void memcached_parser_maker_t::on_change() {
             //We're feeling lucky
             namespace_id_t tmp = it->first;
             parsers.insert(tmp, new parser_and_namespace_if_t(it->first, this, port));
-            logINF("Setup an mc parser on %d\n", port);
+            logINF("Setup an mc parser on %d", port);
         } else if (parsers.find(it->first) != parsers.end() && it->second.is_deleted()) {
             //The namespace has been deleted... get rid of the parser
             coro_t::spawn_sometime(boost::bind(&do_delete, new memcached_parser_maker_t::parser_map_t::auto_type(parsers.release(parsers.find(it->first)))));

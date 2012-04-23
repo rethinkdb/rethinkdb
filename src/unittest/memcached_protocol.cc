@@ -2,6 +2,7 @@
 #include <boost/make_shared.hpp>
 
 #include "buffer_cache/buffer_cache.hpp"
+#include "containers/iterators.hpp"
 #include "memcached/protocol.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"

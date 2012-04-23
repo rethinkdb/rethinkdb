@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMATCH_HPP__
-#define __CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMATCH_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMATCH_HPP_
+#define CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMATCH_HPP_
 
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/json.hpp"
@@ -43,4 +43,4 @@ private:
 
 #include "clustering/administration/issues/pinnings_shards_mismatch.tcc"
 
-#endif
+#endif  // CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMATCH_HPP_

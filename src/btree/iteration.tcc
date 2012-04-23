@@ -8,7 +8,7 @@ extern perfmon_counter_t
     slice_leaves_iterators;
 
 template <class Value>
-leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, leaf::live_iter_t _iter, buf_lock_t *_lock, const boost::shared_ptr<value_sizer_t<Value> >& _sizer, transaction_t *_transaction) :
+leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, leaf::live_iter_t _iter, buf_lock_t *_lock, const boost::shared_ptr< value_sizer_t<void> >& _sizer, transaction_t *_transaction) :
     leaf(_leaf), iter(_iter), lock(_lock), sizer(_sizer), transaction(_transaction) {
 
     rassert(leaf != NULL);
@@ -24,7 +24,7 @@ boost::optional<key_value_pair_t<V> > leaf_iterator_t<V>::next() {
         done();
         return boost::none;
     } else {
-        const V *value = iter.get_value<V>(leaf);
+        const V *value = static_cast<const V *>(iter.get_value(leaf));
         iter.step(leaf);
         return boost::make_optional(key_value_pair_t<V>(sizer.get(), key_to_str(k), value));
     }
@@ -51,7 +51,7 @@ void leaf_iterator_t<Value>::done() {
 }
 
 template <class Value>
-slice_leaves_iterator_t<Value>::slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, transaction_t *_transaction, boost::scoped_ptr<superblock_t> &_superblock, int _slice_home_thread,
+slice_leaves_iterator_t<Value>::slice_leaves_iterator_t(const boost::shared_ptr< value_sizer_t<void> >& _sizer, transaction_t *_transaction, boost::scoped_ptr<superblock_t> &_superblock, int _slice_home_thread,
     btree_bound_mode_t _left_mode, const btree_key_t *_left_key, btree_bound_mode_t _right_mode, const btree_key_t *_right_key) :
     sizer(_sizer), transaction(_transaction), slice_home_thread(_slice_home_thread),
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
@@ -222,7 +222,7 @@ block_id_t slice_leaves_iterator_t<Value>::get_child_id(const internal_node_t *i
 }
 
 template <class Value>
-slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& _sizer, transaction_t *_transaction, boost::scoped_ptr<superblock_t> &_superblock, int _slice_home_thread,
+slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr< value_sizer_t<void> >& _sizer, transaction_t *_transaction, boost::scoped_ptr<superblock_t> &_superblock, int _slice_home_thread,
         btree_bound_mode_t _left_mode, const store_key_t &_left_key, btree_bound_mode_t _right_mode, const store_key_t &_right_key) :
     sizer(_sizer), transaction(_transaction), slice_home_thread(_slice_home_thread),
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
@@ -350,7 +350,7 @@ range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, btree_bo
     got_superblock_t got_superblock;
     get_btree_superblock_for_reading(slice, rwi_read, token, true, &got_superblock, txn);
 
-    boost::shared_ptr<value_sizer_t<Value> > sizer(new value_sizer_t<Value>(slice->cache()->get_block_size()));
+    boost::shared_ptr< value_sizer_t<void> > sizer(new value_sizer_t<Value>(slice->cache()->get_block_size()));
     return range_txn_t<Value>(new slice_keys_iterator_t<Value>(sizer, txn, slice, left_mode, left_key, right_mode, right_key));
 }
 

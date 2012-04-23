@@ -11,7 +11,6 @@
 #include "serializer/log/log_serializer.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
-#include "btree/node_functions.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
@@ -871,13 +870,11 @@ private:
 };
 
 
-template <class V>
-class value_sizer_fscker_t : public leaf::key_value_fscker_t<V> {
+class value_sizer_fscker_t : public leaf::key_value_fscker_t {
 public:
     value_sizer_fscker_t(block_getter_t *getter, slicecx_t *cx) : getter_(getter), cx_(cx) { }
 
-    bool fsck(value_sizer_t<V> *sizer, const btree_key_t *key, const V *value, std::string *msg_out) {
-
+    bool fsck(value_sizer_t<void> *sizer, const btree_key_t *key, const void *value, std::string *msg_out) {
         bool hash_problem = !cx_->is_valid_key(key);
 
         std::string tmp_msg;
@@ -943,7 +940,7 @@ void check_subtree_leaf_node(slicecx_t *cx, const leaf_node_t *buf,
     } getter;
     getter.cx = cx;
 
-    value_sizer_fscker_t<void> fscker(&getter, cx);
+    value_sizer_fscker_t fscker(&getter, cx);
     leaf::fsck(sizer.get(), left_exclusive_or_null, right_inclusive_or_null, buf, &fscker, &errs->msg);
 }
 

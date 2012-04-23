@@ -1,11 +1,23 @@
-#ifndef __CLUSTERING_REACTOR_JSON_ADAPTERS_HPP__
-#define __CLUSTERING_REACTOR_JSON_ADAPTERS_HPP__
+#ifndef CLUSTERING_REACTOR_JSON_ADAPTERS_HPP_
+#define CLUSTERING_REACTOR_JSON_ADAPTERS_HPP_
 
 #include "clustering/reactor/metadata.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 
 namespace reactor_business_card_details {
+//json adapter concept for backfill location
+template <class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(backfill_location_t *target, const ctx_t &); 
+
+template <class ctx_t>
+cJSON *render_as_json(backfill_location_t *target, const ctx_t &ctx); 
+
+template <class ctx_t>
+void apply_json_to(cJSON *, backfill_location_t *, const ctx_t &); 
+
+template <class ctx_t>
+void on_subfield_change(backfill_location_t *, const ctx_t &);
 
 //json adapter for primary_when_safe
 template <class protocol_t, class ctx_t>
@@ -129,4 +141,4 @@ void on_subfield_change(reactor_business_card_t<protocol_t> *, const ctx_t &);
 
 #include "clustering/reactor/json_adapters.tcc"
 
-#endif
+#endif  // CLUSTERING_REACTOR_JSON_ADAPTERS_HPP_

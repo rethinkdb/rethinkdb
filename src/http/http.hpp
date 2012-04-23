@@ -2,14 +2,13 @@
 #define HTPP_HTPP_HPP_
 
 #include "errors.hpp"
-#include <boost/fusion/include/io.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
-#include <sstream>
 
 #include "arch/types.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "parsing/util.hpp"
 
 enum http_method_t {
@@ -37,7 +36,7 @@ struct header_line_t {
 struct http_req_t {
     class resource_t {
     public:
-        typedef boost::tokenizer<boost::char_separator<char>,char*> tokenizer;
+        typedef boost::tokenizer<boost::char_separator<char>, char *> tokenizer;
         typedef tokenizer::iterator iterator;
 
         resource_t();
@@ -136,10 +135,12 @@ protected:
 class http_server_t {
 public:
     http_server_t(int port, http_app_t *application);
+    ~http_server_t();
 private:
-    void handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &conn);
-    boost::scoped_ptr<tcp_listener_t> tcp_listener;
+    void handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &conn, auto_drainer_t::lock_t);
     http_app_t *application;
+    auto_drainer_t auto_drainer;
+    boost::scoped_ptr<tcp_listener_t> tcp_listener;
 };
 
 std::string percent_escaped_string(const std::string &s);

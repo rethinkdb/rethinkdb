@@ -91,7 +91,7 @@ private:
     /* These will be called in a blocking fashion by the connectivity service
     (or message service, in the case of `on_message()`) */
     void on_connect(peer_id_t peer) THROWS_NOTHING;
-    void on_message(peer_id_t, std::istream &) THROWS_NOTHING;
+    void on_message(peer_id_t, read_stream_t *) THROWS_NOTHING;
     void on_disconnect(peer_id_t peer) THROWS_NOTHING;
 
     /* These are meant to be spawned in new coroutines */

@@ -38,7 +38,6 @@ public:
 
 private:
     friend class transition_timestamp_t;
-    friend std::ostream &operator<<(std::ostream &os, state_timestamp_t ts);
     uint64_t num;
     RDB_MAKE_ME_SERIALIZABLE_1(num);
 };

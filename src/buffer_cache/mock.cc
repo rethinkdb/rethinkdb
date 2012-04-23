@@ -28,8 +28,8 @@ public:
     void destroy() {
         rassert(!lock.locked());
 
-        rassert(cache->bufs[block_id] == this);
-        cache->bufs[block_id] = NULL;
+        rassert(cache->bufs->get(block_id) == this);
+        cache->bufs->get(block_id) = NULL;
 
         delete this;
     }
@@ -42,6 +42,8 @@ block_id_t mock_buf_lock_t::get_block_id() const {
 }
 
 const void *mock_buf_lock_t::get_data_read() const {
+    rassert(acquired);
+    rassert(internal_buf->data != NULL);
     return internal_buf->data;
 }
 
@@ -89,7 +91,12 @@ void mock_buf_lock_t::release() {
     internal_buf->lock.unlock();
     if (deleted) internal_buf->destroy();
     acquired = false;
-    delete this;
+}
+
+void mock_buf_lock_t::release_if_acquired() {
+    if (is_acquired()) {
+        release();
+    }
 }
 
 // TODO: Add notiont of recency_dirty
@@ -106,8 +113,20 @@ mock_buf_lock_t::mock_buf_lock_t() :
     acquired(false)
 { }
 
+class function_in_line_callback_t : public lock_in_line_callback_t {
+public:
+    function_in_line_callback_t(boost::function<void()> *callee) : callee_(callee) { }
+    void on_in_line() {
+        if (*callee_) {
+            (*callee_)();
+        }
+    };
+private:
+    boost::function<void()> *callee_;
+};
+
 mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line) :
-    internal_buf(txn->cache->bufs[block_id]),
+    internal_buf(txn->cache->bufs->get(block_id)),
     access(mode),
     dirty(false),
     deleted(false),
@@ -115,10 +134,12 @@ mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, a
 {
     assert_thread();
     rassert(mode != rwi_write || txn->access == rwi_write);
-    rassert(block_id < txn->cache->bufs.get_size());
+    rassert(block_id < txn->cache->bufs->get_size());
     rassert(internal_buf);
 
-    internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
+    function_in_line_callback_t cb(&call_when_in_line);
+
+    internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, &cb);
 
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok || mode == rwi_read_sync)) {
         internal_buf->subtree_recency = txn->recency_timestamp;
@@ -128,28 +149,30 @@ mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, a
 }
 
 mock_buf_lock_t::~mock_buf_lock_t() {
+    release_if_acquired();
 }
 
 mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn) :
     internal_buf(NULL),
     access(txn->access),
     dirty(false),
-    deleted(false)
+    deleted(false),
+    acquired(true)
 {
     rassert(access == rwi_write);
     
-    block_id_t block_id = txn->cache->bufs.get_size();
-    txn->cache->bufs.set_size(block_id + 1);
+    block_id_t block_id = txn->cache->bufs->get_size();
+    txn->cache->bufs->set_size(block_id + 1);
     internal_buf = new internal_buf_t(txn->cache, block_id, txn->recency_timestamp);
-    txn->cache->bufs[block_id] = internal_buf;
+    txn->cache->bufs->get(block_id) = internal_buf;
     bool locked __attribute__((unused)) = internal_buf->lock.lock(rwi_write, NULL);
     rassert(locked);
 }
 
 void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
     for (size_t i = 0; i < num_block_ids; ++i) {
-        rassert(block_ids[i] < cache->bufs.get_size());
-        internal_buf_t *internal_buf = cache->bufs[block_ids[i]];
+        rassert(block_ids[i] < cache->bufs->get_size());
+        internal_buf_t *internal_buf = cache->bufs->get(block_ids[i]);
         rassert(internal_buf);
         recencies_out[i] = internal_buf->subtree_recency;
     }
@@ -194,7 +217,8 @@ void mock_cache_t::create(serializer_t *serializer, UNUSED mirrored_cache_static
 // configuration parameters don't apply.
 mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_config_t *dynamic_config)
     : serializer(_serializer), transaction_counter(new auto_drainer_t),
-      block_size(_serializer->get_block_size()) {
+      block_size(_serializer->get_block_size()),
+      bufs(new segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID>) {
 
     on_thread_t switcher(serializer->home_thread());
 
@@ -208,10 +232,10 @@ mock_cache_t::mock_cache_t( serializer_t *_serializer, UNUSED mirrored_cache_con
     } read_cb;
 
     block_id_t end_block_id = serializer->max_block_id();
-    bufs.set_size(end_block_id, NULL);
+    bufs->set_size(end_block_id, NULL);
     for (block_id_t i = 0; i < end_block_id; i++) {
         if (!serializer->get_delete_bit(i)) {
-            internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i, serializer->get_recency(i));
+            internal_buf_t *internal_buf = bufs->get(i) = new internal_buf_t(this, i, serializer->get_recency(i));
             read_cb.count++;
             serializer->block_read(serializer->index_read(i), internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb);
         }
@@ -232,16 +256,16 @@ mock_cache_t::~mock_cache_t() {
     {
         on_thread_t thread_switcher(serializer->home_thread());
         std::vector<serializer_write_t> writes;
-        for (block_id_t i = 0; i < bufs.get_size(); i++)
+        for (block_id_t i = 0; i < bufs->get_size(); i++)
             writes.push_back(
-                bufs[i]
-                ? serializer_write_t::make_update(i, bufs[i]->subtree_recency, bufs[i]->data)
-                : serializer_write_t::make_delete(i));
+                             bufs->get(i)
+                             ? serializer_write_t::make_update(i, bufs->get(i)->subtree_recency, bufs->get(i)->data)
+                             : serializer_write_t::make_delete(i));
         do_writes(serializer, writes, DEFAULT_DISK_ACCOUNT);
     }
 
-    for (block_id_t i = 0; i < bufs.get_size(); i++) {
-        if (bufs[i]) delete bufs[i];
+    for (block_id_t i = 0; i < bufs->get_size(); i++) {
+        if (bufs->get(i)) delete bufs->get(i);
     }
 }
 
@@ -249,7 +273,7 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED const boost::intrusive_ptr<standard_block_token_t>& token, UNUSED repli_timestamp_t recency_timestamp) {
+bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED const intrusive_ptr_t<standard_block_token_t>& token, UNUSED repli_timestamp_t recency_timestamp) {
     // We never use read-ahead.
     return false;
 }
