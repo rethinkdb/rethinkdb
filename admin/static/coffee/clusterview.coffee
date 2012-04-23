@@ -110,6 +110,12 @@ module 'ClusterView', ->
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
             super namespaces, ClusterView.NamespaceListElement, 'tbody.list'
+
+        # Extend the AbstractList.add_element method to bind a callback to each namespace added to the list
+        add_element: (element) =>
+            machine_list_element = super element
+            machine_list_element.off 'selected'
+            machine_list_element.on 'selected', @update_toolbar_buttons
                 
         add_namespace: (event) =>
             log_action 'add namespace button clicked'
@@ -122,6 +128,12 @@ module 'ClusterView', ->
             if not $(event.currentTarget).hasClass 'disabled'
                 @remove_namespace_dialog.render @get_selected_elements()
             event.preventDefault()
+
+        # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
+        update_toolbar_buttons: =>
+            # We need to check how many namespaces have been checked off to decide which buttons to enable/disable
+            $remove_namespaces_button = $('.actions-bar a.btn.remove-namespace')
+            $remove_namespaces_button.toggleClass 'disabled', @get_selected_elements().length < 1
 
     class @DatacenterList extends @AbstractList
         # Use a datacenter-specific template for the datacenter list
@@ -302,6 +314,7 @@ module 'ClusterView', ->
     class @CollapsibleListElement extends Backbone.View
         events: ->
             'click .header': 'toggle_showing'
+            'click a': 'link_clicked'
 
         initialize: ->
             @showing = true
@@ -309,6 +322,10 @@ module 'ClusterView', ->
         render: =>
             @show()
             @delegateEvents()
+
+        link_clicked: (event) =>
+            # Prevents collapsing when we click a link.
+            event.stopPropagation()
 
         toggle_showing: =>
             @showing = not @showing
@@ -324,9 +341,8 @@ module 'ClusterView', ->
 
         swap_divs: =>
             $arrow = @.$('.arrow.collapsed, .arrow.expanded')
-            $summary = @.$('.summary.collapsed, .summary.expanded')
 
-            for div in [$arrow, $summary]
+            for div in [$arrow]
                 if @showing
                     div.removeClass('collapsed').addClass('expanded')
                 else
@@ -362,6 +378,7 @@ module 'ClusterView', ->
                 status: DataUtils.get_datacenter_reachability(@model.get('id'))
                 primary_count: 0
                 secondary_count: 0
+                no_machines: @machine_list.element_views.length is 0
 
             # primary, secondary, and namespace counts
             _namespaces = []
@@ -422,7 +439,8 @@ module 'ClusterView', ->
             @callbacks = []
 
         render: =>
-            @.$el.html @template()
+            @.$el.html @template
+                no_machines: @machine_list.element_views.length is 0
 
             # Attach a list of available machines to the given datacenter
             @.$('.machine-list').html @machine_list.render().el
@@ -456,7 +474,7 @@ module 'ClusterView', ->
         json_for_template: =>
             json = _.extend super(),
                 status: DataUtils.get_machine_reachability(@model.get('id'))
-                ip: 'TBD'
+                ip: 'TBD' #TODO
                 primary_count: 0
                 secondary_count: 0
 
@@ -539,7 +557,6 @@ module 'ClusterView', ->
             @$modal.modal('hide') if @$modal?
 
         cancel_modal: (e) ->
-            console.log 'clicked cancel_modal'
             @.hide_modal()
             e.preventDefault()
 
