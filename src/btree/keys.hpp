@@ -201,4 +201,8 @@ struct key_range_t {
     RDB_MAKE_ME_SERIALIZABLE_2(left, right);
 };
 
+inline std::string key_range_to_str(const key_range_t &kr) {
+    return key_to_str(kr.left) + ", " + key_to_str(kr.right.key);
+}
+
 #endif // BTREE_KEYS_HPP_

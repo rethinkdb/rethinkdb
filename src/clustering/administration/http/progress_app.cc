@@ -34,7 +34,7 @@ public:
 
 
 /* Some typedefs to ostensibly make life suck less. */
-typedef boost::ptr_map<memcached_protocol_t::region_t, request_record_t> region_to_request_record_t;
+typedef std::multimap<memcached_protocol_t::region_t, request_record_t *> region_to_request_record_t;
 typedef std::map<reactor_activity_id_t, region_to_request_record_t> activity_id_map_t;
 typedef std::map<namespace_id_t, activity_id_map_t> namespace_id_map_t;
 typedef std::map<machine_id_t, namespace_id_map_t> machine_id_map_t;
@@ -91,14 +91,16 @@ public:
                              reactor_activity_id_t _a_id,
                              memcached_protocol_t::region_t _region,
                              mailbox_manager_t *_mbox_manager,
-                             machine_id_map_t *_promise_map)
+                             machine_id_map_t *_promise_map,
+                             boost::ptr_vector<request_record_t> *_things_to_destroy)
         : directory(_directory),
           n_id(_n_id),
           m_id(_m_id),
           a_id(_a_id),
           region(_region),
           mbox_manager(_mbox_manager),
-          promise_map(_promise_map)
+          promise_map(_promise_map),
+          things_to_destroy(_things_to_destroy)
     { }
     /* For most of the activities there is no backfill happening so we just do
      * a default visitation here that does nothing. */
@@ -112,6 +114,7 @@ private:
     memcached_protocol_t::region_t region;
     mailbox_manager_t *mbox_manager;
     machine_id_map_t *promise_map;
+    boost::ptr_vector<request_record_t> *things_to_destroy;
 };
 
 template <>
@@ -141,9 +144,9 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
 
             send(mbox_manager, backfiller->request_progress_mailbox, b_it->backfill_session_id, resp_mbox->get_address());
 
-            rassert(!std_contains((*promise_map)[m_id][n_id][a_id], region));
-            memcached_protocol_t::region_t tmp = region; /* gotta make a copy because of that boost ptr map bug */
-            (*promise_map)[m_id][n_id][a_id].insert(tmp, new request_record_t(value, resp_mbox));
+            request_record_t *req_rec = new request_record_t(value, resp_mbox);
+            (*promise_map)[m_id][n_id][a_id].insert(std::make_pair(region, req_rec));
+            things_to_destroy->push_back(req_rec);
         } else {
             //cJSON_AddItemToObject(backfills, get_string(render_as_json(&region_activity_pair.first, 0)).c_str(), cJSON_CreateString("backfiller not found"));
         }
@@ -175,9 +178,9 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
 
         send(mbox_manager, backfiller->request_progress_mailbox, b_loc.backfill_session_id, resp_mbox->get_address());
 
-        rassert(!std_contains((*promise_map)[m_id][n_id][a_id], region));
-        memcached_protocol_t::region_t tmp = region; /* fuck boost */
-        (*promise_map)[m_id][n_id][a_id].insert(tmp, new request_record_t(value, resp_mbox));
+        request_record_t *req_rec = new request_record_t(value, resp_mbox);
+        (*promise_map)[m_id][n_id][a_id].insert(std::make_pair(region, req_rec));
+        things_to_destroy->push_back(req_rec);
     } else {
         //cJSON_AddItemToObject(backfills, get_string(render_as_json(&region_activity_pair.first, 0)).c_str(), cJSON_CreateString("backfiller not found"));
     }
@@ -213,6 +216,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
     /* The actual map. The entire purpose of the block below is to put things
      * in this map. */
     machine_id_map_t promise_map;
+    boost::ptr_vector<request_record_t> things_to_destroy;
 
     http_req_t::resource_t::iterator it = req.resource.begin();
 
@@ -274,7 +278,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
 
                         /* This visitor dispatches requests to the correct backfillers progress mailboxs. */
                         boost::apply_visitor(send_backfill_requests_t(directory, n_it->first, p_it->second.machine_id, a_it->first,
-                                                                    a_it->second.first, mbox_manager, &promise_map),
+                                                                    a_it->second.first, mbox_manager, &promise_map, &things_to_destroy),
                                              a_it->second.second);
                     }
                 }
@@ -323,12 +327,23 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                                              ++a_it) {
                 cJSON *activity_info = cJSON_CreateObject();
                 cJSON_AddItemToObject(namespace_info, uuid_to_str(a_it->first).c_str(), activity_info);
+
+                std::map<memcached_protocol_t::region_t, cJSON*> backfills_for_region; //Since it's a multimap we need to keep track of the different cJSON objects for the different regions.
                 for (region_to_request_record_t::iterator r_it  = a_it->second.begin();
                                                           r_it != a_it->second.end();
                                                           ++r_it) {
-
                     //Sigh get around json adapters const aversion
                     memcached_protocol_t::region_t r = r_it->first;
+
+                    cJSON *region_info;
+                    if (!std_contains(backfills_for_region, r)) {
+                        region_info = cJSON_CreateArray();
+                        backfills_for_region.insert(std::make_pair(r, region_info));
+                        cJSON_AddItemToObject(activity_info, get_string(render_as_json(&r, 0)).c_str(), region_info);
+                    } else {
+                        region_info = backfills_for_region[r];
+                    }
+
 
                     /* Notice, once the timer has elapsed (possibly because
                      * someone timed out) all of these calls to wait will
@@ -345,10 +360,10 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                         cJSON *pair = cJSON_CreateArray();
                         cJSON_AddItemToArray(pair, cJSON_CreateNumber(response.first));
                         cJSON_AddItemToArray(pair, cJSON_CreateNumber(response.second));
-                        cJSON_AddItemToObject(activity_info, get_string(render_as_json(&r, 0)).c_str(), pair);
+                        cJSON_AddItemToArray(region_info, pair);
                     } else {
                         /* The promise is not pulsed.. we timed out. */
-                        cJSON_AddItemToObject(activity_info, get_string(render_as_json(&r, 0)).c_str(), cJSON_CreateString("Timeout"));
+                        cJSON_AddItemToArray(region_info, cJSON_CreateString("Timeout"));
                     }
                 }
             }

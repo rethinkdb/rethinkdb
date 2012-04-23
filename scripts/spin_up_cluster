@@ -250,9 +250,11 @@ else:
         os.system("rm -rf " + directory)
         if (i == 0):
             cl = ["../build/debug/rethinkdb", "--port", str(port), "--directory", directory, "--name", random.choice(names), "--port-offset", str(i+port)]
+            print reduce(lambda x,y: x + ' ' + y, cl)
             kids += [subprocess.Popen(cl)]
         else:
             cl = ["../build/debug/rethinkdb", "--port", str(port+i), "--directory", directory, "--name", random.choice(names), "--join", "newton:%d" % port, "--port-offset", str(i+port)]
+            print reduce(lambda x,y: x + ' ' + y, cl)
             kids += [subprocess.Popen(cl)]
         time.sleep(1)
 
