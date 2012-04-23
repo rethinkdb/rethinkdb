@@ -364,7 +364,23 @@
                                     <p><strong>Replicas in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>:</strong></p>
                                     <ul>
                                     {{#each machines}}
-                                    <li><a href="/#machines/{{uuid}}">{{name}}</a> {{humanize_machine_reachability status}}</li>
+                                    <li>
+                                      <p>
+                                        <a href="/#machines/{{uuid}}">{{name}}</a>
+                                        <span>{{humanize_machine_reachability status}}{{#if status.reachable}}{{#if backfill_progress}}, replicating{{#if backfill_progress.ratio_available}} from {{#comma_separated backfill_progress.replication_details}}<a href="/#machines/{{machine_id}}">{{machine_name}}</a>{{/comma_separated}}{{/if}}{{else}}, up to date{{/if}}{{/if}}</span>
+                                      </p>
+                                      {{#if backfill_progress}}
+                                        {{#if backfill_progress.ratio_available}}
+                                          <div class="progress progress-striped active">
+                                            <div class="bar"
+                                                 style="width: {{backfill_progress.percentage}}%;"></div>
+                                            </div>
+                                          <p>{{backfill_progress.percentage}}%{{#if backfill_progress.block_info_available}}, {{backfill_progress.replicated_blocks}} of {{backfill_progress.total_blocks}} blocks remaining{{/if}}</p>
+                                        {{else}}
+                                          <p>Replication progress information is unavailable.</p>
+                                        {{/if}}
+                                      {{/if}}
+                                    </li>
                                     {{/each}}
                                     </ul>
                                     <a id="assign_machines_{{../index}}_{{datacenter_uuid}}" href="#">Assign machines</a>
@@ -456,42 +472,6 @@
             </td>
         </script>
 
-
-        <script id="modify_shards_modal-sharding_plan-datacenter-template" type="text/x-handlebars-template">
-            <td class="name"><h4>{{name}}</h4></td>
-            <td class="machines">
-                <p class="delta">
-                    {{#comma_separated machines}}<a href='/#machines/{{this.id}}'>{{this.name}}</a>{{/comma_separated}}
-                       will be added.
-                </p>
-                <p class="existing-replicas">
-                    Existing replicas for this shard and in this datacenter are on {{#comma_separated existing_machines}}<a href="/#machines/{{this.id}}">{{this.name}}</a>{{/comma_separated}}
-                </p>
-            </td>
-            <td class="change-machines">
-                (<a class="edit" href="#">change</a>)
-            </td>
-        </script>
-
-        <script id="modify_shards_modal-sharding_plan-edit_datacenter-template" type="text/x-handlebars-template">
-        <td class="name"><h4>{{name}}</h4></td>
-        <td class="machines">
-            <p class="delta">
-            {{#each machine_dropdowns}}
-                <select name="machine" class="small machine-for-shard">
-                {{#each available_machines}}
-                    <option {{#ifequal ...selected.id this.id}}selected="selected"{{/ifequal}}>{{this.name}}</option>
-                {{/each}}
-                </select>
-            {{/each}}
-               will be added.
-            </p>
-            <p class="existing-replicas">
-            Existing replicas for this shard and in this datacenter are on {{#comma_separated existing_machines}}<a href="/#machines/{{this.id}}">{{this.name}}</a>{{/comma_separated}}
-            </p>
-        </td>
-        <td class="change-machines">(<a class="save-datacenter" href="#">save</a>)</td>
-        </script>
 
         <script id="modify_shards-alert-template" type="text/x-handlebars-template">
             <div class="alert" data-alert="alert">

@@ -18,6 +18,8 @@ class Event extends Backbone.Model
 
 class Issue extends Backbone.Model
 
+class Progress extends Backbone.Model
+
 # this is a hook into the directory
 class MachineAttributes extends Backbone.Model
 
@@ -96,6 +98,151 @@ module 'DataUtils', ->
 
     @get_datacenter_machines = (datacenter_uuid) ->
         return _.filter(machines.models, (m) -> m.get('datacenter_uuid') is datacenter_uuid)
+
+    # Organizes the directory as a map of activity ids
+    @get_directory_activities = ->
+        activities = {}
+        for machine in directory.models
+            bcards = machine.get('memcached_namespaces')['reactor_bcards']
+            for namespace_id, activity_map of bcards
+                activity_map = activity_map['activity_map']
+                for activity_id, activity of activity_map
+                    activities[activity_id] =
+                        value: activity
+                        machine_id: machine.get('id')
+                        namespace_id: namespace_id
+        return activities
+
+    # Computes backfill progress for a given (namespace, shard,
+    # machine) tripple. All arguments correspond to the objects that
+    # are *receiving* data.
+    @get_backfill_progress = (namespace_uuid, shard, machine_uuid) ->
+        activity_map = @get_directory_activities()
+        _output_json = []
+        if typeof(shard) isnt 'string'
+            shard = JSON.stringify(shard)
+
+        # grab the right machine from the progress list
+        progress = progress_list.get(machine_uuid)
+        if not progress?
+            return null
+
+        # next level of organization is by namespaces, grab the
+        # one we need
+        progress = progress.get(namespace_uuid)
+        if not progress?
+            return null
+
+        # The level of organization after that is by activity
+        # ids. Each activity corresponds to the shard we're
+        # backfilling into.
+        for activity_uuid, shard_map of progress
+            # We can now start creating output json for the shard
+            from_shard_json = {}
+
+            # Grab the activity from the activity map and break it up
+            # into some useful information.
+            activity = activity_map[activity_uuid]
+            if not activity?
+                # This probably means directory data hasn't caught up
+                # with the progress data on the client yet.
+                return null
+            activity_type = activity.value[1].type
+            into_shard = activity.value[0]
+
+            # Check that we're on the right shard (our C++ and JS JSON
+            # stringifiers have different policies with respect to
+            # spaces, so removing spaces here. We really need a
+            # standard way to compare shards - TODO here and in many
+            # many other places)
+            if into_shard.replace(/\s/g, '') isnt shard.replace(/\s/g, '')
+                continue
+
+            # Collect activity info about all the shards we're
+            # replicating from
+            senders_activity_id = []
+            if activity_type is 'secondary_backfilling'
+                 senders_activity_id.push(activity.value[1].backfiller.activity_id)
+            # else if activity_type is 'primary_when_safe'
+            #    TODO
+
+
+            # Now we're organized by shards we're back-filling
+            # from. Currently a secondary can only backfill from
+            # one place, a primary can backfill from multiple
+            # places.
+            for from_shard, progress_info of shard_map
+                from_shard_json = _.extend from_shard_json,
+                    from_shard: from_shard
+                if typeof(progress_info) is 'string'
+                    # There is an error getting progress info from the server
+                    from_shard_json = _.extend from_shard_json,
+                        replicated_blocks: -1
+                        total_blocks:      -1
+                        ratio:             -1
+                        percentage:        -1
+                        block_info_available: false
+                        ratio_available: false
+                else
+                    # We got the info!
+                    from_shard_json = _.extend from_shard_json,
+                        replicated_blocks: progress_info[0]
+                        total_blocks:      progress_info[1]
+                        ratio:             progress_info[0] / progress_info[1]
+                        percentage:        Math.round(progress_info[0] / progress_info[1] * 100)
+                        block_info_available: progress_info[0] isnt -1 and progress_info[1] isnt -1
+                        ratio_available: true
+
+                # Look through all the sender activities to find the
+                # current shard and extend it with the info about the
+                # machine we're replicating from.
+                for sender_id in senders_activity_id
+                    sender = activity_map[sender_id]
+                    sender_shard = sender.value[0]
+                    if sender_shard.toString() is from_shard.toString()
+                        from_shard_json = _.extend from_shard_json,
+                            machine_id: sender.machine_id
+                            machine_name: machines.get(sender.machine_id).get('name')
+                        break
+
+            # We're ready to push this piece of output
+            _output_json.push from_shard_json
+
+        # Make sure there is stuff to report
+        if _output_json.length is 0
+            return null
+
+        # Now we can aggregate the results for this shard by summing
+        # progress from every shard it's replicating from
+        agg_start =
+            total_blocks: -1
+            replicated_blocks: -1
+            block_info_available: false
+            ratio_available: false
+            from_machines: []
+        agg_json = _.reduce(_output_json, ((agg, val) ->
+            if val.block_info_available
+                agg.total_blocks      = 0 if agg.total_blocks is -1
+                agg.replicated_blocks = 0 if agg.replicated_blocks is -1
+                agg.total_blocks      += val.total_blocks
+                agg.replicated_blocks += val.replicated_blocks
+                agg.block_info_available = true
+                agg.from_machines.push
+                    machine_id: val.machine_id
+                    machine_name: val.machine_name
+            if val.ratio_available
+                agg.ratio_available = true
+            return agg
+            ), agg_start)
+        # Phew, final output
+        output_json =
+            ratio:             agg_json.replicated_blocks / agg_json.total_blocks
+            percentage:        Math.round(agg_json.replicated_blocks / agg_json.total_blocks * 100)
+            replication_details: _output_json
+        output_json = _.extend output_json, agg_json
+
+        return output_json
+
 
 class DataStream extends Backbone.Model
     max_cached: 250
@@ -181,6 +328,10 @@ class Events extends Backbone.Collection
 class Issues extends Backbone.Collection
     model: Issue
     url: '/ajax/issues'
+
+class ProgressList extends Backbone.Collection
+    model: Progress
+    url: '/ajax/progress'
 
 # hook into directory
 class Directory extends Backbone.Collection
@@ -407,6 +558,14 @@ apply_diffs = (updates) ->
 
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
 
+set_progress = (progress_data_from_server) ->
+    # Convert progress representation from RethinkDB into backbone friendly one
+    _pl = []
+    for key, value of progress_data_from_server
+        value['id'] = key
+        _pl.push(value)
+    progress_list.reset(_pl)
+
 set_directory = (attributes_from_server) ->
     # Convert directory representation from RethinkDB into backbone friendly one
     dir_machines = []
@@ -430,6 +589,7 @@ $ ->
     window.namespaces = new Namespaces
     window.machines = new Machines
     window.issues = new Issues
+    window.progress_list = new ProgressList
     window.directory = new Directory
     window.events = new Events
     window.connection_status = new ConnectionStatus
@@ -444,14 +604,21 @@ $ ->
     # reset_collections()
     reset_token()
 
+    # A helper function to collect data from all of our shitty
+    # routes. TODO: somebody fix this in the server for heaven's
+    # sakes!!!
+    collect_server_data = =>
+        $.getJSON('/ajax', apply_diffs)
+        $.getJSON('/ajax/issues', set_issues)
+        $.getJSON('/ajax/progress', set_progress)
+        $.getJSON('/ajax/directory', set_directory)
+        $.getJSON('/ajax/last_seen', set_last_seen)
+
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
-            $.getJSON('/ajax', apply_diffs)
-            $.getJSON('/ajax/issues', set_issues)
-            $.getJSON('/ajax/directory', set_directory)
-            $.getJSON('/ajax/last_seen', set_last_seen)
+            collect_server_data()
         else
             legacy_sync method, model, success, error
 
@@ -471,10 +638,7 @@ $ ->
     setInterval (-> Backbone.sync 'read', null), updateInterval
     declare_client_connected()
 
-    $.getJSON('/ajax', apply_diffs)
-    $.getJSON('/ajax/issues', set_issues)
-    $.getJSON('/ajax/directory', set_directory)
-    $.getJSON('/ajax/last_seen', set_last_seen)
+    collect_server_data()
 
     # Set up common DOM behavior
     $('.modal').modal
