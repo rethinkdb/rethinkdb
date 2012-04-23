@@ -302,6 +302,7 @@ module 'ClusterView', ->
     class @CollapsibleListElement extends Backbone.View
         events: ->
             'click .header': 'toggle_showing'
+            'click a': 'link_clicked'
 
         initialize: ->
             @showing = true
@@ -309,6 +310,10 @@ module 'ClusterView', ->
         render: =>
             @show()
             @delegateEvents()
+
+        link_clicked: (event) =>
+            # Prevents collapsing when we click a link.
+            event.stopPropagation()
 
         toggle_showing: =>
             @showing = not @showing
@@ -422,7 +427,8 @@ module 'ClusterView', ->
             @callbacks = []
 
         render: =>
-            @.$el.html @template()
+            @.$el.html @template
+                no_machines: @machine_list.element_views.length is 0
 
             # Attach a list of available machines to the given datacenter
             @.$('.machine-list').html @machine_list.render().el
