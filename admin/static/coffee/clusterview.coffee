@@ -110,6 +110,12 @@ module 'ClusterView', ->
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
             super namespaces, ClusterView.NamespaceListElement, 'tbody.list'
+
+        # Extend the AbstractList.add_element method to bind a callback to each namespace added to the list
+        add_element: (element) =>
+            machine_list_element = super element
+            machine_list_element.off 'selected'
+            machine_list_element.on 'selected', @update_toolbar_buttons
                 
         add_namespace: (event) =>
             log_action 'add namespace button clicked'
@@ -122,6 +128,12 @@ module 'ClusterView', ->
             if not $(event.currentTarget).hasClass 'disabled'
                 @remove_namespace_dialog.render @get_selected_elements()
             event.preventDefault()
+
+        # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
+        update_toolbar_buttons: =>
+            # We need to check how many namespaces have been checked off to decide which buttons to enable/disable
+            $remove_namespaces_button = $('.actions-bar a.btn.remove-namespace')
+            $remove_namespaces_button.toggleClass 'disabled', @get_selected_elements().length < 1
 
     class @DatacenterList extends @AbstractList
         # Use a datacenter-specific template for the datacenter list
@@ -462,7 +474,7 @@ module 'ClusterView', ->
         json_for_template: =>
             json = _.extend super(),
                 status: DataUtils.get_machine_reachability(@model.get('id'))
-                ip: 'TBD'
+                ip: 'TBD' #TODO
                 primary_count: 0
                 secondary_count: 0
 
@@ -545,7 +557,6 @@ module 'ClusterView', ->
             @$modal.modal('hide') if @$modal?
 
         cancel_modal: (e) ->
-            console.log 'clicked cancel_modal'
             @.hide_modal()
             e.preventDefault()
 
