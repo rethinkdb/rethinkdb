@@ -44,6 +44,7 @@ public:
     std::vector<log_message_t> tail(int max_lines, time_t min_timestamp, time_t max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t);
 
 private:
+    friend void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t lock);
     friend void log_internal(const char *src_file, int src_line, log_level_t level, const char *format, ...);
     void install_on_thread(int i);
     void uninstall_on_thread(int i);
