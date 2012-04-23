@@ -27,6 +27,13 @@ cJSON *scoped_cJSON_t::release() {
     return tmp;
 }
 
+void scoped_cJSON_t::reset(cJSON *v) {
+    if (val) {
+        cJSON_Delete(val);
+    }
+    val = v;
+}
+
 json_iterator_t::json_iterator_t(cJSON *target) {
     node = target->child;
 }
@@ -53,6 +60,14 @@ json_array_iterator_t::json_array_iterator_t(cJSON *target)
 
 std::string cJSON_print_std_string(cJSON *json) {
     char *s = cJSON_Print(json);
+    std::string res(s);
+    free(s);
+
+    return res;
+}
+
+std::string cJSON_print_unformatted_std_string(cJSON *json) {
+    char *s = cJSON_PrintUnformatted(json);
     std::string res(s);
     free(s);
 
