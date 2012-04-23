@@ -274,12 +274,12 @@ void log_writer_t::tail_blocking(int max_lines, time_t min_timestamp, time_t max
 
 /* Declared in `logger.hpp`, not `clustering/administration/logger.hpp` like the
 other things in this file. */
-void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, ...) {
+void log_internal(UNUSED const char *src_file, UNUSED int src_line, UNUSED log_level_t level, const char *format, ...) {
     if (log_writer_t *writer = global_log_writer) {
         auto_drainer_t::lock_t lock(global_log_drainer);
         on_thread_t thread_switcher(writer->home_thread());
 
-        time_t timestamp = time(NULL);
+        //time_t timestamp = time(NULL);
 
         struct timespec uptime;
         int res = clock_gettime(CLOCK_MONOTONIC, &uptime);
@@ -296,6 +296,6 @@ void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t 
         std::string message = vstrprintf(format, args);
         va_end(args);
 
-        writer->write(log_message_t(timestamp, uptime, level, message));
+        //writer->write(log_message_t(timestamp, uptime, level, message));
     }
 }
