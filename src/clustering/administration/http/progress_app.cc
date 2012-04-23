@@ -83,16 +83,16 @@ public:
 };
 
 /* A visitor to send out requests for the backfill progress of a reactor activity. */
-class send_backfill_requests : public boost::static_visitor<void> {
+class send_backfill_requests_t : public boost::static_visitor<void> {
 public:
-    send_backfill_requests(clone_ptr_t<directory_rview_t<cluster_directory_metadata_t> > _directory_metadata,
-                           namespace_id_t _n_id,
-                           machine_id_t _m_id,
-                           reactor_activity_id_t _a_id,
-                           memcached_protocol_t::region_t _region,
-                           mailbox_manager_t *_mbox_manager,
-                           machine_id_map_t *_promise_map)
-        : directory_metadata(_directory_metadata),
+    send_backfill_requests_t(std::map<peer_id_t, cluster_directory_metadata_t> _directory,
+                             namespace_id_t _n_id,
+                             machine_id_t _m_id,
+                             reactor_activity_id_t _a_id,
+                             memcached_protocol_t::region_t _region,
+                             mailbox_manager_t *_mbox_manager,
+                             machine_id_map_t *_promise_map)
+        : directory(_directory),
           n_id(_n_id),
           m_id(_m_id),
           a_id(_a_id),
@@ -105,7 +105,7 @@ public:
     template <class T> 
     void operator()(const T &) const { }
 private:
-    clone_ptr_t<directory_rview_t<cluster_directory_metadata_t> > directory_metadata;
+    std::map<peer_id_t, cluster_directory_metadata_t> directory;
     namespace_id_t n_id;
     machine_id_t m_id;
     reactor_activity_id_t a_id;
@@ -115,11 +115,13 @@ private:
 };
 
 template <>
-void send_backfill_requests::operator()<reactor_business_card_t<memcached_protocol_t>::primary_when_safe_t>(const reactor_business_card_t<memcached_protocol_t>::primary_when_safe_t &primary_when_safe) const {
+void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_protocol_t>::primary_when_safe_t>(const reactor_business_card_t<memcached_protocol_t>::primary_when_safe_t &primary_when_safe) const {
     for (std::vector<reactor_business_card_details::backfill_location_t>::const_iterator b_it  = primary_when_safe.backfills_waited_on.begin();
                                                                                          b_it != primary_when_safe.backfills_waited_on.end();
                                                                                          ++b_it) {
-        namespaces_directory_metadata_t<memcached_protocol_t> namespaces_directory_metadata = directory_metadata->get_value(b_it->peer_id).get().memcached_namespaces;
+
+        namespaces_directory_metadata_t<memcached_protocol_t> namespaces_directory_metadata =
+            directory.find(b_it->peer_id)->second.memcached_namespaces;
 
         if (!std_contains(namespaces_directory_metadata.reactor_bcards, n_id)) {
             continue;
@@ -149,10 +151,11 @@ void send_backfill_requests::operator()<reactor_business_card_t<memcached_protoc
 }
 
 template <>
-void send_backfill_requests::operator()<reactor_business_card_t<memcached_protocol_t>::secondary_backfilling_t>(const reactor_business_card_t<memcached_protocol_t>::secondary_backfilling_t &secondary_backfilling) const {
+void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_protocol_t>::secondary_backfilling_t>(const reactor_business_card_t<memcached_protocol_t>::secondary_backfilling_t &secondary_backfilling) const {
     reactor_business_card_details::backfill_location_t b_loc = secondary_backfilling.backfill;
 
-    namespaces_directory_metadata_t<memcached_protocol_t> namespaces_directory_metadata = directory_metadata->get_value(b_loc.peer_id).get().memcached_namespaces;
+    namespaces_directory_metadata_t<memcached_protocol_t> namespaces_directory_metadata =
+        directory.find(b_loc.peer_id)->second.memcached_namespaces;
 
     if (!std_contains(namespaces_directory_metadata.reactor_bcards, n_id)) {
         return;
@@ -270,7 +273,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
                          * leaving it out. This could be a TODO. */
 
                         /* This visitor dispatches requests to the correct backfillers progress mailboxs. */
-                        boost::apply_visitor(send_backfill_requests(directory_metadata, n_it->first, p_it->second.machine_id, a_it->first,
+                        boost::apply_visitor(send_backfill_requests_t(directory, n_it->first, p_it->second.machine_id, a_it->first,
                                                                     a_it->second.first, mbox_manager, &promise_map),
                                              a_it->second.second);
                     }

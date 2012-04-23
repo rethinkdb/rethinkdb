@@ -80,7 +80,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         translate_into_watchable(_directory_metadata)->subview(&get_log_mailbox),
         translate_into_watchable(_directory_metadata)->subview(&get_machine_id)
         ));
-    progress_app.reset(new progress_app_t(_directory_metadata, mbox_manager));
+    progress_app.reset(new progress_app_t(translate_into_watchable(_directory_metadata), mbox_manager));
 
     std::map<std::string, http_app_t *> ajax_routes;
     ajax_routes["directory"] = directory_app.get();
