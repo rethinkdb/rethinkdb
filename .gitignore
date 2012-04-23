@@ -1,5 +1,4 @@
 *.pyc
-*.o
 *~
 .*.swp
 .tags
@@ -14,9 +13,6 @@ src/eavesdrop_memcache
 src/eavesdrop
 src/eavesdrop_debug
 src/valgrind_rethinkdb
-src/.gdb_history
-src/.gdbinit
-src/standard_commands
 rethinkdb_data
 rethinkdb_metadata
 */output_from_test/
@@ -27,11 +23,6 @@ bench/serializer-bench/serializer-bench
 last_tested_versions
 .deps/
 src/spin_up_clusters.py
-
-vgcore.*
-# Ignore files but not directories named "core":
-core
-!core/
 src/.clang_complete
 src/find_replace.sh
 src/make_filter.sh
