@@ -51,7 +51,7 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
             for (it++; it != peers_not_heard_from.end(); it++) {
                 stringstream << ", " << it->ip.as_dotted_decimal() << ":" << it->port;
             }
-            logWRN("We were unable to connect to the following peer(s): %s\n", stringstream.str().c_str());
+            logWRN("We were unable to connect to the following peer(s): %s", stringstream.str().c_str());
         }
     } catch (interrupted_exc_t) {
         /* ignore */

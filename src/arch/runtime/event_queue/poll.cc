@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <poll.h>
-#include <strings.h>
+#include <string.h>
 
 #include <new>
 #include <algorithm>

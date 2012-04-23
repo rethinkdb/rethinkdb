@@ -6,14 +6,14 @@
 
 struct backfill_atom_t {
     store_key_t key;
-    boost::intrusive_ptr<data_buffer_t> value;
+    intrusive_ptr_t<data_buffer_t> value;
     mcflags_t flags;
     exptime_t exptime;
     repli_timestamp_t recency;
     cas_t cas_or_zero;
 
     backfill_atom_t() { }
-    backfill_atom_t(const store_key_t& key_, const boost::intrusive_ptr<data_buffer_t>& value_, const mcflags_t& flags_, const exptime_t& exptime_, const repli_timestamp_t& recency_, const cas_t& cas_or_zero_)
+    backfill_atom_t(const store_key_t& key_, const intrusive_ptr_t<data_buffer_t>& value_, const mcflags_t& flags_, const exptime_t& exptime_, const repli_timestamp_t& recency_, const cas_t& cas_or_zero_)
         : key(key_), value(value_), flags(flags_), exptime(exptime_), recency(recency_), cas_or_zero(cas_or_zero_) { }
 };
 

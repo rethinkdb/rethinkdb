@@ -14,7 +14,6 @@ void print_version_message() {
 }
 
 int main(int argc, char *argv[]) {
-    initialize_precise_time();
     install_generic_crash_handler();
 
 #ifndef NDEBUG

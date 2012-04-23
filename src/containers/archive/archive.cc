@@ -69,9 +69,9 @@ MUST_USE int deserialize(read_stream_t *s, boost::uuids::uuid *uuid) {
     int64_t sz = boost::uuids::uuid::static_size();
     int64_t res = force_read(s, uuid->data, sz);
 
-    if (res == -1) { return -1; }
-    if (res < sz) { return -2; }
+    if (res == -1) { return ARCHIVE_SOCK_ERROR; }
+    if (res < sz) { return ARCHIVE_SOCK_EOF; }
     rassert(res == sz);
-    return 0;
+    return ARCHIVE_SUCCESS;
 }
 

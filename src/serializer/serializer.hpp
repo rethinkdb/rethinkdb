@@ -14,11 +14,11 @@
 struct index_write_op_t {
     block_id_t block_id;
     // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
-    boost::optional<boost::intrusive_ptr<standard_block_token_t> > token;
+    boost::optional<intrusive_ptr_t<standard_block_token_t> > token;
     boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
 
     explicit index_write_op_t(block_id_t _block_id,
-                              boost::optional<boost::intrusive_ptr<standard_block_token_t> > _token = boost::none,
+                              boost::optional<intrusive_ptr_t<standard_block_token_t> > _token = boost::none,
                               boost::optional<repli_timestamp_t> _recency = boost::none)
         : block_id(_block_id), token(_token), recency(_recency) { }
 };
@@ -59,10 +59,10 @@ public:
 
     /* Reading a block from the serializer */
     // Non-blocking variant
-    virtual void block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
+    virtual void block_read(const intrusive_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
 
     // Blocking variant (requires coroutine context). Has default implementation.
-    virtual void block_read(const boost::intrusive_ptr<standard_block_token_t>& token, void *buf, file_account_t *io_account) = 0;
+    virtual void block_read(const intrusive_ptr_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) = 0;
 
     /* The index stores three pieces of information for each ID:
      * 1. A pointer to a data block on disk (which may be NULL)
@@ -85,21 +85,21 @@ public:
     virtual bool get_delete_bit(block_id_t id) = 0;
 
     /* Reads the block's actual data */
-    virtual boost::intrusive_ptr<standard_block_token_t> index_read(block_id_t block_id) = 0;
+    virtual intrusive_ptr_t<standard_block_token_t> index_read(block_id_t block_id) = 0;
 
     /* index_write() applies all given index operations in an atomic way */
     virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
 
     /* Non-blocking variants */
-    virtual boost::intrusive_ptr<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
+    virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
     // `block_write(buf, acct, cb)` must behave identically to `block_write(buf, NULL_BLOCK_ID, acct, cb)`
     // a default implementation is provided using this
-    virtual boost::intrusive_ptr<standard_block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
+    virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, file_account_t *io_account, iocallback_t *cb);
 
     /* Blocking variants (use in coroutine context) with and without known block_id */
     // these have default implementations in serializer.cc in terms of the non-blocking variants above
-    virtual boost::intrusive_ptr<standard_block_token_t> block_write(const void *buf, file_account_t *io_account);
-    virtual boost::intrusive_ptr<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, file_account_t *io_account);
+    virtual intrusive_ptr_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
 
     virtual block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf) = 0;
 
@@ -116,7 +116,7 @@ private:
 // The do_write interface is now obvious helper functions
 
 struct serializer_write_launched_callback_t {
-    virtual void on_write_launched(const boost::intrusive_ptr<standard_block_token_t>& token) = 0;
+    virtual void on_write_launched(const intrusive_ptr_t<standard_block_token_t>& token) = 0;
     virtual ~serializer_write_launched_callback_t() {}
 };
 struct serializer_write_t {
@@ -157,27 +157,27 @@ void serializer_index_write(serializer_type *ser, const index_write_op_t& op, fi
 }
 
 template <class serializer_type>
-boost::intrusive_ptr<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, file_account_t *io_account, iocallback_t *cb) {
+intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, file_account_t *io_account, iocallback_t *cb) {
     return ser->block_write(buf, NULL_BLOCK_ID, io_account, cb);
 }
 
 // Blocking variants.
 template <class serializer_type>
-boost::intrusive_ptr<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, file_account_t *io_account) {
+intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
-    boost::intrusive_ptr<typename serializer_traits_t<serializer_type>::block_token_type> result = ser->block_write(buf, io_account, &cb);
+    intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> result = ser->block_write(buf, io_account, &cb);
     cb.wait();
     return result;
 }
 
 template <class serializer_type>
-boost::intrusive_ptr<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, block_id_t block_id, file_account_t *io_account) {
+intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, block_id_t block_id, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
-    boost::intrusive_ptr<typename serializer_traits_t<serializer_type>::block_token_type> result = ser->block_write(buf, block_id, io_account, &cb);
+    intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type> result = ser->block_write(buf, block_id, io_account, &cb);
     cb.wait();
     return result;
 

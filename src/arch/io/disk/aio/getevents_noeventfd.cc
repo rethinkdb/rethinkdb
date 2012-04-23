@@ -117,7 +117,7 @@ void linux_aio_getevents_noeventfd_t::prep(UNUSED iocb *req) {
 void linux_aio_getevents_noeventfd_t::on_event(int event_mask) {
 
     if (event_mask != poll_event_in) {
-        logERR("Unexpected event mask: %d\n", event_mask);
+        logERR("Unexpected event mask: %d", event_mask);
     }
 
     // Make sure we flush the pipe

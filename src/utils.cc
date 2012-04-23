@@ -28,7 +28,7 @@ write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp) {
     return msg << tstamp.time;
 }
 
-int deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {
+MUST_USE int deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {
     return deserialize(s, &tstamp->time);
 }
 
@@ -97,87 +97,49 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
-// Precise time functions
-
-// These two fields are initialized with current clock values (roughly) at the same moment.
-// Since monotonic clock represents time since some arbitrary moment, we need to correlate it
-// to some other clock to print time more or less precisely.
-//
-// Of course that doesn't solve the problem of clocks having different rates.
-static struct {
-    timespec hi_res_clock;
-    time_t low_res_clock;
-} time_sync_data;
-
-void initialize_precise_time() {
-    int res = clock_gettime(CLOCK_MONOTONIC, &time_sync_data.hi_res_clock);
-    guarantee(res == 0, "Failed to get initial monotonic clock value");
-    (void) time(&time_sync_data.low_res_clock);
+void format_time(time_t time, char* buf, size_t max_chars) {
+    struct tm t;
+    struct tm *res1 = localtime_r(&time, &t);
+    guarantee_err(res1 == &t, "gmtime_r() failed.");
+    int res2 = snprintf(buf, max_chars,
+        "%04d-%02d-%02dT%02d:%02d:%02d",
+        t.tm_year+1900,
+        t.tm_mon+1,
+        t.tm_mday,
+        t.tm_hour,
+        t.tm_min,
+        t.tm_sec);
+    (void) res2;
+    rassert(0 <= res2);
 }
 
-void set_precise_time_offset(timespec hi_res_clock, time_t low_res_clock) {
-    time_sync_data.hi_res_clock = hi_res_clock;
-    time_sync_data.low_res_clock = low_res_clock;
-}
-
-timespec get_uptime() {
-    timespec now;
-
-    int err = clock_gettime(CLOCK_MONOTONIC, &now);
-    rassert_err(err == 0, "Failed to get monotonic clock value");
-    if (err == 0) {
-        // Compute time difference between now and origin of time
-        now.tv_sec -= time_sync_data.hi_res_clock.tv_sec;
-        now.tv_nsec -= time_sync_data.hi_res_clock.tv_nsec;
-        if (now.tv_nsec < 0) {
-            now.tv_nsec += BILLION;
-            now.tv_sec--;
-        }
-        return now;
-    } else {
-        // fallback: we can't get nanoseconds value, so we fake it
-        time_t now_low_res = time(NULL);
-        now.tv_sec = now_low_res - time_sync_data.low_res_clock;
-        now.tv_nsec = 0;
-        return now;
-    }
-}
-
-precise_time_t get_absolute_time(const timespec& relative_time) {
-    precise_time_t result;
-    time_t sec = time_sync_data.low_res_clock + relative_time.tv_sec;
-    uint32_t nsec = time_sync_data.hi_res_clock.tv_nsec + relative_time.tv_nsec;
-    if (nsec > 1e9) {
-        nsec -= BILLION;
-        sec++;
-    }
-    (void) gmtime_r(&sec, &result);
-    result.ns = nsec;
-    return result;
-}
-
-precise_time_t get_time_now() {
-    return get_absolute_time(get_uptime());
-}
-
-void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars) {
-    int res = snprintf(buf, max_chars,
-        "%04d-%02d-%02dT%02d:%02d:%02d.%06d",
-        time.tm_year+1900,
-        time.tm_mon+1,
-        time.tm_mday,
-        time.tm_hour,
-        time.tm_min,
-        time.tm_sec,
-        (int) (time.ns/1e3));
-    (void) res;
-    rassert(0 <= res);
-}
-
-std::string format_precise_time(const precise_time_t& time) {
-    char buf[formatted_precise_time_length+1];
-    format_precise_time(time, buf, sizeof(buf));
+std::string format_time(time_t time) {
+    char buf[formatted_time_length+1];
+    format_time(time, buf, sizeof(buf));
     return std::string(buf);
+}
+
+time_t parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
+    struct tm t;
+    int res1 = sscanf(str.c_str(),
+        "%04d-%02d-%02dT%02d:%02d:%02d",
+        &t.tm_year,
+        &t.tm_mon,
+        &t.tm_mday,
+        &t.tm_hour,
+        &t.tm_min,
+        &t.tm_sec);
+    if (res1 != 6) {
+        throw std::runtime_error("badly formatted time");
+    }
+    t.tm_year -= 1900;
+    t.tm_mon -= 1;
+    t.tm_isdst = -1;
+    time_t res2 = mktime(&t);
+    if (res2 == -1) {
+        throw std::runtime_error("invalid time");
+    }
+    return res2;
 }
 
 #ifndef NDEBUG
@@ -240,9 +202,8 @@ void *malloc_aligned(size_t size, size_t alignment) {
 #ifndef NDEBUG
 void debugf(const char *msg, ...) {
     flockfile(stderr);
-    precise_time_t t = get_time_now();
-    char formatted_time[formatted_precise_time_length+1];
-    format_precise_time(t, formatted_time, sizeof(formatted_time));
+    char formatted_time[formatted_time_length+1];
+    format_time(time(NULL), formatted_time, sizeof(formatted_time));
     fprintf(stderr, "%s Thread %d: ", formatted_time, get_thread_id());
 
     va_list args;

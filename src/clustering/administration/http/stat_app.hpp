@@ -5,7 +5,6 @@
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
 #include "http/http.hpp"
-#include "rpc/connectivity/connectivity.hpp"
 
 class stat_http_app_t : public http_app_t {
 public:

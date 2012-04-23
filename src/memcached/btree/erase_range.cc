@@ -1,5 +1,7 @@
 #include "memcached/btree/erase_range.hpp"
 
+#include "btree/slice.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "memcached/btree/node.hpp"
 #include "memcached/btree/value.hpp"
 

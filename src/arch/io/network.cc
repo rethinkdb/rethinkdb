@@ -37,32 +37,32 @@ fd_t connect_to(const char *host, int port, int local_port) {
 
     /* make the connection */
     if (getaddrinfo(host, port_str.c_str(), NULL, &res) != 0) {
-        logERR("Failed to look up address %s:%d.\n", host, port);
+        logERR("Failed to look up address %s:%d.", host, port);
         goto ERROR_BREAKOUT;
     }
 
     {
         scoped_fd_t sock(socket(res->ai_family, res->ai_socktype, res->ai_protocol));
         if (sock.get() == INVALID_FD) {
-            logERR("Failed to create a socket\n");
+            logERR("Failed to create a socket");
             goto ERROR_BREAKOUT;
         }
         if (local_port != 0) {
             // Set the socket to reusable so we don't block out other sockets from this port
             int reuse = 1;
             if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
-                logINF("Failed to set socket reuse to true: %s\n", strerror(errno));
+                logINF("Failed to set socket reuse to true: %s", strerror(errno));
             struct sockaddr_in addr;
             addr.sin_family = AF_INET;
             addr.sin_port = htons(local_port);
             addr.sin_addr.s_addr = INADDR_ANY;
             bzero(addr.sin_zero, sizeof(addr.sin_zero));
             if (bind(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
-                logINF("Failed to bind to local port %d: %s\n", local_port, strerror(errno));
+                logINF("Failed to bind to local port %d: %s", local_port, strerror(errno));
         }
         if (connect(sock.get(), res->ai_addr, res->ai_addrlen) != 0) {
             /* for some reason the connection failed */
-            logERR("Failed to make a connection with error: %s\n", strerror(errno));
+            logERR("Failed to make a connection with error: %s", strerror(errno));
             goto ERROR_BREAKOUT;
         }
 
@@ -98,13 +98,13 @@ fd_t connect_to(const ip_address_t &host, int port, int local_port) {
         // Set the socket to reusable so we don't block out other sockets from this port
         int reuse = 1;
         if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
-            logINF("Failed to set socket reuse to true: %s\n", strerror(errno));
+            logINF("Failed to set socket reuse to true: %s", strerror(errno));
         addr.sin_family = AF_INET;
         addr.sin_port = htons(local_port);
         addr.sin_addr.s_addr = INADDR_ANY;
         bzero(addr.sin_zero, sizeof(addr.sin_zero));
         if (bind(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0)
-            logINF("Failed to bind to local port %d: %s\n", local_port, strerror(errno));
+            logINF("Failed to bind to local port %d: %s", local_port, strerror(errno));
     }
 
     addr.sin_family = AF_INET;
@@ -114,7 +114,7 @@ fd_t connect_to(const ip_address_t &host, int port, int local_port) {
 
     if (connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0) {
         /* for some reason the connection failed */
-        logINF("Failed to make a connection with error: %s\n", strerror(errno));
+        logINF("Failed to make a connection with error: %s", strerror(errno));
         throw linux_tcp_conn_t::connect_failed_exc_t();
     }
 
@@ -221,7 +221,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
         } else if (res == -1) {
             /* Unknown error. This is not expected, but it will probably happen sometime so we
             shouldn't crash. */
-            logERR("Could not read from socket: %s\n", strerror(errno));
+            logERR("Could not read from socket: %s", strerror(errno));
             on_shutdown_read();
             throw read_closed_exc_t();
 
@@ -314,7 +314,7 @@ void linux_tcp_conn_t::shutdown_read() {
     assert_thread();
     int res = ::shutdown(sock.get(), SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for reading: %s\n", strerror(errno));
+        logERR("Could not shutdown socket for reading: %s", strerror(errno));
     }
     on_shutdown_read();
 }
@@ -417,14 +417,14 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
         } else if (res == -1) {
             /* In theory this should never happen, but it probably will. So we write a log message
                and then shut down normally. */
-            logERR("Could not write to socket: %s\n", strerror(errno));
+            logERR("Could not write to socket: %s", strerror(errno));
             on_shutdown_write();
             break;
 
         } else if (res == 0) {
             /* This should never happen either, but it's better to write an error message than to
                crash completely. */
-            logERR("Didn't expect write() to return 0.\n");
+            logERR("Didn't expect write() to return 0.");
             on_shutdown_write();
             break;
 
@@ -553,7 +553,7 @@ void linux_tcp_conn_t::shutdown_write() {
 
     int res = ::shutdown(sock.get(), SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for writing: %s\n", strerror(errno));
+        logERR("Could not shutdown socket for writing: %s", strerror(errno));
     }
 
     on_shutdown_write();
@@ -693,7 +693,7 @@ void linux_tcp_conn_t::on_event(int events) {
 
     } else {
         /* We don't know why we got this, so log it and then shut down the socket */
-        logERR("Unexpected epoll err/hup/rdhup. events=%s, reading=%s, writing=%s\n",
+        logERR("Unexpected epoll err/hup/rdhup. events=%s, reading=%s, writing=%s",
             format_poll_event(events).c_str(),
             reading ? "yes" : "no",
             writing ? "yes" : "no");
@@ -778,7 +778,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make socket non-blocking");
 
-    logINF("Listening on port %d\n", port);
+    logINF("Listening on port %d", port);
 
     // Start the accept loop
     accept_loop_drainer.reset(new auto_drainer_t);
@@ -821,7 +821,7 @@ void linux_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
         } else {
             /* Unexpected error. Log it unless it's a repeat error. */
             if (log_next_error) {
-                logERR("accept() failed: %s.\n",
+                logERR("accept() failed: %s.",
                     strerror(errno));
                 log_next_error = false;
             }
@@ -862,7 +862,7 @@ void linux_tcp_listener_t::on_event(int events) {
     via event_listener.watch(). */
 
     if (log_next_error) {
-        logERR("poll()/epoll() sent linux_tcp_listener_t errors: %d.\n", events);
+        logERR("poll()/epoll() sent linux_tcp_listener_t errors: %d.", events);
         log_next_error = false;
     }
 }

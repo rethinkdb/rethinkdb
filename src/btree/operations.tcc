@@ -22,8 +22,8 @@
 
 template <class Value>
 void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority) {
-    keyvalue_location_out->sb.swap(got_superblock->sb);
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
+    keyvalue_location_out->sb.swap(got_superblock->sb);
 
     buf_lock_t last_buf;
     buf_lock_t buf;
@@ -76,13 +76,13 @@ void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_
 
 template <class Value>
 void find_keyvalue_location_for_read(transaction_t *txn, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t root_eviction_priority) {
+    value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
+
     block_id_t node_id = got_superblock->sb->get_root_block_id();
     rassert(node_id != SUPERBLOCK_ID);
 
     buf_lock_t buf;
     got_superblock->sb->swap_buf(buf);
-
-    value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
 
     if (node_id == NULL_BLOCK_ID) {
         // There is no root, so the tree is empty.

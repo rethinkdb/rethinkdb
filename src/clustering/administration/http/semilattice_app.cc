@@ -68,18 +68,18 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 {
                     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
                     if (!content_type || content_type.get() != "application/json") {
-                        logINF("Bad request, Content-Type should be application/json.\n");
+                        logINF("Bad request, Content-Type should be application/json.");
                         return http_res_t(415);
                     }
                 }
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
                 if (!change.get()) { //A null value indicates that parsing failed
-                    logINF("Json body failed to parse.\n Here's the data that failed: %s\n", req.body.c_str());
+                    logINF("Json body failed to parse. Here's the data that failed: %s", req.body.c_str());
                     return http_res_t(400);
                 }
 
-                logINF("Applying data %s\n", req.body.c_str());
+                logINF("Applying data %s", req.body.c_str());
                 json_adapter_head->apply(change.get(), json_ctx);
 
                 /* Fill in the blueprints */
@@ -122,7 +122,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 {
                     boost::optional<std::string> content_type = req.find_header_line("Content-Type");
                     if (!content_type || content_type.get() != "application/json") {
-                        logINF("Bad request, Content-Type should be application/json.\n");
+                        logINF("Bad request, Content-Type should be application/json.");
                         return http_res_t(415);
                     }
                 }
@@ -133,7 +133,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     return http_res_t(400);
                 }
 
-                logINF("Applying data %s\n", req.body.c_str());
+                logINF("Applying data %s", req.body.c_str());
                 json_adapter_head->reset(json_ctx);
                 json_adapter_head->apply(change.get(), json_ctx);
 
@@ -163,17 +163,17 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
         }
     } catch (schema_mismatch_exc_t &e) {
         http_res_t res(400);
-        logINF("HTTP request throw a schema_mismatch_exc_t with what =:\n %s\n", e.what());
+        logINF("HTTP request throw a schema_mismatch_exc_t with what = %s", e.what());
         res.set_body("application/text", e.what());
         return res;
     } catch (permission_denied_exc_t &e) {
         http_res_t res(400);
-        logINF("HTTP request throw a permission_denied_exc_t with what =:\n %s\n", e.what());
+        logINF("HTTP request throw a permission_denied_exc_t with what = %s", e.what());
         res.set_body("application/text", e.what());
         return res;
     } catch (cannot_satisfy_goals_exc_t &e) {
         http_res_t res(500);
-        logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s\n", e.what());
+        logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s", e.what());
         res.set_body("application/text", e.what());
         return res;
     }

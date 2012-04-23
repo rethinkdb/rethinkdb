@@ -5,9 +5,6 @@
 
 #include <map>
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/system_event.hpp"
@@ -81,31 +78,13 @@ private:
     static const int GENERIC_BLOCKER_THREAD_COUNT = 2;
     blocker_pool_t* generic_blocker_pool;
 
-    template<class T>
-    struct generic_job_t :
-        public blocker_pool_t::job_t
-    {
-        void run() {
-            retval = fn();
-        }
-
-        void done() {
-            // Now that the function is done, resume execution of the suspended task
-            suspended->notify_sometime();
-        }
-
-        boost::function<T()> fn;
-        coro_t* suspended;
-        T retval;
-    };
-
 public:
     pthread_t pthreads[MAX_THREADS];
     linux_thread_t *threads[MAX_THREADS];
 
     // Cooperatively run a blocking function call using the generic_blocker_pool
-    template<class T>
-    static T run_in_blocker_pool(boost::function<T()>);
+    template <class Callable>
+    static void run_in_blocker_pool(const Callable &);
 
     int n_threads;
     bool do_set_affinity;
@@ -120,13 +99,30 @@ private:
     DISABLE_COPYING(linux_thread_pool_t);
 };
 
+template <class Callable>
+struct generic_job_t :
+    public blocker_pool_t::job_t
+{
+    void run() {
+        (*fn)();
+    }
+
+    void done() {
+        // Now that the function is done, resume execution of the suspended task
+        suspended->notify_sometime();
+    }
+
+    const Callable *fn;
+    coro_t* suspended;
+};
+
 // Function to handle blocking calls in a separate thread pool
 // This should be used for any calls that cannot otherwise be made non-blocking
-template<class T>
-T linux_thread_pool_t::run_in_blocker_pool(boost::function<T()> fn)
+template <class Callable>
+void linux_thread_pool_t::run_in_blocker_pool(const Callable &fn)
 {
-    generic_job_t<T> job;
-    job.fn = fn;
+    generic_job_t<Callable> job;
+    job.fn = &fn;
     job.suspended = coro_t::self();
 
     rassert(thread_pool->generic_blocker_pool != NULL,
@@ -135,8 +131,6 @@ T linux_thread_pool_t::run_in_blocker_pool(boost::function<T()> fn)
 
     // Give up execution, to be resumed when the done callback is made
     coro_t::wait();
-
-    return job.retval;
 }
 
 class linux_thread_t :

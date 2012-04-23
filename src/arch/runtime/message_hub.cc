@@ -62,7 +62,7 @@ void linux_message_hub_t::insert_external_message(linux_thread_message_t *msg) {
 void linux_message_hub_t::notify_t::on_event(int events) {
 
     if (events != poll_event_in) {
-        logERR("Unexpected event mask: %d\n", events);
+        logERR("Unexpected event mask: %d", events);
     }
 
     // Read from the event so level-triggered mechanism such as poll

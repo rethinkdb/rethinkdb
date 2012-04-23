@@ -2,19 +2,21 @@
 
 #include <sys/stat.h>
 
-#include "utils.hpp"
-#include <boost/bind.hpp>
 
-progress_bar_t::progress_bar_t(const std::string& _activity, int _redraw_interval_ms = 100)
-    : repeating_timer_t(redraw_interval_ms, boost::bind(&progress_bar_t::refresh, this)),
-      activity(_activity), redraw_interval_ms(_redraw_interval_ms), start_time(get_ticks()),
-      total_refreshes(0)
-{ }
+// TODO: We're using printf??  printf can block the thread.
 
-void progress_bar_t::refresh() {
+progress_bar_t::progress_bar_t(const std::string& _activity)
+    : activity(_activity), start_time(get_ticks()), total_refreshes(0) { }
+
+progress_bar_t::~progress_bar_t() {
+    if (total_refreshes > 0)
+        printf("\n");
+}
+
+void progress_bar_t::refresh(progress_bar_draw_callback_t *cb) {
     total_refreshes++;
     reset_bar();
-    draw();
+    cb->draw();
     reset_bar();
 }
 
@@ -24,7 +26,7 @@ void progress_bar_t::reset_bar() {
 }
 
 /* progress should be in [0.0,1.0] */
-void progress_bar_t::draw_bar(float progress,  int eta) {
+void progress_bar_t::draw_bar(float progress, int eta) {
     int percent_done = int(progress * 100);
     printf("%s: ", activity.c_str());
     printf("[");
@@ -58,23 +60,32 @@ void progress_bar_t::draw_bar(float progress,  int eta) {
 
 
 counter_progress_bar_t::counter_progress_bar_t(const std::string& activity, int _expected_count, int redraw_interval_ms)
-    : progress_bar_t(activity, redraw_interval_ms), count(0), expected_count(_expected_count) { }
+    : count(0), expected_count(_expected_count), progress_bar(activity), timer(redraw_interval_ms, this) { }
 
 void counter_progress_bar_t::draw() {
-    progress_bar_t::draw_bar(float(count) / float(expected_count), -1);
+    progress_bar.draw_bar(float(count) / float(expected_count), -1);
 }
+
+void counter_progress_bar_t::on_ring() {
+    progress_bar.refresh(this);
+}
+
 
 void counter_progress_bar_t::operator++() {
     count++;
 }
 
 file_progress_bar_t::file_progress_bar_t(const std::string& activity, FILE *_file, int redraw_interval_ms)
-    : progress_bar_t(activity, redraw_interval_ms), file(_file) { 
+    : file(_file), progress_bar(activity), timer(redraw_interval_ms, this) {
     struct stat file_stats;
     fstat(fileno(file), &file_stats);
     file_size = file_stats.st_size;
 }
 
 void file_progress_bar_t::draw() {
-    progress_bar_t::draw_bar(float(ftell(file)) / float(file_size), -1);
+    progress_bar.draw_bar(float(ftell(file)) / float(file_size), -1);
+}
+
+void file_progress_bar_t::on_ring() {
+    progress_bar.refresh(this);
 }

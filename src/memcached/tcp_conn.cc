@@ -73,7 +73,7 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
                     // because they are read from the socket via a different
                     // mechanism.)  There are better ways to handle this
                     // situation.
-                    logERR("Aborting connection %p because we got more than %ld bytes without a CRLF\n",
+                    logERR("Aborting connection %p because we got more than %ld bytes without a CRLF",
                             coro_t::self(), threshold);
                     conn->shutdown_read();
                     throw tcp_conn_t::read_closed_exc_t();

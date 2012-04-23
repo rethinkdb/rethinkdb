@@ -6,12 +6,12 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/intrusive_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "btree/keys.hpp"
 #include "config/args.hpp"
 #include "containers/data_buffer.hpp"
+#include "containers/intrusive_ptr.hpp"
 #include "utils.hpp"
 
 typedef uint32_t mcflags_t;
@@ -33,13 +33,13 @@ struct get_query_t {
 };
 
 struct get_result_t {
-    get_result_t(const boost::intrusive_ptr<data_buffer_t>& v, mcflags_t f, cas_t c) :
+    get_result_t(const intrusive_ptr_t<data_buffer_t>& v, mcflags_t f, cas_t c) :
         value(v), flags(f), cas(c) { }
     get_result_t() :
         value(), flags(0), cas(0) { }
 
     // NULL means not found.
-    boost::intrusive_ptr<data_buffer_t> value;
+    intrusive_ptr_t<data_buffer_t> value;
 
     mcflags_t flags;
     cas_t cas;
@@ -70,9 +70,9 @@ struct rget_query_t {
 struct key_with_data_buffer_t {
     std::string key;
     mcflags_t mcflags;
-    boost::intrusive_ptr<data_buffer_t> value_provider;
+    intrusive_ptr_t<data_buffer_t> value_provider;
 
-    key_with_data_buffer_t(const std::string& _key, mcflags_t _mcflags, const boost::intrusive_ptr<data_buffer_t>& _value_provider)
+    key_with_data_buffer_t(const std::string& _key, mcflags_t _mcflags, const intrusive_ptr_t<data_buffer_t>& _value_provider)
         : key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
 
     struct less {
@@ -118,7 +118,7 @@ struct sarc_mutation_t {
 
     /* The value to give the key; must not be NULL.
     TODO: Should NULL mean a deletion? */
-    boost::intrusive_ptr<data_buffer_t> data;
+    intrusive_ptr_t<data_buffer_t> data;
 
     /* The flags to store with the value */
     mcflags_t flags;
@@ -138,7 +138,7 @@ struct sarc_mutation_t {
     cas_t old_cas;
 
     sarc_mutation_t() { }
-    sarc_mutation_t(const store_key_t& key_, const boost::intrusive_ptr<data_buffer_t>& data_, mcflags_t flags_, exptime_t exptime_, add_policy_t add_policy_, replace_policy_t replace_policy_, cas_t old_cas_) :
+    sarc_mutation_t(const store_key_t& key_, const intrusive_ptr_t<data_buffer_t>& data_, mcflags_t flags_, exptime_t exptime_, add_policy_t add_policy_, replace_policy_t replace_policy_, cas_t old_cas_) :
         key(key_), data(data_), flags(flags_), exptime(exptime_), add_policy(add_policy_), replace_policy(replace_policy_), old_cas(old_cas_) { }
 };
 
@@ -218,10 +218,10 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(append_prepend_kind_t, int8_t, append_prep
 struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
     store_key_t key;
-    boost::intrusive_ptr<data_buffer_t> data;
+    intrusive_ptr_t<data_buffer_t> data;
 
     append_prepend_mutation_t() { }
-    append_prepend_mutation_t(append_prepend_kind_t kind_, const store_key_t &key_, const boost::intrusive_ptr<data_buffer_t> &data_) :
+    append_prepend_mutation_t(append_prepend_kind_t kind_, const store_key_t &key_, const intrusive_ptr_t<data_buffer_t> &data_) :
         kind(kind_), key(key_), data(data_) { }
 };
 

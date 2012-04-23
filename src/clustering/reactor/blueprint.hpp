@@ -1,9 +1,6 @@
 #ifndef CLUSTERING_REACTOR_BLUEPRINT_HPP_
 #define CLUSTERING_REACTOR_BLUEPRINT_HPP_
 
-#include "utils.hpp"
-#include <boost/optional.hpp>
-
 #include "containers/archive/archive.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"

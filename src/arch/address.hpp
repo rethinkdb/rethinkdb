@@ -34,10 +34,10 @@ private:
     friend class archive_deserializer_t;
     int rdb_deserialize(read_stream_t *s) {
         int64_t num_read = force_read(s, &addr, sizeof(addr));
-        if (num_read == -1) { return -1; }
-        if (num_read < int64_t(sizeof(addr))) { return -2; }
+        if (num_read == -1) { return ARCHIVE_SOCK_ERROR; }
+        if (num_read < int64_t(sizeof(addr))) { return ARCHIVE_SOCK_EOF; }
         rassert(num_read == sizeof(addr));
-        return 0;
+        return ARCHIVE_SUCCESS;
     }
 };
 
