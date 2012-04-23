@@ -6,6 +6,7 @@
 #include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/administration/http/semilattice_app.hpp"
 #include "clustering/administration/suggester.hpp"
+#include "rpc/directory/watchable_copier.hpp"
 #include "stl_utils.hpp"
 
 void semilattice_http_app_t::fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata) {
@@ -18,9 +19,18 @@ void semilattice_http_app_t::fill_in_blueprints(cluster_semilattice_metadata_t *
             machine_assignments[it->first] = it->second.get().datacenter.get();
         }
     }
+
+    std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > reactor_directory;
+    std::map<peer_id_t, machine_id_t> machine_id_translation_table;
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = translate_into_watchable(directory_metadata)->get();
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator it = directory.begin(); it != directory.end(); it++) {
+        reactor_directory.insert(std::make_pair(it->first, it->second.memcached_namespaces));
+        machine_id_translation_table.insert(std::make_pair(it->first, it->second.machine_id));
+    }
+
     fill_in_blueprints_for_protocol<memcached_protocol_t>(&cluster_metadata->memcached_namespaces,
-            directory_metadata->subview(clone_ptr_t<read_lens_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >(field_lens(&cluster_directory_metadata_t::memcached_namespaces))),
-            directory_metadata->subview(clone_ptr_t<read_lens_t<machine_id_t, cluster_directory_metadata_t> >(field_lens(&cluster_directory_metadata_t::machine_id))),
+            reactor_directory,
+            machine_id_translation_table,
             machine_assignments,
             us);
 }
