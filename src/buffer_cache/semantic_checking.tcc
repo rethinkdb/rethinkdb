@@ -137,7 +137,7 @@ void scc_transaction_t<inner_cache_t>::set_account(const boost::shared_ptr<typen
 }
 
 template<class inner_cache_t>
-scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line) :
+scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line) :
     snapshotted(txn->snapshotted || mode == rwi_read_outdated_ok),
     has_been_changed(false),
     internal_buf_lock(NULL),

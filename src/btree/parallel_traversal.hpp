@@ -7,6 +7,7 @@
 
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/rwi_lock.hpp"
 #include "containers/scoped_malloc.hpp"
 
 struct btree_superblock_t;
@@ -17,11 +18,6 @@ struct btree_key_t;
 struct internal_node_t;
 class got_superblock_t;
 
-struct acquisition_start_callback_t {
-    virtual void on_started_acquisition() = 0;
-protected:
-    virtual ~acquisition_start_callback_t() { }
-};
 
 // HEY: Make this an abstract class, have two separate implementation
 // classes for the "forced block id" case and the internal node case.
@@ -57,14 +53,14 @@ private:
     const btree_key_t *right_inclusive_or_null_;
 };
 
-class interesting_children_callback_t : public acquisition_start_callback_t {
+class interesting_children_callback_t : public lock_in_line_callback_t {
 public:
     // Call these function in filter_interesting_children.
     void receive_interesting_child(int child_index);
     void no_more_interesting_children();
 
     // internal
-    void on_started_acquisition();
+    void on_in_line();
     void decr_acquisition_countdown();
 
     interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, boost::shared_ptr<ranged_block_ids_t>& _ids_source)

@@ -95,6 +95,9 @@ module 'MachineView', ->
         className: 'machine-view'
         template: Handlebars.compile $('#machine_view-container-template').html()
 
+        events: ->
+            'click a.set-datacenter': 'set_datacenter'
+
         initialize: (id) =>
             log_initial '(initializing) machine view: container'
             @machine_uuid = id
@@ -170,45 +173,28 @@ module 'MachineView', ->
 
             @.$el.html @template json
 
-            # Hook our events
-            @.$('a.set-datacenter').click (event) =>
-                event.preventDefault()
-                set_datacenter_modal = new ClusterView.SetDatacenterModal
-                set_datacenter_modal.render [@model]
+            if @model.get('log_entries')?
+                @model.get('log_entries').each (log_entry) =>
+                    view = new MachineView.RecentLogEntry
+                        model: log_entry
+                    @.$('.recent-log-entries').append view.render().el
 
             return @
 
-        # Update the sparkline data and render a new sparkline for the view
-        #update_sparklines: =>
-            #@cpu_sparkline.data = @cpu_sparkline.data.slice(1)
-            #@cpu_sparkline.data.push @model.get 'cpu'
-            #@.$('.cpu-graph').sparkline(@cpu_sparkline.data)
+        set_datacenter: (event) =>
+            event.preventDefault()
+            set_datacenter_modal = new ClusterView.SetDatacenterModal
+            set_datacenter_modal.render [@model]
 
-        # Update the performance data and render a graph for the view
-        #update_graphs: =>
-            #@performance_graph.data = @performance_graph.data.slice(1)
-            #@performance_graph.data.push @model.get 'iops'
-            # TODO: consider making this a utility function: enumerate
-            # Maps the graph data y-values to x-values (zips them up) and sets the data
-            #data = _.map @performance_graph.data, (val, i) -> [i, val]
+    # MachineView.RecentLogEntry
+    class @RecentLogEntry extends Backbone.View
+        className: 'machine-logs'
+        template: Handlebars.compile $('#machine_view-recent_log_entry-template').html()
 
-
-            # If the plot isn't in the DOM yet, create the initial plot
-            #if not @performance_graph.plot?
-            #    @performance_graph.plot = $.plot($('#performance-graph'), [data], @performance_graph.options)
-            #    window.graph = @performance_graph
-            # Otherwise, set the updated data and draw the plot again
-            #else
-            #    @performance_graph.plot.setData [data]
-            #    @performance_graph.plot.draw() if not pause_live_data
-
-        # Update the meters
-        #update_meters: =>
-            #$('.meter > span').each ->
-            #    $(this)
-            #        .data('origWidth', $(this).width())
-            #        .width(0)
-            #        .animate width: $(this).data('origWidth'), 1200
+        render: =>
+            @.$el.html @template @model.toJSON()
+            @.$('abbr.timeago').timeago()
+            return @
 
 # Datacenter view
 module 'DatacenterView', ->
@@ -304,6 +290,27 @@ module 'DatacenterView', ->
                 status: DataUtils.get_datacenter_reachability(@model.get('id'))
                 data:
                     namespaces: _namespaces
+
+            dc_log_entries = new LogEntries
+            for machine in machines_in_datacenter
+                if machine.get('log_entries')?
+                    dc_log_entries.add machine.get('log_entries').models
+            
+            dc_log_entries.each (log_entry) =>
+                view = new DatacenterView.RecentLogEntry
+                    model: log_entry
+                @.$('.recent-log-entries').append view.render().el
+
+            return @
+
+    # DatacenterView.RecentLogEntry
+    class @RecentLogEntry extends Backbone.View
+        className: 'datacenter-logs'
+        template: Handlebars.compile $('#datacenter_view-recent_log_entry-template').html()
+
+        render: =>
+            @.$el.html @template @model.toJSON()
+            @.$('abbr.timeago').timeago()
             return @
 
 # Sidebar view
@@ -312,7 +319,7 @@ module 'Sidebar', ->
     class @Container extends Backbone.View
         className: 'sidebar-container'
         template: Handlebars.compile $('#sidebar-container-template').html()
-        max_recent_events: 5
+        max_recent_log_entries: 5
 
         initialize: =>
             log_initial '(initializing) sidebar view: container'
@@ -321,9 +328,9 @@ module 'Sidebar', ->
             @connectivity_status = new Sidebar.ConnectivityStatus()
             @issues = new Sidebar.Issues()
 
-            @reset_event_views()
-            events.on 'add', (model, collection) =>
-                @reset_event_views()
+            @reset_log_entries()
+            recent_log_entries.on 'reset', =>
+                @reset_log_entries()
                 @render()
 
             # Set up bindings for the router
@@ -341,18 +348,18 @@ module 'Sidebar', ->
             @.$('.issues').html @issues.render().el
 
             # Render each event view and add it to the list of recent events
-            for view in @event_views
-                @.$('.recent-events').append view.render().el
+            for view in @recent_log_entries
+                @.$('.recent-log-entries').append view.render().el
 
             return @
 
-        reset_event_views: =>
-            # Wipe out any existing event views
-            @event_views = []
+        reset_log_entries: =>
+            # Wipe out any existing recent log entry views
+            @recent_log_entries = []
 
-            # Add an event view for the most recent events.
-            for event in events.models[0...@max_recent_events]
-                @event_views.push new Sidebar.Event model: event
+            # Add an log view for the most recent log entries
+            for log_entry in recent_log_entries.models[0...@max_recent_log_entries]
+                @recent_log_entries.push new Sidebar.RecentLogEntry model: log_entry
 
     # Sidebar.ClientConnectionStatus
     class @ClientConnectionStatus extends Backbone.View
@@ -447,13 +454,10 @@ module 'Sidebar', ->
                 show_resolve_issues: window.location.hash isnt @resolve_issues_route
             return @
 
-    # Sidebar.Event
-    class @Event extends Backbone.View
-        className: 'event'
-        template: Handlebars.compile $('#sidebar-event-template').html()
-
-        initialize: =>
-            log_initial '(initializing) sidebar view: event'
+    # Sidebar.RecentLogEntry
+    class @RecentLogEntry extends Backbone.View
+        className: 'recent-log-entry'
+        template: Handlebars.compile $('#sidebar-recent_log_entry-template').html()
 
         render: =>
             @.$el.html @template @model.toJSON()
@@ -602,7 +606,6 @@ module 'ResolveIssuesView', ->
                                     uuid: namespace.get('id')
                                     shard: human_readable_shard shard
                             if role is 'role_secondary'
-                                console.log shard
                                 replicas.push
                                     name: namespace.get('name')
                                     uuid: namespace.get('id')
@@ -725,47 +728,16 @@ module 'ResolveIssuesView', ->
 
             return @
 
-# Events view
-module 'EventsView', ->
-    # EventsView.Container
+# Log view
+module 'LogView', ->
+    # LogView.Container
     class @Container extends Backbone.View
-        className: 'events-view'
-        template: Handlebars.compile $('#events-container-template').html()
+        className: 'log-view'
+        template: Handlebars.compile $('#log-container-template').html()
 
         initialize: ->
             log_initial '(initializing) events view: container'
 
-            @reset_event_views()
-            events.on 'add', (model, collection) =>
-                @reset_event_views()
-                @render()
-
         render: ->
             @.$el.html @template({})
-
-            # Render each event view and add it to the list of events
-            for view in @event_views
-                @.$('.events').append view.render().el
             return @
-
-        reset_event_views: =>
-            # Wipe out any existing event views
-            @event_views = []
-
-            # Add an event view for the most recent events.
-            events.forEach (event) =>
-                @event_views.push new EventsView.Event model: event
-
-    # EventsView.Event
-    class @Event extends Backbone.View
-        className: 'event'
-        template: Handlebars.compile $('#events-event-template').html()
-
-        initialize: ->
-            log_initial '(initializing) events view: event'
-
-        render: =>
-            @.$el.html @template @model.toJSON()
-
-            return @
-

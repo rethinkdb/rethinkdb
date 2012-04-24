@@ -2,8 +2,6 @@
 #define RIAK_STRUCTURES_HPP_
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
-#include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/shared_array.hpp>
 
 #include "buffer_cache/types.hpp"
@@ -81,20 +79,6 @@ struct link_t {
     std::string key;
     std::string tag;
 };
-
-} //namespace riak
-
-// this really sucks, but we can't do a BOOST_FUSION_ADAPT_STRUCT within a
-// namespace so we need to break it
-
-BOOST_FUSION_ADAPT_STRUCT(
-    riak::link_t,
-    (std::string, bucket)
-    (std::string, key)
-    (std::string, tag)
-)
-
-namespace riak {
 
 struct link_filter_t {
     boost::optional<std::string> bucket;

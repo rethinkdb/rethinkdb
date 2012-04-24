@@ -207,11 +207,9 @@ module 'ClusterView', ->
 
         # Callback that will be registered: updates the toolbar buttons based on how many machines have been selected
         update_toolbar_buttons: =>
-            console.log 'selected machines', @get_selected_machines()
             # We need to check which machines have been checked off to decide which buttons to enable/disable
             $set_datacenter_button = @.$('.actions-bar a.btn.set-datacenter')
             $set_datacenter_button.toggleClass 'disabled', @get_selected_machines().length < 1
-            console.log 'button state',$set_datacenter_button
 
     class @MachineList extends @AbstractList
         # Use a machine-specific template for the machine list

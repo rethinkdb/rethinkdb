@@ -2,7 +2,6 @@
 #define BUFFER_CACHE_MOCK_HPP_
 
 #include "errors.hpp"
-#include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -33,7 +32,7 @@ class serializer_t;
 
 class mock_buf_lock_t : public home_thread_mixin_t {
 public:
-    mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0);
+    mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line = 0);
     explicit mock_buf_lock_t(mock_transaction_t *txn);
     mock_buf_lock_t();
     ~mock_buf_lock_t();

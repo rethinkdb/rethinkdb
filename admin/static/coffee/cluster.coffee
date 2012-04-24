@@ -14,7 +14,7 @@ class Datacenter extends Backbone.Model
 
 class Machine extends Backbone.Model
 
-class Event extends Backbone.Model
+class LogEntry extends Backbone.Model
 
 class Issue extends Backbone.Model
 
@@ -38,8 +38,8 @@ module 'DataUtils', ->
         return json
 
     @get_datacenter_reachability = (datacenter_uuid) ->
-        total = (_.filter machines.models, (m) => m.get('datacenter_uuid') == datacenter_uuid).length
-        reachable = (_.filter directory.models, (m) => machines.get(m.get('id')).get('datacenter_uuid') == datacenter_uuid).length
+        total = (_.filter machines.models, (m) => m.get('datacenter_uuid') is datacenter_uuid).length
+        reachable = (_.filter directory.models, (m) => machines.get(m.get('id')).get('datacenter_uuid') is datacenter_uuid).length
 
         if reachable == 0 and total > 0
             for machine in machines.models
@@ -144,9 +144,6 @@ module 'DataUtils', ->
         # ids. Each activity corresponds to the shard we're
         # backfilling into.
         for activity_uuid, shard_map of progress
-            # We can now start creating output json for the shard
-            from_shard_json = {}
-
             # Grab the activity from the activity map and break it up
             # into some useful information.
             activity = activity_map[activity_uuid]
@@ -175,43 +172,31 @@ module 'DataUtils', ->
                     senders_activity_id.push(backfiller.activity_id)
 
 
-            # TODO: this shizzle changed, fixxor it
-            for from_shard, progress_info of shard_map
-                from_shard_json = _.extend from_shard_json,
-                    from_shard: from_shard
-                if typeof(progress_info) is 'string'
-                    # There is an error getting progress info from the server
-                    from_shard_json = _.extend from_shard_json,
-                        replicated_blocks: -1
-                        total_blocks:      -1
-                        ratio:             -1
-                        percentage:        -1
-                        block_info_available: false
-                        ratio_available: false
-                else
-                    # We got the info!
-                    from_shard_json = _.extend from_shard_json,
-                        replicated_blocks: progress_info[0]
-                        total_blocks:      progress_info[1]
-                        ratio:             progress_info[0] / progress_info[1]
-                        percentage:        Math.round(progress_info[0] / progress_info[1] * 100)
-                        block_info_available: progress_info[0] isnt -1 and progress_info[1] isnt -1
-                        ratio_available: true
+            # We now have a map from one shard (union of all shards
+            # we're replicating from), to an array of progress
+            # info. Grab these.
+            union_shard = null
+            progress_info_arr = null
+            for _us, _pia of shard_map
+                union_shard = _us
+                progress_info_arr = _pia
+                break
 
-                # Look through all the sender activities to find the
-                # current shard and extend it with the info about the
-                # machine we're replicating from.
-                for sender_id in senders_activity_id
-                    sender = activity_map[sender_id]
-                    sender_shard = sender.value[0]
-                    if sender_shard.toString() is from_shard.toString()
-                        from_shard_json = _.extend from_shard_json,
-                            machine_id: sender.machine_id
-                            machine_name: machines.get(sender.machine_id).get('name')
-                        break
-
-            # We're ready to push this piece of output
-            _output_json.push from_shard_json
+            # We now have two arrays: senders and progress infos
+            # (which should theoretically be the same size). Combine
+            # them into data points, push each datapoint onto
+            # _output_json. We'll aggregate after the loop is done.
+            for i in [0..(progress_info_arr.length - 1)]
+                progress_info = progress_info_arr[i]
+                sender = activity_map[senders_activity_id[i]]
+                ratio_available = typeof(progress_info) isnt 'string'
+                json =
+                    replicated_blocks:    if ratio_available then progress_info[0] else null
+                    total_blocks:         if ratio_available then progress_info[1] else null
+                    block_info_available: ratio_available and progress_info[0] isnt -1 and progress_info[1] isnt -1
+                    ratio_available:      ratio_available
+                    machine_id:           sender.machine_id
+                _output_json.push json
 
         # Make sure there is stuff to report
         if _output_json.length is 0
@@ -224,6 +209,7 @@ module 'DataUtils', ->
             replicated_blocks: -1
             block_info_available: false
             ratio_available: false
+            backfiller_machines: []
         agg_json = _.reduce(_output_json, ((agg, val) ->
             if val.block_info_available
                 agg.total_blocks      = 0 if agg.total_blocks is -1
@@ -233,13 +219,16 @@ module 'DataUtils', ->
                 agg.block_info_available = true
             if val.ratio_available
                 agg.ratio_available = true
+            if typeof(val.machine_id) is 'string'
+                agg.backfiller_machines.push
+                    machine_id:   val.machine_id
+                    machine_name: machines.get(val.machine_id).get('name')
             return agg
             ), agg_start)
         # Phew, final output
         output_json =
             ratio:             agg_json.replicated_blocks / agg_json.total_blocks
             percentage:        Math.round(agg_json.replicated_blocks / agg_json.total_blocks * 100)
-            replication_details: _output_json
         output_json = _.extend output_json, agg_json
 
         return output_json
@@ -412,12 +401,12 @@ class Machines extends Backbone.Collection
     model: Machine
     name: 'Machines'
 
-class Events extends Backbone.Collection
-    model: Event
-    comparator: (event) ->
+class LogEntries extends Backbone.Collection
+    model: LogEntry
+    comparator: (log_entry) ->
         # sort strings in reverse order (return a negated string)
-        String.fromCharCode.apply String,
-            _.map(event.get('datetime').split(''), (c) -> 0xffff - c.charCodeAt())
+        #String.fromCharCode.apply String,
+        #    _.map(log_entry.get('datetime').split(''), (c) -> 0xffff - c.charCodeAt())
 
 class Issues extends Backbone.Collection
     model: Issue
@@ -497,7 +486,7 @@ class BackboneCluster extends Backbone.Router
         'machines/:id': 'machine'
         'dashboard': 'dashboard'
         'resolve_issues': 'resolve_issues'
-        'events': 'events'
+        'logs': 'logs'
 
     initialize: ->
         log_initial '(initializing) router'
@@ -511,15 +500,14 @@ class BackboneCluster extends Backbone.Router
 
         # Add and render the sidebar (visible across all views)
         @$sidebar = $('#sidebar')
-        window.sidebar = new Sidebar.Container()
-        @sidebar = window.sidebar
+        @sidebar = new Sidebar.Container
         @render_sidebar()
 
         # Render navbar for the first time
         @render_navbar()
 
         @resolve_issues = new ResolveIssuesView.Container
-        @events = new EventsView.Container
+        @logs = new LogView.Container
 
     render_sidebar: -> @$sidebar.html @sidebar.render().el
     render_navbar: -> $('#navbar-container').html @navbar.render().el
@@ -544,10 +532,10 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         @$container.html @resolve_issues.render().el
 
-    events: ->
-        log_router '/events'
+    logs: ->
+        log_router '/logs'
         clear_modals()
-        @$container.html @events.render().el
+        @$container.html @logs.render().el
 
     namespace: (id) ->
         log_router '/namespaces/' + id
@@ -675,6 +663,20 @@ set_last_seen = (last_seen) ->
         if _m
             _m.set('last_seen', timestamp)
 
+set_log_entries = (log_data_from_server) ->
+    all_log_entries = []
+    for machine_uuid, log_entries of log_data_from_server
+        _m_collection = new LogEntries
+        for json in log_entries
+            entry = new LogEntry json
+            _m_collection.add entry
+            all_log_entries.push entry
+
+        machines.get(machine_uuid).set('log_entries', _m_collection)
+        _m = machines.get(machine_uuid)
+
+    recent_log_entries.reset(all_log_entries)
+
 $ ->
     bind_dev_tools()
 
@@ -685,13 +687,13 @@ $ ->
     window.issues = new Issues
     window.progress_list = new ProgressList
     window.directory = new Directory
-    window.events = new Events
+    window.recent_log_entries = new LogEntries
     window.connection_status = new ConnectionStatus
 
     window.last_update_tstamp = 0
 
-    # Add fake issues and events for testing
-    generate_fake_events(events)
+    # Add fake issues and events for testing | DELETE TODO
+    #generate_fake_events(events)
     #generate_fake_issues(issues)
 
     # Load the data bootstrapped from the HTML template
@@ -707,6 +709,7 @@ $ ->
         $.getJSON('/ajax/progress', set_progress)
         $.getJSON('/ajax/directory', set_directory)
         $.getJSON('/ajax/last_seen', set_last_seen)
+        $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
 
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync

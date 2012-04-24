@@ -1,39 +1,15 @@
 #ifndef RIAK_RIAK_HPP_
 #define RIAK_RIAK_HPP_
 
-#include "errors.hpp"
-#include <boost/tokenizer.hpp>
+// This is used in some commented out code.
+// #include "errors.hpp"
+// #include <boost/tokenizer.hpp>
 
 #include "http/http.hpp"
 #include "riak/riak_interface.hpp"
 #include "riak/store_manager.hpp"
-#include "spirit/boost_parser.hpp"
 
 namespace riak {
-
-struct link_t;
-
-template <typename Iterator>
-struct link_parser_t: qi::grammar<Iterator, std::vector<link_t>()> {
-    link_parser_t() : link_parser_t::base_type(start) {
-        using qi::lit;
-        using qi::_val;
-        using ascii::char_;
-        using ascii::space;
-        using qi::_1;
-        using qi::repeat;
-        namespace labels = qi::labels;
-        using boost::phoenix::at_c;
-        using boost::phoenix::bind;
-
-        link %= lit("</riak/") >> +(char_ - "/") >> "/" >> +(char_ - ">") >>
-                lit(">; riaktag=\"") >> +(char_ - "\"") >> "\"";
-        start %= (link % lit(", "));
-    }
-
-    qi::rule<Iterator, link_t()> link;
-    qi::rule<Iterator, std::vector<link_t>()> start;
-};
 
 class riak_http_app_t : public http_app_t {
 public:
@@ -46,8 +22,8 @@ private:
     riak_interface_t riak_interface;
 
 private:
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    typedef tokenizer::iterator tok_iterator;
+    // typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    // typedef tokenizer::iterator tok_iterator;
 
 //handlers for specific commands, really just to break up the code
 private:

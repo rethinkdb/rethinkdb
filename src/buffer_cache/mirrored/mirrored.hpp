@@ -4,7 +4,6 @@
 #include <map>
 
 #include "errors.hpp"
-#include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -147,7 +146,7 @@ struct i_am_writeback_t { };
 // release the mc_inner_buf_t, so don't worry!
 class mc_buf_lock_t : public home_thread_mixin_t {
 public:
-    mc_buf_lock_t(mc_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0);
+    mc_buf_lock_t(mc_transaction_t *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line = 0);
     explicit mc_buf_lock_t(mc_transaction_t *txn); // Constructor used to allocate a new block
     mc_buf_lock_t();
     ~mc_buf_lock_t();
@@ -201,7 +200,7 @@ private:
     friend class writeback_t::buf_writer_t;
 
     // Internal functions used during construction
-    void initialize(mc_inner_buf_t::version_id_t version, file_account_t *io_account, boost::function<void()> call_when_in_line);
+    void initialize(mc_inner_buf_t::version_id_t version, file_account_t *io_account, lock_in_line_callback_t *call_when_in_line);
     void acquire_block(mc_inner_buf_t::version_id_t version_to_access);
 
     // True if this is an mc_buf_lock_t for a snapshotted view of the buf.

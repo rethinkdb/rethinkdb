@@ -113,19 +113,7 @@ mock_buf_lock_t::mock_buf_lock_t() :
     acquired(false)
 { }
 
-class function_in_line_callback_t : public lock_in_line_callback_t {
-public:
-    function_in_line_callback_t(boost::function<void()> *callee) : callee_(callee) { }
-    void on_in_line() {
-        if (*callee_) {
-            (*callee_)();
-        }
-    };
-private:
-    boost::function<void()> *callee_;
-};
-
-mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line) :
+mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line) :
     internal_buf(txn->cache->bufs->get(block_id)),
     access(mode),
     dirty(false),
@@ -137,9 +125,7 @@ mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, a
     rassert(block_id < txn->cache->bufs->get_size());
     rassert(internal_buf);
 
-    function_in_line_callback_t cb(&call_when_in_line);
-
-    internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, &cb);
+    internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
 
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok || mode == rwi_read_sync)) {
         internal_buf->subtree_recency = txn->recency_timestamp;
