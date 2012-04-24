@@ -4,6 +4,7 @@
 #include "clustering/administration/main/command_line.hpp"
 #include "utils.hpp"
 #include "help.hpp"
+#include "config/args.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION
@@ -18,8 +19,8 @@ int main(int argc, char *argv[]) {
 
 #ifndef NDEBUG
     rlimit core_limit;
-    core_limit.rlim_cur = RLIM_INFINITY;
-    core_limit.rlim_max = RLIM_INFINITY;
+    core_limit.rlim_cur = 100 * MEGABYTE;
+    core_limit.rlim_max = 200 * MEGABYTE;
     setrlimit(RLIMIT_CORE, &core_limit);
 #endif
 

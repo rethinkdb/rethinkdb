@@ -26,8 +26,8 @@ typedef uint64_t seed_t;
 /* SEED_MODEL_MIN_CHAR and SEED_MODEL_MAX_CHAR are chosen such that their difference is
 one less than a power of two, so that the compiler will turn the modulo operation in
 gen_key() into a bitwise "&". */
-#define SEED_MODEL_MIN_CHAR 'A'
-#define SEED_MODEL_MAX_CHAR '`'
+#define SEED_MODEL_MIN_CHAR 'a'
+#define SEED_MODEL_MAX_CHAR 'z'
 
 #define SALT1 0xFEEDABE0
 #define SALT2 0xBEDFACE8

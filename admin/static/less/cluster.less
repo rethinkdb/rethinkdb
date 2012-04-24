@@ -24,40 +24,45 @@
 }
 
 .drop-shadow() {
-    .box-shadow(0 1px 2px @grayLighter);
+.box-shadow(0 1px 2px @grayLighter);
+}
+
+.panel-gradient() {
+    #gradient > .vertical(rgba(255,255,255,1), rgba(246,246,246,1));
+}
+
+/* Temporary fix for bug introduced in Bootstrap 2.0.2 for the navbar width. */
+.navbar-inner .container {
+    width: 940px;
+}
+
+/*
+    ----------------------------
+    Development tools
+    ----------------------------
+*/
+
+#dev-tools {
+    display: none;
+    #translucent > .background(#000, 0.1);
+    border: thin solid #BBB;
+    padding: 10px 15px 20px 30px;
+    position: absolute;
+    right: 0;
+    width: 190px;
+    z-index: 1000;
+    .btn {
+        line-height: 16px;
+        margin: 5px 0px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        text-align: center;
+        width: 150px;
     }
+}
 
-    .panel-gradient() {
-        #gradient > .vertical(rgba(255,255,255,1), rgba(246,246,246,1));
-    }
-
-    /*
-        ----------------------------
-        Development tools
-        ----------------------------
-    */
-
-    #dev-tools {
-        display: none;
-        #translucent > .background(#000, 0.1);
-        border: thin solid #BBB;
-        padding: 10px 15px 20px 30px;
-        position: absolute;
-        right: 0;
-        width: 190px;
-        z-index: 1000;
-        .btn {
-            line-height: 16px;
-            margin: 5px 0px;
-            padding-top: 8px;
-            padding-bottom: 8px;
-            text-align: center;
-            width: 150px;
-        }
-    }
-
-    /*
-        ----------------------------
+/*
+    ----------------------------
     Sidebar
     ----------------------------
 */
@@ -605,15 +610,11 @@
         }
     }
 
-    .summary {
-        &.expanded { display: none; }
-
-        &.collapsed {
-           margin-top: 10px;
-           margin-bottom: 20px;
-           border-bottom: thin solid @grayLight;
-           margin-left: 28px;
-        }
+    .divider {
+       margin-top: 10px;
+       margin-bottom: 20px;
+       border-bottom: 2px solid #DDD;
+       margin-left: 28px;
     }
 
     h3.datacenter.name { 

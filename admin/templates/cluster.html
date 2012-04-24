@@ -172,7 +172,9 @@
         <script id="datacenter_list_element-template" type="text/x-handlebars-template">
             <div class="row header">
                 <div class="span7">
-                    <div class="expanded arrow"></div>
+                    {{#unless no_machines}}
+                        <div class="expanded arrow"></div>
+                    {{/unless}}
                     <h3 class="datacenter name"><span class="element-type label label-inverse">Datacenter</span><a href="#datacenters/{{id}}">{{name}}</a></h3>
                     <div class="datacenter details">
                         <p class="status">{{humanize_datacenter_reachability status}}</p>
@@ -185,17 +187,21 @@
                     </div>
                 </div>
             </div>
-            <div class="machine-list"></div>
-            <div class="summary expanded"></div>
+            {{#unless no_machines}}
+                <div class="machine-list"></div>
+            {{/unless}}
+            <div class="divider"></div>
         </script>
 
         <script id="unassigned_machines_list_element-template" type="text/x-handlebars-template">
-            <div class="header">
-                <div class="expanded arrow"></div>
-                <h3 class="datacenter name">Unassigned machines</h3>
-            </div>
-            <div class="machine-list"></div>
-            <div class="summary expanded"></div>
+            {{# unless no_machines}}
+                <div class="header">
+                    <div class="expanded arrow"></div>
+                    <h3 class="datacenter name">Unassigned machines</h3>
+                </div>
+                <div class="machine-list"></div>
+                <div class="summary expanded"></div>
+            {{/unless}}
         </script>
 
         <script id="machine_list_element-template" type="text/x-handlebars-template">

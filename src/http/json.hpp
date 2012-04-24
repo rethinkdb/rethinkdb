@@ -16,6 +16,7 @@ public:
     ~scoped_cJSON_t();
     cJSON *get() const;
     cJSON *release();
+    void reset(cJSON *);
 };
 
 class json_iterator_t {
@@ -38,6 +39,7 @@ public:
 };
 
 std::string cJSON_print_std_string(cJSON *json);
+std::string cJSON_print_unformatted_std_string(cJSON *json);
 
 void project(cJSON *json, std::set<std::string> keys);
 
