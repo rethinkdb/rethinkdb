@@ -175,10 +175,7 @@ module 'DataUtils', ->
                     senders_activity_id.push(backfiller.activity_id)
 
 
-            # Now we're organized by shards we're back-filling
-            # from. Currently a secondary can only backfill from
-            # one place, a primary can backfill from multiple
-            # places.
+            # TODO: this shizzle changed, fixxor it
             for from_shard, progress_info of shard_map
                 from_shard_json = _.extend from_shard_json,
                     from_shard: from_shard

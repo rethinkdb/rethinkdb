@@ -225,6 +225,16 @@
         <script id="namespace_view-container-template" type="text/x-handlebars-template">
             <h1>Namespace overview for {{name}}</h1>
             <div id="user-alert-space"></div>
+            <div class="profile-holder"></div>
+            <h3 class="title">Replication settings</h3>
+            <div class="section replication"></div>
+            <h3 class="title">Sharding settings</h3>
+            <div class="section sharding"></div>
+            <h3 class="title">Recent log entries</h3>
+            <div class="section recent-actions"></div>
+        </script>
+
+        <script id="namespace_view-profile-template" type="text/x-handlebars-template">
             <div class="two-panel-section">
               <div class="panel-left">
                 <h3 class="title">Namespace profile</h3>
@@ -244,14 +254,7 @@
               </div>
               <div class="two-panel-clear"></div>
             </div>
-            <h3 class="title">Replication settings</h3>
-            <div class="section replication"></div>
-            <h3 class="title">Sharding settings</h3>
-            <div class="section sharding"></div>
-            <h3 class="title">Recent log entries</h3>
-            <div class="section recent-actions"></div>
         </script>
-
         <script id="namespace_view-replica-template" type="text/x-handlebars-template">
             <table class="datacenters table">
                 <!-- Header row -->
