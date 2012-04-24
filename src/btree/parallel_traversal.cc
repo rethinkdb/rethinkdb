@@ -268,7 +268,7 @@ void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblo
 
     buf_lock_t * superblock_buf = static_cast<real_superblock_t*>(got_superblock.sb.get())->get(); // TODO: Ugh
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
-    
+
     if (helper->progress) {
         helper->progress->inform(0, traversal_progress_t::LEARN, traversal_progress_t::INTERNAL);
         helper->progress->inform(0, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
@@ -467,7 +467,7 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
         *right_incl_bound_out = right_inclusive_or_null_;
     }
 
-    if (*left_excl_bound_out && *right_incl_bound_out && 
+    if (*left_excl_bound_out && *right_incl_bound_out &&
         sized_strcmp((*left_excl_bound_out)->contents, (*left_excl_bound_out)->size, (*right_incl_bound_out)->contents, (*right_incl_bound_out)->size) == 0) {
         BREAKPOINT;
     }

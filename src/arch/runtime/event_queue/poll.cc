@@ -49,7 +49,7 @@ poll_event_queue_t::poll_event_queue_t(linux_queue_parent_t *_parent)
 
 void poll_event_queue_t::run() {
     int res;
-    
+
 #ifdef LEGACY_LINUX
     // Create an empty sigmask for ppoll
     sigset_t sigmask, sigmask_full;
@@ -68,7 +68,7 @@ void poll_event_queue_t::run() {
 #else
         res = poll(&watched_fds[0], watched_fds.size(), 0);
 #endif
-        
+
         // ppoll might return with EINTR in some cases (in particular
         // under GDB), we just need to retry.
         if (res == -1 && errno == EINTR) {
@@ -102,7 +102,7 @@ void poll_event_queue_t::run() {
         res = pthread_sigmask(SIG_SETMASK, &sigmask_full, NULL);
         guarantee_err(res == 0, "Could not block signals");
 #endif
-        
+
         parent->pump();
     }
 

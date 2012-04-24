@@ -18,11 +18,11 @@ void serve_redis(tcp_conn_t *, namespace_interface_t<redis_protocol_t> *);
 class command_t {
 public:
     virtual ~command_t() {}
-    virtual redis_protocol_t::redis_return_type execute(redis_ext *extApi, std::vector<std::string> &args); 
-    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi); 
-    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi, std::string& arg1_string); 
-    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi, std::string& arg1_string, std::string& arg2_string); 
-    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi, std::string& arg1_string, std::string& arg2_string, std::string& arg3_string); 
+    virtual redis_protocol_t::redis_return_type execute(redis_ext *extApi, std::vector<std::string> &args);
+    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi);
+    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi, std::string& arg1_string);
+    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi, std::string& arg1_string, std::string& arg2_string);
+    virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi, std::string& arg1_string, std::string& arg2_string, std::string& arg3_string);
     virtual redis_protocol_t::redis_return_type operator()(redis_ext *extApi, std::string& arg1_string, std::string& arg2_string, std::string& arg3_string, std::string &arg4_string);
 };
 
@@ -37,7 +37,7 @@ public:
     void parseCommand(tcp_conn_t *conn);
 
 private:
-    
+
     int parseNumericLine(char prefix, std::string &line);
     int parseArgNum(std::string &line);
     int parseArgLength(std::string &line);

@@ -23,7 +23,7 @@ public:
 
     T t;
 
-    deletable_t() 
+    deletable_t()
         : deleted(false), t()
     { }
 

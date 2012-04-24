@@ -58,7 +58,7 @@ class test_inserter_t {
 public:
     typedef std::map<std::string, std::string> state_t;
 
-    test_inserter_t(boost::function<void(const std::string&, const std::string&, order_token_t, signal_t *)> _wfun, 
+    test_inserter_t(boost::function<void(const std::string&, const std::string&, order_token_t, signal_t *)> _wfun,
                boost::function<std::string(const std::string&, order_token_t, signal_t *)> _rfun,
                boost::function<std::string()> _key_gen_fun,
                order_source_t *_osource, state_t *state)
@@ -71,7 +71,7 @@ public:
     template<class protocol_t>
     test_inserter_t(namespace_interface_t<protocol_t> *namespace_if, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, state_t *state)
         : values_inserted(state),
-          drainer(new auto_drainer_t), 
+          drainer(new auto_drainer_t),
           wfun(boost::bind(&test_inserter_t::write_namespace_if<protocol_t>, namespace_if, _1, _2, _3, _4)),
           rfun(boost::bind(&test_inserter_t::read_namespace_if<protocol_t>, namespace_if, _1, _2, _3)),
           key_gen_fun(_key_gen_fun),
@@ -125,7 +125,7 @@ private:
 public:
     void validate() {
         for (state_t::iterator it = values_inserted->begin();
-                               it != values_inserted->end(); 
+                               it != values_inserted->end();
                                it++) {
             cond_t interruptor;
             std::string response = rfun((*it).first, osource->check_in("unittest"), &interruptor);

@@ -45,6 +45,6 @@ void apply_json_to(cJSON *change, dummy_protocol_t::region_t *target, const ctx_
 
 template <class ctx_t>
 void  on_subfield_change(dummy_protocol_t::region_t *, const ctx_t &) { }
-}//namespace mock 
+}//namespace mock
 
 #endif

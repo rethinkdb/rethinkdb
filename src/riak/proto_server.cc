@@ -68,7 +68,7 @@ void proto_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nascent_
 
 proto_server_t::proto_server_t(int port, riak_interface_t *riak_interface)
     : riak_interface(riak_interface)
-{ 
+{
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&proto_server_t::handle_conn, this, _1)));
 }
 

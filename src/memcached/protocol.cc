@@ -591,7 +591,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t& kv) const {
         const backfill_atom_t& bf_atom = kv.backfill_atom;
-        memcached_set(bf_atom.key, btree, 
+        memcached_set(bf_atom.key, btree,
             bf_atom.value, bf_atom.flags, bf_atom.exptime,
             add_policy_yes, replace_policy_yes, INVALID_CAS,
             // TODO: Should we pass bf_atom.recency in place of repli_timestamp_t::invalid here? Ask Sam.
@@ -633,7 +633,7 @@ void memcached_protocol_t::store_t::receive_backfill(
 
 void memcached_protocol_t::store_t::reset_data(
         memcached_protocol_t::region_t subregion,
-        const metainfo_t &new_metainfo, 
+        const metainfo_t &new_metainfo,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {

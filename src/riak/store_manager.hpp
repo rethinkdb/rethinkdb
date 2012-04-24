@@ -70,7 +70,7 @@ Consider the following example.
     - riak namespaces reffered to by a string name
     - a number of independent Memcached namespaces running on different IP ports
     - riak namespaces and Memcached stores well separated
- 
+
     We can implement it by:
     - using a single store_manager to simplify store management
     - having a store_registry_t<int> which provides us a mapping from IP ports
@@ -288,7 +288,7 @@ public:
     const_iterator begin() { return store_map.begin(); }
 
     const_iterator end() { return store_map.end(); }
-    
+
     // Note: We don't provide listing capabilities, because we rely on stores
     // being registered with some store_mapper_t. So you are able to list existing
     // stores by checking all existing store_mapper_t objects.

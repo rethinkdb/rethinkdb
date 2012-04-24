@@ -65,7 +65,7 @@ public:
     }
 
     void push_front(node_t *_value) {
-    
+
         intrusive_list_node_t<node_t> *value = _value;
         rassert(value->next == NULL && value->prev == NULL && _head != _value && !value->parent_list); // Make sure that the object is not already in a list.
 #ifndef NDEBUG
@@ -82,9 +82,9 @@ public:
         }
         _size++;
     }
-    
+
     void push_back(node_t *_value) {
-    
+
         intrusive_list_node_t<node_t> *value = _value;
         rassert(value->next == NULL && value->prev == NULL && _head != _value && !value->parent_list); // Make sure that the object is not already in a list.
 #ifndef NDEBUG
@@ -101,7 +101,7 @@ public:
         }
         _size++;
     }
-    
+
     void remove(node_t *_value) {
 
         intrusive_list_node_t<node_t> *value = _value;
@@ -145,7 +145,7 @@ public:
             static_cast<intrusive_list_node_t<node_t> *>(x)->parent_list = this;
         }
 #endif
-        
+
         if(!_head) {
             // We're empty, just set head and tail to the new list
             _head = list->head();

@@ -15,7 +15,7 @@ void stat_manager_t::send_stats(mailbox_manager_t* mailbox_manager, return_addre
 
     perfmon_stats_t perfmon_stats;
     perfmon_get_stats(&perfmon_stats, true);
-    
+
     for (perfmon_stats_t::iterator it = perfmon_stats.begin(); it != perfmon_stats.end(); ++it) {
         if (requested_stats.empty() || std_contains(requested_stats, it->first)) {
             stats[it->first] = it->second;

@@ -108,7 +108,7 @@ public:
 public:
     /* Clear metablock slots and write an initial metablock to the database file */
     static void create(direct_file_t *dbfile, off64_t extent_size, metablock_t *initial);
-    
+
     /* Tries to load existing metablocks */
     void co_start_existing(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out);
     struct metablock_read_callback_t {
@@ -154,11 +154,11 @@ private:
         /* these are only used in the beginning when we want to find the metablock */
         metablock_version_t version;
     } startup_values;
-        
+
     extent_manager_t *extent_manager;
-    
+
     std::vector<off64_t> metablock_offsets;
-    
+
     enum state_t {
         state_unstarted,
         state_reading,
@@ -166,7 +166,7 @@ private:
         state_writing,
         state_shut_down,
     } state;
-    
+
     direct_file_t *dbfile;
 };
 

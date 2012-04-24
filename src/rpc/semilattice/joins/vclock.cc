@@ -53,5 +53,5 @@ void print_version_map(const version_map_t &vm) {
         debugf("%s -> %d\n", uuid_to_str(it->first).c_str(), it->second);
     }
 }
-} //namespace vclock_details 
+} //namespace vclock_details
 

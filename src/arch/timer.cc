@@ -10,17 +10,17 @@
 /* Timer token */
 class timer_token_t : public intrusive_list_node_t<timer_token_t> {
     friend class timer_handler_t;
-    
+
 private:
     bool once;   // If 'false', the timer is repeating
     int64_t interval_ms;   // If a repeating timer, this is the time between 'rings'
     int64_t next_time_in_ms;   // This is the time (in ms since the server started) of the next 'ring'
-    
+
     // It's unsafe to remove arbitrary timers from the list as we iterate over
     // it, so instead we set the 'deleted' flag and then remove them in a
     // controlled fashion.
     bool deleted;
-    
+
     void (*callback)(void *ctx);
     void *context;
 };

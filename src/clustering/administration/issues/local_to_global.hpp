@@ -35,7 +35,7 @@ public:
 class remote_issue_collector_t : public global_issue_tracker_t {
 public:
     remote_issue_collector_t(
-            const clone_ptr_t<watchable_t<std::map<peer_id_t, std::list<clone_ptr_t<local_issue_t> > > > > &_issues_view, 
+            const clone_ptr_t<watchable_t<std::map<peer_id_t, std::list<clone_ptr_t<local_issue_t> > > > > &_issues_view,
             const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table) :
         issues_view(_issues_view), machine_id_translation_table(_machine_id_translation_table) { }
 

@@ -62,7 +62,7 @@ public:
     void compress_n_oldest_blocks(unsigned int n);
 
     unsigned int get_number_of_log_blocks() const;
-    
+
 private:
 
     void reclaim_space(const size_t space_required); // Calls compress_block for select_log_block_for_compression()

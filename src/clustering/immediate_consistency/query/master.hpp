@@ -122,7 +122,7 @@ private:
                 master_t *parent;
                 std::set<peer_id_t> ack_set;
             } ack_checker(this);
- 
+
             auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
             fifo_enforcer_sink_t::exit_write_t exiter(it->second->sink(), token);
             reply = broadcaster->write(write, &exiter, &ack_checker, otok, auto_drainer_lock.get_drain_signal());

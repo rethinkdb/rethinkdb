@@ -24,9 +24,9 @@ struct counted_node_t {
 struct internal_counted_node_t : counted_node_t {
     // The number of fixed size sub-tree references in this internal node
     uint16_t n_refs;
-    
+
     // The array of sub-tree references
-    sub_ref_t refs[0]; 
+    sub_ref_t refs[0];
 
     static block_magic_t expected_magic() {
         block_magic_t bm = { { 'i', 'n', 't', 'r' } };

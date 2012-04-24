@@ -188,7 +188,7 @@ void coro_t::run() {
         } else {
             context_switch(&coro->stack.context, &cglobals->scheduler);
         }
-    } 
+    }
 }
 
 #ifndef NDEBUG
@@ -215,12 +215,12 @@ coro_t *coro_t::self() {   /* class method */
 void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
     rassert(cglobals->assert_finite_coro_waiting_counter == 0,
-        "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d", 
+        "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
         cglobals->finite_waiting_call_sites.top().first.c_str(), cglobals->finite_waiting_call_sites.top().second
         );
 
     rassert(cglobals->assert_no_coro_waiting_counter == 0,
-        "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d", 
+        "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
         cglobals->no_waiting_call_sites.top().first.c_str(), cglobals->no_waiting_call_sites.top().second
         );
 
@@ -401,7 +401,7 @@ assert_finite_coro_waiting_t::~assert_finite_coro_waiting_t() {
     cglobals->assert_finite_coro_waiting_counter--;
 }
 
-home_coro_mixin_t::home_coro_mixin_t() 
+home_coro_mixin_t::home_coro_mixin_t()
     : home_coro(coro_t::self())
 { }
 

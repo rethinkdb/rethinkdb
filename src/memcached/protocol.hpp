@@ -209,7 +209,7 @@ public:
 
         void reset_data(
                 memcached_protocol_t::region_t subregion,
-                const metainfo_t &new_metainfo, 
+                const metainfo_t &new_metainfo,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);

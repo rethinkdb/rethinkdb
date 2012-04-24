@@ -196,7 +196,7 @@ po::options_description get_machine_options() {
         ("port-offset,o", po::value<int>()->default_value(0), "This machine will set up parsers for namespaces on the namespace's port + this value.")
 #endif
         ("name,n", po::value<std::string>()->default_value("NN"), "The name for this machine (as will appear in the metadata.");
-        
+
     return desc;
 }
 
@@ -332,7 +332,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     path_t web_path = parse_as_path(argv[0]);
     web_path.nodes.pop_back();
     web_path.nodes.push_back("web");
-    
+
     bool result;
 #ifndef NDEBUG
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, port_offset, joins, port, client_port, &result, render_as_path(web_path)));

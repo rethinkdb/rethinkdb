@@ -14,7 +14,7 @@ struct poll_event_queue_t : public event_queue_base_t {
 public:
     typedef std::vector<pollfd> pollfd_vector_t;
     typedef std::map<fd_t, linux_event_callback_t*> callback_map_t;
-    
+
 public:
     explicit poll_event_queue_t(linux_queue_parent_t *parent);
     void run();
@@ -22,7 +22,7 @@ public:
 
 private:
     linux_queue_parent_t *parent;
-    
+
 private:
     pollfd_vector_t watched_fds;
     callback_map_t callbacks;

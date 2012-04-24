@@ -10,7 +10,7 @@
 struct output_visitor : boost::static_visitor<void> {
     explicit output_visitor(tcp_conn_t *conn) : out_conn(conn) {;}
     tcp_conn_t *out_conn;
-    
+
     void operator()(redis_protocol_t::status_result res) const {
         out_conn->write("+", 1);
         out_conn->write(res.msg, strlen(res.msg));

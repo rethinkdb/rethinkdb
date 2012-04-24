@@ -47,7 +47,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
         ns_goals.secondary_pinnings.get();
 
     return suggest_blueprint(directory, primary_datacenter,
-        datacenter_affinities, shards, machine_data_centers, 
+        datacenter_affinities, shards, machine_data_centers,
         primary_pinnings, secondary_pinnings);
 }
 
@@ -56,13 +56,13 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
         const namespaces_semilattice_metadata_t<protocol_t> &ns_goals,
         const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &namespaces_directory,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
-        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers) 
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
         THROWS_ONLY(missing_machine_exc_t)
 {
 
     std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > out;
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it  = ns_goals.namespaces.begin();
-                                                                                                 it != ns_goals.namespaces.end(); 
+                                                                                                 it != ns_goals.namespaces.end();
                                                                                                  ++it) {
         if (!it->second.is_deleted()) {
             std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > reactor_directory;
@@ -108,7 +108,7 @@ void fill_in_blueprints_for_protocol(
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const machine_id_t &us)
-        THROWS_ONLY(missing_machine_exc_t) 
+        THROWS_ONLY(missing_machine_exc_t)
 {
     typedef std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > blueprint_map_t;
     blueprint_map_t suggested_blueprints =

@@ -15,7 +15,7 @@ intrusive_list_t<perfmon_t> &get_var_list() {
     /* Getter function so that we can be sure that var_list is initialized before it is needed,
     as advised by the C++ FAQ. Otherwise, a perfmon_t might be initialized before the var list
     was initialized. */
-    
+
     static intrusive_list_t<perfmon_t> var_list;
     return var_list;
 }
@@ -28,7 +28,7 @@ to be constructed before the first perfmon, so it is destroyed after the last pe
 
 spinlock_t &get_var_lock() {
     /* To avoid static initialization fiasco */
-    
+
     static spinlock_t lock;
     return lock;
 }
@@ -51,7 +51,7 @@ void perfmon_get_stats(perfmon_stats_t *dest, bool include_internal) {
 
     data.reserve(get_var_list().size());
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        if (!p->internal || include_internal) 
+        if (!p->internal || include_internal)
             data.push_back(p->begin_stats());
     }
 
@@ -319,7 +319,7 @@ double perfmon_rate_monitor_t::combine_stats(double *stats) {
     double total = 0;
     for (int i = 0; i < get_num_threads(); i++) total += stats[i];
     return total;
-}    
+}
 
 void perfmon_rate_monitor_t::output_stat(const double &stat, perfmon_stats_t *dest) {
     (*dest)[name] = strprintf("%.8f", stat / ticks_to_secs(length));

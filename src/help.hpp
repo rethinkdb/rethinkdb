@@ -40,7 +40,7 @@ private:
     /* !< \brief The number of lines in the message
      */
     int msg_lines() {
-        char *c = msg; 
+        char *c = msg;
         int nlines = 0;
 
         while (c != msg_hd)

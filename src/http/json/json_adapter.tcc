@@ -25,8 +25,8 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_if_t<ctx_t>::
                                                it != res.end();
                                                it++) {
 
-        it->second->superfields.insert(it->second->superfields.end(), 
-                                      superfields.begin(), 
+        it->second->superfields.insert(it->second->superfields.end(),
+                                      superfields.begin(),
                                       superfields.end());
 
         it->second->superfields.push_back(get_change_callback());
@@ -228,7 +228,7 @@ boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_combiner_adapter_t<ctx
 
 //implementation for map_inserter_t
 template <class container_t, class ctx_t>
-json_map_inserter_t<container_t, ctx_t>::json_map_inserter_t(container_t *_target, gen_function_t _generator, value_t _initial_value) 
+json_map_inserter_t<container_t, ctx_t>::json_map_inserter_t(container_t *_target, gen_function_t _generator, value_t _initial_value)
     : target(_target), generator(_generator), initial_value(_initial_value)
 { }
 
@@ -289,7 +289,7 @@ boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_map_inserter_t<contain
 //implementation for json_adapter_with_inserter_t
 template <class container_t, class ctx_t>
 json_adapter_with_inserter_t<container_t, ctx_t>::json_adapter_with_inserter_t(container_t *_target, gen_function_t _generator, value_t _initial_value, std::string _inserter_key)
-    : target(_target), generator(_generator), 
+    : target(_target), generator(_generator),
       initial_value(_initial_value), inserter_key(_inserter_key)
 { }
 
@@ -408,7 +408,7 @@ template <class ctx_t>
 void apply_json_to(cJSON *change, char *target, const ctx_t &) {
     std::string str = get_string(change);
     if (str.size() != 1) {
-        throw schema_mismatch_exc_t(strprintf("Trying to write %s to a char." 
+        throw schema_mismatch_exc_t(strprintf("Trying to write %s to a char."
                                     "The change should only be one character long.", str.c_str()));
     } else {
         *target = str[0];
@@ -467,7 +467,7 @@ void apply_json_to(cJSON *change, boost::uuids::uuid *uuid, const ctx_t &) {
 
 template <class ctx_t>
 void on_subfield_change(boost::uuids::uuid *, const ctx_t &) { }
-} //namespace uuids 
+} //namespace uuids
 
 //JSON adapter for boost::optional
 template <class T, class ctx_t>

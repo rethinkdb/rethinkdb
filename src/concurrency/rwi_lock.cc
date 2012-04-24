@@ -119,7 +119,7 @@ bool rwi_lock_t::try_lock(access_t access, bool from_queue) {
 bool rwi_lock_t::try_lock_read(bool from_queue) {
     if (!from_queue && queue.head() && queue.head()->op == rwi_write)
         return false;
-        
+
     switch (state) {
         case rwis_unlocked:
             rassert(nreaders == 0);
@@ -146,7 +146,7 @@ bool rwi_lock_t::try_lock_write(bool from_queue) {
         queue.head()->op == rwi_read ||
         queue.head()->op == rwi_intent))
         return false;
-        
+
     switch (state) {
         case rwis_unlocked:
             rassert(nreaders == 0);
@@ -164,13 +164,13 @@ bool rwi_lock_t::try_lock_write(bool from_queue) {
             unreachable("Invalid state.");
     }
 }
-    
+
 bool rwi_lock_t::try_lock_intent(bool from_queue) {
     if (!from_queue && queue.head() &&
        (queue.head()->op == rwi_write ||
         queue.head()->op == rwi_intent))
         return false;
-        
+
     switch (state) {
         case rwis_unlocked:
             rassert(nreaders == 0);
@@ -200,7 +200,7 @@ bool rwi_lock_t::try_lock_upgrade(UNUSED bool from_queue) {
         return false;
     }
 }
-    
+
 void rwi_lock_t::enqueue_request(access_t access, lock_available_callback_t *callback) {
     queue.push_back(new lock_request_t(access, callback));
 }

@@ -76,7 +76,7 @@ struct string_set_oper_t : set_oper_t {
     }
 
     ~string_set_oper_t() {
-        
+
     }
 
 protected:
@@ -110,7 +110,7 @@ struct string_read_oper_t : read_oper_t {
         blob_t blob(value->get_content(), blob::btree_maxreflen);
         blob.read_to_string(out, txn.get(), 0, blob.valuesize());
     }
-    
+
 protected:
     redis_string_value_t *value;
 };
@@ -124,7 +124,7 @@ SHARD_W(append)
 EXECUTE_W(append) {
     string_set_oper_t oper(one, btree, timestamp, otok);
     int new_size = oper.append(two);
-    
+
     return int_response(new_size);
 }
 

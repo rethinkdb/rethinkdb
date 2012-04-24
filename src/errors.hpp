@@ -30,7 +30,7 @@
  * then "1" refers to the class pointer ("this").
  * */
 #ifdef __ICC
-#define NON_NULL_ATTR(arg) 
+#define NON_NULL_ATTR(arg)
 #else
 #define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
 #endif
