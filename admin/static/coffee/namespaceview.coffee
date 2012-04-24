@@ -10,6 +10,9 @@ module 'NamespaceView', ->
             log_initial '(initializing) namespace view: container'
             @namespace_uuid = id
 
+        wait_for_model_noop: =>
+            return true
+
         wait_for_model: =>
             @model = namespaces.get(@namespace_uuid)
             if not @model
@@ -17,13 +20,17 @@ module 'NamespaceView', ->
                 namespaces.on 'all', @render
                 return false
 
-            # Model is finally ready, bind necessary handlers
+            # Model is finally ready, unbind necessary handlers
             namespaces.off 'all', @render
-            @model.on 'all', @render
 
             # Some additional setup
-            @replicas = new NamespaceView.Replicas model: @model
-            @shards = new NamespaceView.Shards model: @model
+            @profile = new NamespaceView.Profile(model: @model)
+            @replicas = new NamespaceView.Replicas(model: @model)
+            @shards = new NamespaceView.Shards(model: @model)
+
+            # We no longer need all this logic in wait_for_model, so
+            # switch it to noop for the callers
+            @wait_for_model = @wait_for_model_noop
 
             return true
 
@@ -37,11 +44,32 @@ module 'NamespaceView', ->
             if @wait_for_model() is false
                 return @render_empty()
 
-            @.$el.html @template @model.toJSON()
+            json = @model.toJSON()
+            @.$el.html @template json
 
             # Add the replica and shards views
+            @.$('.profile-holder').html @profile.render().el
             @.$('.section.replication').html @replicas.render().el
             @.$('.section.sharding').html @shards.render().el
+
+            return @
+
+    # Profile view
+    class @Profile extends Backbone.View
+        className: 'namespace-profile'
+        template: Handlebars.compile $('#namespace_view-profile-template').html()
+
+        initialize: ->
+            # @model is a namespace.  somebody is supposed to pass model: namespace to the constructor.
+            @model.on 'all', @render
+            directory.on 'all', @render
+            progress_list.on 'all', @render
+            log_initial '(initializing) namespace view: replica'
+
+        render: =>
+            json = @model.toJSON()
+            json = _.extend json, DataUtils.get_namespace_status(@model.get('id'))
+            @.$el.html @template json
 
             return @
 
@@ -53,7 +81,9 @@ module 'NamespaceView', ->
 
         initialize: ->
             # @model is a namespace.  somebody is supposed to pass model: namespace to the constructor.
-            @model.on 'change', @render
+            @model.on 'all', @render
+            directory.on 'all', @render
+            progress_list.on 'all', @render
             log_initial '(initializing) namespace view: replica'
 
         modify_replicas: (e, datacenter) ->
@@ -118,6 +148,9 @@ module 'NamespaceView', ->
                         name: dc.get('name')
             # create json
             primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
+            if not primary_replica_count?
+                # replica affinities may be missing for new namespaces
+                primary_replica_count = 0
             json = _.extend @model.toJSON(),
                 primary:
                     id: @model.get('primary_uuid')
@@ -125,6 +158,7 @@ module 'NamespaceView', ->
                     replicas: primary_replica_count + 1 # we're adding one because primary is also a replica
                     total_machines: DataUtils.get_datacenter_machines(@model.get('primary_uuid')).length
                     acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
+                    status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
                 secondaries:
                     _.map secondary_affinities, (replica_count, uuid) =>
                         id: uuid
@@ -132,6 +166,7 @@ module 'NamespaceView', ->
                         replicas: replica_count
                         total_machines: DataUtils.get_datacenter_machines(uuid).length
                         acks: DataUtils.get_ack_expectations(@model.get('id'), uuid)
+                        status: DataUtils.get_namespace_status(@model.get('id'), uuid)
                 nothings: nothings
 
             @.$el.html @template(json)
@@ -337,6 +372,7 @@ module 'NamespaceView', ->
                         type: 'POST'
                         data: JSON.stringify(output)
                         success: (response) =>
+                            console.log(response)
                             clear_modals()
                             namespaces.get(@namespace.id).set(response)
                             $('#user-alert-space').append (@alert_tmpl {})
@@ -598,7 +634,7 @@ module 'NamespaceView', ->
 
         initialize: ->
             log_initial '(initializing) namespace view: shards'
-            @model.on 'change', @render
+            @model.on 'all', @render
             directory.on 'all', @render
             progress_list.on 'all', @render
             @shards = []

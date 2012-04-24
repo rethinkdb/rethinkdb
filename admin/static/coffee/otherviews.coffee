@@ -99,6 +99,9 @@ module 'MachineView', ->
             log_initial '(initializing) machine view: container'
             @machine_uuid = id
 
+        wait_for_model_noop: =>
+            return true
+
         wait_for_model: =>
             @model = machines.get(@machine_uuid)
             if not @model
@@ -109,9 +112,11 @@ module 'MachineView', ->
             # Model is finally ready, bind necessary handlers
             machines.off 'all', @render
             @model.on 'all', @render
-            dir_entry = directory.get(@model.get('id'))
-            if dir_entry
-                dir_entry.on 'all', @render
+            directory.on 'all', @render
+
+            # Everything has been set up, we don't need this logic any
+            # more
+            @wait_for_model = @wait_for_model_noop
 
             return true
 
@@ -216,6 +221,9 @@ module 'DatacenterView', ->
             log_initial '(initializing) datacenter view: container'
             @datacenter_uuid = id
 
+        wait_for_model_noop: ->
+            return true
+
         wait_for_model: =>
             @model = datacenters.get(@datacenter_uuid)
             if not @model
@@ -228,6 +236,10 @@ module 'DatacenterView', ->
             @model.on 'all', @render
             machines.on 'all', @render
             directory.on 'all', @render
+
+            # Everything has been set up, we don't need this logic any
+            # more
+            @wait_for_model = @wait_for_model_noop
 
             return true
 
