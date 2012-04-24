@@ -111,6 +111,11 @@ module 'ClusterView', ->
 
             super namespaces, ClusterView.NamespaceListElement, 'tbody.list'
 
+        render: =>
+            super
+            @update_toolbar_buttons()
+            return @
+
         # Extend the AbstractList.add_element method to bind a callback to each namespace added to the list
         add_element: (element) =>
             machine_list_element = super element
@@ -132,7 +137,7 @@ module 'ClusterView', ->
         # Callback that will be registered: updates the toolbar buttons based on how many namespaces have been selected
         update_toolbar_buttons: =>
             # We need to check how many namespaces have been checked off to decide which buttons to enable/disable
-            $remove_namespaces_button = $('.actions-bar a.btn.remove-namespace')
+            $remove_namespaces_button = @.$('.actions-bar a.btn.remove-namespace')
             $remove_namespaces_button.toggleClass 'disabled', @get_selected_elements().length < 1
 
     class @DatacenterList extends @AbstractList
@@ -158,8 +163,9 @@ module 'ClusterView', ->
 
         render: =>
             super
-            
+
             @.$('.unassigned-machines').html @unassigned_machines.render().el
+            @update_toolbar_buttons()
 
             return @
 
@@ -201,9 +207,11 @@ module 'ClusterView', ->
 
         # Callback that will be registered: updates the toolbar buttons based on how many machines have been selected
         update_toolbar_buttons: =>
+            console.log 'selected machines', @get_selected_machines()
             # We need to check which machines have been checked off to decide which buttons to enable/disable
-            $set_datacenter_button = $('.actions-bar a.btn.set-datacenter')
+            $set_datacenter_button = @.$('.actions-bar a.btn.set-datacenter')
             $set_datacenter_button.toggleClass 'disabled', @get_selected_machines().length < 1
+            console.log 'button state',$set_datacenter_button
 
     class @MachineList extends @AbstractList
         # Use a machine-specific template for the machine list
@@ -263,7 +271,7 @@ module 'ClusterView', ->
         mark_selection: =>
             # Toggle the selected class  and check / uncheck  its checkbox
             @.$el.toggleClass 'selected', @selected
-            $(':checkbox', @el).prop 'checked', @selected
+            @.$(':checkbox', @el).prop 'checked', @selected
 
     # Namespace list element
     class @NamespaceListElement extends @CheckboxListElement
@@ -411,7 +419,7 @@ module 'ClusterView', ->
 
         remove_datacenter: (event) ->
             log_action 'remove datacenter button clicked'
-            if not $(event.currentTarget).hasClass 'disabled'
+            if not @.$(event.currentTarget).hasClass 'disabled'
                 @remove_datacenter_dialog.render @model 
             event.preventDefault()
 
