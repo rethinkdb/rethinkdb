@@ -388,7 +388,7 @@
         </script>
 
         <script id="backfill_progress_summary-partial" type="text/x-handlebars-template">
-{{#if backfill_progress}}replicating{{#if backfill_progress.ratio_available}}{{#if backfill_progress.replication_details}} from {{#comma_separated backfill_progress.replication_details}}<a href="/#machines/{{machine_id}}">{{machine_name}}</a>{{/comma_separated}}{{/if}}{{/if}}{{else}}up to date{{/if}}
+{{#if backfill_progress}}replicating{{#if backfill_progress.ratio_available}}{{#if backfill_progress.backfiller_machines}} from {{#comma_separated backfill_progress.backfiller_machines}}<a href="/#machines/{{machine_id}}">{{machine_name}}</a>{{/comma_separated}}{{/if}}{{/if}}{{else}}up to date{{/if}}
         </script>
         
         <script id="backfill_progress_details-partial" type="text/x-handlebars-template">
