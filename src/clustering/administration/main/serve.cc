@@ -84,7 +84,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     remote_issue_collector_t remote_issue_tracker(
         translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::local_issues))),
-        directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id))
+        translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id)))
         );
     global_issue_aggregator_t::source_t remote_issue_tracker_feed(&issue_aggregator, &remote_issue_tracker);
 
