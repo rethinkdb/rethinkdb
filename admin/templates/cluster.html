@@ -163,6 +163,7 @@
                     <span class="protocol {{protocol}}">{{protocol}}</span>
                     <p><span class="status">Status: {{reachability}} ({{nashards}} of {{nshards}} masters live; {{nareplicas}} of {{nreplicas}} replicas live)</span></p>
                     <p><span class="contains">Contains: {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}</span></p>
+                    <p><span class="replication">Replication: {{> backfill_progress_summary}}</span></p>
                 </div>
                 <div class="clearboth"></div>
             </td>
@@ -218,10 +219,24 @@
         <script id="namespace_view-container-template" type="text/x-handlebars-template">
             <h1>Namespace overview for {{name}}</h1>
             <div id="user-alert-space"></div>
-            <h3 class="title">Namespace profile</h3>
-            <div class="section summary">
-                <p class="protocol">Protocol: {{protocol}}</p>
-                <p class="port">Port: {{port}}</p>
+            <div class="two-panel-section">
+              <div class="panel-left">
+                <h3 class="title">Namespace profile</h3>
+                <div class="section summary">
+                  <p class="protocol">Protocol: {{protocol}}</p>
+                  <p class="port">Port: {{port}}</p>
+                </div>
+              </div>
+              <div class="panel-right">
+                <h3 class="title">Namespace status</h3>
+                <div class="section summary">
+                  <p>Status: {{reachability}}</p>
+                  <p>Masters: {{nashards}} of {{nshards}} reachable</p>
+                  <p>Replicas: {{nareplicas}} of {{nreplicas}} reachable</p>
+                  <p>Replication: {{> backfill_progress_summary}}</p>
+                </div>
+              </div>
+              <div class="two-panel-clear"></div>
             </div>
             <h3 class="title">Replication settings</h3>
             <div class="section replication"></div>
@@ -243,13 +258,21 @@
                     <th>&nbsp;</th>
                 </tr>
                 <!-- Primary datacenter -->
-                {{#with primary }}
+                {{#with primary}}
                 <tr>
                     <td>{{name}}</td>
                     <td>Primary</td>
                     <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "machine" total_machines}})</td>
                     <td>{{acks}}</td>
-                    <td><font color="green">ok</font></td>
+                    <td>
+                      {{#with status}}
+                      <span class="master-status">{{nashards}} of {{nshards}} masters live</span>
+                      {{#if nreplicas}}
+                      <span class="replica-status">{{nareplicas}} of {{nreplicas}} replicas live</span>
+                      {{/if}}
+                      <span class="replication-status">{{> backfill_progress_summary}}</span>
+                      {{/with}}
+                    </td>
                     <td><a id="edit-primary" href="#">Edit replicas</a></td>
                 </tr>
                 {{/with}}
@@ -260,7 +283,12 @@
                     <td>Secondary</td>
                     <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "machine" total_machines}})</td>
                     <td>{{acks}}</td>
-                    <td><font color="green">ok</font></td>
+                    <td>
+                      {{#with status}}
+                      <span class="replica-status">{{nareplicas}} of {{nreplicas}} replicas live</span>
+                      <span class="replication-status">{{> backfill_progress_summary}}</span>
+                      {{/with}}
+                    </td>
                     <td><a class="edit-secondary {{this.id}}" href="#">Edit replicas</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a></td>
                 </tr>
                 {{/each}}
@@ -351,7 +379,7 @@
         </script>
 
         <script id="backfill_progress_summary-partial" type="text/x-handlebars-template">
-{{#if backfill_progress}}replicating{{#if backfill_progress.ratio_available}} from {{#comma_separated backfill_progress.replication_details}}<a href="/#machines/{{machine_id}}">{{machine_name}}</a>{{/comma_separated}}{{/if}}{{else}}up to date{{/if}}
+{{#if backfill_progress}}replicating{{#if backfill_progress.ratio_available}}{{#if backfill_progress.replication_details}} from {{#comma_separated backfill_progress.replication_details}}<a href="/#machines/{{machine_id}}">{{machine_name}}</a>{{/comma_separated}}{{/if}}{{/if}}{{else}}up to date{{/if}}
         </script>
         
         <script id="backfill_progress_details-partial" type="text/x-handlebars-template">
@@ -512,7 +540,7 @@
               <div class="two-panel-clear"></div>
             </div>
             <h3 class="title">Machines</h3>
-            <div class="section machine-list">
+            <div class="section dc-machine-list">
               <ul>
                 {{#each machines}}
                 <li><a href='#machines/{{id}}'>{{name}}</a> {{humanize_machine_reachability status}}</li>

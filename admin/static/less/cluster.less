@@ -627,7 +627,7 @@
         margin-top: 10px;
         margin-left: 28px;
     }
-    .machine-list {
+    .dc-machine-list {
         margin-left: 28px;
     }
 }
@@ -722,6 +722,9 @@
         td {
             border-bottom: thin solid @grayLighter;
             padding: 10px 0;
+            span.master-status, span.replica-status {
+                display: block;
+            }
         } 
     }
 

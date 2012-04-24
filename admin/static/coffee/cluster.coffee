@@ -99,6 +99,13 @@ module 'DataUtils', ->
     @get_datacenter_machines = (datacenter_uuid) ->
         return _.filter(machines.models, (m) -> m.get('datacenter_uuid') is datacenter_uuid)
 
+    # Return a list of machines relevant to a namespace
+    @get_namespace_machines = (namespace_uuid) ->
+        mids = []
+        for mid, roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+            mids.push(mid)
+        return mids
+
     # Organizes the directory as a map of activity ids
     @get_directory_activities = ->
         activities = {}
@@ -240,6 +247,99 @@ module 'DataUtils', ->
 
         return output_json
 
+    # Computes aggregate backfill progress for a namespace. The
+    # datacenter argument can optionally limit the aggreggate values
+    # to the datacenter.
+    @get_backfill_progress_agg = (namespace_uuid, datacenter_uuid) ->
+        # Find a list of machines we care about
+        namespace_machines = @get_namespace_machines(namespace_uuid)
+        if datacenter_uuid?
+            datacenter_machines = _.map @get_datacenter_machines(datacenter_uuid), (m) -> m.get('id')
+        else
+            datacenter_machines = namespace_machines
+        machines = _.intersection namespace_machines, datacenter_machines
+        # Collect backfill progress for each machine
+        backfills = []
+        for machine_uuid in machines
+            for shard in namespaces.get(namespace_uuid).get('shards')
+                backfills.push(@get_backfill_progress(namespace_uuid, shard, machine_uuid))
+        backfills = _.without backfills, null
+        if backfills.length is 0
+            return null
+        # Aggregate backfill results
+        agg_start =
+            total_blocks: -1
+            replicated_blocks: -1
+            block_info_available: false
+            ratio_available: false
+        agg_json = _.reduce(backfills, ((agg, val) ->
+            if not val?
+                return agg
+            if val.block_info_available
+                agg.total_blocks      = 0 if agg.total_blocks is -1
+                agg.replicated_blocks = 0 if agg.replicated_blocks is -1
+                agg.total_blocks      += val.total_blocks
+                agg.replicated_blocks += val.replicated_blocks
+                agg.block_info_available = true
+            if val.ratio_available
+                agg.ratio_available = true
+            return agg
+            ), agg_start)
+        # Phew, final output
+        output_json =
+            ratio:             agg_json.replicated_blocks / agg_json.total_blocks
+            percentage:        Math.round(agg_json.replicated_blocks / agg_json.total_blocks * 100)
+        output_json = _.extend output_json, agg_json
+
+        return output_json
+
+    # datacenter_uuid is optional and limits the information to a
+    # specific datacenter
+    @get_namespace_status = (namespace_uuid, datacenter_uuid) ->
+        namespace = namespaces.get(namespace_uuid)
+
+        json =
+            nshards: 0
+            nreplicas: 0
+            nashards: 0
+            nareplicas: 0
+
+        # machine and datacenter counts
+        _machines = []
+        _datacenters = []
+
+        for machine_uuid, role of namespace.get('blueprint').peers_roles
+            if datacenter_uuid? and
+               machines.get(machine_uuid) and
+               machines.get(machine_uuid).get('datacenter_uuid') isnt datacenter_uuid
+                continue
+            peer_accessible = directory.get(machine_uuid)
+            machine_active_for_namespace = false
+            for shard, role_name of role
+                if role_name is 'role_primary'
+                    machine_active_for_namespace = true
+                    json.nshards += 1
+                    if peer_accessible?
+                        json.nashards += 1
+                if role_name is 'role_secondary'
+                    machine_active_for_namespace = true
+                    json.nreplicas += 1
+                    if peer_accessible?
+                        json.nareplicas += 1
+            if machine_active_for_namespace
+                _machines[_machines.length] = machine_uuid
+                _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
+
+        json.nmachines = _.uniq(_machines).length
+        json.ndatacenters = _.uniq(_datacenters).length
+        if json.nshards is json.nashards
+            json.reachability = 'Live'
+        else
+            json.reachability = 'Down'
+
+        json.backfill_progress = @get_backfill_progress_agg(namespace_uuid, datacenter_uuid)
+
+        return json
 
 class DataStream extends Backbone.Model
     max_cached: 250

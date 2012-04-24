@@ -10,7 +10,7 @@ module 'ClusterView', ->
         #   collection: Backbone collection that backs the list
         #   element_view_class: Backbone view that each element in the list will be rendered with
         #   container: JQuery selector string specifying the div that each element view will be appended to
-        #   filter: optional filter that defines what elements to use from the collection using a truth test 
+        #   filter: optional filter that defines what elements to use from the collection using a truth test
         #           (function whose argument is a Backbone model and whose output is true/false)
         initialize: (collection, element_view_class, container, filter) ->
             #log_initial '(initializing) list view: ' + class_name @collection
@@ -110,7 +110,7 @@ module 'ClusterView', ->
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
             super namespaces, ClusterView.NamespaceListElement, 'tbody.list'
-                
+
         add_namespace: (event) =>
             log_action 'add namespace button clicked'
             @add_namespace_dialog.render()
@@ -146,7 +146,7 @@ module 'ClusterView', ->
 
         render: =>
             super
-            
+
             @.$('.unassigned-machines').html @unassigned_machines.render().el
 
             return @
@@ -262,41 +262,7 @@ module 'ClusterView', ->
             super @template
 
         json_for_template: =>
-            json = _.extend super(),
-                nshards: 0
-                nreplicas: 0
-                nashards: 0
-                nareplicas: 0
-
-            # machine and datacenter counts
-            _machines = []
-            _datacenters = []
-
-            for machine_uuid, role of @model.get('blueprint').peers_roles
-                peer_accessible = directory.get(machine_uuid)
-                machine_active_for_namespace = false
-                for shard, role_name of role
-                    if role_name is 'role_primary'
-                        machine_active_for_namespace = true
-                        json.nshards += 1
-                        if peer_accessible?
-                            json.nashards += 1
-                    if role_name is 'role_secondary'
-                        machine_active_for_namespace = true
-                        json.nreplicas += 1
-                        if peer_accessible?
-                            json.nareplicas += 1
-                if machine_active_for_namespace
-                    _machines[_machines.length] = machine_uuid
-                    _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
-
-            json.nmachines = _.uniq(_machines).length
-            json.ndatacenters = _.uniq(_datacenters).length
-            if json.nshards is json.nashards
-                json.reachability = 'Live'
-            else
-                json.reachability = 'Down'
-
+            json = _.extend super(), DataUtils.get_namespace_status(@model.get('id'))
             return json
 
     class @CollapsibleListElement extends Backbone.View
@@ -395,7 +361,7 @@ module 'ClusterView', ->
         remove_datacenter: (event) ->
             log_action 'remove datacenter button clicked'
             if not $(event.currentTarget).hasClass 'disabled'
-                @remove_datacenter_dialog.render @model 
+                @remove_datacenter_dialog.render @model
             event.preventDefault()
 
         rebuild_machine_list: =>

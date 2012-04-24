@@ -9,6 +9,7 @@ module 'NamespaceView', ->
         initialize: (id) =>
             log_initial '(initializing) namespace view: container'
             @namespace_uuid = id
+            directory.on 'all', @render
 
         wait_for_model: =>
             @model = namespaces.get(@namespace_uuid)
@@ -37,7 +38,10 @@ module 'NamespaceView', ->
             if @wait_for_model() is false
                 return @render_empty()
 
-            @.$el.html @template @model.toJSON()
+            json = @model.toJSON()
+            json = _.extend json, DataUtils.get_namespace_status(@model.get('id'))
+
+            @.$el.html @template json
 
             # Add the replica and shards views
             @.$('.section.replication').html @replicas.render().el
@@ -54,6 +58,7 @@ module 'NamespaceView', ->
         initialize: ->
             # @model is a namespace.  somebody is supposed to pass model: namespace to the constructor.
             @model.on 'change', @render
+            directory.on 'all', @render
             log_initial '(initializing) namespace view: replica'
 
         modify_replicas: (e, datacenter) ->
@@ -118,6 +123,9 @@ module 'NamespaceView', ->
                         name: dc.get('name')
             # create json
             primary_replica_count = @model.get('replica_affinities')[@model.get('primary_uuid')]
+            if not primary_replica_count?
+                # replica affinities may be missing for new namespaces
+                primary_replica_count = 0
             json = _.extend @model.toJSON(),
                 primary:
                     id: @model.get('primary_uuid')
@@ -125,6 +133,7 @@ module 'NamespaceView', ->
                     replicas: primary_replica_count + 1 # we're adding one because primary is also a replica
                     total_machines: DataUtils.get_datacenter_machines(@model.get('primary_uuid')).length
                     acks: DataUtils.get_ack_expectations(@model.get('id'), @model.get('primary_uuid'))
+                    status: DataUtils.get_namespace_status(@model.get('id'), @model.get('primary_uuid'))
                 secondaries:
                     _.map secondary_affinities, (replica_count, uuid) =>
                         id: uuid
@@ -132,6 +141,7 @@ module 'NamespaceView', ->
                         replicas: replica_count
                         total_machines: DataUtils.get_datacenter_machines(uuid).length
                         acks: DataUtils.get_ack_expectations(@model.get('id'), uuid)
+                        status: DataUtils.get_namespace_status(@model.get('id'), uuid)
                 nothings: nothings
 
             @.$el.html @template(json)
