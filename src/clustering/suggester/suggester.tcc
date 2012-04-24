@@ -61,7 +61,7 @@ bool operator<(const priority_t &x, const priority_t &y) {
     }
 
     //You Lose!!
-    //Continue? 
+    //Continue?
     //(uncomment the below line to continue)
     //goto CONTINUE;
     //5
@@ -176,7 +176,7 @@ std::map<machine_id_t, typename blueprint_details::role_t> suggest_blueprint_for
     }
     machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
     sub_blueprint[primary] = blueprint_details::role_primary;
-    
+
     //Update primary_usage
     get_with_default(*primary_usage, primary, 0)++;
 
@@ -257,8 +257,8 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
         }
 
         std::map<machine_id_t, typename blueprint_details::role_t> shard_blueprint =
-            suggest_blueprint_for_shard(directory, primary_datacenter, datacenter_affinities, *it, 
-                                        machine_data_centers, machines_shard_primary_is_pinned_to, 
+            suggest_blueprint_for_shard(directory, primary_datacenter, datacenter_affinities, *it,
+                                        machine_data_centers, machines_shard_primary_is_pinned_to,
                                         machines_shard_secondary_is_pinned_to, &primary_usage,
                                         &secondary_usage);
         for (typename std::map<machine_id_t, typename blueprint_details::role_t>::iterator jt = shard_blueprint.begin();

@@ -18,7 +18,7 @@ public:
     typedef std::pair<unsigned, unsigned> hash_range_t; //keys which hash to something in the range, [first, second)
 
     //universe_t and null_t are never implemented anywhere because they
-    //have no implementation null sets and universe sets are all the same 
+    //have no implementation null sets and universe sets are all the same
     //class universe_t {};
     //class null_t {};
 public:
@@ -39,7 +39,7 @@ public:
     typedef finite_t::const_iterator key_it_t;
 
     //does x contain y
-    
+
     struct contains_functor : public boost::static_visitor<bool> {
         bool operator()(const finite_t &, const finite_t &) const;
         bool operator()(const finite_t &, const hash_range_t &) const;

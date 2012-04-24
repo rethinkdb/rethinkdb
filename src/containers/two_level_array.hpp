@@ -32,7 +32,7 @@ public:
 private:
     static const unsigned int num_chunks = max_size / chunk_size + 1;
     unsigned int count;
-    
+
     struct chunk_t {
         chunk_t()
             : count(0), values()   // default-initialize each value in values
@@ -50,7 +50,7 @@ private:
     static unsigned int index_for_key(key_t key) {
         return key % chunk_size;
     }
-    
+
 public:
     two_level_array_t() : count(0), chunks(new chunk_t*[num_chunks]) {
         for (unsigned int i = 0; i < num_chunks; i++) {
@@ -82,19 +82,19 @@ public:
             return value_t();
         }
     }
-        
+
     void set(key_t key, value_t value) {
         unsigned int chunk_id = chunk_for_key(key);
         chunk_t *chunk = chunks[chunk_id];
-        
+
         if (!bool(value) && !chunk) {
             /* If the user is inserting a zero value into an already-empty chunk, exit early so we
             don't create a new empty chunk */
             return;
         }
-        
+
         if (!chunk) chunk = chunks[chunk_id] = new chunk_t;
-        
+
         if (bool(chunk->values[index_for_key(key)])) {
             chunk->count--;
             count--;
@@ -104,13 +104,13 @@ public:
             chunk->count++;
             count++;
         }
-        
+
         if (chunk->count == 0) {
             chunks[chunk_id] = NULL;
             delete chunk;
         }
     }
-    
+
     unsigned int size() {
         return count;
     }

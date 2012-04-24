@@ -33,12 +33,12 @@ void vclock_t<T>::cull_old_values() {
 }
 
 template <class T>
-vclock_t<T>::vclock_t() { 
+vclock_t<T>::vclock_t() {
     values.insert(std::make_pair(vclock_details::version_map_t(), T()));
 }
 
 template <class T>
-vclock_t<T>::vclock_t(const T &_t, const boost::uuids::uuid &us) { 
+vclock_t<T>::vclock_t(const T &_t, const boost::uuids::uuid &us) {
     stamped_value_t tmp = std::make_pair(vclock_details::version_map_t(), _t);
     tmp.first[us] = 1;
     values.insert(tmp);

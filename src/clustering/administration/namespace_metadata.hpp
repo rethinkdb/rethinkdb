@@ -85,7 +85,7 @@ void on_subfield_change(namespace_semilattice_metadata_t<protocol_t> *, const ct
 template <class protocol_t>
 class namespaces_semilattice_metadata_t {
 public:
-    typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > namespace_map_t; 
+    typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > namespace_map_t;
     namespace_map_t namespaces;
 
     branch_history_t<protocol_t> branch_history;
@@ -123,7 +123,7 @@ void apply_json_to(cJSON *change, namespaces_semilattice_metadata_t<protocol_t> 
 }
 
 template <class ctx_t, class protocol_t>
-void on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) { 
+void on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
     on_subfield_change(&target->namespaces, ctx);
 }
 
@@ -141,7 +141,7 @@ public:
 
 struct namespace_metadata_ctx_t {
     boost::uuids::uuid us;
-    explicit namespace_metadata_ctx_t(boost::uuids::uuid _us) 
+    explicit namespace_metadata_ctx_t(boost::uuids::uuid _us)
         : us(_us)
     { }
 };

@@ -57,11 +57,11 @@ public:
 
     // If is_full(space_needed), the next call to make_space(space_needed) probably has to evict something
     bool is_full(unsigned int space_needed);
-    
+
     // make_space tries to make sure that the number of blocks currently in memory is at least
     // 'space_needed' less than the user-specified memory limit.
     void make_space(unsigned int space_needed = 0);
-    
+
     /* The page replacement component actually serves two roles. In addition to its primary role as
     a mechanism for kicking out buffers when memory runs low, it also has the job of keeping track
     of all of the buffers in memory in such a way that the cache can quickly request a pointer to
@@ -70,7 +70,7 @@ public:
     buffers in memory anyway, so the cache can depend on the page replacement system's buffer list
     rather than keeping a buffer list of its own. */
     evictable_t *get_first_buf();
-    
+
 private:
     unsigned int unload_threshold;
     cache_t *cache;

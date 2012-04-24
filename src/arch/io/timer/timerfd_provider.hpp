@@ -12,9 +12,9 @@ public:
                        timer_provider_callback_t *_callback,
                        int64_t secs, int32_t nsecs);
     ~timerfd_provider_t();
-    
+
     void on_event(int events);
-    
+
 private:
     linux_event_queue_t *queue;
     timer_provider_callback_t *callback;

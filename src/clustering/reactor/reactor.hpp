@@ -99,7 +99,7 @@ private:
     typedef region_map_t<protocol_t, backfill_candidate_t> best_backfiller_map_t;
 
     void update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions,
-                                const typename backfill_candidate_t::backfill_location_t &backfiller, 
+                                const typename backfill_candidate_t::backfill_location_t &backfiller,
                                 best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history);
 
     bool is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
@@ -108,10 +108,10 @@ private:
     static backfill_candidate_t make_backfill_candidate_from_binary_blob(const binary_blob_t &b);
 
     /* Implemented in clustering/reactor/reactor_be_secondary.tcc */
-    bool find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, 
+    bool find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
                                        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > *broadcaster_out);
 
-    bool find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, 
+    bool find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
                                       clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_out);
 
     void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
@@ -151,7 +151,7 @@ private:
 
     std::map<
             typename protocol_t::region_t,
-            std::pair<typename blueprint_details::role_t, cond_t *> 
+            std::pair<typename blueprint_details::role_t, cond_t *>
             > current_roles;
 
     auto_drainer_t drainer;

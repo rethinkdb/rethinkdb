@@ -113,7 +113,7 @@ struct redis_hash_value_t : redis_value_t {
     }
 } __attribute__((__packed__));
 
-// The value support is identical at this point 
+// The value support is identical at this point
 typedef redis_hash_value_t redis_set_value_t;
 
 // Yes this is coppied from counted.hpp
@@ -293,13 +293,13 @@ public:
     ~value_sizer_t() {;}
 
     int size(const void *value) const {
-        const redis_nested_string_value_t *actual_value = reinterpret_cast<const redis_nested_string_value_t *>(value); 
+        const redis_nested_string_value_t *actual_value = reinterpret_cast<const redis_nested_string_value_t *>(value);
         blob_t blob(const_cast<char *>(actual_value->content), blob::btree_maxreflen);
         return blob.refsize(block_size_);
     }
 
     bool fits(const void *value, int length_available) const {
-        const redis_nested_string_value_t *actual_value = reinterpret_cast<const redis_nested_string_value_t *>(value); 
+        const redis_nested_string_value_t *actual_value = reinterpret_cast<const redis_nested_string_value_t *>(value);
         int value_size = size(actual_value);
         return value_size <= length_available;
     }
@@ -347,7 +347,7 @@ public:
     ~value_sizer_t() {;}
 
     int size(const void *void_value) const {
-        const redis_nested_sorted_set_value_t *value = reinterpret_cast<const redis_nested_sorted_set_value_t *>(void_value); 
+        const redis_nested_sorted_set_value_t *value = reinterpret_cast<const redis_nested_sorted_set_value_t *>(void_value);
         blob_t blob(const_cast<char *>(value->content), blob::btree_maxreflen);
         return sizeof(redis_nested_sorted_set_value_t) + blob.refsize(block_size_);
     }

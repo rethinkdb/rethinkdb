@@ -53,7 +53,7 @@ void run_backfill_test() {
             region_map_t<dummy_protocol_t, binary_blob_t>(
                 region,
                 binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
-                ),  
+                ),
                 token,
                 &non_interruptor
             );
@@ -130,7 +130,7 @@ void run_backfill_test() {
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token1;
     backfillee_store.new_read_token(token1);
 
-    region_map_t<dummy_protocol_t, version_range_t> backfillee_metadata = 
+    region_map_t<dummy_protocol_t, version_range_t> backfillee_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
             backfillee_store.get_metainfo(token1, &interruptor),
             &binary_blob_t::get<version_range_t>
@@ -139,7 +139,7 @@ void run_backfill_test() {
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token2;
     backfiller_store.new_read_token(token2);
 
-    region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata = 
+    region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
             backfiller_store.get_metainfo(token2, &interruptor),
             &binary_blob_t::get<version_range_t>

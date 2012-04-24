@@ -9,9 +9,9 @@
 class store_loader_t : public boost::static_visitor<store_object_t> {
 public:
     store_object_t operator()(standard_serializer_t::config_t &config) const {
-        struct : public promise_t<bool>, 
+        struct : public promise_t<bool>,
                  public log_serializer_t::check_callback_t
-        { 
+        {
             void on_serializer_check(bool is_existing) { pulse(is_existing); }
         } existing_cb;
         log_serializer_t::check_existing(config.private_dynamic_config.db_filename.c_str(), &existing_cb);

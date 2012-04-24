@@ -5,7 +5,7 @@
 #include "perfmon.hpp"
 
 evictable_t::evictable_t(mc_cache_t *_cache, bool loaded)
-    : eviction_priority(DEFAULT_EVICTION_PRIORITY), cache(_cache), page_repl_index(static_cast<unsigned int>(-1)) 
+    : eviction_priority(DEFAULT_EVICTION_PRIORITY), cache(_cache), page_repl_index(static_cast<unsigned int>(-1))
 {
     cache->assert_thread();
     if (loaded) {

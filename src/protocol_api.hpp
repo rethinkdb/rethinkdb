@@ -73,7 +73,7 @@ public:
     typedef typename internal_vec_t::const_iterator const_iterator;
     typedef typename internal_vec_t::iterator iterator;
 
-    region_map_t() THROWS_NOTHING { 
+    region_map_t() THROWS_NOTHING {
         regions_and_values.push_back(internal_pair_t(protocol_t::region_t::universe(), value_t()));
     }
 
@@ -351,7 +351,7 @@ public:
 
     store_subview_t(store_view_t<protocol_t> *_store_view, typename protocol_t::region_t region)
         : store_view_t<protocol_t>(region), store_view(_store_view)
-    { 
+    {
         rassert(region_is_superset(_store_view->get_region(), region));
     }
 

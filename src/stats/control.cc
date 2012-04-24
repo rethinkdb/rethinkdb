@@ -13,14 +13,14 @@ control_map_t& get_control_map() {
     /* Getter function so that we can be sure that control_list is initialized before it is needed,
     as advised by the C++ FAQ. Otherwise, a control_t might be initialized before the control list
     was initialized. */
-    
+
     static control_map_t control_map;
     return control_map;
 }
 
 spinlock_t& get_control_lock() {
     /* To avoid static initialization fiasco */
-    
+
     static spinlock_t lock;
     return lock;
 }

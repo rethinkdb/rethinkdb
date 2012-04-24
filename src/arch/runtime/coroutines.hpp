@@ -99,7 +99,7 @@ public:
         coro_t *self = coro_t::self();
         return self ? self->selfname_number : 0;
     }
-    
+
     const std::string& get_coroutine_type() { return coroutine_type; }
 #endif
 

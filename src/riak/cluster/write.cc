@@ -66,4 +66,4 @@ write_response_t unshard(std::vector<write_response_t> responses, temporary_cach
     return responses.front();
 }
 
-} //namespace riak 
+} //namespace riak

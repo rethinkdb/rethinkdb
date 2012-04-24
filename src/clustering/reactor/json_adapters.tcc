@@ -206,7 +206,7 @@ void apply_json_to(cJSON *, nothing_when_done_erasing_t<protocol_t> *, const ctx
 
 template <class protocol_t, class ctx_t>
 void on_subfield_change(nothing_when_done_erasing_t<protocol_t> *, const ctx_t &) { }
-} //namespace reactor_business_card_details 
+} //namespace reactor_business_card_details
 
 //json adapter for reactor_business_card_t
 template <class protocol_t, class ctx_t>

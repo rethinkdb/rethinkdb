@@ -41,7 +41,7 @@ public:
     std::string description;
     issue_type_t type;
     ticks_t time;
-    
+
 };
 
 //json adapter concept for issue_json_t

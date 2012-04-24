@@ -36,7 +36,7 @@ struct hash_read_oper_t : public read_oper_t {
             blob_t blob(value->content, blob::btree_maxreflen);
             blob.read_to_string(*str_out, txn.get(), 0, blob.valuesize());
             return true;
-        } 
+        }
 
         return false;
     }
@@ -71,7 +71,7 @@ protected:
     block_id_t root;
 
     std::pair<std::string, std::string> transform_value(const key_value_pair_t<redis_nested_string_value_t> &pair) {
-        blob_t blob(pair.value.get(), blob::btree_maxreflen); 
+        blob_t blob(pair.value.get(), blob::btree_maxreflen);
         std::string str;
         blob.read_to_string(str, txn.get(), 0, blob.valuesize());
 
@@ -97,7 +97,7 @@ struct hash_set_oper_t : set_oper_t {
         } else if(value->get_redis_type() != REDIS_HASH) {
             throw "ERR Operation against key holding the wrong kind of value";
         }
-        
+
         root = value->get_root();
     }
 
@@ -352,7 +352,7 @@ EXECUTE_W(hmset) {
         std::string value = *iter;
 
         if(oper.set_field(field, value)) {
-            num_set++; 
+            num_set++;
         }
     }
 

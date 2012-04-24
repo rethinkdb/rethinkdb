@@ -166,6 +166,6 @@ class protocol_t {
     typedef riak::region_t region_t;
 };
 
-} //namespace riak 
+} //namespace riak
 
-#endif 
+#endif

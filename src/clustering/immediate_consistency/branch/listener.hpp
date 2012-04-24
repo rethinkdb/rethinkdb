@@ -28,7 +28,7 @@ There are four ways a `listener_t` can go wrong:
     the store's metadata.
  *  It can fail to contact the backfiller. In that case,
     the constructor will throw `backfiller_lost_exc_t`.
- *  It can fail to contact the broadcaster. In this case it will throw `broadcaster_lost_exc_t`. 
+ *  It can fail to contact the broadcaster. In this case it will throw `broadcaster_lost_exc_t`.
  *  It can successfully join the branch, but then lose contact with the
     broadcaster later. In that case, `get_broadcaster_lost_signal()` will be
     pulsed when it loses touch.
@@ -106,7 +106,7 @@ public:
         for (typename version_map_t::const_iterator it = start_point.begin();
                                                     it != start_point.end();
                                                     it++) {
-            
+
             version_t version = it->second.latest;
             rassert(
                 version.branch == branch_id ||
@@ -243,8 +243,8 @@ public:
         rassert(registration_done_cond.get_ready_signal()->is_pulsed());
 
 #ifndef NDEBUG
-        region_map_t<protocol_t, binary_blob_t> expected_initial_metainfo(store->get_region(), 
-                                                                          binary_blob_t(version_range_t(version_t(branch_id, 
+        region_map_t<protocol_t, binary_blob_t> expected_initial_metainfo(store->get_region(),
+                                                                          binary_blob_t(version_range_t(version_t(branch_id,
                                                                                                                   registration_done_cond.get_value().broadcaster_begin_timestamp))));
 
         rassert(expected_initial_metainfo == initial_metainfo);

@@ -146,7 +146,7 @@ mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn) :
     acquired(true)
 {
     rassert(access == rwi_write);
-    
+
     block_id_t block_id = txn->cache->bufs->get_size();
     txn->cache->bufs->set_size(block_id + 1);
     internal_buf = new internal_buf_t(txn->cache, block_id, txn->recency_timestamp);

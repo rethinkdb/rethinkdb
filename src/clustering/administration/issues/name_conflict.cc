@@ -3,7 +3,7 @@
 name_conflict_issue_t::name_conflict_issue_t(
         const std::string &_type,
         const std::string &_contested_name,
-        const std::set<boost::uuids::uuid> &_contestants) : 
+        const std::set<boost::uuids::uuid> &_contestants) :
     type(_type), contested_name(_contested_name), contestants(_contestants) { }
 
 std::string name_conflict_issue_t::get_description() const {

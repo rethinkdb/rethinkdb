@@ -42,7 +42,7 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
 template <class protocol_t>
 class watchable_and_reactor_t : private master_t<protocol_t>::ack_checker_t {
 public:
-    watchable_and_reactor_t(reactor_driver_t<protocol_t> *parent_, 
+    watchable_and_reactor_t(reactor_driver_t<protocol_t> *parent_,
                             namespace_id_t _namespace_id,
                             const blueprint_t<protocol_t> &bp,
                             const std::string &_file_path) :
@@ -219,7 +219,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
                  const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                  std::string _file_path)
     : mbox_manager(_mbox_manager),
-      directory_view(_directory_view), 
+      directory_view(_directory_view),
       branch_history(metadata_field(&namespaces_semilattice_metadata_t<protocol_t>::branch_history, _namespaces_view)),
       machine_id_translation_table(_machine_id_translation_table),
       namespaces_view(_namespaces_view),

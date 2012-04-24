@@ -201,7 +201,7 @@ void poll_system_stats(void *) {
              current_stats.stime - TLS_get_last_stats().stime) /
              realtime_elapsed);
         pm_memory_faults.record((current_stats.majflt - TLS_get_last_stats().majflt) / realtime_elapsed);
-        
+
         TLS_set_last_stats(current_stats);
         TLS_set_last_ticks(current_ticks);
     }

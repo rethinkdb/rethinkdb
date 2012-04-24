@@ -68,7 +68,7 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
         /* Now check that latest_write is also latest for all other chunks.
         Keep on validating as long as we have a latest_write candidate. */
         for (int block = start; latest_write && block < end; block++) {
-            
+
             it = chunk_queues.find(start);
             rassert(it != chunk_queues.end()); // Note: At least latest_write should be there!
             std::deque<action_t*> &queue = it->second;

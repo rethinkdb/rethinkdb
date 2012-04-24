@@ -61,7 +61,7 @@ public:
     cluster_directory_metadata_t(
             machine_id_t mid,
             const get_stats_mailbox_address_t& _stats_mailbox,
-            const log_server_business_card_t &lmb) : 
+            const log_server_business_card_t &lmb) :
         machine_id(mid), get_stats_mailbox_address(_stats_mailbox),log_mailbox(lmb) { }
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;

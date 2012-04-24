@@ -143,7 +143,7 @@ public:
     test_reactor_t(reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, store_view_t<protocol_t> *store_view) :
         blueprint_watchable(initial_blueprint),
         reactor(&r->mailbox_manager, this,
-              translate_into_watchable(r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory))), 
+              translate_into_watchable(r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory))),
               r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), store_view),
         reactor_directory_copier(reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional),
                                  r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory))),
@@ -256,7 +256,7 @@ public:
 
     void run_queries() {
         for (unsigned i = 0; i < test_clusters.size(); i++) {
-            cluster_namespace_interface_t<protocol_t> namespace_if(&(&test_clusters[i])->mailbox_manager, 
+            cluster_namespace_interface_t<protocol_t> namespace_if(&(&test_clusters[i])->mailbox_manager,
                                                                    translate_into_watchable((&test_clusters[i])->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory))));
 
             nap(50);

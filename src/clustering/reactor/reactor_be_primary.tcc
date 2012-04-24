@@ -8,7 +8,7 @@
 
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
-    : version_range(_version_range), places_to_get_this_version(_places_to_get_this_version), 
+    : version_range(_version_range), places_to_get_this_version(_places_to_get_this_version),
       present_in_our_store(_present_in_our_store)
 { }
 
@@ -23,7 +23,7 @@ void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t
                                                    const typename backfill_candidate_t::backfill_location_t &backfiller,
                                                    best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history) {
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator i =  offered_backfill_versions.begin();
-                                                                            i != offered_backfill_versions.end(); 
+                                                                            i != offered_backfill_versions.end();
                                                                             i++) {
         version_range_t challenger = i->second;
 
@@ -35,13 +35,13 @@ void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t
 
             if (version_is_divergent(branch_history, challenger.latest, incumbent.latest, j->first)) {
                 throw divergent_data_exc_t();
-            } else if (incumbent.latest == challenger.latest && 
+            } else if (incumbent.latest == challenger.latest &&
                        incumbent.is_coherent() == challenger.is_coherent()) {
                 j->second.places_to_get_this_version.push_back(backfiller);
             } else if (version_is_ancestor(branch_history, incumbent.latest, challenger.latest, j->first) ||
                        (incumbent.latest == challenger.latest && challenger.is_coherent() && !incumbent.is_coherent())) {
                 j->second = backfill_candidate_t(challenger,
-                                                 std::vector<typename backfill_candidate_t::backfill_location_t>(1, backfiller), 
+                                                 std::vector<typename backfill_candidate_t::backfill_location_t>(1, backfiller),
                                                  false);
             } else {
                 //if we get here our incumbent is better than the challenger.
@@ -82,10 +82,10 @@ boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > extra
     }
 }
 
-/* Check if: 
- *      - every peer is connected 
+/* Check if:
+ *      - every peer is connected
  *      - has a reactor
- *      - foreach key in region peer has activity: 
+ *      - foreach key in region peer has activity:
  *          -secondary_without_primary_t
  *          -nothing_when_safe_t
  *          -nothing_t
@@ -94,12 +94,12 @@ boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > extra
  *
  * If these conditions are met is_safe_for_us_to_be_primary will return true
  * and the best_backfiller_out parameter will contain a set of backfillers we
- * can use to get the latest version of the data. 
+ * can use to get the latest version of the data.
  * Otherwise it will return false and best_backfiller_out will be unmodified.
  */
 template <class protocol_t>
 bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
-                                                         const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out) 
+                                                         const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out)
 {
     typedef reactor_business_card_t<protocol_t> rb_t;
 
@@ -252,7 +252,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
 
             /* Figure out what version of the data is already present in our
              * store so we don't backfill anything prior to it. */
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token; 
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token;
             store->new_read_token(order_token);
             region_map_t<protocol_t, binary_blob_t> metainfo = store->get_metainfo(order_token, interruptor);
             best_backfiller_map_t best_backfillers = region_map_transform<protocol_t, binary_blob_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_binary_blob);
@@ -284,12 +284,12 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
                     coro_t::spawn_sometime(boost::bind(&do_backfill<protocol_t>,
                                                        mailbox_manager, branch_history, store,
                                                        it->first,
-                                                       it->second.places_to_get_this_version[0].backfiller, 
+                                                       it->second.places_to_get_this_version[0].backfiller,
                                                        backfill_session_id,
                                                        p,
                                                        interruptor));
-                    reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id, 
-                                                                                         it->second.places_to_get_this_version[0].peer_id, 
+                    reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id,
+                                                                                         it->second.places_to_get_this_version[0].peer_id,
                                                                                          it->second.places_to_get_this_version[0].activity_id);
 
                     backfills.push_back(backfill_location);

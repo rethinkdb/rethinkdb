@@ -16,11 +16,11 @@ public:
             const region_map_t<protocol_t, boost::uuids::uuid> &primary_pinnings,
             const region_map_t<protocol_t, std::set<boost::uuids::uuid> > &secondary_pinnings);
 
-    std::string get_description() const; 
+    std::string get_description() const;
 
     cJSON *get_json_description();
 
-    pinnings_shards_mismatch_issue_t *clone() const; 
+    pinnings_shards_mismatch_issue_t *clone() const;
 
     namespace_id_t offending_namespace;
     std::set<typename protocol_t::region_t> shards;

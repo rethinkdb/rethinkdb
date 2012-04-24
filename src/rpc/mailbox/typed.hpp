@@ -9,7 +9,7 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include "rpc/mailbox/mailbox.hpp"
 
 template<class invalid_proto_t> class mailbox_t {
-    /* If someone tries to instantiate `mailbox_t` 
+    /* If someone tries to instantiate `mailbox_t`
     incorrectly, this should cause an error. */
     typename invalid_proto_t::you_are_using_mailbox_t_incorrectly foo;
 };

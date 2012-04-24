@@ -275,7 +275,7 @@ public:
     struct address_in_use_exc_t :
         public std::exception
     {
-        address_in_use_exc_t(const char* hostname, int port) throw () : 
+        address_in_use_exc_t(const char* hostname, int port) throw () :
             info(strprintf("The address at %s:%d is already in use", hostname, port)) { }
         ~address_in_use_exc_t() throw () { }
 

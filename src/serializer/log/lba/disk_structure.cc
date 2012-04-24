@@ -14,7 +14,7 @@ lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, direct_file_t 
     } else {
         last_extent = NULL;
     }
-    
+
     if (metablock->lba_superblock_offset != NULL_OFFSET) {
         superblock_offset = metablock->lba_superblock_offset;
         startup_superblock_count = metablock->lba_superblock_entries_count;
@@ -25,7 +25,7 @@ lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, direct_file_t 
             DEVICE_BLOCK_SIZE);
         superblock_extent = new extent_t(em, file, superblock_extent_offset,
             superblock_offset + superblock_size - superblock_extent_offset);
-        
+
         startup_superblock_buffer = reinterpret_cast<lba_superblock_t *>(malloc_aligned(superblock_size, DEVICE_BLOCK_SIZE));
         superblock_extent->read(
             superblock_offset - superblock_extent_offset,
@@ -119,12 +119,12 @@ class lba_writer_t :
 public:
     int outstanding_cbs;
     lba_disk_structure_t::sync_callback_t *callback;
-    
+
     explicit lba_writer_t(lba_disk_structure_t::sync_callback_t *cb) {
         outstanding_cbs = 0;
         callback = cb;
     }
-    
+
     void on_extent_sync() {
         outstanding_cbs--;
         if (outstanding_cbs == 0) {
@@ -136,12 +136,12 @@ public:
 
 void lba_disk_structure_t::sync(file_account_t *io_account, sync_callback_t *cb) {
     lba_writer_t *writer = new lba_writer_t(cb);
-    
+
     /* Count how many things need to be synced */
     if (last_extent) writer->outstanding_cbs++;
     if (superblock_extent) writer->outstanding_cbs++;
     writer->outstanding_cbs += extents_in_superblock.size();
-    
+
     /* Sync the things that need to be synced */
     if (writer->outstanding_cbs == 0) {
         cb->on_lba_sync();

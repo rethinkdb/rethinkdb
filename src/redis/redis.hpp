@@ -52,7 +52,7 @@ struct redis_protocol_t {
 
     typedef boost::variant<status_result, error_result, int, std::string, nil_result, std::vector<std::string> >
         redis_return_type;
-    
+
     typedef boost::variant<std::vector<std::string>, std::string> indicated_key_t;
 
     class read_t {
@@ -145,7 +145,7 @@ struct redis_protocol_t {
         explicit sum_integer_t(int val) : integer_result_t(val) {;}
         virtual void deshard(const void *other) {
             const integer_result_t *oth = reinterpret_cast<const integer_result_t *>(other);
-            value += oth->value; 
+            value += oth->value;
         }
     };
 
@@ -199,7 +199,7 @@ struct redis_protocol_t {
         error_result value;
     };
 
-    // Redis commands as read_t's and write_t's 
+    // Redis commands as read_t's and write_t's
 
     #define WRITE_0(CNAME)\
     struct CNAME : write_operation_t { \
@@ -254,7 +254,7 @@ struct redis_protocol_t {
         ARG_TYPE_THREE three; \
         ARG_TYPE_FOUR four; \
     };
-    
+
     #define READ__0(CNAME)\
     struct CNAME : read_operation_t { \
         CNAME() { } \
@@ -467,7 +467,7 @@ struct redis_protocol_t {
     READ__2(zrevrank, std::string, std::string)
     READ__2(zscore, std::string, std::string)
     WRITE_N(zunionstore)
-    
+
     #undef WRITE_0
     #undef WRITE_1
     #undef WRITE_2

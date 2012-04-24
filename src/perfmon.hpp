@@ -63,11 +63,11 @@ public:
 public:
     explicit perfmon_t(bool internal = true);
     virtual ~perfmon_t();
-    
+
     /* To get a value from a given perfmon: Call begin_stats(). On each core, call the visit_stats()
     method with the pointer that was returned from begin_stats(). Then call end_stats() on the
     pointer on the same core that you called begin_stats() on.
-    
+
     You usually want to call perfmon_get_stats() instead of calling these methods directly. */
     virtual void *begin_stats() = 0;
     virtual void visit_stats(void *) = 0;
@@ -264,7 +264,7 @@ public:
  * something ends, call end() with the same value as begin. It will produce
  * stats for the number of active events, the average length of an event, and
  * so on. If `global_full_perfmon` is false, it won't report any timing-related
- * stats because `get_ticks()` is rather slow.  
+ * stats because `get_ticks()` is rather slow.
  *
  * Frequently we're in the case
  * where we'd like to have a single slow perfmon up, but don't want the other
@@ -272,7 +272,7 @@ public:
  * field on it, which when true makes it run regardless of --full-perfmon flag
  * this can also be enable and disabled at runtime. */
 
-struct perfmon_duration_sampler_t 
+struct perfmon_duration_sampler_t
     : public control_t
 {
 

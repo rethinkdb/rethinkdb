@@ -268,7 +268,7 @@ void run_event_watchers_test() {
             connection_established.pulse();
         }
     }
-    
+
     EXPECT_FALSE(connection_established.is_pulsed());
     cr1.join(c2.get_peer_address(c2.get_me()));
     let_stuff_happen();

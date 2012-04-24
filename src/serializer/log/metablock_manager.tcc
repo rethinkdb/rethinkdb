@@ -20,7 +20,7 @@ template<class metablock_t>
 void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++() {
     mb_slot++;
     wraparound = false;
-    
+
     if (mb_slot >= mgr->metablock_offsets.size()) {
         mb_slot = 0;
         wraparound = true;
@@ -29,7 +29,7 @@ void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++()
 
 template<class metablock_t>
 off64_t metablock_manager_t<metablock_t>::metablock_manager_t::head_t::offset() {
-    
+
     return mgr->metablock_offsets[mb_slot];
 }
 
@@ -48,17 +48,17 @@ void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::pop() {
 template<class metablock_t>
 metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     : head(this), extent_manager(em), state(state_unstarted), dbfile(NULL)
-{    
+{
     rassert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
     mb_buffer = reinterpret_cast<crc_metablock_t *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     rassert(mb_buffer);
     mb_buffer_in_use = false;
-    
+
     /* Build the list of metablock locations in the file */
-    
+
     for (off64_t i = 0; i < MB_NEXTENTS; i++) {
         off64_t extent = i * extent_manager->extent_size * MB_EXTENT_SEPARATION;
-        
+
         /* The reason why we don't reserve extent 0 is that it has already been reserved for the
         static header. We can share the first extent with the static header if and only if we don't
         overwrite the first DEVICE_BLOCK_SIZE of it, but we musn't reserve it again. */
@@ -70,9 +70,9 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
 
 template<class metablock_t>
 metablock_manager_t<metablock_t>::~metablock_manager_t() {
-    
+
     rassert(state == state_unstarted || state == state_shut_down);
-    
+
     rassert(!mb_buffer_in_use);
     free(mb_buffer);
 }
@@ -116,12 +116,12 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
     rassert(state == state_unstarted);
     dbfile = file;
     rassert(dbfile != NULL);
-    
+
     rassert(!mb_buffer_in_use);
     mb_buffer_in_use = true;
 
     startup_values.version = MB_BAD_VERSION;
-    
+
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
 
     // Reading metablocks by issuing one I/O request at a time is
@@ -140,7 +140,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
         }
 
     private:
-        crc_metablock_t *buffer;        
+        crc_metablock_t *buffer;
     } lbm(metablock_offsets.size());
     struct : public iocallback_t, public cond_t {
         int refcount;
@@ -182,17 +182,17 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
 
     // Cool, hopefully got our metablock. Wrap it up.
     if (startup_values.version == MB_BAD_VERSION) {
-                
+
         /* no metablock found anywhere -- the DB is toast */
-                
+
         next_version_number = MB_START_VERSION;
         *mb_found = false;
-                
+
         /* The log serializer will catastrophically fail when it sees that mb_found is
            false. We could catastrophically fail here, but it's a bit nicer to have the
            metablock manager as a standalone component that doesn't know how to behave if there
            is no metablock. */
-                
+
     } else {
         /* we found a metablock, set everything up */
         next_version_number = startup_values.version + 1;
@@ -224,12 +224,12 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_
 
     rassert(state == state_ready);
     rassert(!mb_buffer_in_use);
-    
+
     mb_buffer->prepare(mb, next_version_number++);
     rassert(mb_buffer->check_crc());
 
     mb_buffer_in_use = true;
-    
+
     state = state_writing;
     co_write(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, io_account);
 
@@ -253,7 +253,7 @@ bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, file_acc
 
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::shutdown() {
-    
+
     rassert(state == state_ready);
     rassert(!mb_buffer_in_use);
     state = state_shut_down;
