@@ -42,15 +42,12 @@ template <class node_t>
 class intrusive_list_t {
 public:
     intrusive_list_t() : _head(NULL), _tail(NULL), _size(0) {}
+    ~intrusive_list_t() {
+        rassert(empty());
+    }
 
     bool empty() {
         return !head();
-    }
-
-    void clear() {
-        while (node_t *n = _head) {
-            remove(n);
-        }
     }
 
     node_t *head() {

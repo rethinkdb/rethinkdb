@@ -91,6 +91,7 @@ private:
 class write_message_t {
 public:
     write_message_t() { }
+    ~write_message_t();
 
     void append(const void *p, int64_t n);
 
