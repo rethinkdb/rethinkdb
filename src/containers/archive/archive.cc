@@ -31,6 +31,13 @@ int64_t force_read(read_stream_t *s, void *p, int64_t n) {
     return written_so_far;
 }
 
+write_message_t::~write_message_t() {
+    for (write_buffer_t *buffer = buffers_.head(); buffer; buffer = buffers_.next(buffer)) {
+        buffers_.remove(buffer);
+        delete buffer;
+    }
+}
+
 void write_message_t::append(const void *p, int64_t n) {
     while (n > 0) {
         if (buffers_.empty() || buffers_.tail()->size == write_buffer_t::DATA_SIZE) {
@@ -55,11 +62,6 @@ int send_write_message(write_stream_t *s, write_message_t *msg) {
             return -1;
         }
         rassert(res == p->size);
-
-        write_buffer_t *tmp = list->next(p);
-        list->remove(p);
-        delete(p);
-        p = tmp;
     }
     return 0;
 }
