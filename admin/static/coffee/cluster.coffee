@@ -709,7 +709,7 @@ $ ->
         $.getJSON('/ajax/progress', set_progress)
         $.getJSON('/ajax/directory', set_directory)
         $.getJSON('/ajax/last_seen', set_last_seen)
-        $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
+        #$.getJSON('/ajax/log/_?max_length=10', set_log_entries)
 
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync
