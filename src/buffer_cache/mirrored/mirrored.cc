@@ -493,21 +493,8 @@ mc_buf_lock_t::mc_buf_lock_t() :
 { }
 
 
-class boost_function_in_line_callback_t : public lock_in_line_callback_t {
-public:
-    boost_function_in_line_callback_t(boost::function<void()> *callee) : callee_(callee) { }
-    void on_in_line() {
-        if (*callee_) {
-            (*callee_)();
-        }
-    };
-private:
-    boost::function<void()> *callee_;
-};
-
-
 /* Constructor to obtain a buffer lock within a transaction */
-mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id, access_t mode_, boost::function<void()> call_when_in_line) :
+mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id, access_t mode_, lock_in_line_callback_t *call_when_in_line) :
     acquired(false),
     snapshotted(transaction->snapshotted),
     non_locking_access(snapshotted),
@@ -562,7 +549,7 @@ mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id,
 
 void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
                                file_account_t *io_account,
-                               boost::function<void()> call_when_in_line)
+                               lock_in_line_callback_t *call_when_in_line)
 {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
@@ -589,13 +576,12 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
         guarantee(data != NULL);
 
         // we never needed to get in line, so just call the function straight-up to ensure it gets called.
-        if (call_when_in_line) call_when_in_line();
+        if (call_when_in_line) call_when_in_line->on_in_line();
     } else {
         ticks_t lock_start_time;
         // the top version is the right one for us; acquire a lock of the appropriate type first
         pm_bufs_acquiring.begin(&lock_start_time);
-        boost_function_in_line_callback_t in_line_cb(&call_when_in_line);
-        inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, &in_line_cb);
+        inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
         pm_bufs_acquiring.end(&lock_start_time);
 
         // It's possible that, now that we've acquired the lock, that

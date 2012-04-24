@@ -2,6 +2,7 @@
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <string.h>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -18,7 +19,7 @@ void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id,
 
     /* Prepare the config block */
     mc_config_block_t *c = reinterpret_cast<mc_config_block_t *>(serializer->malloc());
-    bzero(c, serializer->get_block_size().value());
+    memset(c, 0, serializer->get_block_size().value());
     c->magic = mc_config_block_t::expected_magic;
     c->cache = *config;
 
@@ -417,6 +418,6 @@ void patch_disk_storage_t::init_log_block(const block_id_t log_block_id) {
     void *buf_data = log_buf->get_data_major_write();
 
     *reinterpret_cast<block_magic_t *>(buf_data) = log_block_magic;
-    bzero(reinterpret_cast<char *>(buf_data) + sizeof(log_block_magic), cache->serializer->get_block_size().value() - sizeof(log_block_magic));
+    memset(reinterpret_cast<char *>(buf_data) + sizeof(log_block_magic), 0, cache->serializer->get_block_size().value() - sizeof(log_block_magic));
 }
 

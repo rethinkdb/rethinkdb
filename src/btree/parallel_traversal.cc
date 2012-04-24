@@ -187,7 +187,7 @@ private:
 };
 
 void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::shared_ptr<ranged_block_ids_t>& ids_source);
-void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null, acquisition_start_callback_t *acq_start_cb);
+void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null, lock_in_line_callback_t *acq_start_cb);
 
 void process_a_leaf_node(traversal_state_t *state, buf_lock_t *buf, int level,
                          const btree_key_t *left_exclusive_or_null,
@@ -207,14 +207,14 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
     traversal_state_t *state;
     int level;
     block_id_t block_id;
-    acquisition_start_callback_t *acq_start_cb;
+    lock_in_line_callback_t *acq_start_cb;
     node_ready_callback_t *node_ready_cb;
 
     void you_may_acquire() {
 
         buf_lock_t *block = new buf_lock_t(state->transaction_ptr,
-            block_id, state->helper->btree_node_mode(),
-            boost::bind(&acquisition_start_callback_t::on_started_acquisition, acq_start_cb));
+                                           block_id, state->helper->btree_node_mode(),
+                                           acq_start_cb);
 
         rassert(coro_t::self());
         node_ready_callback_t *local_cb = node_ready_cb;
@@ -224,7 +224,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
 };
 
 
-void acquire_a_node(traversal_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb, node_ready_callback_t *node_ready_cb) {
+void acquire_a_node(traversal_state_t *state, int level, block_id_t block_id, lock_in_line_callback_t *acq_start_cb, node_ready_callback_t *node_ready_cb) {
     rassert(coro_t::self());
     acquire_a_node_fsm_t *fsm = new acquire_a_node_fsm_t;
     fsm->state = state;
@@ -340,7 +340,7 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
     }
 };
 
-void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null,  acquisition_start_callback_t *acq_start_cb) {
+void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, lock_in_line_callback_t *acq_start_cb) {
     do_a_subtree_traversal_fsm_t *fsm = new do_a_subtree_traversal_fsm_t;
     fsm->state = state;
     fsm->level = level;
@@ -415,7 +415,7 @@ void interesting_children_callback_t::no_more_interesting_children() {
     decr_acquisition_countdown();
 }
 
-void interesting_children_callback_t::on_started_acquisition() {
+void interesting_children_callback_t::on_in_line() {
     decr_acquisition_countdown();
 }
 
