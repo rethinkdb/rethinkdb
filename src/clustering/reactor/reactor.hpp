@@ -18,13 +18,16 @@ public:
             mailbox_manager_t *mailbox_manager,
             typename master_t<protocol_t>::ack_checker_t *ack_checker,
             clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > reactor_directory,
-            clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > master_directory_view,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
             clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable,
             store_view_t<protocol_t> *_underlying_store) THROWS_NOTHING;
 
     clone_ptr_t<watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > get_reactor_directory() {
         return directory_echo_writer.get_watchable();
+    }
+
+    clone_ptr_t<watchable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > get_master_directory() {
+        return master_directory.get_watchable();
     }
 
 private:
@@ -141,7 +144,6 @@ private:
 
     watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > master_directory;
     mutex_assertion_t master_directory_lock;
-    watchable_write_copier_t<std::map<master_id_t, master_business_card_t<protocol_t> > > master_directory_copier;
 
     clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable;
 
