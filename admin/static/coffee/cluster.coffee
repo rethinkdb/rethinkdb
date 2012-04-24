@@ -144,9 +144,6 @@ module 'DataUtils', ->
         # ids. Each activity corresponds to the shard we're
         # backfilling into.
         for activity_uuid, shard_map of progress
-            # We can now start creating output json for the shard
-            from_shard_json = {}
-
             # Grab the activity from the activity map and break it up
             # into some useful information.
             activity = activity_map[activity_uuid]
@@ -175,43 +172,31 @@ module 'DataUtils', ->
                     senders_activity_id.push(backfiller.activity_id)
 
 
-            # TODO: this shizzle changed, fixxor it
-            for from_shard, progress_info of shard_map
-                from_shard_json = _.extend from_shard_json,
-                    from_shard: from_shard
-                if typeof(progress_info) is 'string'
-                    # There is an error getting progress info from the server
-                    from_shard_json = _.extend from_shard_json,
-                        replicated_blocks: -1
-                        total_blocks:      -1
-                        ratio:             -1
-                        percentage:        -1
-                        block_info_available: false
-                        ratio_available: false
-                else
-                    # We got the info!
-                    from_shard_json = _.extend from_shard_json,
-                        replicated_blocks: progress_info[0]
-                        total_blocks:      progress_info[1]
-                        ratio:             progress_info[0] / progress_info[1]
-                        percentage:        Math.round(progress_info[0] / progress_info[1] * 100)
-                        block_info_available: progress_info[0] isnt -1 and progress_info[1] isnt -1
-                        ratio_available: true
+            # We now have a map from one shard (union of all shards
+            # we're replicating from), to an array of progress
+            # info. Grab these.
+            union_shard = null
+            progress_info_arr = null
+            for _us, _pia of shard_map
+                union_shard = _us
+                progress_info_arr = _pia
+                break
 
-                # Look through all the sender activities to find the
-                # current shard and extend it with the info about the
-                # machine we're replicating from.
-                for sender_id in senders_activity_id
-                    sender = activity_map[sender_id]
-                    sender_shard = sender.value[0]
-                    if sender_shard.toString() is from_shard.toString()
-                        from_shard_json = _.extend from_shard_json,
-                            machine_id: sender.machine_id
-                            machine_name: machines.get(sender.machine_id).get('name')
-                        break
-
-            # We're ready to push this piece of output
-            _output_json.push from_shard_json
+            # We now have two arrays: senders and progress infos
+            # (which should theoretically be the same size). Combine
+            # them into data points, push each datapoint onto
+            # _output_json. We'll aggregate after the loop is done.
+            for i in [0..(progress_info_arr.length - 1)]
+                progress_info = progress_info_arr[i]
+                sender = activity_map[senders_activity_id[i]]
+                ratio_available = typeof(progress_info) isnt 'string'
+                json =
+                    replicated_blocks:    if ratio_available then progress_info[0] else null
+                    total_blocks:         if ratio_available then progress_info[1] else null
+                    block_info_available: ratio_available and progress_info[0] isnt -1 and progress_info[1] isnt -1
+                    ratio_available:      ratio_available
+                    machine_id:           sender.machine_id
+                _output_json.push json
 
         # Make sure there is stuff to report
         if _output_json.length is 0
@@ -224,6 +209,7 @@ module 'DataUtils', ->
             replicated_blocks: -1
             block_info_available: false
             ratio_available: false
+            backfiller_machines: []
         agg_json = _.reduce(_output_json, ((agg, val) ->
             if val.block_info_available
                 agg.total_blocks      = 0 if agg.total_blocks is -1
@@ -233,13 +219,16 @@ module 'DataUtils', ->
                 agg.block_info_available = true
             if val.ratio_available
                 agg.ratio_available = true
+            if typeof(val.machine_id) is 'string'
+                agg.backfiller_machines.push
+                    machine_id:   val.machine_id
+                    machine_name: machines.get(val.machine_id).get('name')
             return agg
             ), agg_start)
         # Phew, final output
         output_json =
             ratio:             agg_json.replicated_blocks / agg_json.total_blocks
             percentage:        Math.round(agg_json.replicated_blocks / agg_json.total_blocks * 100)
-            replication_details: _output_json
         output_json = _.extend output_json, agg_json
 
         return output_json
