@@ -19,7 +19,7 @@
 /* The reactor driver is also responsible for the translation from
 `persistable_blueprint_t` to `blueprint_t`. */
 template<class protocol_t>
-blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protocol_t> &input, const clone_ptr_t<directory_rview_t<machine_id_t> > &translation_table) {
+blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protocol_t> &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
     blueprint_t<protocol_t> output;
     for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator it = input.machines_roles.begin();
             it != input.machines_roles.end(); it++) {
@@ -91,10 +91,11 @@ public:
         corruption. */
         std::multiset<datacenter_id_t> acks_by_dc;
         for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); it++) {
-            boost::optional<machine_id_t> translation = parent->machine_id_translation_table->get_value(*it);
-            if (!translation) continue;
+            std::map<peer_id_t, machine_id_t> translation_table_snapshot = parent->machine_id_translation_table->get();
+            std::map<peer_id_t, machine_id_t>::iterator tt_it = translation_table_snapshot.find(*it);
+            if (tt_it == translation_table_snapshot.end()) continue;
             machines_semilattice_metadata_t mmd = parent->machines_view->get();
-            machines_semilattice_metadata_t::machine_map_t::iterator jt = mmd.machines.find(*translation);
+            machines_semilattice_metadata_t::machine_map_t::iterator jt = mmd.machines.find(tt_it->second);
             if (jt == mmd.machines.end()) continue;
             if (jt->second.is_deleted()) continue;
             if (jt->second.get().datacenter.in_conflict()) continue;
@@ -181,7 +182,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
                  clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > _directory_view,
                  boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
                  boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
-                 const clone_ptr_t<directory_rview_t<machine_id_t> > &_machine_id_translation_table,
+                 const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                  std::string _file_path)
     : mbox_manager(_mbox_manager),
       directory_view(_directory_view), 
@@ -240,7 +241,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                 continue;
             }
 
-            blueprint_t<protocol_t> bp = translate_blueprint(pbp, machine_id_translation_table);
+            blueprint_t<protocol_t> bp = translate_blueprint(pbp, machine_id_translation_table->get());
 
             if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_service()->get_me())) {
                 /* Either construct a new reactor (if this is a namespace we
