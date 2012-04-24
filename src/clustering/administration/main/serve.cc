@@ -90,7 +90,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     machine_down_issue_tracker_t machine_down_issue_tracker(
         semilattice_manager_cluster.get_root_view(),
-        directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id))
+        translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id)))
         );
     global_issue_aggregator_t::source_t machine_down_issue_tracker_feed(&issue_aggregator, &machine_down_issue_tracker);
 
