@@ -49,12 +49,17 @@ void write_message_t::append(const void *p, int64_t n) {
 
 int send_write_message(write_stream_t *s, write_message_t *msg) {
     intrusive_list_t<write_buffer_t> *list = &msg->buffers_;
-    for (write_buffer_t *p = list->head(); p; p = list->next(p)) {
+    for (write_buffer_t *p = list->head(); p;) {
         int64_t res = s->write(p->data, p->size);
         if (res == -1) {
             return -1;
         }
         rassert(res == p->size);
+
+        write_buffer_t *tmp = list->next(p);
+        list->remove(p);
+        delete(p);
+        p = tmp;
     }
     return 0;
 }
