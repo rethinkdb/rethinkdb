@@ -37,8 +37,10 @@ public:
         { }
 
         subscription_t(boost::function<void()> f, const clone_ptr_t<watchable_t> &watchable, freeze_t *freeze) 
-            : subscription(f, watchable->get_publisher(freeze))
-        { }
+            : subscription(f, watchable->get_publisher())
+        {
+            freeze->rwi_lock_acquisition.assert_is_holding(watchable->get_rwi_lock_assertion());
+        }
 
         void reset() {
             subscription.reset();
