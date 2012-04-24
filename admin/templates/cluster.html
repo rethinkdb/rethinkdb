@@ -565,6 +565,7 @@
               <div class="namespace">
                 <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
                 <ul>
+
                   {{#each shards}}
                   <li>{{name}} ({{nprimaries}} {{pluralize_noun "primary" nprimaries}}, {{nsecondaries}} {{pluralize_noun "secondary" nsecondaries}})</li>
                   {{/each}}
@@ -575,7 +576,12 @@
             <h3 class="title">Performance</h3>
             <div class="section performance-graph"></div>
             <h3 class="title">Recent log entries</h3>
-            <div class="section recent-actions"></div>
+            <div class="section recent-log-entries"></div>
+        </script>
+        <script id="datacenter_view-recent_log_entry-template" type="text/x-handlebars-template">
+            <div class="priority {{priority}}"></div>
+            <div class="message">{{message}}</div>
+            <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
         </script>
 
         <!-- Machine view -->
@@ -628,8 +634,14 @@
             <h3 class="title">Performance</h3>
             <div class="section performance-graph"></div>
             <h3 class="title">Recent log entries</h3>
-            <div class="section recent-actions"></div>
+            <div class="section recent-log-entries"></div>
         </script>
+        <script id="machine_view-recent_log_entry-template" type="text/x-handlebars-template">
+            <div class="priority {{priority}}"></div>
+            <div class="message">{{message}}</div>
+            <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+        </script>
+
 
         <!-- Sidebar -->
         <script id="sidebar-container-template" type="text/x-handlebars-template">
@@ -644,8 +656,8 @@
             </div>
             <div class="section last">
                 <h3>Recent log entries</h3>
-                <div class="recent-events"></div>
-                <p><a href="#events">See all recent log entries &rarr;</a></p>
+                <div class="recent-log-entries"></div>
+                <p><a href="#logs">See all recent log entries &rarr;</a></p>
             </div>
         </script>
         <script id="sidebar-client_connection_status-template" type="text/x-handlebars-template">
@@ -695,7 +707,7 @@
             <p class="metrics"><strong>{{datacenters_active}}</strong> of <strong>{{datacenters_total}}</strong> data centers reachable.</p>
           </div>
         </script>
-        <script id="sidebar-event-template" type="text/x-handlebars-template">
+        <script id="sidebar-recent_log_entry-template" type="text/x-handlebars-template">
             <div class="priority {{priority}}"></div>
             <div class="message">{{message}}</div>
             <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
@@ -818,15 +830,9 @@
             </div>
         </script>
 
-        <!-- Events view -->
-        <script id="events-container-template" type="text/x-handlebars-template">
+        <!-- Log view -->
+        <script id="log-container-template" type="text/x-handlebars-template">
             <h1>Log entries</h1>
-            <div class="events"></div>
-        </script>
-        <script id="events-event-template" type="text/x-handlebars-template">
-            <p class="datetime">{{prettify_date datetime}}</p>
-            <p class="message">{{message}}</p>
-            <div class="clearleft"></div>
         </script>
 
         <!-- Alerts -->

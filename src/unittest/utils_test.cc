@@ -57,9 +57,9 @@ TEST(UtilsTest, StrtofooStrict) {
 }
 
 TEST(UtilsTest, Time) {
-    time_t time = 1334799841;
+    time_t time = 1335301122;
     std::string formatted = format_time(time);
-    EXPECT_EQ("2012-04-18T06:44:01", formatted);
+    EXPECT_EQ("2012-04-24T13:58:42", formatted);
     time_t parsed = parse_time(formatted);
     EXPECT_EQ(time, parsed);
 }

@@ -14,7 +14,7 @@ class Datacenter extends Backbone.Model
 
 class Machine extends Backbone.Model
 
-class Event extends Backbone.Model
+class LogEntry extends Backbone.Model
 
 class Issue extends Backbone.Model
 
@@ -38,8 +38,8 @@ module 'DataUtils', ->
         return json
 
     @get_datacenter_reachability = (datacenter_uuid) ->
-        total = (_.filter machines.models, (m) => m.get('datacenter_uuid') == datacenter_uuid).length
-        reachable = (_.filter directory.models, (m) => machines.get(m.get('id')).get('datacenter_uuid') == datacenter_uuid).length
+        total = (_.filter machines.models, (m) => m.get('datacenter_uuid') is datacenter_uuid).length
+        reachable = (_.filter directory.models, (m) => machines.get(m.get('id')).get('datacenter_uuid') is datacenter_uuid).length
 
         if reachable == 0 and total > 0
             for machine in machines.models
@@ -401,12 +401,12 @@ class Machines extends Backbone.Collection
     model: Machine
     name: 'Machines'
 
-class Events extends Backbone.Collection
-    model: Event
-    comparator: (event) ->
+class LogEntries extends Backbone.Collection
+    model: LogEntry
+    comparator: (log_entry) ->
         # sort strings in reverse order (return a negated string)
-        String.fromCharCode.apply String,
-            _.map(event.get('datetime').split(''), (c) -> 0xffff - c.charCodeAt())
+        #String.fromCharCode.apply String,
+        #    _.map(log_entry.get('datetime').split(''), (c) -> 0xffff - c.charCodeAt())
 
 class Issues extends Backbone.Collection
     model: Issue
@@ -486,7 +486,7 @@ class BackboneCluster extends Backbone.Router
         'machines/:id': 'machine'
         'dashboard': 'dashboard'
         'resolve_issues': 'resolve_issues'
-        'events': 'events'
+        'logs': 'logs'
 
     initialize: ->
         log_initial '(initializing) router'
@@ -500,15 +500,14 @@ class BackboneCluster extends Backbone.Router
 
         # Add and render the sidebar (visible across all views)
         @$sidebar = $('#sidebar')
-        window.sidebar = new Sidebar.Container()
-        @sidebar = window.sidebar
+        @sidebar = new Sidebar.Container
         @render_sidebar()
 
         # Render navbar for the first time
         @render_navbar()
 
         @resolve_issues = new ResolveIssuesView.Container
-        @events = new EventsView.Container
+        @logs = new LogView.Container
 
     render_sidebar: -> @$sidebar.html @sidebar.render().el
     render_navbar: -> $('#navbar-container').html @navbar.render().el
@@ -533,10 +532,10 @@ class BackboneCluster extends Backbone.Router
         clear_modals()
         @$container.html @resolve_issues.render().el
 
-    events: ->
-        log_router '/events'
+    logs: ->
+        log_router '/logs'
         clear_modals()
-        @$container.html @events.render().el
+        @$container.html @logs.render().el
 
     namespace: (id) ->
         log_router '/namespaces/' + id
@@ -664,6 +663,20 @@ set_last_seen = (last_seen) ->
         if _m
             _m.set('last_seen', timestamp)
 
+set_log_entries = (log_data_from_server) ->
+    all_log_entries = []
+    for machine_uuid, log_entries of log_data_from_server
+        _m_collection = new LogEntries
+        for json in log_entries
+            entry = new LogEntry json
+            _m_collection.add entry
+            all_log_entries.push entry
+
+        machines.get(machine_uuid).set('log_entries', _m_collection)
+        _m = machines.get(machine_uuid)
+
+    recent_log_entries.reset(all_log_entries)
+
 $ ->
     bind_dev_tools()
 
@@ -674,13 +687,13 @@ $ ->
     window.issues = new Issues
     window.progress_list = new ProgressList
     window.directory = new Directory
-    window.events = new Events
+    window.recent_log_entries = new LogEntries
     window.connection_status = new ConnectionStatus
 
     window.last_update_tstamp = 0
 
-    # Add fake issues and events for testing
-    generate_fake_events(events)
+    # Add fake issues and events for testing | DELETE TODO
+    #generate_fake_events(events)
     #generate_fake_issues(issues)
 
     # Load the data bootstrapped from the HTML template
@@ -696,6 +709,7 @@ $ ->
         $.getJSON('/ajax/progress', set_progress)
         $.getJSON('/ajax/directory', set_directory)
         $.getJSON('/ajax/last_seen', set_last_seen)
+        $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
 
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync
