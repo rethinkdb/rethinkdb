@@ -585,7 +585,8 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::ma
     for (typename std::map<K, V>::iterator it  = map->begin(); it != map->end(); ++it) {
         typename std::map<K, V>::key_type key = it->first;
         try {
-            res[get_string(render_as_json(&key, ctx))] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
+            scoped_cJSON_t scoped_key(render_as_json(&key, ctx));
+            res[get_string(scoped_key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
         } catch (schema_mismatch_exc_t &) {
             crash("Someone tried to json adapt a std::map with a key type that"
                    "does not yield a JSON object of string type when"
