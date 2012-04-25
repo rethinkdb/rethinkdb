@@ -29,6 +29,8 @@ def unblock_path(source_port, dest_port):
 def find_rethinkdb_executable(mode = "debug"):
     subpath = "build/%s/rethinkdb" % (mode)
     paths = [subpath, "../" + subpath, "../../" + subpath, "../../../" + subpath]
+    if "RETHINKDB" in os.environ:
+        paths.append(os.path.join(os.environ["RETHINKDB"], subpath))
     for path in paths:
         if os.path.exists(path):
             return path
