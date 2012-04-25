@@ -579,7 +579,7 @@ clear_modals = ->
     modal_registry = []
 register_modal = (modal) -> modal_registry.push(modal)
 
-updateInterval = 5000
+updateInterval = 500
 
 declare_client_connected = ->
     window.connection_status.set({client_disconnected: false})

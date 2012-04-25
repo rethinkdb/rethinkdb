@@ -7,6 +7,7 @@
 #include "arch/os_signal.hpp"
 #include "clustering/administration/main/command_line.hpp"
 #include "clustering/administration/main/serve.hpp"
+#include "clustering/administration/main/admin.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
 #include "mock/dummy_protocol.hpp"
@@ -64,6 +65,26 @@ std::set<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> na
         peers.insert(peer_address_t(ip_address_t(names[i].host), names[i].port));
     }
     return peers;
+}
+
+void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool *result_out) {
+    *result_out = true;
+
+    if (command_args.empty()) {
+        rethinkdb_admin_app_t app(look_up_peers_addresses(joins), client_port);
+        app.run_console();
+    } else {
+        // Only one command, run it by itself
+        try {
+            rethinkdb_admin_app_t app(look_up_peers_addresses(joins), client_port);
+            // TODO: it would be nice to check the params before connecting to the cluster
+            rethinkdb_admin_app_t::command_data data(app.parse_command(command_args));
+            app.run_command(data);
+        } catch (std::exception& ex) {
+            printf("%s\n", ex.what());
+            *result_out = false;
+        }
+    }
 }
 
 void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out, std::string web_assets) {
@@ -306,6 +327,38 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins, port, client_port, &result, render_as_path(web_path)));
 
     return result ? 0 : 1;
+}
+
+int main_rethinkdb_admin(int argc, char *argv[]) {
+    po::variables_map vm;
+    po::options_description options;
+    options.add_options()
+#ifndef NDEBUG
+        ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes")
+#endif
+        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
+    po::command_line_parser parser(argc - 1, &argv[1]);
+    parser.options(options);
+    parser.allow_unregistered();
+    po::parsed_options parsed = parser.run();
+    po::store(parsed, vm);
+    po::notify(vm);
+
+    std::vector<host_and_port_t> joins;
+    if (vm.count("join") > 0) {
+        joins = vm["join"].as<std::vector<host_and_port_t> >();
+    }
+#ifndef NDEBUG
+    int client_port = vm["client-port"].as<int>();
+#else
+    int client_port = 0;
+#endif
+
+    bool result;
+    std::vector<std::string> cmd_args = po::collect_unrecognized(parsed.options, po::include_positional); 
+    run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, &result));
+
+    return result? 0 : 1;
 }
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {

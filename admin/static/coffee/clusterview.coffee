@@ -237,7 +237,7 @@ module 'ClusterView', ->
         tagName: 'tr'
         className: 'element'
 
-        events:
+        events: ->
             'click': 'clicked'
             'click a': 'link_clicked'
 
@@ -276,7 +276,8 @@ module 'ClusterView', ->
         template: Handlebars.compile $('#namespace_list_element-template').html()
 
         events: ->
-            'click a.rename-namespace': 'rename_namespace'
+            _.extend super,
+                'click a.rename-namespace': 'rename_namespace'
 
         initialize: ->
             log_initial '(initializing) list view: namespace'
@@ -450,7 +451,8 @@ module 'ClusterView', ->
         template: Handlebars.compile $('#machine_list_element-template').html()
         className: 'machine element'
         events: ->
-            'click a.rename-machine': 'rename_machine'
+            _.extend super,
+                'click a.rename-machine': 'rename_machine'
 
         initialize: ->
             log_initial '(initializing) list view: machine'
