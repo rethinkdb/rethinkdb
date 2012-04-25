@@ -3,6 +3,7 @@
 
 int main_rethinkdb_create(int argc, char *argv[]);
 int main_rethinkdb_serve(int argc, char *argv[]);
+int main_rethinkdb_admin(int argc, char *argv[]);
 int main_rethinkdb_porcelain(int argc, char *argv[]);
 
 void help_rethinkdb_create();
