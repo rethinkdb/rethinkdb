@@ -12,6 +12,7 @@
 #endif  /* x86/amd64 */
 #endif /* __linux__ */
 
+#define CT_ASSERT(e) {enum { compile_time_assert_error = 1/(!!(e)) };}
 
 #ifndef NDEBUG
 #define DEBUG_ONLY(...) __VA_ARGS__
@@ -29,7 +30,7 @@
  * then "1" refers to the class pointer ("this").
  * */
 #ifdef __ICC
-#define NON_NULL_ATTR(arg) 
+#define NON_NULL_ATTR(arg)
 #else
 #define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
 #endif

@@ -220,7 +220,7 @@ public:
         : str(_str)
     { }
 
-    explicit scoped_js_string_t(std::string _str) 
+    explicit scoped_js_string_t(std::string _str)
         : str(::JSStringCreateWithUTF8CString(_str.c_str()))
     { }
 
@@ -246,6 +246,6 @@ public:
 
 std::string js_obj_to_string(scoped_js_string_t);
 
-} //namespace JS 
+} //namespace JS
 
 #endif

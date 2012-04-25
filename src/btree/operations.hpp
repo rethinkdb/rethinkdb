@@ -8,6 +8,7 @@
 #include "containers/scoped_malloc.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 class btree_slice_t;
 
@@ -180,31 +181,6 @@ private:
 };
 
 
-template <class Value>
-class value_txn_t {
-public:
-    value_txn_t(btree_key_t *, keyvalue_location_t<Value>&, repli_timestamp_t, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority);
-    value_txn_t(btree_slice_t *slice, btree_key_t *key, const repli_timestamp_t tstamp, const order_token_t token, key_modification_callback_t<Value> *km_callback);
-
-    ~value_txn_t();
-
-    scoped_malloc<Value>& value();
-
-    transaction_t *get_txn();
-
-private:
-    btree_key_t *key;
-    boost::scoped_ptr<transaction_t> txn;
-    keyvalue_location_t<Value> kv_location;
-    repli_timestamp_t tstamp;
-    eviction_priority_t *root_eviction_priority;
-
-    // Not owned by this object.
-    key_modification_callback_t<Value> *km_callback;
-
-    DISABLE_COPYING(value_txn_t);
-};
-
 
 
 template <class Value>
@@ -272,6 +248,15 @@ private:
     sz_t value_size;
     char *value_ptr;
 };
+
+void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority);
+
+void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
+                            const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority);
+
+void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
+                                buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
+                                const btree_key_t *key);
 
 bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
 void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > &kv_pairs_out);

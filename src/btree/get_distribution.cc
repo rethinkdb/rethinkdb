@@ -1,6 +1,10 @@
 #include "btree/get_distribution.hpp"
 #include "btree/parallel_traversal.hpp"
+#include "btree/node.hpp"
+#include "btree/leaf_node.hpp"
 #include "utils.hpp"
+#include "buffer_cache/buffer_cache.hpp"
+#include "btree/internal_node.hpp"
 
 class get_distribution_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 public:

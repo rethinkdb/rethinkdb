@@ -73,7 +73,7 @@ void apply_json_to(cJSON *change, datacenters_semilattice_metadata_t *target, co
 }
 
 template <class ctx_t>
-void on_subfield_change(datacenters_semilattice_metadata_t *target, const ctx_t &ctx) { 
+void on_subfield_change(datacenters_semilattice_metadata_t *target, const ctx_t &ctx) {
     on_subfield_change(&target->datacenters, ctx);
 }
 

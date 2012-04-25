@@ -6,7 +6,7 @@
 struct set_set_oper_t : set_oper_t {
     set_set_oper_t(std::string &key, btree_slice_t *btree, timestamp_t timestamp, order_token_t otok) :
         set_oper_t(key, btree, timestamp, otok)
-    { 
+    {
         redis_set_value_t *value = reinterpret_cast<redis_set_value_t *>(location.value.get());
         if (value == NULL) {
             scoped_malloc<redis_value_t> smrsv(MAX_REDIS_VALUE_SIZE);
@@ -24,7 +24,7 @@ struct set_set_oper_t : set_oper_t {
 
     bool add_member(std::string &member) {
         find_member mem(this, member);
-        
+
         if (mem.loc.value.get() == NULL) {
             scoped_malloc<redis_nested_set_value_t> smrsv(0);
             mem.loc.value.swap(smrsv);
@@ -211,7 +211,7 @@ EXECUTE_R(sdiff) {
     merge_ordered_data_iterator_t<std::string> *left =
         new merge_ordered_data_iterator_t<std::string>();
     left->add_mergee(left_iter);
-    
+
     diff_filter_iterator_t<std::string> filter(left, right);
 
     std::vector<std::string> result;
@@ -244,7 +244,7 @@ EXECUTE_R(sinter) {
         boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper->iterator();
         merged->add_mergee(set_iter);
     }
-    
+
     // Use the repetition filter to get only results common to all keys
     repetition_filter_iterator_t<std::string> filter(merged, one.size());
 
@@ -336,7 +336,7 @@ EXECUTE_R(sunion) {
         boost::shared_ptr<one_way_iterator_t<std::string> > set_iter = oper->iterator();
         merged->add_mergee(set_iter);
     }
-    
+
     // Use the unique filter to eliminate duplicates
     unique_filter_iterator_t<std::string> filter(merged);
 

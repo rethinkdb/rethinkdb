@@ -140,11 +140,15 @@ public:
 template<class protocol_t>
 class test_reactor_t : private master_t<protocol_t>::ack_checker_t {
 public:
-    test_reactor_t(reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, store_view_t<protocol_t> *store_view)
-        : blueprint_watchable(initial_blueprint),
-          reactor(&r->mailbox_manager, this, r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory)), 
-                  r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory)),
-                  r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), store_view)
+    test_reactor_t(reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, store_view_t<protocol_t> *store_view) :
+        blueprint_watchable(initial_blueprint),
+        reactor(&r->mailbox_manager, this,
+              translate_into_watchable(r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory))),
+              r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), store_view),
+        reactor_directory_copier(reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional),
+                                 r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory))),
+        master_directory_copier(reactor.get_master_directory(),
+                                r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory)))
     {
         rassert(store_view->get_region() == a_thru_z_region());
     }
@@ -155,6 +159,14 @@ public:
 
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
     reactor_t<protocol_t> reactor;
+    watchable_write_copier_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > reactor_directory_copier;
+    watchable_write_copier_t<std::map<master_id_t, master_business_card_t<protocol_t> > > master_directory_copier;
+
+private:
+    static boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > wrap_in_optional(
+            const directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > &bcard) {
+        return boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(bcard);
+    }
 };
 
 template<class protocol_t>
@@ -244,7 +256,7 @@ public:
 
     void run_queries() {
         for (unsigned i = 0; i < test_clusters.size(); i++) {
-            cluster_namespace_interface_t<protocol_t> namespace_if(&(&test_clusters[i])->mailbox_manager, 
+            cluster_namespace_interface_t<protocol_t> namespace_if(&(&test_clusters[i])->mailbox_manager,
                                                                    translate_into_watchable((&test_clusters[i])->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory))));
 
             nap(50);
@@ -261,9 +273,9 @@ public:
     void wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp) {
         try {
 #ifdef VALGRIND
-	    const int timeout = 8000;
+        const int timeout = 8000;
 #else
-	    const int timeout = 2000;
+        const int timeout = 2000;
 #endif
 
             signal_timer_t timer(timeout);

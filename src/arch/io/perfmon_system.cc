@@ -124,7 +124,7 @@ struct perfmon_system_t :
     public perfmon_t
 {
     bool have_reported_error;
-    perfmon_system_t() : perfmon_t(false), have_reported_error(false) { }
+    perfmon_system_t() : perfmon_t(false), have_reported_error(false), start_time(time(NULL)) { }
 
     void *begin_stats() {
         return NULL;
@@ -142,7 +142,7 @@ struct perfmon_system_t :
         } catch (proc_pid_stat_exc_t e) {
             if (!have_reported_error) {
                 logWRN("Error in reporting system stats: %s (Further errors like this will "
-                    "be suppressed.)\n", e.what());
+                    "be suppressed.)", e.what());
                 have_reported_error = true;
             }
             return;
@@ -152,13 +152,12 @@ struct perfmon_system_t :
         (*dest)["memory_real[bytes]"] = strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE));
     }
     void put_timestamp(perfmon_stats_t *dest) {
-        timespec uptime = get_uptime();
-
-        std::string uptime_str = strprintf("%ld.%06ld", uptime.tv_sec, uptime.tv_nsec / 1000);
-
-        (*dest)["uptime"] = uptime_str;
-        (*dest)["timestamp"] = format_precise_time(get_absolute_time(uptime));
+        time_t now = time(NULL);
+        (*dest)["uptime"] = strprintf("%d", int(difftime(start_time, now)));
+        (*dest)["timestamp"] = format_time(now);
     }
+
+    time_t start_time;
 } pm_system;
 
 /* Some of the stats need to be polled periodically. Call this function periodically on each
@@ -184,7 +183,7 @@ void poll_system_stats(void *) {
     } catch (proc_pid_stat_exc_t e) {
         if (!TLS_get_have_reported_stats_error()) {
             logWRN("Error in reporting per-thread stats: %s (Further errors like this will "
-                "be suppressed.)\n", e.what());
+                "be suppressed.)", e.what());
             TLS_set_have_reported_stats_error(true);
         }
     }
@@ -202,7 +201,7 @@ void poll_system_stats(void *) {
              current_stats.stime - TLS_get_last_stats().stime) /
              realtime_elapsed);
         pm_memory_faults.record((current_stats.majflt - TLS_get_last_stats().majflt) / realtime_elapsed);
-        
+
         TLS_set_last_stats(current_stats);
         TLS_set_last_ticks(current_ticks);
     }

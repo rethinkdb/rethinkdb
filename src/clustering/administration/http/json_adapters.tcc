@@ -13,7 +13,7 @@ template <class T, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(vclock_t<T> *target, const ctx_t &ctx) {
     try {
         return get_json_subfields(&target->get_mutable(), ctx);
-    } catch (in_conflict_exc_t e) { 
+    } catch (in_conflict_exc_t e) {
         return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
     }
 }
@@ -97,7 +97,7 @@ boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_vclock_resolver_t<T, c
 }
 
 template <class T, class ctx_t>
-json_vclock_resolver_t<T, ctx_t>::json_vclock_resolver_t(vclock_t<T> *_target) 
+json_vclock_resolver_t<T, ctx_t>::json_vclock_resolver_t(vclock_t<T> *_target)
     : target(_target)
 { }
 

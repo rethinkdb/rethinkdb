@@ -1,16 +1,14 @@
 #ifndef BTREE_PARALLEL_TRAVERSAL_HPP_
 #define BTREE_PARALLEL_TRAVERSAL_HPP_
 
-#include "errors.hpp"
+#include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#include "btree/internal_node.hpp"
-#include "btree/operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/rwi_lock.hpp"
 #include "containers/scoped_malloc.hpp"
-#include "protocol_api.hpp"
 
 struct btree_superblock_t;
 class traversal_state_t;
@@ -18,12 +16,8 @@ class parent_releaser_t;
 class btree_slice_t;
 struct btree_key_t;
 struct internal_node_t;
+class got_superblock_t;
 
-struct acquisition_start_callback_t {
-    virtual void on_started_acquisition() = 0;
-protected:
-    virtual ~acquisition_start_callback_t() { }
-};
 
 // HEY: Make this an abstract class, have two separate implementation
 // classes for the "forced block id" case and the internal node case.
@@ -64,14 +58,14 @@ private:
     const btree_key_t *right_inclusive_or_null_;
 };
 
-class interesting_children_callback_t : public acquisition_start_callback_t {
+class interesting_children_callback_t : public lock_in_line_callback_t {
 public:
     // Call these function in filter_interesting_children.
     void receive_interesting_child(int child_index);
     void no_more_interesting_children();
 
     // internal
-    void on_started_acquisition();
+    void on_in_line();
     void decr_acquisition_countdown();
 
     interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, boost::shared_ptr<ranged_block_ids_t>& _ids_source)
@@ -144,8 +138,7 @@ public:
 
     void inform(int level, action_t, node_type_t);
 
-    float guess_completion();
-    std::pair<int, int> numerator_and_denominator();
+    std::pair<int, int> guess_completion();
 
 private:
     std::vector<int> learned; //How many nodes at each level we believe exist
@@ -162,7 +155,7 @@ public:
     traversal_progress_combiner_t() { }
 
     void add_constituent(traversal_progress_t *);
-    float guess_completion();
+    std::pair<int, int> guess_completion();
 
 private:
     boost::ptr_vector<traversal_progress_t> constituents;

@@ -139,7 +139,7 @@ private:
     serializer_data_ptr_t data;
 
     // Our block token to the serializer.
-    boost::intrusive_ptr<standard_block_token_t> token;
+    intrusive_ptr_t<standard_block_token_t> token;
 
     // The recency of the snapshot we hold.
     repli_timestamp_t subtree_recency;
@@ -218,7 +218,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_accou
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
@@ -458,7 +458,7 @@ bool mc_inner_buf_t::safe_to_unload() {
 }
 
 // TODO (sam): Look at who's passing this void pointer.
-void mc_inner_buf_t::update_data_token(const void *the_data, const boost::intrusive_ptr<standard_block_token_t>& token) {
+void mc_inner_buf_t::update_data_token(const void *the_data, const intrusive_ptr_t<standard_block_token_t>& token) {
     cache->assert_thread();
     // TODO (sam): Obviously this comparison is disgusting.
     if (data.equals(the_data)) {
@@ -492,8 +492,9 @@ mc_buf_lock_t::mc_buf_lock_t() :
     subtree_recency(repli_timestamp_t::invalid)
 { }
 
+
 /* Constructor to obtain a buffer lock within a transaction */
-mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id, access_t mode_, boost::function<void()> call_when_in_line) :
+mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id, access_t mode_, lock_in_line_callback_t *call_when_in_line) :
     acquired(false),
     snapshotted(transaction->snapshotted),
     non_locking_access(snapshotted),
@@ -548,7 +549,7 @@ mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id,
 
 void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
                                file_account_t *io_account,
-                               boost::function<void()> call_when_in_line)
+                               lock_in_line_callback_t *call_when_in_line)
 {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
@@ -575,7 +576,7 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
         guarantee(data != NULL);
 
         // we never needed to get in line, so just call the function straight-up to ensure it gets called.
-        if (call_when_in_line) call_when_in_line();
+        if (call_when_in_line) call_when_in_line->on_in_line();
     } else {
         ticks_t lock_start_time;
         // the top version is the right one for us; acquire a lock of the appropriate type first
@@ -1509,13 +1510,13 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
     do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, token, recency_timestamp));
     return true;
 }
 
-void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+void mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     assert_thread();
 
     // Check that the offered block is allowed to be accepted at the current time

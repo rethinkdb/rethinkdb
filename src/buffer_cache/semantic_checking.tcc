@@ -137,7 +137,7 @@ void scc_transaction_t<inner_cache_t>::set_account(const boost::shared_ptr<typen
 }
 
 template<class inner_cache_t>
-scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line) :
+scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line) :
     snapshotted(txn->snapshotted || mode == rwi_read_outdated_ok),
     has_been_changed(false),
     internal_buf_lock(NULL),
@@ -200,7 +200,7 @@ boost::shared_ptr<typename inner_cache_t::cache_account_t> scc_cache_t<inner_cac
 }
 
 template<class inner_cache_t>
-bool scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     return inner_cache.offer_read_ahead_buf(block_id, buf, token, recency_timestamp);
 }
 

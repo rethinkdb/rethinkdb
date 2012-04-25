@@ -4,9 +4,8 @@
 #include <stdint.h>
 #include <time.h>
 
-// Sigh.
+#include "containers/intrusive_ptr.hpp"
 #include "errors.hpp"
-#include <boost/intrusive_ptr.hpp>
 
 // A relatively "lightweight" header file (we wish), in a sense.
 
@@ -104,14 +103,14 @@ struct scs_block_info_t {
 template <class inner_serializer_t>
 struct scs_block_token_t {
     scs_block_token_t(block_id_t _block_id, const scs_block_info_t& _info,
-                      const boost::intrusive_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type>& tok)
+                      const intrusive_ptr_t<typename serializer_traits_t<inner_serializer_t>::block_token_type>& tok)
         : block_id(_block_id), info(_info), inner_token(tok), ref_count_(0) {
         rassert(inner_token, "scs_block_token wrapping null token");
     }
 
     block_id_t block_id;    // NULL_BLOCK_ID if not associated with a block id
     scs_block_info_t info;      // invariant: info.state != scs_block_info_t::state_deleted
-    boost::intrusive_ptr<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
+    intrusive_ptr_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token;
 
     template <class T>
     friend void intrusive_ptr_add_ref(scs_block_token_t<T> *p);
@@ -146,9 +145,9 @@ struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type>
 
 // God this is such a hack (Part 1 of 2)
 inline
-boost::intrusive_ptr< scs_block_token_t<log_serializer_t> >
-to_standard_block_token(block_id_t block_id, const boost::intrusive_ptr<ls_block_token_pointee_t>& tok) {
-    boost::intrusive_ptr< scs_block_token_t<log_serializer_t> > ret(new scs_block_token_t<log_serializer_t>(block_id, scs_block_info_t(), tok));
+intrusive_ptr_t< scs_block_token_t<log_serializer_t> >
+to_standard_block_token(block_id_t block_id, const intrusive_ptr_t<ls_block_token_pointee_t>& tok) {
+    intrusive_ptr_t< scs_block_token_t<log_serializer_t> > ret(new scs_block_token_t<log_serializer_t>(block_id, scs_block_info_t(), tok));
     return ret;
 }
 
@@ -158,8 +157,8 @@ typedef log_serializer_t standard_serializer_t;
 
 // God this is such a hack (Part 2 of 2)
 inline
-boost::intrusive_ptr<ls_block_token_pointee_t>
-to_standard_block_token(UNUSED block_id_t block_id, const boost::intrusive_ptr<ls_block_token_pointee_t>& tok) {
+intrusive_ptr_t<ls_block_token_pointee_t>
+to_standard_block_token(UNUSED block_id_t block_id, const intrusive_ptr_t<ls_block_token_pointee_t>& tok) {
     return tok;
 }
 
@@ -221,7 +220,7 @@ class serializer_read_ahead_callback_t {
 public:
     virtual ~serializer_read_ahead_callback_t() { }
     /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
-    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) = 0;
+    virtual bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) = 0;
 };
 
 #endif  // SERIALIZER_TYPES_HPP_

@@ -7,7 +7,7 @@
 #include "logger.hpp"
 #include "stl_utils.hpp"
 
-file_http_app_t::file_http_app_t(std::set<std::string> _whitelist, std::string _asset_dir) 
+file_http_app_t::file_http_app_t(std::set<std::string> _whitelist, std::string _asset_dir)
     : whitelist(_whitelist), asset_dir(_asset_dir)
 { }
 
@@ -18,7 +18,7 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
     }
     std::string resource(req.resource.as_string());
     if (resource != "/" && resource != "" && !std_contains(whitelist, resource)) {
-        logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.\n", resource.c_str());
+        logINF("Someone asked for the nonwhitelisted file %s, if this should be accessible add it to the whitelist.", resource.c_str());
         return http_res_t(403);
     }
 
@@ -33,14 +33,14 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
 
     // FIXME: make sure that we won't walk out of our sandbox! Check symbolic links, etc.
     std::ifstream f((asset_dir + filename).c_str());
-    
+
     if (f.fail()) {
-        logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.\n", (asset_dir + resource).c_str());
+        logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + resource).c_str());
         return http_res_t(404);
     }
 
-    f.seekg(0, std::ios::end);   
-    
+    f.seekg(0, std::ios::end);
+
     if (f.fail()) {
         goto INTERNAL_ERROR;
     }

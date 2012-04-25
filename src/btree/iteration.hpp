@@ -13,14 +13,13 @@
 #include "btree/operations.hpp"
 #include "btree/slice.hpp"
 
-//TODO make this not store value as a char array
 template <class Value>
 struct key_value_pair_t {
     std::string key;
     boost::shared_array<char> value;
 
-    key_value_pair_t(value_sizer_t<Value> *sizer, const std::string& _key, const Value *_value) : key(_key) {
-        int size = sizer->size(reinterpret_cast<const Value *>(_value));
+    key_value_pair_t(value_sizer_t<void> *sizer, const std::string& _key, const void *_value) : key(_key) {
+        int size = sizer->size(_value);
         value.reset(new char[size]);
         memcpy(value.get(), _value, size);
     }
@@ -33,7 +32,7 @@ struct key_value_pair_t {
  */
 template <class Value>
 struct leaf_iterator_t : public one_way_iterator_t<key_value_pair_t<Value> > {
-    leaf_iterator_t(const leaf_node_t *leaf, leaf::live_iter_t iter, buf_lock_t *lock, const boost::shared_ptr<value_sizer_t<Value> >& sizer, transaction_t *transaction);
+    leaf_iterator_t(const leaf_node_t *leaf, leaf::live_iter_t iter, buf_lock_t *lock, const boost::shared_ptr< value_sizer_t<void> >& sizer, transaction_t *transaction);
 
     boost::optional<key_value_pair_t<Value> > next();
     void prefetch();
@@ -44,7 +43,7 @@ private:
     const leaf_node_t *leaf;
     leaf::live_iter_t iter;
     buf_lock_t *lock;
-    boost::shared_ptr<value_sizer_t<Value> > sizer;
+    boost::shared_ptr< value_sizer_t<void> > sizer;
     transaction_t *transaction;
 };
 
@@ -74,7 +73,7 @@ class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t<Value>
         buf_lock_t *lock;
     };
 public:
-    slice_leaves_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, btree_bound_mode_t left_mode, const btree_key_t *left_key, btree_bound_mode_t right_mode, const btree_key_t *right_key);
+    slice_leaves_iterator_t(const boost::shared_ptr< value_sizer_t<void> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, btree_bound_mode_t left_mode, const btree_key_t *left_key, btree_bound_mode_t right_mode, const btree_key_t *right_key);
 
     boost::optional<leaf_iterator_t<Value>*> next();
     void prefetch();
@@ -87,7 +86,7 @@ private:
     boost::optional<leaf_iterator_t<Value>*> get_leftmost_leaf(block_id_t node_id);
     block_id_t get_child_id(const internal_node_t *i_node, int index) const;
 
-    boost::shared_ptr<value_sizer_t<Value> > sizer;
+    boost::shared_ptr< value_sizer_t<void> > sizer;
     transaction_t *transaction;
     boost::scoped_ptr<superblock_t> superblock;
     int slice_home_thread;
@@ -111,7 +110,7 @@ template <class Value>
 class slice_keys_iterator_t : public one_way_iterator_t<key_value_pair_t<Value> > {
 public:
     /* Cannot assume that 'start' and 'end' will remain valid after the constructor returns! */
-    slice_keys_iterator_t(const boost::shared_ptr<value_sizer_t<Value> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, btree_bound_mode_t left_mode, const store_key_t &left_key, btree_bound_mode_t right_mode, const store_key_t &right_key);
+    slice_keys_iterator_t(const boost::shared_ptr< value_sizer_t<void> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, btree_bound_mode_t left_mode, const store_key_t &left_key, btree_bound_mode_t right_mode, const store_key_t &right_key);
     virtual ~slice_keys_iterator_t();
 
     boost::optional<key_value_pair_t<Value> > next();
@@ -124,7 +123,7 @@ private:
 
     void done();
 
-    boost::shared_ptr<value_sizer_t<Value> > sizer;
+    boost::shared_ptr< value_sizer_t<void> > sizer;
     transaction_t *transaction;
     boost::scoped_ptr<superblock_t> superblock;
     int slice_home_thread;
@@ -147,7 +146,7 @@ public:
     explicit range_txn_t(slice_keys_iterator_t<Value> *it);
 };
 
-template <class Value> 
+template <class Value>
 range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, btree_bound_mode_t left_mode, const store_key_t &left_key, btree_bound_mode_t, const store_key_t &right_key);
 
 #include "btree/iteration.tcc"

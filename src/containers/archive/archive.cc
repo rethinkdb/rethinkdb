@@ -4,6 +4,9 @@
 
 #include <algorithm>
 
+#include "errors.hpp"
+#include <boost/uuid/uuid.hpp>
+
 int64_t force_read(read_stream_t *s, void *p, int64_t n) {
     rassert(n >= 0);
 
@@ -26,6 +29,13 @@ int64_t force_read(read_stream_t *s, void *p, int64_t n) {
         n -= res;
     }
     return written_so_far;
+}
+
+write_message_t::~write_message_t() {
+    for (write_buffer_t *buffer = buffers_.head(); buffer; buffer = buffers_.next(buffer)) {
+        buffers_.remove(buffer);
+        delete buffer;
+    }
 }
 
 void write_message_t::append(const void *p, int64_t n) {
@@ -54,5 +64,21 @@ int send_write_message(write_stream_t *s, write_message_t *msg) {
         rassert(res == p->size);
     }
     return 0;
+}
+
+
+write_message_t &operator<<(write_message_t &msg, const boost::uuids::uuid &uuid) {
+    msg.append(uuid.data, boost::uuids::uuid::static_size());
+    return msg;
+}
+
+MUST_USE int deserialize(read_stream_t *s, boost::uuids::uuid *uuid) {
+    int64_t sz = boost::uuids::uuid::static_size();
+    int64_t res = force_read(s, uuid->data, sz);
+
+    if (res == -1) { return ARCHIVE_SOCK_ERROR; }
+    if (res < sz) { return ARCHIVE_SOCK_EOF; }
+    rassert(res == sz);
+    return ARCHIVE_SUCCESS;
 }
 

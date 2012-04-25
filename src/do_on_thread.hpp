@@ -18,25 +18,25 @@ struct thread_doer_t :
         state_go_to_core,
         state_go_home
     } state;
-    
+
     thread_doer_t(const callable_t& _callable, int _thread)
         : callable(_callable), thread(_thread), state(state_go_to_core) {
         assert_good_thread_id(thread);
     }
-    
+
     void run() {
         state = state_go_to_core;
         if (continue_on_thread(thread, this)) {
             do_perform_job();
         }
     }
-    
+
     void do_perform_job() {
         rassert(thread == get_thread_id());
         callable();
         do_return_home();
     }
-    
+
     void do_return_home() {
         state = state_go_home;
 
@@ -46,7 +46,7 @@ struct thread_doer_t :
         continue_on_thread(home_thread(), this);
 #endif
     }
-    
+
     void on_thread_switch() {
         switch (state) {
             case state_go_to_core:

@@ -23,37 +23,44 @@ template <class protocol_t>
 class reactor_driver_t {
 public:
     reactor_driver_t(mailbox_manager_t *_mbox_manager,
-                     clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > _directory_view,
+                     const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
                      boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
                      boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
-                     const clone_ptr_t<directory_rview_t<machine_id_t> > &_machine_id_translation_table,
+                     const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                      std::string _file_path);
 
     ~reactor_driver_t();
+
+    clone_ptr_t<watchable_t<namespaces_directory_metadata_t<protocol_t> > > get_watchable() {
+        return watchable_variable.get_watchable();
+    }
 
 private:
     template<class protocol2_t>
     friend class watchable_and_reactor_t;
 
     typedef boost::ptr_map<namespace_id_t, watchable_and_reactor_t<protocol_t> > reactor_map_t;
- 
+
     void delete_reactor_data(auto_drainer_t::lock_t lock, typename reactor_map_t::auto_type *thing_to_delete);
     void on_change();
 
     mailbox_manager_t *mbox_manager;
-    clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > directory_view;
+    clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > directory_view;
     boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
-    clone_ptr_t<directory_rview_t<machine_id_t> > machine_id_translation_table;
+    clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
     std::string file_path;
+
+    watchable_variable_t<namespaces_directory_metadata_t<protocol_t> > watchable_variable;
+    mutex_assertion_t watchable_variable_lock;
 
     boost::ptr_map<namespace_id_t, watchable_and_reactor_t<protocol_t> > reactor_data;
 
     auto_drainer_t drainer;
 
     typename semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> >::subscription_t semilattice_subscription;
-    connectivity_service_t::peers_list_subscription_t connectivity_subscription;
+    watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t translation_table_subscription;
 };
 
 #endif

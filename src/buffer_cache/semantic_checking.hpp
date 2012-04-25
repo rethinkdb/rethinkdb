@@ -27,7 +27,7 @@ class serializer_t;
 template<class inner_cache_t>
 class scc_buf_lock_t {
 public:
-    scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0);
+    scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line = 0);
     explicit scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn);
     scc_buf_lock_t();
     ~scc_buf_lock_t();
@@ -132,7 +132,7 @@ public:
     block_size_t get_block_size();
     boost::shared_ptr<cache_account_t> create_account(int priority);
 
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool contains_block(block_id_t block_id);
 
     coro_fifo_t& co_begin_coro_fifo() { return inner_cache.co_begin_coro_fifo(); }

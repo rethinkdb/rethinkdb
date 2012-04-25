@@ -10,7 +10,7 @@
 
 namespace JS {
 
-ctx_t::ctx_t(javascript_pool_t *js_pool) 
+ctx_t::ctx_t(javascript_pool_t *js_pool)
     : ctx_group(js_pool->get_a_ctx_group()),
       jsc_context(ctx_group->create_JSGlobalContext()),
       refcount(0) { }
@@ -146,7 +146,7 @@ scoped_js_value_array_t::scoped_js_value_array_t(const scoped_js_value_array_t &
     for (std::vector<JSValueRef>::iterator it = value_refs.begin(); it != value_refs.end(); it++) {
         ctx->JSValueProtect(*it);
     }
-    
+
     ctx->incr_refcount();
 }
 
@@ -173,7 +173,7 @@ engine_exception::engine_exception(ctx_t &ctx, scoped_js_value_t &js_exception) 
     }
 }
 
-engine_exception::engine_exception(const std::string& custom_val) 
+engine_exception::engine_exception(const std::string& custom_val)
     : value(custom_val)
 { }
 
@@ -184,4 +184,4 @@ std::string js_obj_to_string(scoped_js_string_t str) {
     return std::string(result_buf);
 }
 
-} //namespace JS 
+} //namespace JS

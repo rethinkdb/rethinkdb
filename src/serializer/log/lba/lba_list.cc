@@ -32,13 +32,13 @@ public:
     int cbs_out;
     lba_list_t *owner;
     lba_list_t::ready_callback_t *callback;
-    
+
     lba_start_fsm_t(lba_list_t *l, lba_list_t::metablock_mixin_t *last_metablock)
         : owner(l), callback(NULL)
     {
         rassert(owner->state == lba_list_t::state_unstarted);
         owner->state = lba_list_t::state_starting_up;
-        
+
         cbs_out = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
             owner->disk_structures[i] = new lba_disk_structure_t(
@@ -47,7 +47,7 @@ public:
             owner->disk_structures[i]->set_load_callback(this);
         }
     }
-    
+
     void on_lba_load() {
         rassert(cbs_out > 0);
         cbs_out--;
@@ -58,7 +58,7 @@ public:
             }
         }
     }
-    
+
     void on_lba_read() {
         rassert(cbs_out > 0);
         cbs_out--;
@@ -72,9 +72,9 @@ public:
 
 bool lba_list_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
     rassert(state == state_unstarted);
-    
+
     dbfile = file;
-    
+
     lba_start_fsm_t *starter = new lba_start_fsm_t(this, last_metablock);
     if (state == state_ready) {
         return true;
@@ -123,7 +123,7 @@ public:
     bool done, should_delete_self;
     int structures_unsynced;
     lba_list_t::sync_callback_t *callback;
-    
+
     lba_syncer_t(lba_list_t *_owner, file_account_t *io_account)
         : owner(_owner), done(false), should_delete_self(false), callback(NULL)
     {
@@ -132,7 +132,7 @@ public:
             owner->disk_structures[i]->sync(io_account, this);
         }
     }
-    
+
     void on_lba_sync() {
         rassert(structures_unsynced > 0);
         structures_unsynced--;
@@ -146,7 +146,7 @@ public:
 
 bool lba_list_t::sync(file_account_t *io_account, sync_callback_t *cb) {
     rassert(state == state_ready);
-    
+
     lba_syncer_t *syncer = new lba_syncer_t(this, io_account);
     if (syncer->done) {
         delete syncer;
@@ -185,10 +185,10 @@ public:
 
     void do_replace_disk_structure(file_account_t *io_account) {
         /* Replace the LBA with a new empty LBA */
-        
+
         owner->disk_structures[i]->destroy();
         owner->disk_structures[i] = new lba_disk_structure_t(owner->extent_manager, owner->dbfile);
-        
+
         /* Put entries in the new empty LBA */
 
         for (block_id_t id = i, end_id = owner->end_block_id();
@@ -202,17 +202,17 @@ public:
         }
 
         /* Sync the new LBA */
-        
+
         owner->disk_structures[i]->sync(io_account, this);
     }
-    
+
     void on_lba_sync() {
         rassert(owner->gc_count > 0);
         owner->gc_count--;
 
         if(owner->state == lba_list_t::state_shutting_down && owner->gc_count == 0)
             owner->__shutdown();
-        
+
         delete this;
     }
 };
@@ -252,7 +252,7 @@ void lba_list_t::gc(int i, file_account_t *io_account) {
 bool lba_list_t::shutdown(shutdown_callback_t *cb) {
     rassert(state == state_ready);
     rassert(cb);
-    
+
     if (gc_count > 0) {
         // We're gc'ing, can't shut down just yet...
         state = state_shutting_down;
@@ -269,7 +269,7 @@ bool lba_list_t::__shutdown() {
         disk_structures[i]->shutdown();   // Also deletes it
         disk_structures[i] = NULL;
     }
-    
+
     state = state_shut_down;
 
     if(shutdown_callback)

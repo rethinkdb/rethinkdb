@@ -25,8 +25,8 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t json_adapter_if_t<ctx_t>::
                                                it != res.end();
                                                it++) {
 
-        it->second->superfields.insert(it->second->superfields.end(), 
-                                      superfields.begin(), 
+        it->second->superfields.insert(it->second->superfields.end(),
+                                      superfields.begin(),
                                       superfields.end());
 
         it->second->superfields.push_back(get_change_callback());
@@ -228,7 +228,7 @@ boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_combiner_adapter_t<ctx
 
 //implementation for map_inserter_t
 template <class container_t, class ctx_t>
-json_map_inserter_t<container_t, ctx_t>::json_map_inserter_t(container_t *_target, gen_function_t _generator, value_t _initial_value) 
+json_map_inserter_t<container_t, ctx_t>::json_map_inserter_t(container_t *_target, gen_function_t _generator, value_t _initial_value)
     : target(_target), generator(_generator), initial_value(_initial_value)
 { }
 
@@ -289,7 +289,7 @@ boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_map_inserter_t<contain
 //implementation for json_adapter_with_inserter_t
 template <class container_t, class ctx_t>
 json_adapter_with_inserter_t<container_t, ctx_t>::json_adapter_with_inserter_t(container_t *_target, gen_function_t _generator, value_t _initial_value, std::string _inserter_key)
-    : target(_target), generator(_generator), 
+    : target(_target), generator(_generator),
       initial_value(_initial_value), inserter_key(_inserter_key)
 { }
 
@@ -408,7 +408,7 @@ template <class ctx_t>
 void apply_json_to(cJSON *change, char *target, const ctx_t &) {
     std::string str = get_string(change);
     if (str.size() != 1) {
-        throw schema_mismatch_exc_t(strprintf("Trying to write %s to a char." 
+        throw schema_mismatch_exc_t(strprintf("Trying to write %s to a char."
                                     "The change should only be one character long.", str.c_str()));
     } else {
         *target = str[0];
@@ -467,7 +467,7 @@ void apply_json_to(cJSON *change, boost::uuids::uuid *uuid, const ctx_t &) {
 
 template <class ctx_t>
 void on_subfield_change(boost::uuids::uuid *, const ctx_t &) { }
-} //namespace uuids 
+} //namespace uuids
 
 //JSON adapter for boost::optional
 template <class T, class ctx_t>
@@ -585,7 +585,8 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::ma
     for (typename std::map<K, V>::iterator it  = map->begin(); it != map->end(); ++it) {
         typename std::map<K, V>::key_type key = it->first;
         try {
-            res[get_string(render_as_json(&key, ctx))] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
+            scoped_cJSON_t scoped_key(render_as_json(&key, ctx));
+            res[get_string(scoped_key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<V, ctx_t>(&(it->second)));
         } catch (schema_mismatch_exc_t &) {
             crash("Someone tried to json adapt a std::map with a key type that"
                    "does not yield a JSON object of string type when"
@@ -765,7 +766,7 @@ void apply_as_directory(cJSON *change, T *target, const ctx_t &ctx) {
     while ((val = it.next())) {
         if (elements.find(val->string) == elements.end()) {
 #ifndef NDEBUG
-            logERR("Error, couldn't find element %s in adapter map.\n", val->string);
+            logERR("Error, couldn't find element %s in adapter map.", val->string);
 #else
             throw schema_mismatch_exc_t(strprintf("Couldn't find element %s.", val->string));
 #endif

@@ -5,7 +5,7 @@
 #include "perfmon.hpp"
 
 evictable_t::evictable_t(mc_cache_t *_cache, bool loaded)
-    : eviction_priority(DEFAULT_EVICTION_PRIORITY), cache(_cache), page_repl_index(static_cast<unsigned int>(-1)) 
+    : eviction_priority(DEFAULT_EVICTION_PRIORITY), cache(_cache), page_repl_index(static_cast<unsigned int>(-1))
 {
     cache->assert_thread();
     if (loaded) {
@@ -100,7 +100,7 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
 
         if (!block_to_unload) {
             if (array.size() > target + (target / 100) + 10)
-                logDBG("cache %p exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",
+                logWRN("cache %p exceeding memory target. %d blocks in memory, %d dirty, target is %d.",
                        cache, array.size(), cache->writeback.num_dirty_blocks(), target);
             break;
         }

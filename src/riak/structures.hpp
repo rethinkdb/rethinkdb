@@ -2,8 +2,6 @@
 #define RIAK_STRUCTURES_HPP_
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
-#include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/shared_array.hpp>
 
 #include "buffer_cache/types.hpp"
@@ -43,7 +41,7 @@ inline int deserialize(read_stream_t *s, riak::hook_t *hook) {
     int res = deserialize(s, &lang);
     if (res) { return res; }
     if (lang < riak::hook_t::JAVASCRIPT || lang > riak::hook_t::ERLANG) {
-        return -3;
+        return ARCHIVE_RANGE_ERROR;
     }
     hook->lang = riak::hook_t::lang_t(lang);
     res = deserialize(s, &hook->code);
@@ -62,15 +60,15 @@ struct bucket_t {
     int r, w, dw, rw; //Quorum values
     std::string backend;
 
-    bucket_t() 
+    bucket_t()
         : n_val(1), allow_mult(false),
-          last_write_wins(false), r(1), w(1), dw(1), 
+          last_write_wins(false), r(1), w(1), dw(1),
           rw(1), backend("rethinkdb")
     { }
 
-    explicit bucket_t(std::string name) 
+    explicit bucket_t(std::string name)
         : name(name), n_val(1), allow_mult(false),
-          last_write_wins(false), r(1), w(1), dw(1), 
+          last_write_wins(false), r(1), w(1), dw(1),
           rw(1), backend("rethinkdb")
     { }
 };
@@ -81,20 +79,6 @@ struct link_t {
     std::string key;
     std::string tag;
 };
-
-} //namespace riak
-
-// this really sucks, but we can't do a BOOST_FUSION_ADAPT_STRUCT within a
-// namespace so we need to break it
-
-BOOST_FUSION_ADAPT_STRUCT(
-    riak::link_t,
-    (std::string, bucket)
-    (std::string, key)
-    (std::string, tag)
-)
-
-namespace riak {
 
 struct link_filter_t {
     boost::optional<std::string> bucket;

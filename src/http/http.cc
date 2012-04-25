@@ -55,7 +55,7 @@ std::string http_req_t::resource_t::as_string(const http_req_t::resource_t::iter
         return std::string();
     } else {
         // -1 for the '/' before the token start
-        const char* sub_resource = token_start_position(it) - 1; 
+        const char* sub_resource = token_start_position(it) - 1;
         rassert(sub_resource >= val.get() && sub_resource < val.get() + val_size);
 
         size_t sub_resource_len = val_size - (sub_resource - val.get());
@@ -127,10 +127,10 @@ int content_length(http_req_t msg) {
     return 0;
 }
 
-http_res_t::http_res_t() 
+http_res_t::http_res_t()
 { }
 
-http_res_t::http_res_t(int rescode) 
+http_res_t::http_res_t(int rescode)
     : code(rescode)
 { }
 
@@ -162,7 +162,7 @@ void http_res_t::set_body(const std::string& content_type, const std::string& co
 void test_header_parser() {
     http_req_t res("/foo/bar");
     //str_http_msg_parser_t http_msg_parser;
-    std::string header = 
+    std::string header =
         "GET /foo/bar HTTP/1.1\r\n"
         "Date: Fri, 31 Dec 1999 23:59:59 GMT\r\n"
         "Content-Type: text/html\r\n"
@@ -178,6 +178,9 @@ void test_header_parser() {
 http_server_t::http_server_t(int port, http_app_t *_application) : application(_application) {
     tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
 }
+
+http_server_t::~http_server_t() { }
+
 
 std::string human_readable_status(int code) {
     switch(code) {
@@ -223,7 +226,7 @@ void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn, au
     /* parse the request */
     try {
         if (http_msg_parser.parse(conn.get(), &req)) {
-            http_res_t res = application->handle(req); 
+            http_res_t res = application->handle(req);
             res.version = req.version;
             write_http_msg(conn, res);
         } else {
@@ -375,7 +378,7 @@ bool tcp_http_msg_parser_t::header_line_parser_t::parse(std::string &src) {
     while(iter != src.end() && *iter != ':') {
         ++iter;
     }
-    
+
     if(iter == src.end()) {
         // No ':' found, error
         return false;

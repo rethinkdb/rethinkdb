@@ -30,9 +30,10 @@ void on_subfield_change(backfill_location_t *, const ctx_t &) { }
 
 //json adapter for primary_when_safe
 template <class protocol_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(primary_when_safe_t<protocol_t> *, const ctx_t &) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(primary_when_safe_t<protocol_t> *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<std::string, ctx_t>("primary_when_safe"));
+    res["backfillers"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<std::vector<backfill_location_t>, ctx_t>(&target->backfills_waited_on));
     return res;
 }
 
@@ -134,7 +135,7 @@ cJSON *render_as_json(secondary_backfilling_t<protocol_t> *target, const ctx_t &
 
 template <class protocol_t, class ctx_t>
 void apply_json_to(cJSON *, secondary_backfilling_t<protocol_t> *, const ctx_t &) {
-    throw permission_denied_exc_t("Can't write to primary_when_safe_t objects.\n");
+    throw permission_denied_exc_t("Can't write to secondary_backfilling objects.\n");
 }
 
 template <class protocol_t, class ctx_t>
@@ -205,7 +206,7 @@ void apply_json_to(cJSON *, nothing_when_done_erasing_t<protocol_t> *, const ctx
 
 template <class protocol_t, class ctx_t>
 void on_subfield_change(nothing_when_done_erasing_t<protocol_t> *, const ctx_t &) { }
-} //namespace reactor_business_card_details 
+} //namespace reactor_business_card_details
 
 //json adapter for reactor_business_card_t
 template <class protocol_t, class ctx_t>

@@ -1,7 +1,9 @@
+#include "rpc/connectivity/multiplexer.hpp"
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "rpc/connectivity/multiplexer.hpp"
+#include "rpc/connectivity/connectivity.hpp"
 
 message_multiplexer_t::run_t::run_t(message_multiplexer_t *p) : parent(p) {
     rassert(parent->run == NULL);

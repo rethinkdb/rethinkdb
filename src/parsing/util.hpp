@@ -2,8 +2,7 @@
 #define PARSING_UTIL_HPP_
 
 #include <string>
-#include <alloca.h>
-#include "arch/io/network.hpp"
+
 #include "arch/types.hpp"
 #include "utils.hpp"
 
@@ -29,7 +28,7 @@ public:
 
     // Returns a charslice to the next CRLF line in the TCP conn's buffer
     // blocks until a full line is available
-    std::string readLine(); 
+    std::string readLine();
 
     // Both ensures that next line read is exactly bytes long and is able
     // to operate more efficiently than readLine.

@@ -28,7 +28,7 @@ void auto_reconnector_t::on_connect_or_disconnect() {
                 std::make_pair(
                     it->second,
                     connectivity_cluster->get_peer_address(it->first)
-                ))); 
+                )));
         }
     }
     for (std::map<peer_id_t, std::pair<machine_id_t, peer_address_t> >::iterator it = connected_peers.begin();
@@ -53,7 +53,7 @@ static const int max_backoff_ms = 1000 * 15;
 static const float backoff_growth_rate = 1.5;
 
 void auto_reconnector_t::try_reconnect(machine_id_t machine, peer_address_t last_known_address, auto_drainer_t::lock_t keepalive) {
-    
+
     cond_t cond;
     semilattice_read_view_t<machines_semilattice_metadata_t>::subscription_t subs(
         boost::bind(&auto_reconnector_t::pulse_if_machine_declared_dead, this, machine, &cond),

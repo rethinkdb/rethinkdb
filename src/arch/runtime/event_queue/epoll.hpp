@@ -20,9 +20,9 @@ public:
 
 private:
     linux_queue_parent_t *parent;
-    
+
     fd_t epoll_fd;
-    
+
     // We store this as a class member because forget_resource needs
     // to go through the events and remove queued messages for
     // resources that are being destroyed.

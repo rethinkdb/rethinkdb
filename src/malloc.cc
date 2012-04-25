@@ -8,18 +8,18 @@ perfmon_duration_sampler_t pm_operator_new("operator_new", secs_to_ticks(1.0)),
 
 void* operator new(size_t size) {
     block_pm_duration set_timer(&pm_operator_new);
-    return tc_new(size);       
+    return tc_new(size);
 }
 void operator delete(void* p) __THROW {
     block_pm_duration set_timer(&pm_operator_delete);
-    tc_delete(p);              
+    tc_delete(p);
 }
 void* operator new[](size_t size) {
     block_pm_duration set_timer(&pm_operator_new);
-    return tc_newarray(size);  
+    return tc_newarray(size);
 }
 void operator delete[](void* p) __THROW {
     block_pm_duration set_timer(&pm_operator_delete);
-    tc_deletearray(p);         
+    tc_deletearray(p);
 }
 #endif

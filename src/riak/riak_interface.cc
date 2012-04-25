@@ -101,16 +101,16 @@ void riak_interface_t::set_bucket(std::string, bucket_t) {
     //store->store_metadata = bucket;
 }
 
-std::pair<bucket_iterator_t, bucket_iterator_t> riak_interface_t::buckets() { 
+std::pair<bucket_iterator_t, bucket_iterator_t> riak_interface_t::buckets() {
     crash("Not Implemented");
     //return std::make_pair(bucket_iterator_t(store_manager->begin()), bucket_iterator_t(store_manager->end()));
 };
 
-object_iterator_t riak_interface_t::objects() { 
+object_iterator_t riak_interface_t::objects() {
     not_implemented();
     unreachable();
     /*
-    UNUSED range_txn_t<riak_value_t> range_txn = 
+    UNUSED range_txn_t<riak_value_t> range_txn =
         get_range<riak_value_t>(slice, order_token_t::ignore, rget_bound_none, store_key_t(), rget_bound_none, store_key_t());
 
     return object_iterator_t(bucket, range_txn.it, range_txn.txn);
@@ -154,7 +154,7 @@ riak_interface_t::set_result_t riak_interface_t::store_object(UNUSED object_t ob
 
     /*
     fake_key_modification_callback_t<riak_value_t> fake_cb;
-    value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore, &fake_cb);
+    // NOPE value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(obj.key).key(), repli_timestamp_t::invalid, order_token_t::ignore, &fake_cb);
 
     if (!txn.value()) {
         scoped_malloc<riak_value_t> tmp(MAX_RIAK_VALUE_SIZE);
@@ -185,7 +185,7 @@ riak_interface_t::set_result_t riak_interface_t::store_object(UNUSED object_t ob
     src.add_buffer(obj.content_length, obj.content.get()); //this is invalidated by destroying the object
 
     //we really just need this to hold all the links and make sure they get destructed at the end
-    std::list<link_hdr_t> link_hdrs; 
+    std::list<link_hdr_t> link_hdrs;
     for (std::vector<link_t>::const_iterator it = obj.links.begin(); it != obj.links.end(); it++) {
         link_hdr_t link_hdr;
         link_hdr.bucket_len = it->bucket.size();
@@ -212,29 +212,6 @@ riak_interface_t::set_result_t riak_interface_t::store_object(UNUSED object_t ob
 }
 
 bool riak_interface_t::delete_object(UNUSED std::string key) {
-    /* std::list<std::string> sm_key;
-    sm_key.push_back("riak"); sm_key.push_back(bucket);
-    btree_slice_t *slice = get_slice(sm_key);
-
-    if (!slice) {
-        // if we're doing a set we need to create the slice
-        slice = create_slice(sm_key);
-    } */
-
-    /*
-    fake_key_modification_callback_t<riak_value_t> fake_cb;
-    value_txn_t<riak_value_t> txn(slice, btree_key_buffer_t(key).key(), repli_timestamp_t::invalid, order_token_t::ignore, &fake_cb);
-
-    blob_t blob(txn.value()->contents, blob::btree_maxreflen);
-    blob.clear(txn.get_txn());
-
-    if (txn.value()) {
-        txn.value().reset();
-        return true;
-    } else {
-        return false;
-    }
-    */
     not_implemented();
     crash("Not implemented");
 }
@@ -323,13 +300,13 @@ riak_interface_t::str_or_exc_t riak_interface_t::actual_mapreduce(JS::ctx_t *ctx
             if (std_contains(query_it->get_obj(), std::string("link"))) {
                 crash("Not implemented");
             } else if (std_contains(query_it->get_obj(), std::string("map"))) {
-                if (query_it->get_obj()["map"].get_obj()["language"].get_str() != "javascript") { 
+                if (query_it->get_obj()["map"].get_obj()["language"].get_str() != "javascript") {
                     crash("Not implemented");
                 }
 
                 js_values = js_map(*ctx, query_it->get_obj()["map"].get_obj()["source"].get_str(), js_values);
             } else if (std_contains(query_it->get_obj(), std::string("reduce"))) {
-                if (query_it->get_obj()["reduce"].get_obj()["language"].get_str() != "javascript") { 
+                if (query_it->get_obj()["reduce"].get_obj()["language"].get_str() != "javascript") {
                     crash("Not implemented");
                 }
 

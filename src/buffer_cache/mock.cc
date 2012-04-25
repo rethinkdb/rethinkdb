@@ -113,7 +113,7 @@ mock_buf_lock_t::mock_buf_lock_t() :
     acquired(false)
 { }
 
-mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line) :
+mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line) :
     internal_buf(txn->cache->bufs->get(block_id)),
     access(mode),
     dirty(false),
@@ -146,7 +146,7 @@ mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn) :
     acquired(true)
 {
     rassert(access == rwi_write);
-    
+
     block_id_t block_id = txn->cache->bufs->get_size();
     txn->cache->bufs->set_size(block_id + 1);
     internal_buf = new internal_buf_t(txn->cache, block_id, txn->recency_timestamp);
@@ -259,7 +259,7 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED const boost::intrusive_ptr<standard_block_token_t>& token, UNUSED repli_timestamp_t recency_timestamp) {
+bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED const intrusive_ptr_t<standard_block_token_t>& token, UNUSED repli_timestamp_t recency_timestamp) {
     // We never use read-ahead.
     return false;
 }

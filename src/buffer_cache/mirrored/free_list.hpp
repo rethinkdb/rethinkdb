@@ -14,7 +14,7 @@ class array_free_list_t : public home_thread_mixin_t {
 public:
     explicit array_free_list_t(serializer_t *);
     ~array_free_list_t();
-    
+
     int num_blocks_in_use;
     void reserve_block_id(block_id_t id);
     block_id_t gen_block_id();
@@ -22,7 +22,7 @@ public:
 
 private:
     serializer_t *serializer;
-    
+
     /* A block ID is free if it is >= next_new_block_id or if it is in free_ids. All the IDs in
     free_ids are less than next_new_block_id. */
     block_id_t next_new_block_id;

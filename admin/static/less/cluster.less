@@ -24,40 +24,45 @@
 }
 
 .drop-shadow() {
-    .box-shadow(0 1px 2px @grayLighter);
+.box-shadow(0 1px 2px @grayLighter);
+}
+
+.panel-gradient() {
+    #gradient > .vertical(rgba(255,255,255,1), rgba(246,246,246,1));
+}
+
+/* Temporary fix for bug introduced in Bootstrap 2.0.2 for the navbar width. */
+.navbar-inner .container {
+    width: 940px;
+}
+
+/*
+    ----------------------------
+    Development tools
+    ----------------------------
+*/
+
+#dev-tools {
+    display: none;
+    #translucent > .background(#000, 0.1);
+    border: thin solid #BBB;
+    padding: 10px 15px 20px 30px;
+    position: absolute;
+    right: 0;
+    width: 190px;
+    z-index: 1000;
+    .btn {
+        line-height: 16px;
+        margin: 5px 0px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        text-align: center;
+        width: 150px;
     }
+}
 
-    .panel-gradient() {
-        #gradient > .vertical(rgba(255,255,255,1), rgba(246,246,246,1));
-    }
-
-    /*
-        ----------------------------
-        Development tools
-        ----------------------------
-    */
-
-    #dev-tools {
-        display: none;
-        #translucent > .background(#000, 0.1);
-        border: thin solid #BBB;
-        padding: 10px 15px 20px 30px;
-        position: absolute;
-        right: 0;
-        width: 190px;
-        z-index: 1000;
-        .btn {
-            line-height: 16px;
-            margin: 5px 0px;
-            padding-top: 8px;
-            padding-bottom: 8px;
-            text-align: center;
-            width: 150px;
-        }
-    }
-
-    /*
-        ----------------------------
+/*
+    ----------------------------
     Sidebar
     ----------------------------
 */
@@ -505,29 +510,25 @@
 
 /*
     ----------------------------
-    List view
+    List views
     ----------------------------
 */
 
-.cluster-view {
-    ul.browser-tabs {
-        margin-top: 20px;
-        margin-bottom: 0;
-    }
-    .actions-bar {
-        padding: 12px;
-        .panel-gradient;
-    }
+.actions-bar {
+    border: @panel_border;
+    .border-radius(0 0 @border_radius @border_radius);
+    padding: 12px;
+    margin: 10px 0;
+    .panel-gradient;
+}
 
-    .rdb-content {
-        border: @panel_border;
-        .border-radius(0 0 @border_radius @border_radius);
-        margin-top: 20px;
-        margin-bottom: 20px;
+.namespace-list, .server-list .machine-list {
+    border: @panel_border;
+    .border-radius(0 0 @border_radius @border_radius);
+    margin-top: 10px;
+    margin-bottom: 20px;
 
-    }
-
-    .rdb-content table {
+    table {
         margin-bottom: 0;
         border: 0;
         td + td { border-left: 0; }
@@ -546,44 +547,107 @@
             }
         }
 
-        .details-wrapper {
-            padding: 10px;
+        .details {
+            padding: 5px;
 
-            span.name {
+            h3.name {
+                line-height: 1em;
+                margin-bottom: 0.3em;
                 font-weight: bold;
                 font-size: 1.2em;
                 color: @grayDark;
             }
-
-            p.details-text {
-                margin-top: 10px;
-                margin-bottom: 0;
-
-                span {
-                    margin-right: 20px;
-                }
-            }
         }
     }
+}
 
-    #namespaces-panel {
-        span.protocol {
-            background: @gray;
-            color: @white;
-            font-size: 0.8em;
-            padding: 0.4em;
-            text-transform: uppercase;
-            font-weight: bold;
-            float: right;
+.server-list {
+    margin-top: 20px;
 
-            &.riak { background-color: @riak_color; }
-            &.redis { background-color: @redis_color; }
-            &.memcached {  background-color: @memcached_color;  }
-        }
+    .label.element-type {
+        text-transform: uppercase;
+        font-size: 10px;
+        margin-right: 15px;
+        display: inline-block;
+        margin-top: -3px;
     }
 
-    #browser-tabs {
+
+    .datacenter.details p, .machine.details p {
+        font-size: 11px;
+        text-transform: uppercase;
         margin-bottom: 0;
+    }
+
+    .datacenter.details p.status .label {
+        vertical-align: text-top;
+        font-size: 10px;
+        margin-right: 5px;
+    }
+
+    .machine.details p.status {
+        .label {
+            vertical-align: text-top;
+            font-size: 10px;
+        }
+        float: right;
+    }
+
+    .header {
+        cursor: pointer;
+    }
+
+    .arrow {
+        width: 16px;
+        height: 16px;
+        float: left;
+        &.collapsed {
+            background: url('/images/mini_right-arrow.png') no-repeat center top;
+        }
+        &.expanded {
+            background: url('/images/mini_down-arrow.png') no-repeat center top;
+            margin-top: 3px;
+        }
+    }
+
+    .divider {
+       margin-top: 10px;
+       margin-bottom: 20px;
+       border-bottom: 2px solid #DDD;
+       margin-left: 28px;
+    }
+
+    h3.datacenter.name { 
+        line-height: 1em;
+        margin-left: 28px;
+    }
+
+    .datacenter.actions { text-align: right; }
+
+    .datacenter.details {
+        margin-top: 10px;
+        margin-left: 28px;
+    }
+    .machine-list {
+        margin-left: 28px;
+    }
+}
+
+.namespace-list {
+    margin-top: 20px;
+
+    span.protocol {
+        background: @gray;
+        color: @white;
+        font-size: 0.8em;
+        padding: 0.4em;
+        text-transform: uppercase;
+        font-weight: bold;
+        float: right;
+
+        &.riak { background-color: @riak_color; }
+        &.redis { background-color: @redis_color; }
+        &.memcached {  background-color: @memcached_color;  }
     }
 }
 
@@ -600,10 +664,8 @@
     }
 }
 
-.alert{
-    .name {
-        font-weight: bold;
-    }
+.alert .name {
+    font-weight: bold;
 }
 
 /*
@@ -661,6 +723,9 @@
         td {
             border-bottom: thin solid @grayLighter;
             padding: 10px 0;
+            span.master-status, span.replica-status {
+                display: block;
+            }
         } 
     }
 
@@ -673,6 +738,9 @@
                 width: 15%;
             }
         } 
+        div.progress {
+            width: 200px;
+        }
     }
 
     /* Override Bootstrap */
@@ -756,10 +824,13 @@
                 margin-bottom: 6px;
             }
         }
-        p.current {
+        p.current, p.max {
             font-size: 12px;
             line-height: 24px;
             color: @gray;
+        }
+        p.current {
+            margin-bottom: 0;
         }
     }
 

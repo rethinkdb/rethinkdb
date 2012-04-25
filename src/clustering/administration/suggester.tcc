@@ -11,8 +11,8 @@ const char *missing_machine_exc_t::what() const throw () {
 template<class protocol_t>
 persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
         const namespace_semilattice_metadata_t<protocol_t> &ns_goals,
-        const clone_ptr_t<directory_rview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > &reactor_directory_view,
-        const clone_ptr_t<directory_rview_t<machine_id_t> > &machine_id_translation_table,
+        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory_view,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
         THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t) {
 
@@ -24,10 +24,10 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
         if (peer.is_nil()) {
             throw missing_machine_exc_t();
         }
-        boost::optional<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > value =
-            reactor_directory_view->get_value(peer);
-        if (value && *value) {
-            directory.insert(std::make_pair(machine, (**value).internal));
+        typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >::const_iterator jt =
+            reactor_directory_view.find(peer);
+        if (jt != reactor_directory_view.end() && jt->second) {
+            directory.insert(std::make_pair(machine, jt->second->internal));
         }
     }
 
@@ -47,39 +47,54 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
         ns_goals.secondary_pinnings.get();
 
     return suggest_blueprint(directory, primary_datacenter,
-        datacenter_affinities, shards, machine_data_centers, 
+        datacenter_affinities, shards, machine_data_centers,
         primary_pinnings, secondary_pinnings);
 }
 
 template<class protocol_t>
 std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprints_for_protocol(
         const namespaces_semilattice_metadata_t<protocol_t> &ns_goals,
-        const clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<protocol_t> > > &reactor_directory_view,
-        const clone_ptr_t<directory_rview_t<machine_id_t> > &machine_id_translation_table,
-        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers) 
+        const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &namespaces_directory,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
         THROWS_ONLY(missing_machine_exc_t)
 {
 
     std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > out;
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it  = ns_goals.namespaces.begin();
-                                                                                                 it != ns_goals.namespaces.end(); 
+                                                                                                 it != ns_goals.namespaces.end();
                                                                                                  ++it) {
         if (!it->second.is_deleted()) {
-            typedef std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > bcard_map_t;
+            std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > reactor_directory;
+            for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator jt =
+                    namespaces_directory.begin(); jt != namespaces_directory.end(); jt++) {
+                typename std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::const_iterator kt =
+                    jt->second.reactor_bcards.find(it->first);
+                if (kt != jt->second.reactor_bcards.end()) {
+                    reactor_directory.insert(std::make_pair(
+                        jt->first,
+                        boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(kt->second)
+                        ));
+                } else {
+                    reactor_directory.insert(std::make_pair(
+                        jt->first,
+                        boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >()
+                        ));
+                }
+            }
             try {
-            out.insert(
+                out.insert(
                     std::make_pair(it->first,
                         suggest_blueprint_for_namespace<protocol_t>(
                             it->second.get(),
-                            reactor_directory_view->subview(clone_ptr_t<read_lens_t<bcard_map_t, namespaces_directory_metadata_t<protocol_t> > >(field_lens(&namespaces_directory_metadata_t<protocol_t>::reactor_bcards)))
-                            ->subview(clone_ptr_t<read_lens_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >, bcard_map_t> >(optional_member_lens<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(it->first))),
+                            reactor_directory,
                             machine_id_translation_table,
                             machine_data_centers
                             )));
             } catch (cannot_satisfy_goals_exc_t &e) {
-                logERR("Namespace %s has unsatisfiable goals\n", uuid_to_str(it->first).c_str());
+                logERR("Namespace %s has unsatisfiable goals", uuid_to_str(it->first).c_str());
             } catch (in_conflict_exc_t &e) {
-                logERR("Namespace %s has internal conflicts\n", uuid_to_str(it->first).c_str());
+                logERR("Namespace %s has internal conflicts", uuid_to_str(it->first).c_str());
             }
         }
     }
@@ -89,15 +104,15 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
 template<class protocol_t>
 void fill_in_blueprints_for_protocol(
         namespaces_semilattice_metadata_t<protocol_t> *ns_goals,
-        const clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<protocol_t> > > &reactor_directory_view,
-        const clone_ptr_t<directory_rview_t<machine_id_t> > &machine_id_translation_table,
+        const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &namespaces_directory,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const machine_id_t &us)
-        THROWS_ONLY(missing_machine_exc_t) 
+        THROWS_ONLY(missing_machine_exc_t)
 {
     typedef std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > blueprint_map_t;
     blueprint_map_t suggested_blueprints =
-        suggest_blueprints_for_protocol(*ns_goals, reactor_directory_view, machine_id_translation_table, machine_data_centers);
+        suggest_blueprints_for_protocol(*ns_goals, namespaces_directory, machine_id_translation_table, machine_data_centers);
 
     for (typename blueprint_map_t::iterator it  = suggested_blueprints.begin();
                                             it != suggested_blueprints.end();

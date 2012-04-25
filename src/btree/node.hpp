@@ -1,6 +1,7 @@
 #ifndef BTREE_NODE_HPP_
 #define BTREE_NODE_HPP_
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -153,6 +154,18 @@ inline bool is_leaf(const node_t *node) {
 }
 
 void print(const node_t *node);
+
+bool is_mergable(value_sizer_t<void> *sizer, const node_t *node, const node_t *sibling, const internal_node_t *parent);
+
+bool is_underfull(value_sizer_t<void> *sizer, const node_t *node);
+
+void split(value_sizer_t<void> *sizer, buf_lock_t *node_buf, node_t *rnode, btree_key_t *median);
+
+void merge(value_sizer_t<void> *sizer, node_t *node, buf_lock_t *rnode_buf, const internal_node_t *parent);
+
+bool level(value_sizer_t<void> *sizer, int nodecmp_node_with_sib, buf_lock_t *node_buf, buf_lock_t *rnode_buf, btree_key_t *replacement_key, const internal_node_t *parent);
+
+void validate(value_sizer_t<void> *sizer, const node_t *node);
 
 }  // namespace node
 

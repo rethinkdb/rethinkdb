@@ -125,7 +125,7 @@ struct sorted_set_set_oper_t : set_oper_t {
             rassert(mem.loc.value.get());
             scoped_malloc<redis_nested_sorted_set_value_t> null;
             mem.loc.value.swap(null);
-            
+
             // We can't remove from score index while the iterator is valid, take care of that later
 
             removed++;
@@ -232,7 +232,7 @@ private:
         } else if(index >= size) {
             index = size - 1;
         }
-        
+
         return index;
     }
 
@@ -244,7 +244,7 @@ private:
 
 struct sorted_set_read_oper_t : read_oper_t {
     sorted_set_read_oper_t(std::string &key, btree_slice_t *btree, order_token_t otok) :
-        read_oper_t(key, btree, otok), 
+        read_oper_t(key, btree, otok),
         rank_index(btree->cache()->get_block_size())
     {
         redis_sorted_set_value_t *value = reinterpret_cast<redis_sorted_set_value_t *>(location.value.get());
@@ -315,7 +315,7 @@ struct sorted_set_read_oper_t : read_oper_t {
         } else if(index >= size) {
             index = size - 1;
         }
-        
+
         return index;
     }
 
@@ -352,7 +352,7 @@ SHARD_W(zadd)
 EXECUTE_W(zadd) {
     sorted_set_set_oper_t oper(one[0], btree, timestamp, otok);
     unsigned added = 0;
-    
+
     std::vector<std::string>::iterator iter = one.begin() + 1;
     while(iter != one.end()) {
         std::string score_str = *iter;

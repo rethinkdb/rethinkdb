@@ -2,12 +2,10 @@
 #define RPC_SEMILATTICE_JOINS_VCLOCK_HPP_
 
 #include "errors.hpp"
-
 #include <boost/uuid/uuid.hpp>
 
 #include "containers/map_sentries.hpp"
 #include "http/json.hpp"
-#include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 
 namespace vclock_details {
@@ -63,7 +61,7 @@ public:
 
     void throw_if_conflict() const;
 
-    vclock_t<T> make_new_version(T t, const boost::uuids::uuid &us); 
+    vclock_t<T> make_new_version(T t, const boost::uuids::uuid &us);
 
     vclock_t<T> make_resolving_version(T t, const boost::uuids::uuid &us);
 

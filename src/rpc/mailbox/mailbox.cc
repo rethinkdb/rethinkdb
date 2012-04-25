@@ -132,6 +132,6 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *
         dest_address.thread = dest_thread;
         dest_address.mailbox_id = dest_mailbox_id;
 
-        logDBG("Message dropped because mailbox %s no longer exists. (This doesn't necessarily indicate a bug.)\n", dest_address.human_readable().c_str());
+        logDBG("Message dropped because mailbox %s no longer exists. (This doesn't necessarily indicate a bug.)", dest_address.human_readable().c_str());
     }
 }

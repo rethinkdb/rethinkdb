@@ -1,5 +1,7 @@
 #include "redis/redis_output.hpp"
 
+#include "arch/io/network.hpp"
+
 //Output functions
 //These take the results of a redis_interface_t method and send them out on the wire.
 //Handling both input and output here means that this class is solely responsible for
@@ -8,7 +10,7 @@
 struct output_visitor : boost::static_visitor<void> {
     explicit output_visitor(tcp_conn_t *conn) : out_conn(conn) {;}
     tcp_conn_t *out_conn;
-    
+
     void operator()(redis_protocol_t::status_result res) const {
         out_conn->write("+", 1);
         out_conn->write(res.msg, strlen(res.msg));

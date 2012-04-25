@@ -7,7 +7,7 @@
 
 struct keys_to_region : boost::static_visitor<redis_protocol_t::region_t> {
     redis_protocol_t::region_t operator()(std::vector<std::string> &keys) const {
-        //TODO fix this 
+        //TODO fix this
         store_key_t s_key(keys[0]);
         redis_protocol_t::region_t r(key_range_t::closed, s_key, key_range_t::closed, s_key);
         return r;

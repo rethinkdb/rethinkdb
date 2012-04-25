@@ -28,7 +28,7 @@ write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp) {
     return msg << tstamp.time;
 }
 
-int deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {
+MUST_USE int deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {
     return deserialize(s, &tstamp->time);
 }
 
@@ -50,11 +50,11 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     const char *buf = reinterpret_cast<const char *>(vbuf);
     ssize_t length = ulength;
 
-    char bd_sample[16] = { 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 
+    char bd_sample[16] = { 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD,
                            0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD };
-    char zero_sample[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+    char zero_sample[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    char ff_sample[16] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+    char ff_sample[16] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
     bool skipped_last = false;
@@ -97,87 +97,49 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
-// Precise time functions
-
-// These two fields are initialized with current clock values (roughly) at the same moment.
-// Since monotonic clock represents time since some arbitrary moment, we need to correlate it
-// to some other clock to print time more or less precisely.
-//
-// Of course that doesn't solve the problem of clocks having different rates.
-static struct {
-    timespec hi_res_clock;
-    time_t low_res_clock;
-} time_sync_data;
-
-void initialize_precise_time() {
-    int res = clock_gettime(CLOCK_MONOTONIC, &time_sync_data.hi_res_clock);
-    guarantee(res == 0, "Failed to get initial monotonic clock value");
-    (void) time(&time_sync_data.low_res_clock);
+void format_time(time_t time, char* buf, size_t max_chars) {
+    struct tm t;
+    struct tm *res1 = localtime_r(&time, &t);
+    guarantee_err(res1 == &t, "gmtime_r() failed.");
+    int res2 = snprintf(buf, max_chars,
+        "%04d-%02d-%02dT%02d:%02d:%02d",
+        t.tm_year+1900,
+        t.tm_mon+1,
+        t.tm_mday,
+        t.tm_hour,
+        t.tm_min,
+        t.tm_sec);
+    (void) res2;
+    rassert(0 <= res2);
 }
 
-void set_precise_time_offset(timespec hi_res_clock, time_t low_res_clock) {
-    time_sync_data.hi_res_clock = hi_res_clock;
-    time_sync_data.low_res_clock = low_res_clock;
-}
-
-timespec get_uptime() {
-    timespec now;
-
-    int err = clock_gettime(CLOCK_MONOTONIC, &now);
-    rassert_err(err == 0, "Failed to get monotonic clock value");
-    if (err == 0) {
-        // Compute time difference between now and origin of time
-        now.tv_sec -= time_sync_data.hi_res_clock.tv_sec;
-        now.tv_nsec -= time_sync_data.hi_res_clock.tv_nsec;
-        if (now.tv_nsec < 0) {
-            now.tv_nsec += BILLION;
-            now.tv_sec--;
-        }
-        return now;
-    } else {
-        // fallback: we can't get nanoseconds value, so we fake it
-        time_t now_low_res = time(NULL);
-        now.tv_sec = now_low_res - time_sync_data.low_res_clock;
-        now.tv_nsec = 0;
-        return now;
-    }
-}
-
-precise_time_t get_absolute_time(const timespec& relative_time) {
-    precise_time_t result;
-    time_t sec = time_sync_data.low_res_clock + relative_time.tv_sec;
-    uint32_t nsec = time_sync_data.hi_res_clock.tv_nsec + relative_time.tv_nsec;
-    if (nsec > 1e9) {
-        nsec -= BILLION;
-        sec++;
-    }
-    (void) gmtime_r(&sec, &result);
-    result.ns = nsec;
-    return result;
-}
-
-precise_time_t get_time_now() {
-    return get_absolute_time(get_uptime());
-}
-
-void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars) {
-    int res = snprintf(buf, max_chars,
-        "%04d-%02d-%02dT%02d:%02d:%02d.%06d",
-        time.tm_year+1900,
-        time.tm_mon+1,
-        time.tm_mday,
-        time.tm_hour,
-        time.tm_min,
-        time.tm_sec,
-        (int) (time.ns/1e3));
-    (void) res;
-    rassert(0 <= res);
-}
-
-std::string format_precise_time(const precise_time_t& time) {
-    char buf[formatted_precise_time_length+1];
-    format_precise_time(time, buf, sizeof(buf));
+std::string format_time(time_t time) {
+    char buf[formatted_time_length+1];
+    format_time(time, buf, sizeof(buf));
     return std::string(buf);
+}
+
+time_t parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
+    struct tm t;
+    int res1 = sscanf(str.c_str(),
+        "%04d-%02d-%02dT%02d:%02d:%02d",
+        &t.tm_year,
+        &t.tm_mon,
+        &t.tm_mday,
+        &t.tm_hour,
+        &t.tm_min,
+        &t.tm_sec);
+    if (res1 != 6) {
+        throw std::runtime_error("badly formatted time");
+    }
+    t.tm_year -= 1900;
+    t.tm_mon -= 1;
+    t.tm_isdst = -1;
+    time_t res2 = mktime(&t);
+    if (res2 == -1) {
+        throw std::runtime_error("invalid time");
+    }
+    return res2;
 }
 
 #ifndef NDEBUG
@@ -240,9 +202,8 @@ void *malloc_aligned(size_t size, size_t alignment) {
 #ifndef NDEBUG
 void debugf(const char *msg, ...) {
     flockfile(stderr);
-    precise_time_t t = get_time_now();
-    char formatted_time[formatted_precise_time_length+1];
-    format_precise_time(t, formatted_time, sizeof(formatted_time));
+    char formatted_time[formatted_time_length+1];
+    format_time(time(NULL), formatted_time, sizeof(formatted_time));
     fprintf(stderr, "%s Thread %d: ", formatted_time, get_thread_id());
 
     va_list args;
@@ -308,9 +269,8 @@ bool begins_with_minus(const char *string) {
     return *string == '-';
 }
 
-int64_t strtol_strict(const char *string, const char **end, int base) {
-    // It's okay to have long, that's what strtol returns.
-    // We convert it to int64_t (which is the same thing, or bigger).
+int64_t strtoi64_strict(const char *string, const char **end, int base) {
+    CT_ASSERT(sizeof(long) == sizeof(int64_t));
     long result = strtol(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if ((result == LONG_MAX || result == LONG_MIN) && errno == ERANGE) {
         *end = string;
@@ -319,13 +279,12 @@ int64_t strtol_strict(const char *string, const char **end, int base) {
     return result;
 }
 
-uint64_t strtoul_strict(const char *string, const char **end, int base) {
+uint64_t strtou64_strict(const char *string, const char **end, int base) {
     if (begins_with_minus(string)) {
         *end = string;
         return 0;
     }
-    // It's okay to have an unsigned long, that's what strtoul returns.
-    // We convert it to uint64_t (which is the same thing, or bigger).
+    CT_ASSERT(sizeof(unsigned long) == sizeof(uint64_t));
     unsigned long result = strtoul(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if (result == ULONG_MAX && errno == ERANGE) {
         *end = string;
@@ -334,19 +293,28 @@ uint64_t strtoul_strict(const char *string, const char **end, int base) {
     return result;
 }
 
-uint64_t strtoull_strict(const char *string, const char **end, int base) {
-    if (begins_with_minus(string)) {
-        *end = string;
-        return 0;
+bool strtoi64_strict(const std::string &str, int base, int64_t *out_result) {
+    const char *end;
+    int64_t result = strtoi64_strict(str.c_str(), &end,  base);
+    if (end != str.c_str() + str.length() || (result == 0 && end == str.c_str())) {
+        *out_result = 0;
+        return false;
+    } else {
+        *out_result = result;
+        return true;
     }
-    // It's okay to have an unsigned long long, that's what strtoull returns.
-    // We convert it to uint64_t (which is the same thing).
-    unsigned long long result = strtoull(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
-    if (result == ULLONG_MAX && errno == ERANGE) {
-        *end = string;
-        return 0;
+}
+
+bool strtou64_strict(const std::string &str, int base, uint64_t *out_result) {
+    const char *end;
+    uint64_t result = strtou64_strict(str.c_str(), &end,  base);
+    if (end != str.c_str() + str.length() || (result == 0 && end == str.c_str())) {
+        *out_result = 0;
+        return false;
+    } else {
+        *out_result = result;
+        return true;
     }
-    return result;
 }
 
 int gcd(int x, int y) {
@@ -588,22 +556,31 @@ std::string read_file(const char *path) {
     return s;
 }
 
-std::vector<std::string> parse_as_path(const std::string &path) {
+path_t parse_as_path(const std::string &path) {
+    debugf("Path: %s\n", path.c_str());
+    path_t res;
+    if (path[0] == '/') {
+        res.is_absolute = true;
+    } else {
+        res.is_absolute = false;
+    }
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     typedef tokenizer::iterator tok_iterator;
 
     boost::char_separator<char> sep("/");
     tokenizer tokens(path, sep);
 
-    return std::vector<std::string>(tokens.begin(), tokens.end());
+    res.nodes.assign(tokens.begin(), tokens.end());
+
+    return res;
 }
 
-std::string render_as_path(const std::vector<std::string> &path) {
+std::string render_as_path(const path_t &path) {
     std::string res;
-    for (std::vector<std::string>::const_iterator it =  path.begin();
-                                                  it != path.end();
+    for (std::vector<std::string>::const_iterator it =  path.nodes.begin();
+                                                  it != path.nodes.end();
                                                   it++) {
-        if (it != path.begin()) {
+        if (it != path.nodes.begin() || path.is_absolute) {
             res += "/";
         }
         res += *it;

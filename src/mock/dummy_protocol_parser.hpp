@@ -20,13 +20,13 @@ public:
     http_res_t handle(const http_req_t &);
 
 private:
-    namespace_interface_t<dummy_protocol_t> *namespace_if; 
+    namespace_interface_t<dummy_protocol_t> *namespace_if;
     order_source_t order_source;
 };
 
 class dummy_protocol_parser_maker_t {
 public:
-    dummy_protocol_parser_maker_t(mailbox_manager_t *, 
+    dummy_protocol_parser_maker_t(mailbox_manager_t *,
                                   boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> > >,
                                   clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<mock::dummy_protocol_t> > >);
 
@@ -49,6 +49,6 @@ private:
     semilattice_read_view_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::subscription_t subscription;
 };
 
-}//namespace mock 
+}//namespace mock
 
 #endif

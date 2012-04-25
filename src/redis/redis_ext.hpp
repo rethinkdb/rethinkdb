@@ -1,14 +1,9 @@
 #ifndef REDIS_REDIS_EXT_HPP_
 #define REDIS_REDIS_EXT_HPP_
 
+#include "concurrency/cond_var.hpp"
 #include "redis/redis.hpp"
-// #include "arch/runtime/coroutines.hpp"
-// #include "concurrency/wait_any.hpp"
-// #include <boost/lexical_cast.hpp>
-// #include <boost/bind.hpp>
-// #include <boost/variant/get.hpp>
-// #include <map>
-// #include <list>
+#include "protocol_api.hpp"
 
 #define CMD_0(CNAME) \
 redis_protocol_t::redis_return_type CNAME() { \
@@ -49,7 +44,7 @@ redis_protocol_t::redis_return_type CNAME(std::vector<std::string> one) { \
 void toUpper(std::string &str);
 
 struct redis_ext {
-    explicit redis_ext(namespace_interface_t<redis_protocol_t> *intface) : namespace_interface(intface) {;}
+    explicit redis_ext(namespace_interface_t<redis_protocol_t> *intface) : namespace_interface(intface) { }
 
     // KEYS
     CMD_N(del)
@@ -65,7 +60,7 @@ struct redis_ext {
     redis_protocol_t::redis_return_type rename(std::string key, std::string newkey) {
         return rename_(key, newkey, false);
     }
-    
+
     //CMD_2(renamenx, std::string, std::string)
     redis_protocol_t::redis_return_type renamenx(std::string key, std::string newkey) {
         return rename_(key, newkey, true);
@@ -162,7 +157,7 @@ struct redis_ext {
 
     CMD_2(sismember, std::string, std::string)
     CMD_1(smembers, std::string)
-    
+
     //CMD_3(smove, std::string, std::string, std::string)
     redis_protocol_t::redis_return_type smove(std::string source, std::string destination, std::string member) {
         std::vector<std::string> key_mem;
@@ -389,7 +384,7 @@ struct redis_ext {
 
 private:
     namespace_interface_t<redis_protocol_t> *namespace_interface;
-    
+
     redis_protocol_t::redis_return_type exec(redis_protocol_t::write_operation_t *oper) {
         redis_protocol_t::write_t write(oper);
         // TODO give interruptor

@@ -76,7 +76,7 @@ void counted_btree_t::remove(unsigned index) {
 void counted_btree_t::clear() {
     buf_lock_t blk(txn, root->node_id, rwi_write);
     clear_recur(blk);
-    
+
     // Deallocate root block
     blk.mark_deleted();
     root->node_id = NULL_BLOCK_ID;
@@ -86,7 +86,7 @@ void counted_btree_t::clear() {
 void counted_btree_t::clear_recur(buf_lock_t &blk) {
     const counted_node_t *node = reinterpret_cast<const counted_node_t *>(blk.get_data_read());
     if(node->magic == internal_counted_node_t::expected_magic()) {
-        internal_clear(blk);    
+        internal_clear(blk);
     } else if(node->magic == leaf_counted_node_t::expected_magic()) {
         leaf_clear(blk);
     }
@@ -139,7 +139,7 @@ const counted_value_t *counted_btree_t::at_recur(buf_lock_t &buf, unsigned index
                 return at_recur(buf, index - (count - sub_ref.count));
             }
         }
-        
+
         // TODO proper error
         crash("Index not found though it should have been");
 
@@ -157,7 +157,7 @@ const counted_value_t *counted_btree_t::at_recur(buf_lock_t &buf, unsigned index
 
         return reinterpret_cast<const counted_value_t *>(l_node->refs + offset);
     }
-    
+
     unreachable();
 }
 
@@ -167,7 +167,7 @@ bool counted_btree_t::insert_recur(buf_lock_t &blk, float score, unsigned index,
     if(node->magic == internal_counted_node_t::expected_magic()) {
         return internal_insert(blk, score, index, by_score, value, new_blk_out, new_size_out, split_score_out);
     } else if(node->magic == leaf_counted_node_t::expected_magic()) {
-        return leaf_insert(blk, score, index, by_score, value, new_blk_out, new_size_out, split_score_out); 
+        return leaf_insert(blk, score, index, by_score, value, new_blk_out, new_size_out, split_score_out);
     }
 
     unreachable();
@@ -211,7 +211,7 @@ bool counted_btree_t::internal_insert(buf_lock_t &blk, float score, unsigned ind
         // This sub block was split, insert the new reference after this one
 
         buf_lock_t *insertee = &blk;
-        
+
         // Check to see if we have to split *this* block
         buf_lock_t new_block; // This needs to be here because of scoping issues
         if(sizeof(*node) + (node->n_refs + 1) * sizeof(sub_ref_t) > blksize.value()) {
@@ -256,7 +256,7 @@ bool counted_btree_t::internal_insert(buf_lock_t &blk, float score, unsigned ind
         }
 
         // Insert the new ref (new ref goes to the *right* of insert_index)
-        
+
         // Shift to make space
         unsigned refs_to_shift = node->n_refs - insert_index - 1;
         if(refs_to_shift) {
@@ -333,7 +333,7 @@ bool counted_btree_t::leaf_insert(buf_lock_t &blk, float score, unsigned index, 
         uint16_t refs_left = 0;
         while(bytes_left < total_size / 2) {
             const counted_value_t *ref = reinterpret_cast<const counted_value_t*>(node->refs + bytes_left);
-            bytes_left += ref->size(blksize); 
+            bytes_left += ref->size(blksize);
             refs_left++;
         }
         unsigned bytes_right = total_size - bytes_left;
@@ -352,7 +352,7 @@ bool counted_btree_t::leaf_insert(buf_lock_t &blk, float score, unsigned index, 
 
         // Move the data over
         memcpy(new_node->refs, node->refs + bytes_left, bytes_right);
-        
+
         // De-allocate space in old block
         blk.set_data(const_cast<uint16_t *>(&(node->n_refs)), &refs_left, sizeof(refs_left));
 
@@ -369,7 +369,7 @@ bool counted_btree_t::leaf_insert(buf_lock_t &blk, float score, unsigned index, 
         } else {
             toshift -= bytes_right;
         }
-        
+
         split = true;
     }
 
@@ -483,6 +483,15 @@ counted_btree_t::iterator_t counted_btree_t::score_iterator(float score_min, flo
     return iterator_t(root->node_id, txn, blksize, score_min, score_max);
 }
 
+struct counted_btree_t::iterator_t::stack_frame_t {
+    stack_frame_t() : index(0) {;}
+
+    unsigned index;
+    buf_lock_t blk;
+private:
+    DISABLE_COPYING(stack_frame_t);
+};
+
 counted_btree_t::iterator_t::iterator_t(block_id_t root, transaction_t *txn_, block_size_t& blksize_, float score_min, float score_max) :
     txn(txn_),
     blksize(blksize_),
@@ -500,14 +509,14 @@ counted_btree_t::iterator_t::iterator_t(block_id_t root, transaction_t *txn_, bl
         const counted_node_t *node = reinterpret_cast<const counted_node_t *>(current_frame->blk.get_data_read());
         if(node->magic == internal_counted_node_t::expected_magic()) {
             const internal_counted_node_t *internal_node = reinterpret_cast<const internal_counted_node_t *>(node);
-            
+
             // Find sub tree where the range starts
             const sub_ref_t *ref = internal_node->refs;
             while(score_min < ref->greatest_score) {
                 current_frame->index++;
                 rassert(current_frame->index < internal_node->n_refs);
                 ref = internal_node->refs + current_frame->index;
-                
+
                 // We keep track of where we are rank wise
                 current_rank += ref->count;
             }
@@ -523,7 +532,7 @@ counted_btree_t::iterator_t::iterator_t(block_id_t root, transaction_t *txn_, bl
             // We've found the correct leaf node, find the first value in our range
 
             const leaf_counted_node_t *leaf_node = reinterpret_cast<const leaf_counted_node_t *>(node);
-            
+
             // Find our starting point
             current_offset = 0;
             current_val = reinterpret_cast<const counted_value_t *>(leaf_node->refs);
@@ -559,7 +568,7 @@ bool counted_btree_t::iterator_t::is_valid() {
 
 void counted_btree_t::iterator_t::next() {
     if(!is_valid()) return;
-    
+
     const leaf_counted_node_t *leaf_node =
             reinterpret_cast<const leaf_counted_node_t *>(current_frame->blk.get_data_read());
     rassert(leaf_node->magic == leaf_counted_node_t::expected_magic());
@@ -575,7 +584,7 @@ void counted_btree_t::iterator_t::next() {
                 at_end = true;
                 return;
             }
-            
+
             delete current_frame;
 
             current_frame = stack.top();

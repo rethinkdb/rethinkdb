@@ -1,7 +1,6 @@
 #ifndef MEMCACHED_BTREE_MODIFY_OPER_HPP_
 #define MEMCACHED_BTREE_MODIFY_OPER_HPP_
 
-#include "btree/operations.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "memcached/btree/node.hpp"
 
@@ -27,6 +26,8 @@ public:
 
     virtual MUST_USE int compute_expected_change_count(block_size_t block_size) = 0;
 };
+
+class got_superblock_t;
 
 // Runs a memcached_modify_oper_t.
 void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &key, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp,

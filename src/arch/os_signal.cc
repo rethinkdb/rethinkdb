@@ -4,7 +4,7 @@
 os_signal_cond_t *global_os_signal_cond = NULL;
 
 os_signal_cond_t& get_os_signal_cond() {
-    rassert(global_os_signal_cond, "Trying to access the global_os_signal_cond when it has not been set.\n" 
+    rassert(global_os_signal_cond, "Trying to access the global_os_signal_cond when it has not been set.\n"
                                       "Construct an os_signal_cond_t to fix this.\n");
     return *global_os_signal_cond;
 }

@@ -1,9 +1,11 @@
-#include "containers/buffer_group.hpp"
 #include "memcached/btree/set.hpp"
+
+#include "buffer_cache/buffer_cache.hpp"
+#include "containers/buffer_group.hpp"
 #include "memcached/btree/modify_oper.hpp"
 
 struct memcached_set_oper_t : public memcached_modify_oper_t {
-    memcached_set_oper_t(const boost::intrusive_ptr<data_buffer_t>& _data, mcflags_t _mcflags, exptime_t _exptime,
+    memcached_set_oper_t(const intrusive_ptr_t<data_buffer_t>& _data, mcflags_t _mcflags, exptime_t _exptime,
                               add_policy_t ap, replace_policy_t rp, cas_t _req_cas)
         : data(_data), mcflags(_mcflags), exptime(_exptime),
           add_policy(ap), replace_policy(rp), req_cas(_req_cas)
@@ -105,7 +107,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
     ticks_t start_time;
 
-    boost::intrusive_ptr<data_buffer_t> data;
+    intrusive_ptr_t<data_buffer_t> data;
     mcflags_t mcflags;
     exptime_t exptime;
     add_policy_t add_policy;
@@ -116,7 +118,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 };
 
 set_result_t memcached_set(const store_key_t &key, btree_slice_t *slice,
-                       const boost::intrusive_ptr<data_buffer_t>& data, mcflags_t mcflags, exptime_t exptime,
+                       const intrusive_ptr_t<data_buffer_t>& data, mcflags_t mcflags, exptime_t exptime,
                        add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
                        cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp,
                        transaction_t *txn, got_superblock_t& superblock) {

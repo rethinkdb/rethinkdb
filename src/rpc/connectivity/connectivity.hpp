@@ -7,12 +7,10 @@
 #include <boost/function.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_serialize.hpp>
 
 #include "arch/address.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/signal.hpp"
-#include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class peer_address_t {
@@ -50,8 +48,8 @@ public:
         return p.uuid < uuid;
     }
 
-    peer_id_t() 
-        : uuid(boost::uuids::nil_uuid()) 
+    peer_id_t()
+        : uuid(boost::uuids::nil_uuid())
     { }
 
     explicit peer_id_t(boost::uuids::uuid u) : uuid(u) { }

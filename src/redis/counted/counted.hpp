@@ -1,11 +1,12 @@
 #ifndef COUNTED_HPP_
 #define COUNTED_HPP_
 
+#include <stack>
+
 #include "buffer_cache/blob.hpp"
 #include "redis/redis_types.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/types.hpp"
 #include "containers/iterators.hpp"
-#include <stack>
 
 /*
 struct sub_ref_t {
@@ -23,9 +24,9 @@ struct counted_node_t {
 struct internal_counted_node_t : counted_node_t {
     // The number of fixed size sub-tree references in this internal node
     uint16_t n_refs;
-    
+
     // The array of sub-tree references
-    sub_ref_t refs[0]; 
+    sub_ref_t refs[0];
 
     static block_magic_t expected_magic() {
         block_magic_t bm = { { 'i', 'n', 't', 'r' } };
@@ -79,14 +80,7 @@ struct counted_btree_t {
         std::string member();
 
     private:
-        struct stack_frame_t {
-            stack_frame_t() : index(0) {;}
-
-            unsigned index;
-            buf_lock_t blk;
-        private:
-            DISABLE_COPYING(stack_frame_t);
-        };
+        struct stack_frame_t;
 
         transaction_t *txn;
         block_size_t blksize;

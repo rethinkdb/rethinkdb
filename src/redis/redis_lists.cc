@@ -9,7 +9,7 @@ struct list_set_oper_t : set_oper_t {
         tree(btree->cache()->get_block_size())
     {
         redis_list_value_t *value = reinterpret_cast<redis_list_value_t *>(location.value.get());
-        
+
         if (value == NULL && alloc_non_existant) {
             scoped_malloc<redis_value_t> smrsv(MAX_REDIS_VALUE_SIZE);
             location.value.swap(smrsv);
@@ -72,7 +72,7 @@ protected:
         }
 
         if (u_index < 0 || u_index > size) throw "ERR Index out of range";
-        
+
         return u_index;
     }
 
@@ -162,7 +162,7 @@ SHARD_W(linsert)
 EXECUTE_W(linsert) {
     list_set_oper_t oper(one, btree, timestamp, otok);
 
-    // In future we might do this with an iterator so that we don't have do 
+    // In future we might do this with an iterator so that we don't have do
     // full log(n) lookups of each element. It doesn't make that bit a
     // difference for now though
     unsigned index = 0;
@@ -244,7 +244,7 @@ EXECUTE_W(lpushx) {
         // List doesn't already exist abort
         return int_response(0);
     }
-    
+
     oper.insert(0, two);
     return int_response(oper.get_size());
 }
@@ -352,7 +352,7 @@ EXECUTE_W(ltrim) {
     for (int i = start - 1; i >= 0; i--) {
         oper.remove((unsigned)i);
     }
-    
+
     return write_response_t(new ok_result_t());
 }
 
@@ -396,7 +396,7 @@ EXECUTE_W(rpushx) {
         // List doesn't already exist abort
         return int_response(0);
     }
-    
+
     oper.insert(oper.get_size(), two);
     return int_response(oper.get_size());
 }

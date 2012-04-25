@@ -35,7 +35,7 @@ public:
     char contents[];
 
     //contents is blob_t which has the following structure:
-    // contents = content_type content (link_hdr link)* 
+    // contents = content_type content (link_hdr link)*
 
     void print(block_size_t block_size) {
         print_hd(this, 0, offsetof(riak_value_t, contents) + blob::ref_size(block_size, contents, blob::btree_maxreflen));

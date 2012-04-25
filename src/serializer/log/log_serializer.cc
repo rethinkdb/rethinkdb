@@ -46,20 +46,20 @@ struct ls_start_existing_fsm_t :
     explicit ls_start_existing_fsm_t(log_serializer_t *serializer)
         : ser(serializer), state(state_start) {
     }
-    
+
     ~ls_start_existing_fsm_t() {
     }
-    
+
     bool run(cond_t *to_signal) {
         rassert(state == state_start);
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
-        
+
         ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->dynamic_config.io_backend, ser->dynamic_config.io_batch_factor);
         if (!ser->dbfile->exists()) {
             crash("Database file \"%s\" does not exist.\n", ser->db_path);
         }
-        
+
         state = state_read_static_header;
         to_signal_when_done = NULL;
         if (next_starting_up_step()) {
@@ -69,7 +69,7 @@ struct ls_start_existing_fsm_t :
             return false;
         }
     }
-    
+
     bool next_starting_up_step() {
         if (state == state_read_static_header) {
             if (static_header_read(ser->dbfile,
@@ -82,15 +82,15 @@ struct ls_start_existing_fsm_t :
                 return false;
             }
         }
-        
+
         if (state == state_find_metablock) {
             ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config);
             ser->extent_manager->reserve_extent(0);   /* For static header */
-            
+
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_index_t(ser->extent_manager);
             ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config);
-            
+
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;
             } else {
@@ -98,7 +98,7 @@ struct ls_start_existing_fsm_t :
                 return false;
             }
         }
-        
+
         if (state == state_start_lba) {
             guarantee(metablock_found, "Could not find any valid metablock.");
 
@@ -111,7 +111,7 @@ struct ls_start_existing_fsm_t :
                 return false;
             }
         }
-        
+
         if (state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
             for (block_id_t id = 0; id < ser->lba_index->end_block_id(); id++) {
@@ -122,12 +122,12 @@ struct ls_start_existing_fsm_t :
             }
             ser->data_block_manager->end_reconstruct();
             ser->data_block_manager->start_existing(ser->dbfile, &metablock_buffer.data_block_manager_part);
-            
+
             ser->extent_manager->start_existing(&metablock_buffer.extent_manager_part);
-            
+
             state = state_finish;
         }
-        
+
         if (state == state_finish) {
             state = state_done;
             rassert(ser->state == log_serializer_t::state_starting_up);
@@ -138,31 +138,31 @@ struct ls_start_existing_fsm_t :
             delete this;
             return true;
         }
-        
+
         unreachable("Invalid state.");
     }
-    
+
     void on_static_header_read() {
         rassert(state == state_waiting_for_static_header);
         state = state_find_metablock;
         next_starting_up_step();
     }
-    
+
     void on_metablock_read() {
         rassert(state == state_waiting_for_metablock);
         state = state_start_lba;
         next_starting_up_step();
     }
-    
+
     void on_lba_ready() {
         rassert(state == state_waiting_for_lba);
         state = state_reconstruct;
         next_starting_up_step();
     }
-    
+
     log_serializer_t *ser;
     cond_t *to_signal_when_done;
-    
+
     enum state_t {
         state_start,
         state_read_static_header,
@@ -175,7 +175,7 @@ struct ls_start_existing_fsm_t :
         state_finish,
         state_done
     } state;
-    
+
     bool metablock_found;
     log_serializer_t::metablock_t metablock_buffer;
 };
@@ -204,7 +204,7 @@ log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dyn
 }
 
 log_serializer_t::~log_serializer_t() {
-    
+
     cond_t cond;
     if (!shutdown(&cond)) cond.wait();
 
@@ -268,7 +268,7 @@ perfmon_counter_t pm_serializer_block_writes("serializer_block_writes");
 perfmon_duration_sampler_t pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1));
 perfmon_sampler_t pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1));
 
-void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
+void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
@@ -278,16 +278,16 @@ void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_poin
 
 // TODO(sam): block_read can call the callback before it returns.  Is
 // this acceptable?
-void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
+void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
             pm_serializer_block_reads.end(&pm_time);
             if (cb) cb->on_io_complete();
             delete this;
         }
-        my_cb_t(iocallback_t *_cb, const boost::intrusive_ptr<ls_block_token_pointee_t>& _tok) : cb(_cb), tok(_tok) {}
+        my_cb_t(iocallback_t *_cb, const intrusive_ptr_t<ls_block_token_pointee_t>& _tok) : cb(_cb), tok(_tok) {}
         iocallback_t *cb;
-        boost::intrusive_ptr<ls_block_token_pointee_t> tok; // needed to keep it alive for appropriate period of time
+        intrusive_ptr_t<ls_block_token_pointee_t> tok; // needed to keep it alive for appropriate period of time
         ticks_t pm_time;
     };
 
@@ -307,15 +307,15 @@ void log_serializer_t::block_read(const boost::intrusive_ptr<ls_block_token_poin
 
 // God this is such a hack.
 #ifndef SEMANTIC_SERIALIZER_CHECK
-boost::intrusive_ptr<ls_block_token_pointee_t> get_ls_block_token(const boost::intrusive_ptr<ls_block_token_pointee_t>& tok) {
+intrusive_ptr_t<ls_block_token_pointee_t> get_ls_block_token(const intrusive_ptr_t<ls_block_token_pointee_t>& tok) {
     return tok;
 }
 #else
-boost::intrusive_ptr<ls_block_token_pointee_t> get_ls_block_token(const boost::intrusive_ptr<scs_block_token_t<log_serializer_t> >& tok) {
+intrusive_ptr_t<ls_block_token_pointee_t> get_ls_block_token(const intrusive_ptr_t<scs_block_token_t<log_serializer_t> >& tok) {
     if (tok) {
         return tok->inner_token;
     } else {
-        return boost::intrusive_ptr<ls_block_token_pointee_t>();
+        return intrusive_ptr_t<ls_block_token_pointee_t>();
     }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
@@ -343,7 +343,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
             if (op.token) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
-                boost::intrusive_ptr<ls_block_token_pointee_t> token = get_ls_block_token(op.token.get());
+                intrusive_ptr_t<ls_block_token_pointee_t> token = get_ls_block_token(op.token.get());
 
                 // Mark old offset as garbage
                 if (offset.has_value())
@@ -447,16 +447,16 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
        && shutdown_state == log_serializer_t::shutdown_waiting_on_serializer
        && last_write == NULL
        && active_write_count == 0) {
-        
+
         next_shutdown_step();
     }
 }
 
-boost::intrusive_ptr<ls_block_token_pointee_t> log_serializer_t::generate_block_token(off64_t offset) {
-    return boost::intrusive_ptr<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset));
+intrusive_ptr_t<ls_block_token_pointee_t> log_serializer_t::generate_block_token(off64_t offset) {
+    return intrusive_ptr_t<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset));
 }
 
-boost::intrusive_ptr<ls_block_token_pointee_t>
+intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     // TODO: Implement a duration sampler perfmon for this
     ++pm_serializer_block_writes;
@@ -469,15 +469,15 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     return generate_block_token(offset);
 }
 
-boost::intrusive_ptr<ls_block_token_pointee_t>
+intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, file_account_t *io_account, iocallback_t *cb) {
     return serializer_block_write(this, buf, io_account, cb);
 }
-boost::intrusive_ptr<ls_block_token_pointee_t>
+intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
     return serializer_block_write(this, buf, block_id, io_account);
 }
-boost::intrusive_ptr<ls_block_token_pointee_t>
+intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, file_account_t *io_account) {
     return serializer_block_write(this, buf, io_account);
 }
@@ -586,25 +586,25 @@ block_size_t log_serializer_t::get_block_size() {
 block_id_t log_serializer_t::max_block_id() {
     rassert(state == state_ready);
     assert_thread();
-    
+
     return lba_index->end_block_id();
 }
-    
-boost::intrusive_ptr<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
+
+intrusive_ptr_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
     ++pm_serializer_index_reads;
 
     assert_thread();
     rassert(state == state_ready);
 
     if (block_id >= lba_index->end_block_id()) {
-        return boost::intrusive_ptr<ls_block_token_pointee_t>();
+        return intrusive_ptr_t<ls_block_token_pointee_t>();
     }
 
     flagged_off64_t offset = lba_index->get_block_offset(block_id);
     if (offset.has_value()) {
-        return boost::intrusive_ptr<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset.get_value()));
+        return intrusive_ptr_t<ls_block_token_pointee_t>(new ls_block_token_pointee_t(this, offset.get_value()));
     } else {
-        return boost::intrusive_ptr<ls_block_token_pointee_t>();
+        return intrusive_ptr_t<ls_block_token_pointee_t>();
     }
 }
 
@@ -636,7 +636,7 @@ bool log_serializer_t::shutdown(cond_t *cb) {
 
 bool log_serializer_t::next_shutdown_step() {
     assert_thread();
-    
+
     if(shutdown_state == shutdown_begin) {
         // First shutdown step
         shutdown_state = shutdown_waiting_on_serializer;
@@ -683,22 +683,22 @@ bool log_serializer_t::next_shutdown_step() {
     if(shutdown_state == shutdown_waiting_on_lba) {
         metablock_manager->shutdown();
         extent_manager->shutdown();
-        
+
         delete lba_index;
         lba_index = NULL;
-        
+
         delete data_block_manager;
         data_block_manager = NULL;
-        
+
         delete metablock_manager;
         metablock_manager = NULL;
-        
+
         delete extent_manager;
         extent_manager = NULL;
-        
+
         delete dbfile;
         dbfile = NULL;
-        
+
         state = state_shut_down;
 
         // Don't call the callback if we went through the entire
@@ -765,7 +765,7 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
     }
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
         if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, token, recency_timestamp)) {
             return true;

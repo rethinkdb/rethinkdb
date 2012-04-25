@@ -195,8 +195,8 @@ public:
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
-                boost::intrusive_ptr<ls_block_token_pointee_t> ls_token(new ls_block_token_pointee_t(parent->serializer, current_offset));
-                boost::intrusive_ptr<standard_block_token_t> token = to_standard_block_token(block_id, ls_token);
+                intrusive_ptr_t<ls_block_token_pointee_t> ls_token(new ls_block_token_pointee_t(parent->serializer, current_offset));
+                intrusive_ptr_t<standard_block_token_t> token = to_standard_block_token(block_id, ls_token);
                 if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data, token, recency_timestamp)) {
                     // If there is no interest anymore, delete the buffer again
                     parent->serializer->free(data);
@@ -342,20 +342,20 @@ void data_block_manager_t::check_and_handle_outstanding_empty_extents() {
 void data_block_manager_t::mark_garbage(off64_t offset) {
     unsigned int extent_id = static_config->extent_index(offset);
     unsigned int block_id = static_config->block_index(offset);
-    
+
     gc_entry *entry = entries.get(extent_id);
     rassert(entry->i_array[block_id] == 1, "with block_id = %u", block_id);
     rassert(entry->g_array[block_id] == 0, "with block_id = %u", block_id);
     entry->i_array.set(block_id, 0);
     entry->update_g_array(block_id);
-    
+
     rassert(entry->g_array.size() == static_config->blocks_per_extent());
 
     // Add to old garbage count if we have toggled the g_array bit (works because of the g_array[block_id] == 0 assertion above)
     if (entry->state == gc_entry::state_old && entry->g_array[block_id]) {
         ++gc_stats.old_garbage_blocks;
     }
-    
+
     check_and_handle_empty_extent(extent_id);
     /* We handle outstanding cleanup work now */
     check_and_handle_outstanding_empty_extents();
@@ -447,7 +447,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
                 if (parent->gc_state.current_entry->i_array[block_id]) {
                     const ls_buf_data_t *data = static_cast<const ls_buf_data_t *>(writes[i].buf) - 1;
-                    boost::intrusive_ptr<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
+                    intrusive_ptr_t<ls_block_token_pointee_t> token = parent->serializer->generate_block_token(writes[i].new_offset);
                     index_write_ops.push_back(index_write_op_t(data->block_id, to_standard_block_token(data->block_id, token)));
                 }
 
@@ -621,7 +621,7 @@ void data_block_manager_t::run_gc() {
                 become NULL. */
 
                 rassert(gc_state.current_entry == NULL, "%zd garbage blocks left on the extent, %zd i_array blocks, %zd t_array blocks.\n", gc_state.current_entry->g_array.count(), gc_state.current_entry->i_array.count(), gc_state.current_entry->t_array.count());
-                
+
                 rassert(gc_state.refcount == 0);
 
                 gc_state.set_step(gc_ready);
@@ -633,7 +633,7 @@ void data_block_manager_t::run_gc() {
 
                 run_again = true;   // We might want to start another GC round
                 break;
-                
+
             case gc_reconstruct:
             default:
                 unreachable("Unknown gc_step");
@@ -643,7 +643,7 @@ void data_block_manager_t::run_gc() {
 
 void data_block_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
     rassert(state == state_ready || state == state_shutting_down);
-    
+
     for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
         if (active_extents[i]) {
             metablock->active_extents[i] = active_extents[i]->offset;
@@ -675,23 +675,23 @@ void data_block_manager_t::actually_shutdown() {
     state = state_shut_down;
 
     rassert(!reconstructed_extents.head());
-    
+
     for (unsigned int i = 0; i < dynamic_config->num_active_data_extents; i++) {
         if (active_extents[i]) {
             delete active_extents[i];
             active_extents[i] = NULL;
         }
     }
-    
+
     while (gc_entry *entry = young_extent_queue.head()) {
         young_extent_queue.remove(entry);
         delete entry;
     }
-    
+
     while (!gc_pq.empty()) {
         delete gc_pq.pop();
     }
-    
+
     if (shutdown_callback) {
         shutdown_callback->on_datablock_manager_shutdown();
     }
@@ -699,17 +699,17 @@ void data_block_manager_t::actually_shutdown() {
 
 off64_t data_block_manager_t::gimme_a_new_offset() {
     /* Start a new extent if necessary */
-    
+
     if (!active_extents[next_active_extent]) {
         active_extents[next_active_extent] = new gc_entry(this);
         active_extents[next_active_extent]->state = gc_entry::state_active;
         blocks_in_active_extent[next_active_extent] = 0;
-        
+
         ++pm_serializer_data_extents_allocated;
     }
-    
+
     /* Put the block into the chosen extent */
-    
+
     rassert(active_extents[next_active_extent]->state == gc_entry::state_active);
     rassert(active_extents[next_active_extent]->g_array.count() > 0);
     rassert(blocks_in_active_extent[next_active_extent] < static_config->blocks_per_extent());
@@ -720,9 +720,9 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     rassert(active_extents[next_active_extent]->g_array[blocks_in_active_extent[next_active_extent]]);
 
     blocks_in_active_extent[next_active_extent]++;
-    
+
     /* Deactivate the extent if necessary */
-    
+
     if (blocks_in_active_extent[next_active_extent] == static_config->blocks_per_extent()) {
         rassert(active_extents[next_active_extent]->g_array.count() < static_config->blocks_per_extent());
         active_extents[next_active_extent]->state = gc_entry::state_young;
@@ -730,19 +730,19 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
         mark_unyoung_entries();
         active_extents[next_active_extent] = NULL;
     }
-    
+
     /* Move along to the next extent. This logic is kind of weird because it needs to handle the
     case where we have just started up and we still have active extents open from a previous run,
     but the value of num_active_data_extents was higher on that previous run and so there are active
     data extents that occupy slots in active_extents that are higher than our current value of
     num_active_data_extents. The way we handle this case is by continuing to visit those slots until
     the data extents fill up and are deactivated, but then not visiting those slots any more. */
-    
+
     do {
         next_active_extent = (next_active_extent + 1) % MAX_ACTIVE_DATA_EXTENTS;
     } while (next_active_extent >= dynamic_config->num_active_data_extents &&
              !active_extents[next_active_extent]);
-    
+
     return offset;
 }
 
@@ -766,12 +766,12 @@ void data_block_manager_t::mark_unyoung_entries() {
 void data_block_manager_t::remove_last_unyoung_entry() {
     gc_entry *entry = young_extent_queue.head();
     young_extent_queue.remove(entry);
-    
+
     rassert(entry->state == gc_entry::state_young);
     entry->state = gc_entry::state_old;
-    
+
     entry->our_pq_entry = gc_pq.push(entry);
-    
+
     gc_stats.old_total_blocks += static_config->blocks_per_extent();
     gc_stats.old_garbage_blocks += entry->g_array.count();
 }

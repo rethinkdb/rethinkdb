@@ -1,7 +1,6 @@
 #ifndef MEMCACHED_TCP_CONN_HPP_
 #define MEMCACHED_TCP_CONN_HPP_
 
-#include "arch/io/network.hpp"
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "memcached/protocol.hpp"
@@ -17,6 +16,7 @@ connections until the destructor is called. */
 struct memcache_listener_t : public home_thread_mixin_t {
 
     memcache_listener_t(int port, namespace_interface_t<memcached_protocol_t> *namespace_if);
+    ~memcache_listener_t();
 
     int port;
 
@@ -29,7 +29,7 @@ private:
     `memcached_listener_t` is destroyed. */
     auto_drainer_t drainer;
 
-    tcp_listener_t tcp_listener;
+    tcp_listener_t *tcp_listener;
 
     void handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t>& conn);
 };

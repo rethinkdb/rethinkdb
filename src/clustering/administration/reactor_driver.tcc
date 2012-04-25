@@ -19,7 +19,7 @@
 /* The reactor driver is also responsible for the translation from
 `persistable_blueprint_t` to `blueprint_t`. */
 template<class protocol_t>
-blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protocol_t> &input, const clone_ptr_t<directory_rview_t<machine_id_t> > &translation_table) {
+blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protocol_t> &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
     blueprint_t<protocol_t> output;
     for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator it = input.machines_roles.begin();
             it != input.machines_roles.end(); it++) {
@@ -42,14 +42,12 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
 template <class protocol_t>
 class watchable_and_reactor_t : private master_t<protocol_t>::ack_checker_t {
 public:
-    watchable_and_reactor_t(reactor_driver_t<protocol_t> *parent_, 
-                            clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > _directory_view,
+    watchable_and_reactor_t(reactor_driver_t<protocol_t> *parent_,
                             namespace_id_t _namespace_id,
                             const blueprint_t<protocol_t> &bp,
                             const std::string &_file_path) :
         watchable(bp),
         parent(parent_),
-        directory_view(_directory_view),
         namespace_id(_namespace_id),
         file_path(_file_path)
     {
@@ -61,16 +59,20 @@ public:
          * actually run. */
         reactor_has_been_initialized.wait_lazily_unordered();
 
-        /* The reactor must be destroyed before we remove the entry from
-         * the directory map. C'est la vie. */
-        reactor.reset();
-
+        reactor_directory_subscription.reset();
+        master_directory_subscription.reset();
         {
-            directory_write_service_t::our_value_lock_acq_t lock(directory_view->get_directory_service());
-            namespaces_directory_metadata_t<protocol_t> namespaces_directory = directory_view->get_our_value(&lock);
-            namespaces_directory.master_maps.erase(namespace_id); //delete the entry;
-            directory_view->set_our_value(namespaces_directory, &lock);
+            mutex_assertion_t::acq_t acq(&parent->watchable_variable_lock);
+            namespaces_directory_metadata_t<protocol_t> directory = parent->watchable_variable.get_watchable()->get();
+            rassert(directory.reactor_bcards.count(namespace_id) == 1);
+            rassert(directory.master_maps.count(namespace_id) == 1);
+            directory.reactor_bcards.erase(namespace_id);
+            directory.master_maps.erase(namespace_id);
+            parent->watchable_variable.set_value(directory);
         }
+
+        /* Destroy the reactor. (Dun dun duhnnnn...) */
+        reactor.reset();
     }
 
     std::string get_file_name() {
@@ -90,10 +92,11 @@ public:
         corruption. */
         std::multiset<datacenter_id_t> acks_by_dc;
         for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); it++) {
-            boost::optional<machine_id_t> translation = parent->machine_id_translation_table->get_value(*it);
-            if (!translation) continue;
+            std::map<peer_id_t, machine_id_t> translation_table_snapshot = parent->machine_id_translation_table->get();
+            std::map<peer_id_t, machine_id_t>::iterator tt_it = translation_table_snapshot.find(*it);
+            if (tt_it == translation_table_snapshot.end()) continue;
             machines_semilattice_metadata_t mmd = parent->machines_view->get();
-            machines_semilattice_metadata_t::machine_map_t::iterator jt = mmd.machines.find(*translation);
+            machines_semilattice_metadata_t::machine_map_t::iterator jt = mmd.machines.find(tt_it->second);
             if (jt == mmd.machines.end()) continue;
             if (jt->second.is_deleted()) continue;
             if (jt->second.get().datacenter.in_conflict()) continue;
@@ -116,6 +119,35 @@ public:
     }
 
 private:
+    std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > extract_reactor_directory(
+            const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss) {
+        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > out;
+        for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it = nss.begin(); it != nss.end(); it++) {
+            typename std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::const_iterator jt =
+                it->second.reactor_bcards.find(namespace_id);
+            if (jt == it->second.reactor_bcards.end()) {
+                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >()));
+            } else {
+                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(jt->second)));
+            }
+        }
+        return out;
+    }
+
+    void on_change_reactor_directory() {
+        mutex_assertion_t::acq_t acq(&parent->watchable_variable_lock);
+        namespaces_directory_metadata_t<protocol_t> directory = parent->watchable_variable.get_watchable()->get();
+        directory.reactor_bcards.find(namespace_id)->second = reactor->get_reactor_directory()->get();
+        parent->watchable_variable.set_value(directory);
+    }
+
+    void on_change_master_directory() {
+        mutex_assertion_t::acq_t acq(&parent->watchable_variable_lock);
+        namespaces_directory_metadata_t<protocol_t> directory = parent->watchable_variable.get_watchable()->get();
+        directory.master_maps.find(namespace_id)->second = reactor->get_master_directory()->get();
+        parent->watchable_variable.set_value(directory);
+    }
+
     void initialize_reactor() {
         int res = access(get_file_name().c_str(), R_OK | W_OK);
         if (res == 0) {
@@ -133,22 +165,35 @@ private:
             store->set_metainfo(region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(version_range_t(version_t::zero()))), token, &dummy_interruptor);
         }
 
+        reactor.reset(new reactor_t<protocol_t>(
+            parent->mbox_manager,
+            this,
+            parent->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
+            parent->branch_history,
+            watchable.get_watchable(),
+            store.get()));
+
         {
-            directory_write_service_t::our_value_lock_acq_t lock(directory_view->get_directory_service());
-            namespaces_directory_metadata_t<protocol_t> namespaces_directory = directory_view->get_our_value(&lock);
-            namespaces_directory.master_maps[namespace_id]; //create an entry
-            directory_view->set_our_value(namespaces_directory, &lock);
+            typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::freeze_t reactor_directory_freeze(reactor->get_reactor_directory());
+            reactor_directory_subscription.reset(
+                new typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t(
+                    boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
+                    reactor->get_reactor_directory(), &reactor_directory_freeze
+                ));
+            typename watchable_t<std::map<master_id_t, master_business_card_t<protocol_t> > >::freeze_t master_directory_freeze(reactor->get_master_directory());
+            master_directory_subscription.reset(
+                new typename watchable_t<std::map<master_id_t, master_business_card_t<protocol_t> > >::subscription_t(
+                    boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_master_directory, this),
+                    reactor->get_master_directory(), &master_directory_freeze
+                ));
+            mutex_assertion_t::acq_t acq(&parent->watchable_variable_lock);
+            namespaces_directory_metadata_t<protocol_t> directory = parent->watchable_variable.get_watchable()->get();
+            rassert(directory.reactor_bcards.count(namespace_id) == 0);
+            rassert(directory.master_maps.count(namespace_id) == 0);
+            directory.reactor_bcards.insert(std::make_pair(namespace_id, reactor->get_reactor_directory()->get()));
+            directory.master_maps.insert(std::make_pair(namespace_id, reactor->get_master_directory()->get()));
+            parent->watchable_variable.set_value(directory);
         }
-
-        clone_ptr_t<directory_rwview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > reactor_directory =
-            directory_view->subview(field_lens(&namespaces_directory_metadata_t<protocol_t>::reactor_bcards))->subview(
-                optional_member_lens<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(namespace_id));
-        
-        clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > master_directory =
-            directory_view->subview(field_lens(&namespaces_directory_metadata_t<protocol_t>::master_maps))->subview(
-                assumed_member_lens<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > >(namespace_id));
-
-        reactor.reset(new reactor_t<protocol_t>(parent->mbox_manager, this, reactor_directory, master_directory, parent->branch_history, watchable.get_watchable(), store.get()));
 
         reactor_has_been_initialized.pulse();
     }
@@ -156,42 +201,43 @@ private:
     cond_t reactor_has_been_initialized;
 
     reactor_driver_t<protocol_t> *parent;
-    clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > directory_view;
     namespace_id_t namespace_id;
     std::string file_path;
 
     boost::scoped_ptr<typename protocol_t::store_t> store;
     boost::scoped_ptr<reactor_t<protocol_t> > reactor;
+
+    boost::scoped_ptr<typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t> reactor_directory_subscription;
+    boost::scoped_ptr<typename watchable_t<std::map<master_id_t, master_business_card_t<protocol_t> > >::subscription_t> master_directory_subscription;
 };
 
 template <class protocol_t>
 reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
-                 clone_ptr_t<directory_rwview_t<namespaces_directory_metadata_t<protocol_t> > > _directory_view,
+                 const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
                  boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
                  boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
-                 const clone_ptr_t<directory_rview_t<machine_id_t> > &_machine_id_translation_table,
+                 const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                  std::string _file_path)
     : mbox_manager(_mbox_manager),
-      directory_view(_directory_view), 
+      directory_view(_directory_view),
       branch_history(metadata_field(&namespaces_semilattice_metadata_t<protocol_t>::branch_history, _namespaces_view)),
       machine_id_translation_table(_machine_id_translation_table),
       namespaces_view(_namespaces_view),
       machines_view(machines_view_),
       file_path(_file_path),
+      watchable_variable(namespaces_directory_metadata_t<protocol_t>()),
       semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
-      connectivity_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), boost::bind(&reactor_driver_t<protocol_t>::on_change, this))
+      translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this))
 {
-    {
-        /* We have to watch for peers connecting or disconnecting because
-        that might change the translation from machine IDs to peer IDs. */
-        connectivity_service_t::peers_list_freeze_t freeze(directory_view->get_directory_service()->get_connectivity_service());
-        connectivity_subscription.reset(directory_view->get_directory_service()->get_connectivity_service(), &freeze);
-    }
+    watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
+    translation_table_subscription.reset(machine_id_translation_table, &freeze);
     on_change();
 }
 
-template <class protocol_t>
+template<class protocol_t>
 reactor_driver_t<protocol_t>::~reactor_driver_t() {
+    /* This must be defined in the `.tcc` file because the full definition of
+    `watchable_and_reactor_t` is not available in the `.hpp` file. */
 }
 
 template<class protocol_t>
@@ -228,7 +274,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                 continue;
             }
 
-            blueprint_t<protocol_t> bp = translate_blueprint(pbp, machine_id_translation_table);
+            blueprint_t<protocol_t> bp = translate_blueprint(pbp, machine_id_translation_table->get());
 
             if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_service()->get_me())) {
                 /* Either construct a new reactor (if this is a namespace we
@@ -236,11 +282,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(this,
-                                directory_view,
-                                it->first,
-                                bp,
-                                file_path));
+                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(this, it->first, bp, file_path));
                 } else {
                     reactor_data.find(it->first)->second->watchable.set_value(bp);
                 }

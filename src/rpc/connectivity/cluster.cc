@@ -1,5 +1,6 @@
 #include "rpc/connectivity/cluster.hpp"
 
+#include "arch/io/network.hpp"
 
 #ifndef NDEBUG
 #include "arch/timing.hpp"
@@ -16,7 +17,6 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
         message_handler_t *mh,
         int client_port) THROWS_NOTHING :
-
     parent(p), message_handler(mh),
 
     /* This sets `parent->current_run` to `this`. It's necessary to do it in the
@@ -40,14 +40,16 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     /* The local port to use when connecting to the cluster port of peers */
     cluster_client_port(client_port),
 
-    listener(port, boost::bind(
-        &connectivity_cluster_t::run_t::on_new_connection,
-        this,
-        _1,
-        auto_drainer_t::lock_t(&drainer)
-        ))
-{
+    listener(new tcp_listener_t(port, boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
+                                                  this,
+                                                  _1,
+                                                  auto_drainer_t::lock_t(&drainer)
+                                                  ))) {
     parent->assert_thread();
+}
+
+connectivity_cluster_t::run_t::~run_t() {
+    delete listener;
 }
 
 void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING {

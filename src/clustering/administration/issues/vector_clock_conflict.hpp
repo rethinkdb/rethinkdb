@@ -11,7 +11,7 @@ public:
     vector_clock_conflict_issue_t(
             const std::string &_object_type,
             const boost::uuids::uuid &_object_id,
-            const std::string &_field) : 
+            const std::string &_field) :
         object_type(_object_type), object_id(_object_id), field(_field) { }
 
     std::string get_description() const {

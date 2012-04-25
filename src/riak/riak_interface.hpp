@@ -19,7 +19,7 @@ private:
     store_manager_t<std::list<std::string> >::const_iterator it;
 
 public:
-    explicit bucket_iterator_t(store_manager_t<std::list<std::string> >::const_iterator const &it) 
+    explicit bucket_iterator_t(store_manager_t<std::list<std::string> >::const_iterator const &it)
         : it(it)
     { }
 
@@ -69,7 +69,7 @@ public:
 
 
     // Object operations:
-    
+
     // Get all the keys in a bucket
     object_iterator_t objects();
 
@@ -101,7 +101,7 @@ private:
                                   json::mArray::iterator &query_it, json::mArray::iterator &query_end); */
 
     // The part of the mapreduce job that runs in the JS thread. For now this is one monolithic beast.
-    
+
     //return a vector of objects containing all of the objects linked to be
     //another vector of objects which match the link filter
     std::vector<object_t> follow_links(std::vector<object_t> const &, link_filter_t const &);

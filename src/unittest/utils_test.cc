@@ -28,52 +28,40 @@ TEST(UtilsTest, StrtofooStrict) {
 
     const char *end;
 
-    ASSERT_EQ(0, strtoul_strict(test1, &end, 10));
-    ASSERT_EQ(1024, strtoul_strict(test2, &end, 10));
-    ASSERT_EQ(0, strtoul_strict(test3, &end, 10));
-    ASSERT_EQ(123, strtoul_strict(test4, &end, 10));
+    ASSERT_EQ(0, strtou64_strict(test1, &end, 10));
+    ASSERT_EQ(1024, strtou64_strict(test2, &end, 10));
+    ASSERT_EQ(0, strtou64_strict(test3, &end, 10));
+    ASSERT_EQ(123, strtou64_strict(test4, &end, 10));
     ASSERT_FALSE(strncmp("lskdjf", end, 6));
 
-    ASSERT_EQ(0, strtoull_strict(test1, &end, 10));
-    ASSERT_EQ(1024, strtoull_strict(test2, &end, 10));
-    ASSERT_EQ(0, strtoull_strict(test3, &end, 10));
-    ASSERT_EQ(123, strtoull_strict(test4, &end, 10));
-    ASSERT_FALSE(strncmp("lskdjf", end, 6));
+    bool success;
+    uint64_t u_res;
+    int64_t i_res;
+
+    success = strtou64_strict(std::string(test1), 10, &u_res);
+    ASSERT_TRUE(!success && u_res == 0);
+    success = strtoi64_strict(std::string(test1), 10, &i_res);
+    ASSERT_TRUE(success && i_res == -1024);
+    success = strtou64_strict(std::string(test2), 10, &u_res);
+    ASSERT_TRUE(success && u_res == 1024);
+    success = strtoi64_strict(std::string(test2), 10, &i_res);
+    ASSERT_TRUE(success && i_res == 1024);
+    success = strtou64_strict(std::string(test3), 10, &u_res);
+    ASSERT_TRUE(!success && u_res == 0);
+    success = strtoi64_strict(std::string(test3), 10, &i_res);
+    ASSERT_TRUE(!success && i_res == 0);
+    success = strtou64_strict(std::string(test4), 10, &u_res);
+    ASSERT_TRUE(!success && u_res == 0);
+    success = strtoi64_strict(std::string(test4), 10, &i_res);
+    ASSERT_TRUE(!success && i_res == 0);
 }
 
-TEST(UtilsTest, PreciseTime) {
-    precise_time_t precise_time;
-    precise_time.tm_sec = 4;
-    precise_time.tm_min = 4;
-    precise_time.tm_mday = 4;
-    precise_time.tm_hour = 4;
-    precise_time.tm_mon = 4;
-    precise_time.tm_year = 110;
-    precise_time.tm_wday = 4;
-    precise_time.tm_yday = 243;
-    precise_time.tm_isdst = -1;
-    precise_time.ns = 102948;
-
-    char buf[100];
-    format_precise_time(precise_time, buf, 100);
-
-    EXPECT_EQ(std::string("2010-05-04T04:04:04.000102"), std::string(buf, buf + strnlen(buf, 100)));
-
-    struct timespec zerotime;
-    zerotime.tv_sec = 0;
-    zerotime.tv_nsec = 0;
-    set_precise_time_offset(zerotime, 0);
-
-    struct timespec timespec;
-    timespec.tv_sec = 1203731445;
-    timespec.tv_nsec = 1203745;
-    precise_time = get_absolute_time(timespec);
-
-    format_precise_time(precise_time, buf, 100);
-
-    EXPECT_EQ(std::string("2008-02-23T01:50:45.001203"), std::string(buf, buf + strnlen(buf, 100)));
-    EXPECT_EQ(format_precise_time(precise_time), std::string(buf, buf + strnlen(buf, 100)));
-    initialize_precise_time();
+TEST(UtilsTest, Time) {
+    time_t time = 1335301122;
+    std::string formatted = format_time(time);
+    EXPECT_EQ("2012-04-24T13:58:42", formatted);
+    time_t parsed = parse_time(formatted);
+    EXPECT_EQ(time, parsed);
 }
 
 TEST(UtilsTest, SizedStrcmp)

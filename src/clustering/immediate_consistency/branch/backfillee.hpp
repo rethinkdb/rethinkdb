@@ -25,7 +25,7 @@ void on_receive_backfill_chunk(
     {
         wait_any_t waiter(dont_go_until, interruptor);
         waiter.wait_lazily_unordered();
-        if (interruptor->is_pulsed()) { 
+        if (interruptor->is_pulsed()) {
             return;
         }
     }

@@ -115,7 +115,7 @@ EXECUTE_R(ttl) {
         // TODO figure out a way to check and delete expired keys
         return int_response(-1);
     }
-    
+
     return int_response(ttl);
 }
 
@@ -153,6 +153,6 @@ EXECUTE_R(type) {
             break;
         }
     }
-    
+
     return read_response_t(result);
 }

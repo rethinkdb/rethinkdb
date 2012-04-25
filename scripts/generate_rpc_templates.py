@@ -21,8 +21,8 @@ def generate_async_message_template(nargs):
     print "template<" + csep("class arg#_t") + ">"
     print "class mailbox_addr_t< void(" + csep("arg#_t") + ") > {"
     print "public:"
-    print "    bool is_nil() { return addr.is_nil(); }"
-    print "    peer_id_t get_peer() { return addr.get_peer(); }"
+    print "    bool is_nil() const { return addr.is_nil(); }"
+    print "    peer_id_t get_peer() const { return addr.get_peer(); }"
     print
     print "    friend class mailbox_t< void(" + csep("arg#_t") + ") >;"
     print

@@ -6,8 +6,9 @@
 #include "arch/runtime/runtime.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
-#include "btree/node.hpp"
 #include "btree/internal_node.hpp"
+#include "btree/node.hpp"
+#include "btree/operations.hpp"
 
 
 // Traversal
@@ -193,7 +194,7 @@ private:
 };
 
 void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::shared_ptr<ranged_block_ids_t>& ids_source);
-void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null, acquisition_start_callback_t *acq_start_cb);
+void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null, lock_in_line_callback_t *acq_start_cb);
 
 void process_a_leaf_node(traversal_state_t *state, buf_lock_t *buf, int level,
                          const btree_key_t *left_exclusive_or_null,
@@ -213,14 +214,14 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
     traversal_state_t *state;
     int level;
     block_id_t block_id;
-    acquisition_start_callback_t *acq_start_cb;
+    lock_in_line_callback_t *acq_start_cb;
     node_ready_callback_t *node_ready_cb;
 
     void you_may_acquire() {
 
         buf_lock_t *block = new buf_lock_t(state->transaction_ptr,
-            block_id, state->helper->btree_node_mode(),
-            boost::bind(&acquisition_start_callback_t::on_started_acquisition, acq_start_cb));
+                                           block_id, state->helper->btree_node_mode(),
+                                           acq_start_cb);
 
         rassert(coro_t::self());
         node_ready_callback_t *local_cb = node_ready_cb;
@@ -230,7 +231,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
 };
 
 
-void acquire_a_node(traversal_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb, node_ready_callback_t *node_ready_cb) {
+void acquire_a_node(traversal_state_t *state, int level, block_id_t block_id, lock_in_line_callback_t *acq_start_cb, node_ready_callback_t *node_ready_cb) {
     rassert(coro_t::self());
     acquire_a_node_fsm_t *fsm = new acquire_a_node_fsm_t;
     fsm->state = state;
@@ -288,7 +289,6 @@ void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblo
         helper->read_stat_block(&stat_block);
     }
 
-    
     if (helper->progress) {
         helper->progress->inform(0, traversal_progress_t::LEARN, traversal_progress_t::INTERNAL);
         helper->progress->inform(0, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
@@ -361,7 +361,7 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
     }
 };
 
-void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null,  acquisition_start_callback_t *acq_start_cb) {
+void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, lock_in_line_callback_t *acq_start_cb) {
     do_a_subtree_traversal_fsm_t *fsm = new do_a_subtree_traversal_fsm_t;
     fsm->state = state;
     fsm->level = level;
@@ -450,7 +450,7 @@ void interesting_children_callback_t::no_more_interesting_children() {
     decr_acquisition_countdown();
 }
 
-void interesting_children_callback_t::on_started_acquisition() {
+void interesting_children_callback_t::on_in_line() {
     decr_acquisition_countdown();
 }
 
@@ -502,7 +502,7 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
         *right_incl_bound_out = right_inclusive_or_null_;
     }
 
-    if (*left_excl_bound_out && *right_incl_bound_out && 
+    if (*left_excl_bound_out && *right_incl_bound_out &&
         sized_strcmp((*left_excl_bound_out)->contents, (*left_excl_bound_out)->size, (*right_incl_bound_out)->contents, (*right_incl_bound_out)->size) == 0) {
         BREAKPOINT;
     }
@@ -542,17 +542,7 @@ void traversal_progress_t::inform(int level, action_t action, node_type_t type) 
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 }
 
-float traversal_progress_t::guess_completion() {
-    assert_thread();
-    std::pair<int, int> num_and_denom = numerator_and_denominator();
-    if (num_and_denom.first == -1) {
-        return 0.0;
-    } else {
-        return float(num_and_denom.first)/float(num_and_denom.second);
-    }
-}
-
-std::pair<int, int> traversal_progress_t::numerator_and_denominator() {
+std::pair<int, int> traversal_progress_t::guess_completion() {
     assert_thread();
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 
@@ -591,21 +581,21 @@ void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
     constituents.push_back(c);
 }
 
-float traversal_progress_combiner_t::guess_completion() {
+std::pair<int, int> traversal_progress_combiner_t::guess_completion() {
     assert_thread();
     int numerator = 0, denominator = 0;
     for (boost::ptr_vector<traversal_progress_t>::iterator it  = constituents.begin();
                                                            it != constituents.end();
                                                            ++it) {
-        std::pair<int, int> n_and_d = it->numerator_and_denominator();
+        std::pair<int, int> n_and_d = it->guess_completion();
         if (n_and_d.first == -1) {
-            return 0.0f;
+            return std::make_pair(-1, -1);
         }
 
         numerator += n_and_d.first;
         denominator += n_and_d.second;
     }
 
-    return float(numerator) / float(denominator);
+    return std::make_pair(numerator, denominator);
 }
 

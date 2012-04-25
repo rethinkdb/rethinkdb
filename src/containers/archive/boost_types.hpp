@@ -4,7 +4,6 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
-#include <boost/uuid/uuid.hpp>
 
 #include "containers/archive/archive.hpp"
 
@@ -128,14 +127,14 @@ template <class T> struct archive_variant_deserialize_standin_t {
         if (res) { return res; }
         *x = v;
 
-        return 0;
+        return ARCHIVE_SUCCESS;
     }
 };
 
 template <> struct archive_variant_deserialize_standin_t<boost::detail::variant::void_> {
     template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
     static MUST_USE int do_the_deserialization(UNUSED read_stream_t *s, UNUSED boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
-        return -3;
+        return ARCHIVE_RANGE_ERROR;
     }
 };
 
@@ -145,7 +144,7 @@ MUST_USE int deserialize(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6
     int res = deserialize(s, &n);
     if (res) { return res; }
     if (!(1 <= n && n <= 20)) {
-        return -3;
+        return ARCHIVE_RANGE_ERROR;
     }
 
     switch (n) {
@@ -178,22 +177,6 @@ MUST_USE int deserialize(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6
 }
 
 
-inline write_message_t &operator<<(write_message_t &msg, const boost::uuids::uuid &uuid) {
-    msg.append(uuid.data, boost::uuids::uuid::static_size());
-    return msg;
-}
-
-inline MUST_USE int deserialize(read_stream_t *s, boost::uuids::uuid *uuid) {
-    int64_t sz = boost::uuids::uuid::static_size();
-    int64_t res = force_read(s, uuid->data, sz);
-
-    if (res == -1) { return -1; }
-    if (res < sz) { return -2; }
-    rassert(res == sz);
-    return 0;
-}
-
-
 template <class T>
 write_message_t &operator<<(write_message_t &msg, const boost::optional<T> &x) {
     const T *ptr = x.get_ptr();
@@ -218,7 +201,7 @@ MUST_USE int deserialize(read_stream_t *s, boost::optional<T> *x) {
         return res;
     } else {
         x->reset();
-        return 0;
+        return ARCHIVE_SUCCESS;
     }
 }
 

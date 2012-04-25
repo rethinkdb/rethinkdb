@@ -206,29 +206,29 @@ private:
 
     /* Contains a pointer to every gc_entry, regardless of what its current state is */
     two_level_array_t<gc_entry*, MAX_DATA_EXTENTS> entries;
-    
+
     /* Contains every extent in the gc_entry::state_reconstructing state */
     intrusive_list_t< gc_entry > reconstructed_extents;
-    
+
     /* Contains the extents in the gc_entry::state_active state. The number of active extents
     is determined by dynamic_config->num_active_data_extents. */
     unsigned int next_active_extent;   // Cycles through the active extents
     gc_entry *active_extents[MAX_ACTIVE_DATA_EXTENTS];
     unsigned blocks_in_active_extent[MAX_ACTIVE_DATA_EXTENTS];
-    
+
     /* Contains every extent in the gc_entry::state_young state */
     intrusive_list_t< gc_entry > young_extent_queue;
-    
+
     /* Contains every extent in the gc_entry::state_old state */
     priority_queue_t<gc_entry*, gc_entry_less> gc_pq;
-    
+
     // Tells if we should keep gc'ing, being told the next extent that
     // would be gc'ed.
     bool should_we_keep_gcing(const gc_entry&) const;
 
     // Pops things off young_extent_queue that are no longer young.
     void mark_unyoung_entries();
-    
+
     // Pops the last gc_entry off young_extent_queue and declares it
     // to be not young.
     void remove_last_unyoung_entry();

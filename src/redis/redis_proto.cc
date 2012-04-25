@@ -1,6 +1,7 @@
 #include "errors.hpp"
-#include <boost/variant.hpp>
 #include <boost/algorithm/string.hpp>
+
+#include "arch/io/network.hpp"
 #include "redis/redis_proto.hpp"
 
 class RedisTypeError : public ParseError {
@@ -68,7 +69,7 @@ public:
         } catch (boost::bad_lexical_cast) {
             throw typeException;
         }
-    }   
+    }
 
     using command_t::operator();
 };
@@ -92,7 +93,7 @@ public:
         } catch (boost::bad_lexical_cast) {
             throw typeException;
         }
-    }   
+    }
 
     using command_t::operator();
 };
@@ -185,7 +186,7 @@ private:
     RedisParser *parser;
 public:
     explicit pubsub_publish_cmd(RedisParser *parser_) : parser(parser_) {}
-    
+
     virtual redis_protocol_t::redis_return_type operator()(UNUSED redis_ext *extApi, std::string &channel, std::string &message) {
         return parser->publish(channel, message);
     }
@@ -487,13 +488,13 @@ void RedisParser::parse_pubsub() {
             } else if (command == "psubscribe") {
                 subscribe(chans, true);
             } else if (command == "unsubscribe") {
-                unsubscribe(chans, false); 
+                unsubscribe(chans, false);
             } else if (command == "punsubscribe") {
-                unsubscribe(chans, true); 
+                unsubscribe(chans, true);
             } else {
                 output_response(redis_protocol_t::error_result(
                     "ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / QUIT allowed in this contex"
-                ));            
+                ));
             }
         }
     } catch (ParseError &e) {

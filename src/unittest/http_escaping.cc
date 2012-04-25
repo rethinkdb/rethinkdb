@@ -18,4 +18,4 @@ TEST(HTTPEscaping, HTTPEscaping) {
     EXPECT_THROW(percent_unescaped_string("!"), std::runtime_error);
 }
 
-}//namespace unittest 
+}//namespace unittest

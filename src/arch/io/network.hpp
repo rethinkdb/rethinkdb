@@ -8,18 +8,19 @@
 #include <stdexcept>
 
 #include "utils.hpp"
+#include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
-#include "arch/runtime/event_queue.hpp"
-#include "arch/io/io_utils.hpp"
+
 #include "arch/address.hpp"
+#include "arch/io/event_watcher.hpp"
+#include "arch/io/io_utils.hpp"
+#include "arch/runtime/event_queue.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "containers/intrusive_list.hpp"
 #include "perfmon_types.hpp"
-#include "arch/io/event_watcher.hpp"
-#include "containers/intrusive_list.hpp"
 
 class side_coro_handler_t;
 
@@ -274,7 +275,7 @@ public:
     struct address_in_use_exc_t :
         public std::exception
     {
-        address_in_use_exc_t(const char* hostname, int port) throw () : 
+        address_in_use_exc_t(const char* hostname, int port) throw () :
             info(strprintf("The address at %s:%d is already in use", hostname, port)) { }
         ~address_in_use_exc_t() throw () { }
 

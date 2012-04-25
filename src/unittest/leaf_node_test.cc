@@ -79,7 +79,7 @@ public:
         leaf::init(&sizer_, node_);
         Print();
     }
-    ~LeafNodeTracker() { delete[] node_; }
+    ~LeafNodeTracker() { delete[] reinterpret_cast<char *>(node_); }
 
     bool Insert(const std::string& key, const std::string& value) {
         // printf("\n\nInserting %s\n\n", key.c_str());
@@ -240,7 +240,7 @@ public:
         // leaf::print(stdout, &sizer_, node_);
     }
 
-    class verify_receptor_t : public leaf::entry_reception_callback_t<short_value_t> {
+    class verify_receptor_t : public leaf::entry_reception_callback_t {
     public:
         verify_receptor_t() : got_lost_deletions_(false) { }
 
@@ -253,8 +253,9 @@ public:
             ASSERT_TRUE(false);
         }
 
-        void key_value(const btree_key_t *k, const short_value_t *value, UNUSED repli_timestamp_t tstamp) {
+        void key_value(const btree_key_t *k, const void *v_value, UNUSED repli_timestamp_t tstamp) {
             ASSERT_TRUE(got_lost_deletions_);
+            const short_value_t *value = static_cast<const short_value_t *>(v_value);
 
             std::string k_str(k->contents, k->size);
             short_value_buffer_t v_buf(value);

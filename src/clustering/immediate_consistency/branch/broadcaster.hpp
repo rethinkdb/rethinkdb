@@ -42,7 +42,7 @@ public:
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
         initial_store->new_read_token(read_token);
 
-        region_map_t<protocol_t, version_range_t> origins = 
+        region_map_t<protocol_t, version_range_t> origins =
             region_map_transform<protocol_t, binary_blob_t, version_range_t>(
                 initial_store->get_metainfo(read_token, interruptor),
                 &binary_blob_t::get<version_range_t>

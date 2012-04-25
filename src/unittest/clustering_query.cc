@@ -42,7 +42,7 @@ static void run_read_write_test() {
         );
 
     simple_directory_manager_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >
-        broadcaster_metadata_controller(&cluster, 
+        broadcaster_metadata_controller(&cluster,
             boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(
                 broadcaster.get_business_card()
             ));
@@ -126,7 +126,7 @@ static void run_broadcaster_problem_test() {
         );
 
     simple_directory_manager_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >
-        broadcaster_metadata_controller(&cluster, 
+        broadcaster_metadata_controller(&cluster,
             boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(
                 broadcaster.get_business_card()
             ));

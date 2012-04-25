@@ -32,7 +32,7 @@ class serializer_t;
 
 class mock_buf_lock_t : public home_thread_mixin_t {
 public:
-    mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0);
+    mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line = 0);
     explicit mock_buf_lock_t(mock_transaction_t *txn);
     mock_buf_lock_t();
     ~mock_buf_lock_t();
@@ -136,7 +136,7 @@ public:
 
     boost::shared_ptr<cache_account_t> create_account(UNUSED int priority) { return boost::shared_ptr<cache_account_t>(); }
 
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const boost::intrusive_ptr<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 
     bool contains_block(block_id_t id);
 

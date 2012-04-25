@@ -16,12 +16,19 @@ class reactor_t {
 public:
     reactor_t(
             mailbox_manager_t *mailbox_manager,
-            typename master_t<protocol_t>::ack_checker_t *ack_checker_,
-            clone_ptr_t<directory_rwview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > reactor_directory,
-            clone_ptr_t<directory_wview_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > master_directory_view,
+            typename master_t<protocol_t>::ack_checker_t *ack_checker,
+            clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > reactor_directory,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
             clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable,
             store_view_t<protocol_t> *_underlying_store) THROWS_NOTHING;
+
+    clone_ptr_t<watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > get_reactor_directory() {
+        return directory_echo_writer.get_watchable();
+    }
+
+    clone_ptr_t<watchable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > get_master_directory() {
+        return master_directory.get_watchable();
+    }
 
 private:
     /* a directory_entry_t is a sentry that in its contructor inserts an entry
@@ -73,72 +80,70 @@ private:
     class backfill_candidate_t {
     public:
         version_range_t version_range;
-
-        typedef clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > backfill_location_t;
+        typedef clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_bcard_view_t;
+        class backfill_location_t {
+        public:
+            backfill_location_t(const backfiller_bcard_view_t &b, peer_id_t p, reactor_activity_id_t i) :
+                 backfiller(b), peer_id(p), activity_id(i) { }
+            backfiller_bcard_view_t backfiller;
+            peer_id_t peer_id;
+            reactor_activity_id_t activity_id;
+        };
 
         std::vector<backfill_location_t> places_to_get_this_version;
-        std::vector<reactor_activity_id_t> activity_ids;
         bool present_in_our_store;
 
-        backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, std::vector<reactor_activity_id_t> _activity_ids, bool _present_in_our_store);
+        backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store);
     };
 
     typedef region_map_t<protocol_t, backfill_candidate_t> best_backfiller_map_t;
 
-    void update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions, const clone_ptr_t<directory_single_rview_t<boost::optional<backfiller_business_card_t<protocol_t> > > > &backfiller, 
-                                reactor_activity_id_t activity_id, best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history);
+    void update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions,
+                                const typename backfill_candidate_t::backfill_location_t &backfiller,
+                                best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history);
 
-    bool is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
+    bool is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                       const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out);
 
     static backfill_candidate_t make_backfill_candidate_from_binary_blob(const binary_blob_t &b);
 
     /* Implemented in clustering/reactor/reactor_be_secondary.tcc */
-    bool find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
-                                       clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > *broadcaster_out);
+    bool find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
+                                       clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > *broadcaster_out);
 
-    bool find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, 
-                                      clone_ptr_t<directory_single_rview_t<boost::optional<replier_business_card_t<protocol_t> > > > *replier_out, reactor_activity_id_t *activity_out);
+    bool find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
+                                      clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_out);
 
     void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
 
 
     /* Implemented in clustering/reactor/reactor_be_listener.tcc */
-    bool is_safe_for_us_to_be_nothing(const std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
+    bool is_safe_for_us_to_be_nothing(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                       const typename protocol_t::region_t &region);
 
     void be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
 
+    static boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > extract_broadcaster_from_reactor_business_card_primary(
+        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard);
 
     void wait_for_directory_acks(directory_echo_version_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-
-    boost::optional<clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > > >
-        find_broadcaster_in_directory(const typename protocol_t::region_t &) {
-            crash("Not implemented\n");
-    }
-
-    clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<protocol_t> > > >
-        wait_for_broadcaster_to_appear_in_directory(const typename protocol_t::region_t &, signal_t *) {
-            crash("Not implemented\n");
-    }
-
-
     template <class activity_t>
-    clone_ptr_t<directory_single_rview_t<boost::optional<activity_t> > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);
+    clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);
 
     mailbox_manager_t *mailbox_manager;
 
     typename master_t<protocol_t>::ack_checker_t *ack_checker;
 
-    directory_echo_access_t<reactor_business_card_t<protocol_t> > directory_echo_access;
+    clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > reactor_directory;
+    directory_echo_writer_t<reactor_business_card_t<protocol_t> > directory_echo_writer;
+    directory_echo_mirror_t<reactor_business_card_t<protocol_t> > directory_echo_mirror;
     boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
 
     watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > master_directory;
     mutex_assertion_t master_directory_lock;
-    watchable_write_copier_t<std::map<master_id_t, master_business_card_t<protocol_t> > > master_directory_copier;
 
     clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable;
 
@@ -146,7 +151,7 @@ private:
 
     std::map<
             typename protocol_t::region_t,
-            std::pair<typename blueprint_details::role_t, cond_t *> 
+            std::pair<typename blueprint_details::role_t, cond_t *>
             > current_roles;
 
     auto_drainer_t drainer;

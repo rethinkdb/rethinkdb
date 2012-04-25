@@ -144,7 +144,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             ASSERT_FINITE_CORO_WAITING;
 
             transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
-            current_timestamp = timestamp.timestamp_after(); 
+            current_timestamp = timestamp.timestamp_after();
             order_sink.check_out(order_token);
 
             write_wrapper = boost::make_shared<incomplete_write_t>(
@@ -206,7 +206,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
     wait_interruptible(write_wrapper->done_promise.get_ready_signal(), interruptor);
     if (!write_wrapper->done_promise.get_value()) {
         throw cannot_perform_query_exc_t("insufficient mirrors to meet desired ack count");
-    } 
+    }
 
     return resp;
 }

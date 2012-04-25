@@ -1,5 +1,7 @@
 #include "arch/io/blocker_pool.hpp"
 
+#include <string.h>
+
 // IO thread function
 void* blocker_pool_t::event_loop(void *arg) {
 
@@ -32,7 +34,7 @@ void* blocker_pool_t::event_loop(void *arg) {
 
             // Grab a request
             job_t *request = parent->outstanding_requests.front();
-            parent->outstanding_requests.erase(parent->outstanding_requests.begin(), 
+            parent->outstanding_requests.erase(parent->outstanding_requests.begin(),
                                                parent->outstanding_requests.begin() + 1);
 
             // Unlock the mutex manually instead of waiting for its destructor so that other jobs
@@ -80,12 +82,12 @@ blocker_pool_t::~blocker_pool_t() {
     /* Send out the order to shut down */
     {
         system_mutex_t::lock_t or_lock(&or_mutex);
-    
+
         shutting_down = true;
-    
+
         /* It is an error to shut down the blocker pool while requests are still out */
         rassert(outstanding_requests.size() == 0);
-    
+
         or_cond.broadcast();
     }
 

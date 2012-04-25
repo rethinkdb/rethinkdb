@@ -55,11 +55,11 @@ private:
         /* Confirm that `start_point` is a point in our past */
         typedef region_map_t<protocol_t, version_range_t> version_map_t;
 
-        for (typename version_map_t::const_iterator it =  start_point.begin(); 
-                                                    it != start_point.end(); 
+        for (typename version_map_t::const_iterator it =  start_point.begin();
+                                                    it != start_point.end();
                                                     it++) {
-            for (typename version_map_t::const_iterator jt =  end_point.begin(); 
-                                                        jt != end_point.end(); 
+            for (typename version_map_t::const_iterator jt =  end_point.begin();
+                                                        jt != end_point.end();
                                                         jt++) {
                 typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
                 if (!region_is_empty(ixn)) {
@@ -159,12 +159,12 @@ private:
     }
 
     void request_backfill_progress(backfill_session_id_t session_id,
-                                   mailbox_addr_t<void(float)> response_mbox,
+                                   mailbox_addr_t<void(std::pair<int, int>)> response_mbox,
                                    auto_drainer_t::lock_t) {
         if (std_contains(local_backfill_progress, session_id) && local_backfill_progress[session_id]) {
             send(mailbox_manager, response_mbox, local_backfill_progress[session_id]->guess_completion());
         } else {
-            send(mailbox_manager, response_mbox, -1.0f);
+            send(mailbox_manager, response_mbox, std::make_pair(-1, -1));
         }
 
         //TODO indicate an error has occurred
@@ -175,9 +175,9 @@ private:
 
     store_view_t<protocol_t> *store;
 
-    auto_drainer_t drainer;
     std::map<backfill_session_id_t, cond_t *> local_interruptors;
     std::map<backfill_session_id_t, typename protocol_t::backfill_progress_t *> local_backfill_progress;
+    auto_drainer_t drainer;
 
     typename backfiller_business_card_t<protocol_t>::backfill_mailbox_t backfill_mailbox;
     typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;
