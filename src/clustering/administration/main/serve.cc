@@ -177,6 +177,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         &mailbox_manager,
         semilattice_manager_cluster.get_root_view(),
         translate_into_watchable(directory_manager.get_root_view()),
+        &ns_repo,
         &issue_aggregator,
         &last_seen_tracker,
         machine_id,

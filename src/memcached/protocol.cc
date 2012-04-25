@@ -226,7 +226,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
             distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
             rassert(result, "Bad boost::get\n");
 #ifndef NDEBUG
-            for (std::map<store_key_t, int>::iterator it  = result->key_counts.begin();
+            for (std::map<std::string, int>::iterator it  = result->key_counts.begin();
                                                       it != result->key_counts.end();
                                                       ++it) {
                 rassert(!std_contains(res.key_counts, it->first));
