@@ -97,10 +97,16 @@ module 'MachineView', ->
 
         events: ->
             'click a.set-datacenter': 'set_datacenter'
+            'click a.rename-machine': 'rename_machine'
 
         initialize: (id) =>
             log_initial '(initializing) machine view: container'
             @machine_uuid = id
+
+        rename_machine: (event) ->
+            event.preventDefault()
+            rename_modal = new ClusterView.RenameItemModal @model.get('id'), 'machine'
+            rename_modal.render()
 
         wait_for_model_noop: =>
             return true
@@ -202,10 +208,17 @@ module 'DatacenterView', ->
     class @Container extends Backbone.View
         className: 'datacenter-view'
         template: Handlebars.compile $('#datacenter_view-container-template').html()
+        events: ->
+            'click a.rename-datacenter': 'rename_datacenter'
 
         initialize: (id) =>
             log_initial '(initializing) datacenter view: container'
             @datacenter_uuid = id
+
+        rename_datacenter: (event) ->
+            event.preventDefault()
+            rename_modal = new ClusterView.RenameItemModal @model.get('id'), 'datacenter'
+            rename_modal.render()
 
         wait_for_model_noop: ->
             return true
@@ -295,7 +308,7 @@ module 'DatacenterView', ->
             for machine in machines_in_datacenter
                 if machine.get('log_entries')?
                     dc_log_entries.add machine.get('log_entries').models
-            
+
             dc_log_entries.each (log_entry) =>
                 view = new DatacenterView.RecentLogEntry
                     model: log_entry
