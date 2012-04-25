@@ -56,7 +56,7 @@ RDB_MAKE_EQUALITY_COMPARABLE_9(namespace_semilattice_metadata_t<protocol_t>, blu
 template <class ctx_t, class protocol_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespace_semilattice_metadata_t<protocol_t> *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["blueprint"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<persistable_blueprint_t<protocol_t>, ctx_t>(&target->blueprint));
+    res["blueprint"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<vclock_t<persistable_blueprint_t<protocol_t> >, ctx_t>(&target->blueprint));
     res["primary_uuid"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<datacenter_id_t, ctx_t>(&target->primary_datacenter));
     res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<std::map<datacenter_id_t, int>, ctx_t>(&target->replica_affinities));
     res["ack_expectations"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<std::map<datacenter_id_t, int>, ctx_t>(&target->ack_expectations));
