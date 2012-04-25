@@ -13,7 +13,6 @@ namespace_registry_t<protocol_t>::namespace_registry_t(mailbox_manager_t *_mailb
     : mailbox_manager(_mailbox_manager), 
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
       namespaces_directory_metadata(_namespaces_directory_metadata)
-      //namespaces_subscription(boost::bind(&namespace_registry_t<protocol_t>::on_change, this), namespaces_semilattice_metadata)
 { }
 
 template <class protocol_t>
@@ -35,34 +34,11 @@ std::map<peer_id_t, typename namespace_registry_t<protocol_t>::master_map_t> get
 template <class protocol_t>
 typename namespace_registry_t<protocol_t>::namepsace_if_access_t namespace_registry_t<protocol_t>::get_namespace_if(namespace_id_t n_id) {
     if (!std_contains(interface_map, n_id)) {
-        interface_map.insert(n_id, new namespace_if_and_drainer_t(mailbox_manager,
-                                                                 namespaces_directory_metadata->
-                                                                    subview(boost::bind(&get_master_map<protocol_t>, _1, n_id))));
+        interface_map.insert(n_id, new cluster_namespace_interface_t<protocol_t>(mailbox_manager,
+                                                                                    namespaces_directory_metadata->
+                                                                                        subview(boost::bind(&get_master_map<protocol_t>, _1, n_id))));
     }
-    return namepsace_if_access_t(&interface_map.find(n_id)->second->interface, auto_drainer_t::lock_t(&interface_map.find(n_id)->second->drainer));
+    return namepsace_if_access_t(interface_map.find(n_id)->second, auto_drainer_t::lock_t(&drainer));
 }
-
-/* template <class protocol_t>
-void namespace_registry_t<protocol_t>::on_change() {
-        namespaces_semilattice_metadata_t<protocol_t> snapshot = namespaces_semilattice_metadata->get();
-
-        for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator it  = snapshot.namespaces.begin();
-                                                                                               it != snapshot.namespaces.end();
-                                                                                               ++it) {
-
-            if (!std_contains(interface_map, it->first) && !it->second.is_deleted()) {
-                namespace_id_t tmp = it->first;
-                interface_map.insert(tmp, new namespace_if_and_drainer_t(mailbox_manager,
-                                                                         namespaces_directory_metadata->
-                                                                            subview(boost::bind(&get_master_map<protocol_t>, _1, it->first))));
-            } else if (std_contains(interface_map, it->first) && it->second.is_deleted()) {
-                //The namespace has been deleted... get rid of the parser
-                coro_t::spawn_sometime(boost::bind(&delete_a_thing<typename namespace_registry_t<protocol_t>::interface_map_t::auto_type>, new typename namespace_registry_t<protocol_t>::interface_map_t::auto_type(interface_map.release(interface_map.find(it->first)))));
-            } else {
-                //do nothing
-            }
-        }
-
-    } */
 
 #endif
