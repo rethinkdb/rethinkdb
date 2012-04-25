@@ -1,5 +1,5 @@
 do_test(
-    "test/interface/detect_dead.py",
+    "$RETHINKDB/test/interface/detect_dead.py",
     repeat = 3,
     inputs = ["build/debug/rethinkdb", "test/interface", "test/common"]
     )

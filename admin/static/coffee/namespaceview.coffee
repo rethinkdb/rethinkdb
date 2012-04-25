@@ -5,10 +5,17 @@ module 'NamespaceView', ->
     class @Container extends Backbone.View
         className: 'namespace-view'
         template: Handlebars.compile $('#namespace_view-container-template').html()
+        events: ->
+            'click a.rename-namespace': 'rename_namespace'
 
         initialize: (id) =>
             log_initial '(initializing) namespace view: container'
             @namespace_uuid = id
+
+        rename_namespace: (event) ->
+            event.preventDefault()
+            rename_modal = new ClusterView.RenameItemModal @model.get('id'), 'namespace'
+            rename_modal.render()
 
         wait_for_model_noop: =>
             return true
@@ -223,9 +230,12 @@ module 'NamespaceView', ->
                         success: (response) =>
                             clear_modals()
 
+                            # the result of this operation are some
+                            # attributes about the namespace we
+                            # created, to be used in an alert
                             apply_to_collection(namespaces, add_protocol_tag(response, "memcached"))
-                            # the result of this operation are some attributes about the namespace we created, to be used in an alert
-                            # TODO hook this up
+
+                            # Notify the user
                             for id, namespace of response
                                 $('#user-alert-space').append @alert_tmpl
                                     uuid: id

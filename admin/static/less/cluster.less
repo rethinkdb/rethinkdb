@@ -585,12 +585,22 @@
         margin-right: 5px;
     }
 
-    .machine.details p.status {
-        .label {
-            vertical-align: text-top;
-            font-size: 10px;
+    .machine.details {
+        div.toolbar {
+            float: right;
+            margin-top: -25px;
+            text-align: right;
         }
-        float: right;
+        p.status {
+            .label {
+                vertical-align: text-top;
+                font-size: 10px;
+            }
+        }
+        p.actions {
+            text-transform: none;
+            font-size: 13px;
+        }
     }
 
     .header {
@@ -622,7 +632,10 @@
         margin-left: 28px;
     }
 
-    .datacenter.actions { text-align: right; }
+    .datacenter.actions {
+        text-align: right;
+        padding-right: 13px;
+    }
 
     .datacenter.details {
         margin-top: 10px;
@@ -636,6 +649,10 @@
 .namespace-list {
     margin-top: 20px;
 
+    div.toolbar {
+        float: right;
+        margin-top: -8em;
+    }
     span.protocol {
         background: @gray;
         color: @white;
@@ -643,7 +660,6 @@
         padding: 0.4em;
         text-transform: uppercase;
         font-weight: bold;
-        float: right;
 
         &.riak { background-color: @riak_color; }
         &.redis { background-color: @redis_color; }
@@ -708,6 +724,7 @@
 
     h1 {
         margin-bottom: 10px;
+        display: inline-block;
     }
 }
 
