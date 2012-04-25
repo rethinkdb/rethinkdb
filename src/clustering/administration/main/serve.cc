@@ -168,7 +168,6 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
                                                                                               metadata_field(&cluster_semilattice_metadata_t::machines,
                                                                                                              semilattice_manager_cluster.get_root_view())))),
 #endif
-                                             directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)),
                                              &ns_repo);
 
 

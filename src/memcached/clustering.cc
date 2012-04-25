@@ -13,15 +13,11 @@ memcached_parser_maker_t::memcached_parser_maker_t(mailbox_manager_t *_mailbox_m
 #ifndef NDEBUG
                                                    boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> > _machine_semilattice_metadata,
 #endif
-                                                   clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<memcached_protocol_t> > > _namespaces_directory_metadata,
                                                    namespace_repo_t<memcached_protocol_t> *_namespace_repo)
     : mailbox_manager(_mailbox_manager),
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
 #ifndef NDEBUG
       machine_semilattice_metadata(_machine_semilattice_metadata),
-#endif
-      namespaces_directory_metadata(_namespaces_directory_metadata),
-#ifndef NDEBUG
       machines_subscription(boost::bind(&memcached_parser_maker_t::on_change, this), machine_semilattice_metadata),
 #endif
       namespaces_subscription(boost::bind(&memcached_parser_maker_t::on_change, this), namespaces_semilattice_metadata),

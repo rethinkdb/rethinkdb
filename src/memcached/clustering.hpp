@@ -19,7 +19,6 @@ public:
 #ifndef NDEBUG
                              boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> >,
 #endif
-                             clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<memcached_protocol_t> > >,
                              namespace_repo_t<memcached_protocol_t> *_namespace_repo);
 
 private:
@@ -30,7 +29,6 @@ private:
 #ifndef NDEBUG
     boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> > machine_semilattice_metadata;
 #endif
-    clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<memcached_protocol_t> > > namespaces_directory_metadata;
 
     struct parser_and_namespace_if_t {
         parser_and_namespace_if_t(namespace_id_t, memcached_parser_maker_t *parent, int port);
