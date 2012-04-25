@@ -41,6 +41,9 @@ int main(int argc, char *argv[]) {
         } else if (subcommand == "serve") {
             return main_rethinkdb_serve(argc, argv);
 
+        } else if (subcommand == "admin") {
+            return main_rethinkdb_admin(argc, argv);
+
         } else if (subcommand == "--version") {
             if (argc != 2) {
                 puts("WARNING: Ignoring extra parameters after '--version'.");

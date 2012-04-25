@@ -4,10 +4,6 @@
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "lens.hpp"
 
-const char *missing_machine_exc_t::what() const throw () {
-    return "Cannot compute blueprint because a machine is offline.";
-}
-
 template<class protocol_t>
 persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
         const namespace_semilattice_metadata_t<protocol_t> &ns_goals,

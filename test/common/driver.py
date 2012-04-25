@@ -29,6 +29,8 @@ def unblock_path(source_port, dest_port):
 def find_rethinkdb_executable(mode = "debug"):
     subpath = "build/%s/rethinkdb" % (mode)
     paths = [subpath, "../" + subpath, "../../" + subpath, "../../../" + subpath]
+    if "RETHINKDB" in os.environ:
+        paths.append(os.path.join(os.environ["RETHINKDB"], subpath))
     for path in paths:
         if os.path.exists(path):
             return path
@@ -43,7 +45,7 @@ class Metacluster(object):
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
 
         self.clusters = set()
-        self.dbs_dir = tempfile.mkdtemp()
+        self.dbs_path = tempfile.mkdtemp()
         self.files_counter = 0
         self.executable_path = executable_path
         self.closed = False
@@ -61,7 +63,7 @@ class Metacluster(object):
         while self.clusters:
             iter(self.clusters).next().close()
         self.clusters = None
-        shutil.rmtree(self.dbs_dir)
+        shutil.rmtree(self.dbs_path)
 
     def __enter__(self):
         return self
@@ -159,23 +161,28 @@ class Files(object):
     `Files`. To "restart" a server, create a `Files`, create a `Process`, stop
     the process, and then start a new `Process` on the same `Files`. """
 
-    def __init__(self, metacluster, name = None, port_offset = 0, log_path = "stdout"):
+    def __init__(self, metacluster, name = None, port_offset = 0, db_path = None, log_path = "stdout"):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
         assert name is None or isinstance(name, str)
+        assert db_path is None or isinstance(db_path, str)
 
         self.id_number = metacluster.files_counter
         metacluster.files_counter += 1
-        self.db_dir = os.path.join(metacluster.dbs_dir, str(self.id_number))
+        if db_path is None:
+            self.db_path = os.path.join(metacluster.dbs_path, str(self.id_number))
+        else:
+            assert not os.path.exists(db_path)
+            self.db_path = db_path
 
         self.port_offset = self.id_number
 
-        create_args = [metacluster.executable_path, "create", "--directory=" + self.db_dir, "--port-offset=" + str(self.port_offset)]
+        create_args = [metacluster.executable_path, "create", "--directory=" + self.db_path, "--port-offset=" + str(self.port_offset)]
         if name is not None:
             create_args.append("--name=" + name)
 
         if log_path == "stdout":
-            subprocess.check_call(create_args, stdout = sys.stdout, stderr = sys.stdout)
+            subprocess.check_call(create_args, stdout = sys.stdout, stderr = subprocess.STDOUT)
         else:
             with open(log_path, "w") as log_file:
                 subprocess.check_call(create_args, stdout = log_file, stderr = subprocess.STDOUT)
@@ -202,7 +209,7 @@ class Process(object):
 
         try:
             self.args = [cluster.metacluster.executable_path, "serve",
-                "--directory=" + self.files.db_dir,
+                "--directory=" + self.files.db_path,
                 "--port=" + str(self.cluster_port),
                 "--client-port=" + str(self.local_cluster_port)]
             for peer in cluster.processes:
