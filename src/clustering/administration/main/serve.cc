@@ -150,7 +150,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces))
         );
 
-    namespace_registry_t<memcached_protocol_t> ns_registry(&mailbox_manager, 
+    namespace_repo_t<memcached_protocol_t> ns_repo(&mailbox_manager, 
                                                            metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
                                                            translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces))));
 
@@ -169,7 +169,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
                                                                                                              semilattice_manager_cluster.get_root_view())))),
 #endif
                                              directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)),
-                                             &ns_registry);
+                                             &ns_repo);
 
 
     administrative_http_server_manager_t administrative_http_interface(

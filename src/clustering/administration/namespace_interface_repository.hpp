@@ -8,9 +8,9 @@
 #include "clustering/administration/namespace_metadata.hpp"
 
 template <class protocol_t>
-class namespace_registry_t {
+class namespace_repo_t {
 public:
-    namespace_registry_t(mailbox_manager_t *, 
+    namespace_repo_t(mailbox_manager_t *, 
                          boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > >,
                          clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >);
 

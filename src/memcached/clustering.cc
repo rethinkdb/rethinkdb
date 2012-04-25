@@ -14,7 +14,7 @@ memcached_parser_maker_t::memcached_parser_maker_t(mailbox_manager_t *_mailbox_m
                                                    boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> > _machine_semilattice_metadata,
 #endif
                                                    clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<memcached_protocol_t> > > _namespaces_directory_metadata,
-                                                   namespace_registry_t<memcached_protocol_t> *_namespace_repo)
+                                                   namespace_repo_t<memcached_protocol_t> *_namespace_repo)
     : mailbox_manager(_mailbox_manager),
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
 #ifndef NDEBUG
