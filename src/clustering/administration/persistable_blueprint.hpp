@@ -45,7 +45,7 @@ public:
 };
 
 template <class protocol_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(blueprint_t<protocol_t> *, const ctx_t &);
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *, const ctx_t &);
 
 template <class protocol_t, class ctx_t>
 cJSON *render_as_json(persistable_blueprint_t<protocol_t> *, const ctx_t &);

@@ -476,6 +476,18 @@ cJSON *render_as_directory(T *, const ctx_t &);
 template <class T, class ctx_t>
 void apply_as_directory(cJSON *change, T *, const ctx_t &);
 
+template<class T, class cxt_t>
+std::string render_as_json_string(const T &t, const cxt_t cxt) {
+    T copy = t;
+    scoped_cJSON_t json(render_as_json(&copy, cxt));
+    return cJSON_print_unformatted_std_string(json.get());
+}
+
+template<class T>
+std::string render_as_json_string(const T &t) {
+    return render_as_json_string(t, 0);
+}
+
 #include "http/json/json_adapter.tcc"
 
 #endif
