@@ -43,7 +43,7 @@ class Metacluster(object):
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
 
         self.clusters = set()
-        self.dbs_dir = tempfile.mkdtemp()
+        self.dbs_path = tempfile.mkdtemp()
         self.files_counter = 0
         self.executable_path = executable_path
         self.closed = False
@@ -61,7 +61,7 @@ class Metacluster(object):
         while self.clusters:
             iter(self.clusters).next().close()
         self.clusters = None
-        shutil.rmtree(self.dbs_dir)
+        shutil.rmtree(self.dbs_path)
 
     def __enter__(self):
         return self
@@ -159,23 +159,23 @@ class Files(object):
     `Files`. To "restart" a server, create a `Files`, create a `Process`, stop
     the process, and then start a new `Process` on the same `Files`. """
 
-    def __init__(self, metacluster, name = None, port_offset = 0, directory = None, log_path = "stdout"):
+    def __init__(self, metacluster, name = None, port_offset = 0, db_path = None, log_path = "stdout"):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
         assert name is None or isinstance(name, str)
-        assert directory is None or isinstance(directory, str)
+        assert db_path is None or isinstance(db_path, str)
 
         self.id_number = metacluster.files_counter
         metacluster.files_counter += 1
-        if directory is None:
-            self.db_dir = os.path.join(metacluster.dbs_dir, str(self.id_number))
+        if db_path is None:
+            self.db_path = os.path.join(metacluster.dbs_path, str(self.id_number))
         else:
-            assert not os.path.exists(directory)
-            self.db_dir = directory
+            assert not os.path.exists(db_path)
+            self.db_path = db_path
 
         self.port_offset = self.id_number
 
-        create_args = [metacluster.executable_path, "create", "--directory=" + self.db_dir, "--port-offset=" + str(self.port_offset)]
+        create_args = [metacluster.executable_path, "create", "--directory=" + self.db_path, "--port-offset=" + str(self.port_offset)]
         if name is not None:
             create_args.append("--name=" + name)
 
@@ -207,7 +207,7 @@ class Process(object):
 
         try:
             self.args = [cluster.metacluster.executable_path, "serve",
-                "--directory=" + self.files.db_dir,
+                "--directory=" + self.files.db_path,
                 "--port=" + str(self.cluster_port),
                 "--client-port=" + str(self.local_cluster_port)]
             for peer in cluster.processes:
