@@ -89,7 +89,7 @@ void memcached_parser_maker_t::on_change() {
 typedef std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<memcached_protocol_t> > > master_map_t;
 
 memcached_parser_maker_t::parser_and_namespace_if_t::parser_and_namespace_if_t(namespace_id_t id, memcached_parser_maker_t *parent, int port)
-    : namespace_if_access(parent->namespace_repo->get_namespace_if(id)),
-      parser(port, namespace_if_access.namespace_if)
+    : namespace_if_access(parent->namespace_repo, id),
+      parser(port, namespace_if_access.get_namespace_if())
 { }
 

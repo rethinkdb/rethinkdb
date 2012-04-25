@@ -33,7 +33,7 @@ private:
     struct parser_and_namespace_if_t {
         parser_and_namespace_if_t(namespace_id_t, memcached_parser_maker_t *parent, int port);
 
-        namespace_repo_t<memcached_protocol_t>::namepsace_if_access_t namespace_if_access;
+        namespace_repo_t<memcached_protocol_t>::access_t namespace_if_access;
         memcache_listener_t parser;
     };
 
