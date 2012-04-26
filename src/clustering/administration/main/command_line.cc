@@ -273,6 +273,16 @@ po::options_description get_rethinkdb_serve_options() {
     return desc;
 }
 
+po::options_description get_rethinkdb_admin_options() {
+    po::options_description desc("Allowed options");
+    desc.add_options()
+#ifndef NDEBUG
+        ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes")
+#endif
+        ("join,j", po::value<std::vector<host_and_port_t> >()->required(), "host:port of a node that we will connect to");
+    return desc;
+}
+
 po::options_description get_rethinkdb_porcelain_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_option());
@@ -332,17 +342,19 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 int main_rethinkdb_admin(int argc, char *argv[]) {
     po::variables_map vm;
     po::options_description options;
-    options.add_options()
-#ifndef NDEBUG
-        ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes")
-#endif
-        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
+    options.add(get_rethinkdb_admin_options());
     po::command_line_parser parser(argc - 1, &argv[1]);
     parser.options(options);
     parser.allow_unregistered();
     po::parsed_options parsed = parser.run();
-    po::store(parsed, vm);
-    po::notify(vm);
+
+    try {
+        po::store(parsed, vm);
+        po::notify(vm);
+    } catch (std::exception& ex) {
+        printf("%s\n", ex.what());
+        return 1;
+    }
 
     std::vector<host_and_port_t> joins;
     if (vm.count("join") > 0) {
@@ -358,7 +370,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
     std::vector<std::string> cmd_args = po::collect_unrecognized(parsed.options, po::include_positional); 
     run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, &result));
 
-    return result? 0 : 1;
+    return result ? 0 : 1;
 }
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
@@ -408,5 +420,21 @@ void help_rethinkdb_serve() {
     printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
     std::stringstream sstream;
     sstream << get_rethinkdb_serve_options();
+    printf("%s\n", sstream.str().c_str());
+}
+
+void help_rethinkdb_admin() {
+    printf("'rethinkdb admin' is used to access and modify cluster metadata\n");
+    std::stringstream sstream;
+    sstream << get_rethinkdb_admin_options();
+    sstream << "\nSubcommands:\n";
+    sstream << "  " << rethinkdb_admin_app_t::set_command << " " << rethinkdb_admin_app_t::set_usage << "\n";
+    sstream << "  " << rethinkdb_admin_app_t::list_command << " " << rethinkdb_admin_app_t::list_usage << "\n";
+    sstream << "  " << rethinkdb_admin_app_t::move_command << " " << rethinkdb_admin_app_t::move_usage << "\n";
+    sstream << "  " << rethinkdb_admin_app_t::make_command << " namespace " << rethinkdb_admin_app_t::make_namespace_usage << "\n";
+    sstream << "  " << rethinkdb_admin_app_t::make_command << " datacenter " << rethinkdb_admin_app_t::make_datacenter_usage << "\n";
+    sstream << "  " << rethinkdb_admin_app_t::rename_command << " " << rethinkdb_admin_app_t::rename_usage << "\n";
+    sstream << "  " << rethinkdb_admin_app_t::remove_command << " " << rethinkdb_admin_app_t::remove_usage << "\n";
+    sstream << "  " << rethinkdb_admin_app_t::help_command << " " << rethinkdb_admin_app_t::help_usage << "\n";
     printf("%s\n", sstream.str().c_str());
 }

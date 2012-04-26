@@ -225,6 +225,21 @@ static void freeCompletions(linenoiseCompletions *lc) {
         free(lc->cvec);
 }
 
+// Find the maximum possible completion that is identical between all possible completions
+// Returns the length of the completion
+/*static int maxCompletion(linenoiseCompletions* lc) {
+    int max = strlen(lc->cvec[0]);
+    for (int i = 1; i < lc->len; ++i)
+        for (int j = 0; j < max && lc->cvec[i][j] != '\0'; ++j)
+            if (lc->cvec[0] != lc->cvec[j])
+                max = j;
+    return max;
+}
+
+static void printPossibleCompletions(linenoiseCompletions* lc, int fd) {
+    
+}*/
+
 static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, size_t *len, size_t *pos, size_t cols) {
     linenoiseCompletions lc = { 0, NULL };
     int nread, nwritten;
