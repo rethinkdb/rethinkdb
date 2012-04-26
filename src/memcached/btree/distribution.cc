@@ -8,7 +8,6 @@ distribution_result_t memcached_distribution_get(btree_slice_t *slice, int max_d
     get_btree_key_distribution(slice, txn.get(), superblock, max_depth, &key_count_out, &key_splits);
 
     distribution_result_t res;
-    debugf("key_count = %d, splits size: %lu\n", key_count_out, key_splits.size());
     int keys_per_bucket = std::max(key_count_out / key_splits.size(), 1ul);
     res.key_counts[key_to_str(left_key)] = keys_per_bucket;
 

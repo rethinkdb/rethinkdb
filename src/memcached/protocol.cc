@@ -1,5 +1,6 @@
 #include <errors.hpp>
 #include <boost/variant.hpp>
+#include <boost/bind.hpp>
 
 #include "btree/operations.hpp"
 #include "btree/slice.hpp"
@@ -21,6 +22,7 @@
 #include "stl_utils.hpp"
 #include "serializer/config.hpp"
 
+#include "btree/keys.hpp"
 
 write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf) {
     if (buf) {
@@ -113,7 +115,7 @@ int deserialize(read_stream_t *s, rget_result_t *iter) {
 
 RDB_IMPL_SERIALIZABLE_1(get_query_t, key);
 RDB_IMPL_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
-RDB_IMPL_SERIALIZABLE_1(distribution_get_query_t, max_depth);
+RDB_IMPL_SERIALIZABLE_2(distribution_get_query_t, max_depth, range);
 RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
 RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
 RDB_IMPL_SERIALIZABLE_1(distribution_result_t, key_counts);
@@ -149,8 +151,8 @@ struct read_get_region_visitor_t : public boost::static_visitor<key_range_t> {
             rget.right_key
             );
     }
-    key_range_t operator()(distribution_get_query_t) {
-        return key_range_t::universe();
+    key_range_t operator()(distribution_get_query_t dst_get) {
+        return dst_get.range;
     }
 };
 
@@ -192,6 +194,7 @@ struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t:
         return memcached_protocol_t::read_t(sub_rget, effective_time);
     }
     memcached_protocol_t::read_t operator()(distribution_get_query_t distribution_get) {
+        distribution_get.range = region;
         return memcached_protocol_t::read_t(distribution_get, effective_time);
     }
 };
@@ -460,8 +463,19 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
             memcached_rget_slice(btree, rget.left_mode, rget.left_key, rget.right_mode, rget.right_key, effective_time, txn, superblock));
     }
     memcached_protocol_t::read_response_t operator()(const distribution_get_query_t& dget) {
-        return memcached_protocol_t::read_response_t(
-            memcached_distribution_get(btree, dget.max_depth, dget.left_bound, effective_time, txn, superblock));
+        distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock);
+
+        for (std::map<std::string, int>::iterator it  = dstr.key_counts.begin();
+                                                  it != dstr.key_counts.end();
+                                                  /* increments done in loop */) {
+            if (!dget.range.contains_key(store_key_t(it->first))) {
+                dstr.key_counts.erase(it++);
+            } else {
+                ++it;
+            }
+        }
+
+        return memcached_protocol_t::read_response_t(dstr);
     }
 
 
