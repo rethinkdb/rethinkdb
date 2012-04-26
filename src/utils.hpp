@@ -246,4 +246,9 @@ std::string render_as_path(const path_t &);
 
 enum region_join_result_t { REGION_JOIN_OK, REGION_JOIN_BAD_JOIN, REGION_JOIN_BAD_REGION };
 
+template <class T>
+void delete_a_thing(T *thing_to_delete) {
+    delete thing_to_delete;
+}
+
 #endif // UTILS_HPP_

@@ -24,8 +24,10 @@ int deserialize(read_stream_t *s, rget_result_t *iter);
 
 RDB_DECLARE_SERIALIZABLE(get_query_t);
 RDB_DECLARE_SERIALIZABLE(rget_query_t);
+RDB_DECLARE_SERIALIZABLE(distribution_get_query_t);
 RDB_DECLARE_SERIALIZABLE(get_result_t);
 RDB_DECLARE_SERIALIZABLE(key_with_data_buffer_t);
+RDB_DECLARE_SERIALIZABLE(distribution_result_t);
 RDB_DECLARE_SERIALIZABLE(get_cas_mutation_t);
 RDB_DECLARE_SERIALIZABLE(sarc_mutation_t);
 RDB_DECLARE_SERIALIZABLE(delete_mutation_t);
@@ -45,7 +47,7 @@ public:
     struct temporary_cache_t { };
 
     struct read_response_t {
-        typedef boost::variant<get_result_t, rget_result_t> result_t;
+        typedef boost::variant<get_result_t, rget_result_t, distribution_result_t> result_t;
 
         read_response_t() { }
         read_response_t(const read_response_t& r) : result(r.result) { }
@@ -56,7 +58,7 @@ public:
     };
 
     struct read_t {
-        typedef boost::variant<get_query_t, rget_query_t> query_t;
+        typedef boost::variant<get_query_t, rget_query_t, distribution_get_query_t> query_t;
 
         key_range_t get_region() const THROWS_NOTHING;
         read_t shard(const key_range_t &region) const THROWS_NOTHING;

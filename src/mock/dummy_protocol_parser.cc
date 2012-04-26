@@ -67,14 +67,15 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
 dummy_protocol_parser_maker_t::dummy_protocol_parser_maker_t(mailbox_manager_t *_mailbox_manager,
                                                              boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> > > _namespaces_semilattice_metadata,
-                                                             clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<mock::dummy_protocol_t> > > _namespaces_directory_metadata)
+                                                             namespace_repo_t<dummy_protocol_t> *_repo)
     : mailbox_manager(_mailbox_manager),
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
-      namespaces_directory_metadata(_namespaces_directory_metadata),
+      repo(_repo),
       subscription(boost::bind(&dummy_protocol_parser_maker_t::on_change, this), namespaces_semilattice_metadata)
 {
     on_change();
 }
+
 void dummy_protocol_parser_maker_t::on_change() {
     namespaces_semilattice_metadata_t<dummy_protocol_t> snapshot = namespaces_semilattice_metadata->get();
 
@@ -96,15 +97,9 @@ void dummy_protocol_parser_maker_t::on_change() {
     }
 }
 
-//We need this typedef for a template below... this sort of sucks
-typedef std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<dummy_protocol_t> > > master_map_t;
-
 dummy_protocol_parser_maker_t::parser_and_namespace_if_t::parser_and_namespace_if_t(namespace_id_t id, dummy_protocol_parser_maker_t *parent, int port)
-    : namespace_if(parent->mailbox_manager,
-                   translate_into_watchable(parent->namespaces_directory_metadata->
-                       subview<master_map_t>(field_lens(&namespaces_directory_metadata_t<dummy_protocol_t>::master_maps))->
-                           subview(default_member_lens<master_map_t::key_type, master_map_t::mapped_type>(id)))),
-      parser(&namespace_if),
+    : namespace_access(parent->repo, id),
+      parser(namespace_access.get_namespace_if()),
       server(port, &parser)
 { }
 

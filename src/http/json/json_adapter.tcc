@@ -45,7 +45,7 @@ void json_adapter_if_t<ctx_t>::apply(cJSON *change, const ctx_t &ctx) {
         apply_impl(change, ctx);
     } catch (std::runtime_error e) {
         std::string s = cJSON_print_std_string(change);
-        throw schema_mismatch_exc_t(strprintf("Failed to apply change: %s\n", s.c_str()));
+        throw schema_mismatch_exc_t(strprintf("Failed to apply change: %s", s.c_str()));
     }
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > change_callback = get_change_callback();
     if (change_callback) {
@@ -142,17 +142,17 @@ json_read_only_adapter_t<T, ctx_t>::json_read_only_adapter_t(T *t)
 
 template <class T, class ctx_t>
 void json_read_only_adapter_t<T, ctx_t>::apply_impl(cJSON *, const ctx_t &) {
-    throw permission_denied_exc_t("Trying to write to a readonly value\n");
+    throw permission_denied_exc_t("Trying to write to a readonly value");
 }
 
 template <class T, class ctx_t>
 void json_read_only_adapter_t<T, ctx_t>::erase_impl(const ctx_t &) {
-    throw permission_denied_exc_t("Trying to erase a readonly value\n");
+    throw permission_denied_exc_t("Trying to erase a readonly value");
 }
 
 template <class T, class ctx_t>
 void json_read_only_adapter_t<T, ctx_t>::reset_impl(const ctx_t &) {
-    throw permission_denied_exc_t("Trying to reset a readonly value\n");
+    throw permission_denied_exc_t("Trying to reset a readonly value");
 }
 
 //implementation for json_temporary_adapter_t
@@ -261,12 +261,12 @@ void json_map_inserter_t<container_t, ctx_t>::apply_impl(cJSON *change, const ct
 
 template <class container_t, class ctx_t>
 void json_map_inserter_t<container_t, ctx_t>::erase_impl(const ctx_t &) {
-    throw permission_denied_exc_t("Trying to erase a value that can't be erase.\n");
+    throw permission_denied_exc_t("Trying to erase a value that can't be erase.");
 }
 
 template <class container_t, class ctx_t>
 void json_map_inserter_t<container_t, ctx_t>::reset_impl(const ctx_t &) {
-    throw permission_denied_exc_t("Trying to reset a value that can't be reset.\n");
+    throw permission_denied_exc_t("Trying to reset a value that can't be reset.");
 }
 
 template <class container_t, class ctx_t>
@@ -406,7 +406,7 @@ cJSON *render_as_json(char *target, const ctx_t &) {
 
 template <class ctx_t>
 void apply_json_to(cJSON *change, char *target, const ctx_t &) {
-    std::string str = get_string(change);
+    std::string str = cJSON_print_unformatted_std_string(change);
     if (str.size() != 1) {
         throw schema_mismatch_exc_t(strprintf("Trying to write %s to a char."
                                     "The change should only be one character long.", str.c_str()));
@@ -460,7 +460,7 @@ void apply_json_to(cJSON *change, boost::uuids::uuid *uuid, const ctx_t &) {
         try {
             *uuid = str_to_uuid(get_string(change));
         } catch (std::runtime_error) {
-            throw schema_mismatch_exc_t(strprintf("String %s, did not parse as uuid\n", get_string(change).c_str()));
+            throw schema_mismatch_exc_t(strprintf("String %s, did not parse as uuid", cJSON_print_unformatted_std_string(change).c_str()));
         }
     }
 }
@@ -693,7 +693,7 @@ void apply_json_to(cJSON *change, std::pair<F, S> *target, const ctx_t &ctx) {
     json_array_iterator_t it = get_array_it(change);
     cJSON *first = it.next(), *second = it.next();
     if (!first || !second || it.next()) {
-        throw schema_mismatch_exc_t("Expected an array with exactly 2 elements in it\n");
+        throw schema_mismatch_exc_t("Expected an array with exactly 2 elements in it");
     }
     apply_json_to(first, &target->first, ctx);
     apply_json_to(second, &target->second, ctx);

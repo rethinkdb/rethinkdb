@@ -266,6 +266,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
             blueprint.machines_roles[jt->first][*it] = jt->second;
         }
     }
+
     return blueprint;
 }
 

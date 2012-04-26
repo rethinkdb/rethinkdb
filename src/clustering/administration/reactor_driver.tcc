@@ -20,6 +20,7 @@
 `persistable_blueprint_t` to `blueprint_t`. */
 template<class protocol_t>
 blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protocol_t> &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
+
     blueprint_t<protocol_t> output;
     for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator it = input.machines_roles.begin();
             it != input.machines_roles.end(); it++) {

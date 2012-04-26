@@ -25,6 +25,7 @@ void btree_slice_t::create(cache_t *cache) {
 
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
+    sb->stat_block = NULL_BLOCK_ID;
 }
 
 btree_slice_t::btree_slice_t(cache_t *c)

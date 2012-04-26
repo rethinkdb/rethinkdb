@@ -17,7 +17,7 @@ opts = op.parse(sys.argv)
 with driver.Metacluster(driver.find_rethinkdb_executable(opts["mode"])) as metacluster:
     cluster = driver.Cluster(metacluster)
     print "Starting cluster..."
-    num_nodes = 1
+    num_nodes = 2
     files = [driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i)
         for i in xrange(num_nodes)]
     processes = [driver.Process(cluster, files[i], log_path = "serve-output-%d" % i)

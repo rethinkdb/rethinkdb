@@ -16,14 +16,13 @@
 // TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
 // relevant.
 
-
-
-
-
 template <class Value>
 void find_keyvalue_location_for_write(transaction_t *txn, got_superblock_t *got_superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority) {
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
     keyvalue_location_out->sb.swap(got_superblock->sb);
+
+    ensure_stat_block(txn, keyvalue_location_out->sb.get(), incr_priority(ZERO_EVICTION_PRIORITY));
+    keyvalue_location_out->stat_block = keyvalue_location_out->sb->get_stat_block_id();
 
     buf_lock_t last_buf;
     buf_lock_t buf;
@@ -130,6 +129,10 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
 
     key_modification_proof_t km_proof = km_callback->value_modification(txn, kv_loc, key);
 
+    /* how much this keyvalue change affects the total population of the btree
+     * (should be -1, 0 or 1) */
+    int population_change;
+
     if (kv_loc->value) {
         // We have a value to insert.
 
@@ -142,6 +145,12 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
         rassert(!leaf::is_full(&sizer, reinterpret_cast<const leaf_node_t *>(kv_loc->buf.get_data_read()),
                 key, kv_loc->value.get()));
 
+        if (kv_loc->there_originally_was_value) {
+            population_change = 0;
+        } else {
+            population_change = 1;
+        }
+
         leaf_patched_insert(&sizer, &kv_loc->buf, key, kv_loc->value.get(), tstamp, km_proof);
     } else {
         // Delete the value if it's there.
@@ -149,16 +158,24 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
             if (!expired) {
                 rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
                 leaf_patched_remove(&kv_loc->buf, key, tstamp, km_proof);
+                population_change = -1;
             } else {
                 // Expirations do an erase, not a delete.
                 leaf_patched_erase_presence(&kv_loc->buf, key, km_proof);
+                population_change = 0;
             }
+        } else {
+            population_change = 0;
         }
     }
 
     // Check to see if the leaf is underfull (following a change in
     // size or a deletion, and merge/level if it is.
     check_and_handle_underfull(&sizer, txn, kv_loc->buf, kv_loc->last_buf, kv_loc->sb.get(), key);
+
+    //Modify the stats block
+    buf_lock_t stat_block(txn, kv_loc->stat_block, rwi_write);
+    reinterpret_cast<btree_statblock_t *>(stat_block.get_data_major_write())->population += population_change;
 }
 
 template <class Value>

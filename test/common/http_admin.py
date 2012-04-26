@@ -382,9 +382,10 @@ class ClusterAccess(object):
         primary = None if primary is None else self.find_datacenter(primary)
         namespace.primary_uuid = primary.uuid
         if isinstance(namespace, MemcachedNamespace):
-            self.do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
-        elif isinstance(namespace, DummyNamespace):
-            self.do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
+            name = "memcached_namespaces"
+        else:
+            name = "dummy_namespaces"
+        self.do_query("POST", "/ajax/%s/%s/primary_uuid" % (name, namespace.uuid), primary.uuid)
         self.wait_for_propagation()
         self.update_cluster_data()
 
@@ -395,12 +396,12 @@ class ClusterAccess(object):
             aff_dict[self.find_datacenter(datacenter).uuid] = count
         namespace.replica_affinities = aff_dict
         if isinstance(namespace, MemcachedNamespace):
-            self.do_query("POST", "/ajax/memcached_namespaces/" + namespace.uuid, namespace.to_json())
-        elif isinstance(namespace, DummyNamespace):
-            self.do_query("POST", "/ajax/dummy_namespaces/" + namespace.uuid, namespace.to_json())
+            name = "memcached_namespaces"
+        else:
+            name = "dummy_namespaces"
+        self.do_query("POST", "/ajax/%s/%s/replica_affinities" % (name, namespace.uuid), aff_dict)
         self.wait_for_propagation()
         self.update_cluster_data()
-        return namespace
 
     def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }):
         if port is None:

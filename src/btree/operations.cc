@@ -22,11 +22,24 @@ block_id_t real_superblock_t::get_root_block_id() const {
     rassert(sb_buf_.is_acquired());
     return reinterpret_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block;
 }
+
 void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
     rassert(sb_buf_.is_acquired());
     // We have to const_cast, because set_data unfortunately takes void* pointers, but get_data_read()
     // gives us const data. No way around this (except for making set_data take a const void * again, as it used to be).
     sb_buf_.set_data(const_cast<block_id_t *>(&(static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block)), &new_root_block, sizeof(new_root_block));
+}
+
+block_id_t real_superblock_t::get_stat_block_id() const {
+    rassert(sb_buf_.is_acquired());
+    return reinterpret_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->stat_block;
+}
+
+void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
+    rassert(sb_buf_.is_acquired());
+    // We have to const_cast, because set_data unfortunately takes void* pointers, but get_data_read()
+    // gives us const data. No way around this (except for making set_data take a const void * again, as it used to be).
+    sb_buf_.set_data(const_cast<block_id_t *>(&(static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->stat_block)), &new_stat_block, sizeof(new_stat_block));
 }
 
 void real_superblock_t::set_eviction_priority(eviction_priority_t eviction_priority) {
@@ -281,10 +294,27 @@ void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock) {
     blob.clear(txn);
 }
 
-inline void insert_root(block_id_t root_id, superblock_t* sb) {
+void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
-    sb->release();
+    sb->release(); //XXX it's a little bit weird that we release this from here.
 }
+
+void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority) {
+    rassert(ZERO_EVICTION_PRIORITY < stat_block_eviction_priority);
+
+    block_id_t node_id = sb->get_stat_block_id();
+
+    if (node_id == NULL_BLOCK_ID) {
+        //Create a block
+        buf_lock_t temp_lock(txn);
+        //Make the stat block be the default constructed statblock
+        *reinterpret_cast<btree_statblock_t *>(temp_lock.get_data_major_write()) = btree_statblock_t();
+        sb->set_stat_block_id(temp_lock.get_block_id());
+
+        temp_lock.set_eviction_priority(stat_block_eviction_priority);
+    }
+}
+
 
 // Get a root block given a superblock, or make a new root if there isn't one.
 void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority) {
@@ -307,7 +337,6 @@ void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, 
         buf_out->set_eviction_priority(root_eviction_priority);
     }
 }
-
 
 // Split the node if necessary. If the node is a leaf_node, provide the new
 // value that will be inserted; if it's an internal node, provide NULL (we
@@ -465,4 +494,3 @@ void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, ord
     rassert(is_read_mode(access));
     get_btree_superblock(slice, access, 0, repli_timestamp_t::distant_past, token, snapshotted, boost::shared_ptr<cache_account_t>(), got_superblock_out, txn_out);
 }
-

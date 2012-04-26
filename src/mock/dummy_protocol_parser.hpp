@@ -4,6 +4,7 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 
+#include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/immediate_consistency/query/namespace_interface.hpp"
 #include "http/http.hpp"
@@ -28,19 +29,19 @@ class dummy_protocol_parser_maker_t {
 public:
     dummy_protocol_parser_maker_t(mailbox_manager_t *,
                                   boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> > >,
-                                  clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<mock::dummy_protocol_t> > >);
+                                  namespace_repo_t<dummy_protocol_t> *repo);
 
 private:
     void on_change();
 
     mailbox_manager_t *mailbox_manager;
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> > > namespaces_semilattice_metadata;
-    clone_ptr_t<directory_rview_t<namespaces_directory_metadata_t<mock::dummy_protocol_t> > > namespaces_directory_metadata;
+    namespace_repo_t<dummy_protocol_t> *repo;
 
     struct parser_and_namespace_if_t {
         parser_and_namespace_if_t(namespace_id_t, dummy_protocol_parser_maker_t *parent, int port);
 
-        cluster_namespace_interface_t<dummy_protocol_t> namespace_if;
+        namespace_repo_t<dummy_protocol_t>::access_t namespace_access;
         query_http_app_t parser;
         http_server_t server;
     };

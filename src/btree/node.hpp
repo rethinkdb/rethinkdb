@@ -38,6 +38,7 @@ private:
 struct btree_superblock_t {
     block_magic_t magic;
     block_id_t root_block;
+    block_id_t stat_block;
 
     // We are unnecessarily generous with the amount of space
     // allocated here, but there's nothing else to push out of the
@@ -49,7 +50,14 @@ struct btree_superblock_t {
     static const block_magic_t expected_magic;
 };
 
+struct btree_statblock_t {
+    //The total number of keys in the btree
+    int population;
 
+    btree_statblock_t()
+        : population(0)
+    { }
+};
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
 struct internal_node_t {
