@@ -26,7 +26,7 @@
 ** Lowest Common Denominator Protocol Buffers Client
 **   - no ENUM (protobuffs_erlang does not support)
 **
-** Protocol 
+** Protocol
 **
 **   The protocol encodes requests and responses as protocol buffer messages.
 **   Each request message results in one or more response messages.
@@ -49,7 +49,7 @@
 **
 **   The client should be prepared to handle messages without any pbmsg
 **   (i.e. length==1) for requests like ping or a put without return_body set.
-**   
+**
 **   RpbGetClientIdReq -> RpbGetClientIdResp
 **   RpbSetClientIdReq -> RpbSetClientIdResp
 **   RpbGetServerInfoReq -> RpbGetServerInfoResp
@@ -72,11 +72,11 @@
 **  6 - RpbSetClientIdResp
 **  7 - RpbGetServerInfoReq
 **  8 - RpbGetServerInfoResp
-**  9 - RpbGetReq 
+**  9 - RpbGetReq
 ** 10 - RpbGetResp
-** 11 - RpbPutReq 
+** 11 - RpbPutReq
 ** 12 - RpbPutResp - 0 length
-** 13 - RpbDelReq 
+** 13 - RpbDelReq
 ** 14 - RpbDelResp
 ** 15 - RpbListBucketsReq
 ** 16 - RpbListBucketsResp
@@ -202,7 +202,7 @@ message RpbGetBucketReq {
 
 // Get bucket properties response
 message RpbGetBucketResp {
-    required RpbBucketProps props = 1;    
+    required RpbBucketProps props = 1;
 }
 
 // Set bucket properties request
@@ -235,8 +235,8 @@ message RpbMapRedResp {
 message RpbContent {
     required bytes value = 1;
     optional bytes content_type = 2;     // the media type/format
-    optional bytes charset = 3;          
-    optional bytes content_encoding = 4; 
+    optional bytes charset = 3;
+    optional bytes content_encoding = 4;
     optional bytes vtag = 5;
     repeated RpbLink links = 6;          // links to other resources
     optional uint32 last_mod = 7;

@@ -55,11 +55,11 @@ private:
         /* Confirm that `start_point` is a point in our past */
         typedef region_map_t<protocol_t, version_range_t> version_map_t;
 
-        for (typename version_map_t::const_iterator it =  start_point.begin(); 
-                                                    it != start_point.end(); 
+        for (typename version_map_t::const_iterator it =  start_point.begin();
+                                                    it != start_point.end();
                                                     it++) {
-            for (typename version_map_t::const_iterator jt =  end_point.begin(); 
-                                                        jt != end_point.end(); 
+            for (typename version_map_t::const_iterator jt =  end_point.begin();
+                                                        jt != end_point.end();
                                                         jt++) {
                 typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
                 if (!region_is_empty(ixn)) {

@@ -424,7 +424,7 @@ void linux_thread_t::initiate_shut_down() {
 #endif
     pthread_mutex_lock(&do_shutdown_mutex);
 #ifndef NDEBUG
-    coroutine_counts_at_shutdown = &coroutine_counts;   
+    coroutine_counts_at_shutdown = &coroutine_counts;
 #endif
     do_shutdown = true;
     shutdown_notify_event.write(1);

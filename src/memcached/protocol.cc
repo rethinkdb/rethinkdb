@@ -1,20 +1,24 @@
-#include "memcached/protocol.hpp"
+#include <errors.hpp>
+#include <boost/variant.hpp>
 
-#include "btree/slice.hpp"
 #include "btree/operations.hpp"
+#include "btree/slice.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/wait_any.hpp"
-#include "containers/iterators.hpp"
 #include "containers/archive/vector_stream.hpp"
+#include "containers/iterators.hpp"
 #include "memcached/btree/append_prepend.hpp"
 #include "memcached/btree/delete.hpp"
+#include "memcached/btree/distribution.hpp"
 #include "memcached/btree/erase_range.hpp"
 #include "memcached/btree/get.hpp"
 #include "memcached/btree/get_cas.hpp"
 #include "memcached/btree/incr_decr.hpp"
 #include "memcached/btree/rget.hpp"
 #include "memcached/btree/set.hpp"
+#include "memcached/protocol.hpp"
 #include "memcached/queries.hpp"
+#include "stl_utils.hpp"
 #include "serializer/config.hpp"
 
 
@@ -109,8 +113,10 @@ int deserialize(read_stream_t *s, rget_result_t *iter) {
 
 RDB_IMPL_SERIALIZABLE_1(get_query_t, key);
 RDB_IMPL_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
+RDB_IMPL_SERIALIZABLE_1(distribution_get_query_t, max_depth);
 RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
 RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
+RDB_IMPL_SERIALIZABLE_1(distribution_result_t, key_counts);
 RDB_IMPL_SERIALIZABLE_1(get_cas_mutation_t, key);
 RDB_IMPL_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
 RDB_IMPL_SERIALIZABLE_2(delete_mutation_t, key, dont_put_in_delete_queue);
@@ -118,8 +124,6 @@ RDB_IMPL_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount);
 RDB_IMPL_SERIALIZABLE_2(incr_decr_result_t, res, new_value);
 RDB_IMPL_SERIALIZABLE_3(append_prepend_mutation_t, kind, key, data);
 RDB_IMPL_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, cas_or_zero);
-
-
 
 
 /* `memcached_protocol_t::read_t::get_region()` */
@@ -144,6 +148,9 @@ struct read_get_region_visitor_t : public boost::static_visitor<key_range_t> {
             convert_bound_mode(rget.right_mode),
             rget.right_key
             );
+    }
+    key_range_t operator()(distribution_get_query_t) {
+        return key_range_t::universe();
     }
 };
 
@@ -184,6 +191,9 @@ struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t:
         }
         return memcached_protocol_t::read_t(sub_rget, effective_time);
     }
+    memcached_protocol_t::read_t operator()(distribution_get_query_t distribution_get) {
+        return memcached_protocol_t::read_t(distribution_get, effective_time);
+    }
 };
 
 memcached_protocol_t::read_t memcached_protocol_t::read_t::shard(const key_range_t &r) const THROWS_NOTHING {
@@ -209,6 +219,23 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
             merge_iterator->add_mergee(boost::get<rget_result_t>(bits[i].result));
         }
         return memcached_protocol_t::read_response_t(rget_result_t(merge_iterator));
+    }
+    memcached_protocol_t::read_response_t operator()(distribution_get_query_t) {
+        distribution_result_t res;
+        for (int i = 0; i < (int)bits.size(); i++) {
+            distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
+            rassert(result, "Bad boost::get\n");
+#ifndef NDEBUG
+            for (std::map<store_key_t, int>::iterator it  = result->key_counts.begin();
+                                                      it != result->key_counts.end();
+                                                      ++it) {
+                rassert(!std_contains(res.key_counts, it->first));
+            }
+#endif
+            res.key_counts.insert(result->key_counts.begin(), result->key_counts.end());
+
+        }
+        return memcached_protocol_t::read_response_t(res);
     }
 };
 
@@ -432,6 +459,11 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
         return memcached_protocol_t::read_response_t(
             memcached_rget_slice(btree, rget.left_mode, rget.left_key, rget.right_mode, rget.right_key, effective_time, txn, superblock));
     }
+    memcached_protocol_t::read_response_t operator()(const distribution_get_query_t& dget) {
+        return memcached_protocol_t::read_response_t(
+            memcached_distribution_get(btree, dget.max_depth, dget.left_bound, effective_time, txn, superblock));
+    }
+
 
     read_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t>& txn_, got_superblock_t& superblock_, exptime_t effective_time_) : btree(btree_), txn(txn_), superblock(superblock_), effective_time(effective_time_) { }
 
@@ -591,7 +623,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t& kv) const {
         const backfill_atom_t& bf_atom = kv.backfill_atom;
-        memcached_set(bf_atom.key, btree, 
+        memcached_set(bf_atom.key, btree,
             bf_atom.value, bf_atom.flags, bf_atom.exptime,
             add_policy_yes, replace_policy_yes, INVALID_CAS,
             // TODO: Should we pass bf_atom.recency in place of repli_timestamp_t::invalid here? Ask Sam.
@@ -633,7 +665,7 @@ void memcached_protocol_t::store_t::receive_backfill(
 
 void memcached_protocol_t::store_t::reset_data(
         memcached_protocol_t::region_t subregion,
-        const metainfo_t &new_metainfo, 
+        const metainfo_t &new_metainfo,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {

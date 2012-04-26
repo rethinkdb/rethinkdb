@@ -80,12 +80,18 @@ public:
              so we just pass 0.  You could let this be a
              helper-supplied value, if you cared. */
           transaction_ptr(txn),
-          helper(_helper) { }
+          stat_block(NULL_BLOCK_ID),
+          helper(_helper)
+    { }
 
     // The slice whose btree we're traversing
     btree_slice_t *const slice;
 
     transaction_t *transaction_ptr;
+
+    /* The block id where we can find the stat block, we need this at the end
+     * to update population counts. */
+    block_id_t stat_block;
 
     // The helper.
     btree_traversal_helper_t *helper;
@@ -182,6 +188,7 @@ public:
         finished_cond.wait();
     }
 
+
 private:
     DISABLE_COPYING(traversal_state_t);
 };
@@ -267,8 +274,21 @@ void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblo
     traversal_state_t state(txn, slice, helper);
 
     buf_lock_t * superblock_buf = static_cast<real_superblock_t*>(got_superblock.sb.get())->get(); // TODO: Ugh
+
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
-    
+
+    /* Make sure there's a stat block*/
+    ensure_stat_block(txn, got_superblock.sb.get(), incr_priority(ZERO_EVICTION_PRIORITY));
+
+    /* Record the stat block for updating populations later */
+    state.stat_block = superblock->stat_block;
+
+    {
+        /* Give the helper a look at the stat block */
+        buf_lock_t stat_block(txn, state.stat_block, rwi_read);
+        helper->read_stat_block(&stat_block);
+    }
+
     if (helper->progress) {
         helper->progress->inform(0, traversal_progress_t::LEARN, traversal_progress_t::INTERNAL);
         helper->progress->inform(0, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
@@ -327,6 +347,7 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
                 state->helper->progress->inform(level, traversal_progress_t::ACQUIRE, traversal_progress_t::LEAF);
             }
             process_a_leaf_node(state, buf, level, left_exclusive_or_null, right_inclusive_or_null);
+
             delete this;
         } else {
             rassert(node::is_internal(node));
@@ -374,7 +395,21 @@ void process_a_internal_node(traversal_state_t *state, buf_lock_t *buf, int leve
 void process_a_leaf_node(traversal_state_t *state, buf_lock_t *buf, int level,
                          const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
     // This can be run in the scheduler thread.
-    state->helper->process_a_leaf(state->transaction_ptr, buf, left_exclusive_or_null, right_inclusive_or_null);
+    //
+    //
+    int population_change = 0;
+
+    state->helper->process_a_leaf(state->transaction_ptr, buf, left_exclusive_or_null, right_inclusive_or_null, &population_change);
+
+    if (state->helper->btree_node_mode() != rwi_write) {
+        rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
+    } else if (population_change != 0) {
+        buf_lock_t stat_block(state->transaction_ptr, state->stat_block, rwi_write);
+        reinterpret_cast<btree_statblock_t *>(stat_block.get_data_major_write())->population += population_change;
+    } else {
+        //don't aquire the block to not change the value
+    }
+
     delete buf;
     if (state->helper->progress) {
         state->helper->progress->inform(level, traversal_progress_t::RELEASE, traversal_progress_t::LEAF);
@@ -467,7 +502,7 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
         *right_incl_bound_out = right_inclusive_or_null_;
     }
 
-    if (*left_excl_bound_out && *right_incl_bound_out && 
+    if (*left_excl_bound_out && *right_incl_bound_out &&
         sized_strcmp((*left_excl_bound_out)->contents, (*left_excl_bound_out)->size, (*right_incl_bound_out)->contents, (*right_incl_bound_out)->size) == 0) {
         BREAKPOINT;
     }

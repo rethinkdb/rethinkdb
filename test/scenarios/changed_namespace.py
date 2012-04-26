@@ -4,7 +4,7 @@ import workload_runner
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import http_admin, driver
 from vcoptparse import *
-                
+
 op = OptParser()
 op["num-nodes"] = IntFlag("--num-nodes", 3)
 op["mode"] = IntFlag("--mode", "debug")
@@ -12,7 +12,7 @@ op["workload1"] = PositionalArg()
 op["workload2"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
-        
+
 with driver.Metacluster(driver.find_rethinkdb_executable(opts["mode"])) as metacluster:
     cluster = driver.Cluster(metacluster)
     print "Starting cluster..."

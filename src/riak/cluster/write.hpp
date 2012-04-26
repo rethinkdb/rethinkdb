@@ -72,6 +72,6 @@ public:
     std::vector<write_t> shard(std::vector<region_t>);
     write_response_t unshard(std::vector<write_response_t>, temporary_cache_t *);
 };
-} //namespace riak 
+} //namespace riak
 
 #endif

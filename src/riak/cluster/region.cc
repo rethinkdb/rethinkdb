@@ -8,7 +8,7 @@
 
 namespace riak {
 
-region_t::region_t(key_spec_t _key_spec) 
+region_t::region_t(key_spec_t _key_spec)
     : key_spec(_key_spec)
 { }
 

@@ -10,8 +10,8 @@ pinnings_shards_mismatch_issue_t<protocol_t>::pinnings_shards_mismatch_issue_t(
         const namespace_id_t &_offending_namespace,
         const std::set<typename protocol_t::region_t> &_shards,
         const region_map_t<protocol_t, boost::uuids::uuid> &_primary_pinnings,
-        const region_map_t<protocol_t, std::set<boost::uuids::uuid> > &_secondary_pinnings) 
-    : offending_namespace(_offending_namespace), shards(_shards), 
+        const region_map_t<protocol_t, std::set<boost::uuids::uuid> > &_secondary_pinnings)
+    : offending_namespace(_offending_namespace), shards(_shards),
       primary_pinnings(_primary_pinnings), secondary_pinnings(_secondary_pinnings)
 { }
 
@@ -25,7 +25,7 @@ std::string pinnings_shards_mismatch_issue_t<protocol_t>::get_description() cons
     return strprintf("The namespace: %s has a pinning map which is segmented differently than its sharding scheme.\n"
                       "Sharding scheme:\n %s\n"
                       "Primary pinnings:\n %s\n"
-                      "Secondary pinnings:\n %s\n", 
+                      "Secondary pinnings:\n %s\n",
                       uuid_to_str(offending_namespace).c_str(),
                       cJSON_print_std_string(scoped_cJSON_t(render_as_json(&_shards, 0)).get()).c_str(),
                       cJSON_print_std_string(scoped_cJSON_t(render_as_json(&_primary_pinnings, 0)).get()).c_str(),

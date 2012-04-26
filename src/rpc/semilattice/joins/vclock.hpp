@@ -61,7 +61,7 @@ public:
 
     void throw_if_conflict() const;
 
-    vclock_t<T> make_new_version(T t, const boost::uuids::uuid &us); 
+    vclock_t<T> make_new_version(T t, const boost::uuids::uuid &us);
 
     vclock_t<T> make_resolving_version(T t, const boost::uuids::uuid &us);
 

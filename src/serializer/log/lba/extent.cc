@@ -14,7 +14,7 @@ struct extent_block_t :
     size_t offset;
     std::vector< extent_t::sync_callback_t* > sync_cbs;
     bool waiting_for_prev, have_finished_sync, is_last_block;
-    
+
     extent_block_t(extent_t *_parent, size_t _offset)
         : parent(_parent), offset(_offset) {
         data = reinterpret_cast<char *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
@@ -22,32 +22,32 @@ struct extent_block_t :
     ~extent_block_t() {
         free(data);
     }
-    
+
     void write(file_account_t *io_account) {
         waiting_for_prev = true;
         have_finished_sync = false;
-        
+
         parent->sync(this);
-        
+
         if (parent->last_block) parent->last_block->is_last_block = false;
         parent->last_block = this;
         is_last_block = true;
-        
+
         parent->file->write_async(parent->offset + offset, DEVICE_BLOCK_SIZE, data, io_account, this);
     }
-    
+
     void on_extent_sync() {
         rassert(waiting_for_prev);
         waiting_for_prev = false;
         if (have_finished_sync) done();
     }
-    
+
     void on_io_complete() {
         rassert(!have_finished_sync);
         have_finished_sync = true;
         if (!waiting_for_prev) done();
     }
-    
+
     void done() {
         for (unsigned i = 0; i < sync_cbs.size(); i++) {
             sync_cbs[i]->on_extent_sync();
@@ -99,7 +99,7 @@ void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb
 
 void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
     rassert(amount_filled + length <= em->extent_size);
-    
+
     while (length > 0) {
         size_t room_in_block;
         if (amount_filled % DEVICE_BLOCK_SIZE == 0) {
@@ -110,17 +110,17 @@ void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
             rassert(current_block);
             room_in_block = DEVICE_BLOCK_SIZE - amount_filled % DEVICE_BLOCK_SIZE;
         }
-        
+
         size_t chunk = std::min(length, room_in_block);
         memcpy(current_block->data + (amount_filled % DEVICE_BLOCK_SIZE), buffer, chunk);
         amount_filled += chunk;
-        
+
         if (amount_filled % DEVICE_BLOCK_SIZE == 0) {
             extent_block_t *b = current_block;
             current_block = NULL;
             b->write(io_account);
         }
-        
+
         length -= chunk;
         buffer = reinterpret_cast<char *>(buffer) + chunk;
     }

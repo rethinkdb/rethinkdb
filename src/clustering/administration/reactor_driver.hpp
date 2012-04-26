@@ -40,7 +40,7 @@ private:
     friend class watchable_and_reactor_t;
 
     typedef boost::ptr_map<namespace_id_t, watchable_and_reactor_t<protocol_t> > reactor_map_t;
- 
+
     void delete_reactor_data(auto_drainer_t::lock_t lock, typename reactor_map_t::auto_type *thing_to_delete);
     void on_change();
 

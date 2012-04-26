@@ -82,33 +82,33 @@ private:
     message_code code(::RpbErrorResp const &) { return RpbErrorResp; }
     message_code code(dummy_msgs::RpbPingReq const &) {return  RpbPingReq; }
     message_code code(dummy_msgs::RpbPingResp const &) { return RpbPingResp; }
-    message_code code(dummy_msgs::RpbGetClientIdReq const &)  { return RpbGetClientIdReq; } 
-    message_code code(::RpbGetClientIdResp const &) { return RpbGetClientIdResp; } 
-    message_code code(::RpbSetClientIdReq const &) { return RpbSetClientIdReq; } 
-    message_code code(dummy_msgs::RpbSetClientIdResp const &) { return RpbSetClientIdResp; } 
-    message_code code(dummy_msgs::RpbGetServerInfoReq const &) { return RpbGetServerInfoReq; } 
-    message_code code(::RpbGetServerInfoResp const &) { return RpbGetServerInfoResp; } 
-    message_code code(::RpbGetReq const &) { return RpbGetReq; } 
-    message_code code(::RpbGetResp const &) { return RpbGetResp; } 
-    message_code code(::RpbPutReq const &) { return RpbPutReq; } 
-    message_code code(::RpbPutResp const &) { return RpbPutResp; } 
-    message_code code(::RpbDelReq const &) { return RpbDelReq; } 
-    message_code code(dummy_msgs::RpbDelResp const &) { return RpbDelResp; } 
-    message_code code(dummy_msgs::RpbListBucketsReq const &) { return RpbListBucketsReq; } 
-    message_code code(::RpbListBucketsResp const &) { return RpbListBucketsResp; } 
-    message_code code(::RpbListKeysReq const &) { return RpbListKeysReq; } 
-    message_code code(::RpbListKeysResp const &) { return RpbListKeysResp; } 
-    message_code code(::RpbGetBucketReq const &) { return RpbGetBucketReq; } 
-    message_code code(::RpbGetBucketResp const &) { return RpbGetBucketResp; } 
-    message_code code(::RpbSetBucketReq const &) { return RpbSetBucketReq; } 
-    message_code code(dummy_msgs::RpbSetBucketResp const &) { return RpbSetBucketResp; } 
-    message_code code(::RpbMapRedReq const &) { return RpbMapRedReq; } 
-    message_code code(::RpbMapRedResp const &) { return RpbMapRedResp; } 
+    message_code code(dummy_msgs::RpbGetClientIdReq const &)  { return RpbGetClientIdReq; }
+    message_code code(::RpbGetClientIdResp const &) { return RpbGetClientIdResp; }
+    message_code code(::RpbSetClientIdReq const &) { return RpbSetClientIdReq; }
+    message_code code(dummy_msgs::RpbSetClientIdResp const &) { return RpbSetClientIdResp; }
+    message_code code(dummy_msgs::RpbGetServerInfoReq const &) { return RpbGetServerInfoReq; }
+    message_code code(::RpbGetServerInfoResp const &) { return RpbGetServerInfoResp; }
+    message_code code(::RpbGetReq const &) { return RpbGetReq; }
+    message_code code(::RpbGetResp const &) { return RpbGetResp; }
+    message_code code(::RpbPutReq const &) { return RpbPutReq; }
+    message_code code(::RpbPutResp const &) { return RpbPutResp; }
+    message_code code(::RpbDelReq const &) { return RpbDelReq; }
+    message_code code(dummy_msgs::RpbDelResp const &) { return RpbDelResp; }
+    message_code code(dummy_msgs::RpbListBucketsReq const &) { return RpbListBucketsReq; }
+    message_code code(::RpbListBucketsResp const &) { return RpbListBucketsResp; }
+    message_code code(::RpbListKeysReq const &) { return RpbListKeysReq; }
+    message_code code(::RpbListKeysResp const &) { return RpbListKeysResp; }
+    message_code code(::RpbGetBucketReq const &) { return RpbGetBucketReq; }
+    message_code code(::RpbGetBucketResp const &) { return RpbGetBucketResp; }
+    message_code code(::RpbSetBucketReq const &) { return RpbSetBucketReq; }
+    message_code code(dummy_msgs::RpbSetBucketResp const &) { return RpbSetBucketResp; }
+    message_code code(::RpbMapRedReq const &) { return RpbMapRedReq; }
+    message_code code(::RpbMapRedResp const &) { return RpbMapRedResp; }
 
     template <class T>
     void write_to_conn(T const &t, boost::scoped_ptr<tcp_conn_t> &conn) {
         message_size_t size = t.ByteSize();
-        message_code_t mc = code(t); 
+        message_code_t mc = code(t);
 
         conn->write(&size, sizeof(message_size_t));
         conn->write(&mc, sizeof(message_code_t));

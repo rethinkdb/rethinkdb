@@ -84,6 +84,25 @@ struct key_with_data_buffer_t {
 
 typedef boost::shared_ptr<one_way_iterator_t<key_with_data_buffer_t> > rget_result_t;
 
+/* `distribution_get` */
+struct distribution_get_query_t { 
+    distribution_get_query_t() : max_depth(0) { }
+    explicit distribution_get_query_t(int _max_depth) : max_depth(_max_depth) { } 
+
+    int max_depth;
+    store_key_t left_bound;
+};
+
+struct distribution_result_t  {
+    //Supposing the map has keys:
+    //k1, k2 ... kn
+    //with k1 < k2 < .. < kn
+    //Then k1 == left_key
+    //and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
+    //key_counts[kn] = the number of keys in [kn, right_key)
+    std::map<store_key_t, int> key_counts;
+};
+
 /* `gets` */
 
 struct get_cas_mutation_t {

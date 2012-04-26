@@ -21,9 +21,9 @@ void usage(UNUSED const char *name) {
                 "\n"
                 "Options:\n"
                 "      --in              Specify the input file flags -f (or --file) following\n"
-                "                        this command. This is the older version of the database\n" 
+                "                        this command. This is the older version of the database\n"
                 "                        to be migrated.\n"
-                "      --out             Specify the output file flags -f (or --file) following\n" 
+                "      --out             Specify the output file flags -f (or --file) following\n"
                 "                        this command. This is where the database will be written\n"
                 "                        to in a new format.\n"
                 "      -f, --file        Path to a file or block device that constitutes\n"
@@ -32,7 +32,7 @@ void usage(UNUSED const char *name) {
                 "                        It defaults to: %s.\n", TEMP_MIGRATION_FILE);
     help->pagef("      --force           Allow migrate to overwrite an existing database file.\n");
     help->pagef("\n"
-                "Migration extracts data from the old database into a portable format of raw\n" 
+                "Migration extracts data from the old database into a portable format of raw\n"
                 "memcached commands and then reinserts the data into a new file version being\n"
                 "migrated to.\n"
                 "Migration can be done from a set of files to themselves. Effectively migrating\n"
@@ -110,7 +110,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
                 config->input_filenames.push_back(optarg);
             else if (reading_list == out)
                 config->output_filenames.push_back(optarg);
-            else 
+            else
                 fail_due_to_user_error("-f argument must follow either a --in or a --out flag\n");
             break;
         case 'i':
@@ -171,9 +171,9 @@ int run_migrate(int argc, char **argv) {
     //TODO check that the script exists and give a worthwhile error message
     command_line.push_back(MIGRATION_SCRIPT_LOCATION);
 #else
-    crash("Trying to run migration without a specified script location.\n" 
+    crash("Trying to run migration without a specified script location.\n"
           "This probably means that you're trying to run migration\n"
-          "from a binary that wasn't installed from a package. That\n" 
+          "from a binary that wasn't installed from a package. That\n"
           "or the Makefile has been messed up in some way.\n");
 #endif
     command_line.push_back("-r");

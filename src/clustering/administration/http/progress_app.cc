@@ -104,7 +104,7 @@ public:
     { }
     /* For most of the activities there is no backfill happening so we just do
      * a default visitation here that does nothing. */
-    template <class T> 
+    template <class T>
     void operator()(const T &) const { }
 private:
     std::map<peer_id_t, cluster_directory_metadata_t> directory;
@@ -134,7 +134,7 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
             continue;
         }
 
-        std::pair<memcached_protocol_t::region_t, reactor_business_card_t<memcached_protocol_t>::activity_t> region_activity_pair = 
+        std::pair<memcached_protocol_t::region_t, reactor_business_card_t<memcached_protocol_t>::activity_t> region_activity_pair =
             namespaces_directory_metadata.reactor_bcards[n_id].internal.activities[b_it->activity_id];
 
         boost::optional<backfiller_business_card_t<memcached_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<memcached_protocol_t>(), region_activity_pair.second);
@@ -169,7 +169,7 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
         return;
     }
 
-    std::pair<memcached_protocol_t::region_t, reactor_business_card_t<memcached_protocol_t>::activity_t> region_activity_pair = 
+    std::pair<memcached_protocol_t::region_t, reactor_business_card_t<memcached_protocol_t>::activity_t> region_activity_pair =
         namespaces_directory_metadata.reactor_bcards[n_id].internal.activities[b_loc.activity_id];
 
     boost::optional<backfiller_business_card_t<memcached_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<memcached_protocol_t>(), region_activity_pair.second);
@@ -205,10 +205,10 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
 
     /* We need to assemble this big monolithic map with the following type (in shorthand):
      *
-     * machine_id_t -> 
-     *   namespace_id_t -> 
-     *     reactor_activity_id_t -> 
-     *       memcached_protocol_t::region_t -> 
+     * machine_id_t ->
+     *   namespace_id_t ->
+     *     reactor_activity_id_t ->
+     *       memcached_protocol_t::region_t ->
      *         request_record_t
      *
      * A request record holds on to the mailbox needed to receive a value

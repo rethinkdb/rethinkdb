@@ -126,7 +126,7 @@ ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else
 ifeq ($(COMPILER), CLANG)
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration
 else
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 endif
@@ -350,7 +350,7 @@ unit:
 # Packaging
 ifeq ($(PACKAGING),1)
 PACKAGE_FOR_SUSE_10?=0
-RPM_SPEC_INPUT?=../packaging/rpm.spec 
+RPM_SPEC_INPUT?=../packaging/rpm.spec
 DEBIAN_PKG_DIR:=debian
 SUPPRESSED_LINTIAN_TAGS:=new-package-should-close-itp-bug
 RPM_BUILD_ROOT=$(RPM_PACKAGE_DIR)/BUILD
@@ -586,7 +586,7 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) sed 's:="gen/:=":g' $(CLUSTER_HTML) > $@
 
-$(WEB_ASSETS_BUILD_DIR)/js: 
+$(WEB_ASSETS_BUILD_DIR)/js:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    CP $(JS_EXTERNAL_DIR) -> $(WEB_ASSETS_BUILD_DIR)"

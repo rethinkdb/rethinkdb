@@ -145,7 +145,7 @@ bool star_match(const char *chan, const char *patt) {
 
     // If * is the last charater in the pattern than we automatically match the rest of the pattern
     if(*patt == '\0') return true;
-    
+
     // This potentially requires backtracking. Luckily our recursive solution will backtrack for us!
     for(int i = 0; *(chan + i) != '\0'; ++i) {
         // Assume that the * consumes exactly i characters in the channel

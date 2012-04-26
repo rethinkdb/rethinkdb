@@ -21,7 +21,7 @@
  * Generally this is okay because we first apply changes and then join them in
  * to semilattice metadata. Generally once a particular object has thrown one
  * of these exceptions it should probably not be used anymore. */
-struct json_adapter_exc_t : public std::exception { 
+struct json_adapter_exc_t : public std::exception {
     virtual const char *what() const throw () {
         return "Generic json adapter exception\n";
     }
@@ -188,7 +188,7 @@ private:
     json_adapter_map_t get_subfields_impl(const ctx_t &);
     boost::shared_ptr<subfield_change_functor_t<ctx_t> > get_change_callback();
 
-    json_adapter_map_t sub_adapters; 
+    json_adapter_map_t sub_adapters;
 };
 
 /* This adapter is a little bit different from the other ones, it's meant to
@@ -264,7 +264,7 @@ private:
 /* Erase is a fairly rare function for an adapter to allow so we implement a
  * generic version of it. */
 template <class T, class ctx_t>
-void erase_json(T *, const ctx_t &) { 
+void erase_json(T *, const ctx_t &) {
 #ifndef NDEBUG
     throw permission_denied_exc_t("Can't erase this object.. by default"
             "json_adapters disallow deletion. if you'd like to be able to please"
@@ -277,7 +277,7 @@ void erase_json(T *, const ctx_t &) {
 /* Erase is a fairly rare function for an adapter to allow so we implement a
  * generic version of it. */
 template <class T, class ctx_t>
-void reset_json(T *, const ctx_t &) { 
+void reset_json(T *, const ctx_t &) {
 #ifndef NDEBUG
     throw permission_denied_exc_t("Can't reset this object.. by default"
             "json_adapters disallow deletion. if you'd like to be able to please"
@@ -475,6 +475,18 @@ cJSON *render_as_directory(T *, const ctx_t &);
 
 template <class T, class ctx_t>
 void apply_as_directory(cJSON *change, T *, const ctx_t &);
+
+template<class T, class cxt_t>
+std::string render_as_json_string(const T &t, const cxt_t cxt) {
+    T copy = t;
+    scoped_cJSON_t json(render_as_json(&copy, cxt));
+    return cJSON_print_unformatted_std_string(json.get());
+}
+
+template<class T>
+std::string render_as_json_string(const T &t) {
+    return render_as_json_string(t, 0);
+}
 
 #include "http/json/json_adapter.tcc"
 

@@ -2,7 +2,7 @@
 #include "riak/cluster/std_utils.hpp"
 
 namespace riak {
-point_read_t::point_read_t(std::string _key) 
+point_read_t::point_read_t(std::string _key)
     : key(_key)
 { }
 
@@ -61,14 +61,14 @@ region_t read_t::get_region() const {
 }
 
 struct read_shard_functor : public boost::static_visitor<std::vector<read_t> > {
-    std::vector<read_t>  operator()(point_read_t read, std::vector<region_t> regions) const { 
-        return read.shard(regions); 
+    std::vector<read_t>  operator()(point_read_t read, std::vector<region_t> regions) const {
+        return read.shard(regions);
     }
     std::vector<read_t>  operator()(bucket_read_t read, std::vector<region_t> regions) const {
-        return read.shard(regions); 
+        return read.shard(regions);
     }
     std::vector<read_t>  operator()(mapred_read_t read, std::vector<region_t> regions) const {
-        return read.shard(regions); 
+        return read.shard(regions);
     }
 };
 
@@ -108,4 +108,4 @@ mapred_read_response_t mapred_read_response_t::unshard(std::vector<mapred_read_r
     crash("Not implemented");
 }
 
-} //namespace riak 
+} //namespace riak

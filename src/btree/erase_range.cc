@@ -16,11 +16,14 @@ public:
                          const btree_key_t *left_exclusive_or_null,
                          const btree_key_t *right_inclusive_or_null)
         : sizer_(sizer), tester_(tester), deleter_(deleter),
-          left_exclusive_or_null_(left_exclusive_or_null), right_inclusive_or_null_(right_inclusive_or_null) { }
+          left_exclusive_or_null_(left_exclusive_or_null), right_inclusive_or_null_(right_inclusive_or_null)
+    { }
 
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                         UNUSED const btree_key_t *l_excl,
-                        UNUSED const btree_key_t *r_incl) {
+                        UNUSED const btree_key_t *r_incl, 
+                        int *population_change_out) {
+        rassert(*population_change_out == 0);
         leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_major_write());
 
         std::vector<btree_key_buffer_t> keys_to_delete;
@@ -45,6 +48,7 @@ public:
         for (int i = 0, e = keys_to_delete.size(); i < e; ++i) {
             if (leaf::lookup(sizer_, node, keys_to_delete[i].key(), value.get())) {
                 deleter_->delete_value(txn, value.get());
+                (*population_change_out)--;
             }
             leaf::erase_presence(sizer_, node, keys_to_delete[i].key(), key_modification_proof_t::fake_proof());
         }

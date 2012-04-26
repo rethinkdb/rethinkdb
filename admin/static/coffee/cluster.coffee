@@ -579,7 +579,7 @@ clear_modals = ->
     modal_registry = []
 register_modal = (modal) -> modal_registry.push(modal)
 
-updateInterval = 5000
+updateInterval = 500
 
 declare_client_connected = ->
     window.connection_status.set({client_disconnected: false})
@@ -709,7 +709,7 @@ $ ->
         $.getJSON('/ajax/progress', set_progress)
         $.getJSON('/ajax/directory', set_directory)
         $.getJSON('/ajax/last_seen', set_last_seen)
-        $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
+        #$.getJSON('/ajax/log/_?max_length=10', set_log_entries)
 
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync

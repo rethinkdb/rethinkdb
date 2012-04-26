@@ -55,10 +55,10 @@ void apply_json_to(cJSON *change, memcached_protocol_t::region_t *target, const 
 
     try {
         if (second->type == cJSON_NULL) {
-            *target = memcached_protocol_t::region_t(memcached_protocol_t::region_t::closed, store_key_t(percent_unescaped_string(get_string(first))), 
+            *target = memcached_protocol_t::region_t(memcached_protocol_t::region_t::closed, store_key_t(percent_unescaped_string(get_string(first))),
                                                      memcached_protocol_t::region_t::none,   store_key_t(""));
         } else {
-            *target = memcached_protocol_t::region_t(memcached_protocol_t::region_t::closed, store_key_t(percent_unescaped_string(get_string(first))), 
+            *target = memcached_protocol_t::region_t(memcached_protocol_t::region_t::closed, store_key_t(percent_unescaped_string(get_string(first))),
                                                      memcached_protocol_t::region_t::open,   store_key_t(percent_unescaped_string(get_string(second))));
         }
     } catch (std::runtime_error) {

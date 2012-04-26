@@ -56,7 +56,7 @@ RDB_MAKE_EQUALITY_COMPARABLE_9(namespace_semilattice_metadata_t<protocol_t>, blu
 template <class ctx_t, class protocol_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespace_semilattice_metadata_t<protocol_t> *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
-    res["blueprint"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<persistable_blueprint_t<protocol_t>, ctx_t>(&target->blueprint));
+    res["blueprint"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<vclock_t<persistable_blueprint_t<protocol_t> >, ctx_t>(&target->blueprint));
     res["primary_uuid"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<datacenter_id_t, ctx_t>(&target->primary_datacenter));
     res["replica_affinities"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<std::map<datacenter_id_t, int>, ctx_t>(&target->replica_affinities));
     res["ack_expectations"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<std::map<datacenter_id_t, int>, ctx_t>(&target->ack_expectations));
@@ -85,7 +85,7 @@ void on_subfield_change(namespace_semilattice_metadata_t<protocol_t> *, const ct
 template <class protocol_t>
 class namespaces_semilattice_metadata_t {
 public:
-    typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > namespace_map_t; 
+    typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > namespace_map_t;
     namespace_map_t namespaces;
 
     branch_history_t<protocol_t> branch_history;
@@ -123,7 +123,7 @@ void apply_json_to(cJSON *change, namespaces_semilattice_metadata_t<protocol_t> 
 }
 
 template <class ctx_t, class protocol_t>
-void on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) { 
+void on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
     on_subfield_change(&target->namespaces, ctx);
 }
 
@@ -141,7 +141,7 @@ public:
 
 struct namespace_metadata_ctx_t {
     boost::uuids::uuid us;
-    explicit namespace_metadata_ctx_t(boost::uuids::uuid _us) 
+    explicit namespace_metadata_ctx_t(boost::uuids::uuid _us)
         : us(_us)
     { }
 };

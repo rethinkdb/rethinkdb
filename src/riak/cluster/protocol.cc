@@ -87,4 +87,4 @@ void store_t::backfillee_cancel() {
     crash("Not implemented");
 }
 
-} //namespace riak 
+} //namespace riak

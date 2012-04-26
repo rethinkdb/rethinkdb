@@ -29,7 +29,7 @@ typedef std::map<peer_id_t, cluster_directory_metadata_t> peers_to_metadata_t;
 
 stat_http_app_t::stat_http_app_t(mailbox_manager_t *_mbox_manager,
                                  clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >& _directory)
-    : mbox_manager(_mbox_manager), directory(_directory) 
+    : mbox_manager(_mbox_manager), directory(_directory)
 { }
 
 http_res_t stat_http_app_t::handle(const http_req_t &req) {

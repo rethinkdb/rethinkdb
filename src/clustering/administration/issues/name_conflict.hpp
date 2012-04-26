@@ -14,11 +14,11 @@ public:
             const std::string &_contested_name,
             const std::set<boost::uuids::uuid> &_contestants);
 
-    std::string get_description() const; 
+    std::string get_description() const;
 
     cJSON *get_json_description();
 
-    name_conflict_issue_t *clone() const; 
+    name_conflict_issue_t *clone() const;
 
     std::string type;
     std::string contested_name;

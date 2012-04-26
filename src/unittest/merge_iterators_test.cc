@@ -176,7 +176,7 @@ TEST(MergeIteratorsTest, three_way_merge) {
     merged_expected.merge(a_db_flat);
     merged_expected.merge(b_db_flat);
     merged_expected.merge(c_db_flat);
-    
+
     ASSERT_TRUE(std::equal(merged_expected.begin(), merged_expected.end(), merged.begin()));
     ASSERT_EQ(a->blocked_without_prefetch, 0);
     ASSERT_EQ(b->blocked_without_prefetch, 0);

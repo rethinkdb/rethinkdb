@@ -7,7 +7,7 @@
 #include "stl_utils.hpp"
 #include "utils.hpp"
 
-scoped_cJSON_t::scoped_cJSON_t(cJSON *_val) 
+scoped_cJSON_t::scoped_cJSON_t(cJSON *_val)
     : val(_val)
 { }
 

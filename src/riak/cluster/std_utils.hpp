@@ -20,7 +20,7 @@ std::vector<E> singleton_vector(E e) {
     return res;
 }
 
-} //namespace utils 
-} //namespace riak 
+} //namespace utils
+} //namespace riak
 
 #endif

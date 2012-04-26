@@ -101,16 +101,16 @@ void riak_interface_t::set_bucket(std::string, bucket_t) {
     //store->store_metadata = bucket;
 }
 
-std::pair<bucket_iterator_t, bucket_iterator_t> riak_interface_t::buckets() { 
+std::pair<bucket_iterator_t, bucket_iterator_t> riak_interface_t::buckets() {
     crash("Not Implemented");
     //return std::make_pair(bucket_iterator_t(store_manager->begin()), bucket_iterator_t(store_manager->end()));
 };
 
-object_iterator_t riak_interface_t::objects() { 
+object_iterator_t riak_interface_t::objects() {
     not_implemented();
     unreachable();
     /*
-    UNUSED range_txn_t<riak_value_t> range_txn = 
+    UNUSED range_txn_t<riak_value_t> range_txn =
         get_range<riak_value_t>(slice, order_token_t::ignore, rget_bound_none, store_key_t(), rget_bound_none, store_key_t());
 
     return object_iterator_t(bucket, range_txn.it, range_txn.txn);
@@ -185,7 +185,7 @@ riak_interface_t::set_result_t riak_interface_t::store_object(UNUSED object_t ob
     src.add_buffer(obj.content_length, obj.content.get()); //this is invalidated by destroying the object
 
     //we really just need this to hold all the links and make sure they get destructed at the end
-    std::list<link_hdr_t> link_hdrs; 
+    std::list<link_hdr_t> link_hdrs;
     for (std::vector<link_t>::const_iterator it = obj.links.begin(); it != obj.links.end(); it++) {
         link_hdr_t link_hdr;
         link_hdr.bucket_len = it->bucket.size();
@@ -300,13 +300,13 @@ riak_interface_t::str_or_exc_t riak_interface_t::actual_mapreduce(JS::ctx_t *ctx
             if (std_contains(query_it->get_obj(), std::string("link"))) {
                 crash("Not implemented");
             } else if (std_contains(query_it->get_obj(), std::string("map"))) {
-                if (query_it->get_obj()["map"].get_obj()["language"].get_str() != "javascript") { 
+                if (query_it->get_obj()["map"].get_obj()["language"].get_str() != "javascript") {
                     crash("Not implemented");
                 }
 
                 js_values = js_map(*ctx, query_it->get_obj()["map"].get_obj()["source"].get_str(), js_values);
             } else if (std_contains(query_it->get_obj(), std::string("reduce"))) {
-                if (query_it->get_obj()["reduce"].get_obj()["language"].get_str() != "javascript") { 
+                if (query_it->get_obj()["reduce"].get_obj()["language"].get_str() != "javascript") {
                     crash("Not implemented");
                 }
 

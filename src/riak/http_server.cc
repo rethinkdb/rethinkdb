@@ -36,8 +36,8 @@ http_res_t riak_http_app_t::handle(const http_req_t &req) {
     http_req_t::resource_t::iterator it = req.resource.begin(), end = req.resource.end();
 
     if (it == end) {
-    } else if (*it == "riak") { 
-        it++; 
+    } else if (*it == "riak") {
+        it++;
         if (it == end) {
             //only thing it can be at this point is a bucket list
             if (req.method == GET && req.find_query_param("buckets") == std::string("true")) {
@@ -156,11 +156,11 @@ http_res_t riak_http_app_t::get_bucket(UNUSED const http_req_t &req) {
         cJSON_AddStringToObject(props, "name", bucket->name.c_str());
 
         cJSON_AddNumberToObject(props, "n_val", bucket->n_val);
-        
+
         cJSON_AddItemToObject(props, "allow_mult", cJSON_CreateBool(bucket->allow_mult));
 
         cJSON_AddItemToObject(props, "last_write_wins", cJSON_CreateBool(bucket->last_write_wins));
-        
+
         cJSON *precommit = cJSON_CreateArray();
         cJSON_AddItemReferenceToObject(props, "precommit", precommit);
 
@@ -213,7 +213,7 @@ http_res_t riak_http_app_t::set_bucket(UNUSED const http_req_t &req) {
     //try {
     //    json::mObject &obj = value.get_obj();
 
-    //    // get the bucket for writing 
+    //    // get the bucket for writing
     //    bucket_t bucket;
 
     //    for (json::mObject::iterator it = obj["props"].get_obj().begin(); it != obj["props"].get_obj().end(); it++) {
@@ -320,7 +320,7 @@ http_res_t riak_http_app_t::fetch_object(const http_req_t &req) {
     res.set_body(obj.content_type, std::string(obj.content.get()));
     res.add_header_line("ETag", strprintf("%d",  obj.ETag));
     res.add_last_modified(obj.last_written);
-    res.add_header_line("Accept-Ranges", "bytes"); 
+    res.add_header_line("Accept-Ranges", "bytes");
     //indicates that we accept range requests on the resources (we accept them on all riak resources)
 
     if (obj.range.first != -1 && obj.range.second != -1) {

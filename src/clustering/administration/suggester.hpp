@@ -6,7 +6,9 @@
 #include "clustering/suggester/suggester.hpp"
 
 struct missing_machine_exc_t : public std::exception {
-    const char *what() const throw ();
+    const char *what() const throw () {
+        return "Cannot compute blueprint because a machine is offline.";
+    }
 };
 
 template<class protocol_t>

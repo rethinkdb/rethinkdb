@@ -4,7 +4,7 @@
 
 namespace riak {
 
-link_filter_t::link_filter_t(std::string _bucket, std::string _tag, bool keep) 
+link_filter_t::link_filter_t(std::string _bucket, std::string _tag, bool keep)
     : keep(keep)
 {
     if (_bucket == "_") {

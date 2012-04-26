@@ -15,7 +15,7 @@ TEST(PerfmonTest, StddevComputation) {
         EXPECT_TRUE(isnan(stats.standard_variance()));
         EXPECT_TRUE(isnan(stats.standard_deviation()));
     }
-    
+
     {   t stats;
         stats.add(5.0);
 

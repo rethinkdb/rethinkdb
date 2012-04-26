@@ -39,7 +39,7 @@ public:
         if (interrupt->is_pulsed()) throw no_more_data_exc_t();
         int limit = MEGABYTE;
         dest->clear();
-        char c; 
+        char c;
         const char *head = "\r\n";
         while ((*head) && ((c = getc(file)) != EOF) && (limit--) > 0) {
             dest->push_back(c);
@@ -49,7 +49,7 @@ public:
                 head = "\r\n";
             }
         }
-        //we didn't every find a crlf unleash the exception 
+        //we didn't every find a crlf unleash the exception
         if (*head) throw no_more_data_exc_t();
     }
 };

@@ -40,11 +40,12 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     /* The local port to use when connecting to the cluster port of peers */
     cluster_client_port(client_port),
 
-    listener(new tcp_listener_t(port, boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
-                                                  this,
-                                                  _1,
-                                                  auto_drainer_t::lock_t(&drainer)
-                                                  ))) {
+    listener(port == 0 ? NULL : new tcp_listener_t(port, boost::bind(
+                                                   &connectivity_cluster_t::run_t::on_new_connection,
+                                                   this,
+                                                   _1,
+                                                   auto_drainer_t::lock_t(&drainer))))
+{
     parent->assert_thread();
 }
 

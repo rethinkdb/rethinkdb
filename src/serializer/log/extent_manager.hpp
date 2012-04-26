@@ -26,13 +26,13 @@ public:
 
 private:
     typedef std::deque<off64_t> free_queue_t;
-    
+
     log_serializer_on_disk_static_config_t *static_config;
     log_serializer_dynamic_config_t *dynamic_config;
 
 public:
     const uint64_t extent_size;   /* Same as static_config->extent_size */
-    
+
 public:
     class transaction_t
     {
@@ -84,7 +84,7 @@ public:
 
 private:
     direct_file_t *dbfile;
-    
+
     /* During serializer startup, each component informs the extent manager
     which extents in the file it was using at shutdown. This is the
     "state_reserving_extents" phase. Then extent_manager_t::start() is called

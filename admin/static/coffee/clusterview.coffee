@@ -253,7 +253,7 @@ module 'ClusterView', ->
         tagName: 'tr'
         className: 'element'
 
-        events:
+        events: ->
             'click': 'clicked'
             'click a': 'link_clicked'
 
@@ -290,6 +290,10 @@ module 'ClusterView', ->
     class @NamespaceListElement extends @CheckboxListElement
         template: Handlebars.compile $('#namespace_list_element-template').html()
 
+        events: ->
+            _.extend super,
+                'click a.rename-namespace': 'rename_namespace'
+
         initialize: ->
             log_initial '(initializing) list view: namespace'
             super @template
@@ -298,11 +302,20 @@ module 'ClusterView', ->
             json = _.extend super(), DataUtils.get_namespace_status(@model.get('id'))
             return json
 
+        rename_namespace: (event) ->
+            event.preventDefault()
+            rename_modal = new ClusterView.RenameItemModal @model.get('id'), 'namespace'
+            rename_modal.render()
+
     # Machine list element
     class @MachineListElement extends @CheckboxListElement
         template: Handlebars.compile $('#machine_list_element-template').html()
         summary_template: Handlebars.compile $('#machine_list_element-summary-template').html()
         className: 'machine element'
+
+        events: ->
+            _.extend super,
+                'click a.rename-machine': 'rename_machine'
 
         initialize: ->
             log_initial '(initializing) list view: machine'
@@ -346,6 +359,11 @@ module 'ClusterView', ->
                 json.unassigned_machine = true
 
             @.$('.machine.summary').html @summary_template json
+
+        rename_machine: (event) ->
+            event.preventDefault()
+            rename_modal = new ClusterView.RenameItemModal @model.get('id'), 'machine'
+            rename_modal.render()
 
     class @CollapsibleListElement extends Backbone.View
         events: ->
@@ -394,6 +412,7 @@ module 'ClusterView', ->
         events: ->
             _.extend super,
                'click a.remove-datacenter': 'remove_datacenter'
+               'click a.rename-datacenter': 'rename_datacenter'
 
         initialize: ->
             log_initial '(initializing) list view: datacenter'
@@ -465,6 +484,11 @@ module 'ClusterView', ->
                 @remove_datacenter_dialog.render @model
 
             event.preventDefault()
+
+        rename_datacenter: (event) ->
+            event.preventDefault()
+            rename_modal = new ClusterView.RenameItemModal @model.get('id'), 'datacenter'
+            rename_modal.render()
 
         register_machine_callbacks: (callbacks) =>
             @callbacks = callbacks
@@ -647,6 +671,9 @@ module 'ClusterView', ->
                         success: (response) =>
                             clear_modals()
 
+                            # update proper model with the name
+                            @get_item_object().set('name', formdata.new_name)
+
                             # notify the user that we succeeded
                             $('#user-alert-space').append @alert_tmpl
                                 type: @item_type
@@ -695,7 +722,11 @@ module 'ClusterView', ->
 
                             # Parse the response JSON, apply appropriate diffs, and show an alert
                             apply_to_collection(datacenters, response)
-                            #$('#user-alert-space').html @alert_tmpl response_json.op_result TODO make this work again after we have alerts in our responses
+                            for response_uuid, blah of response
+                                break
+                            $('#user-alert-space').html @alert_tmpl
+                                name: formdata.name
+                                uuid: response_uuid
 
             super validator_options
 
@@ -722,6 +753,8 @@ module 'ClusterView', ->
                             if (response)
                                 throw "Received a non null response to a delete... this is incorrect"
                             datacenters.remove(datacenter.id)
+                            $('#user-alert-space').html @alert_tmpl
+                                name: datacenter.get('name')
 
             super validator_options, { 'datacenter': datacenter.toJSON() }
 

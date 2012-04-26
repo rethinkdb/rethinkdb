@@ -60,15 +60,15 @@ struct bucket_t {
     int r, w, dw, rw; //Quorum values
     std::string backend;
 
-    bucket_t() 
+    bucket_t()
         : n_val(1), allow_mult(false),
-          last_write_wins(false), r(1), w(1), dw(1), 
+          last_write_wins(false), r(1), w(1), dw(1),
           rw(1), backend("rethinkdb")
     { }
 
-    explicit bucket_t(std::string name) 
+    explicit bucket_t(std::string name)
         : name(name), n_val(1), allow_mult(false),
-          last_write_wins(false), r(1), w(1), dw(1), 
+          last_write_wins(false), r(1), w(1), dw(1),
           rw(1), backend("rethinkdb")
     { }
 };

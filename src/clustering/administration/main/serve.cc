@@ -14,6 +14,7 @@
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "memcached/clustering.hpp"
@@ -27,8 +28,8 @@
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "rpc/semilattice/view/member.hpp"
 #include "rpc/semilattice/view/function.hpp"
+#include "rpc/semilattice/view/member.hpp"
 
 bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets) {
 
@@ -38,7 +39,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     printf("Establishing cluster node on port %d...\n", port);
 
-    connectivity_cluster_t connectivity_cluster; 
+    connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer(&connectivity_cluster);
 
     message_multiplexer_t::client_t mailbox_manager_client(&message_multiplexer, 'M');
@@ -128,7 +129,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
     metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
 
     reactor_driver_t<mock::dummy_protocol_t> dummy_reactor_driver(&mailbox_manager,
-                                                                  translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces))), 
+                                                                  translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces))),
                                                                   metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
                                                                   metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
                                                                   translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id))),
@@ -139,7 +140,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         );
 
     reactor_driver_t<memcached_protocol_t> memcached_reactor_driver(&mailbox_manager,
-                                                                    translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces))), 
+                                                                    translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces))),
                                                                     metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
                                                                     metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
                                                                     translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::machine_id))),
@@ -149,21 +150,28 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces))
         );
 
-    mock::dummy_protocol_parser_maker_t dummy_parser_maker(&mailbox_manager, 
-                                                           metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-                                                           directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces)));
+    namespace_repo_t<mock::dummy_protocol_t> dummy_namespace_repo(&mailbox_manager,
+                                                                  translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::dummy_namespaces))));
 
-    memcached_parser_maker_t mc_parser_maker(&mailbox_manager, 
+    namespace_repo_t<memcached_protocol_t> memcached_namespace_repo(&mailbox_manager,
+                                                                    translate_into_watchable(directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces))));
+
+    mock::dummy_protocol_parser_maker_t dummy_parser_maker(&mailbox_manager,
+                                                           metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
+                                                           &dummy_namespace_repo);
+
+    memcached_parser_maker_t mc_parser_maker(&mailbox_manager,
                                              metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
 #ifndef NDEBUG
                                              /* TODO: This will crash if we are declared dead. */
                                              metadata_function<deletable_t<machine_semilattice_metadata_t>, machine_semilattice_metadata_t>(boost::bind(&deletable_getter<machine_semilattice_metadata_t>, _1),
-                                                               metadata_member(machine_id, 
-                                                                               metadata_field(&machines_semilattice_metadata_t::machines, 
-                                                                                              metadata_field(&cluster_semilattice_metadata_t::machines, 
+                                                               metadata_member(machine_id,
+                                                                               metadata_field(&machines_semilattice_metadata_t::machines,
+                                                                                              metadata_field(&cluster_semilattice_metadata_t::machines,
                                                                                                              semilattice_manager_cluster.get_root_view())))),
 #endif
-                                             directory_manager.get_root_view()->subview(field_lens(&cluster_directory_metadata_t::memcached_namespaces)));
+                                             &memcached_namespace_repo);
+
 
     administrative_http_server_manager_t administrative_http_interface(
         port + 1000,

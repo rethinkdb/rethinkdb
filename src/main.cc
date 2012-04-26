@@ -41,6 +41,9 @@ int main(int argc, char *argv[]) {
         } else if (subcommand == "serve") {
             return main_rethinkdb_serve(argc, argv);
 
+        } else if (subcommand == "admin") {
+            return main_rethinkdb_admin(argc, argv);
+
         } else if (subcommand == "--version") {
             if (argc != 2) {
                 puts("WARNING: Ignoring extra parameters after '--version'.");
@@ -55,6 +58,7 @@ int main(int argc, char *argv[]) {
                 puts("");
                 puts("    'rethinkdb create': prepare files on disk");
                 puts("    'rethinkdb serve': serve queries");
+                puts("    'rethinkdb admin': access and modify cluster metadata");
                 puts("");
                 puts("For more information, run 'rethinkdb help [subcommand]'.");
                 return 0;
@@ -67,8 +71,11 @@ int main(int argc, char *argv[]) {
                 } else if (subcommand2 == "serve") {
                     help_rethinkdb_serve();
                     return 0;
+                } else if (subcommand2 == "admin") {
+                    help_rethinkdb_admin();
+                    return 0;
                 } else {
-                    printf("ERROR: No help for '%s'.", subcommand2.c_str());
+                    printf("ERROR: No help for '%s'\n", subcommand2.c_str());
                     return 1;
                 }
 

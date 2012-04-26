@@ -23,13 +23,13 @@ class replier_t {
 
 public:
     explicit replier_t(listener_t<protocol_t> *l) :
-        listener(l), 
+        listener(l),
 
-        synchronize_mailbox(listener->mailbox_manager, 
-                            boost::bind(&replier_t<protocol_t>::on_synchronize, 
-                                        this, 
-                                        _1, 
-                                        _2, 
+        synchronize_mailbox(listener->mailbox_manager,
+                            boost::bind(&replier_t<protocol_t>::on_synchronize,
+                                        this,
+                                        _1,
+                                        _2,
                                         auto_drainer_t::lock_t(&drainer))),
 
         /* Start serving backfills */

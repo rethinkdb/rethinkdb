@@ -22,8 +22,13 @@ public:
     // If we hold a lock on a super block, swap it into swapee
     // (might swap in an empty buf_lock_t if we don't have an actual superblock)
     virtual void swap_buf(buf_lock_t &swapee) = 0;
+
     virtual block_id_t get_root_block_id() const = 0;
     virtual void set_root_block_id(const block_id_t new_root_block) = 0;
+
+    virtual block_id_t get_stat_block_id() const = 0;
+    virtual void set_stat_block_id(block_id_t new_stat_block) = 0;
+
     virtual void set_eviction_priority(eviction_priority_t eviction_priority) = 0;
     virtual eviction_priority_t get_eviction_priority() = 0;
 
@@ -40,9 +45,15 @@ public:
     void release();
     buf_lock_t *get() { return &sb_buf_; }
     void swap_buf(buf_lock_t &swapee);
+
     block_id_t get_root_block_id() const;
     void set_root_block_id(const block_id_t new_root_block);
+
+    block_id_t get_stat_block_id() const;
+    void set_stat_block_id(block_id_t new_stat_block);
+
     block_id_t get_delete_queue_block() const;
+
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
 
@@ -77,8 +88,17 @@ public:
     void set_root_block_id(const block_id_t new_root_block) {
         root_block_id_ = new_root_block;
     }
+
     block_id_t get_delete_queue_block() const {
         return NULL_BLOCK_ID;
+    }
+
+    block_id_t get_stat_block_id() const {
+        crash("Not implemented\n");
+    }
+
+    void set_stat_block_id(block_id_t) {
+        crash("Not implemented\n");
     }
 
     void set_eviction_priority(UNUSED eviction_priority_t eviction_priority) {
@@ -112,7 +132,7 @@ private:
 template <class Value>
 class keyvalue_location_t {
 public:
-    keyvalue_location_t() : there_originally_was_value(false) { }
+    keyvalue_location_t() : there_originally_was_value(false), stat_block(NULL_BLOCK_ID) { }
 
     boost::scoped_ptr<superblock_t> sb;
 
@@ -134,6 +154,9 @@ public:
         std::swap(there_originally_was_value, other.there_originally_was_value);
         value.swap(other.value);
     }
+
+    //Stat block when modifications are made using this class the statblock is update
+    block_id_t stat_block;
 
 private:
     DISABLE_COPYING(keyvalue_location_t);
@@ -226,6 +249,14 @@ private:
     char *value_ptr;
 };
 
+void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority);
+
+void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
+                            const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority);
+
+void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
+                                buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
+                                const btree_key_t *key);
 
 bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
 void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > &kv_pairs_out);
@@ -235,19 +266,30 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
 void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
 
+/* Set sb to have root id as its root block and release sb */
 void insert_root(block_id_t root_id, superblock_t* sb);
-void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority);
-void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
-                            const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority);
-void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
-                                buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
-                                const btree_key_t *key);
-void get_btree_superblock(transaction_t *txn, access_t access, got_superblock_t *got_superblock_out);
-void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, bool snapshotted, const boost::shared_ptr<cache_account_t> &cache_account, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
-void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
-void get_btree_superblock_for_backfilling(btree_slice_t *slice, order_token_t token, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
-void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token, bool snapshotted, got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
 
+/* Create a stat block for the superblock if it doesn't already have one. */
+void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority);
+
+void get_btree_superblock(transaction_t *txn, access_t access, got_superblock_t *got_superblock_out);
+
+void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, 
+                          repli_timestamp_t tstamp, order_token_t token, bool snapshotted, 
+                          const boost::shared_ptr<cache_account_t> &cache_account, 
+                          got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
+
+void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, 
+                                 repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out, 
+                                 boost::scoped_ptr<transaction_t>& txn_out);
+
+void get_btree_superblock_for_backfilling(btree_slice_t *slice, order_token_t token, 
+                                                 got_superblock_t *got_superblock_out, 
+                                                 boost::scoped_ptr<transaction_t>& txn_out);
+
+void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token, 
+                                             bool snapshotted, got_superblock_t *got_superblock_out, 
+                                             boost::scoped_ptr<transaction_t>& txn_out);
 
 #include "btree/operations.tcc"
 

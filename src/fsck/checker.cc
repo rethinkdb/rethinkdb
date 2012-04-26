@@ -272,8 +272,8 @@ public:
             return false;
         }
 
-        
-        
+
+
         block_sequence_id_t bseq_id = realbuf->block_sequence_id;
         if (bseq_id <= NULL_BLOCK_SEQUENCE_ID) {
             err = block_sequence_id_invalid;
@@ -282,7 +282,7 @@ public:
             err = block_sequence_id_too_large;
             return false;
         }
-        
+
 
         if (patches_list) {
             // Replay patches
@@ -460,7 +460,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
                     high_version = version;
                     high_version_index = i;
                 }
-                
+
                 if (high_block_sequence_id < seqid) {
                     high_block_sequence_id = seqid;
                     high_block_sequence_index = i;

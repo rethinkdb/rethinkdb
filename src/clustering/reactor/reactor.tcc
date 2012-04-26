@@ -123,7 +123,7 @@ void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
             //This state will be cleaned up in run_role
             cond_t *blueprint_changed_cond = new cond_t;
             current_roles.insert(std::make_pair(it->first, std::make_pair(it->second, blueprint_changed_cond)));
-            coro_t::spawn_sometime(boost::bind(&reactor_t<protocol_t>::run_role, this, it->first, 
+            coro_t::spawn_sometime(boost::bind(&reactor_t<protocol_t>::run_role, this, it->first,
                                                it->second, blueprint_changed_cond, blueprint, auto_drainer_t::lock_t(&drainer)));
         }
     }

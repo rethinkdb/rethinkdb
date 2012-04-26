@@ -24,22 +24,22 @@ struct linux_message_hub_t
 {
 public:
     typedef intrusive_list_t<linux_thread_message_t> msg_list_t;
-    
+
 public:
     linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool, int current_thread);
-    
+
     /* For each thread, transfer messages from our msg_local_list for that thread to our
     msg_global_list for that thread */
     void push_messages();
-    
+
     /* Schedules the given message to be sent to the given thread by pushing it onto our
     msg_local_list for that thread */
     void store_message(unsigned int nthread, linux_thread_message_t *msg);
-    
+
     // Called by the thread pool when it needs to deliver a message from the main thread
     // (which does not have an event queue)
     void insert_external_message(linux_thread_message_t *msg);
-    
+
     ~linux_message_hub_t();
 
 private:
@@ -51,11 +51,11 @@ private:
 
     linux_event_queue_t *queue;
     linux_thread_pool_t *thread_pool;
-    
+
     /* Queue for messages going from this->current_thread to other threads */
     struct thread_queue_t {
         //TODO this doesn't need to be a class anymore
-        
+
         /* Messages are cached here before being pushed to the global list so that we don't
         have to acquire the spinlock as often */
         msg_list_t msg_local_list;
@@ -77,14 +77,14 @@ private:
     public:
         /* hub->notify[j].notifier_thread == j */
         int notifier_thread;
-        
+
         system_event_t event;                    // the eventfd to notify
-        
+
         /* hub->notify[i].parent = hub */
         linux_message_hub_t *parent;
     };
     notify_t *notify;
-    
+
     /* The thread that we queue messages originating from. (Recall that there is one
     message_hub_t per thread.) */
     unsigned int current_thread;

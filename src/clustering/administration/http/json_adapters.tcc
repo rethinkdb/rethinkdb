@@ -13,7 +13,7 @@ template <class T, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(vclock_t<T> *target, const ctx_t &ctx) {
     try {
         return get_json_subfields(&target->get_mutable(), ctx);
-    } catch (in_conflict_exc_t e) { 
+    } catch (in_conflict_exc_t e) {
         return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
     }
 }
@@ -97,7 +97,7 @@ boost::shared_ptr<subfield_change_functor_t<ctx_t> > json_vclock_resolver_t<T, c
 }
 
 template <class T, class ctx_t>
-json_vclock_resolver_t<T, ctx_t>::json_vclock_resolver_t(vclock_t<T> *_target) 
+json_vclock_resolver_t<T, ctx_t>::json_vclock_resolver_t(vclock_t<T> *_target)
     : target(_target)
 { }
 
@@ -242,7 +242,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(region_
                                                               it != target->end();
                                                               ++it) {
         scoped_cJSON_t key(render_as_json(&it->first, ctx));
-        rassert(key.get()->type = cJSON_String);
+        rassert(key.get()->type == cJSON_String);
         res[get_string(key.get())] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_region_adapter_t<protocol_t, value_t, ctx_t>(target, it->first));
     }
 
@@ -256,7 +256,7 @@ cJSON *render_as_json(region_map_t<protocol_t, value_t> *target, const ctx_t &ct
                                                               it != target->end();
                                                               ++it) {
         scoped_cJSON_t key(render_as_json(&it->first, ctx));
-        rassert(key.get()->type = cJSON_String);
+        rassert(key.get()->type == cJSON_String);
         cJSON_AddItemToObject(res, get_string(key.get()).c_str(), render_as_json(&it->second, ctx));
     }
 

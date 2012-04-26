@@ -54,13 +54,13 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
         guarantee(res == 0, "Could not lock io mutex");
 
         std::copy(events, events + nevents, std::back_inserter(parent->io_events));
-        
+
         res = pthread_mutex_unlock(&parent->io_mutex);
         guarantee(res == 0, "Could not unlock io mutex");
 
         // Notify the parent's thread it's got events
         parent->aio_notify_event.write(nevents);
-        
+
     } while (true);
 
     return NULL;
@@ -87,7 +87,7 @@ linux_aio_getevents_noeventfd_t::linux_aio_getevents_noeventfd_t(linux_diskmgr_a
 linux_aio_getevents_noeventfd_t::~linux_aio_getevents_noeventfd_t()
 {
     int res;
-    
+
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
     sa.sa_sigaction = &shutdown_signal_handler;

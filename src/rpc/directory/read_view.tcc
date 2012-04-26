@@ -166,13 +166,13 @@ void directory_single_rview_t<metadata_t>::run_until_satisfied(const boost::func
 
             cond_t something_has_changed;
 
-            directory_read_service_t::peer_value_subscription_t peer_subscription(boost::bind(&pulse_if_not_pulsed, &something_has_changed), 
-                                                                                  get_directory_service(), 
-                                                                                  get_peer(), 
+            directory_read_service_t::peer_value_subscription_t peer_subscription(boost::bind(&pulse_if_not_pulsed, &something_has_changed),
+                                                                                  get_directory_service(),
+                                                                                  get_peer(),
                                                                                   peer_value_freeze.get());
 
             connectivity_service_t::peers_list_subscription_t peers_list_subscription(NULL,
-                                                                                      boost::bind(&pulse_if_not_pulsed_and_clear_subscription, &something_has_changed, _1, get_peer(), &peer_subscription), 
+                                                                                      boost::bind(&pulse_if_not_pulsed_and_clear_subscription, &something_has_changed, _1, get_peer(), &peer_subscription),
                                                                                       get_directory_service()->get_connectivity_service(), peers_list_freeze.get());
 
             peer_value_freeze.reset();
@@ -218,8 +218,8 @@ void directory_rview_t<metadata_t>::run_until_satisfied(const boost::function<bo
         cond_t something_has_changed;
         boost::ptr_map<peer_id_t, directory_read_service_t::peer_value_subscription_t> subscription_map;
 
-        connectivity_service_t::peers_list_subscription_t peers_list_subscription(boost::bind(&pulse_if_not_pulsed, &something_has_changed), 
-                                                                                  boost::bind(&pulse_if_not_pulsed_and_remove_subscription, &something_has_changed, _1, &subscription_map), 
+        connectivity_service_t::peers_list_subscription_t peers_list_subscription(boost::bind(&pulse_if_not_pulsed, &something_has_changed),
+                                                                                  boost::bind(&pulse_if_not_pulsed_and_remove_subscription, &something_has_changed, _1, &subscription_map),
                                                                                   get_directory_service()->get_connectivity_service(), peers_list_freeze.get());
 
         for (std::set<peer_id_t>::iterator it =  peers.begin();
