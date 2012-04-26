@@ -403,7 +403,21 @@ class Machines extends Backbone.Collection
 
 class LogEntries extends Backbone.Collection
     model: LogEntry
-    comparator: (log_entry) ->
+    comparator: (a, b) ->
+        if a.get('timestamp') < b.get('timestamp')
+            return 1
+        else if a.get('timestamp') > b.get('timestamp')
+            return -1
+        else if a.get('machine_uuid') <  b.get('machine_uuid')
+            return 1
+        else if a.get('machine_uuid') > b.get('machine_uuid')
+            return -1
+        else if a.get('message') < b.get('message')
+            return 1
+        else if a.get('message') > b.get('message')
+            return -1
+        else
+            return 0
         # sort strings in reverse order (return a negated string)
         #String.fromCharCode.apply String,
         #    _.map(log_entry.get('datetime').split(''), (c) -> 0xffff - c.charCodeAt())
@@ -669,6 +683,7 @@ set_log_entries = (log_data_from_server) ->
         _m_collection = new LogEntries
         for json in log_entries
             entry = new LogEntry json
+            entry.set('machine_uuid',machine_uuid)
             _m_collection.add entry
             all_log_entries.push entry
 
@@ -709,7 +724,7 @@ $ ->
         $.getJSON('/ajax/progress', set_progress)
         $.getJSON('/ajax/directory', set_directory)
         $.getJSON('/ajax/last_seen', set_last_seen)
-        #$.getJSON('/ajax/log/_?max_length=10', set_log_entries)
+        $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
 
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync
