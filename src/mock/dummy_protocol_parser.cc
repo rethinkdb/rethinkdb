@@ -2,7 +2,6 @@
 
 #include "errors.hpp"
 #include "containers/archive/order_token.hpp"
-#include "lens.hpp"
 
 namespace mock {
 
