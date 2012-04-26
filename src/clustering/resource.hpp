@@ -103,38 +103,4 @@ private:
     std::string failed_reason;
 };
 
-/* The most common type of resource is one that registers/deregisters itself by
-making an entry in a `std::map`. Here's a type that automatically handles that
-for you using RAII. */
-
-template<class key_t, class business_card_t>
-class resource_map_advertisement_t {
-public:
-    resource_map_advertisement_t(
-            clone_ptr_t<directory_wview_t<std::map<key_t, business_card_t> > > mv,
-            key_t k,
-            business_card_t business_card) :
-        map_view(mv),
-        key(k)
-    {
-        directory_write_service_t::our_value_lock_acq_t lock(map_view->get_directory_service());
-        std::map<key_t, business_card_t> map = map_view->get_our_value(&lock);
-        rassert(map.count(key) == 0);
-        map[key] = business_card;
-        map_view->set_our_value(map, &lock);
-    }
-
-    ~resource_map_advertisement_t() {
-        directory_write_service_t::our_value_lock_acq_t lock(map_view->get_directory_service());
-        std::map<key_t, business_card_t> map = map_view->get_our_value(&lock);
-        rassert(map.count(key) == 1);
-        map.erase(key);
-        map_view->set_our_value(map, &lock);
-    }
-
-private:
-    clone_ptr_t<directory_wview_t<std::map<key_t, business_card_t> > > map_view;
-    key_t key;
-};
-
 #endif /* CLUSTERING_RESOURCE_HPP_ */
