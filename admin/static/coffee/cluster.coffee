@@ -29,7 +29,11 @@ module 'DataUtils', ->
     @get_machine_reachability = (machine_uuid) ->
         reachable = directory.get(machine_uuid)?
         if not reachable
-            last_seen = machines.get(machine_uuid).get('last_seen')
+            _m = machines.get(machine_uuid)
+            if _m?
+                last_seen = _m.get('last_seen')
+            else
+                last_seen = null
             if last_seen
                 last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
         json =
@@ -39,7 +43,13 @@ module 'DataUtils', ->
 
     @get_datacenter_reachability = (datacenter_uuid) ->
         total = (_.filter machines.models, (m) => m.get('datacenter_uuid') is datacenter_uuid).length
-        reachable = (_.filter directory.models, (m) => machines.get(m.get('id')).get('datacenter_uuid') is datacenter_uuid).length
+        reachable = (_.filter directory.models, (m) =>
+            _m = machines.get(m.get('id'))
+            if _m?
+                _m.get('datacenter_uuid') is datacenter_uuid
+            else
+                return false
+            ).length
 
         if reachable == 0 and total > 0
             for machine in machines.models
@@ -593,7 +603,7 @@ clear_modals = ->
     modal_registry = []
 register_modal = (modal) -> modal_registry.push(modal)
 
-updateInterval = 500
+updateInterval = 5000
 
 declare_client_connected = ->
     window.connection_status.set({client_disconnected: false})
@@ -687,8 +697,9 @@ set_log_entries = (log_data_from_server) ->
             _m_collection.add entry
             all_log_entries.push entry
 
-        machines.get(machine_uuid).set('log_entries', _m_collection)
         _m = machines.get(machine_uuid)
+        if _m?
+            machines.get(machine_uuid).set('log_entries', _m_collection)
 
     recent_log_entries.reset(all_log_entries)
 
