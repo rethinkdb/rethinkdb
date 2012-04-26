@@ -130,7 +130,7 @@ module 'MachineView', ->
         render: =>
             log_render '(rendering) machine view: container'
 
-            if @wait_for_model() is false
+            if not @wait_for_model()
                 return @render_empty()
 
             datacenter_uuid = @model.get('datacenter_uuid')

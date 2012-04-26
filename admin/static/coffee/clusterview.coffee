@@ -18,6 +18,7 @@ module 'ClusterView', ->
             @element_views = []
             @container = container
             @element_view_class = element_view_class
+            @size = 0
 
             # This filter defines which models from the collection should be represented by this list.
             # If one was not provided, define a filter that allows all models
@@ -31,7 +32,6 @@ module 'ClusterView', ->
 
             # Collection is reset, create all new views
             @collection.on 'reset', (collection) =>
-                #console.log 'reset detected, adding models to collection ' + class_name collection
                 @reset_element_views()
                 @render()
 
@@ -45,13 +45,7 @@ module 'ClusterView', ->
             @collection.on 'remove', (model, collection) =>
                 # Make sure the model is relevant for this list before we remove it
                 if @filter model
-                    # Find any views that are based on the model being removed
-                    matching_views = (view for view in @element_views when view.model is model)
-
-                    # For all matching views, remove the view from the DOM and from the known element views list
-                    for view in matching_views
-                        view.remove()
-                        @element_views = _.without @element_views, view
+                    @remove_elements model
 
         render: =>
             #log_render '(rendering) list view: ' + class_name @collection
@@ -74,15 +68,33 @@ module 'ClusterView', ->
             for model in @collection.models
                 @add_element model if @filter model
 
-        add_element: (element) =>
+        add_element: (model) =>
             # adds a list element view to element_views
             element_view = new @element_view_class
-                model: element
+                model: model
                 collection: @collection
 
             @element_views.push element_view
+            @size = @element_views.length
+            @.trigger 'size_changed'
 
             return element_view
+
+        remove_elements: (model) =>
+            # Find any views that are based on the model being removed
+            matching_views = (view for view in @element_views when view.model is model)
+
+            # For all matching views, remove the view from the DOM and from the known element views list
+            for view in matching_views
+                view.remove()
+                @element_views = _.without @element_views, view
+
+            @size = @element_views.length
+            @.trigger 'size_changed'
+
+            # Return the number of views removed
+            return matching_views.length
+
 
         # Return an array of elements that are selected in the current list
         get_selected_elements: =>
@@ -158,12 +170,9 @@ module 'ClusterView', ->
             @unassigned_machines = new ClusterView.UnassignedMachinesListElement()
             @unassigned_machines.register_machine_callbacks @get_callbacks()
 
-            # Rebuild all the machine lists whenever a machine is moved from one datacenter to another
-            machines.on 'all', @rebuild_machine_lists
 
         render: =>
             super
-
             @.$('.unassigned-machines').html @unassigned_machines.render().el
             @update_toolbar_buttons()
 
@@ -194,9 +203,6 @@ module 'ClusterView', ->
 
             return selected_machines
 
-        rebuild_machine_lists: =>
-            datacenter_list.rebuild_machine_list() for datacenter_list in @element_views.concat(@unassigned_machines)
-
         # Get a list containing all the callbacks
         get_callbacks: => [@update_toolbar_buttons]
 
@@ -218,6 +224,16 @@ module 'ClusterView', ->
         initialize: (datacenter_uuid) ->
             @callbacks = []
             super machines, ClusterView.MachineListElement, 'tbody.list', (model) -> model.get('datacenter_uuid') is datacenter_uuid
+
+            machines.on 'change:datacenter_uuid', (machine, new_datacenter_uuid) =>
+                num_elements_removed = @remove_elements machine
+                @render() if num_elements_removed > 0
+
+                if new_datacenter_uuid is datacenter_uuid
+                    @add_element machine
+                    @render()
+
+            return @
 
         add_element: (element) =>
             machine_list_element = super element
@@ -244,7 +260,6 @@ module 'ClusterView', ->
         initialize: (template) ->
             @template = template
             @selected = false
-            @model.on 'change', => @render()
 
         render: =>
             #log_render '(rendering) list element view: ' + class_name @model
@@ -269,7 +284,7 @@ module 'ClusterView', ->
         mark_selection: =>
             # Toggle the selected class  and check / uncheck  its checkbox
             @.$el.toggleClass 'selected', @selected
-            @.$(':checkbox', @el).prop 'checked', @selected
+            @.$(':checkbox').prop 'checked', @selected
 
     # Namespace list element
     class @NamespaceListElement extends @CheckboxListElement
@@ -282,6 +297,55 @@ module 'ClusterView', ->
         json_for_template: =>
             json = _.extend super(), DataUtils.get_namespace_status(@model.get('id'))
             return json
+
+    # Machine list element
+    class @MachineListElement extends @CheckboxListElement
+        template: Handlebars.compile $('#machine_list_element-template').html()
+        summary_template: Handlebars.compile $('#machine_list_element-summary-template').html()
+        className: 'machine element'
+
+        initialize: ->
+            log_initial '(initializing) list view: machine'
+
+            @model.on 'change', @render_summary
+            directory.on 'all', @render_summary
+
+            # Load abstract list element view with the machine template
+            super @template
+
+        render: =>
+            super
+            @render_summary()
+            return @
+
+        render_summary: =>
+            json = _.extend @model.toJSON(),
+                status: DataUtils.get_machine_reachability(@model.get('id'))
+                ip: 'TBD' #TODO
+                primary_count: 0
+                secondary_count: 0
+
+            # primary, secondary, and namespace counts
+            _namespaces = []
+            for namespace in namespaces.models
+                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
+                    if machine_uuid is @model.get('id')
+                        machine_active_for_namespace = false
+                        for shard, role of peer_role
+                            if role is 'role_primary'
+                                machine_active_for_namespace = true
+                                json.primary_count += 1
+                            if role is 'role_secondary'
+                                machine_active_for_namespace = true
+                                json.secondary_count += 1
+                        if machine_active_for_namespace
+                            _namespaces[_namespaces.length] = namespace
+            json.namespace_count = _.uniq(_namespaces).length
+
+            if not @model.get('datacenter_uuid')?
+                json.unassigned_machine = true
+
+            @.$('.machine.summary').html @summary_template json
 
     class @CollapsibleListElement extends Backbone.View
         events: ->
@@ -320,10 +384,10 @@ module 'ClusterView', ->
                 else
                     div.removeClass('expanded').addClass('collapsed')
 
-
     # Datacenter list element
     class @DatacenterListElement extends @CollapsibleListElement
         template: Handlebars.compile $('#datacenter_list_element-template').html()
+        summary_template: Handlebars.compile $('#datacenter_list_element-summary-template').html()
 
         className: 'datacenter element'
 
@@ -339,18 +403,42 @@ module 'ClusterView', ->
             @machine_list = new ClusterView.MachineList @model.get('id')
             @remove_datacenter_dialog = new ClusterView.RemoveDatacenterModal
             @callbacks = []
+            @no_machines = true
 
-            # Any of these models may affect the view, so rerender
-            directory.on 'all', @render
-            machines.on 'all', @render
-            datacenters.on 'all', @render
+            @model.on 'change', @render_summary
+            directory.on 'all', @render_summary
+            @machine_list.on 'size_changed', =>
+                num_machines = @machine_list.element_views.length
 
-        json_for_template: =>
+                we_should_rerender = false
+                
+                if @no_machines and num_machines > 0
+                    @no_machines = false
+                    we_should_rerender = true
+                else if not @no_machines and num_machines is 0
+                    @no_machines = true
+                    we_should_rerender = true
+
+                @render() if we_should_rerender
+
+        render: =>
+            @.$el.html @template
+                no_machines: @no_machines
+
+            @render_summary()
+
+            # Attach a list of available machines to the given datacenter
+            @.$('.machine-list').html @machine_list.render().el
+
+            super
+
+            return @
+
+        render_summary: =>
             json = _.extend @model.toJSON(),
                 status: DataUtils.get_datacenter_reachability(@model.get('id'))
                 primary_count: 0
                 secondary_count: 0
-                no_machines: @machine_list.element_views.length is 0
 
             # primary, secondary, and namespace counts
             _namespaces = []
@@ -369,17 +457,7 @@ module 'ClusterView', ->
                             _namespaces[_namespaces.length] = namespace
             json.namespace_count = _.uniq(_namespaces).length
 
-            return json
-
-        render: =>
-            @.$el.html @template(@json_for_template())
-
-            # Attach a list of available machines to the given datacenter
-            @.$('.machine-list').html @machine_list.render().el
-
-            super
-
-            return @
+            @.$('.datacenter.summary').html @summary_template json
 
         remove_datacenter: (event) ->
             log_action 'remove datacenter button clicked'
@@ -387,11 +465,6 @@ module 'ClusterView', ->
                 @remove_datacenter_dialog.render @model
 
             event.preventDefault()
-
-        rebuild_machine_list: =>
-            @machine_list = new ClusterView.MachineList @model.get('id')
-            @register_machine_callbacks @callbacks
-            @render()
 
         register_machine_callbacks: (callbacks) =>
             @callbacks = callbacks
@@ -407,13 +480,28 @@ module 'ClusterView', ->
             super
 
             @machine_list = new ClusterView.MachineList null
-            machines.on 'all', @render
+            @no_machines = true
+
+            machines.on 'add', (machine) => @render() if machine.get('datacenter_uuid') is null
+            @machine_list.on 'size_changed', =>
+                num_machines = @machine_list.element_views.length
+
+                we_should_rerender = false
+                
+                if @no_machines and num_machines > 0
+                    @no_machines = false
+                    we_should_rerender = true
+                else if not @no_machines and num_machines is 0
+                    @no_machines = true
+                    we_should_rerender = true
+
+                @render() if we_should_rerender
 
             @callbacks = []
 
         render: =>
             @.$el.html @template
-                no_machines: @machine_list.element_views.length is 0
+                no_machines: @no_machines 
 
             # Attach a list of available machines to the given datacenter
             @.$('.machine-list').html @machine_list.render().el
@@ -422,56 +510,9 @@ module 'ClusterView', ->
 
             return @
 
-        rebuild_machine_list: =>
-            @machine_list = new ClusterView.MachineList null
-            @register_machine_callbacks @callbacks
-            @render()
-
         register_machine_callbacks: (callbacks) =>
             @callbacks = callbacks
             @machine_list.register_machine_callbacks callbacks
-
-    # Machine list element
-    class @MachineListElement extends @CheckboxListElement
-        template: Handlebars.compile $('#machine_list_element-template').html()
-        className: 'machine element'
-
-        initialize: ->
-            log_initial '(initializing) list view: machine'
-
-            directory.on 'all', => @render()
-
-            # Load abstract list element view with the machine template
-            super @template
-
-        json_for_template: =>
-            json = _.extend super(),
-                status: DataUtils.get_machine_reachability(@model.get('id'))
-                ip: 'TBD' #TODO
-                primary_count: 0
-                secondary_count: 0
-
-            # primary, secondary, and namespace counts
-            _namespaces = []
-            for namespace in namespaces.models
-                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
-                    if machine_uuid is @model.get('id')
-                        machine_active_for_namespace = false
-                        for shard, role of peer_role
-                            if role is 'role_primary'
-                                machine_active_for_namespace = true
-                                json.primary_count += 1
-                            if role is 'role_secondary'
-                                machine_active_for_namespace = true
-                                json.secondary_count += 1
-                        if machine_active_for_namespace
-                            _namespaces[_namespaces.length] = namespace
-            json.namespace_count = _.uniq(_namespaces).length
-
-            if not @model.get('datacenter_uuid')?
-                json.unassigned_machine = true
-
-            return json
 
     class @AbstractModal extends Backbone.View
         className: 'modal-parent'

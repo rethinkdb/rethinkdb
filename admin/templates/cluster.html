@@ -175,11 +175,7 @@
                     {{#unless no_machines}}
                         <div class="expanded arrow"></div>
                     {{/unless}}
-                    <h3 class="datacenter name"><span class="element-type label label-inverse">Datacenter</span><a href="#datacenters/{{id}}">{{name}}</a></h3>
-                    <div class="datacenter details">
-                        <p class="status">{{humanize_datacenter_reachability status}}</p>
-                        <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Namespaces: {{namespace_count}}</p>
-                    </div>
+                    <div class="datacenter summary"></div>
                 </div>
                 <div class="span2">
                     <div class="datacenter actions">
@@ -191,6 +187,14 @@
                 <div class="machine-list"></div>
             {{/unless}}
             <div class="divider"></div>
+        </script>
+
+        <script id="datacenter_list_element-summary-template" type="text/x-handlebars-template">
+            <h3 class="datacenter name"><span class="element-type label label-inverse">Datacenter</span><a href="#datacenters/{{id}}">{{name}}</a></h3>
+            <div class="datacenter details">
+                <p class="status">{{humanize_datacenter_reachability status}}</p>
+                <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Namespaces: {{namespace_count}}</p>
+            </div>
         </script>
 
         <script id="unassigned_machines_list_element-template" type="text/x-handlebars-template">
@@ -209,16 +213,20 @@
                 <input type="checkbox"></input>
             </td>
             <td>
-                <div class="machine details">
-                    <h3 class="name">
-                        <span class="element-type label label-info">Machine</span><a href="#machines/{{id}}">{{name}}</a>
-                        <p class="status">{{humanize_machine_reachability status}}</p>
-                    </h3>
-                    {{#unless unassigned_machine}}
-                        <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Namespaces: {{namespace_count}}</p>
-                    {{/unless}}
-                </div>
+                <div class="machine summary"></div>
             </td>
+        </script>
+
+        <script id="machine_list_element-summary-template" type="text/x-handlebars-template">
+            <div class="machine details">
+                <h3 class="name">
+                    <span class="element-type label label-info">Machine</span><a href="#machines/{{id}}">{{name}}</a>
+                    <p class="status">{{humanize_machine_reachability status}}</p>
+                </h3>
+                {{#unless unassigned_machine}}
+                    <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Namespaces: {{namespace_count}}</p>
+                {{/unless}}
+            </div>
         </script>
 
         <!-- Namespace view -->
@@ -1264,6 +1272,7 @@
         <script type="text/javascript" src="js/jquery.timeago.js"></script>
         <script type="text/javascript" src="js/date-en-US.js"></script>
         <script type="text/javascript" src="js/d3.v2.min.js"></script>
+        <script type="text/javascript" src="js/jquery.dataTables.min.js"></script>
         <script type="text/javascript" src="gen/cluster-min.js"></script>
         <script type="text/javascript">
             var reset_token = function() {
