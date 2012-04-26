@@ -11,7 +11,7 @@
 #include <vector>
 #include <string>
 #include <boost/program_options.hpp>
-#include "clustering/administration/main/linenoise.hpp"
+#include "clustering/administration/cli/linenoise.hpp"
 
 struct admin_parse_exc_t : public std::exception {
 public:

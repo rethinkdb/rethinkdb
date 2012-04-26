@@ -1,4 +1,4 @@
-#include "clustering/administration/main/admin.hpp"
+#include "clustering/administration/cli/admin.hpp"
 #include <map>
 #include <cstdarg>
 #include <iostream>
@@ -769,7 +769,7 @@ void rethinkdb_admin_app_t::do_admin_rename(command_data& data) {
     if (data.params.count("resolve") == 1)
         path.push_back("resolve");
 
-    set_metadata_value(path, data.params["new-name"][0]);
+    set_metadata_value(path, "\"" + data.params["new-name"][0] + "\""); // TODO: adding quotes like this is kind of silly - better way to get past the json parsing?
 }
 
 void rethinkdb_admin_app_t::do_admin_remove(command_data& data) {
