@@ -24,6 +24,8 @@ public:
     virtual readwrite_lens_t *clone() const = 0;
 };
 
+#if 0
+
 template<class inner_t, class outer_t>
 clone_ptr_t<readwrite_lens_t<inner_t, outer_t> > field_lens(inner_t outer_t::*field);
 
@@ -54,6 +56,8 @@ clone_ptr_t<read_lens_t<inner_t, outer_t> > compose_lens(const clone_ptr_t<read_
 /* Return the value if it's in the map.. otherwise return a default value */
 template<class key_t, class value_t>
 clone_ptr_t<read_lens_t<value_t, std::map<key_t, value_t> > > default_member_lens(const key_t &key, value_t default_val = value_t());
+
+#endif
 
 #include "lens.tcc"
 

@@ -2,7 +2,6 @@
 #define CLUSTERING_ADMINISTRATION_SUGGESTER_TCC_
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
-#include "lens.hpp"
 
 template<class protocol_t>
 persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(

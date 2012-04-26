@@ -4,8 +4,6 @@
 #include <exception>
 #include <vector>
 
-#include "lens.hpp"
-
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
     : version_range(_version_range), places_to_get_this_version(_places_to_get_this_version),
