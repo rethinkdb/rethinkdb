@@ -26,6 +26,26 @@ class rethinkdb_admin_app_t {
 public:
     struct command_data;
 
+    // Command strings for various commands
+    static const char *set_command;
+    static const char *list_command;
+    static const char *make_command;
+    static const char *move_command;
+    static const char *help_command;
+    static const char *rename_command;
+    static const char *remove_command;
+
+    // Usage strings for various commands
+    static const char *set_usage;
+    static const char *list_usage;
+    static const char *make_usage;
+    static const char *make_namespace_usage;
+    static const char *make_datacenter_usage;
+    static const char *move_usage;
+    static const char *help_usage;
+    static const char *rename_usage;
+    static const char *remove_usage;
+
 private:
 
     struct param_options {
@@ -33,7 +53,7 @@ private:
             name(_name), count(_count), required(_required) { }
 
         void add_option(const char *term);
-        void add_options(size_t count, ...);
+        void add_options(const char *term, ...);
 
         const std::string name;
         const size_t count; // -1: unlimited, 0: flag only, n: n params expected

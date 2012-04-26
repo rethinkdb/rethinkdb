@@ -8,5 +8,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]);
 
 void help_rethinkdb_create();
 void help_rethinkdb_serve();
+void help_rethinkdb_admin();
 
 #endif /* CLUSTERING_ADMINISTRAITON_MAIN_COMMAND_LINE_HPP_ */

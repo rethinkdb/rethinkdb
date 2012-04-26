@@ -17,18 +17,37 @@ const char *prompt = " > ";
 
 rethinkdb_admin_app_t *rethinkdb_admin_app_t::instance = NULL;
 
+const char *rethinkdb_admin_app_t::set_command = "set";
+const char *rethinkdb_admin_app_t::list_command = "ls";
+const char *rethinkdb_admin_app_t::make_command = "mk";
+const char *rethinkdb_admin_app_t::move_command = "mv";
+const char *rethinkdb_admin_app_t::help_command = "help";
+const char *rethinkdb_admin_app_t::rename_command = "rename";
+const char *rethinkdb_admin_app_t::remove_command = "remove";
+
+const char *rethinkdb_admin_app_t::set_usage = "( <uuid> | <name> ) <field> ... [--resolve] [--value <value>]";
+const char *rethinkdb_admin_app_t::list_usage = "[ datacenters | namespaces [--protocol <protocol>] | machines | issues | <name> | <uuid> ] [--long]";
+const char *rethinkdb_admin_app_t::make_usage = "( datacenter | namespace --port <port> --protocol ( memcached | dummy ) [--primary <primary datacenter uuid>] ) [--name <name>]";
+const char *rethinkdb_admin_app_t::make_namespace_usage = "[--port <port>] [--protocol ( memcached | dummy ) ] [--primary <primary datacenter uuid>] [--name <name>]";
+const char *rethinkdb_admin_app_t::make_datacenter_usage = "[--name <name>]";
+const char *rethinkdb_admin_app_t::move_usage = "( <target-uuid> | <target-name> ) ( <datacenter-uuid> | <datacenter-name> ) [--resolve]";
+const char *rethinkdb_admin_app_t::help_usage = "[ ls | mk | mv | rm | set | rename | help ]";
+const char *rethinkdb_admin_app_t::rename_usage = "( <uuid> | <name> ) <new name> [--resolve]";
+const char *rethinkdb_admin_app_t::remove_usage = "( <uuid> | <name> )";
+
 namespace po = boost::program_options;
 
 void rethinkdb_admin_app_t::param_options::add_option(const char *term) {
     valid_options.insert(term);
 }
 
-// TODO: use a null-terminated list instead of a count
-void rethinkdb_admin_app_t::param_options::add_options(size_t count, ...) {
+void rethinkdb_admin_app_t::param_options::add_options(const char *term, ...) {
     va_list terms;
-    va_start(terms, count);
-    for (size_t i = 0; i < count; ++i)
-        add_option(va_arg(terms, const char *));
+    va_start(terms, term);
+    while (term != NULL) {
+        add_option(term);
+        term = va_arg(terms, const char *);
+    }
     va_end(terms);
 }
 
@@ -163,7 +182,7 @@ void rethinkdb_admin_app_t::add_subset_to_name_path_map(const std::string& base,
     for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
         std::string name(i->second.get().name.get());
         std::string uuid(uuid_to_str(i->first));
-        if (collisions.count(name) == 0) {
+        if (!name.empty() && collisions.count(name) == 0) {
             if (name_to_path.find(name) != name_to_path.end()) {
                 collisions.insert(name);
                 name_to_path.erase(name);
@@ -189,7 +208,7 @@ void rethinkdb_admin_app_t::build_command_descriptions() {
     command_descriptions.clear();
 
     {
-        command_info *info = new command_info("set", "( <uuid> | <name> ) <field> ... [--resolve] [--value <value>]", true, &rethinkdb_admin_app_t::do_admin_set);
+        command_info *info = new command_info(set_command, set_usage, true, &rethinkdb_admin_app_t::do_admin_set);
         info->add_flag("resolve", 0, false);
         info->add_flag("value", 1, true);
         info->add_positional("path", 1, true)->add_option("!id");
@@ -198,17 +217,17 @@ void rethinkdb_admin_app_t::build_command_descriptions() {
     }
 
     {
-        command_info *info = new command_info("ls", "[ datacenters | namespaces [--protocol <protocol>] | machines | issues | <name> | <uuid> ] [-l]", false, &rethinkdb_admin_app_t::do_admin_list);
-        info->add_positional("filter", 1, false)->add_options(6, "issues", "machines", "namespaces", "datacenters", "!id"); // TODO: how to handle --protocol: for now, just error if specified in the wrong situation
-        info->add_flag("protocol", 1, false)->add_options(2, "memcached", "dummy");
+        command_info *info = new command_info(list_command, list_usage, false, &rethinkdb_admin_app_t::do_admin_list);
+        info->add_positional("filter", 1, false)->add_options("issues", "machines", "namespaces", "datacenters", "!id", NULL); // TODO: how to handle --protocol: for now, just error if specified in the wrong situation
+        info->add_flag("protocol", 1, false)->add_options("memcached", "dummy", NULL);
         info->add_flag("long", 0, false);
         command_descriptions.insert(std::make_pair(info->command, info));
     }
 
     {
-        command_info *info = new command_info("mk", "( datacenter | namespace --port <port> --protocol ( memcached | dummy ) [--primary <primary datacenter uuid>] ) [--name <name>]", true, NULL);
-        command_info *namespace_command = new command_info("namespace", "[--port <port>] [--protocol ( memcached | dummy ) ] [--primary <primary datacenter uuid>] [--name <name>]", true, &rethinkdb_admin_app_t::do_admin_make_namespace);
-        command_info *datacenter_command = new command_info("datacenter", "[--name <name>]", true, &rethinkdb_admin_app_t::do_admin_make_datacenter);
+        command_info *info = new command_info(make_command, make_usage, true, NULL);
+        command_info *namespace_command = new command_info("namespace", make_namespace_usage, true, &rethinkdb_admin_app_t::do_admin_make_namespace);
+        command_info *datacenter_command = new command_info("datacenter", make_datacenter_usage, true, &rethinkdb_admin_app_t::do_admin_make_datacenter);
 
         info->add_subcommand(namespace_command);
         info->add_subcommand(datacenter_command);
@@ -216,7 +235,7 @@ void rethinkdb_admin_app_t::build_command_descriptions() {
         datacenter_command->add_flag("name", 1, false);
 
         namespace_command->add_flag("name", 1, false);
-        namespace_command->add_flag("protocol", 1, true)->add_options(2, "memcached", "dummy");
+        namespace_command->add_flag("protocol", 1, true)->add_options("memcached", "dummy", NULL);
         namespace_command->add_flag("primary", 1, false)->add_option("!id");
         namespace_command->add_flag("port", 1, true);
 
@@ -224,7 +243,7 @@ void rethinkdb_admin_app_t::build_command_descriptions() {
     }
 
     {
-        command_info *info = new command_info("mv", "( <target-uuid> | <target-name> ) ( <datacenter-uuid> | <datacenter-name> ) [--resolve]", true, &rethinkdb_admin_app_t::do_admin_move);
+        command_info *info = new command_info(move_command, move_usage, true, &rethinkdb_admin_app_t::do_admin_move);
         info->add_positional("id", 1, true)->add_option("!id");
         info->add_positional("datacenter", 1, true)->add_option("!id"); // TODO: restrict this to datacenters only
         info->add_flag("resolve", 0, false);
@@ -232,13 +251,13 @@ void rethinkdb_admin_app_t::build_command_descriptions() {
     }
 
     {
-        command_info *info = new command_info("rm", "( <uuid> | <name> )", true, &rethinkdb_admin_app_t::do_admin_remove);
+        command_info *info = new command_info(remove_command, remove_usage, true, &rethinkdb_admin_app_t::do_admin_remove);
         info->add_positional("id", 1, true)->add_option("!id");
         command_descriptions.insert(std::make_pair(info->command, info));
     }
 
     {
-        command_info *info = new command_info("rename", "( <uuid> | <name> ) <new name> [--resolve]", true, &rethinkdb_admin_app_t::do_admin_rename);
+        command_info *info = new command_info(rename_command, rename_usage, true, &rethinkdb_admin_app_t::do_admin_rename);
         info->add_positional("id", 1, true)->add_option("!id");
         info->add_positional("new-name", 1, true);
         info->add_flag("resolve", 0, false);
@@ -246,8 +265,8 @@ void rethinkdb_admin_app_t::build_command_descriptions() {
     }
 
     {
-        command_info *info = new command_info("help", "[ ls | mk | mv | rm | set | rename | help ]", false, &rethinkdb_admin_app_t::do_admin_help);
-        info->add_positional("type", -1, false)->add_options(7, "ls", "mk", "mv", "rm", "set", "help", "rename");
+        command_info *info = new command_info(help_command, help_usage, false, &rethinkdb_admin_app_t::do_admin_help);
+        info->add_positional("type", -1, false)->add_options("ls", "mk", "mv", "rm", "set", "help", "rename", NULL);
         command_descriptions.insert(std::make_pair(info->command, info));
     }
 }
@@ -386,13 +405,13 @@ void rethinkdb_admin_app_t::add_option_matches(const param_options *option, cons
     if (partial.find("!") == 0) // Don't allow completions beginning with '!', as we use it as a special case
         return;
 
-    if (option->valid_options.count("!id") > 0) {
-        get_id_completions(partial, completions, base_str);
-    }
-
     for (std::set<std::string>::iterator i = option->valid_options.lower_bound(partial); i != option->valid_options.end() && i->find(partial) == 0; ++i) {
         if (i->find("!") != 0) // skip special cases
             linenoiseAddCompletion(completions, (base_str + *i + " ").c_str());
+    }
+
+    if (option->valid_options.count("!id") > 0) {
+        get_id_completions(partial, completions, base_str);
     }
 }
 
