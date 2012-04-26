@@ -13,7 +13,11 @@ public:
     { }
 
     void read_stat_block(buf_lock_t *stat_block) { 
-        key_count = reinterpret_cast<const btree_statblock_t *>(stat_block->get_data_read())->population;
+        if (stat_block) {
+            key_count = reinterpret_cast<const btree_statblock_t *>(stat_block->get_data_read())->population;
+        } else {
+            key_count = 0;
+        }
     }
 
     // This is free to call mark_deleted.
