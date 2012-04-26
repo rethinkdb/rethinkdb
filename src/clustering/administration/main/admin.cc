@@ -182,7 +182,7 @@ void rethinkdb_admin_app_t::add_subset_to_name_path_map(const std::string& base,
     for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
         std::string name(i->second.get().name.get());
         std::string uuid(uuid_to_str(i->first));
-        if (collisions.count(name) == 0) {
+        if (!name.empty() && collisions.count(name) == 0) {
             if (name_to_path.find(name) != name_to_path.end()) {
                 collisions.insert(name);
                 name_to_path.erase(name);
@@ -405,13 +405,13 @@ void rethinkdb_admin_app_t::add_option_matches(const param_options *option, cons
     if (partial.find("!") == 0) // Don't allow completions beginning with '!', as we use it as a special case
         return;
 
-    if (option->valid_options.count("!id") > 0) {
-        get_id_completions(partial, completions, base_str);
-    }
-
     for (std::set<std::string>::iterator i = option->valid_options.lower_bound(partial); i != option->valid_options.end() && i->find(partial) == 0; ++i) {
         if (i->find("!") != 0) // skip special cases
             linenoiseAddCompletion(completions, (base_str + *i + " ").c_str());
+    }
+
+    if (option->valid_options.count("!id") > 0) {
+        get_id_completions(partial, completions, base_str);
     }
 }
 

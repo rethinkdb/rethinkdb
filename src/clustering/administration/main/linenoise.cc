@@ -227,18 +227,62 @@ static void freeCompletions(linenoiseCompletions *lc) {
 
 // Find the maximum possible completion that is identical between all possible completions
 // Returns the length of the completion
-/*static int maxCompletion(linenoiseCompletions* lc) {
-    int max = strlen(lc->cvec[0]);
-    for (int i = 1; i < lc->len; ++i)
-        for (int j = 0; j < max && lc->cvec[i][j] != '\0'; ++j)
-            if (lc->cvec[0] != lc->cvec[j])
+static size_t maxCompletion(linenoiseCompletions* lc) {
+    size_t max = strlen(lc->cvec[0]);
+    for (size_t i = 1; i < lc->len; ++i)
+        for (size_t j = 0; j < max && lc->cvec[i][j] != '\0'; ++j)
+            if (lc->cvec[0][j] != lc->cvec[i][j])
                 max = j;
     return max;
 }
 
-static void printPossibleCompletions(linenoiseCompletions* lc, int fd) {
-    
-}*/
+
+static void printPossibleCompletions(linenoiseCompletions* lc, size_t identical_length, int fd, size_t cols) {
+    char line_feed[64];
+    char line[cols];
+    size_t start_offset = 0;
+
+    snprintf(line_feed,64,"\n\x1b[0G");
+    if (write(fd,line_feed,strlen(line_feed)) == -1) return;
+
+    // read back from the identical offset for whitespace to truncate options
+    if (identical_length > 0)
+        for (size_t i = identical_length - 1; i > 0 && start_offset == 0; --i) {
+            char c = lc->cvec[0][i];
+            if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
+                start_offset = i + 1;
+        }
+
+    // Find the maximum length to print
+    size_t max_len = 0;
+    for (size_t i = 0; i < lc->len; ++i) {
+        size_t len = strlen(lc->cvec[i] + start_offset);
+        if (len > max_len)
+            max_len = len;
+    }
+
+    // Figure out the number of columns that may be printed - minimum spacing of 2 between columns
+    size_t column_width = max_len + 1;
+    size_t num_columns = (cols + 1) / (column_width);
+    if (num_columns == 0)
+        num_columns = 1;
+    size_t num_rows = lc->len / num_columns + 1;
+
+    for(size_t i = 0; i < num_rows * num_columns; ++i) {
+        size_t index = (i % num_columns) * num_rows + (i / num_columns);
+        if (index < lc->len) {
+            if (num_rows == 1)
+                snprintf(line, cols, "%s ", lc->cvec[index] + start_offset);
+            else
+                snprintf(line, cols, "%-*s", (int)column_width, lc->cvec[index] + start_offset);
+            if (write(fd,line,strlen(line)) == -1) return;
+        }
+
+        if (i % num_columns == num_columns - 1) {
+            if (write(fd,line_feed,strlen(line_feed)) == -1) return;
+        }
+    }
+}
 
 static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, size_t *len, size_t *pos, size_t cols) {
     linenoiseCompletions lc = { 0, NULL };
@@ -248,18 +292,18 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
     completionCallback(buf,&lc);
     if (lc.len == 0) {
         beep();
+    } else if (lc.len == 1) {
+        // Update buffer and return
+        nwritten = snprintf(buf,buflen,"%s",lc.cvec[0]);
+        *len = *pos = nwritten;
+        refreshLine(fd,prompt,buf,*len,*pos,cols);
     } else {
-        size_t stop = 0, i = 0;
-        size_t clen;
+        size_t clen = maxCompletion(&lc);
 
-        while(!stop) {
-            /* Show completion or original buffer */
-            if (i < lc.len) {
-                clen = strlen(lc.cvec[i]);
-                refreshLine(fd,prompt,lc.cvec[i],clen,clen,cols);
-            } else {
-                refreshLine(fd,prompt,buf,*len,*pos,cols);
-            }
+        // Refresh with the longest common prefix of all completions
+        refreshLine(fd, prompt, lc.cvec[0], clen, clen, cols);
+
+        while(true) {
 
             nread = read(fd,&c,1);
             if (nread <= 0) {
@@ -267,26 +311,20 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
                 return -1;
             }
 
-            switch(c) {
-                case 9: /* tab */
-                    i = (i+1) % (lc.len+1);
-                    if (i == lc.len) beep();
-                    break;
-                case 27: /* escape */
-                    /* Re-show original buffer */
-                    if (i < lc.len) {
-                        refreshLine(fd,prompt,buf,*len,*pos,cols);
-                    }
-                    stop = 1;
-                    break;
-                default:
-                    /* Update buffer and return */
-                    if (i < lc.len) {
-                        nwritten = snprintf(buf,buflen,"%s",lc.cvec[i]);
-                        *len = *pos = nwritten;
-                    }
-                    stop = 1;
-                    break;
+            if (c == 9) { // tab
+                printPossibleCompletions(&lc, clen, fd, cols);
+                beep();
+                refreshLine(fd, prompt, lc.cvec[0], clen, clen, cols);
+            } else if (c == 27) { // escape
+                /* Re-show original buffer */
+                refreshLine(fd,prompt,buf,*len,*pos,cols);
+                break;
+            } else {
+                /* Update buffer and return */
+                lc.cvec[0][clen] = '\0';
+                nwritten = snprintf(buf,buflen,"%s",lc.cvec[0]);
+                *len = *pos = nwritten;
+                break;
             }
         }
     }
