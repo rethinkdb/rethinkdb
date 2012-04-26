@@ -7,6 +7,13 @@
 #include "clustering/immediate_consistency/query/namespace_interface.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 
+/* `namespace_repo_t` is responsible for constructing and caching
+`cluster_namespace_interface_t` objects for all of the namespaces in the cluster
+for a given protocol. Caching `cluster_namespace_interface_t` objects is
+important because every time a new `cluster_namespace_interface_t` is created,
+it must perform a handshake with every `master_t`, which means several network
+round-trips. */
+
 template <class protocol_t>
 class namespace_repo_t {
 public:
