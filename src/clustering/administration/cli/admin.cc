@@ -120,7 +120,7 @@ rethinkdb_admin_app_t::rethinkdb_admin_app_t(const std::set<peer_address_t> &joi
     mailbox_manager(&mailbox_manager_client),
     stat_manager(&mailbox_manager),
     log_server(&mailbox_manager, &log_writer),
-    cluster_directory_metadata(connectivity_cluster.get_me().get_uuid(), stat_manager.get_address(), log_server.get_business_card()),
+    cluster_directory_metadata(connectivity_cluster.get_me().get_uuid(), std::vector<std::string>(), stat_manager.get_address(), log_server.get_business_card()),
     mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
     semilattice_manager_client(&message_multiplexer, 'S'),
     semilattice_manager_cluster(&semilattice_manager_client, cluster_semilattice_metadata_t()),

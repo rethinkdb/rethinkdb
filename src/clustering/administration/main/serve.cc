@@ -61,6 +61,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
     watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(
         cluster_directory_metadata_t(
             machine_id,
+            get_ips(),
             stat_manager.get_address(),
             log_server.get_business_card()
         ));

@@ -3,6 +3,10 @@
 
 #include <stdarg.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <arpa/inet.h>
+#include <netinet/in.h> 
 
 #include <vector>
 #include <stdexcept>
@@ -309,6 +313,6 @@ private:
     bool log_next_error;
 };
 
-
+std::vector<std::string> get_ips();
 
 #endif // ARCH_IO_NETWORK_HPP_
