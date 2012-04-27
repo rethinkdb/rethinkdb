@@ -1,6 +1,7 @@
 #include "unittest/gtest.hpp"
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "containers/uuid.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
