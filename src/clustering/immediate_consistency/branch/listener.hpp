@@ -175,6 +175,8 @@ private:
      * this right now is the replier_t who needs to be able to tell backfillees
      * how up to date s/he is. */
     std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
+
+    DISABLE_COPYING(listener_t);
 };
 
 
