@@ -157,7 +157,11 @@ cJSON *render_as_json(deletable_t<T> *target, const ctx_t &ctx) {
 
 template <class T, class ctx_t>
 void apply_json_to(cJSON *change, deletable_t<T> *target, const ctx_t &ctx) {
-    apply_json_to(change, &target->get_mutable(), ctx);
+    if (is_null(change)) {
+        target->mark_deleted();
+    } else {
+        apply_json_to(change, &target->get_mutable(), ctx);
+    }
 }
 
 template <class T, class ctx_t>
