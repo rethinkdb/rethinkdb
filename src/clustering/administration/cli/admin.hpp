@@ -21,7 +21,7 @@
 
 struct admin_parse_exc_t : public std::exception {
 public:
-    admin_parse_exc_t(const std::string& data) : info(data) { }
+    explicit admin_parse_exc_t(const std::string& data) : info(data) { }
     ~admin_parse_exc_t() throw () { }
     const char *what() const throw () { return info.c_str(); }
 private:
@@ -93,7 +93,7 @@ private:
 public:
 
     struct command_data {
-        command_data(const command_info *cmd_info) : info(cmd_info) { }
+        explicit command_data(const command_info *cmd_info) : info(cmd_info) { }
         const command_info * const info;
         std::map<std::string, std::vector<std::string> > params;
     };

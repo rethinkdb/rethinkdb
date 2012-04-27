@@ -114,7 +114,7 @@ private:
 
             class ac_t : public broadcaster_t<protocol_t>::ack_callback_t {
             public:
-                ac_t(master_t *p) : parent(p) { }
+                explicit ac_t(master_t *p) : parent(p) { }
                 bool on_ack(peer_id_t peer) {
                     ack_set.insert(peer);
                     return parent->ack_checker->is_acceptable_ack_set(ack_set);

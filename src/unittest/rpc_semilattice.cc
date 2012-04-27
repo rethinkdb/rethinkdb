@@ -35,7 +35,8 @@ public:
     sl_pair_t(sl_int_t x_, sl_int_t y_) : x(x_), y(y_) { }
     sl_int_t x, y;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(x, y);
+    // FIXME: serialization functions are never referenced and build with Intel fails
+    // RDB_MAKE_ME_SERIALIZABLE_2(x, y);
 };
 
 void semilattice_join(sl_pair_t *a, sl_pair_t b) {

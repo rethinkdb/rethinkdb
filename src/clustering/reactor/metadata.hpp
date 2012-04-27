@@ -36,7 +36,7 @@ class primary_when_safe_t {
 public:
     primary_when_safe_t() { }
 
-    primary_when_safe_t(const std::vector<backfill_location_t> &_backfills_waited_on)
+    explicit primary_when_safe_t(const std::vector<backfill_location_t> &_backfills_waited_on)
         : backfills_waited_on(_backfills_waited_on)
     { }
     std::vector<backfill_location_t> backfills_waited_on;
@@ -111,7 +111,7 @@ class secondary_backfilling_t {
 public:
     secondary_backfilling_t() { }
 
-    secondary_backfilling_t(backfill_location_t  _backfill)
+    explicit secondary_backfilling_t(backfill_location_t  _backfill)
         : backfill(_backfill)
     { }
 
