@@ -147,6 +147,12 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<inner
     return REGION_JOIN_BAD_REGION;  // Or is it BAD_JOIN?  BAD_RECTANGLE?
 }
 
+template <class inner_region_t>
+bool region_overlaps(const hash_region_t<inner_region_t> &r1, const hash_region_t<inner_region_t> &r2) {
+    return r1.beg < r2.end && r2.beg < r1.end
+	&& region_overlaps(r1.inner, r2.inner);
+}
+
 
 
 
