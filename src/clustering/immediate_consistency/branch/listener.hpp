@@ -132,7 +132,6 @@ private:
     void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp);
     mailbox_manager_t *mailbox_manager;
 
-    // This variable is used by replier_t.
     boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
 
     store_view_t<protocol_t> *store;
