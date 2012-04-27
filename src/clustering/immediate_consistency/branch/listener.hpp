@@ -3,20 +3,17 @@
 
 #include <map>
 
-#include "clustering/immediate_consistency/branch/backfillee.hpp"
-#include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "clustering/registrant.hpp"
-#include "clustering/resource.hpp"
 #include "concurrency/promise.hpp"
 #include "protocol_api.hpp"
-#include "rpc/directory/view.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
 
-/* Forward declarations (so we can friend them) */
-
-template<class protocol_t> class replier_t;
+template <class T> class replier_t;
+template <class T> class registrant_t;
+template <class T> class semilattice_read_view_t;
+template <class T> class semilattice_readwrite_view_t;
+template <class T> class broadcaster_t;
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
 backfills from an existing mirror on a branch into the store, and as long as it
@@ -69,6 +66,8 @@ public:
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
             broadcaster_t<protocol_t> *broadcaster,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+
+    ~listener_t();
 
     /* Returns a signal that is pulsed if the mirror is not in contact with the
     master. */

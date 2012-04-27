@@ -1,6 +1,10 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 
+#include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/registrant.hpp"
+#include "clustering/resource.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "memcached/protocol.hpp"
 
@@ -205,6 +209,9 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     current_timestamp = registration_done_cond.get_value().broadcaster_begin_timestamp;
     backfill_done_cond.pulse(registration_done_cond.get_value().broadcaster_begin_timestamp);
 }
+
+template <class protocol_t>
+listener_t<protocol_t>::~listener_t() { }
 
 template <class protocol_t>
 signal_t *listener_t<protocol_t>::get_broadcaster_lost_signal() {

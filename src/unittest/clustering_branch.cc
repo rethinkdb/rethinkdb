@@ -1,10 +1,12 @@
 #include "unittest/gtest.hpp"
+
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
-#include "unittest/dummy_metadata_controller.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "rpc/directory/watchable_copier.hpp"
 #include "unittest/clustering_utils.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
