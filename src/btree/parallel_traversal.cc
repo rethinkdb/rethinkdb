@@ -278,15 +278,19 @@ void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblo
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
 
     /* Make sure there's a stat block*/
-    ensure_stat_block(txn, got_superblock.sb.get(), incr_priority(ZERO_EVICTION_PRIORITY));
+    if (helper->btree_node_mode() == rwi_write) {
+        ensure_stat_block(txn, got_superblock.sb.get(), incr_priority(ZERO_EVICTION_PRIORITY));
+    }
 
     /* Record the stat block for updating populations later */
     state.stat_block = superblock->stat_block;
 
-    {
+    if (state.stat_block != NULL_BLOCK_ID) {
         /* Give the helper a look at the stat block */
         buf_lock_t stat_block(txn, state.stat_block, rwi_read);
         helper->read_stat_block(&stat_block);
+    } else {
+        helper->read_stat_block(NULL);
     }
 
     if (helper->progress) {
@@ -314,7 +318,7 @@ void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblo
     } else {
         state.level_count(0) += 1;
         state.acquisition_waiter_stacks.resize(1);
-        boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(root_id, NULL, NULL));
+        boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(root_id, NULL, NULL, 0));
         subtrees_traverse(&state, &superblock_releaser, 1, ids_source);
         state.wait();
     }
@@ -386,7 +390,7 @@ void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t bloc
 void process_a_internal_node(traversal_state_t *state, buf_lock_t *buf, int level, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(buf->get_data_read());
 
-    boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(state->slice->cache()->get_block_size(), node, left_exclusive_or_null, right_inclusive_or_null));
+    boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(state->slice->cache()->get_block_size(), node, left_exclusive_or_null, right_inclusive_or_null, level));
 
     subtrees_traverse(state, new internal_node_releaser_t(buf, state), level + 1, ids_source);
 }
@@ -506,6 +510,10 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
         sized_strcmp((*left_excl_bound_out)->contents, (*left_excl_bound_out)->size, (*right_incl_bound_out)->contents, (*right_incl_bound_out)->size) == 0) {
         BREAKPOINT;
     }
+}
+
+int ranged_block_ids_t::get_level() {
+    return level;
 }
 
 void traversal_progress_t::inform(int level, action_t action, node_type_t type) {

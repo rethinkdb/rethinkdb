@@ -2,6 +2,7 @@
 #define RPC_METADATA_VIEW_HPP_
 
 #include "concurrency/pubsub.hpp"
+#include "rpc/connectivity/connectivity.hpp"
 
 class sync_failed_exc_t : public std::exception {
 public:

@@ -26,19 +26,25 @@ class ranged_block_ids_t {
 public:
     ranged_block_ids_t(block_size_t bs, const internal_node_t *node,
                        const btree_key_t *left_exclusive_or_null,
-                       const btree_key_t *right_inclusive_or_null)
+                       const btree_key_t *right_inclusive_or_null,
+                       int _level)
         : node_(bs.value()),
           left_exclusive_or_null_(left_exclusive_or_null),
-          right_inclusive_or_null_(right_inclusive_or_null) {
+          right_inclusive_or_null_(right_inclusive_or_null),
+          level(_level)
+    {
         memcpy(node_.get(), node, bs.value());
     }
     ranged_block_ids_t(block_id_t forced_block_id,
                        const btree_key_t *left_exclusive_or_null,
-                       const btree_key_t *right_inclusive_or_null)
+                       const btree_key_t *right_inclusive_or_null,
+                       int _level)
         : node_(),
           forced_block_id_(forced_block_id),
           left_exclusive_or_null_(left_exclusive_or_null),
-          right_inclusive_or_null_(right_inclusive_or_null) { }
+          right_inclusive_or_null_(right_inclusive_or_null),
+          level(_level)
+    { }
 
     int num_block_ids() const;
     void get_block_id_and_bounding_interval(int index,
@@ -46,16 +52,14 @@ public:
                                             const btree_key_t **left_excl_bound_out,
                                             const btree_key_t **right_incl_bound_out) const;
 
-    int get_level() {
-        crash("Not implemented\n");
-    }
+    int get_level();
 
 private:
-    int level;
     scoped_malloc<internal_node_t> node_;
     block_id_t forced_block_id_;
     const btree_key_t *left_exclusive_or_null_;
     const btree_key_t *right_inclusive_or_null_;
+    int level;
 };
 
 class interesting_children_callback_t : public lock_in_line_callback_t {
@@ -91,7 +95,9 @@ struct btree_traversal_helper_t {
     //Before any of these other functions are called the helper gets a chance
     //to look at the stat block and possibly record some values of interest
     //Notice the values in the stat block do not reflect changes which are
-    //still traversing the tree at the time this is called.
+    //still traversing the tree at the time this is called. Also notice that
+    //this value may be null if the stat block has not been allocated yet and
+    //this traversal is read only (which prohibits us from allocating it)
     virtual void read_stat_block(buf_lock_t *) { }
 
     // This is free to call mark_deleted.

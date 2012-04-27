@@ -1,5 +1,7 @@
 #include "buffer_cache/blob.hpp"
 
+#include <limits>
+
 #include "buffer_cache/buffer_cache.hpp"
 #include "serializer/types.hpp"
 #include "concurrency/pmap.hpp"

@@ -12,7 +12,7 @@ public:
     typedef mailbox_t<void(int, time_t, time_t, result_mailbox_t::address_t)> request_mailbox_t;
 
     log_server_business_card_t() { }
-    log_server_business_card_t(const request_mailbox_t::address_t &a) : address(a) { }
+    explicit log_server_business_card_t(const request_mailbox_t::address_t &a) : address(a) { }
 
     request_mailbox_t::address_t address;
 

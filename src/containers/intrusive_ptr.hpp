@@ -8,7 +8,7 @@ template <class T>
 class intrusive_ptr_t {
 public:
     intrusive_ptr_t() : p_(NULL) { }
-    intrusive_ptr_t(T *p) : p_(p) {
+    explicit intrusive_ptr_t(T *p) : p_(p) {
         if (p_) { intrusive_ptr_add_ref(p_); }
     }
 

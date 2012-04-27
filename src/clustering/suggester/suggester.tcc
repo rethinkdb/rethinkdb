@@ -128,7 +128,7 @@ float estimate_cost_to_get_up_to_date(
     return sum / count;
 }
 
-inline std::vector<machine_id_t> pick_n_best(priority_queue_t<priority_t> *candidates, int n, const datacenter_id_t &datacenter) {
+std::vector<machine_id_t> pick_n_best(priority_queue_t<priority_t> *candidates, int n, const datacenter_id_t &datacenter) {
     std::vector<machine_id_t> result;
     while ((int)result.size() < n) {
         if (candidates->empty()) {

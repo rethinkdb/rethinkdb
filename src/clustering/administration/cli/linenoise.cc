@@ -94,7 +94,7 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include "clustering/administration/main/linenoise.hpp"
+#include "clustering/administration/cli/linenoise.hpp"
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
 #define LINENOISE_MAX_LINE 4096

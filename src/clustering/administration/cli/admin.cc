@@ -1,4 +1,4 @@
-#include "clustering/administration/main/admin.hpp"
+#include "clustering/administration/cli/admin.hpp"
 #include <map>
 #include <cstdarg>
 #include <iostream>
@@ -10,6 +10,8 @@
 #include "rpc/connectivity/multiplexer.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "clustering/administration/main/initial_join.hpp"
+#include "clustering/administration/main/watchable_fields.hpp"
+#include "rpc/semilattice/view/field.hpp"
 #include "rpc/directory/watchable_copier.hpp"
 
 // TODO: make a useful prompt
@@ -129,7 +131,23 @@ rethinkdb_admin_app_t::rethinkdb_admin_app_t(const std::set<peer_address_t> &joi
     message_multiplexer_run(&message_multiplexer),
     connectivity_cluster_run(&connectivity_cluster, 0, &message_multiplexer_run, client_port),
     directory_metadata(translate_into_watchable(directory_manager.get_root_view())),
-    semilattice_metadata(semilattice_manager_cluster.get_root_view())
+    semilattice_metadata(semilattice_manager_cluster.get_root_view()),
+    issue_aggregator(),
+    remote_issue_tracker(directory_metadata->subview(
+        field_getter_t<std::list<clone_ptr_t<local_issue_t> >, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
+        directory_metadata->subview(field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))),
+    remote_issue_tracker_feed(&issue_aggregator, &remote_issue_tracker),
+    machine_down_issue_tracker(semilattice_metadata,
+        directory_metadata->subview(field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))),
+    machine_down_issue_tracker_feed(&issue_aggregator, &machine_down_issue_tracker),
+    name_conflict_issue_tracker(semilattice_metadata),
+    name_conflict_issue_tracker_feed(&issue_aggregator, &name_conflict_issue_tracker),
+    vector_clock_conflict_issue_tracker(semilattice_metadata),
+    vector_clock_issue_tracker_feed(&issue_aggregator, &vector_clock_conflict_issue_tracker),
+    mc_pinnings_shards_mismatch_issue_tracker(metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_metadata)),
+    mc_pinnings_shards_mismatch_issue_tracker_feed(&issue_aggregator, &mc_pinnings_shards_mismatch_issue_tracker),
+    dummy_pinnings_shards_mismatch_issue_tracker(metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_metadata)),
+    dummy_pinnings_shards_mismatch_issue_tracker_feed(&issue_aggregator, &dummy_pinnings_shards_mismatch_issue_tracker)
 {
     rassert(instance == NULL);
     instance = this;
@@ -635,8 +653,7 @@ void rethinkdb_admin_app_t::do_admin_list(command_data& data) {
                 throw admin_parse_exc_t("unrecognized protocol: " + protocol);
         }
     } else if (id == "issues") {
-        // TODO: print issues
-        throw admin_parse_exc_t("'ls issue' not yet implemented");
+        list_issues(long_format);
     } else if (!id.empty()) {
         // TODO: special formatting for each object type, instead of JSON
         obj_path = get_path_from_id(id);
@@ -646,6 +663,15 @@ void rethinkdb_admin_app_t::do_admin_list(command_data& data) {
         list_datacenters(long_format, cluster_metadata);
         list_dummy_namespaces(long_format, cluster_metadata);
         list_memcached_namespaces(long_format, cluster_metadata);
+    }
+}
+
+void rethinkdb_admin_app_t::list_issues(bool long_format UNUSED) {
+    std::list<clone_ptr_t<global_issue_t> > issues = issue_aggregator.get_issues();
+    std::cout << "Issues: " << std::endl;
+
+    for (std::list<clone_ptr_t<global_issue_t> >::iterator i = issues.begin(); i != issues.end(); ++i) {
+        std::cout << (*i)->get_description() << std::endl;
     }
 }
 
@@ -769,7 +795,7 @@ void rethinkdb_admin_app_t::do_admin_rename(command_data& data) {
     if (data.params.count("resolve") == 1)
         path.push_back("resolve");
 
-    set_metadata_value(path, data.params["new-name"][0]);
+    set_metadata_value(path, "\"" + data.params["new-name"][0] + "\""); // TODO: adding quotes like this is kind of silly - better way to get past the json parsing?
 }
 
 void rethinkdb_admin_app_t::do_admin_remove(command_data& data) {
