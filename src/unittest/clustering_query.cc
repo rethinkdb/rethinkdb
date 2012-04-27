@@ -13,6 +13,15 @@
 
 namespace unittest {
 
+namespace {
+
+boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > wrap_in_optional(
+        const boost::optional<broadcaster_business_card_t<dummy_protocol_t> > &inner) {
+    return boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >(inner);
+}
+
+}   /* anonymous namespace */
+
 /* The `ReadWrite` test sends some reads and writes to some shards via a
 `cluster_namespace_interface_t`. */
 
@@ -41,16 +50,12 @@ static void run_read_write_test() {
         &interruptor
         );
 
-    simple_directory_manager_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >
-        broadcaster_metadata_controller(&cluster,
-            boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(
-                broadcaster.get_business_card()
-            ));
+    watchable_variable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > broadcaster_metadata_controller(
+        boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(broadcaster.get_business_card()));
 
     listener_t<dummy_protocol_t> initial_listener(
         cluster.get_mailbox_manager(),
-        translate_into_watchable(broadcaster_metadata_controller.get_root_view()->
-            get_peer_view(cluster.get_connectivity_service()->get_me())),
+        broadcaster_metadata_controller.get_watchable()->subview(&wrap_in_optional),
         branch_history_controller.get_view(),
         &broadcaster,
         &interruptor
@@ -125,16 +130,12 @@ static void run_broadcaster_problem_test() {
         &interruptor
         );
 
-    simple_directory_manager_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >
-        broadcaster_metadata_controller(&cluster,
-            boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(
-                broadcaster.get_business_card()
-            ));
+    watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_controller(
+        boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >(broadcaster.get_business_card()));
 
     listener_t<dummy_protocol_t> initial_listener(
         cluster.get_mailbox_manager(),
-        translate_into_watchable(broadcaster_metadata_controller.get_root_view()->
-            get_peer_view(cluster.get_connectivity_service()->get_me())),
+        broadcaster_metadata_controller.get_watchable(),
         branch_history_controller.get_view(),
         &broadcaster,
         &interruptor

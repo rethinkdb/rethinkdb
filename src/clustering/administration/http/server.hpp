@@ -4,7 +4,6 @@
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/last_seen_tracker.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "rpc/directory/read_view.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class http_server_t;

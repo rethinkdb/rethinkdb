@@ -1,72 +1,47 @@
 template<class metadata_t>
 directory_write_manager_t<metadata_t>::directory_write_manager_t(
         message_service_t *sub,
-        const metadata_t &initial_metadata) THROWS_NOTHING :
+        const clone_ptr_t<watchable_t<metadata_t> > &value) THROWS_NOTHING :
     message_service(sub),
-    our_value(initial_metadata),
-    connectivity_subscription(
-        boost::bind(&directory_write_manager_t::on_connect, this, _1),
-        NULL)
+    value_watchable(value),
+    value_subscription(boost::bind(&directory_write_manager_t::on_change, this)),
+    connectivity_subscription(boost::bind(&directory_write_manager_t::on_connect, this, _1), NULL)
 {
-    connectivity_service_t::peers_list_freeze_t freeze(message_service->get_connectivity_service());
+    typename watchable_t<metadata_t>::freeze_t value_freeze(value_watchable);
+    connectivity_service_t::peers_list_freeze_t connectivity_freeze(message_service->get_connectivity_service());
     rassert(message_service->get_connectivity_service()->get_peers_list().empty());
-    connectivity_subscription.reset(message_service->get_connectivity_service(), &freeze);
+    value_subscription.reset(value_watchable, &value_freeze);
+    connectivity_subscription.reset(message_service->get_connectivity_service(), &connectivity_freeze);
 }
 
 template<class metadata_t>
-clone_ptr_t<directory_wview_t<metadata_t> > directory_write_manager_t<metadata_t>::get_root_view() THROWS_NOTHING {
-    return clone_ptr_t<directory_wview_t<metadata_t> >(new root_view_t(this));
+void directory_write_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOTHING {
+    typename watchable_t<metadata_t>::freeze_t freeze(value_watchable);
+    coro_t::spawn_sometime(boost::bind(
+        &directory_write_manager_t::send_initialization, this,
+        peer,
+        value_watchable->get(), metadata_fifo_source.get_state(),
+        auto_drainer_t::lock_t(&drainer)
+        ));
 }
 
 template<class metadata_t>
-typename directory_write_manager_t<metadata_t>::root_view_t *directory_write_manager_t<metadata_t>::root_view_t::clone() const {
-    return new root_view_t(parent);
-}
-
-template<class metadata_t>
-metadata_t directory_write_manager_t<metadata_t>::root_view_t::get_our_value(directory_write_service_t::our_value_lock_acq_t *proof) THROWS_NOTHING {
-    proof->assert_is_holding(parent);
-    return parent->our_value;
-}
-
-template<class metadata_t>
-void directory_write_manager_t<metadata_t>::root_view_t::set_our_value(const metadata_t &new_value_for_us, directory_write_service_t::our_value_lock_acq_t *proof) THROWS_NOTHING {
-    proof->assert_is_holding(parent);
+void directory_write_manager_t<metadata_t>::on_change() THROWS_NOTHING {
     /* Acquire this lock to avoid the case where a new peer copies the metadata
     value after we change it but also gets an update sent. (That would lead to a
     crash on the receiving end because the receiving FIFO would get a duplicate
     update.) */
-    connectivity_service_t::peers_list_freeze_t freeze(parent->message_service->get_connectivity_service());
-    parent->our_value = new_value_for_us;
-    fifo_enforcer_write_token_t metadata_fifo_token = parent->metadata_fifo_source.enter_write();
-    std::set<peer_id_t> peers = parent->message_service->get_connectivity_service()->get_peers_list();
+    connectivity_service_t::peers_list_freeze_t freeze(message_service->get_connectivity_service());
+    fifo_enforcer_write_token_t metadata_fifo_token = metadata_fifo_source.enter_write();
+    std::set<peer_id_t> peers = message_service->get_connectivity_service()->get_peers_list();
     for (std::set<peer_id_t>::iterator it = peers.begin(); it != peers.end(); it++) {
         coro_t::spawn_sometime(boost::bind(
-            &directory_write_manager_t::send_update, parent,
+            &directory_write_manager_t::send_update, this,
             *it,
-            new_value_for_us, metadata_fifo_token,
-            auto_drainer_t::lock_t(&parent->drainer)
+            value_watchable->get(), metadata_fifo_token,
+            auto_drainer_t::lock_t(&drainer)
             ));
     }
-}
-
-template<class metadata_t>
-directory_write_service_t *directory_write_manager_t<metadata_t>::root_view_t::get_directory_service() THROWS_NOTHING {
-    return parent;
-}
-
-template<class metadata_t>
-directory_write_manager_t<metadata_t>::root_view_t::root_view_t(directory_write_manager_t *p) THROWS_NOTHING :
-    parent(p) { }
-
-template<class metadata_t>
-void directory_write_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOTHING {
-    coro_t::spawn_sometime(boost::bind(
-        &directory_write_manager_t::send_initialization, this,
-        peer,
-        our_value, metadata_fifo_source.get_state(),
-        auto_drainer_t::lock_t(&drainer)
-        ));
 }
 
 template<class metadata_t>
@@ -107,10 +82,5 @@ void directory_write_manager_t<metadata_t>::write_update(write_stream_t *os, con
     if (res) {
         throw fake_archive_exc_t();
     }
-}
-
-template<class metadata_t>
-mutex_t *directory_write_manager_t<metadata_t>::get_our_value_lock() THROWS_NOTHING {
-    return &our_value_lock;
 }
 

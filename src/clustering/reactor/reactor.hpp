@@ -7,8 +7,6 @@
 #include "clustering/reactor/metadata.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/connectivity/connectivity.hpp"
-#include "rpc/directory/view.hpp"
-#include "rpc/directory/watchable_copier.hpp"
 #include "rpc/semilattice/view.hpp"
 
 template<class protocol_t>

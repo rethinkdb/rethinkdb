@@ -10,7 +10,6 @@
 #include "clustering/resource.hpp"
 #include "concurrency/promise.hpp"
 #include "protocol_api.hpp"
-#include "rpc/directory/view.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
 

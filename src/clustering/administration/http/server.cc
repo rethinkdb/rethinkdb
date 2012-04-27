@@ -10,7 +10,6 @@
 #include "http/file_app.hpp"
 #include "http/http.hpp"
 #include "http/routing_app.hpp"
-#include "rpc/directory/watchable_copier.hpp"
 
 std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const std::map<peer_id_t, cluster_directory_metadata_t> &md) {
     std::map<peer_id_t, log_server_business_card_t> out;
