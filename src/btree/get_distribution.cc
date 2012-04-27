@@ -13,7 +13,11 @@ public:
     { }
 
     void read_stat_block(buf_lock_t *stat_block) { 
-        key_count = reinterpret_cast<const btree_statblock_t *>(stat_block->get_data_read())->population;
+        if (stat_block) {
+            key_count = reinterpret_cast<const btree_statblock_t *>(stat_block->get_data_read())->population;
+        } else {
+            key_count = 0;
+        }
     }
 
     // This is free to call mark_deleted.
@@ -35,7 +39,10 @@ public:
     void postprocess_internal_node(buf_lock_t *internal_node_buf) {
         const internal_node_t *node = reinterpret_cast<const internal_node_t *>(internal_node_buf->get_data_read());
 
-        for (int i = 0; i < node->npairs; i++) {
+        /* Notice, we iterate all but the last pair because the last pair
+         * doesn't actually have a key and we're looking for the split points.
+         * */
+        for (int i = 0; i < (node->npairs - 1); i++) {
             const btree_internal_pair *pair = internal_node::get_pair_by_index(node, i);
             keys->push_back(store_key_t(pair->key.size, pair->key.contents));
         }
