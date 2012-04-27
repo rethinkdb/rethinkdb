@@ -1,13 +1,15 @@
 #include "arch/io/network.hpp"
 
-#include <fcntl.h>
-#include <errno.h>
-#include <string.h>
 #include <arpa/inet.h>
-#include <netinet/tcp.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <net/if.h>
 #include <netdb.h>
+#include <netinet/tcp.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
@@ -867,3 +869,40 @@ void linux_tcp_listener_t::on_event(int events) {
     }
 }
 
+std::vector<std::string> get_ips() {
+    std::vector<std::string> res;
+    struct ifaddrs *ifAddrStruct = NULL;
+    struct ifaddrs *ifa = NULL;
+    void *tmpAddrPtr = NULL;
+
+    getifaddrs(&ifAddrStruct);
+
+    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa ->ifa_addr->sa_family==AF_INET) {
+            if (ifa->ifa_flags & IFF_LOOPBACK) {
+                //Loop back device
+                continue;
+            }
+            tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+            char addressBuffer[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+
+            res.push_back(addressBuffer);
+        } else if (ifa->ifa_addr->sa_family==AF_INET6) {
+            if (ifa->ifa_flags & IFF_LOOPBACK) {
+                //Loop back device
+                continue;
+            }
+            tmpAddrPtr=&((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
+            char addressBuffer[INET6_ADDRSTRLEN];
+            inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
+
+            res.push_back(addressBuffer);
+        } 
+    }
+
+    if (ifAddrStruct!=NULL) {
+        freeifaddrs(ifAddrStruct);
+    }
+    return res;
+}
