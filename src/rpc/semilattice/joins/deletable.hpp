@@ -41,6 +41,11 @@ public:
         return res;
     }
 
+    void mark_deleted() {
+        deleted = true;
+        t = T();
+    }
+
     T get() const {
         return t;
     }
