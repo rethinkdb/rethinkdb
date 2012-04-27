@@ -5,11 +5,11 @@
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/promise.hpp"
-#include "protocol_api.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
 
 template <class T> class replier_t;
+template <class T> class intro_receiver_t;
 template <class T> class registrant_t;
 template <class T> class semilattice_read_view_t;
 template <class T> class semilattice_readwrite_view_t;
@@ -75,6 +75,7 @@ public:
 
 private:
     friend class replier_t<protocol_t>;
+    friend class intro_receiver_t<protocol_t>;
 
     /* `intro_t` represents the introduction we expect to get from the
     broadcaster if all goes well. */
@@ -83,23 +84,6 @@ private:
         typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
         typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
         state_timestamp_t broadcaster_begin_timestamp;
-    };
-
-    /* Support class for `start_receiving_writes()`. It's defined out here, as
-    opposed to locally in `start_receiving_writes()`, so that we can
-    `boost::bind()` to it. */
-    class intro_receiver_t : public signal_t {
-    public:
-        intro_t intro;
-        void fill(state_timestamp_t its,
-                typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
-                typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
-            rassert(!is_pulsed());
-            intro.broadcaster_begin_timestamp = its;
-            intro.upgrade_mailbox = um;
-            intro.downgrade_mailbox = dm;
-            pulse();
-        }
     };
 
     // TODO: What the fuck is this boost optional boost optional shit?
