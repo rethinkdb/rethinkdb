@@ -29,7 +29,11 @@ module 'DataUtils', ->
     @get_machine_reachability = (machine_uuid) ->
         reachable = directory.get(machine_uuid)?
         if not reachable
-            last_seen = machines.get(machine_uuid).get('last_seen')
+            _m = machines.get(machine_uuid)
+            if _m?
+                last_seen = _m.get('last_seen')
+            else
+                last_seen = null
             if last_seen
                 last_seen = $.timeago(new Date(parseInt(last_seen) * 1000))
         json =
@@ -39,7 +43,13 @@ module 'DataUtils', ->
 
     @get_datacenter_reachability = (datacenter_uuid) ->
         total = (_.filter machines.models, (m) => m.get('datacenter_uuid') is datacenter_uuid).length
-        reachable = (_.filter directory.models, (m) => machines.get(m.get('id')).get('datacenter_uuid') is datacenter_uuid).length
+        reachable = (_.filter directory.models, (m) =>
+            _m = machines.get(m.get('id'))
+            if _m?
+                _m.get('datacenter_uuid') is datacenter_uuid
+            else
+                return false
+            ).length
 
         if reachable == 0 and total > 0
             for machine in machines.models
@@ -403,7 +413,21 @@ class Machines extends Backbone.Collection
 
 class LogEntries extends Backbone.Collection
     model: LogEntry
-    comparator: (log_entry) ->
+    comparator: (a, b) ->
+        if a.get('timestamp') < b.get('timestamp')
+            return 1
+        else if a.get('timestamp') > b.get('timestamp')
+            return -1
+        else if a.get('machine_uuid') <  b.get('machine_uuid')
+            return 1
+        else if a.get('machine_uuid') > b.get('machine_uuid')
+            return -1
+        else if a.get('message') < b.get('message')
+            return 1
+        else if a.get('message') > b.get('message')
+            return -1
+        else
+            return 0
         # sort strings in reverse order (return a negated string)
         #String.fromCharCode.apply String,
         #    _.map(log_entry.get('datetime').split(''), (c) -> 0xffff - c.charCodeAt())
@@ -579,7 +603,7 @@ clear_modals = ->
     modal_registry = []
 register_modal = (modal) -> modal_registry.push(modal)
 
-updateInterval = 500
+updateInterval = 5000
 
 declare_client_connected = ->
     window.connection_status.set({client_disconnected: false})
@@ -669,11 +693,13 @@ set_log_entries = (log_data_from_server) ->
         _m_collection = new LogEntries
         for json in log_entries
             entry = new LogEntry json
+            entry.set('machine_uuid',machine_uuid)
             _m_collection.add entry
             all_log_entries.push entry
 
-        machines.get(machine_uuid).set('log_entries', _m_collection)
         _m = machines.get(machine_uuid)
+        if _m?
+            machines.get(machine_uuid).set('log_entries', _m_collection)
 
     recent_log_entries.reset(all_log_entries)
 
@@ -709,7 +735,7 @@ $ ->
         $.getJSON('/ajax/progress', set_progress)
         $.getJSON('/ajax/directory', set_directory)
         $.getJSON('/ajax/last_seen', set_last_seen)
-        #$.getJSON('/ajax/log/_?max_length=10', set_log_entries)
+        $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
 
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync

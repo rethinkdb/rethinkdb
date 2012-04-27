@@ -58,6 +58,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/flot/jquery.flot.resize.js");
     white_list.insert("/js/handlebars-1.0.0.beta.6.js");
     white_list.insert("/js/jquery-1.7.1.min.js");
+    white_list.insert("/js/jquery.dataTables.min.js");
     white_list.insert("/js/jquery.form.js");
     white_list.insert("/js/jquery.hotkeys.js");
     white_list.insert("/js/jquery.sparkline.min.js");

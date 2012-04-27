@@ -109,29 +109,6 @@ iso_date_from_unix_time = (unix_time) -> ISODateString new Date(unix_time * 1000
 # -----------------------------------------------
 random_model_from = (collection) ->_.shuffle(collection.models)[0]
 
-# Generate a date/time stamp in the past for testing
-# --------------------------------------------------
-time_travel = (minutes) ->
-    d = new Date()
-    d.setMinutes(d.getMinutes() - minutes)
-    return d
-# -------------------------------------------
-# Create a set of fake events
-generate_fake_events = (events) ->
-    events.reset [
-            priority: 'medium'
-            message: 'Machine riddler was disconnected.'
-            datetime: ISODateString time_travel 43
-        ,
-            priority: 'medium'
-            message: 'Machine puzzler was disconnected.'
-            datetime: ISODateString time_travel 20
-        ,
-            priority: 'low'
-            message: 'Cluster started successfully.'
-            datetime: ISODateString time_travel 55
-    ]
-
 # Create a set of fake issues
 generate_fake_issues = (issues) ->
     issues.reset [

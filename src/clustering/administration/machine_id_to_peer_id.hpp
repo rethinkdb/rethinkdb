@@ -4,17 +4,6 @@
 #include "clustering/administration/machine_metadata.hpp"
 #include "rpc/directory/read_view.hpp"
 
-inline peer_id_t machine_id_to_peer_id(const machine_id_t &input, const clone_ptr_t<directory_rview_t<machine_id_t> > &translation_table) {
-    std::set<peer_id_t> peers_list = translation_table->get_directory_service()->get_connectivity_service()->get_peers_list();
-    for (std::set<peer_id_t>::iterator it = peers_list.begin(); it != peers_list.end(); it++) {
-        machine_id_t machine_id = translation_table->get_value(*it).get();
-        if (machine_id == input) {
-            return *it;
-        }
-    }
-    return peer_id_t();
-}
-
 inline peer_id_t machine_id_to_peer_id(const machine_id_t &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
     for (std::map<peer_id_t, machine_id_t>::const_iterator it = translation_table.begin(); it != translation_table.end(); it++) {
         if (it->second == input) {

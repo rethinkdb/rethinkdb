@@ -1,5 +1,7 @@
 #include "logger.hpp"
 
+#if 0
+
 template<class inner_t, class outer_t>
 class field_readwrite_lens_t : public readwrite_lens_t<inner_t, outer_t> {
 public:
@@ -207,3 +209,5 @@ clone_ptr_t<read_lens_t<value_t, std::map<key_t, value_t> > > default_member_len
         new default_member_read_lens_t<key_t, value_t>(key, default_val)
         );
 }
+
+#endif

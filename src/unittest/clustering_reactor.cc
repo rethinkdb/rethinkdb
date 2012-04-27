@@ -1,19 +1,23 @@
 #include "unittest/gtest.hpp"
-#include "unittest/clustering_utils.hpp"
-#include "unittest/dummy_metadata_controller.hpp"
-#include "mock/dummy_protocol.hpp"
-#include "unittest/unittest_utils.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/semilattice/semilattice_manager.hpp"
-#include "rpc/directory/manager.hpp"
+
+#include "errors.hpp"
+#include <boost/tokenizer.hpp>
+
+#include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/immediate_consistency/query/namespace_interface.hpp"
+#include "clustering/reactor/blueprint.hpp"
+#include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/metadata.hpp"
-#include "clustering/reactor/blueprint.hpp"
-#include "concurrency/watchable.hpp"
 #include "clustering/reactor/reactor.hpp"
-#include "clustering/immediate_consistency/query/namespace_interface.hpp"
-#include <boost/tokenizer.hpp>
-#include "clustering/reactor/blueprint.hpp"
+#include "concurrency/watchable.hpp"
+#include "mock/dummy_protocol.hpp"
+#include "rpc/connectivity/multiplexer.hpp"
+#include "rpc/directory/manager.hpp"
+#include "rpc/semilattice/semilattice_manager.hpp"
+#include "unittest/clustering_utils.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -82,7 +86,7 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
 template<class protocol_t>
 class test_cluster_directory_t {
 public:
-    boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >  reactor_directory;
+    boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > reactor_directory;
     std::map<master_id_t, master_business_card_t<protocol_t> > master_directory;
 
     RDB_MAKE_ME_SERIALIZABLE_2(reactor_directory, master_directory);
@@ -106,9 +110,11 @@ public:
         semilattice_manager_branch_history(&semilattice_manager_client, branch_history_t<protocol_t>()),
         semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_branch_history),
 
+        our_directory_variable(test_cluster_directory_t<protocol_t>()),
         directory_manager_client(&message_multiplexer, 'D'),
-        directory_manager(&directory_manager_client, test_cluster_directory_t<protocol_t>()),
+        directory_manager(&directory_manager_client, our_directory_variable.get_watchable()->get()),
         directory_manager_client_run(&directory_manager_client, &directory_manager),
+        our_directory_copier(our_directory_variable.get_watchable(), directory_manager.get_root_view()),
 
         message_multiplexer_run(&message_multiplexer),
         connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run)
@@ -129,9 +135,11 @@ public:
     semilattice_manager_t<branch_history_t<protocol_t> > semilattice_manager_branch_history;
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run;
 
+    watchable_variable_t<test_cluster_directory_t<protocol_t> > our_directory_variable;
     message_multiplexer_t::client_t directory_manager_client;
     directory_readwrite_manager_t<test_cluster_directory_t<protocol_t> > directory_manager;
     message_multiplexer_t::client_t::run_t directory_manager_client_run;
+    watchable_write_copier_t<test_cluster_directory_t<protocol_t> > our_directory_copier;
 
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
@@ -143,12 +151,10 @@ public:
     test_reactor_t(reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, store_view_t<protocol_t> *store_view) :
         blueprint_watchable(initial_blueprint),
         reactor(&r->mailbox_manager, this,
-              translate_into_watchable(r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory))),
+              translate_into_watchable(r->directory_manager.get_root_view())->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
               r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), store_view),
-        reactor_directory_copier(reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional),
-                                 r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory))),
-        master_directory_copier(reactor.get_master_directory(),
-                                r->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory)))
+        reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable),
+        master_directory_copier(&test_cluster_directory_t<protocol_t>::master_directory, reactor.get_master_directory(), &r->our_directory_variable)
     {
         rassert(store_view->get_region() == a_thru_z_region());
     }
@@ -159,13 +165,22 @@ public:
 
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
     reactor_t<protocol_t> reactor;
-    watchable_write_copier_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > reactor_directory_copier;
-    watchable_write_copier_t<std::map<master_id_t, master_business_card_t<protocol_t> > > master_directory_copier;
+    field_copier_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >, test_cluster_directory_t<protocol_t> > reactor_directory_copier;
+    field_copier_t<std::map<master_id_t, master_business_card_t<protocol_t> >, test_cluster_directory_t<protocol_t> > master_directory_copier;
 
 private:
     static boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > wrap_in_optional(
-            const directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > &bcard) {
-        return boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(bcard);
+            const directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > &input) {
+        return boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(input);
+    }
+
+    static std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > extract_reactor_directory(
+            const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &bcards) {
+        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > out;
+        for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = bcards.begin(); it != bcards.end(); it++) {
+            out.insert(std::make_pair(it->first, it->second.reactor_directory));
+        }
+        return out;
     }
 };
 
@@ -254,10 +269,20 @@ public:
     //    test_reactors[i].blueprint_watchable.set_value(bp);
     //}
 
+    static std::map<peer_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > extract_master_directory(
+            const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input) {
+        std::map<peer_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > output;
+        for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = input.begin(); it != input.end(); it++) {
+            output.insert(std::make_pair(it->first, it->second.master_directory));
+        }
+        return output;
+    }
+
     void run_queries() {
         for (unsigned i = 0; i < test_clusters.size(); i++) {
-            cluster_namespace_interface_t<protocol_t> namespace_if(&(&test_clusters[i])->mailbox_manager,
-                                                                   translate_into_watchable((&test_clusters[i])->directory_manager.get_root_view()->subview(field_lens(&test_cluster_directory_t<protocol_t>::master_directory))));
+            cluster_namespace_interface_t<protocol_t> namespace_if(&test_clusters[i].mailbox_manager,
+                translate_into_watchable((&test_clusters[i])->directory_manager.get_root_view())
+                    ->subview(&test_cluster_group_t::extract_master_directory));
 
             nap(50);
 
@@ -270,6 +295,19 @@ public:
         }
     }
 
+    static std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > extract_reactor_business_cards(
+            const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input) {
+        std::map<peer_id_t, boost::optional<reactor_business_card_t<protocol_t> > > out;
+        for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = input.begin(); it != input.end(); it++) {
+            if (it->second.reactor_directory) {
+                out.insert(std::make_pair(it->first, boost::optional<reactor_business_card_t<protocol_t> >(it->second.reactor_directory->internal)));
+            } else {
+                out.insert(std::make_pair(it->first, boost::optional<reactor_business_card_t<protocol_t> >()));
+            }
+        }
+        return out;
+    }
+
     void wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp) {
         try {
 #ifdef VALGRIND
@@ -279,12 +317,9 @@ public:
 #endif
 
             signal_timer_t timer(timeout);
-            static_cast<clone_ptr_t<directory_rview_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > >(test_clusters[0].directory_manager.get_root_view()
-                ->subview(field_lens(&test_cluster_directory_t<protocol_t>::reactor_directory)))
-                ->subview(optional_monad_lens<reactor_business_card_t<protocol_t>, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >(
-                            field_lens(&directory_echo_wrapper_t<reactor_business_card_t<protocol_t> >::internal)))
-                    ->run_until_satisfied(
-                        boost::bind(&is_blueprint_satisfied<protocol_t>, bp, _1), &timer);
+            translate_into_watchable(test_clusters[0].directory_manager.get_root_view())
+                ->subview(&test_cluster_group_t<protocol_t>::extract_reactor_business_cards)
+                    ->run_until_satisfied(boost::bind(&is_blueprint_satisfied<protocol_t>, bp, _1), &timer);
         } catch (interrupted_exc_t) {
             ADD_FAILURE() << "The blueprint took too long to be satisfied, this is probably an error but you could try increasing the timeout. Heres the blueprint:";
         }

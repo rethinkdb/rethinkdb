@@ -101,7 +101,7 @@ static void throw_unless(bool condition, const std::string &where) {
 
 class file_reverse_reader_t {
 public:
-    file_reverse_reader_t(const std::string &filename) :
+    explicit file_reverse_reader_t(const std::string &filename) :
             fd(open(filename.c_str(), O_RDONLY)),
             current_chunk(new char[chunk_size]) {
         throw_unless(fd.get() != -1, strprintf("could not open '%s' for reading.", filename.c_str()));
@@ -171,7 +171,7 @@ std::vector<log_message_t> log_writer_t::tail(int max_lines, time_t min_timestam
     volatile bool cancel = false;
     class cancel_subscription_t : public signal_t::subscription_t {
     public:
-        cancel_subscription_t(volatile bool *c) : cancel(c) { }
+        explicit cancel_subscription_t(volatile bool *c) : cancel(c) { }
         void run() {
             *cancel = true;
         }
