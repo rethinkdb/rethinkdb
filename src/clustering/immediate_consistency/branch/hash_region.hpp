@@ -140,6 +140,9 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<inner
 	return REGION_JOIN_OK;
     }
 
+    // TODO: Invent a new error code like REGION_JOIN_BAD_RECTANGLE.
+    // I think it's always a sign of programmer error.
+    rassert(false);
 
     return REGION_JOIN_BAD_REGION;  // Or is it BAD_JOIN?  BAD_RECTANGLE?
 }
