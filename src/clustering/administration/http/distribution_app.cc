@@ -4,8 +4,8 @@
 #include "clustering/administration/http/distribution_app.hpp"
 #include "stl_utils.hpp"
 
-#define DEFAULT_DEPTH 4
-#define MAX_DETPH 10
+#define DEFAULT_DEPTH 1
+#define MAX_DETPH 2
 
 distribution_app_t::distribution_app_t(boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > _namespaces_sl_metadata, 
                                        namespace_repo_t<memcached_protocol_t> *_ns_repo)
