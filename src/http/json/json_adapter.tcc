@@ -503,7 +503,7 @@ void on_subfield_change(boost::optional<T> *, const ctx_t &) { }
 template <class ctx_t>
 class variant_json_subfield_getter_t : public boost::static_visitor<typename json_adapter_if_t<ctx_t>::json_adapter_map_t> {
 public:
-    variant_json_subfield_getter_t(ctx_t _ctx)
+    explicit variant_json_subfield_getter_t(ctx_t _ctx)
         : ctx(_ctx)
     { }
 
@@ -519,7 +519,7 @@ private:
 template <class ctx_t>
 class variant_json_renderer_t : public boost::static_visitor<cJSON *> {
 public:
-    variant_json_renderer_t(ctx_t _ctx)
+    explicit variant_json_renderer_t(ctx_t _ctx)
         : ctx(_ctx)
     { }
 

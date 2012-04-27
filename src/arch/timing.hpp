@@ -35,7 +35,7 @@ class repeating_timer_callback_t {
 public:
     virtual void on_ring() = 0;
 protected:
-    ~repeating_timer_callback_t() { }
+    virtual ~repeating_timer_callback_t() { }
 };
 
 class repeating_timer_t {

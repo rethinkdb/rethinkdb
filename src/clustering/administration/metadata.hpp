@@ -60,9 +60,10 @@ public:
     cluster_directory_metadata_t() { }
     cluster_directory_metadata_t(
             machine_id_t mid,
+            const std::vector<std::string> &_ips,
             const get_stats_mailbox_address_t& _stats_mailbox,
             const log_server_business_card_t &lmb) :
-        machine_id(mid), get_stats_mailbox_address(_stats_mailbox),log_mailbox(lmb) { }
+        machine_id(mid), ips(_ips), get_stats_mailbox_address(_stats_mailbox),log_mailbox(lmb) { }
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
@@ -70,11 +71,14 @@ public:
     /* Tell the other peers what our machine ID is */
     machine_id_t machine_id;
 
+    /* To tell everyone what our ips are. */
+    std::vector<std::string> ips;
+
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;
     std::list<clone_ptr_t<local_issue_t> > local_issues;
 
-    RDB_MAKE_ME_SERIALIZABLE_6(dummy_namespaces, memcached_namespaces, machine_id, get_stats_mailbox_address, log_mailbox, local_issues);
+    RDB_MAKE_ME_SERIALIZABLE_7(dummy_namespaces, memcached_namespaces, machine_id, ips, get_stats_mailbox_address, log_mailbox, local_issues);
 };
 
 // json adapter concept for directory_echo_wrapper_t
@@ -104,7 +108,8 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
     res["dummy_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, ctx_t>(&target->dummy_namespaces));
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_directory_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
-    res["machine_id"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<machine_id_t, ctx_t>(target->machine_id)); // TODO: should be 'me'?
+    res["machine_id"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machine_id_t, ctx_t>(&target->machine_id)); // TODO: should be 'me'?
+    res["ips"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<std::vector<std::string>, ctx_t>(&target->ips));
     return res;
 }
 

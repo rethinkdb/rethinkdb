@@ -1,5 +1,9 @@
 #include "http/json/json_adapter.hpp"
 
+bool is_null(cJSON *json) {
+    return json->type == cJSON_NULL;
+}
+
 //Functions to make accessing cJSON *objects easier
 
 bool get_bool(cJSON *json) {

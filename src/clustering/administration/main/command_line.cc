@@ -7,7 +7,7 @@
 #include "arch/os_signal.hpp"
 #include "clustering/administration/main/command_line.hpp"
 #include "clustering/administration/main/serve.hpp"
-#include "clustering/administration/main/admin.hpp"
+#include "clustering/administration/cli/admin.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
 #include "mock/dummy_protocol.hpp"

@@ -65,6 +65,10 @@ struct multiple_choices_exc_t : public json_adapter_exc_t {
     }
 };
 
+//Type checking functions
+
+bool is_null(cJSON *json);
+
 //Functions to make accessing cJSON *objects easier
 
 bool get_bool(cJSON *json);

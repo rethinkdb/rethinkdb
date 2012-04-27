@@ -12,11 +12,17 @@
 #include <vector>
 #include <string>
 #include <boost/program_options.hpp>
-#include "clustering/administration/main/linenoise.hpp"
+#include "clustering/administration/cli/linenoise.hpp"
+#include "clustering/administration/issues/global.hpp"
+#include "clustering/administration/issues/local_to_global.hpp"
+#include "clustering/administration/issues/machine_down.hpp"
+#include "clustering/administration/issues/name_conflict.hpp"
+#include "clustering/administration/issues/pinnings_shards_mismatch.hpp"
+#include "clustering/administration/issues/vector_clock_conflict.hpp"
 
 struct admin_parse_exc_t : public std::exception {
 public:
-    admin_parse_exc_t(const std::string& data) : info(data) { }
+    explicit admin_parse_exc_t(const std::string& data) : info(data) { }
     ~admin_parse_exc_t() throw () { }
     const char *what() const throw () { return info.c_str(); }
 private:
@@ -88,7 +94,7 @@ private:
 public:
 
     struct command_data {
-        command_data(const command_info *cmd_info) : info(cmd_info) { }
+        explicit command_data(const command_info *cmd_info) : info(cmd_info) { }
         const command_info * const info;
         std::map<std::string, std::vector<std::string> > params;
     };
@@ -116,6 +122,7 @@ private:
 
     void set_metadata_value(const std::vector<std::string>& path, const std::string& value);
 
+    void list_issues(bool long_format);
     void list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_datacenters(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_dummy_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
@@ -163,6 +170,21 @@ private:
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+
+    // Issue tracking
+    global_issue_aggregator_t issue_aggregator;
+    remote_issue_collector_t remote_issue_tracker;
+    global_issue_aggregator_t::source_t remote_issue_tracker_feed;
+    machine_down_issue_tracker_t machine_down_issue_tracker;
+    global_issue_aggregator_t::source_t machine_down_issue_tracker_feed;
+    name_conflict_issue_tracker_t name_conflict_issue_tracker;
+    global_issue_aggregator_t::source_t name_conflict_issue_tracker_feed;
+    vector_clock_conflict_issue_tracker_t vector_clock_conflict_issue_tracker;
+    global_issue_aggregator_t::source_t vector_clock_issue_tracker_feed;
+    pinnings_shards_mismatch_issue_tracker_t<memcached_protocol_t> mc_pinnings_shards_mismatch_issue_tracker;
+    global_issue_aggregator_t::source_t mc_pinnings_shards_mismatch_issue_tracker_feed;
+    pinnings_shards_mismatch_issue_tracker_t<mock::dummy_protocol_t> dummy_pinnings_shards_mismatch_issue_tracker;
+    global_issue_aggregator_t::source_t dummy_pinnings_shards_mismatch_issue_tracker_feed;
 
     std::map<std::string, std::vector<std::string> > uuid_to_path;
     std::map<std::string, std::vector<std::string> > name_to_path;

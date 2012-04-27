@@ -110,7 +110,7 @@ key_range_t region_intersection(const key_range_t &r1, const key_range_t &r2) TH
     return ixn;
 }
 
-static bool compare_range_by_left(const key_range_t &r1, const key_range_t &r2) {
+bool compare_range_by_left(const key_range_t &r1, const key_range_t &r2) {
     return r1.left < r2.left;
 }
 
@@ -121,7 +121,9 @@ region_join_result_t region_join(const std::vector<key_range_t> &vec, key_range_
     } else {
         std::vector<key_range_t> sorted = vec;
         std::sort(sorted.begin(), sorted.end(), &compare_range_by_left);
+	// TODO: Why the is this called a "cursor"?
         key_range_t::right_bound_t cursor = key_range_t::right_bound_t(sorted[0].left);
+	// TODO: Avoid C-style casts.
         for (int i = 0; i < (int)sorted.size(); i++) {
             if (cursor < key_range_t::right_bound_t(sorted[i].left)) {
                 return REGION_JOIN_BAD_REGION;
@@ -150,6 +152,8 @@ bool region_overlaps(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHIN
             !region_is_empty(r1) && !region_is_empty(r2));
 }
 
+// TODO: What the fuck does minuend mean?
+// TODO: I think you mean subtrahendron.
 std::vector<key_range_t> region_subtract_many(key_range_t minuend, const std::vector<key_range_t>& subtrahends) {
     std::vector<key_range_t> buf, temp_result_buf;
     buf.push_back(minuend);

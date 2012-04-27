@@ -10,12 +10,12 @@
 struct progress_bar_draw_callback_t {
     virtual void draw() = 0;
 protected:
-    ~progress_bar_draw_callback_t() { }
+    virtual ~progress_bar_draw_callback_t() { }
 };
 
 class progress_bar_t {
 public:
-    progress_bar_t(const std::string&);
+    explicit progress_bar_t(const std::string&);
     virtual ~progress_bar_t();
 
     void refresh(progress_bar_draw_callback_t *);

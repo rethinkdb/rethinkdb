@@ -1,6 +1,7 @@
 #include "clustering/administration/http/server.hpp"
 
 #include "clustering/administration/http/directory_app.hpp"
+#include "clustering/administration/http/distribution_app.hpp"
 #include "clustering/administration/http/issues_app.hpp"
 #include "clustering/administration/http/last_seen_app.hpp"
 #include "clustering/administration/http/log_app.hpp"
@@ -10,6 +11,7 @@
 #include "http/file_app.hpp"
 #include "http/http.hpp"
 #include "http/routing_app.hpp"
+#include "rpc/semilattice/view/field.hpp"
 
 std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const std::map<peer_id_t, cluster_directory_metadata_t> &md) {
     std::map<peer_id_t, log_server_business_card_t> out;
@@ -32,6 +34,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         mailbox_manager_t *mbox_manager,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
         clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
+        namespace_repo_t<memcached_protocol_t> *_namespace_repo,
         global_issue_tracker_t *_issue_tracker,
         last_seen_tracker_t *_last_seen_tracker,
         boost::uuids::uuid _us,
@@ -79,6 +82,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         _directory_metadata->subview(&get_machine_id)
         ));
     progress_app.reset(new progress_app_t(_directory_metadata, mbox_manager));
+    distribution_app.reset(new distribution_app_t(metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, _semilattice_metadata), _namespace_repo));
 
     std::map<std::string, http_app_t *> ajax_routes;
     ajax_routes["directory"] = directory_app.get();
@@ -87,6 +91,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     ajax_routes["last_seen"] = last_seen_app.get();
     ajax_routes["log"] = log_app.get();
     ajax_routes["progress"] = progress_app.get();
+    ajax_routes["distribution"] = distribution_app.get();
     ajax_routing_app.reset(new routing_http_app_t(semilattice_app.get(), ajax_routes));
 
     std::map<std::string, http_app_t *> root_routes;
