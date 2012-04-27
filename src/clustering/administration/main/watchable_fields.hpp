@@ -33,7 +33,7 @@ private:
 template<class inner_t, class outer_t>
 class field_getter_t {
 public:
-    field_getter_t(inner_t outer_t::*f) : field(f) { }
+    explicit field_getter_t(inner_t outer_t::*f) : field(f) { }
 
     std::map<peer_id_t, inner_t> operator()(const std::map<peer_id_t, outer_t> &outer) {
         std::map<peer_id_t, inner_t> inner;

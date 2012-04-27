@@ -15,7 +15,7 @@ public:
     typedef mailbox_t<void(return_address_t, std::set<stat_id_t>)> get_stats_mailbox_t;
     typedef get_stats_mailbox_t::address_t get_stats_mailbox_address_t;
 
-    stat_manager_t(mailbox_manager_t* mailbox_manager);
+    explicit stat_manager_t(mailbox_manager_t* mailbox_manager);
 
     get_stats_mailbox_address_t get_address();
 
