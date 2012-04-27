@@ -5,7 +5,6 @@
 #include "clustering/administration/last_seen_tracker.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
-#include "rpc/directory/read_view.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class http_server_t;

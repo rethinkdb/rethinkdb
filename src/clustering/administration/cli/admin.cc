@@ -1,18 +1,21 @@
 #include "clustering/administration/cli/admin.hpp"
-#include <map>
+
 #include <cstdarg>
 #include <iostream>
+#include <map>
 #include <stdexcept>
+
+#include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/program_options.hpp>
-#include "rpc/semilattice/view.hpp"
-#include "rpc/semilattice/semilattice_manager.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
+
 #include "clustering/administration/suggester.hpp"
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "rpc/connectivity/multiplexer.hpp"
+#include "rpc/semilattice/view.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "rpc/directory/watchable_copier.hpp"
+#include "rpc/semilattice/semilattice_manager.hpp"
 
 // TODO: make a useful prompt
 const char *prompt = " > ";
@@ -98,7 +101,7 @@ void rethinkdb_admin_app_t::fill_in_blueprints(cluster_semilattice_metadata_t *c
 
     std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > reactor_directory;
     std::map<peer_id_t, machine_id_t> machine_id_translation_table;
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_metadata->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
     for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator it = directory.begin(); it != directory.end(); it++) {
         reactor_directory.insert(std::make_pair(it->first, it->second.memcached_namespaces));
         machine_id_translation_table.insert(std::make_pair(it->first, it->second.machine_id));
@@ -120,25 +123,28 @@ rethinkdb_admin_app_t::rethinkdb_admin_app_t(const std::set<peer_address_t> &joi
     mailbox_manager(&mailbox_manager_client),
     stat_manager(&mailbox_manager),
     log_server(&mailbox_manager, &log_writer),
-    cluster_directory_metadata(connectivity_cluster.get_me().get_uuid(), stat_manager.get_address(), log_server.get_business_card()),
     mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
     semilattice_manager_client(&message_multiplexer, 'S'),
     semilattice_manager_cluster(&semilattice_manager_client, cluster_semilattice_metadata_t()),
     semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster),
     directory_manager_client(&message_multiplexer, 'D'),
-    directory_manager(&directory_manager_client, cluster_directory_metadata),
-    directory_manager_client_run(&directory_manager_client, &directory_manager),
+    our_directory_metadata(cluster_directory_metadata_t(connectivity_cluster.get_me().get_uuid(), std::vector<std::string>(), stat_manager.get_address(), log_server.get_business_card())),
+    directory_read_manager(connectivity_cluster.get_connectivity_service()),
+    directory_write_manager(&directory_manager_client, our_directory_metadata.get_watchable()),
+    directory_manager_client_run(&directory_manager_client, &directory_read_manager),
     message_multiplexer_run(&message_multiplexer),
     connectivity_cluster_run(&connectivity_cluster, 0, &message_multiplexer_run, client_port),
-    directory_metadata(translate_into_watchable(directory_manager.get_root_view())),
     semilattice_metadata(semilattice_manager_cluster.get_root_view()),
     issue_aggregator(),
-    remote_issue_tracker(directory_metadata->subview(
-        field_getter_t<std::list<clone_ptr_t<local_issue_t> >, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
-        directory_metadata->subview(field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))),
+    remote_issue_tracker(
+        directory_read_manager.get_root_view()->subview(
+            field_getter_t<std::list<clone_ptr_t<local_issue_t> >, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
+        directory_read_manager.get_root_view()->subview( 
+            field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
+        ),
     remote_issue_tracker_feed(&issue_aggregator, &remote_issue_tracker),
     machine_down_issue_tracker(semilattice_metadata,
-        directory_metadata->subview(field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))),
+        directory_read_manager.get_root_view()->subview(field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))),
     machine_down_issue_tracker_feed(&issue_aggregator, &machine_down_issue_tracker),
     name_conflict_issue_tracker(semilattice_metadata),
     name_conflict_issue_tracker_feed(&issue_aggregator, &name_conflict_issue_tracker),

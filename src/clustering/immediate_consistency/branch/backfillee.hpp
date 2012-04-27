@@ -6,7 +6,6 @@
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "rpc/directory/watchable_copier.hpp"
 
 /* TODO: What if the backfill chunks on the network get reordered in transit?
 Even if the `protocol_t` can tolerate backfill chunks being reordered, it's

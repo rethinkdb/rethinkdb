@@ -4,7 +4,6 @@
 #include "clustering/administration/metadata.hpp"
 #include "http/http.hpp"
 #include "http/json/cJSON.hpp"
-#include "rpc/directory/read_view.hpp"
 
 class directory_http_app_t : public http_app_t {
 public:

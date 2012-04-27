@@ -6,7 +6,6 @@
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "concurrency/watchable.hpp"
-#include "rpc/directory/view.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 typedef int directory_echo_version_t;

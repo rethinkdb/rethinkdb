@@ -227,9 +227,14 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
     boost::optional<machine_id_t> requested_machine_id;
     if (it != req.resource.end()) {
         if (*it != any_machine_id_wildcard) {
-            requested_machine_id = str_to_uuid(*it);
-            if (requested_machine_id->is_nil()) {
+            try {
+                requested_machine_id = str_to_uuid(*it);
+            } catch (std::runtime_error &e) {
                 throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid uuid\n", it->c_str()));
+            }
+
+            if (requested_machine_id->is_nil()) {
+                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid non nil uuid\n", it->c_str()));
             }
         }
         ++it;
@@ -240,9 +245,13 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
     boost::optional<namespace_id_t> requested_namespace_id;
     if (it != req.resource.end()) {
         if (*it != any_machine_id_wildcard) {
-            requested_namespace_id = str_to_uuid(*it);
-            if (requested_namespace_id->is_nil()) {
+            try {
+                requested_namespace_id = str_to_uuid(*it);
+            } catch (std::runtime_error &e) {
                 throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid uuid\n", it->c_str()));
+            }
+            if (requested_namespace_id->is_nil()) {
+                throw schema_mismatch_exc_t(strprintf("Failed to parse %s as non nil uuid\n", it->c_str()));
             }
         }
         ++it;

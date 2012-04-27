@@ -4,7 +4,6 @@
 #include "clustering/administration/metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "http/http.hpp"
-#include "rpc/directory/read_view.hpp"
 
 class progress_app_t : public http_app_t {
 public:
