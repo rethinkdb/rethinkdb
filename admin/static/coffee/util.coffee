@@ -77,6 +77,14 @@ Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
 
     return new Handlebars.SafeString(result);
 
+# Safe string
+Handlebars.registerHelper 'print_safe', (str) ->
+    if str?
+        return new Handlebars.SafeString(str)
+    else
+        return ""
+
+
 # Register some useful partials
 Handlebars.registerPartial 'backfill_progress_summary', $('#backfill_progress_summary-partial').html()
 Handlebars.registerPartial 'backfill_progress_details', $('#backfill_progress_details-partial').html()
