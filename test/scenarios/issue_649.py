@@ -6,7 +6,6 @@ import http_admin, driver
 from vcoptparse import *
 
 op = OptParser()
-op["mode"] = IntFlag("--mode", "debug")
 op["workload1"] = PositionalArg()
 op["workload2"] = PositionalArg()
 op["workload3"] = PositionalArg()
@@ -14,13 +13,13 @@ op["workload4"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
 
-with driver.Metacluster(driver.find_rethinkdb_executable(opts["mode"])) as metacluster:
+with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     print "Starting cluster..."
     num_nodes = 2
     files = [driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i)
         for i in xrange(num_nodes)]
-    processes = [driver.Process(cluster, files[i], log_path = "serve-output-%d" % i)
+    processes = [driver.Process(cluster, files[i], log_path = "serve-output-%d" % i, executable_path = driver.find_rethinkdb_executable("debug-valgrind"), command_prefix = ["valgrind"])
         for i in xrange(num_nodes)]
     time.sleep(3)
     print "Creating namespace..."

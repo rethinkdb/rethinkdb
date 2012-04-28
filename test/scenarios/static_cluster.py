@@ -12,10 +12,10 @@ op["workload"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
 
-with driver.Metacluster(driver.find_rethinkdb_executable(opts["mode"])) as metacluster:
+with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     print "Starting cluster..."
-    processes = [driver.Process(cluster, driver.Files(metacluster))
+    processes = [driver.Process(cluster, driver.Files(metacluster), executable_path = driver.find_rethinkdb_executable(opts["mode"]))
         for i in xrange(opts["num-nodes"])]
     time.sleep(3)
     print "Creating namespace..."
