@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "clustering/immediate_consistency/branch/history.hpp"
 
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
