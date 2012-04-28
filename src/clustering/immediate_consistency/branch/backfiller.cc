@@ -3,6 +3,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
 
 inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_range_t &vr) {
