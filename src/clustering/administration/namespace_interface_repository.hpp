@@ -17,7 +17,7 @@ round-trips. */
 template <class protocol_t>
 class namespace_repo_t {
 public:
-    namespace_repo_t(mailbox_manager_t *, 
+    namespace_repo_t(mailbox_manager_t *,
                      clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > >);
 
     struct access_t {

@@ -4,12 +4,10 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "clustering/administration/namespace_interface_repository.hpp"
-
 template <class protocol_t>
-namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manager, 
+namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
                                                clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > _namespaces_directory_metadata)
-    : mailbox_manager(_mailbox_manager), 
+    : mailbox_manager(_mailbox_manager),
       namespaces_directory_metadata(_namespaces_directory_metadata)
 { }
 
