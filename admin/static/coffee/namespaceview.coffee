@@ -76,6 +76,8 @@ module 'NamespaceView', ->
         render: =>
             json = @model.toJSON()
             json = _.extend json, DataUtils.get_namespace_status(@model.get('id'))
+            json = _.extend json,
+                old_alert_html: @.$('#user-alert-space').html()
             @.$el.html @template json
 
             return @
@@ -204,82 +206,100 @@ module 'NamespaceView', ->
 
         initialize: ->
             log_initial '(initializing) modal dialog: add namespace'
-            super @template
+            super
 
         render: ->
             log_render '(rendering) add namespace dialog'
 
-            # Define the validator options
-            validator_options =
-                rules:
-                   name: 'required'
+            super
+                modal_title: 'Add namespace'
+                btn_primary_text: 'Add'
+                datacenters: _.map(datacenters.models, (datacenter) -> datacenter.toJSON())
 
-                messages:
-                   name: 'Required'
+        on_submit: ->
+            super
 
-                submitHandler: =>
-                    formdata = form_data_as_object($('form', @$modal))
+            formdata = form_data_as_object($('form', @$modal))
+            $.ajax
+                processData: false
+                url: '/ajax/memcached_namespaces/new'
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify(
+                    name: formdata.name
+                    primary_uuid: formdata.primary_datacenter
+                    port : parseInt(formdata.port)
+                    )
+                success: @on_success
 
-                    $.ajax
-                        processData: false
-                        url: '/ajax/memcached_namespaces/new'
-                        type: 'POST'
-                        contentType: 'application/json'
-                        data: JSON.stringify({"name" : formdata.name, "primary_uuid" : formdata.primary_datacenter, "port" : parseInt(formdata.port)})
+        on_success: (response) =>
+            super
 
-                        success: (response) =>
-                            clear_modals()
+            # the result of this operation are some
+            # attributes about the namespace we
+            # created, to be used in an alert
+            apply_to_collection(namespaces, add_protocol_tag(response, "memcached"))
 
-                            # the result of this operation are some
-                            # attributes about the namespace we
-                            # created, to be used in an alert
-                            apply_to_collection(namespaces, add_protocol_tag(response, "memcached"))
-
-                            # Notify the user
-                            for id, namespace of response
-                                $('#user-alert-space').append @alert_tmpl
-                                    uuid: id
-                                    name: namespace.name
-
-            json = { 'datacenters' : _.map datacenters.models, (datacenter) -> datacenter.toJSON() }
-
-            super validator_options, json
+            # Notify the user
+            for id, namespace of response
+                $('#user-alert-space').append @alert_tmpl
+                    uuid: id
+                    name: namespace.name
 
     class @RemoveNamespaceModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#remove_namespace-modal-template').html()
         alert_tmpl: Handlebars.compile $('#removed_namespace-alert-template').html()
+        class: 'remove-namespace-dialog'
 
         initialize: ->
             log_initial '(initializing) modal dialog: remove namespace'
-            super @template
+            super
 
-        render: (namespaces_to_delete) ->
+        render: (_namespaces_to_delete) ->
             log_render '(rendering) remove namespace dialog'
-            validator_options =
-                submitHandler: =>
-                    for namespace in namespaces_to_delete
-                        $.ajax
-                            url: "/ajax/#{namespace.get("protocol")}_namespaces/#{namespace.id}"
-                            type: 'DELETE'
-                            contentType: 'application/json'
+            @namespaces_to_delete = _namespaces_to_delete
 
-                            success: (response) =>
-                                clear_modals()
+            array_for_template = _.map @namespaces_to_delete, (namespace) -> namespace.toJSON()
+            super
+                modal_title: 'Remove namespace'
+                btn_primary_text: 'Remove'
+                namespaces: array_for_template
 
-                                if (response)
-                                    throw "Received a non null response to a delete... this is incorrect"
-                                namespaces.remove(namespace.id)
-                                #TODO hook this up
-                                #for namespace in response_json.op_result
-                                    #$('#user-alert-space').append @alert_tmpl namespace
+        on_submit: ->
+            super
+            # TODO: change this once we have http support for deleting
+            # multiple items with one http request.
+            for namespace in @namespaces_to_delete
+                $.ajax
+                    url: "/ajax/#{namespace.get("protocol")}_namespaces/#{namespace.id}"
+                    type: 'DELETE'
+                    contentType: 'application/json'
+                    success: @on_success
+            # TODO: this should happen on success, but I'm hacking
+            # this in here until we support multiple deletes in one
+            # blow on the server. Remove the next two lines once
+            # they're uncommented in on_success.
+            for namespace in @namespaces_to_delete
+                namespaces.remove(namespace.id)
 
-            array_for_template = _.map namespaces_to_delete, (namespace) -> namespace.toJSON()
-            super validator_options, { 'namespaces': array_for_template }
+        on_success: (response) ->
+            super
+
+            if (response)
+                throw "Received a non null response to a delete... this is incorrect"
+
+            # TODO: hook this up once we have support for deleting
+            # multiple items with one http request.
+            #for namespace in @namespaces_to_delete
+            #    namespaces.remove(namespace.id)
+            #
+            #for namespace in response_json.op_result
+            #    $('#user-alert-space').append @alert_tmpl namespace
 
     class @EditReplicaMachinesModal extends ClusterView.AbstractModal
-        template: Handlebars.compile $('#edit_replica_machines-modal-template-outer').html()
-        template_inner: Handlebars.compile $('#edit_replica_machines-modal-template-inner').html()
+        template: Handlebars.compile $('#edit_replica_machines-modal-template').html()
         alert_tmpl: Handlebars.compile $('#edit_machines-alert-template').html()
+        class: 'edit-replica-modal'
 
         initialize: (namespace, secondary) ->
             console.log '(initializing) modal dialog: modify replica assignments changes'
@@ -291,8 +311,7 @@ module 'NamespaceView', ->
                 primary_name: machines.get(@secondary.primary_uuid).get('name')
 
             @change_hints_state = false
-            super @template
-
+            super
 
         get_currently_pinned: ->
             # Grab pinned machines for this shard
@@ -342,7 +361,7 @@ module 'NamespaceView', ->
             json = _.extend @secondary,
                 change_hints: @change_hints_state
                 replica_count: @secondary.machines.length
-            @.$('.modal-body').html(@template_inner json)
+            @.$('.modal-body').html(@template json)
 
             # Bind change assignment hints action
             @.$('#btn_change_hints').click (e) =>
@@ -365,38 +384,56 @@ module 'NamespaceView', ->
             return @
 
         render: ->
-            validator_options =
-                submitHandler: =>
-                    pinned_machines = _.filter @.$('form').serializeArray(), (obj) -> obj.name is 'pinned_machine_uuid'
-                    if pinned_machines.length is 0
-                        # If they didn't specify any pins, there is nothing to do
-                        clear_modals()
-                        return
-                    output = {}
-                    output[@secondary.shard] = _.union (_.map pinned_machines, (m)->m.value), @get_currently_pinned()
-                    output =
-                        secondary_pinnings: output
-                    $.ajax
-                        processData: false
-                        url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
-                        type: 'POST'
-                        data: JSON.stringify(output)
-                        success: (response) =>
-                            console.log(response)
-                            clear_modals()
-                            namespaces.get(@namespace.id).set(response)
-                            $('#user-alert-space').append (@alert_tmpl {})
-
             # Render the modal
-            super validator_options, @secondary
+            json = _.extend @secondary,
+                modal_title: 'Modify replica settings for shard ' + human_readable_shard(@secondary.shard) + ' in datacenter ' + datacenters.get(@secondary.datacenter_uuid).get('name')
+                btn_primary_text: 'Commit'
+            super json
 
             # Render our fun inner lady bits
             @render_inner()
 
+        on_submit: =>
+            super
+            pinned_machines = _.filter @.$('form').serializeArray(), (obj) -> obj.name is 'pinned_machine_uuid'
+            if pinned_machines.length is 0
+                # If they didn't specify any pins, there is nothing to do
+                clear_modals()
+                return
+            output = {}
+            output[@secondary.shard] = _.union (_.map pinned_machines, (m)->m.value), @get_currently_pinned()
+            output =
+                secondary_pinnings: output
+            $.ajax
+                processData: false
+                url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                type: 'POST'
+                data: JSON.stringify(output)
+                success: @on_success
+
+        on_success: (response) =>
+            super
+            namespaces.get(@namespace.id).set(response)
+            $('#user-alert-space').append (@alert_tmpl {})
+
     class @EditMasterMachineModal extends ClusterView.AbstractModal
-        template: Handlebars.compile $('#edit_master_machine-modal-template-outer').html()
-        template_inner: Handlebars.compile $('#edit_master_machine-modal-template-inner').html()
+        template: Handlebars.compile $('#edit_master_machine-modal-template').html()
         alert_tmpl: Handlebars.compile $('#edit_machines-alert-template').html()
+        class: 'edit-master-machines-modal'
+        events: ->
+            return _.extend super(),
+                'click #btn_change_hints': 'change_hints'
+                'click #btn_change_hints_cancel': 'change_hints_cancel'
+
+        change_hints: (e) ->
+            e.preventDefault()
+            @change_hints_state = true
+            @render_inner()
+
+        change_hints_cancel: (e) ->
+            e.preventDefault()
+            @change_hints_state = false
+            @render_inner()
 
         initialize: (namespace, shard) ->
             console.log '(initializing) modal dialog: modify master assignment'
@@ -404,84 +441,72 @@ module 'NamespaceView', ->
             @shard = shard
             @master_uuid = DataUtils.get_shard_primary_uuid(namespace.get('id'), @shard)
             @change_hints_state = false
-            super @template
+            super
 
-
-        render_inner: ->
+        compute_json: ->
             # compute all machines in the primary datacenter
             dc_machines = _.map DataUtils.get_datacenter_machines(@namespace.get('primary_uuid')), (m) =>
                     machine_name: m.get('name')
                     machine_uuid: m.get('id')
                     selected: @master_uuid is m.get('id')
-
-            # render vendor shmender blender zender
             json =
+                modal_title: 'Master machine for shard ' + human_readable_shard(@shard) + ' in datacenter ' + datacenters.get(@namespace.get('primary_uuid')).get('name')
+                btn_primary_text: 'Commit'
                 dc_machines: dc_machines
                 change_hints: @change_hints_state
                 master_uuid: @master_uuid
                 master_name: machines.get(@master_uuid).get('name')
                 master_status: DataUtils.get_machine_reachability(@master_uuid)
-            @.$('.modal-body').html(@template_inner json)
-
-            # Bind change assignment hints action
-            @.$('#btn_change_hints').click (e) =>
-                e.preventDefault()
-                @change_hints_state = true
-                @render_inner()
-            @.$('#btn_change_hints_cancel').click (e) =>
-                e.preventDefault()
-                @change_hints_state = false
-                @render_inner()
-
-            return @
-
-        render: ->
-            validator_options =
-                submitHandler: =>
-                    pinned_master = _.find @.$('form').serializeArray(), (obj) -> obj.name is 'pinned_master_uuid'
-                    if not pinned_master?
-                        # If they didn't specify the pin, do nothing
-                        clear_modals()
-                        return
-                    # We need to remove the new master pin from the secondary pinnings
-                    secondary_pins = _.find @namespace.get('secondary_pinnings'), (pins, shard) =>
-                        return shard.toString() is @shard.toString()
-                    secondary_pins = _.filter secondary_pins, (uuid) =>
-                        console.log uuid, pinned_master.value, uuid isnt pinned_master.value
-                        return uuid isnt pinned_master.value
-
-                    # Whooo
-                    output_master = {}
-                    output_master[@shard] = pinned_master.value
-                    output_secondaries = {}
-                    output_secondaries[@shard] = secondary_pins
-                    output =
-                        primary_pinnings: output_master
-                        secondary_pinnings: output_secondaries
-                    $.ajax
-                        processData: false
-                        url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
-                        type: 'POST'
-                        data: JSON.stringify(output)
-                        success: (response) =>
-                            clear_modals()
-                            namespaces.get(@namespace.id).set(response)
-                            $('#user-alert-space').append (@alert_tmpl {})
-
-            # Render the modal
-            super validator_options,
                 name: human_readable_shard @shard
                 datacenter_uuid: @namespace.get('primary_uuid')
                 datacenter_name: datacenters.get(@namespace.get('primary_uuid')).get('name')
+            return json
 
-            # Render our fun inner lady bits
-            @render_inner()
+        render_inner: ->
+            # render vendor shmender blender zender
+            @.$('.modal-body').html(@template(@compute_json()))
+            return @
+
+        render: ->
+            # Render the modal
+            super @compute_json()
+
+        on_submit: =>
+            super
+            pinned_master = _.find @.$('form').serializeArray(), (obj) -> obj.name is 'pinned_master_uuid'
+            if not pinned_master?
+                # If they didn't specify the pin, do nothing
+                clear_modals()
+                return
+            # We need to remove the new master pin from the secondary pinnings
+            secondary_pins = _.find @namespace.get('secondary_pinnings'), (pins, shard) =>
+                return shard.toString() is @shard.toString()
+            secondary_pins = _.filter secondary_pins, (uuid) =>
+                return uuid isnt pinned_master.value
+
+            # Whooo
+            output_master = {}
+            output_master[@shard] = pinned_master.value
+            output_secondaries = {}
+            output_secondaries[@shard] = secondary_pins
+            output =
+                primary_pinnings: output_master
+                secondary_pinnings: output_secondaries
+            $.ajax
+                processData: false
+                url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                type: 'POST'
+                data: JSON.stringify(output)
+                success: @on_success
+
+        on_success: (response) =>
+            super
+            namespaces.get(@namespace.id).set(response)
+            $('#user-alert-space').append (@alert_tmpl {})
 
     class @ModifyReplicasModal extends ClusterView.AbstractModal
-        template_inner: Handlebars.compile $('#modify_replicas-modal-template-inner').html()
-        template: Handlebars.compile $('#modify_replicas-modal-template-outer').html()
+        template: Handlebars.compile $('#modify_replicas-modal-template').html()
         alert_tmpl: Handlebars.compile $('#modified_replica-alert-template').html()
-
         class: 'modify-replicas'
 
         initialize: (namespace, datacenter) ->
@@ -491,7 +516,7 @@ module 'NamespaceView', ->
             @total_machines = DataUtils.get_datacenter_machines(@datacenter.get('id')).length
             @nreplicas = @adjustReplicaCount(DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id), true)
             @nacks = DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.get('id'))
-            super @template
+            super
 
         # Simple utility function to generate JSON for a set of machines
         machine_json: (machine_set) -> _.map machine_set, (machine) ->
@@ -510,94 +535,88 @@ module 'NamespaceView', ->
             else
                 return numreplicas
 
-        render_inner: (error_msg) ->
-            log_render '(rendering) modify replicas dialog (inner)'
-            # Compute json ...
+        compute_json: ->
             json =
                 namespace: @namespace.toJSON()
                 datacenter: @datacenter.toJSON()
                 num_replicas: @nreplicas
                 total_machines: @total_machines
                 num_acks: @nacks
+                modal_title: 'Modify replica settings'
+                btn_primary_text: 'Commit'
+            return json
+
+        render_inner: (error_msg) ->
+            log_render '(rendering) modify replicas dialog (inner)'
+            json = @compute_json()
             if error_msg?
+                @reset_buttons()
                 json['error_msg'] = error_msg
-
-            # Render!
-            @.$('.modal-body').html(@template_inner json)
-
+            @.$('.modal-body').html(@template json)
 
         render: ->
             log_render '(rendering) modify replicas dialog (outer)'
+            super(@compute_json())
 
-            # Define the validator options
-            validator_options =
-                submitHandler: =>
-                    formdata = form_data_as_object($('form', @$modal))
+        on_submit: =>
+            super
+            formdata = form_data_as_object($('form', @$modal))
 
-                    # validate first
-                    msg = ''
-                    @nreplicas = parseInt(formdata.num_replicas)
-                    @nacks = parseInt(formdata.num_acks)
+            # validate first
+            msg = ''
+            @nreplicas = parseInt(formdata.num_replicas)
+            @nacks = parseInt(formdata.num_acks)
 
-                    if @nreplicas > @total_machines
-                        msg += 'The number of replicas (' + @nreplicas + ') cannot exceed the total number of machines (' + @total_machines + ').'
-                        @render_inner msg
-                        return
-                    if @nreplicas is 0 and @namespace.get('primary_uuid') is @datacenter.get('id')
-                        msg += 'The number of replicas must be at least one because ' + @datacenter.get('name') + ' is the primary datacenter for this namespace.'
-                        @render_inner msg
-                        return
-                    if @nacks > @nreplicas
-                        msg += 'The number of acks (' + @nacks + ') cannot exceed the total number of replicas (' + @nreplicas + ').'
-                        @render_inner msg
-                        return
+            if @nreplicas > @total_machines
+                msg += 'The number of replicas (' + @nreplicas + ') cannot exceed the total number of machines (' + @total_machines + ').'
+                @render_inner msg
+                return
+            if @nreplicas is 0 and @namespace.get('primary_uuid') is @datacenter.get('id')
+                msg += 'The number of replicas must be at least one because ' + @datacenter.get('name') + ' is the primary datacenter for this namespace.'
+                @render_inner msg
+                return
+            if @nacks > @nreplicas
+                msg += 'The number of acks (' + @nacks + ') cannot exceed the total number of replicas (' + @nreplicas + ').'
+                @render_inner msg
+                return
 
-                    # Generate json
-                    replica_affinities_to_send = {}
-                    replica_affinities_to_send[formdata.datacenter] = @adjustReplicaCount(@nreplicas, false)
-                    ack_expectations_to_send = {}
-                    ack_expectations_to_send[formdata.datacenter] = @nacks
+            # Generate json
+            replica_affinities_to_send = {}
+            replica_affinities_to_send[formdata.datacenter] = @adjustReplicaCount(@nreplicas, false)
+            ack_expectations_to_send = {}
+            ack_expectations_to_send[formdata.datacenter] = @nacks
 
-                    # prepare data for success template in case we succeed
-                    old_replicas = @adjustReplicaCount(DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id), true)
-                    modified_replicas = @nreplicas isnt old_replicas
-                    old_acks = DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.id)
-                    modified_acks = @nacks isnt old_acks
-                    datacenter_uuid = formdata.datacenter
-                    datacenter_name = datacenters.get(datacenter_uuid).get('name')
+            # prepare data for success template in case we succeed
+            @old_replicas = @adjustReplicaCount(DataUtils.get_replica_affinities(@namespace.get('id'), @datacenter.id), true)
+            @modified_replicas = @nreplicas isnt @old_replicas
+            @old_acks = DataUtils.get_ack_expectations(@namespace.get('id'), @datacenter.id)
+            @modified_acks = @nacks isnt @old_acks
+            @datacenter_uuid = formdata.datacenter
+            @datacenter_name = datacenters.get(@datacenter_uuid).get('name')
 
-                    $.ajax
-                        processData: false
-                        url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
-                        type: 'POST'
-                        data: JSON.stringify
-                            replica_affinities: replica_affinities_to_send
-                            ack_expectations: ack_expectations_to_send
+            $.ajax
+                processData: false
+                url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                type: 'POST'
+                data: JSON.stringify
+                    replica_affinities: replica_affinities_to_send
+                    ack_expectations: ack_expectations_to_send
+                success: @on_success
 
-                        success: (response) =>
-                            clear_modals()
-
-                            namespaces.get(@namespace.id).set(response)
-                            if modified_replicas or modified_acks
-                                $('#user-alert-space').append (@alert_tmpl
-                                    modified_replicas: modified_replicas
-                                    old_replicas: old_replicas
-                                    new_replicas: @nreplicas
-                                    modified_acks: modified_acks
-                                    old_acks: old_acks
-                                    new_acks: @nacks
-                                    datacenter_uuid: datacenter_uuid
-                                    datacenter_name: datacenter_name
-                                    )
-                        error: (response, unused, unused_2) =>
-                            @render_inner(response.responseText)
-
-            json =
-                namespace: @namespace.toJSON()
-                datacenter: @datacenter.toJSON()
-            super validator_options, json
-            @render_inner()
-
+        on_success: (response) =>
+            super
+            namespaces.get(@namespace.id).set(response)
+            if @modified_replicas or @modified_acks
+                $('#user-alert-space').append (@alert_tmpl
+                    modified_replicas: @modified_replicas
+                    old_replicas: @old_replicas
+                    new_replicas: @nreplicas
+                    modified_acks: @modified_acks
+                    old_acks: @old_acks
+                    new_acks: @nacks
+                    datacenter_uuid: @datacenter_uuid
+                    datacenter_name: @datacenter_name
+                    )
 
     compute_renderable_shards_array = (namespace_uuid, shards) ->
         ret = []
@@ -696,7 +715,7 @@ module 'NamespaceView', ->
             # Keep an unmodified copy of the shard boundaries with which we compare against when reviewing the changes.
             @original_shard_set = _.map(shard_set, _.identity)
             @shard_set = _.map(shard_set, _.identity)
-            super @template
+            super
 
         insert_splitpoint: (index, splitpoint) =>
             if (0 <= index || index < @shard_set.length)
@@ -719,46 +738,45 @@ module 'NamespaceView', ->
             clear_modals()
             @render()
 
-        render: (shard_index) =>
+        render: =>
             log_render '(rendering) ModifyShards dialog'
 
             # TODO render "touched" shards (that have been split or merged within this modal) a bit differently
-
-            # TODO these validator options are complete bullshit
-            validator_options =
-                rules: { }
-                messages: { }
-                submitHandler: =>
-                    formdata = form_data_as_object($('form', @$modal))
-                    empty_master_pin = {}
-                    empty_master_pin[JSON.stringify(["", null])] = null
-                    empty_replica_pins = {}
-                    empty_replica_pins[JSON.stringify(["", null])] = []
-                    json =
-                        shards: @shard_set
-                        primary_pinnings: empty_master_pin
-                        secondary_pinnings: empty_replica_pins
-                    # TODO detect when there are no changes.
-                    $.ajax
-                        processData: false
-                        url: "/ajax/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
-                        type: 'POST'
-                        contentType: 'application/json'
-                        data: JSON.stringify(json)
-                        success: (response) =>
-                            clear_modals()
-                            namespaces.get(@namespace.id).set(response)
-                            $('#user-alert-space').append(@alert_tmpl({}))
-
-
             json =
                 namespace: @namespace.toJSON()
                 shards: compute_renderable_shards_array(@namespace.get('id'), @shard_set)
+                modal_title: 'Change sharding scheme'
+                btn_primary_text: 'Commit'
 
-            super validator_options, json
+            super json
 
             shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifyShardsModalShard @namespace, shard, @)
             @.$('.shards tbody').append view.render().el for view in shard_views
+
+        on_submit: ->
+            super
+            formdata = form_data_as_object($('form', @$modal))
+            empty_master_pin = {}
+            empty_master_pin[JSON.stringify(["", null])] = null
+            empty_replica_pins = {}
+            empty_replica_pins[JSON.stringify(["", null])] = []
+            json =
+                shards: @shard_set
+                primary_pinnings: empty_master_pin
+                secondary_pinnings: empty_replica_pins
+            # TODO detect when there are no changes.
+            $.ajax
+                processData: false
+                url: "/ajax/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify(json)
+                success: @on_success
+
+        on_success: (response) ->
+            super
+            namespaces.get(@namespace.id).set(response)
+            $('#user-alert-space').append(@alert_tmpl({}))
 
     class @ModifyShardsModalShard extends Backbone.View
         template: Handlebars.compile $('#modify_shards_modal-shard-template').html()
