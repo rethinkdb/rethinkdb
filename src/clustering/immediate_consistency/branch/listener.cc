@@ -1,6 +1,10 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 
+#include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/registrant.hpp"
+#include "clustering/resource.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "memcached/protocol.hpp"
 
@@ -207,9 +211,14 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 }
 
 template <class protocol_t>
+listener_t<protocol_t>::~listener_t() { }
+
+template <class protocol_t>
 signal_t *listener_t<protocol_t>::get_broadcaster_lost_signal() {
     return registrant->get_failed_signal();
 }
+
+
 
 template <class protocol_t>
 boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >
@@ -241,14 +250,30 @@ listener_t<protocol_t>::get_registrar_from_broadcaster_bcard(const boost::option
 }
 
 template <class protocol_t>
+class intro_receiver_t : public signal_t {
+public:
+    typename listener_t<protocol_t>::intro_t intro;
+    void fill(state_timestamp_t its,
+	      typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
+	      typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
+	rassert(!is_pulsed());
+	intro.broadcaster_begin_timestamp = its;
+	intro.upgrade_mailbox = um;
+	intro.downgrade_mailbox = dm;
+	pulse();
+    }
+};
+
+template <class protocol_t>
 void listener_t<protocol_t>::try_start_receiving_writes(
 	clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster,
 	signal_t *interruptor)
 	THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t)
 {
-    intro_receiver_t intro_receiver;
-    typename listener_business_card_t<protocol_t>::intro_mailbox_t intro_mailbox(
-	mailbox_manager, boost::bind(&intro_receiver_t::fill, &intro_receiver, _1, _2, _3));
+    intro_receiver_t<protocol_t> intro_receiver;
+    typename listener_business_card_t<protocol_t>::intro_mailbox_t
+	intro_mailbox(mailbox_manager,
+		      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1, _2, _3));
 
     try {
 	registrant.reset(new registrant_t<listener_business_card_t<protocol_t> >(

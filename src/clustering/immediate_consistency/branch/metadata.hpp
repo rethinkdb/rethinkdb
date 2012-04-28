@@ -5,7 +5,6 @@
 
 #include "errors.hpp"
 #include <boost/uuid/uuid.hpp>
-#include <boost/variant.hpp>
 
 #include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"

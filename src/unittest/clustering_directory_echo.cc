@@ -1,8 +1,9 @@
 #include "unittest/gtest.hpp"
+
 #include "clustering/reactor/directory_echo.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/directory/manager.hpp"
-#include "rpc/directory/watchable_copier.hpp"
+#include "rpc/directory/read_manager.hpp"
+#include "rpc/directory/write_manager.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -25,12 +26,12 @@ public:
         mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
         echo_writer(&mailbox_manager, initial),
         directory_manager_client(&message_multiplexer, 'D'),
-        directory_manager(&directory_manager_client, echo_writer.get_watchable()->get()),
-        directory_manager_client_run(&directory_manager_client, &directory_manager),
+        directory_read_manager(&connectivity_cluster),
+        directory_write_manager(&directory_manager_client, echo_writer.get_watchable()),
+        directory_manager_client_run(&directory_manager_client, &directory_read_manager),
         message_multiplexer_run(&message_multiplexer),
         connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run),
-        echo_mirror(&mailbox_manager, translate_into_watchable(directory_manager.get_root_view())),
-        write_copier(echo_writer.get_watchable(), directory_manager.get_root_view())
+        echo_mirror(&mailbox_manager, directory_read_manager.get_root_view())
         { }
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer;
@@ -39,12 +40,12 @@ public:
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
     directory_echo_writer_t<metadata_t> echo_writer;
     message_multiplexer_t::client_t directory_manager_client;
-    directory_readwrite_manager_t<directory_echo_wrapper_t<metadata_t> > directory_manager;
+    directory_read_manager_t<directory_echo_wrapper_t<metadata_t> > directory_read_manager;
+    directory_write_manager_t<directory_echo_wrapper_t<metadata_t> > directory_write_manager;
     message_multiplexer_t::client_t::run_t directory_manager_client_run;
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
     directory_echo_mirror_t<metadata_t> echo_mirror;
-    watchable_write_copier_t<directory_echo_wrapper_t<metadata_t> > write_copier;
 };
 
 }   /* anonymous namespace */
@@ -63,7 +64,7 @@ void run_directory_echo_test() {
     directory_echo_writer_t<std::string>::ack_waiter_t waiter(&cluster1.echo_writer, cluster2.connectivity_cluster.get_me(), version);
     waiter.wait_lazily_unordered();
     std::string cluster2_sees_cluster1_directory_as =
-        cluster2.directory_manager.get_root_view()->get_value(cluster1.connectivity_cluster.get_me()).get().internal;
+        cluster2.directory_read_manager.get_root_view()->get().find(cluster1.connectivity_cluster.get_me())->second.internal;
     EXPECT_EQ("Hello", cluster2_sees_cluster1_directory_as);
 }
 TEST(ClusteringDirectoryEcho, DirectoryEcho) {

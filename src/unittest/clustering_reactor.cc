@@ -13,7 +13,8 @@
 #include "concurrency/watchable.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/directory/manager.hpp"
+#include "rpc/directory/read_manager.hpp"
+#include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
@@ -112,9 +113,9 @@ public:
 
         our_directory_variable(test_cluster_directory_t<protocol_t>()),
         directory_manager_client(&message_multiplexer, 'D'),
-        directory_manager(&directory_manager_client, our_directory_variable.get_watchable()->get()),
-        directory_manager_client_run(&directory_manager_client, &directory_manager),
-        our_directory_copier(our_directory_variable.get_watchable(), directory_manager.get_root_view()),
+        directory_read_manager(&connectivity_cluster),
+        directory_write_manager(&directory_manager_client, our_directory_variable.get_watchable()),
+        directory_manager_client_run(&directory_manager_client, &directory_read_manager),
 
         message_multiplexer_run(&message_multiplexer),
         connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run)
@@ -137,9 +138,9 @@ public:
 
     watchable_variable_t<test_cluster_directory_t<protocol_t> > our_directory_variable;
     message_multiplexer_t::client_t directory_manager_client;
-    directory_readwrite_manager_t<test_cluster_directory_t<protocol_t> > directory_manager;
+    directory_read_manager_t<test_cluster_directory_t<protocol_t> > directory_read_manager;
+    directory_write_manager_t<test_cluster_directory_t<protocol_t> > directory_write_manager;
     message_multiplexer_t::client_t::run_t directory_manager_client_run;
-    watchable_write_copier_t<test_cluster_directory_t<protocol_t> > our_directory_copier;
 
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
@@ -151,7 +152,7 @@ public:
     test_reactor_t(reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, store_view_t<protocol_t> *store_view) :
         blueprint_watchable(initial_blueprint),
         reactor(&r->mailbox_manager, this,
-              translate_into_watchable(r->directory_manager.get_root_view())->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
+              r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
               r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), store_view),
         reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable),
         master_directory_copier(&test_cluster_directory_t<protocol_t>::master_directory, reactor.get_master_directory(), &r->our_directory_variable)
@@ -281,7 +282,7 @@ public:
     void run_queries() {
         for (unsigned i = 0; i < test_clusters.size(); i++) {
             cluster_namespace_interface_t<protocol_t> namespace_if(&test_clusters[i].mailbox_manager,
-                translate_into_watchable((&test_clusters[i])->directory_manager.get_root_view())
+                (&test_clusters[i])->directory_read_manager.get_root_view()
                     ->subview(&test_cluster_group_t::extract_master_directory));
 
             nap(50);
@@ -317,7 +318,7 @@ public:
 #endif
 
             signal_timer_t timer(timeout);
-            translate_into_watchable(test_clusters[0].directory_manager.get_root_view())
+            test_clusters[0].directory_read_manager.get_root_view()
                 ->subview(&test_cluster_group_t<protocol_t>::extract_reactor_business_cards)
                     ->run_until_satisfied(boost::bind(&is_blueprint_satisfied<protocol_t>, bp, _1), &timer);
         } catch (interrupted_exc_t) {

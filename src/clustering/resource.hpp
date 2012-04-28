@@ -3,8 +3,6 @@
 
 #include "concurrency/wait_any.hpp"
 #include "concurrency/watchable.hpp"
-#include "rpc/directory/read_view.hpp"
-#include "rpc/directory/write_view.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
 

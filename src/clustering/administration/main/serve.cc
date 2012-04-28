@@ -24,8 +24,8 @@
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/directory/manager.hpp"
-#include "rpc/directory/watchable_copier.hpp"
+#include "rpc/directory/read_manager.hpp"
+#include "rpc/directory/write_manager.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -67,13 +67,9 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         ));
 
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
-    directory_readwrite_manager_t<cluster_directory_metadata_t> directory_manager(&directory_manager_client, our_root_directory_variable.get_watchable()->get());
-    message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_manager);
-
-    watchable_write_copier_t<cluster_directory_metadata_t> our_root_directory_copier(
-        our_root_directory_variable.get_watchable(),
-        directory_manager.get_root_view()
-        );
+    directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(&directory_manager_client, our_root_directory_variable.get_watchable());
+    directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(connectivity_cluster.get_connectivity_service());
+    message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_read_manager);
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
     connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run, client_port);
@@ -81,7 +77,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
     auto_reconnector_t auto_reconnector(
         &connectivity_cluster,
         &connectivity_cluster_run,
-        translate_into_watchable(directory_manager.get_root_view())->subview(
+        directory_read_manager.get_root_view()->subview(
             field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
         metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view())
         );
@@ -95,16 +91,16 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
     global_issue_aggregator_t issue_aggregator;
 
     remote_issue_collector_t remote_issue_tracker(
-        translate_into_watchable(directory_manager.get_root_view())->subview(
+        directory_read_manager.get_root_view()->subview(
             field_getter_t<std::list<clone_ptr_t<local_issue_t> >, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
-        translate_into_watchable(directory_manager.get_root_view())->subview(
+        directory_read_manager.get_root_view()->subview(
             field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
         );
     global_issue_aggregator_t::source_t remote_issue_tracker_feed(&issue_aggregator, &remote_issue_tracker);
 
     machine_down_issue_tracker_t machine_down_issue_tracker(
         semilattice_manager_cluster.get_root_view(),
-        translate_into_watchable(directory_manager.get_root_view())->subview(
+        directory_read_manager.get_root_view()->subview(
             field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
         );
     global_issue_aggregator_t::source_t machine_down_issue_tracker_feed(&issue_aggregator, &machine_down_issue_tracker);
@@ -131,7 +127,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     last_seen_tracker_t last_seen_tracker(
         metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-        translate_into_watchable(directory_manager.get_root_view())->subview(
+        directory_read_manager.get_root_view()->subview(
             field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
         );
 
@@ -144,11 +140,11 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
     metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
 
     reactor_driver_t<mock::dummy_protocol_t> dummy_reactor_driver(&mailbox_manager,
-                                                                  translate_into_watchable(directory_manager.get_root_view())->subview(
+                                                                  directory_read_manager.get_root_view()->subview(
                                                                       field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
                                                                   metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
                                                                   metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-                                                                  translate_into_watchable(directory_manager.get_root_view())->subview(
+                                                                  directory_read_manager.get_root_view()->subview(
                                                                       field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
                                                                   filepath);
     field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> dummy_reactor_directory_copier(
@@ -158,11 +154,11 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         );
 
     reactor_driver_t<memcached_protocol_t> memcached_reactor_driver(&mailbox_manager,
-                                                                    translate_into_watchable(directory_manager.get_root_view())->subview(
+                                                                    directory_read_manager.get_root_view()->subview(
                                                                         field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
                                                                     metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
                                                                     metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-                                                                    translate_into_watchable(directory_manager.get_root_view())->subview(
+                                                                    directory_read_manager.get_root_view()->subview(
                                                                         field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
                                                                     filepath);
     field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> memcached_reactor_directory_copier(
@@ -172,12 +168,12 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         );
 
     namespace_repo_t<mock::dummy_protocol_t> dummy_namespace_repo(&mailbox_manager,
-        translate_into_watchable(directory_manager.get_root_view())->subview(
+        directory_read_manager.get_root_view()->subview(
             field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces))
         );
 
     namespace_repo_t<memcached_protocol_t> memcached_namespace_repo(&mailbox_manager,
-        translate_into_watchable(directory_manager.get_root_view())->subview(
+        directory_read_manager.get_root_view()->subview(
             field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces))
         );
 
@@ -202,7 +198,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         port + 1000,
         &mailbox_manager,
         semilattice_manager_cluster.get_root_view(),
-        translate_into_watchable(directory_manager.get_root_view()),
+        directory_read_manager.get_root_view(),
         &memcached_namespace_repo,
         &issue_aggregator,
         &last_seen_tracker,

@@ -90,6 +90,8 @@ private:
     typename replier_business_card_t<protocol_t>::synchronize_mailbox_t synchronize_mailbox;
 
     backfiller_t<protocol_t> backfiller;
+
+    DISABLE_COPYING(replier_t);
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_REPLIER_HPP_ */

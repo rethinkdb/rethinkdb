@@ -1,4 +1,5 @@
 #include "unittest/gtest.hpp"
+
 #include "clustering/registrar.hpp"
 #include "clustering/registrant.hpp"
 #include "unittest/clustering_utils.hpp"
@@ -36,6 +37,11 @@ void let_stuff_happen() {
     nap(1000);
 }
 
+boost::optional<boost::optional<registrar_business_card_t<std::string> > > wrap_in_optional(
+        const boost::optional<registrar_business_card_t<std::string> > &inner) {
+    return boost::optional<boost::optional<registrar_business_card_t<std::string> > >(inner);
+}
+
 }   /* anonymous namespace */
 
 /* `Register` tests registration, updating, and deregistration of a single
@@ -50,17 +56,15 @@ void run_register_test() {
         cluster.get_mailbox_manager(),
         &controller);
 
-    simple_directory_manager_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
-        &cluster,
-        boost::optional<registrar_business_card_t<std::string> >(registrar.get_business_card())
-        );
+    watchable_variable_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
+        boost::optional<registrar_business_card_t<std::string> >(registrar.get_business_card()));
 
     EXPECT_FALSE(controller.has_registrant);
 
     {
         registrant_t<std::string> registrant(
             cluster.get_mailbox_manager(),
-            translate_into_watchable(metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me())),
+            metadata_controller.get_watchable()->subview(&wrap_in_optional),
             "hello");
         let_stuff_happen();
 
@@ -95,14 +99,12 @@ void run_registrar_death_test() {
 
     EXPECT_FALSE(controller.has_registrant);
 
-    simple_directory_manager_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
-        &cluster,
-        boost::optional<registrar_business_card_t<std::string> >(registrar->get_business_card())
-        );
+    watchable_variable_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
+        boost::optional<registrar_business_card_t<std::string> >(registrar->get_business_card()));
 
     registrant_t<std::string> registrant(
         cluster.get_mailbox_manager(),
-        translate_into_watchable(metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me())),
+        metadata_controller.get_watchable()->subview(&wrap_in_optional),
         "hello");
     let_stuff_happen();
 
@@ -111,12 +113,7 @@ void run_registrar_death_test() {
     EXPECT_EQ("hello", controller.registrant_data);
 
     /* Kill the registrar */
-    {
-        directory_write_service_t::our_value_lock_acq_t lock(&metadata_controller);
-        metadata_controller.get_root_view()->set_our_value(
-            boost::optional<registrar_business_card_t<std::string> >(),
-            &lock);
-    }
+    metadata_controller.set_value(boost::optional<registrar_business_card_t<std::string> >());
     registrar.reset();
 
     let_stuff_happen();
@@ -140,17 +137,15 @@ void run_quick_disconnect_test() {
         cluster.get_mailbox_manager(),
         &controller);
 
-    simple_directory_manager_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
-        &cluster,
-        boost::optional<registrar_business_card_t<std::string> >(registrar.get_business_card())
-        );
+    watchable_variable_t<boost::optional<registrar_business_card_t<std::string> > > metadata_controller(
+        boost::optional<registrar_business_card_t<std::string> >(registrar.get_business_card()));
 
     EXPECT_FALSE(controller.has_registrant);
 
     {
         registrant_t<std::string> registrant(
             cluster.get_mailbox_manager(),
-            translate_into_watchable(metadata_controller.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me())),
+            metadata_controller.get_watchable()->subview(&wrap_in_optional),
             "hello");
     }
     let_stuff_happen();

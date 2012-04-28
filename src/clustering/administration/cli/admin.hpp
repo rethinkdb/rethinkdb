@@ -5,7 +5,8 @@
 #include "rpc/semilattice/view.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/directory/manager.hpp"
+#include "rpc/directory/read_manager.hpp"
+#include "rpc/directory/write_manager.hpp"
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/suggester.hpp"
 #include <vector>
@@ -157,17 +158,17 @@ private:
     mailbox_manager_t mailbox_manager;
     stat_manager_t stat_manager;
     log_server_t log_server;
-    cluster_directory_metadata_t cluster_directory_metadata;
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
     message_multiplexer_t::client_t semilattice_manager_client;
     semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster;
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run;
     message_multiplexer_t::client_t directory_manager_client;
-    directory_readwrite_manager_t<cluster_directory_metadata_t> directory_manager;
+    watchable_variable_t<cluster_directory_metadata_t> our_directory_metadata;
+    directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager;
+    directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager;
     message_multiplexer_t::client_t::run_t directory_manager_client_run;
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory_metadata;
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
 
     // Issue tracking
