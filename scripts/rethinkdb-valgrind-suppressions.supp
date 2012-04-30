@@ -122,3 +122,9 @@
    Memcheck:Addr8
    fun:__memmove_ssse3_back
 }
+
+{
+   StdStringMemcpySSSE3Back
+   Memcheck:Addr8
+   fun:__memcpy_ssse3_back
+}

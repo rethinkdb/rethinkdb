@@ -1,7 +1,8 @@
 #!/usr/bin/python
 import sys, os, time, tempfile
 import workload_runner
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+rethinkdb_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
+sys.path.append(os.path.join(rethinkdb_root, "test", "common"))
 import http_admin, driver
 from vcoptparse import *
 
@@ -19,7 +20,12 @@ with driver.Metacluster() as metacluster:
     num_nodes = 2
     files = [driver.Files(metacluster, db_path = "db-%d" % i, log_path = "create-output-%d" % i)
         for i in xrange(num_nodes)]
-    processes = [driver.Process(cluster, files[i], log_path = "serve-output-%d" % i, executable_path = driver.find_rethinkdb_executable("debug-valgrind"), command_prefix = ["valgrind"])
+    processes = [driver.Process(
+            cluster,
+            files[i],
+            log_path = "serve-output-%d" % i,
+            executable_path = driver.find_rethinkdb_executable("debug-valgrind"),
+            command_prefix = ["valgrind", "--suppressions=%s/scripts/rethinkdb-valgrind-suppressions.supp" % rethinkdb_root])
         for i in xrange(num_nodes)]
     time.sleep(10)
     print "Creating namespace..."
