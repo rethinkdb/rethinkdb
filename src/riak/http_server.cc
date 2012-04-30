@@ -726,13 +726,13 @@ http_res_t riak_http_app_t::ping(const http_req_t &) {
 }
 
 http_res_t riak_http_app_t::status(const http_req_t &) {
-    perfmon_stats_t stats;
+    perfmon_result_t stats;
     perfmon_get_stats(&stats, false);
 
     scoped_cJSON_t body(cJSON_CreateObject());
 
-    for (perfmon_stats_t::const_iterator it = stats.begin(); it != stats.end(); it++) {
-        cJSON_AddStringToObject(body.get(), it->first.c_str(), it->second.c_str());
+    for (perfmon_result_t::const_iterator it = stats.begin(); it != stats.end(); it++) {
+        cJSON_AddStringToObject(body.get(), it->first.c_str(), it->second->get_string()->c_str());
     }
 
     http_res_t res;

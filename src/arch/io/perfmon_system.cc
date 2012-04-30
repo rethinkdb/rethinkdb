@@ -131,10 +131,10 @@ struct perfmon_system_t :
     }
     void visit_stats(void *) {
     }
-    void end_stats(void *, perfmon_stats_t *dest) {
+    void end_stats(void *, perfmon_result_t *dest) {
         put_timestamp(dest);
-        (*dest)["version"] = std::string(RETHINKDB_VERSION);
-        (*dest)["pid"] = strprintf("%d", getpid());
+        dest->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
+        dest->insert("pid", new perfmon_result_t(strprintf("%d", getpid())));
 
         proc_pid_stat_t pid_stat;
         try {
@@ -148,13 +148,13 @@ struct perfmon_system_t :
             return;
         }
 
-        (*dest)["memory_virtual[bytes]"] = strprintf("%lu", pid_stat.vsize);
-        (*dest)["memory_real[bytes]"] = strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE));
+        dest->insert("memory_virtual[bytes]", new perfmon_result_t(strprintf("%lu", pid_stat.vsize)));
+        dest->insert("memory_real[bytes]", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
     }
-    void put_timestamp(perfmon_stats_t *dest) {
+    void put_timestamp(perfmon_result_t *dest) {
         time_t now = time(NULL);
-        (*dest)["uptime"] = strprintf("%d", int(difftime(start_time, now)));
-        (*dest)["timestamp"] = format_time(now);
+        dest->insert("uptime", new perfmon_result_t(strprintf("%d", int(difftime(start_time, now)))));
+        dest->insert("timestamp", new perfmon_result_t(format_time(now)));
     }
 
     time_t start_time;

@@ -970,20 +970,20 @@ void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, ch
 
 std::string memcached_stats(int argc, char **argv, bool include_internal) {
     std::string res;
-    perfmon_stats_t stats;
+    perfmon_result_t stats;
 
     perfmon_get_stats(&stats, include_internal);
 
     if (argc == 1) {
-        for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
-            res += strprintf("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str());
+        for (perfmon_result_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
+            res += strprintf("STAT %s %s\r\n", iter->first.c_str(), iter->second->get_string()->c_str());
         }
     } else {
         for (int i = 1; i < argc; i++) {
-            perfmon_stats_t::iterator iter = stats.find(argv[i]);
+            perfmon_result_t::iterator iter = stats.get_map()->find(argv[i]);
             res += strprintf("STAT %s %s\r\n", argv[i], iter == stats.end()
                                                         ? "NOT_FOUND"
-                                                        : iter->second.c_str());
+                                                        : iter->second->get_string()->c_str());
 
         }
     }

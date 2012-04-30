@@ -2,12 +2,27 @@
 
 #include <stdarg.h>
 #include <math.h>
+#include <map>
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
 
 #include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
+
+perfmon_result_t::perfmon_result_t() {
+    type = value;
+}
+
+perfmon_result_t::perfmon_result_t(const std::string &s) { 
+    type = value;
+    _value = s;
+}
+
+perfmon_result_t::perfmon_result_t(const boost::ptr_map<std::string, perfmon_result_t> &m) {
+    type = map;
+    _map = m;
+}
 
 /* The var list keeps track of all of the perfmon_t objects. */
 
@@ -46,7 +61,7 @@ void co_perfmon_visit(int thread, const std::vector<void*> &data, bool include_i
     }
 }
 
-void perfmon_get_stats(perfmon_stats_t *dest, bool include_internal) {
+void perfmon_get_stats(perfmon_result_t *dest, bool include_internal) {
     std::vector<void*> data;
 
     data.reserve(get_var_list().size());
@@ -103,8 +118,8 @@ int64_t perfmon_counter_t::combine_stats(padded_int64_t *data) {
     return value;
 }
 
-void perfmon_counter_t::output_stat(const int64_t &stat, perfmon_stats_t *dest) {
-    (*dest)[name] = strprintf("%ld", stat);
+void perfmon_counter_t::output_stat(const int64_t &stat, perfmon_result_t *dest) {
+    dest->insert(name, new perfmon_result_t(strprintf("%ld", stat)));
 }
 
 /* perfmon_sampler_t */
@@ -161,18 +176,18 @@ perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(stats_t *stats) {
     return aggregated;
 }
 
-void perfmon_sampler_t::output_stat(const stats_t &aggregated, perfmon_stats_t *dest) {
+void perfmon_sampler_t::output_stat(const stats_t &aggregated, perfmon_result_t *dest) {
     if (aggregated.count > 0) {
-        (*dest)[name + "_avg"] = strprintf("%.8f", aggregated.sum / aggregated.count);
-        (*dest)[name + "_min"] = strprintf("%.8f", aggregated.min);
-        (*dest)[name + "_max"] = strprintf("%.8f", aggregated.max);
+        dest->insert(name + "_avg", new perfmon_result_t(strprintf("%.8f", aggregated.sum / aggregated.count)));
+        dest->insert(name + "_min", new perfmon_result_t(strprintf("%.8f", aggregated.min)));
+        dest->insert(name + "_max", new perfmon_result_t(strprintf("%.8f", aggregated.max)));
     } else {
-        (*dest)[name + "_avg"] = "-";
-        (*dest)[name + "_min"] = "-";
-        (*dest)[name + "_max"] = "-";
+        dest->insert(name + "_avg", new perfmon_result_t("-"));
+        dest->insert(name + "_min", new perfmon_result_t("-"));
+        dest->insert(name + "_max", new perfmon_result_t("-"));
     }
     if (include_rate) {
-        (*dest)[name + "_persec"] = strprintf("%.8f", aggregated.count / ticks_to_secs(length));
+        dest->insert(name + "_persec", new perfmon_result_t(strprintf("%.8f", aggregated.count / ticks_to_secs(length))));
     }
 }
 
@@ -252,15 +267,15 @@ stddev_t perfmon_stddev_t::combine_stats(stddev_t *stats) {
     return stddev_t::combine(get_num_threads(), stats);
 }
 
-void perfmon_stddev_t::output_stat(const stddev_t &stat, perfmon_stats_t *dest) {
-    (*dest)[name + "_count"] = strprintf("%zu", stat.datapoints());
+void perfmon_stddev_t::output_stat(const stddev_t &stat, perfmon_result_t *dest) {
+    dest->insert(name + "_count", new perfmon_result_t(strprintf("%zu", stat.datapoints())));
     if (stat.datapoints()) {
-        (*dest)[name + "_mean"] = strprintf("%.8f", stat.mean());
-        (*dest)[name + "_stddev"] = strprintf("%.8f", stat.standard_deviation());
+        dest->insert(name + "_mean", new perfmon_result_t(strprintf("%.8f", stat.mean())));
+        dest->insert(name + "_stddev", new perfmon_result_t(strprintf("%.8f", stat.standard_deviation())));
     } else {
         // No stats
-        (*dest)[name + "_mean"] = "-";
-        (*dest)[name + "_stddev"] = "-";
+        dest->insert(name + "_mean", new perfmon_result_t("-"));
+        dest->insert(name + "_stddev", new perfmon_result_t("-"));
     }
 }
 
@@ -321,8 +336,8 @@ double perfmon_rate_monitor_t::combine_stats(double *stats) {
     return total;
 }
 
-void perfmon_rate_monitor_t::output_stat(const double &stat, perfmon_stats_t *dest) {
-    (*dest)[name] = strprintf("%.8f", stat / ticks_to_secs(length));
+void perfmon_rate_monitor_t::output_stat(const double &stat, perfmon_result_t *dest) {
+    dest->insert(name, new perfmon_result_t(strprintf("%.8f", stat / ticks_to_secs(length))));
 }
 
 /* perfmon_function_t */
@@ -352,12 +367,12 @@ void perfmon_function_t::visit_stats(void *data) {
     }
 }
 
-void perfmon_function_t::end_stats(void *data, perfmon_stats_t *dest) {
+void perfmon_function_t::end_stats(void *data, perfmon_result_t *dest) {
     std::string *string = reinterpret_cast<std::string *>(data);
     if (!string->empty()) {
-        (*dest)[name] = *string;
+        dest->insert(name, new perfmon_result_t(*string));
     } else {
-        (*dest)[name] = "N/A";
+        dest->insert(name, new perfmon_result_t("N/A"));
     }
     delete string;
 }

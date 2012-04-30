@@ -13,12 +13,12 @@ stat_manager_t::stat_manager_t(mailbox_manager_t* mailbox_manager) : get_stats_m
 void stat_manager_t::send_stats(mailbox_manager_t* mailbox_manager, return_address_t& reply_address, std::set<stat_id_t>& requested_stats) {
     stats_t stats;
 
-    perfmon_stats_t perfmon_stats;
-    perfmon_get_stats(&perfmon_stats, true);
+    perfmon_result_t perfmon_result = perfmon_result_t::make_map();
+    perfmon_get_stats(&perfmon_result, true);
 
-    for (perfmon_stats_t::iterator it = perfmon_stats.begin(); it != perfmon_stats.end(); ++it) {
+    for (perfmon_result_t::iterator it = perfmon_result.begin(); it != perfmon_result.end(); ++it) {
         if (requested_stats.empty() || std_contains(requested_stats, it->first)) {
-            stats[it->first] = it->second;
+            stats[it->first] = *it->second->get_string(); //RSI this will become incorrect and we'll want to serialize the perfmon result
         }
     }
     send(mailbox_manager, reply_address, stats);
