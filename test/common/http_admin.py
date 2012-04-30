@@ -527,7 +527,7 @@ class ClusterAccess(object):
         return self.do_query("GET", "/ajax/progress")
 
     def get_distribution(self, namespace, depth = 1):
-        return self.do_query("GET", "/ajax/distribtion?namespace=%s&depth=%d" % (namespace, depth))
+        return self.do_query("GET", "/ajax/distribution?namespace=%s&depth=%d" % (namespace.uuid, depth))
 
 
     def _pull_cluster_data(self, cluster_data, local_data, data_type):
