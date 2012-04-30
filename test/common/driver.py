@@ -158,11 +158,14 @@ class Files(object):
     `Files`. To "restart" a server, create a `Files`, create a `Process`, stop
     the process, and then start a new `Process` on the same `Files`. """
 
-    def __init__(self, metacluster, name = None, port_offset = 0, db_path = None, log_path = None, executable_path = find_rethinkdb_executable("debug"), command_prefix = []):
+    def __init__(self, metacluster, name = None, port_offset = 0, db_path = None, log_path = None, executable_path = None, command_prefix = []):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
         assert name is None or isinstance(name, str)
         assert db_path is None or isinstance(db_path, str)
+
+        if executable_path is None:
+            executable_path = find_rethinkdb_executable("debug")
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
 
         self.id_number = metacluster.files_counter
@@ -191,10 +194,13 @@ class Process(object):
     """A `Process` object represents a running RethinkDB server. It cannot be
     restarted; stop it and then create a new one instead. """
 
-    def __init__(self, cluster, files, log_path = None, executable_path = find_rethinkdb_executable("debug"), command_prefix = []):
+    def __init__(self, cluster, files, log_path = None, executable_path = None, command_prefix = []):
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
         assert isinstance(files, Files)
+
+        if executable_path is None:
+            executable_path = find_rethinkdb_executable("debug")
         assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
 
         self.files = files

@@ -21,7 +21,7 @@ with driver.Metacluster() as metacluster:
         for i in xrange(num_nodes)]
     processes = [driver.Process(cluster, files[i], log_path = "serve-output-%d" % i, executable_path = driver.find_rethinkdb_executable("debug-valgrind"), command_prefix = ["valgrind"])
         for i in xrange(num_nodes)]
-    time.sleep(3)
+    time.sleep(10)
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     dc = http.add_datacenter()
