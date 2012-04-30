@@ -3,20 +3,17 @@
 
 #include <map>
 
-#include "clustering/immediate_consistency/branch/backfillee.hpp"
-#include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "clustering/registrant.hpp"
-#include "clustering/resource.hpp"
 #include "concurrency/promise.hpp"
-#include "protocol_api.hpp"
-#include "rpc/directory/view.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
 
-/* Forward declarations (so we can friend them) */
-
-template<class protocol_t> class replier_t;
+template <class T> class replier_t;
+template <class T> class intro_receiver_t;
+template <class T> class registrant_t;
+template <class T> class semilattice_read_view_t;
+template <class T> class semilattice_readwrite_view_t;
+template <class T> class broadcaster_t;
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
 backfills from an existing mirror on a branch into the store, and as long as it
@@ -70,12 +67,15 @@ public:
             broadcaster_t<protocol_t> *broadcaster,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
+    ~listener_t();
+
     /* Returns a signal that is pulsed if the mirror is not in contact with the
     master. */
     signal_t *get_broadcaster_lost_signal();
 
 private:
     friend class replier_t<protocol_t>;
+    friend class intro_receiver_t<protocol_t>;
 
     /* `intro_t` represents the introduction we expect to get from the
     broadcaster if all goes well. */
@@ -84,23 +84,6 @@ private:
         typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
         typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
         state_timestamp_t broadcaster_begin_timestamp;
-    };
-
-    /* Support class for `start_receiving_writes()`. It's defined out here, as
-    opposed to locally in `start_receiving_writes()`, so that we can
-    `boost::bind()` to it. */
-    class intro_receiver_t : public signal_t {
-    public:
-        intro_t intro;
-        void fill(state_timestamp_t its,
-                typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t um,
-                typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t dm) {
-            rassert(!is_pulsed());
-            intro.broadcaster_begin_timestamp = its;
-            intro.upgrade_mailbox = um;
-            intro.downgrade_mailbox = dm;
-            pulse();
-        }
     };
 
     // TODO: What the fuck is this boost optional boost optional shit?
@@ -147,9 +130,11 @@ private:
     void wait_for_version(state_timestamp_t timestamp, signal_t *interruptor);
 
     void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp);
+
+
+
     mailbox_manager_t *mailbox_manager;
 
-    // This variable is used by replier_t.
     boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
 
     store_view_t<protocol_t> *store;
@@ -192,6 +177,8 @@ private:
      * this right now is the replier_t who needs to be able to tell backfillees
      * how up to date s/he is. */
     std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
+
+    DISABLE_COPYING(listener_t);
 };
 
 

@@ -4,7 +4,6 @@
 #include "clustering/registration_metadata.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
-#include "rpc/directory/watchable_copier.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view.hpp"
 

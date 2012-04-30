@@ -293,12 +293,15 @@ module 'DataUtils', ->
     # specific datacenter
     @get_namespace_status = (namespace_uuid, datacenter_uuid) ->
         namespace = namespaces.get(namespace_uuid)
-
         json =
             nshards: 0
             nreplicas: 0
             nashards: 0
             nareplicas: 0
+
+        # If we can't see the namespace...
+        if not namespace?
+            return null
 
         # machine and datacenter counts
         _machines = []

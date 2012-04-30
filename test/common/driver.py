@@ -41,13 +41,10 @@ class Metacluster(object):
     `resunder` blocks between different clusters. It's also a context manager
     that cleans up all the processes and deletes all the files. """
 
-    def __init__(self, executable_path = find_rethinkdb_executable("debug")):
-        assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
-
+    def __init__(self):
         self.clusters = set()
         self.dbs_path = tempfile.mkdtemp()
         self.files_counter = 0
-        self.executable_path = executable_path
         self.closed = False
         try:
             self.base_port = int(os.environ["RETHINKDB_BASE_PORT"])
@@ -161,11 +158,12 @@ class Files(object):
     `Files`. To "restart" a server, create a `Files`, create a `Process`, stop
     the process, and then start a new `Process` on the same `Files`. """
 
-    def __init__(self, metacluster, name = None, port_offset = 0, db_path = None, log_path = "stdout"):
+    def __init__(self, metacluster, name = None, port_offset = 0, db_path = None, log_path = None, executable_path = find_rethinkdb_executable("debug"), command_prefix = []):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
         assert name is None or isinstance(name, str)
         assert db_path is None or isinstance(db_path, str)
+        assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
 
         self.id_number = metacluster.files_counter
         metacluster.files_counter += 1
@@ -177,11 +175,13 @@ class Files(object):
 
         self.port_offset = self.id_number
 
-        create_args = [metacluster.executable_path, "create", "--directory=" + self.db_path, "--port-offset=" + str(self.port_offset)]
+        create_args = command_prefix + [executable_path, "create",
+            "--directory=" + self.db_path,
+            "--port-offset=" + str(self.port_offset)]
         if name is not None:
             create_args.append("--name=" + name)
 
-        if log_path == "stdout":
+        if log_path is None:
             subprocess.check_call(create_args, stdout = sys.stdout, stderr = subprocess.STDOUT)
         else:
             with open(log_path, "w") as log_file:
@@ -191,10 +191,11 @@ class Process(object):
     """A `Process` object represents a running RethinkDB server. It cannot be
     restarted; stop it and then create a new one instead. """
 
-    def __init__(self, cluster, files, log_path = "stdout"):
+    def __init__(self, cluster, files, log_path = None, executable_path = find_rethinkdb_executable("debug"), command_prefix = []):
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
         assert isinstance(files, Files)
+        assert os.access(executable_path, os.X_OK), "no such executable: %r" % executable_path
 
         self.files = files
 
@@ -208,7 +209,7 @@ class Process(object):
                 other_cluster._block_process(self)
 
         try:
-            self.args = [cluster.metacluster.executable_path, "serve",
+            self.args = command_prefix + [executable_path, "serve",
                 "--directory=" + self.files.db_path,
                 "--port=" + str(self.cluster_port),
                 "--client-port=" + str(self.local_cluster_port)]
@@ -217,7 +218,7 @@ class Process(object):
                     self.args.append("--join=" + socket.gethostname() + ":" + str(peer.cluster_port))
 
             self.log_path = log_path
-            if self.log_path == "stdout":
+            if self.log_path is None:
                 self.log_file = sys.stdout
             else:
                 self.log_file = open(self.log_path, "w")
@@ -272,7 +273,7 @@ class Process(object):
                 pass
         self.process = None
 
-        if self.log_path != "stdout":
+        if self.log_path is not None:
             self.log_file.close()
 
         # `self.cluster` might be `None` if we crash in the middle of

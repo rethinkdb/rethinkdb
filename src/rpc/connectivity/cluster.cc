@@ -450,7 +450,9 @@ void connectivity_cluster_t::run_t::handle(
             or because the cluster is shutting down and `close_conn()` got
             called. */
 
-            guarantee(!conn->is_read_open(), "the connection was open for read, which means we had a boost archive exception");
+            guarantee(!conn->is_read_open(), "the connection is still open for "
+                "read, which means we had a problem other than the TCP "
+                "connection closing or dying");
         }
 
         /* The `conn_structure` destructor removes us from the connection map

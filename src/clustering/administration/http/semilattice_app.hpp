@@ -2,7 +2,6 @@
 #define CLUSTERING_ADMINSTRATION_HTTP_SEMILATTICE_APP_HPP_
 
 #include "clustering/administration/metadata.hpp"
-#include "rpc/directory/read_view.hpp"
 #include "rpc/semilattice/view.hpp"
 
 class semilattice_http_app_t : public http_app_t {

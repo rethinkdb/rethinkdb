@@ -11,7 +11,6 @@
 #include "http/file_app.hpp"
 #include "http/http.hpp"
 #include "http/routing_app.hpp"
-#include "rpc/directory/watchable_copier.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
 std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const std::map<peer_id_t, cluster_directory_metadata_t> &md) {
@@ -52,6 +51,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/bootstrap/bootstrap-tab.js");
     white_list.insert("/js/bootstrap/bootstrap-typeahead.js");
     white_list.insert("/js/bootstrap/bootstrap-collapse.js");
+    white_list.insert("/js/bootstrap/bootstrap-button.js");
     white_list.insert("/js/d3.v2.min.js");
     white_list.insert("/js/date-en-US.js");
     white_list.insert("/js/flot/jquery.flot.js");

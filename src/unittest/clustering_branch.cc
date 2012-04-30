@@ -1,21 +1,33 @@
 #include "unittest/gtest.hpp"
+
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
-#include "unittest/dummy_metadata_controller.hpp"
+#include "containers/uuid.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "unittest/clustering_utils.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
 namespace {
 
+boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > wrap_broadcaster_in_optional(
+        const boost::optional<broadcaster_business_card_t<dummy_protocol_t> > &inner) {
+    return boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >(inner);
+}
+
+boost::optional<boost::optional<replier_business_card_t<dummy_protocol_t> > > wrap_replier_in_optional(
+        const boost::optional<replier_business_card_t<dummy_protocol_t> > &inner) {
+    return boost::optional<boost::optional<replier_business_card_t<dummy_protocol_t> > >(inner);
+}
+
 void run_with_broadcaster(
         boost::function< void(
             simple_mailbox_cluster_t *,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > >,
-            clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
+            clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
             boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *,
             test_store_t<dummy_protocol_t> *,
             boost::scoped_ptr<listener_t<dummy_protocol_t> > *
@@ -41,16 +53,13 @@ void run_with_broadcaster(
             &interruptor
         ));
 
-    simple_directory_manager_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >
-        broadcaster_metadata_controller(&cluster,
-            boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(broadcaster->get_business_card())
-            );
+    watchable_variable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > broadcaster_directory_controller(
+        boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(broadcaster->get_business_card()));
 
     boost::scoped_ptr<listener_t<dummy_protocol_t> > initial_listener(
         new listener_t<dummy_protocol_t>(
             cluster.get_mailbox_manager(),
-            translate_into_watchable(broadcaster_metadata_controller.get_root_view()->
-                get_peer_view(cluster.get_connectivity_service()->get_me())),
+            broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
             branch_history_controller.get_view(),
             broadcaster.get(),
             &interruptor
@@ -58,8 +67,7 @@ void run_with_broadcaster(
 
     fun(&cluster,
         branch_history_controller.get_view(),
-        broadcaster_metadata_controller.get_root_view()->
-            get_peer_view(cluster.get_connectivity_service()->get_me()),
+        broadcaster_directory_controller.get_watchable(),
         &broadcaster,
         &initial_store,
         &initial_listener);
@@ -69,7 +77,7 @@ void run_in_thread_pool_with_broadcaster(
         boost::function< void(
             simple_mailbox_cluster_t *,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > >,
-            clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
+            clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
             boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *,
             test_store_t<dummy_protocol_t> *,
             boost::scoped_ptr<listener_t<dummy_protocol_t> > *
@@ -90,7 +98,7 @@ single mirror. */
 
 void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
         UNUSED boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > > branch_history_view,
-        UNUSED clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
+        UNUSED clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
         boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
         UNUSED test_store_t<dummy_protocol_t> *store,
         boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
@@ -159,7 +167,7 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
 
 void run_backfill_test(simple_mailbox_cluster_t *cluster,
         boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > > branch_history_view,
-        clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
+        clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
         boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
         test_store_t<dummy_protocol_t> *store1,
         boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
@@ -168,11 +176,8 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
 
-    simple_directory_manager_t<boost::optional<replier_business_card_t<dummy_protocol_t> > >
-        replier_directory_controller(
-            cluster,
-            boost::optional<replier_business_card_t<dummy_protocol_t> >(replier.get_business_card())
-            );
+    watchable_variable_t<boost::optional<replier_business_card_t<dummy_protocol_t> > > replier_directory_controller(
+        boost::optional<replier_business_card_t<dummy_protocol_t> >(replier.get_business_card()));
 
     order_source_t order_source;
 
@@ -191,11 +196,10 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         cluster->get_mailbox_manager(),
-        translate_into_watchable(broadcaster_metadata_view),
+        broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_view,
         &store2.store,
-        translate_into_watchable(replier_directory_controller.get_root_view()->
-            get_peer_view(cluster->get_connectivity_service()->get_me())),
+        replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
         generate_uuid(),
         &interruptor);
 
@@ -224,7 +228,7 @@ TEST(ClusteringBranch, Backfill) {
 
 void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
         boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<dummy_protocol_t> > > branch_history_view,
-        clone_ptr_t<directory_single_rview_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
+        clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
         boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
         test_store_t<dummy_protocol_t> *store1,
         boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
@@ -233,11 +237,8 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
 
-    simple_directory_manager_t<boost::optional<replier_business_card_t<dummy_protocol_t> > >
-        replier_directory_controller(
-            cluster,
-            boost::optional<replier_business_card_t<dummy_protocol_t> >(replier.get_business_card())
-            );
+    watchable_variable_t<boost::optional<replier_business_card_t<dummy_protocol_t> > > replier_directory_controller(
+        boost::optional<replier_business_card_t<dummy_protocol_t> >(replier.get_business_card()));
 
     order_source_t order_source;
 
@@ -258,11 +259,10 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         cluster->get_mailbox_manager(),
-        translate_into_watchable(broadcaster_metadata_view),
+        broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_view,
         &substore,
-        translate_into_watchable(replier_directory_controller.get_root_view()->
-            get_peer_view(cluster->get_connectivity_service()->get_me())),
+        replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
         generate_uuid(),
         &interruptor);
 

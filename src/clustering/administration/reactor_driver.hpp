@@ -9,7 +9,6 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "concurrency/watchable.hpp"
-#include "rpc/directory/view.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 

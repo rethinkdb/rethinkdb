@@ -12,6 +12,7 @@
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/mailbox/mailbox.hpp"
+#include "rpc/semilattice/view/field.hpp"
 
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */

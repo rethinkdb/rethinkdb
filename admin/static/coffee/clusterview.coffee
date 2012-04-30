@@ -430,7 +430,7 @@ module 'ClusterView', ->
                 num_machines = @machine_list.element_views.length
 
                 we_should_rerender = false
-                
+
                 if @no_machines and num_machines > 0
                     @no_machines = false
                     we_should_rerender = true
@@ -511,7 +511,7 @@ module 'ClusterView', ->
                 num_machines = @machine_list.element_views.length
 
                 we_should_rerender = false
-                
+
                 if @no_machines and num_machines > 0
                     @no_machines = false
                     we_should_rerender = true
@@ -525,7 +525,7 @@ module 'ClusterView', ->
 
         render: =>
             @.$el.html @template
-                no_machines: @no_machines 
+                no_machines: @no_machines
 
             # Attach a list of available machines to the given datacenter
             @.$('.machine-list').html @machine_list.render().el
@@ -539,38 +539,27 @@ module 'ClusterView', ->
             @machine_list.register_machine_callbacks callbacks
 
     class @AbstractModal extends Backbone.View
-        className: 'modal-parent'
+        template_outer: Handlebars.compile $('#abstract-modal-outer-template').html()
 
         events: ->
             'click .cancel': 'cancel_modal'
             'click .close': 'cancel_modal'
+            'click .btn-primary': 'abstract_submit'
 
-        # Default validation rules, meant to be extended by inheriting modal classes
-        validator_defaults:
-            # Add error class to parent div (supporting Bootstrap style)
-            showErrors: (error_map, error_list) ->
-                for element of error_map
-                    $("label[for='#{ element }']", @$modal).parent().addClass 'error'
-                @.defaultShowErrors()
-
-            errorElement: 'span'
-            errorClass: 'help-inline'
-
-            success: (label) ->
-                # Remove the error class from the parent div when successful
-                label.parent().parent().removeClass('error')
-
-        initialize: (template) ->
+        initialize: ->
             @$container = $('#modal-dialog')
-            @template = template
 
         # Render and show the modal.
         #   validator_options: object that defines form behavior and validation rules
         #   template_json: json to pass to the template for the modal
-        render: (validator_options, template_data) =>
+        render: (template_data) =>
+
             # Add the modal generated from the template to the container, and show it
             template_data = {} if not template_data?
-            @$container.html @template template_data
+            template_data = _.extend template_data,
+                modal_class: @class
+            @$container.html @template_outer template_data
+            $('.modal-body', @$container).html @template template_data
 
             # Note: Bootstrap's modal JS moves the modal from the container element to the end of the body tag in the DOM
             @$modal = $('.modal', @$container).modal
@@ -585,10 +574,6 @@ module 'ClusterView', ->
             @.setElement @$modal
             @.delegateEvents()
 
-            # Fill in the passed validator options with default options
-            validator_options = _.defaults validator_options, @validator_defaults
-            @validator = $('form', @$modal).validate validator_options
-
             register_modal @
 
         hide_modal: ->
@@ -598,40 +583,68 @@ module 'ClusterView', ->
             @.hide_modal()
             e.preventDefault()
 
+        abstract_submit: (event) ->
+            event.preventDefault()
+            @on_submit(event)
+
+        reset_buttons: =>
+            @.$('.btn-primary').button('reset')
+            @.$('.cancel').button('reset')
+
+        # This is meant to be called by the overriding class
+        on_success: (response) =>
+            @reset_buttons()
+            clear_modals()
+
+        on_submit: (event) =>
+            @.$('.btn-primary').button('loading')
+            @.$('.cancel').button('loading')
+
     class @ConfirmationDialogModal extends @AbstractModal
         template: Handlebars.compile $('#confirmation_dialog-template').html()
-        class: 'confirmation-dialog'
+        class: 'confirmation-modal'
 
         initialize: ->
             log_initial '(initializing) modal dialog: confirmation'
-            super @template
+            super
 
-        render: (message, url, data, on_success) =>
+        render: (message, _url, _data, _on_success) ->
             log_render '(rendering) add secondary dialog'
+            @url = _url
+            @data = _data
+            @on_user_success = _on_success
 
-            # Define the validator options
-            validator_options =
-                submitHandler: =>
-                    $.ajax
-                        processData: false
-                        url: url
-                        type: 'POST'
-                        contentType: 'application/json'
-                        data: data
-                        success: on_success
+            super
+                message: message
+                modal_title: 'Confirmation'
+                btn_secondary_text: 'No'
+                btn_primary_text: 'Yes'
 
-            super validator_options, { 'message': message }
+        on_submit: ->
+            super
+            $.ajax
+                processData: false
+                url: @url
+                type: 'POST'
+                contentType: 'application/json'
+                data: @data
+                success: @on_success
+
+        on_success: (response) ->
+            super
+            @on_user_success(response)
 
     class @RenameItemModal extends @AbstractModal
         template: Handlebars.compile $('#rename_item-modal-template').html()
         alert_tmpl: Handlebars.compile $('#renamed_item-alert-template').html()
+        class: 'rename-item-modal'
 
         initialize: (uuid, type, on_success) ->
             log_initial '(initializing) modal dialog: rename item'
             @item_uuid = uuid
             @item_type = type
-            @on_success = on_success
-            super @template
+            @user_on_success = on_success
+            super
 
         get_item_object: ->
             switch @item_type
@@ -650,160 +663,154 @@ module 'ClusterView', ->
         render: ->
             log_render '(rendering) rename item dialog'
 
-            # Define the validator options
-            validator_options =
-                rules:
-                   name: 'required'
-
-                messages:
-                   name: 'Required'
-
-                submitHandler: =>
-                    old_name = @get_item_object().get('name')
-                    formdata = form_data_as_object($('form', @$modal))
-
-                    $.ajax
-                        processData: false
-                        url: "/ajax/" + @get_item_url() + "/#{@item_uuid}/name"
-                        type: 'POST'
-                        contentType: 'application/json'
-                        data: JSON.stringify(formdata.new_name)
-                        success: (response) =>
-                            clear_modals()
-
-                            # update proper model with the name
-                            @get_item_object().set('name', formdata.new_name)
-
-                            # notify the user that we succeeded
-                            $('#user-alert-space').append @alert_tmpl
-                                type: @item_type
-                                old_name: old_name
-                                new_name: formdata.new_name
-
-                            # Call custom success function
-                            if @on_success?
-                                @on_success response
-
-            super validator_options,
+            super
                 type: @item_type
                 old_name: @get_item_object().get('name')
+                modal_title: 'Rename ' + @item_type
+                btn_primary_text: 'Rename'
+
+        on_submit: ->
+            super
+            @old_name = @get_item_object().get('name')
+            @formdata = form_data_as_object($('form', @$modal))
+            $.ajax
+                processData: false
+                url: "/ajax/" + @get_item_url() + "/#{@item_uuid}/name"
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify(@formdata.new_name)
+                success: @on_success
+
+        on_success: (response) ->
+            super
+            # update proper model with the name
+            @get_item_object().set('name', @formdata.new_name)
+
+            # notify the user that we succeeded
+            $('#user-alert-space').append @alert_tmpl
+                type: @item_type
+                old_name: @old_name
+                new_name: @formdata.new_name
+
+            # Call custom success function
+            if @user_on_success?
+                @user_on_success response
 
     class @AddDatacenterModal extends @AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_datacenter-alert-template').html()
+        class: 'add-datacenter'
 
         initialize: ->
             log_initial '(initializing) modal dialog: add datacenter'
-            super @template
+            super
 
         render: ->
             log_render '(rendering) add datacenter dialog'
+            super
+                modal_title: "Add datacenter"
+                btn_primary_text: "Add"
 
-            # Define the validator options
-            validator_options =
-                rules:
-                   name: 'required'
+        on_submit: ->
+            super
+            @formdata = form_data_as_object($('form', @$modal))
 
-                messages:
-                   name: 'Required'
+            $.ajax
+                processData: false
+                url: '/ajax/datacenters/new'
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify({"name" : @formdata.name})
+                success: @on_success
 
-                submitHandler: =>
-                    formdata = form_data_as_object($('form', @$modal))
-
-                    $.ajax
-                        processData: false
-                        url: '/ajax/datacenters/new'
-                        type: 'POST'
-                        contentType: 'application/json'
-                        data: JSON.stringify({"name" : formdata.name})
-
-                        success: (response) =>
-                            clear_modals()
-
-                            # Parse the response JSON, apply appropriate diffs, and show an alert
-                            apply_to_collection(datacenters, response)
-                            for response_uuid, blah of response
-                                break
-                            $('#user-alert-space').html @alert_tmpl
-                                name: formdata.name
-                                uuid: response_uuid
-
-            super validator_options
+        on_success: (response) ->
+            super
+            # Parse the response JSON, apply appropriate diffs, and show an alert
+            apply_to_collection(datacenters, response)
+            for response_uuid, blah of response
+                break
+            $('#user-alert-space').html @alert_tmpl
+                name: @formdata.name
+                uuid: response_uuid
 
     class @RemoveDatacenterModal extends @AbstractModal
         template: Handlebars.compile $('#remove_datacenter-modal-template').html()
         alert_tmpl: Handlebars.compile $('#removed_datacenter-alert-template').html()
+        class: 'remove-datacenter'
 
         initialize: ->
             log_initial '(initializing) modal dialog: remove datacenter'
-            super @template
+            super
 
         render: (datacenter) ->
             log_render '(rendering) remove datacenters dialog'
-            validator_options =
-                submitHandler: =>
-                    $.ajax
-                        url: "/ajax/datacenters/#{datacenter.id}"
-                        type: 'DELETE'
-                        contentType: 'application/json'
+            @datacenter = datacenter
+            super
+                datacenter: datacenter.toJSON()
+                modal_title: "Remove datacenter"
+                btn_primary_text: 'Remove'
 
-                        success: (response) =>
-                            clear_modals()
+        on_submit: ->
+            super
+            $.ajax
+                url: "/ajax/datacenters/#{@datacenter.id}"
+                type: 'DELETE'
+                contentType: 'application/json'
+                success: @on_success
 
-                            if (response)
-                                throw "Received a non null response to a delete... this is incorrect"
-                            datacenters.remove(datacenter.id)
-                            $('#user-alert-space').html @alert_tmpl
-                                name: datacenter.get('name')
-
-            super validator_options, { 'datacenter': datacenter.toJSON() }
+        on_success: (response) ->
+            super
+            if (response)
+                throw "Received a non null response to a delete... this is incorrect"
+            datacenters.remove(@datacenter.id)
+            $('#user-alert-space').html @alert_tmpl
+                name: @datacenter.get('name')
 
     class @SetDatacenterModal extends @AbstractModal
         template: Handlebars.compile $('#set_datacenter-modal-template').html()
         alert_tmpl: Handlebars.compile $('#set_datacenter-alert-template').html()
+        class: 'set-datacenter-modal'
 
         initialize: ->
             log_initial '(initializing) modal dialog: set datacenter'
-            super @template
+            super
 
-        render: (machines_list) ->
+        render: (_machines_list) ->
+            @machines_list = _machines_list
             log_render '(rendering) set datacenter dialog'
+            super
+                modal_title: 'Set datacenter'
+                btn_primary_text: 'Commit'
+                datacenters: (datacenter.toJSON() for datacenter in datacenters.models)
 
-            validator_options =
-                rules:
-                    datacenter_uuid: 'required'
+        on_submit: ->
+            super
+            @formdata = form_data_as_object($('form', @$modal))
+            # Prepare json to pass to the server
+            json = {}
+            for _m in @machines_list
+                json[_m.get('id')] =
+                    datacenter_uuid: @formdata.datacenter_uuid
 
-                messages:
-                    datacenter_uuid: 'Required'
+            # Set the datacenters!
+            $.ajax
+                processData: false
+                url: "/ajax/machines"
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify(json)
+                success: @on_success
 
-                submitHandler: =>
-                    formdata = form_data_as_object($('form', @$modal))
-                    # Prepare json to pass to the server
-                    json = {}
-                    for _m in machines_list
-                        json[_m.get('id')] =
-                            datacenter_uuid: formdata.datacenter_uuid
+        on_success: (response) =>
+            super
+            for _m_uuid, _m of response
+                machines.get(_m_uuid).set(_m)
 
-                    # Set the datacenters!
-                    $.ajax
-                        processData: false
-                        url: "/ajax/machines"
-                        type: 'POST'
-                        contentType: 'application/json'
-                        data: JSON.stringify(json)
+            machine_names = _.map(@machines_list, (_m) -> name: _m.get('name'))
+            $('#user-alert-space').append (@alert_tmpl
+                datacenter_name: datacenters.get(@formdata.datacenter_uuid).get('name')
+                machines_first: machine_names[0]
+                machines_rest: machine_names.splice(1)
+                machine_count: @machines_list.length
+            )
 
-                        success: (response) =>
-                            clear_modals()
-
-                            for _m_uuid, _m of response
-                                machines.get(_m_uuid).set(_m)
-
-                            machine_names = _.map(machines_list, (_m) -> name: _m.get('name'))
-                            $('#user-alert-space').append (@alert_tmpl
-                                datacenter_name: datacenters.get(formdata.datacenter_uuid).get('name')
-                                machines_first: machine_names[0]
-                                machines_rest: machine_names.splice(1)
-                                machine_count: machines_list.length
-                            )
-
-            super validator_options, { datacenters: (datacenter.toJSON() for datacenter in datacenters.models) }

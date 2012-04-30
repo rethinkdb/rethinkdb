@@ -1,6 +1,7 @@
 #include "unittest/gtest.hpp"
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "containers/uuid.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
@@ -8,6 +9,15 @@
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
+
+namespace {
+
+boost::optional<boost::optional<backfiller_business_card_t<dummy_protocol_t> > > wrap_in_optional(
+        const boost::optional<backfiller_business_card_t<dummy_protocol_t> > &inner) {
+    return boost::optional<boost::optional<backfiller_business_card_t<dummy_protocol_t> > >(inner);
+}
+
+}   /* anonymous namespace */
 
 void run_backfill_test() {
 
@@ -102,10 +112,8 @@ void run_backfill_test() {
         branch_history_controller.get_view(),
         &backfiller_store);
 
-    simple_directory_manager_t<boost::optional<backfiller_business_card_t<dummy_protocol_t> > > directory_manager(
-        &cluster,
-        boost::optional<backfiller_business_card_t<dummy_protocol_t> >(backfiller.get_business_card())
-        );
+    watchable_variable_t<boost::optional<backfiller_business_card_t<dummy_protocol_t> > > pseudo_directory(
+        boost::optional<backfiller_business_card_t<dummy_protocol_t> >(backfiller.get_business_card()));
 
     /* Run a backfill */
 
@@ -115,7 +123,7 @@ void run_backfill_test() {
         branch_history_controller.get_view(),
         &backfillee_store,
         backfillee_store.get_region(),
-        translate_into_watchable(directory_manager.get_root_view()->get_peer_view(cluster.get_connectivity_service()->get_me())),
+        pseudo_directory.get_watchable()->subview(&wrap_in_optional),
         generate_uuid(),
         &interruptor);
 

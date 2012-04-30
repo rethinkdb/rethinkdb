@@ -6,7 +6,6 @@
 #include "clustering/administration/machine_metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "http/json/json_adapter.hpp"
-#include "rpc/directory/read_view.hpp"
 
 class remote_issue_t : public global_issue_t {
 public:

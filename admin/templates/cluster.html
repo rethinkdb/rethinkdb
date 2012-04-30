@@ -248,7 +248,7 @@
 
         <script id="namespace_view-profile-template" type="text/x-handlebars-template">
             <h1>Namespace overview for {{name}}</h1> (<a href="#" class="rename-namespace">rename</a>)
-            <div id="user-alert-space"></div>
+            <div id="user-alert-space">{{print_safe old_alert_html}}</div>
             <div class="two-panel-section">
               <div class="panel-left">
                 <h3 class="title">Namespace profile</h3>
@@ -327,57 +327,42 @@
             </table>
         </script>
 
-        <script id="modify_replicas-modal-template-outer" type="text/x-handlebars-template">
-        <div class="modal modify-replicas">
-            <form class="form">
-                <div class="modal-header">
-                    <a href="#" class="close">&times;</a>
-                    <h3>Replication for namespace <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a> in datacenter <a href="/#datacenters/{{datacenter.id}}">{{datacenter.name}}</a></h3>
+        <script id="modify_replicas-modal-template" type="text/x-handlebars-template">
+          <form class="form">
+            <div class="replica-attributes">
+              {{#if error_msg}}
+              <p class="server-error alert alert-error"> {{error_msg}} </p>
+              {{/if}}
+              <div class="info">
+                <p>You can specify the <strong>number of replicas</strong> to use per shard for this datacenter.</p>
+                <p>The <strong>number of acks</strong> specifies how many replicas in this datacenter must acknowledge a write before an operation succeeds.</p>
+              </div>
+              <fieldset>
+                <input name="datacenter" type="hidden" value="{{datacenter.id}}" />
+                <div class="clearfix">
+                  <label for="replicas">
+                    <h4>Number of replicas:</h4>
+                  </label>
+                  <div class="input">
+                    <input class="xlarge" name="num_replicas" type="text" value="{{num_replicas}}"/>
+                    <p class="current">Current replicas: {{num_replicas}}</p>
+                    <p class="max">Max replicas: {{total_machines}}</p>
+                  </div>
                 </div>
-                <div class="modal-body">
-                </div>
-                <div class="modal-footer">
-                                <button class="btn primary commit-plan" type="submit" name="commit-plan" value="Commit plan">Commit changes</button>
-                    <a href="#" class="btn modify-replicas cancel">Cancel</a>
-                </div>
-            </form>
-        </div>
-        </script>
-        
-        <script id="modify_replicas-modal-template-inner" type="text/x-handlebars-template">
-          <div class="replica-attributes">
-          {{#if error_msg}}
-          <p class="server-error alert alert-error"> {{error_msg}} </p>
-          {{/if}}
-          <div class="info">
-            <p>You can specify the <strong>number of replicas</strong> to use per shard for this datacenter.</p>
-            <p>The <strong>number of acks</strong> specifies how many replicas in this datacenter must acknowledge a write before an operation succeeds.</p>
-          </div>
-          <fieldset>
-            <input name="datacenter" type="hidden" value="{{datacenter.id}}" />
-            <div class="clearfix">
-              <label for="replicas">
-                <h4>Number of replicas:</h4>
-              </label>
-              <div class="input">
-                <input class="xlarge" name="num_replicas" type="text" value="{{num_replicas}}"/>
-                <p class="current">Current replicas: {{num_replicas}}</p>
-                <p class="max">Max replicas: {{total_machines}}</p>
+                <hr />
+                <div class="clearfix">
+                  <label for="acks">
+                    <h4>Number of acks:</h4>
+                  </label>
+                  <div class="input">
+                    <input class="xlarge" name="num_acks" type="text" value="{{num_acks}}"/>
+                    <p class="current">Current acks: {{num_acks}}</p>
+                  </div>
+              </fieldset>
+              <div class="clearboth"></div>
               </div>
             </div>
-            <hr />
-            <div class="clearfix">
-              <label for="acks">
-                <h4>Number of acks:</h4>
-              </label>
-              <div class="input">
-                <input class="xlarge" name="num_acks" type="text" value="{{num_acks}}"/>
-                <p class="current">Current acks: {{num_acks}}</p>
-              </div>
-          </fieldset>
-          <div class="clearboth"></div>
-          </div>
-          </div>
+          </form>
         </script>
 
         <script id="modify_replicas_modal-replica_plan-template" type="text/x-handlebars-template">
@@ -460,28 +445,16 @@
         </script>
 
         <script id="modify_shards_modal-template" type="text/x-handlebars-template">
-            <div class="modal modify-shards">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Sharding for namespace <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a></h3>
-                    </div>
-                    <div class="modal-body">
-                        <div class="sharding-scheme">
-                            <h4>Define the sharding scheme:</h4>
-                            <table class="shards table">
-                                <tbody>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="sharding-plan"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary commit-plan" type="submit" name="commit-plan" value="Commit plan">Commit plan</button>
-                        <a href="#" class="btn modify-shards cancel">Cancel</a>
-                    </div>
-                </form>
+          <form class="form">
+            <div class="sharding-scheme">
+              <h4>Define the sharding scheme:</h4>
+              <table class="shards table">
+                <tbody>
+                </tbody>
+              </table>
             </div>
+            <div class="sharding-plan"></div>
+          </form>
         </script>
 
         <script id="modify_shards_modal-shard-template" type="text/x-handlebars-template">
@@ -935,162 +908,97 @@
         </script>
 
         <!-- Modal dialogs -->
-        <script id="add_namespace-modal-template" type="text/x-handlebars-template">
-            <div class="modal add-namespace">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Add a namespace</h3>
-                    </div>
-                    <div class="modal-body">
-                        <fieldset>
-                            <legend>Namespace details</legend>
-                            <div class="clearfix">
-                                <label for="name">Name</label>
-                                <div class="input">
-                                    <input class="xlarge" name="name" size="30" type="text" />
-                                </div>
-                            </div>
-                            <div class="clearfix">
-                                <label for="port">Port</label>
-                                <div class="input">
-                                    <input class="xlarge" name="port" size="5" type="text" />
-                                </div>
-                            </div>
-                            <div class="clearfix">
-                                <label for="protocol">Protocol</label>
-                                <div class="input">
-                                    <select class="protocol" name="protocol">
-                                        <option>Memcached</option>
-                                        <option>Redis</option>
-                                        <option>Riak</option>
-                                        <option>MongoDB</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="clearfix">
-                                <label for="primary_datacenter">Select a primary datacenter:</label>
-                                <div class="input">
-                                    <select class="primary_datacenter" name="primary_datacenter">
-                                        {{#each datacenters}}
-                                        <option value="{{this.id}}">{{this.name}}</option>
-                                        {{/each}}
-                                    </select>
-                                </div>
-                            </div>
-                            <hr />
-                            <div class="user-tip">
-                                <p>* You can tweak configuration options for
-                                the namespace once it's created.</p>
-                            </div>
-                        </fieldset>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary add-namespace" type="submit" name="add-namespace" value="Add namespace">Add namespace</button>
-                        <a href="#" class="btn secondary cancel">Cancel</a>
-                    </div>
-                </form>
+        <script id="abstract-modal-outer-template" type="text/x-handlebars-template">
+          <div class="modal {{modal_class}}">
+            <div class="modal-header">
+              <button class="close" data-dismiss="modal">&times;</button>
+              <h3>{{modal_title}}</h3>
             </div>
+            <div class="modal-body">
+            </div>
+            <div class="modal-footer">
+              <button class="btn cancel"
+                      data-loading-text="{{#if btn_secondary_text}}{{btn_secondary_text}}{{else}}Cancel{{/if}}">
+                {{#if btn_secondary_text}}{{btn_secondary_text}}{{else}}Cancel{{/if}}
+              </button>
+              <button class="btn btn-primary" data-loading-text="Loading...">
+                {{#if btn_primary_text}}{{btn_primary_text}}{{else}}Commit{{/if}}
+              </button>
+            </div>
+          </div>
+        </script>
+        
+        <script id="add_namespace-modal-template" type="text/x-handlebars-template">
+          <form class="form">
+            <fieldset>
+              <legend>Namespace details</legend>
+              <div class="clearfix">
+                <label for="name">Name</label>
+                <div class="input">
+                  <input class="xlarge" name="name" size="30" type="text" />
+                </div>
+              </div>
+              <div class="clearfix">
+                <label for="port">Port</label>
+                <div class="input">
+                  <input class="xlarge" name="port" size="5" type="text" />
+                </div>
+              </div>
+              <div class="clearfix">
+                <label for="protocol">Protocol</label>
+                <div class="input">
+                  <select class="protocol" name="protocol">
+                    <option>Memcached</option>
+                    <option>Redis</option>
+                    <option>Riak</option>
+                    <option>MongoDB</option>
+                  </select>
+                </div>
+              </div>
+              <div class="clearfix">
+                <label for="primary_datacenter">Select a primary datacenter:</label>
+                <div class="input">
+                  <select class="primary_datacenter" name="primary_datacenter">
+                    {{#each datacenters}}
+                    <option value="{{this.id}}">{{this.name}}</option>
+                    {{/each}}
+                  </select>
+                </div>
+              </div>
+              <hr />
+              <div class="user-tip">
+                <p>* You can tweak configuration options for
+                  the namespace once it's created.</p>
+              </div>
+            </fieldset>
+          </form>
         </script>
 
         <script id="confirmation_dialog-template" type="text/x-handlebars-template">
-            <div class="modal confirmation">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Confirmation</h3>
-                    </div>
-                    <div class="modal-body">
-                        <fieldset>
-                            <legend>{{message}}</legend>
-                        </fieldset>
-                    </div>
-                    <div class="modal-footer">
-                        <a href="#" class="btn cancel">No</a>
-                        <button class="btn" type="submit" name="yes" value="yes">Yes</button>
-                    </div>
-                </form>
-            </div>
+          <h2>{{message}}</h2>
         </script>
 
         <script id="remove_namespace-modal-template" type="text/x-handlebars-template">
-            <div class="modal remove-namespace">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Remove a namespace</h3>
-                    </div>
-                    <div class="modal-body">
-                        <p>Are you sure you want to remove these namespaces:</p>
-                        <ul class="namespace-list">
-                            {{#each namespaces}}
-                                <li><a href="#namespaces/{{id}}" target="_blank">{{name}}</a></li>
-                            {{/each}}
-                        </ul>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary remove-namespace" type="submit" name="remove-namespace" value="Remove namespace">Remove namespace</button>
-                        <a href="#" class="btn secondary cancel">Cancel</a>
-                    </div>
-                </form>
-            </div>
+          <h2>Are you sure you want to remove these namespaces:</h2>
+          <ul class="namespace-list">
+            {{#each namespaces}}
+            <li><a href="#namespaces/{{id}}">{{name}}</a></li>
+            {{/each}}
+          </ul>
         </script>
 
         <script id="declare_machine_dead-modal-template" type="text/x-handlebars-template">
-            <div class="modal declare_machine_dead">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Declare machine dead</h3>
-                    </div>
-                    <div class="modal-body">
-                        <p>Are you sure you want to declare <strong>{{machine_name}}</strong> dead?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary declare_machine_dead" type="submit" name="declare-machine-dead" value="Declare dead">Declare dead</button>
-                        <a href="#" class="btn secondary cancel">Cancel</a>
-                    </div>
-                </form>
-            </div>
+          <p>Are you sure you want to declare <strong>{{machine_name}}</strong> dead?</p>
         </script>
 
         <script id="resolve_vclock-modal-template" type="text/x-handlebars-template">
-            <div class="modal resolve_vclock">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Resolve configuration conflict</h3>
-                    </div>
-                    <div class="modal-body">
-                        <p>Are you sure you want to use the value <strong>{{final_value}}</strong>?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary resolve_vclock" type="submit" name="resolve-vclock" value="Resolve">Resolve</button>
-                        <a href="#" class="btn secondary cancel">Cancel</a>
-                    </div>
-                </form>
-            </div>
+          <p>Are you sure you want to use the value <strong>{{final_value}}</strong>?</p>
         </script>
 
-        <script id="edit_replica_machines-modal-template-outer" type="text/x-handlebars-template">
-            <div class="modal modify-replicas">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Replica machines for shard {{name}} in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a></h3>
-                    </div>
-                    <div class="modal-body">
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary commit-plan" type="submit" name="commit-plan" value="Commit changes">Commit changes</button>
-                        <a href="#" class="btn edit-machines cancel">Cancel</a>
-                    </div>
-                </form>
-            </div>
-        </script>
-        <script id="edit_replica_machines-modal-template-inner" type="text/x-handlebars-template">
-          <div class="current-replicas">
-            {{#if change_hints}}
+        <script id="edit_replica_machines-modal-template" type="text/x-handlebars-template">
+          <form class="form">
+            <div class="current-replicas">
+              {{#if change_hints}}
               <h4>Change replica assignments:</h4>
               <ul>
                 <!-- We render this the same number of times there are replicas. -->
@@ -1115,28 +1023,14 @@
               </ul>
               <a id="btn_change_hints" href="#">Change assignments</a>
               {{/if}}
-          </div>
+            </div>
+          </form>
         </script>
 
-        <script id="edit_master_machine-modal-template-outer" type="text/x-handlebars-template">
-            <div class="modal modify-master">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Master machine for shard {{name}} in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a></h3>
-                    </div>
-                    <div class="modal-body">
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary commit-plan" type="submit" name="commit-plan" value="Commit changes">Commit changes</button>
-                        <a href="#" class="btn edit-machines cancel">Cancel</a>
-                    </div>
-                </form>
-            </div>
-        </script>
-        <script id="edit_master_machine-modal-template-inner" type="text/x-handlebars-template">
-          <div class="current-master">
-            {{#if change_hints}}
+        <script id="edit_master_machine-modal-template" type="text/x-handlebars-template">
+          <form class="form">
+            <div class="current-master">
+              {{#if change_hints}}
               <h4>Change master assignment:</h4>
               <ul>
                 <li>
@@ -1153,113 +1047,66 @@
               <li><a href="/#machines/{{master_uuid}}">{{master_name}}</a> {{humanize_machine_reachability master_status}}</li>
               <a id="btn_change_hints" href="#">Change assignment</a>
               {{/if}}
-          </div>
+            </div>
+          </form>
         </script>
 
         <script id="add_datacenter-modal-template" type="text/x-handlebars-template">
-            <div class="modal add-datacenter">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Add a datacenter</h3>
-                    </div>
-                    <div class="modal-body">
-                        <fieldset>
-                            <legend>Datacenter details</legend>
-                           <div class="clearfix">
-                                <label for="name">Name</label>
-                                <div class="input">
-                                    <input class="xlarge" name="name" size="30" type="text" />
-                                </div>
-                            </div>
-                        </fieldset>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary add-datacenter" type="submit" name="add-datacenter" value="Add datacenter">Add datacenter</button>
-                        <a href="#" class="btn secondary cancel">Cancel</a>
-                    </div>
-                </form>
-            </div>
+          <form class="form">
+            <fieldset>
+              <legend>Datacenter details</legend>
+              <div class="clearfix">
+                <label for="name">Name</label>
+                <div class="input">
+                  <input class="xlarge" name="name" size="30" type="text" />
+                </div>
+              </div>
+            </fieldset>
+          </form>
         </script>
 
         <script id="rename_item-modal-template" type="text/x-handlebars-template">
-            <div class="modal rename-item">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Rename {{type}}</h3>
-                    </div>
-                    <div class="modal-body">
-                        <fieldset>
-                           <legend>Rename {{capitalize type}} from {{old_name}} to:</legend>
-                           <div class="clearfix">
-                                <label for="name">New name</label>
-                                <div class="input">
-                                    <input class="xlarge" name="new_name" size="30" type="text" />
-                                </div>
-                            </div>
-                        </fieldset>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary rename-item" type="submit" name="rename-item" value="Rename {{type}}">Rename {{type}}</button>
-                        <a href="#" class="btn secondary cancel">Cancel</a>
-                    </div>
-                </form>
-            </div>
+          <form class="form">
+            <fieldset>
+              <legend>Rename {{capitalize type}} from {{old_name}} to:</legend>
+              <div class="clearfix">
+                <label for="new_name">New name</label>
+                <div class="input">
+                  <input class="xlarge" name="new_name" size="30" type="text" />
+                </div>
+              </div>
+            </fieldset>
+          </form>
         </script>
 
         <script id="remove_datacenter-modal-template" type="text/x-handlebars-template">
-            <div class="modal remove-datacenter">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Remove a datacenter</h3>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert block-message error">
-                            <p>
-                            <strong>Be careful.</strong>
-                                If you remove these datacenters, all
-                                replica counts in these datacenters will be
-                                reduced to zero.
-                            </p>
-                        </div>
-                        <p>Are you sure you want to remove the datacenter <a href="#datacenters/{{datacenter.id}}" target="_blank">{{datacenter.name}}</a>?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary remove-datacenter" type="submit" name="remove-datacenter" value="Remove datacenter">Remove datacenters</button>
-                        <a href="#" class="btn secondary cancel">Cancel</a>
-                    </div>
-                </form>
+          <form class="form">
+            <div class="alert block-message error">
+              <p>
+                <strong>Be careful.</strong>
+                If you remove these datacenters, all
+                replica counts in these datacenters will be
+                reduced to zero.
+              </p>
             </div>
+            <p>Are you sure you want to remove the datacenter <a href="#datacenters/{{datacenter.id}}" target="_blank">{{datacenter.name}}</a>?</p>
+          </form>
         </script>
 
         <script id="set_datacenter-modal-template" type="text/x-handlebars-template">
-            <div class="modal set-datacenter">
-                <form class="form">
-                    <div class="modal-header">
-                        <a href="#" class="close">&times;</a>
-                        <h3>Set datacenter</h3>
-                    </div>
-                    <div class="modal-body">
-                        <fieldset>
-                            <legend>Which datacenter?</legend>
-                            <label for="datacenter_uuid">Select a datacenter</label>
-                            <div class="clearfix">
-                                <select class="datacenter_uuid" name="datacenter_uuid">
-                                    {{#each datacenters}}
-                                        <option value="{{this.id}}">{{this.name}}</option>
-                                    {{/each}}
-                                </select>
-                            </div>
-                        </fieldset>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn primary set-namespace" type="submit">Set datacenter</button>
-                        <a href="#" class="btn secondary cancel">Cancel</a>
-                    </div>
-                </form>
-            </div>
+          <form class="form">
+            <fieldset>
+              <legend>Which datacenter?</legend>
+              <label for="datacenter_uuid">Select a datacenter</label>
+              <div class="clearfix">
+                <select class="datacenter_uuid" name="datacenter_uuid">
+                  {{#each datacenters}}
+                  <option value="{{this.id}}">{{this.name}}</option>
+                  {{/each}}
+                </select>
+              </div>
+            </fieldset>
+          </form>
         </script>
 
         <!-- javascript -->
@@ -1271,6 +1118,7 @@
         <script type="text/javascript" src="js/bootstrap/bootstrap-modal.js"></script>
         <script type="text/javascript" src="js/bootstrap/bootstrap-alert.js"></script>
         <script type="text/javascript" src="js/bootstrap/bootstrap-typeahead.js"></script>
+        <script type="text/javascript" src="js/bootstrap/bootstrap-button.js"></script>
         <script type="text/javascript" src="js/jquery.sparkline.min.js"></script>
         <script type="text/javascript" src="js/jquery.validate.min.js"></script>
         <script type="text/javascript" src="js/jquery.hotkeys.js"></script>

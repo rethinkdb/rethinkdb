@@ -515,78 +515,90 @@ module 'ResolveIssuesView', ->
     class @DeclareMachineDeadModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#declare_machine_dead-modal-template').html()
         alert_tmpl: Handlebars.compile $('#declared_machine_dead-alert-template').html()
+        class: 'declare-machine-dead'
 
         initialize: ->
             log_initial '(initializing) modal dialog: declare machine dead'
             super @template
 
-        render: (machine_to_kill) ->
+        render: (_machine_to_kill) ->
             log_render '(rendering) declare machine dead dialog'
-            validator_options =
-                submitHandler: =>
-                    $.ajax
-                        url: "/ajax/machines/#{machine_to_kill.id}"
-                        type: 'DELETE'
-                        contentType: 'application/json'
+            @machine_to_kill = _machine_to_kill
+            super
+                machine_name: @machine_to_kill.get("name")
+                modal_title: "Declare machine dead"
+                btn_primary_text: 'Kill'
 
-                        success: (response) =>
-                            clear_modals()
+        on_submit: ->
+            super
+            $.ajax
+                url: "/ajax/machines/#{@machine_to_kill.id}"
+                type: 'DELETE'
+                contentType: 'application/json'
+                success: @on_success
 
-                            if (response)
-                                throw "Received a non null response to a delete... this is incorrect"
+        on_success: (response) ->
+            super
+            if (response)
+                throw "Received a non null response to a delete... this is incorrect"
 
-                            # Grab the new set of issues (so we don't have to wait)
-                            $.ajax
-                                url: '/ajax/issues'
-                                success: set_issues
-                                async: false
+            # Grab the new set of issues (so we don't have to wait)
+            $.ajax
+                url: '/ajax/issues'
+                success: set_issues
+                async: false
 
-                            # rerender issue view (just the issues, not the whole thing)
-                            window.app.resolve_issues_view.render_issues()
+            # rerender issue view (just the issues, not the whole thing)
+            window.app.resolve_issues_view.render_issues()
 
-                            # notify the user that we succeeded
-                            $('#user-alert-space').append @alert_tmpl
-                                machine_name: machine_to_kill.get("name")
+            # notify the user that we succeeded
+            $('#user-alert-space').append @alert_tmpl
+                machine_name: @machine_to_kill.get("name")
 
-                            # remove the dead machine from the models (this must be last)
-                            machines.remove(machine_to_kill.id)
-
-            super validator_options, { 'machine_name': machine_to_kill.get("name") }
+            # remove the dead machine from the models (this must be last)
+            machines.remove(@machine_to_kill.id)
 
     class @ResolveVClockModal extends ClusterView.AbstractModal
         template: Handlebars.compile $('#resolve_vclock-modal-template').html()
         alert_tmpl: Handlebars.compile $('#resolved_vclock-alert-template').html()
+        class: 'resolve-vclock-modal'
 
         initialize: ->
             log_initial '(initializing) modal dialog: resolve vclock'
-            super @template
+            super
 
-        render: (final_value, resolution_url) ->
+        render: (_final_value, _resolution_url) ->
+            @final_value = _final_value
+            @resolution_url = _resolution_url
             log_render '(rendering) resolve vclock'
-            validator_options =
-                submitHandler: =>
-                    $.ajax
-                        url: "/ajax/" + resolution_url
-                        type: 'POST'
-                        contentType: 'application/json'
-                        data: JSON.stringify(final_value)
-                        success: (response) =>
-                            clear_modals()
+            super
+                final_value: @final_value
+                modal_title: 'Resolve configuration conflict'
+                btn_primary_text: 'Resolve'
 
-                            # Grab the new set of issues (so we don't have to wait)
-                            $.ajax
-                                url: '/ajax/issues'
-                                success: set_issues
-                                async: false
+        on_submit: ->
+            super
+            $.ajax
+                url: "/ajax/" + @resolution_url
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify(@final_value)
+                success: @on_success
 
-                            # rerender issue view (just the issues, not the whole thing)
-                            window.app.resolve_issues_view.render_issues()
+        on_success: (response) ->
+            super
+            # Grab the new set of issues (so we don't have to wait)
+            $.ajax
+                url: '/ajax/issues'
+                success: set_issues
+                async: false
 
-                            # notify the user that we succeeded
-                            $('#user-alert-space').append @alert_tmpl
-                                final_value: final_value
+            # rerender issue view (just the issues, not the whole thing)
+            window.app.resolve_issues_view.render_issues()
 
-            super validator_options, { 'final_value': final_value }
+            # notify the user that we succeeded
+            $('#user-alert-space').append @alert_tmpl
+                final_value: @final_value
 
     # ResolveIssuesView.Issue
     class @Issue extends Backbone.View
