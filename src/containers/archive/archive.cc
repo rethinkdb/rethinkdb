@@ -35,6 +35,7 @@ write_message_t::~write_message_t() {
     write_buffer_t *buffer;
     while ((buffer = buffers_.head())) {
         buffers_.remove(buffer);
+        delete buffer;
     }
 }
 
