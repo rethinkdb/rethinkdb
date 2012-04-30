@@ -523,6 +523,13 @@ class ClusterAccess(object):
                 machines.append(serv)
         return random.choice(machines)
 
+    def get_progress(self):
+        return self.do_query("GET", "/ajax/progress")
+
+    def get_distribution(self, namespace, depth = 1):
+        return self.do_query("GET", "/ajax/distribution?namespace=%s&depth=%d" % (namespace.uuid, depth))
+
+
     def _pull_cluster_data(self, cluster_data, local_data, data_type):
         for uuid in cluster_data.iterkeys():
             validate_uuid(uuid)
@@ -573,4 +580,3 @@ class ClusterAccess(object):
         self._pull_cluster_data(data[u"memcached_namespaces"], self.memcached_namespaces, MemcachedNamespace)
         self._verify_cluster_data(data)
         return data
-

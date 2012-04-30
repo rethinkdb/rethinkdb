@@ -66,25 +66,25 @@ bool version_is_ancestor<mock::dummy_protocol_t>(
         const branch_history_t<mock::dummy_protocol_t> &branch_history,
         version_t ancestor,
         version_t descendent,
-        typename mock::dummy_protocol_t::region_t relevant_region);
+        mock::dummy_protocol_t::region_t relevant_region);
 
 template
 bool version_is_divergent<mock::dummy_protocol_t>(
         const branch_history_t<mock::dummy_protocol_t> &bh,
         version_t v1,
         version_t v2,
-        typename mock::dummy_protocol_t::region_t relevant_region);
+        mock::dummy_protocol_t::region_t relevant_region);
 
 template
 bool version_is_ancestor<memcached_protocol_t>(
         const branch_history_t<memcached_protocol_t> &branch_history,
         version_t ancestor,
         version_t descendent,
-        typename memcached_protocol_t::region_t relevant_region);
+        memcached_protocol_t::region_t relevant_region);
 
 template
 bool version_is_divergent<memcached_protocol_t>(
         const branch_history_t<memcached_protocol_t> &bh,
         version_t v1,
         version_t v2,
-        typename memcached_protocol_t::region_t relevant_region);
+        memcached_protocol_t::region_t relevant_region);

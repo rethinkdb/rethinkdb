@@ -252,7 +252,7 @@ public:
             got_superblock_t &superbloc) const
             THROWS_NOTHING;
         void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, got_superblock_t &superbloc) const THROWS_NOTHING;
-};
+    };
 };
 
 #endif /* MEMCACHED_PROTOCOL_HPP_ */
