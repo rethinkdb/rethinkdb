@@ -22,7 +22,7 @@ class test_store_t {
 public:
     test_store_t() :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            store(temp_file.name(), true)
+            store(temp_file.name(), true, &storage_stats)
     {
         /* Initialize store metadata */
         cond_t non_interruptor;
@@ -36,6 +36,7 @@ public:
     }
 
     temp_file_t temp_file;
+    typename protocol_t::storage_stats_t storage_stats;
     typename protocol_t::store_t store;
 };
 

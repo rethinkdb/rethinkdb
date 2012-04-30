@@ -60,6 +60,11 @@ private:
 
     typename semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> >::subscription_t semilattice_subscription;
     watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t translation_table_subscription;
+
+    /* The reactor driver is also tasked with handing out the stat objects
+     * (this is fair because the reactor driver is also the guy who creates the
+     * stores so that's sort of his job.) */
+    boost::ptr_map<namespace_id_t, typename protocol_t::storage_stats_t> storage_stats;
 };
 
 #endif

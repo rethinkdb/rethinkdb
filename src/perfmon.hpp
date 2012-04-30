@@ -367,4 +367,7 @@ struct block_pm_duration {
     }
 };
 
+class namespace_perfmons_t {
+};
+
 #endif /* PERFMON_HPP_ */

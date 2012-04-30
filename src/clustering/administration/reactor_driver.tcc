@@ -151,13 +151,15 @@ private:
     }
 
     void initialize_reactor() {
+        typename protocol_t::storage_stats_t *namespace_stats = new typename protocol_t::storage_stats_t;
+        parent->storage_stats.insert(namespace_id, namespace_stats);
         int res = access(get_file_name().c_str(), R_OK | W_OK);
         if (res == 0) {
             /* The file already exists thus we don't create it. */
-            store.reset(new typename protocol_t::store_t(get_file_name(), false));
+            store.reset(new typename protocol_t::store_t(get_file_name(), false, namespace_stats));
         } else {
             /* The file does not exist, create it. */
-            store.reset(new typename protocol_t::store_t(get_file_name(), true));
+            store.reset(new typename protocol_t::store_t(get_file_name(), true, namespace_stats));
 
             //Initialize the metadata in the underlying store
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
