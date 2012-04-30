@@ -209,7 +209,7 @@ template void backfillee<mock::dummy_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<mock::dummy_protocol_t> > > branch_history,
         store_view_t<mock::dummy_protocol_t> *store,
-        typename mock::dummy_protocol_t::region_t region,
+        mock::dummy_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<mock::dummy_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
@@ -218,7 +218,7 @@ template void backfillee<mock::dummy_protocol_t>(
 template void on_receive_backfill_chunk<mock::dummy_protocol_t>(
         store_view_t<mock::dummy_protocol_t> *store,
         signal_t *dont_go_until,
-        typename mock::dummy_protocol_t::backfill_chunk_t chunk,
+        mock::dummy_protocol_t::backfill_chunk_t chunk,
         signal_t *interruptor,
         UNUSED auto_drainer_t::lock_t keepalive)
     THROWS_NOTHING;
@@ -228,7 +228,7 @@ template void backfillee<memcached_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<memcached_protocol_t> > > branch_history,
         store_view_t<memcached_protocol_t> *store,
-        typename memcached_protocol_t::region_t region,
+        memcached_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<memcached_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
@@ -237,7 +237,7 @@ template void backfillee<memcached_protocol_t>(
 template void on_receive_backfill_chunk<memcached_protocol_t>(
         store_view_t<memcached_protocol_t> *store,
         signal_t *dont_go_until,
-        typename memcached_protocol_t::backfill_chunk_t chunk,
+        memcached_protocol_t::backfill_chunk_t chunk,
         signal_t *interruptor,
         UNUSED auto_drainer_t::lock_t keepalive)
     THROWS_NOTHING;

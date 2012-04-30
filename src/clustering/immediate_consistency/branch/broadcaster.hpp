@@ -11,7 +11,7 @@
 
 template <class> class listener_t;
 template <class> class semilattice_readwrite_view_t;
-class mailbox_manager_t;
+struct mailbox_manager_t;
 
 
 /* The implementation of `broadcaster_t` is a mess, but the interface is
