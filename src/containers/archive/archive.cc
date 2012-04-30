@@ -32,9 +32,9 @@ int64_t force_read(read_stream_t *s, void *p, int64_t n) {
 }
 
 write_message_t::~write_message_t() {
-    for (write_buffer_t *buffer = buffers_.head(); buffer; buffer = buffers_.next(buffer)) {
+    write_buffer_t *buffer;
+    while ((buffer = buffers_.head())) {
         buffers_.remove(buffer);
-        delete buffer;
     }
 }
 
