@@ -195,7 +195,10 @@ private:
 
     std::map<std::string, command_info *> command_descriptions;
 
+    // TODO: WTF
     static rethinkdb_admin_app_t *instance;
+
+    DISABLE_COPYING(rethinkdb_admin_app_t);
 };
 
 #endif
