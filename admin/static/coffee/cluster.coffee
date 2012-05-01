@@ -15,6 +15,7 @@ class Datacenter extends Backbone.Model
 class Machine extends Backbone.Model
 
 class LogEntry extends Backbone.Model
+    get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)
 
 class Issue extends Backbone.Model
 
@@ -732,8 +733,12 @@ $ ->
     # A helper function to collect data from all of our shitty
     # routes. TODO: somebody fix this in the server for heaven's
     # sakes!!!
-    collect_server_data = =>
-        $.getJSON('/ajax', apply_diffs)
+    #   - an optional callback can be provided. Currently this callback will only be called after the /ajax route (metadata) is collected
+    collect_server_data = (optional_callback) =>
+        $.getJSON('/ajax', (updates) ->
+            apply_diffs(updates)
+            optional_callback() if optional_callback
+        )
         $.getJSON('/ajax/issues', set_issues)
         $.getJSON('/ajax/progress', set_progress)
         $.getJSON('/ajax/directory', set_directory)
@@ -749,14 +754,16 @@ $ ->
             legacy_sync method, model, success, error
 
 
-    # This object is for events triggered by views on the router; this exists because the router is unavailable when first initializing
+    # This object is for global events whose relevant data may not be available yet. Example include:
+    #   - the router is unavailable when first initializing
+    #   - machines, namespaces, and datacenters collections are unavailable when first initializing
     window.app_events = {}
 
     # Create the app
     window.app = new BackboneCluster
 
     # Signal that the router is ready to be bound to
-    $(window.app_events).trigger('on_ready')
+    $(window.app_events).trigger('router_ready')
 
     # Now that we're all bound, start routing
     Backbone.history.start()
@@ -764,7 +771,8 @@ $ ->
     setInterval (-> Backbone.sync 'read', null), updateInterval
     declare_client_connected()
 
-    collect_server_data()
+    # Provide one optional callback that will indicate when collections are fully populated
+    collect_server_data( -> $(window.app_events).trigger('collections_ready'))
 
     # Set up common DOM behavior
     $('.modal').modal

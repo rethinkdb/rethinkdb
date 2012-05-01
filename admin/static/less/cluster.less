@@ -63,6 +63,18 @@
 
 /*
     ----------------------------
+    Log view
+    ----------------------------
+*/
+
+.log-view {
+    .header h1 {
+        margin-bottom: 15px;
+    }
+}
+
+/*
+    ----------------------------
     Sidebar
     ----------------------------
 */
@@ -152,20 +164,20 @@
         }
     }
 
-    .event {
-        padding: 8px 0px;
+    .recent-log-entry {
+        padding: 7px 0px;
 
-        .priority {
+        .level {
             width: 24px;
             height: 24px;
             float: left;
             margin-top: 4px;
             margin-bottom: 4px;
             margin-right: 15px;
-            &.medium {
+            &.error {
                 background: url('/images/alert-icon_small.png') no-repeat center center;
             }
-            &.low {
+            &.info {
                 background: url('/images/information-icon_small.png') no-repeat center center;
             }
         }
@@ -179,11 +191,12 @@
             width: 100%;
         }
 
-        .datetime {
+        .datetime, .from-machine {
             color: @gray;
             text-align: right;
             text-transform: uppercase;
             font-size: 0.75em;
+            margin-bottom: 0;
         }
     }
 }

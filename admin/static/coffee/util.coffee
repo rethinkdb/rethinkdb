@@ -38,6 +38,7 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
     return result
 
 Handlebars.registerHelper 'pluralize_verb_to_be', (num) -> if num is 1 then 'is' else 'are'
+Handlebars.registerHelper 'pluralize_verb_to_have', (num) -> if num is 1 then 'has' else 'have'
 
 # Helpers for capitalization
 Handlebars.registerHelper 'capitalize', (str) -> str.charAt(0).toUpperCase() + str.slice(1)
@@ -99,7 +100,7 @@ window.log_binding = (msg) -> #console.log msg
 window.log_ajax = (msg) -> #console.log msg
 window.class_name = (obj) ->  obj.__proto__.constructor.name
 
-# Date utility functions (helps with testing)
+# Date utility functions
 # -------------------------------------------
 # Taken from the Mozilla Developer Center, quick function to generate ISO 8601 dates in Javascript for these sample alerts
 ISODateString = (d) ->
@@ -110,8 +111,6 @@ ISODateString = (d) ->
         pad(d.getUTCHours())+':' +
         pad(d.getUTCMinutes())+':' +
         pad(d.getUTCSeconds())+'Z'
-
-iso_date_from_unix_time = (unix_time) -> ISODateString new Date(unix_time * 1000)
 
 # Choose a random model from the given collection
 # -----------------------------------------------
@@ -193,12 +192,8 @@ bind_dev_tools = ->
                 console.log 'Made diff to simulation data.'
         return false
 
-    $('#random-machine-failure').click (e) ->
-        machine = random_model_from machines
-        events.add new Event
-            priority: 'medium'
-            message: "Machine #{machine.get('name')} was disconnected."
-            datetime: ISODateString new Date()
+    $('#visit_bad_route').click (e) ->
+        $.get('/fakeurl')
         return false
 
 ###

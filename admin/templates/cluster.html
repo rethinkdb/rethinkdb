@@ -695,9 +695,10 @@
           </div>
         </script>
         <script id="sidebar-recent_log_entry-template" type="text/x-handlebars-template">
-            <div class="priority {{priority}}"></div>
+            <div class="level {{level}}"></div>
             <div class="message">{{message}}</div>
-            <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+            <p class="from-machine">From <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
+            <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
         </script>
 
         <!-- Resolve issues view -->
@@ -819,7 +820,28 @@
 
         <!-- Log view -->
         <script id="log-container-template" type="text/x-handlebars-template">
-            <h1>Log entries</h1>
+            <div class="header">
+                <h1>Loading log entries...</h1>
+            </div>
+            <table>
+                <tbody class="log-table"></tbody>
+            </table>
+            <a class='next-log-entries'>Older log entries</a>
+        </script>
+        <script id="log-header-template" type="text/x-handlebars-template">
+            <h1>Log entries from {{from_date}} to {{to_date}}</h1>
+            {{#if new_entries}}
+                <div class="alert">
+                    <button class="close" data-dismiss="alert">×</button>
+                    <strong>{{num_new_entries}} new log {{pluralize_noun "entry" num_new_entries}} {{pluralize_verb_to_have num_new_entries}} just been reported.</strong> <a class="update-log-entries" href="#">Update entries</a>
+                </div>
+            {{/if}}
+        </script>
+        <script id="log-entry-template" type="text/x-handlebars-template">
+            <td><a href="#machines/{{machine_uuid}}">{{machine_name}}</a></td>
+            <td>{{level}}</td>
+            <td>{{message}}</td>
+            <td>{{datetime}}</td>
         </script>
 
         <!-- Alerts -->
@@ -1127,6 +1149,7 @@
         <script type="text/javascript" src="js/date-en-US.js"></script>
         <script type="text/javascript" src="js/d3.v2.min.js"></script>
         <script type="text/javascript" src="js/jquery.dataTables.min.js"></script>
+        <script type="text/javascript" src="js/xdate.js"></script>
         <script type="text/javascript" src="gen/cluster-min.js"></script>
         <script type="text/javascript">
             var reset_token = function() {
