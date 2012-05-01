@@ -15,8 +15,12 @@ public:
     public:
         virtual bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) = 0;
 
+        ack_checker_t() { }
     protected:
         virtual ~ack_checker_t() { }
+
+    private:
+        DISABLE_COPYING(ack_checker_t);
     };
 
     master_t(
