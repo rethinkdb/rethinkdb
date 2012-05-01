@@ -29,6 +29,7 @@ const char *rethinkdb_admin_app_t::move_command = "mv";
 const char *rethinkdb_admin_app_t::help_command = "help";
 const char *rethinkdb_admin_app_t::rename_command = "rename";
 const char *rethinkdb_admin_app_t::remove_command = "remove";
+const char *rethinkdb_admin_app_t::complete_command = "complete";
 
 const char *rethinkdb_admin_app_t::set_usage = "( <uuid> | <name> ) <field> ... [--resolve] [--value <value>]";
 const char *rethinkdb_admin_app_t::list_usage = "[ datacenters | namespaces [--protocol <protocol>] | machines | issues | <name> | <uuid> ] [--long]";
@@ -395,83 +396,78 @@ void rethinkdb_admin_app_t::run_command(command_data& data)
 void rethinkdb_admin_app_t::completion_generator_hook(const char *raw, linenoiseCompletions *completions) {
     if (instance == NULL)
         logERR("linenoise completion generator called without an instance of rethinkdb_admin_app_t");
-    else
-        instance->completion_generator(raw, completions);
+    else {
+        char last_char = raw[strlen(raw) - 1];
+        bool partial = (last_char != ' ') && (last_char != '\t') && (last_char != '\r') && (last_char != '\n');
+        std::vector<std::string> line = po::split_unix(raw);
+        instance->completion_generator(line, completions, partial);
+    }
 }
 
-void rethinkdb_admin_app_t::get_id_completions(const std::string& base, linenoiseCompletions *completions, const char *base_str) {
+void rethinkdb_admin_app_t::get_id_completions(const std::string& base, linenoiseCompletions *completions) {
     sync_from();
 
     // Build completion values
     for (std::map<std::string, std::vector<std::string> >::iterator i = uuid_to_path.lower_bound(base); i != uuid_to_path.end() && i->first.find(base) == 0; ++i)
-        linenoiseAddCompletion(completions, (base_str + i->first + " ").c_str());
+        linenoiseAddCompletion(completions, i->first.c_str());
 
     for (std::map<std::string, std::vector<std::string> >::iterator i = name_to_path.lower_bound(base); i != name_to_path.end() && i->first.find(base) == 0; ++i)
-        linenoiseAddCompletion(completions, (base_str + i->first + " ").c_str());
+        linenoiseAddCompletion(completions, i->first.c_str());
 }
 
-std::map<std::string, rethinkdb_admin_app_t::command_info *>::const_iterator rethinkdb_admin_app_t::find_command(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches, const char *base_str) {
+std::map<std::string, rethinkdb_admin_app_t::command_info *>::const_iterator rethinkdb_admin_app_t::find_command(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches) {
     std::map<std::string, command_info *>::const_iterator i = commands.find(str);
     if (add_matches) {
         if (i == commands.end())
             for (i = commands.lower_bound(str); i != commands.end() && i->first.find(str) == 0; ++i)
-                linenoiseAddCompletion(completions, (base_str + i->first + " ").c_str());
+                linenoiseAddCompletion(completions, i->first.c_str());
         else
-            linenoiseAddCompletion(completions, (base_str + i->first + " ").c_str());
+            linenoiseAddCompletion(completions, i->first.c_str());
 
         return commands.end();
     }
     return i;
 }
 
-void rethinkdb_admin_app_t::add_option_matches(const param_options *option, const std::string& partial, linenoiseCompletions *completions, const char *base_str) {
+void rethinkdb_admin_app_t::add_option_matches(const param_options *option, const std::string& partial, linenoiseCompletions *completions) {
 
     if (partial.find("!") == 0) // Don't allow completions beginning with '!', as we use it as a special case
         return;
 
     for (std::set<std::string>::iterator i = option->valid_options.lower_bound(partial); i != option->valid_options.end() && i->find(partial) == 0; ++i) {
         if (i->find("!") != 0) // skip special cases
-            linenoiseAddCompletion(completions, (base_str + *i + " ").c_str());
+            linenoiseAddCompletion(completions, i->c_str());
     }
 
     if (option->valid_options.count("!id") > 0) {
-        get_id_completions(partial, completions, base_str);
+        get_id_completions(partial, completions);
     }
 }
 
-void rethinkdb_admin_app_t::add_positional_matches(const command_info *info, size_t offset, const std::string& partial, linenoiseCompletions *completions, const char *base_str) {
+void rethinkdb_admin_app_t::add_positional_matches(const command_info *info, size_t offset, const std::string& partial, linenoiseCompletions *completions) {
     if (info->positionals.size() > offset)
-        add_option_matches(info->positionals[offset], partial, completions, base_str);
+        add_option_matches(info->positionals[offset], partial, completions);
 }
 
-void rethinkdb_admin_app_t::completion_generator(const char *raw, linenoiseCompletions *completions) {
+void rethinkdb_admin_app_t::completion_generator(const std::vector<std::string>& line, linenoiseCompletions *completions, bool partial) {
     // TODO: this function is too long, too complicated, and is probably redundant in some cases
     //   I'm sure it can be simplified, but for now it seems to work
-    std::vector<std::string> line = po::split_unix(raw);
 
     if (line.empty()) { // No command specified, available completions are all basic commands
         for (std::map<std::string, command_info *>::iterator i = command_descriptions.begin(); i != command_descriptions.end(); ++i)
             linenoiseAddCompletion(completions, (i->first + " ").c_str());
     } else { // Command specified, find a matching command/subcommand
         size_t index = 0;
-        char raw_truncated[strlen(raw) + 1];
-        char last_char = raw[strlen(raw) - 1];
-        bool space_at_end = (last_char == ' ') || (last_char == '\t') || (last_char == '\r') || (last_char == '\n');
         std::map<std::string, command_info *>::const_iterator i = command_descriptions.find(line[0]);
         std::map<std::string, command_info *>::const_iterator end = command_descriptions.end();
 
-        strcpy(raw_truncated, raw);
-        if (!space_at_end) // there is a partial string in the
-            for (int j = strlen(raw) - 1; (j >= 0) && (raw[j] != ' ') && (raw[j] != '\t') && (raw[j] != '\r') && (raw[j] != '\n'); --j) // Scan back for whitespace before the partial
-                raw_truncated[j] = '\0';
-
-        i = find_command(command_descriptions, line[index], completions, !space_at_end && line.size() == 1, raw_truncated);
+        i = find_command(command_descriptions, line[index], completions, partial && line.size() == 1);
         if (i == end)
             return;
 
         for (index = 1; index < line.size() && !i->second->subcommands.empty(); ++index) {
             end = i->second->subcommands.end();
-            i = find_command(i->second->subcommands, line[index], completions, !space_at_end && line.size() == index + 1, raw_truncated);
+            i = find_command(i->second->subcommands, line[index], completions, partial && line.size() == index + 1);
             if (i == end)
                 return;
         }
@@ -480,15 +476,15 @@ void rethinkdb_admin_app_t::completion_generator(const char *raw, linenoiseCompl
 
         if (!cmd->subcommands.empty()) {
             // We're at the end of the line, and there are still more subcommands
-            find_command(cmd->subcommands, std::string(), completions, space_at_end, raw_truncated);
+            find_command(cmd->subcommands, std::string(), completions, !partial);
             return;
         }
 
         if (index == line.size()) {
-            if (space_at_end) // Only the command specified, show positionals
-                add_positional_matches(cmd, 0, std::string(), completions, raw_truncated);
+            if (!partial) // Only the command specified, show positionals
+                add_positional_matches(cmd, 0, std::string(), completions);
             else // command specified with no space at the end, throw one on to show completion
-                linenoiseAddCompletion(completions, (std::string(raw) + " ").c_str());
+                linenoiseAddCompletion(completions, line[index - 1].c_str());
             return;
         }
 
@@ -501,35 +497,35 @@ void rethinkdb_admin_app_t::completion_generator(const char *raw, linenoiseCompl
                 std::map<std::string, param_options *>::iterator opt_iter = cmd->flags.find(line[index].substr(2));
                 if (opt_iter != cmd->flags.end()) {
                     if (line.size() <= index + opt_iter->second->count) { // Not enough params for this flag
-                        if (space_at_end) // print valid_options
-                            add_option_matches(opt_iter->second, std::string(), completions, raw_truncated);
+                        if (!partial) // print valid_options
+                            add_option_matches(opt_iter->second, std::string(), completions);
                         else // find matches of last word with valid_options
-                            add_option_matches(opt_iter->second, line[line.size() - 1], completions, raw_truncated);
+                            add_option_matches(opt_iter->second, line[line.size() - 1], completions);
                         return;
                     } else if (line.size() == index + opt_iter->second->count + 1) {
-                        if (space_at_end)
-                            add_positional_matches(cmd, positional_index, std::string(), completions, raw_truncated);
+                        if (!partial)
+                            add_positional_matches(cmd, positional_index, std::string(), completions);
                         else // find matches of last word with valid_options
-                            add_option_matches(opt_iter->second, line[line.size() - 1], completions, raw_truncated);
+                            add_option_matches(opt_iter->second, line[line.size() - 1], completions);
                         return;
                     } else
                         index += opt_iter->second->count;
                 } else if (line.size() == index + 1) {
-                    if (!space_at_end)
+                    if (partial)
                         for (opt_iter = cmd->flags.lower_bound(line[index].substr(2)); opt_iter != cmd->flags.end() && opt_iter->first.find(line[index].substr(2)) == 0; ++opt_iter)
-                            linenoiseAddCompletion(completions, (raw_truncated + ("--" + opt_iter->first) + " ").c_str());
+                            linenoiseAddCompletion(completions, ("--" + opt_iter->first).c_str());
                     else
-                        add_positional_matches(cmd, positional_index, std::string(), completions, raw_truncated);
+                        add_positional_matches(cmd, positional_index, std::string(), completions);
                     return;
                 }
 
             } else { // this is a positional, attempt to advance
                 // We're at the end of the line, handle using the current positional
                 if (index == line.size() - 1) {
-                    if (space_at_end) {
-                        add_positional_matches(cmd, positional_index + 1, std::string(), completions, raw_truncated);
+                    if (!partial) {
+                        add_positional_matches(cmd, positional_index + 1, std::string(), completions);
                     } else
-                        add_positional_matches(cmd, positional_index, line[line.size() - 1], completions, raw_truncated);
+                        add_positional_matches(cmd, positional_index, line[line.size() - 1], completions);
                     return;
                 }
 
@@ -542,8 +538,21 @@ void rethinkdb_admin_app_t::completion_generator(const char *raw, linenoiseCompl
     }
 }
 
-void rethinkdb_admin_app_t::run_console()
-{
+void rethinkdb_admin_app_t::run_complete(const std::vector<std::string>& command_args) {
+    linenoiseCompletions completions = { 0, NULL };
+
+    if (command_args.size() < 2 || (command_args[1] != "partial" && command_args[1] != "full"))
+        throw admin_parse_exc_t("usage: rethinkdb admin complete ( partial | full ) [...]");
+
+    completion_generator(std::vector<std::string>(command_args.begin() + 2, command_args.end()), &completions, command_args[1] == "partial");
+
+    for (size_t i = 0; i < completions.len; ++i)
+        printf("%s\n", completions.cvec[i]);
+
+    linenoiseFreeCompletions(&completions);
+}
+
+void rethinkdb_admin_app_t::run_console() {
     linenoiseSetCompletionCallback(completion_generator_hook);
     char *raw_line = linenoise(prompt);
     std::string line;
@@ -560,9 +569,9 @@ void rethinkdb_admin_app_t::run_console()
                 command_data data(parse_command(cmd_line));
                 run_command(data);
             } catch (std::exception& ex) {
-                std::cout << ex.what() << std::endl;
+                std::cerr << ex.what() << std::endl;
             } catch (...) {
-                std::cout << "unknown error" << std::endl;
+                std::cerr << "unknown error" << std::endl;
             }
 
             linenoiseHistoryAdd(raw_line);
