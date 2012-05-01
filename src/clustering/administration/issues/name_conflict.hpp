@@ -23,6 +23,9 @@ public:
     std::string type;
     std::string contested_name;
     std::set<boost::uuids::uuid> contestants;
+
+private:
+    DISABLE_COPYING(name_conflict_issue_t);
 };
 
 class name_conflict_issue_tracker_t : public global_issue_tracker_t {
