@@ -56,6 +56,9 @@ public:
         msg << int8_t(PERSISTENCE_ISSUE_CODE);
         msg << message;
     }
+
+private:
+    DISABLE_COPYING(persistence_issue_t);
 };
 
 class semilattice_watching_persister_t {
