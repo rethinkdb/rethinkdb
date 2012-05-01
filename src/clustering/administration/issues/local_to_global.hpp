@@ -64,6 +64,8 @@ public:
 private:
     clone_ptr_t<watchable_t<std::map<peer_id_t, std::list<clone_ptr_t<local_issue_t> > > > > issues_view;
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
+
+    DISABLE_COPYING(remote_issue_collector_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP_ */
