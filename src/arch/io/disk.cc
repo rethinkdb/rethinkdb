@@ -31,8 +31,8 @@ perfmon_duration_sampler_t
     pm_io_disk_stack_writes("io_disk_stack_writes", secs_to_ticks(1));
 
 perfmon_duration_sampler_t
-    pm_io_disk_backend_reads("io_disk_backend_reads", secs_to_ticks(1), false),
-    pm_io_disk_backend_writes("io_disk_backend_writes", secs_to_ticks(1), false);
+    pm_io_disk_backend_reads("io_disk_backend_reads", secs_to_ticks(1)),
+    pm_io_disk_backend_writes("io_disk_backend_writes", secs_to_ticks(1));
 
 perfmon_sampler_t pm_io_disk_stack_conflicts("io_disk_stack_conflicts", secs_to_ticks(1));
 

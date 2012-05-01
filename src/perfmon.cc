@@ -26,13 +26,13 @@ perfmon_result_t::perfmon_result_t(const boost::ptr_map<std::string, perfmon_res
 
 /* The var list keeps track of all of the perfmon_t objects. */
 
-intrusive_list_t<perfmon_t> &get_var_list() {
+perfmon_collection_t &get_global_collection() {
     /* Getter function so that we can be sure that var_list is initialized before it is needed,
     as advised by the C++ FAQ. Otherwise, a perfmon_t might be initialized before the var list
     was initialized. */
 
-    static intrusive_list_t<perfmon_t> var_list;
-    return var_list;
+    static perfmon_collection_t collection("Global", NULL, false);
+    return collection;
 }
 
 // TODO (rntz) remove lock, not necessary with perfmon static initialization restrictions
@@ -52,53 +52,54 @@ spinlock_t &get_var_lock() {
 /* This is the function that actually gathers the stats. It is illegal to create or destroy
 perfmon_t objects while perfmon_get_stats is active. */
 
-void co_perfmon_visit(int thread, const std::vector<void*> &data, bool include_internal) {
+void co_perfmon_visit(int thread, void *data) {
     on_thread_t moving(thread);
-    int i = 0;
-    for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        if (!p->internal || include_internal)
-            p->visit_stats(data[i++]);
-    }
+    get_global_collection().visit_stats(data);
 }
 
-void perfmon_get_stats(perfmon_result_t *dest, bool include_internal) {
-    std::vector<void*> data;
+void perfmon_get_stats(perfmon_result_t *dest) {
+    void *data;
 
-    data.reserve(get_var_list().size());
-    for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        if (!p->internal || include_internal)
-            data.push_back(p->begin_stats());
-    }
+    data = get_global_collection().begin_stats();
 
-    pmap(get_num_threads(), boost::bind(&co_perfmon_visit, _1, data, include_internal));
+    pmap(get_num_threads(), boost::bind(&co_perfmon_visit, _1, data));
 
-    int i = 0;
-    for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        if (!p->internal || include_internal)
-            p->end_stats(data[i++], dest);
-    }
+    get_global_collection().end_stats(data, dest);
 }
 
 /* Constructor and destructor register and deregister the perfmon. */
 
-perfmon_t::perfmon_t(bool _internal)
-    : internal(_internal)
+perfmon_t::perfmon_t(perfmon_collection_t *_parent, bool _insert)
+    : parent(_parent), insert(_insert)
 {
-    spinlock_acq_t acq(&get_var_lock());
-    get_var_list().push_back(this);
+    if (insert) {
+        //RSI maybe get rid of this spinlock, especially when parent isn't global
+        spinlock_acq_t acq(&get_var_lock());
+        if (!parent) {
+            get_global_collection().add(this);
+        } else {
+            parent->add(this);
+        }
+    }
 }
 
 perfmon_t::~perfmon_t() {
-    spinlock_acq_t acq(&get_var_lock());
-    get_var_list().remove(this);
+    if (insert) {
+        spinlock_acq_t acq(&get_var_lock());
+        if (!parent) {
+            get_global_collection().remove(this);
+        } else {
+            parent->remove(this);
+        }
+    }
 }
 
 bool global_full_perfmon = false;
 
 /* perfmon_counter_t */
 
-perfmon_counter_t::perfmon_counter_t(const std::string& _name, bool internal)
-    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t> (internal), name(_name)
+perfmon_counter_t::perfmon_counter_t(const std::string& _name, perfmon_collection_t *parent)
+    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t>(parent), name(_name)
 {
     for (int i = 0; i < MAX_THREADS; i++) thread_data[i].value = 0;
 }
@@ -124,8 +125,8 @@ void perfmon_counter_t::output_stat(const int64_t &stat, perfmon_result_t *dest)
 
 /* perfmon_sampler_t */
 
-perfmon_sampler_t::perfmon_sampler_t(const std::string& _name, ticks_t _length, bool _include_rate, bool internal)
-    : perfmon_perthread_t<stats_t>(internal), name(_name), length(_length), include_rate(_include_rate)
+perfmon_sampler_t::perfmon_sampler_t(const std::string& _name, ticks_t _length, bool _include_rate, perfmon_collection_t *parent)
+    : perfmon_perthread_t<stats_t>(parent), name(_name), length(_length), include_rate(_include_rate)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;
@@ -255,8 +256,8 @@ stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
 }
 
 
-perfmon_stddev_t::perfmon_stddev_t(const std::string& _name, bool internal)
-    : perfmon_perthread_t<stddev_t>(internal), name(_name) { }
+perfmon_stddev_t::perfmon_stddev_t(const std::string& _name, perfmon_collection_t *parent)
+    : perfmon_perthread_t<stddev_t>(parent), name(_name) { }
 
 void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
     rassert(get_thread_id() >= 0);
@@ -286,8 +287,8 @@ void perfmon_stddev_t::record(float value) {
 
 /* perfmon_rate_monitor_t */
 
-perfmon_rate_monitor_t::perfmon_rate_monitor_t(const std::string& _name, ticks_t _length, bool internal)
-    : perfmon_perthread_t<double>(internal), name(_name), length(_length)
+perfmon_rate_monitor_t::perfmon_rate_monitor_t(const std::string& _name, ticks_t _length, perfmon_collection_t *parent)
+    : perfmon_perthread_t<double>(parent), name(_name), length(_length)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;

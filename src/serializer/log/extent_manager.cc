@@ -9,7 +9,7 @@
 #define EXTENT_FREE_LIST_END (off64_t(-4))
 
 static perfmon_counter_t pm_extents_in_use("serializer_extents_in_use");
-static perfmon_counter_t pm_bytes_in_use("serializer_bytes_in_use", false);
+static perfmon_counter_t pm_bytes_in_use("serializer_bytes_in_use");
 
 struct extent_info_t {
 

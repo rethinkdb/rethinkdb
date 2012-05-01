@@ -727,7 +727,7 @@ http_res_t riak_http_app_t::ping(const http_req_t &) {
 
 http_res_t riak_http_app_t::status(const http_req_t &) {
     perfmon_result_t stats;
-    perfmon_get_stats(&stats, false);
+    perfmon_get_stats(&stats);
 
     scoped_cJSON_t body(cJSON_CreateObject());
 

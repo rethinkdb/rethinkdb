@@ -94,7 +94,7 @@ void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t
     handle_memcache(&interface, nsi, MAX_CONCURRENT_QUERIES_PER_CONNECTION);
 }
 
-perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600), false);
+perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600));
 
 memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcached_protocol_t> *namespace_if_)
     : port(_port), namespace_if(namespace_if_),

@@ -28,9 +28,9 @@
 #include "stats/persist.hpp"
 
 perfmon_duration_sampler_t
-    pm_cmd_set("cmd_set", secs_to_ticks(1.0), false),
-    pm_cmd_get("cmd_get", secs_to_ticks(1.0), false),
-    pm_cmd_rget("cmd_rget", secs_to_ticks(1.0), false);
+    pm_cmd_set("cmd_set", secs_to_ticks(1.0)),
+    pm_cmd_get("cmd_get", secs_to_ticks(1.0)),
+    pm_cmd_rget("cmd_rget", secs_to_ticks(1.0));
 
 perfmon_persistent_stddev_t
     pm_get_key_size("cmd_get_key_size"),
@@ -39,9 +39,9 @@ perfmon_persistent_stddev_t
     pm_delete_key_size("cmd_delete_key_size");
 
 perfmon_duration_sampler_t
-    pm_conns_reading("conns_reading", secs_to_ticks(1), false),
-    pm_conns_writing("conns_writing", secs_to_ticks(1), false),
-    pm_conns_acting("conns_acting", secs_to_ticks(1), false);
+    pm_conns_reading("conns_reading", secs_to_ticks(1)),
+    pm_conns_writing("conns_writing", secs_to_ticks(1)),
+    pm_conns_acting("conns_acting", secs_to_ticks(1));
 
 perfmon_duration_sampler_t rget_iteration_next("rget_iteration_next", secs_to_ticks(1));
 
@@ -968,11 +968,11 @@ void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, ch
 
 /* "stats" command */
 
-std::string memcached_stats(int argc, char **argv, bool include_internal) {
+std::string memcached_stats(int argc, char **argv) {
     std::string res;
     perfmon_result_t stats;
 
-    perfmon_get_stats(&stats, include_internal);
+    perfmon_get_stats(&stats);
 
     if (argc == 1) {
         for (perfmon_result_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
@@ -996,7 +996,7 @@ struct memcached_stats_control_t : public control_t {
     memcached_stats_control_t() :
         control_t("stats", "Show all stats (including internal stats).", true) {}
     std::string call(int argc, char **argv) {
-        return memcached_stats(argc, argv, true);
+        return memcached_stats(argc, argv);
     }
 } memcached_stats_control;
 
@@ -1189,7 +1189,7 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
             pipeliner_acq_t pipeliner_acq(&pipeliner);
             pipeliner_acq.begin_operation();
 
-            std::string the_stats = memcached_stats(args.size(), args.data(), false);
+            std::string the_stats = memcached_stats(args.size(), args.data());
 
             // We block everybody before writing.  I don't think we care.
             pipeliner_acq.done_argparsing();

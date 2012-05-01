@@ -14,7 +14,7 @@ void stat_manager_t::send_stats(mailbox_manager_t* mailbox_manager, return_addre
     stats_t stats;
 
     perfmon_result_t perfmon_result = perfmon_result_t::make_map();
-    perfmon_get_stats(&perfmon_result, true);
+    perfmon_get_stats(&perfmon_result);
 
     for (perfmon_result_t::iterator it = perfmon_result.begin(); it != perfmon_result.end(); ++it) {
         if (requested_stats.empty() || std_contains(requested_stats, it->first)) {
