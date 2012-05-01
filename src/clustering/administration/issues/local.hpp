@@ -49,6 +49,8 @@ public:
         friend class local_issue_tracker_t;
         local_issue_tracker_t *parent;
         clone_ptr_t<local_issue_t> issue;
+
+        DISABLE_COPYING(entry_t);
     };
 
     clone_ptr_t<watchable_t<std::list<clone_ptr_t<local_issue_t> > > > get_issues_watchable() {
