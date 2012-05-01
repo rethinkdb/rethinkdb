@@ -41,6 +41,7 @@ public:
     static const char *help_command;
     static const char *rename_command;
     static const char *remove_command;
+    static const char *complete_command;
 
     // Usage strings for various commands
     static const char *set_usage;
@@ -104,6 +105,7 @@ public:
     command_data parse_command(const std::vector<std::string>& command_args);
     void run_command(command_data& data);
     void run_console();
+    void run_complete(const std::vector<std::string>& command_args);
 
 private:
 
@@ -136,12 +138,12 @@ private:
     void sync_from();
     void sync_to();
 
-    std::map<std::string, command_info *>::const_iterator find_command(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches, const char *base_str);
-    void add_option_matches(const param_options *option, const std::string& partial, linenoiseCompletions *completions, const char *base_str);
-    void add_positional_matches(const command_info *info, size_t offset, const std::string& partial, linenoiseCompletions *completions, const char *base_str);
-    void get_id_completions(const std::string& base, linenoiseCompletions *completions, const char *base_str);
-    static void completion_generator_hook(const char *partial_raw, linenoiseCompletions *completions);
-    void completion_generator(const char *partial_raw, linenoiseCompletions *completions);
+    std::map<std::string, command_info *>::const_iterator find_command(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches);
+    void add_option_matches(const param_options *option, const std::string& partial, linenoiseCompletions *completions);
+    void add_positional_matches(const command_info *info, size_t offset, const std::string& partial, linenoiseCompletions *completions);
+    void get_id_completions(const std::string& base, linenoiseCompletions *completions);
+    static void completion_generator_hook(const char *raw, linenoiseCompletions *completions);
+    void completion_generator(const std::vector<std::string>& line, linenoiseCompletions *completions, bool partial);
 
     template <class T>
     void add_subset_to_uuid_path_map(const std::string& base, T& data_map);

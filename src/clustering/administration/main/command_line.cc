@@ -77,11 +77,16 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
         // Only one command, run it by itself
         try {
             rethinkdb_admin_app_t app(look_up_peers_addresses(joins), client_port);
-            // TODO: it would be nice to check the params before connecting to the cluster
-            rethinkdb_admin_app_t::command_data data(app.parse_command(command_args));
-            app.run_command(data);
+
+            // If we're doing a shell command completion, just print them and exit
+            if (command_args[0] == app.complete_command) {
+                app.run_complete(command_args);
+            } else {
+                rethinkdb_admin_app_t::command_data data(app.parse_command(command_args));
+                app.run_command(data);
+            }
         } catch (std::exception& ex) {
-            printf("%s\n", ex.what());
+            fprintf(stderr, "%s\n", ex.what());
             *result_out = false;
         }
     }
@@ -368,6 +373,12 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
     bool result;
     std::vector<std::string> cmd_args = po::collect_unrecognized(parsed.options, po::include_positional); 
+
+    // This is an ugly hack, but it seems boost will ignore an empty flag at the end, which is very useful for completions
+    std::string last_arg(argv[argc - 1]);
+    if (last_arg == "-" || last_arg == "--")
+        cmd_args.push_back(last_arg);
+
     run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, &result));
 
     return result ? 0 : 1;
