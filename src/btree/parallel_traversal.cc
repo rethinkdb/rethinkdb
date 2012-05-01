@@ -273,17 +273,13 @@ void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_tr
 void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblock, btree_slice_t *slice, btree_traversal_helper_t *helper) {
     traversal_state_t state(txn, slice, helper);
 
-    buf_lock_t * superblock_buf = static_cast<real_superblock_t*>(got_superblock.sb.get())->get(); // TODO: Ugh
-
-    const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
-
     /* Make sure there's a stat block*/
     if (helper->btree_node_mode() == rwi_write) {
         ensure_stat_block(txn, got_superblock.sb.get(), incr_priority(ZERO_EVICTION_PRIORITY));
     }
 
     /* Record the stat block for updating populations later */
-    state.stat_block = superblock->stat_block;
+    state.stat_block = got_superblock.sb->get_stat_block_id();
 
     if (state.stat_block != NULL_BLOCK_ID) {
         /* Give the helper a look at the stat block */
@@ -298,19 +294,16 @@ void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblo
         helper->progress->inform(0, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
     }
 
-    block_id_t root_id = superblock->root_block;
+    block_id_t root_id = got_superblock.sb->get_root_block_id();
     rassert(root_id != SUPERBLOCK_ID);
 
     struct : public parent_releaser_t {
-        buf_lock_t buf;
-        traversal_state_t *state;
+        got_superblock_t *superblock;
         void release() {
-            state->helper->postprocess_btree_superblock(&buf);
-            buf.release();
+            superblock->sb->release();
         }
     } superblock_releaser;
-    superblock_releaser.buf.swap(*superblock_buf);
-    superblock_releaser.state = &state;
+    superblock_releaser.superblock = &got_superblock;
 
     if (root_id == NULL_BLOCK_ID) {
         superblock_releaser.release();

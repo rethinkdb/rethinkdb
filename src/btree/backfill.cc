@@ -50,10 +50,6 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         assert_thread();
         // do nothing
     }
-    void postprocess_btree_superblock(UNUSED buf_lock_t *superblock_buf) {
-        assert_thread();
-        // do nothing
-    }
 
     access_t btree_superblock_mode() { return rwi_read; }
     access_t btree_node_mode() { return rwi_read; }
