@@ -92,6 +92,14 @@ public:
         return &_map;
     }
 
+    bool is_string() {
+        return type == value;
+    }
+
+    bool is_map() {
+        return type == map;
+    }
+
     std::pair<internal_map_t::iterator, bool> insert(const std::string &k, perfmon_result_t *val) {
         std::string s = k;
         return get_map()->insert(s, val);
