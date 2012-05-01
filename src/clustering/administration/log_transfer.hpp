@@ -31,6 +31,9 @@ private:
     log_writer_t *writer;
     auto_drainer_t drainer;
     log_server_business_card_t::request_mailbox_t request_mailbox;
+
+private:
+    DISABLE_COPYING(log_server_t);
 };
 
 std::vector<log_message_t> fetch_log_file(

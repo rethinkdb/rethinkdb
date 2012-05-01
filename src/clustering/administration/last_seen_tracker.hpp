@@ -29,6 +29,8 @@ private:
     /* Machines are only present in this map if they are not connected but not
     declared dead. */
     std::map<machine_id_t, time_t> last_seen;
+
+    DISABLE_COPYING(last_seen_tracker_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_LAST_SEEN_TRACKER_HPP_ */
