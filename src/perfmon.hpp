@@ -19,7 +19,6 @@
 #include "containers/intrusive_list.hpp"
 #include "perfmon_types.hpp"
 #include "rpc/serialize_macros.hpp" //RSI consider moving this out
-#include "stats/control.hpp"
 
 // Some arch/runtime declarations.
 int get_num_threads();
@@ -366,9 +365,7 @@ public:
  * field on it, which when true makes it run regardless of --full-perfmon flag
  * this can also be enable and disabled at runtime. */
 
-struct perfmon_duration_sampler_t
-    : public control_t
-{
+struct perfmon_duration_sampler_t {
 
 private:
     perfmon_counter_t active;
@@ -377,8 +374,7 @@ private:
     bool ignore_global_full_perfmon;
 public:
     perfmon_duration_sampler_t(const std::string& name, ticks_t length, perfmon_collection_t *parent = NULL, bool _ignore_global_full_perfmon = false)
-        : control_t(std::string("pm_") + name + "_toggle", name + " toggle on and off", true),
-          active(name + "_active_count", parent), total(name + "_total", parent),
+        : active(name + "_active_count", parent), total(name + "_total", parent),
           recent(name, length, true, parent), ignore_global_full_perfmon(_ignore_global_full_perfmon)
         { }
     void begin(ticks_t *v) {
