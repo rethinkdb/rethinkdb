@@ -124,7 +124,7 @@ struct perfmon_system_t :
     public perfmon_t
 {
     bool have_reported_error;
-    perfmon_system_t(perfmon_collection_t *parent = NULL) : perfmon_t(parent), have_reported_error(false), start_time(time(NULL)) { }
+    explicit perfmon_system_t(perfmon_collection_t *parent = NULL) : perfmon_t(parent), have_reported_error(false), start_time(time(NULL)) { }
 
     void *begin_stats() {
         return NULL;
