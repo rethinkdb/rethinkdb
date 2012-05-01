@@ -62,8 +62,12 @@ public:
         return all;
     }
 
+    global_issue_aggregator_t() { }
+
 private:
     std::set<source_t *> sources;
+
+    DISABLE_COPYING(global_issue_aggregator_t);
 };
 
 //json adapter concept for global_issue_aggregator_t
