@@ -43,6 +43,9 @@ public:
     std::string object_type;
     boost::uuids::uuid object_id;
     std::string field;
+
+private:
+    DISABLE_COPYING(vector_clock_conflict_issue_t);
 };
 
 class vector_clock_conflict_issue_tracker_t : public global_issue_tracker_t {
