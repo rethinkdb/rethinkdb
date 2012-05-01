@@ -38,6 +38,8 @@ private:
     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > namespaces_directory_metadata;
 
     boost::ptr_map<namespace_id_t, cluster_namespace_interface_t<protocol_t> > interface_map;
+
+    DISABLE_COPYING(namespace_repo_t);
 };
 
 #include "clustering/administration/namespace_interface_repository.tcc"
