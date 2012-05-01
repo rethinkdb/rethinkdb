@@ -27,8 +27,13 @@ class global_issue_tracker_t {
 public:
     virtual std::list<clone_ptr_t<global_issue_t> > get_issues() = 0;
 
+    global_issue_tracker_t() { }
+
 protected:
     virtual ~global_issue_tracker_t() { }
+
+private:
+    DISABLE_COPYING(global_issue_tracker_t);
 };
 
 class global_issue_aggregator_t : public global_issue_tracker_t {
