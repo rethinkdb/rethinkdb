@@ -68,6 +68,8 @@ private:
 
     std::set<entry_t *> issues;
     watchable_variable_t<std::list<clone_ptr_t<local_issue_t> > > issues_watchable;
+
+    DISABLE_COPYING(local_issue_tracker_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_ */
