@@ -57,6 +57,8 @@ private:
     scoped_fd_t fd;
     local_issue_tracker_t *issue_tracker;
     boost::scoped_ptr<local_issue_tracker_t::entry_t> issue;
+
+    DISABLE_COPYING(log_writer_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_LOGGER_HPP_ */
