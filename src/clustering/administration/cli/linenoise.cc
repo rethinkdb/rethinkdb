@@ -252,8 +252,8 @@ static void printPossibleCompletions(linenoiseCompletions* lc, int fd, size_t co
     }
 
     // Figure out the number of columns that may be printed - minimum spacing of 2 between columns
-    size_t column_width = max_len + 1;
-    size_t num_columns = (cols + 1) / (column_width);
+    size_t column_width = max_len + 3;
+    size_t num_columns = (cols + 3) / (column_width);
     if (num_columns == 0)
         num_columns = 1;
     size_t num_rows = lc->len / num_columns + 1;
@@ -262,7 +262,7 @@ static void printPossibleCompletions(linenoiseCompletions* lc, int fd, size_t co
         size_t index = (i % num_columns) * num_rows + (i / num_columns);
         if (index < lc->len) {
             if (num_rows == 1)
-                snprintf(line, cols, "%s ", lc->cvec[index]);
+                snprintf(line, cols, "%s   ", lc->cvec[index]);
             else
                 snprintf(line, cols, "%-*s", (int)column_width, lc->cvec[index]);
             if (write(fd,line,strlen(line)) == -1) return;
