@@ -7,14 +7,23 @@ from vcoptparse import *
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     print "Spinning up a process..."
-    proc = driver.Process(cluster, driver.Files(metacluster))
+    proc = driver.Process(cluster, driver.Files(metacluster, db_path = "db", log_path = "create-output"), log_path = "serve-output")
     time.sleep(1)
     cluster.check()
-    print "Trying to access its log..."
+    print "Generating a bunch of log traffic..."
     access = http_admin.ClusterAccess([("localhost", proc.http_port)])
-    log = access.get_log(access.machines.keys()[0])
-    assert len(log) > 0
-    print "Log is %d lines" % log.count("\n")
+    datacenter = access.add_datacenter()
+    num_entries = 100
+    for i in xrange(num_entries):
+        print i,
+        sys.stdout.flush()
+        access.rename(datacenter, str(i))
+    print
+    time.sleep(2)
+    print "Trying to access its log..."
+    log = access.get_log(access.machines.keys()[0], max_length = num_entries + 100)
+    print "Log is %d lines" % len(log)
+    assert len(log) >= num_entries
     cluster.check_and_stop()
 print "Done."
 

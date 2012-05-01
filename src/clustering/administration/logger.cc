@@ -130,7 +130,7 @@ public:
                 if (current_chunk_start != 0) {
                     current_chunk_start -= chunk_size;
                     int res = pread(fd.get(), current_chunk.get(), chunk_size, current_chunk_start);
-                    throw_unless(res == remaining_in_current_chunk, "could not read from file");
+                    throw_unless(res == chunk_size, "could not read from file");
                     remaining_in_current_chunk = chunk_size;
                 } else {
                     remaining_in_current_chunk = 0;
