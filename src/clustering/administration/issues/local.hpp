@@ -21,6 +21,10 @@ public:
     // Remember to include your subclass in the deserialize function below!
     enum serialization_code_t { PERSISTENCE_ISSUE_CODE };
     virtual void rdb_serialize(UNUSED write_message_t &msg) const = 0;
+
+    local_issue_t() { }
+private:
+    DISABLE_COPYING(local_issue_t);
 };
 
 int deserialize(read_stream_t *s, local_issue_t **issue_ptr);
