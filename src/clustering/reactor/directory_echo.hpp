@@ -70,6 +70,8 @@ private:
     watchable_variable_t<directory_echo_wrapper_t<internal_t> > value_watchable;
     mutex_assertion_t value_lock;
     directory_echo_version_t version;
+
+    DISABLE_COPYING(directory_echo_writer_t);
 };
 
 template<class internal_t>
