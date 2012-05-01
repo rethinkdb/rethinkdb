@@ -58,6 +58,8 @@ public:
 
 private:
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
+
+    DISABLE_COPYING(vector_clock_conflict_issue_tracker_t);
 };
 
 
