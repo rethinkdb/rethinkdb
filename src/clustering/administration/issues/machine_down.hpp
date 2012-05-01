@@ -48,6 +48,8 @@ public:
 private:
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
+
+    DISABLE_COPYING(machine_down_issue_tracker_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_MACHINE_DOWN_HPP_ */
