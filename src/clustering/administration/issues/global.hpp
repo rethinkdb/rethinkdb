@@ -16,6 +16,11 @@ public:
 
     virtual ~global_issue_t() { }
     virtual global_issue_t *clone() const = 0;
+
+    global_issue_t() { }
+
+private:
+    DISABLE_COPYING(global_issue_t);
 };
 
 class global_issue_tracker_t {
