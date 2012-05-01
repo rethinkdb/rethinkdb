@@ -34,11 +34,17 @@ public:
     public:
         explicit our_value_change_t(directory_echo_writer_t *p);
         directory_echo_version_t commit();
+
+        // field ordering matters here?
     private:
         directory_echo_writer_t *parent;
         mutex_assertion_t::acq_t lock_acq;
+
     public:
         internal_t buffer;
+
+    private:
+        DISABLE_COPYING(our_value_change_t);
     };
 
     class ack_waiter_t : public signal_t {
@@ -47,6 +53,8 @@ public:
     private:
         friend class directory_echo_writer_t;
         boost::scoped_ptr<multimap_insertion_sentry_t<directory_echo_version_t, ack_waiter_t *> > map_entry;
+
+        DISABLE_COPYING(ack_waiter_t);
     };
 
     directory_echo_writer_t(
