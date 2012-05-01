@@ -157,6 +157,8 @@ private:
     auto_drainer_t drainer;
 
     typename watchable_t<blueprint_t<protocol_t> >::subscription_t blueprint_subscription;
+
+    DISABLE_COPYING(reactor_t);
 };
 
 
