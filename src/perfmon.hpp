@@ -15,9 +15,11 @@
 
 
 #include "config/args.hpp"
+#include "containers/archive/boost_types.hpp" //RSI
 #include "containers/intrusive_list.hpp"
-#include "stats/control.hpp"
 #include "perfmon_types.hpp"
+#include "rpc/serialize_macros.hpp" //RSI consider moving this out
+#include "stats/control.hpp"
 
 // Some arch/runtime declarations.
 int get_num_threads();
@@ -35,6 +37,14 @@ struct cache_line_padded_t {
     value_t value;
     char padding[CACHE_LINE_SIZE - sizeof(value_t)];
 };
+
+//perfmon_result_t enum for specifying which type it is
+enum perfmon_result_type_t {
+    value,
+    map,
+};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(perfmon_result_type_t, int8_t, value, map);
 
 /* The perfmon (short for "PERFormance MONitor") is responsible for gathering data about
 various parts of the server. */
@@ -107,15 +117,12 @@ public:
     }
 
 private:
-    enum type_t {
-        value,
-        map,
-    };
-
-    type_t type;
+    perfmon_result_type_t type;
 
     std::string _value;
     internal_map_t _map;
+
+    RDB_MAKE_ME_SERIALIZABLE_3(type, _value, _map);
 };
 
 
