@@ -446,6 +446,11 @@ public:
 
 /* A perfmon collection allows you to add hierarchy to stats.
  * RSI more here */
+/* TODO TODO TODO because these encourage adding perfmons at runtime we need to
+ * do some locking to make sure we don't get races... please for the love of
+ * god jdoliner remember to do this. You have permission to kill me if you ever
+ * see this comment in guthub RSI RSI RSI */
+
 class perfmon_collection_t : public perfmon_t {
 public:
     explicit perfmon_collection_t(const std::string &_name, perfmon_collection_t *parent = NULL, bool insert = true)

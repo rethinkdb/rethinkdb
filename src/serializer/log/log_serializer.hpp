@@ -12,11 +12,23 @@
 #include "serializer/log/config.hpp"
 #include "utils.hpp"
 #include "concurrency/mutex.hpp"
+#include "perfmon.hpp" //RSI
 
 #include "serializer/log/metablock_manager.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/lba_list.hpp"
 #include "serializer/log/data_block_manager.hpp"
+
+class log_serializer_stats_t {
+public:
+    log_serializer_stats_t(perfmon_collection_t *perfmon_collection);
+
+    perfmon_duration_sampler_t pm_serializer_block_reads;
+    perfmon_counter_t pm_serializer_index_reads;
+    perfmon_counter_t pm_serializer_block_writes;
+    perfmon_duration_sampler_t pm_serializer_index_writes;
+    perfmon_sampler_t pm_serializer_index_writes_size;
+};
 
 class log_serializer_t;
 class cond_t;
@@ -93,7 +105,7 @@ public:
     static void create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config);
 
     /* Blocks. */
-    log_serializer_t(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config);
+    log_serializer_t(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, perfmon_collection_t *perfmon_collection);
 
     /* Blocks. */
     virtual ~log_serializer_t();
@@ -139,6 +151,8 @@ public:
 private:
     std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
     std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
+    perfmon_collection_t *perfmon_collection;//RSI consider removing this
+    log_serializer_stats_t stats;
 #ifndef NDEBUG
     // Makes sure we get no tokens after we thought that
     bool expecting_no_more_tokens;

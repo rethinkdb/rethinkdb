@@ -14,6 +14,7 @@
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+#include "perfmon.hpp" //RSI put perfmon stuff in a different file
 
 class signal_t;
 
@@ -85,17 +86,12 @@ public:
         }
     };
 
-    /* Stats that will be created by reactor driver and given to our store....
-     * it's unclear whether the dummy protocol will have much to say for itself
-     * stats wise. */
-    class storage_stats_t { };
-
     class store_t : public store_view_t<dummy_protocol_t> {
     public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
-        store_t();
-        store_t(const std::string& filename, bool create, storage_stats_t *);
+        explicit store_t();
+        store_t(const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
         ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) THROWS_NOTHING;

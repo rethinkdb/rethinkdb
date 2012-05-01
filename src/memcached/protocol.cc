@@ -277,7 +277,10 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     return responses[0];
 }
 
-memcached_protocol_t::store_t::store_t(const std::string& filename, bool create, storage_stats_t *) : store_view_t<memcached_protocol_t>(key_range_t::universe()) {
+memcached_protocol_t::store_t::store_t(const std::string& filename, bool create, perfmon_collection_t *_perfmon_collection) 
+    : store_view_t<memcached_protocol_t>(key_range_t::universe()),
+      perfmon_collection(_perfmon_collection)
+{
     if (create) {
         standard_serializer_t::create(
             standard_serializer_t::dynamic_config_t(),
@@ -288,7 +291,8 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create,
 
     serializer.reset(new standard_serializer_t(
         standard_serializer_t::dynamic_config_t(),
-        standard_serializer_t::private_dynamic_config_t(filename)
+        standard_serializer_t::private_dynamic_config_t(filename),
+        perfmon_collection
         ));
 
     if (create) {

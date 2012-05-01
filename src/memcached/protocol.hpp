@@ -16,6 +16,7 @@
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+#include "perfmon.hpp"
 
 write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf);
 int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);
@@ -148,8 +149,6 @@ public:
 
     typedef traversal_progress_combiner_t backfill_progress_t;
 
-    class storage_stats_t { };
-
     class store_t : public store_view_t<memcached_protocol_t> {
         typedef region_map_t<memcached_protocol_t, binary_blob_t> metainfo_t;
 
@@ -163,7 +162,7 @@ public:
         fifo_enforcer_sink_t token_sink;
 
     public:
-        store_t(const std::string& filename, bool create, storage_stats_t *);
+        store_t(const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
         ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
@@ -254,6 +253,8 @@ public:
             got_superblock_t &superbloc) const
             THROWS_NOTHING;
         void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, got_superblock_t &superbloc) const THROWS_NOTHING;
+
+        perfmon_collection_t *perfmon_collection;
     };
 };
 
