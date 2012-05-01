@@ -14,9 +14,6 @@ real_superblock_t::real_superblock_t(buf_lock_t &sb_buf) {
 void real_superblock_t::release() {
     sb_buf_.release_if_acquired();
 }
-void real_superblock_t::swap_buf(buf_lock_t &swapee) {
-    sb_buf_.swap(swapee);
-}
 
 block_id_t real_superblock_t::get_root_block_id() const {
     rassert(sb_buf_.is_acquired());

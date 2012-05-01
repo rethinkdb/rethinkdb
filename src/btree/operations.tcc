@@ -80,19 +80,15 @@ void find_keyvalue_location_for_read(transaction_t *txn, got_superblock_t *got_s
     block_id_t node_id = got_superblock->sb->get_root_block_id();
     rassert(node_id != SUPERBLOCK_ID);
 
-    buf_lock_t buf;
-    got_superblock->sb->swap_buf(buf);
-
     if (node_id == NULL_BLOCK_ID) {
         // There is no root, so the tree is empty.
         return;
     }
 
-    {
-        buf_lock_t tmp(txn, node_id, rwi_read);
-        tmp.set_eviction_priority(root_eviction_priority);
-        buf.swap(tmp);
-    }
+    buf_lock_t buf(txn, node_id, rwi_read);
+    buf.set_eviction_priority(root_eviction_priority);
+
+    got_superblock->sb->release();
 
 #ifndef NDEBUG
     node::validate(&sizer, reinterpret_cast<const node_t *>(buf.get_data_read()));

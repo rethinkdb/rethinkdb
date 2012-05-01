@@ -113,13 +113,8 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
     }
 
     // TODO: Can we do all this without having buf_lock being a pointer?
-    buf_lock_t *buf_lock = new buf_lock_t();
-    superblock->swap_buf(*buf_lock);
-
-    {
-        buf_lock_t tmp(transaction, root_id, rwi_read);
-        buf_lock->swap(tmp);
-    }
+    buf_lock_t *buf_lock = new buf_lock_t(transaction, root_id, rwi_read);
+    superblock->release();
 
     // read root node
     const node_t *node = reinterpret_cast<const node_t *>(buf_lock->get_data_read());
