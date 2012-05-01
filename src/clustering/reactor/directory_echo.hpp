@@ -99,6 +99,8 @@ private:
     std::map<peer_id_t, directory_echo_version_t> last_seen;
     auto_drainer_t drainer;
     typename watchable_t<std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > >::subscription_t sub;
+
+    DISABLE_COPYING(directory_echo_mirror_t);
 };
 
 #endif /* CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP_ */
