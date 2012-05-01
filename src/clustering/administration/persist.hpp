@@ -77,6 +77,8 @@ private:
 
     local_issue_tracker_t *issue_tracker;
     boost::scoped_ptr<local_issue_tracker_t::entry_t> persistence_issue;
+
+    DISABLE_COPYING(semilattice_watching_persister_t);
 };
 
 }   /* namespace metadata_persistence */
