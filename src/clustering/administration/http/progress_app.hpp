@@ -13,6 +13,8 @@ public:
 private:
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory_metadata;
     mailbox_manager_t *mbox_manager;
+
+    DISABLE_COPYING(progress_app_t);
 };
 
 #endif
