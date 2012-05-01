@@ -48,9 +48,6 @@ public:
         }
     }
 
-    void postprocess_btree_superblock(buf_lock_t *) {
-    }
-
     void filter_interesting_children(transaction_t *, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
         if (ids_source->get_level() < depth_limit) {
             int num_block_ids = ids_source->num_block_ids();
