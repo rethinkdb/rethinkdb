@@ -52,8 +52,6 @@ public:
     block_id_t get_stat_block_id() const;
     void set_stat_block_id(block_id_t new_stat_block);
 
-    block_id_t get_delete_queue_block() const;
-
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
 
@@ -87,10 +85,6 @@ public:
     }
     void set_root_block_id(const block_id_t new_root_block) {
         root_block_id_ = new_root_block;
-    }
-
-    block_id_t get_delete_queue_block() const {
-        return NULL_BLOCK_ID;
     }
 
     block_id_t get_stat_block_id() const {
