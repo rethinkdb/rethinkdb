@@ -26,6 +26,9 @@ public:
     std::set<typename protocol_t::region_t> shards;
     region_map_t<protocol_t, machine_id_t> primary_pinnings;
     region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings;
+
+private:
+    DISABLE_COPYING(pinnings_shards_mismatch_issue_t);
 };
 
 template <class protocol_t>
