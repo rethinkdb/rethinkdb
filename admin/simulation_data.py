@@ -54,7 +54,7 @@ def reset_data():
     data['namespaces'] = {
         'a9f1eeed-6893-4e5a-99fa-914b78fbaaa2': {
             'name': 'users',
-            'protocol': 'redis',
+            'protocol': 'memcached',
             'id': 'a9f1eeed-6893-4e5a-99fa-914b78fbaaa2',
             'primary_uuid': '1e7509ad-8143-4cbb-bdbd-6db3d6766fc0',
             'replica_affinities': {
@@ -150,7 +150,7 @@ def reset_data():
 
         '0ae6ef42-b699-48b2-9bc2-7a3e8e131b21': {
             'name': 'logs',
-            'protocol': 'redis',
+            'protocol': 'memcached',
             'id': '0ae6ef42-b699-48b2-9bc2-7a3e8e131b21',
             'primary_uuid': '1e7509ad-8143-4cbb-bdbd-6db3d6766fc0',
             'replica_affinities': {
