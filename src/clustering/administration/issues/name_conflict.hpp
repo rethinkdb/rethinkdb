@@ -38,6 +38,8 @@ public:
 
 private:
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
+
+    DISABLE_COPYING(name_conflict_issue_tracker_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_ISSUES_NAME_CONFLICT_HPP_ */
