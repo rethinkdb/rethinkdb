@@ -32,6 +32,9 @@ public:
     }
 
     machine_id_t machine_id;
+
+private:
+    DISABLE_COPYING(machine_down_issue_t);
 };
 
 class machine_down_issue_tracker_t : public global_issue_tracker_t {
