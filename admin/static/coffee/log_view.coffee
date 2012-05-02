@@ -35,6 +35,8 @@ module 'LogView', ->
 
             , updateInterval
 
+            @.delegateEvents()
+
             return @
 
         render_header: =>
