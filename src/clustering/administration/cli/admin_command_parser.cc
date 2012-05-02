@@ -21,7 +21,7 @@ const char *admin_command_parser_t::make_command = "mk";
 const char *admin_command_parser_t::move_command = "mv";
 const char *admin_command_parser_t::help_command = "help";
 const char *admin_command_parser_t::rename_command = "rename";
-const char *admin_command_parser_t::remove_command = "remove";
+const char *admin_command_parser_t::remove_command = "rm";
 const char *admin_command_parser_t::complete_command = "complete";
 
 const char *admin_command_parser_t::set_usage = "( <uuid> | <name> ) <field> ... [--resolve] [--value <value>]";
@@ -95,6 +95,8 @@ admin_command_parser_t::admin_command_parser_t(const std::set<peer_address_t>& j
 admin_command_parser_t::~admin_command_parser_t() {
     rassert(instance == this);
     instance = NULL;
+
+    delete cluster;
 }
 
 void admin_command_parser_t::build_command_descriptions() {
@@ -165,8 +167,11 @@ void admin_command_parser_t::build_command_descriptions() {
 }
 
 admin_cluster_link_t* admin_command_parser_t::get_cluster() {
-    if (cluster == NULL)
+    if (cluster == NULL) {
+        if (joins_param.empty())
+            throw admin_parse_exc_t("need to join a cluster to proceed");
         cluster = new admin_cluster_link_t(joins_param, client_port_param);
+    }
 
     return cluster;
 }

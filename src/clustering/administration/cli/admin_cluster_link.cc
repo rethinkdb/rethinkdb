@@ -102,6 +102,9 @@ void admin_cluster_link_t::add_subset_to_uuid_path_map(const std::string& base, 
     std::vector<std::string> base_path;
     base_path.push_back(base);
     for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
+        if (i->second.is_deleted())
+            continue;
+
         std::string uuid(uuid_to_str(i->first));
         std::vector<std::string> current_path(base_path);
         current_path.push_back(uuid);
@@ -123,6 +126,9 @@ void admin_cluster_link_t::add_subset_to_name_path_map(const std::string& base, 
     std::vector<std::string> base_path;
     base_path.push_back(base);
     for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
+        if (!i->second.is_deleted())
+            continue;
+
         std::string name(i->second.get().name.get());
         std::string uuid(uuid_to_str(i->first));
         if (!name.empty() && collisions.count(name) == 0) {

@@ -14,12 +14,34 @@ _complete_rethinkdb_admin() {
         partiality="full"
     fi
 
+    # To get completions, we will call "rethinkdb admin complete", which will print out the possible completions
     if [ -x ${COMP_WORDS[0]} ]; then
-        # TODO: provide the --join parameter (if specified)
-        echo words: ${COMP_WORDS[@]}, count: $COMP_CWORD
-        echo ${COMP_WORDS[0]} admin complete $partiality ${COMP_WORDS[@]:2}
-        local result=`${COMP_WORDS[0]} admin complete $partiality ${COMP_WORDS[@]:2}`
-        echo $result
+        # provide the --join parameter (if specified) and filter out other parameters
+        local join_params=( )
+        local passthrough_params=( )
+        local skip=0
+        for index in ${!COMP_WORDS[*]}; do
+            if [ $index -ge 2 ]; then
+                if [ $skip -ne 0 ]; then
+                    skip=$(( $skip - 1 ))
+                elif [ "${COMP_WORDS[$index]}" == "--join" ] || [ "${COMP_WORDS[$index]}" == "-j" ]; then
+                    # For some reason bash completion will break up the "host:port" parameter into three: "host" ":" "port"
+                    local host_index=$(( $index + 1 ))
+                    local port_index=$(( $index + 3 ))
+                    # TODO: make this checking more robust in case of an invalid statement
+                    if [ "$port_index" -lt "${#COMP_WORDS[*]}" ]; then
+                        join_params=("--join" "${COMP_WORDS[$host_index]}:${COMP_WORDS[$port_index]}")
+                    fi
+                    skip=3
+                elif [ "${COMP_WORDS[$index]}" == "--client-port" ]; then # TODO: this is a debug only option...
+                    skip=1
+                else
+                    passthrough_params=( ${passthrough_params[@]} ${COMP_WORDS[$index]} )
+                fi
+            fi
+        done
+        local complete_params=("${COMP_WORDS[0]}" "admin" "complete" "${join_params[@]}" "$partiality" "${passthrough_params[@]}")
+        local result=`"${complete_params[@]}" 2>/dev/null`
         COMPREPLY=( $( compgen -W "$result" -- "$cur" ) )
     else
         COMPREPLY=( )
@@ -60,7 +82,7 @@ _complete_rethinkdb() {
         fi
 
         if _rethinkdb_value_in_array "$prev" "${numb_args[@]}"; then
-            COMPREPLY= #( $( compgen -W "${arr}" -- "$cur" ) )
+            COMPREPLY=( )
             return
         fi
 
