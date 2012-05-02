@@ -27,8 +27,8 @@ perfmon_counter_t
     pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks"),
     pm_serializer_old_total_blocks("serializer_old_total_blocks");
 
-data_block_manager_t::data_block_manager_t(const log_serializer_dynamic_config_t *_dynamic_config, extent_manager_t *em, log_serializer_t *_serializer, const log_serializer_on_disk_static_config_t *_static_config)
-    : shutdown_callback(NULL), state(state_unstarted),
+data_block_manager_t::data_block_manager_t(const log_serializer_dynamic_config_t *_dynamic_config, extent_manager_t *em, log_serializer_t *_serializer, const log_serializer_on_disk_static_config_t *_static_config, perfmon_collection_t *parent)
+    : stats(parent), shutdown_callback(NULL), state(state_unstarted),
       dynamic_config(_dynamic_config), static_config(_static_config), extent_manager(em), serializer(_serializer),
       next_active_extent(0),
       gc_state(extent_manager->extent_size)
