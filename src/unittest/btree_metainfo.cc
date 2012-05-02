@@ -53,7 +53,7 @@ void run_metainfo_test() {
     cache_t::create(&serializer, &cache_static_config);
 
     mirrored_cache_config_t cache_dynamic_config;
-    cache_t cache(&serializer, &cache_dynamic_config);
+    cache_t cache(&serializer, &cache_dynamic_config, NULL);
 
     btree_slice_t::create(&cache);
 

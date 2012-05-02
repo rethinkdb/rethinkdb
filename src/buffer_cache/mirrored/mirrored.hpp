@@ -7,6 +7,9 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "perfmon.hpp" //RSI
+#include "stats/persist.hpp" //maybe RSI?
+
 #include "arch/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
@@ -308,6 +311,17 @@ private:
     DISABLE_COPYING(mc_cache_account_t);
 };
 
+/* A class to hold all the stats we care about for this cache. */
+struct mc_cache_stats_t {
+    mc_cache_stats_t(perfmon_collection_t *parent);
+
+    perfmon_counter_t pm_registered_snapshots;
+    perfmon_counter_t pm_registered_snapshot_blocks;
+    perfmon_sampler_t pm_snapshots_per_transaction;
+    perfmon_persistent_counter_t pm_cache_hits;
+    perfmon_persistent_counter_t pm_cache_misses;
+};
+
 class mc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
     friend class mc_inner_buf_t;
     friend class mc_buf_lock_t;
@@ -326,7 +340,7 @@ public:
     typedef mc_cache_account_t cache_account_t;
 
     static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
-    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config);
+    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *);
     ~mc_cache_t();
 
     block_size_t get_block_size();
@@ -386,6 +400,7 @@ private:
     // components it wasn't originally given.
 
     serializer_t *serializer;
+    mc_cache_stats_t stats;
 
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,

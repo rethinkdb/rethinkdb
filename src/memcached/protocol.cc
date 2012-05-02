@@ -302,7 +302,7 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create,
 
     cache_dynamic_config.max_size = GIGABYTE;
     cache_dynamic_config.max_dirty_size = GIGABYTE / 2;
-    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config));
+    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, perfmon_collection));
 
     if (create) {
         btree_slice_t::create(cache.get());

@@ -7,6 +7,7 @@
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/buf_patch.hpp"
+#include "perfmon.hpp" //RSI
 
 // TODO: Have the semantic checking cache make sure that the
 // repli_timestamp_ts are correct.
@@ -127,7 +128,8 @@ public:
         serializer_t *serializer,
         mirrored_cache_static_config_t *static_config);
     scc_cache_t(serializer_t *serializer,
-                mirrored_cache_config_t *dynamic_config);
+                mirrored_cache_config_t *dynamic_config,
+                perfmon_collection_t *parent);
 
     block_size_t get_block_size();
     boost::shared_ptr<cache_account_t> create_account(int priority);

@@ -6,18 +6,18 @@
 #include "arch/arch.hpp"
 #include "buffer_cache/stats.hpp"
 #include "do_on_thread.hpp"
-#include "stats/persist.hpp"
 #include "serializer/serializer.hpp"
 
 /**
  * Buffer implementation.
  */
 
-perfmon_counter_t pm_registered_snapshots("registered_snapshots"),
-                  pm_registered_snapshot_blocks("registered_snapshot_blocks");
-perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1));
-
-perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache_misses");
+//RSI
+//perfmon_counter_t pm_registered_snapshots("registered_snapshots"),
+//                  pm_registered_snapshot_blocks("registered_snapshot_blocks");
+//perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1));
+//
+//perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache_misses");
 
 // Types of snapshots
 
@@ -1176,7 +1176,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED i_a
 
 void mc_transaction_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap) {
     assert_thread();
-    ++pm_registered_snapshot_blocks;
+    ++cache->stats.pm_registered_snapshot_blocks;
     owned_buf_snapshots.push_back(std::make_pair(inner_buf, snap));
 }
 
@@ -1214,8 +1214,8 @@ mc_transaction_t::~mc_transaction_t() {
 
     }
 
-    pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
-    pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
+    cache->stats.pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
+    cache->stats.pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
 
     cache_account_.reset();
 }
@@ -1296,6 +1296,14 @@ mc_cache_account_t::~mc_cache_account_t() {
  * Cache implementation.
  */
 
+mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent) 
+    : pm_registered_snapshots("registered_snapshots", parent),
+      pm_registered_snapshot_blocks("registered_snapshot_blocks", parent),
+      pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1), parent),
+      pm_cache_hits("cache_hits", parent),
+      pm_cache_misses("cache_misses", parent)
+{ }
+
 void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t *config) {
     /* Initialize config block and differential log */
 
@@ -1317,9 +1325,11 @@ void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t
 }
 
 mc_cache_t::mc_cache_t(serializer_t *_serializer,
-                       mirrored_cache_config_t *dynamic_config) :
+                       mirrored_cache_config_t *dynamic_config,
+                       perfmon_collection_t *perfmon_parent) :
     dynamic_config(*dynamic_config),
     serializer(_serializer),
+    stats(perfmon_parent),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
         dynamic_config->max_size / _serializer->get_block_size().ser_value(),
@@ -1421,7 +1431,7 @@ block_size_t mc_cache_t::get_block_size() {
 }
 
 void mc_cache_t::register_snapshot(mc_transaction_t *txn) {
-    ++pm_registered_snapshots;
+    ++stats.pm_registered_snapshots;
     rassert(txn->snapshot_version == mc_inner_buf_t::faux_version_id, "Snapshot has been already created for this transaction");
 
     txn->snapshot_version = next_snapshot_version++;
@@ -1435,7 +1445,7 @@ void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
     } else {
         unreachable("Tried to unregister a snapshot which doesn't exist");
     }
-    --pm_registered_snapshots;
+    --stats.pm_registered_snapshots;
 }
 
 size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
@@ -1466,9 +1476,9 @@ size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf
 mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
     inner_buf_t *buf = page_map.find(block_id);
     if (buf) {
-        ++pm_cache_hits;
+        ++stats.pm_cache_hits;
     } else {
-        ++pm_cache_misses;
+        ++stats.pm_cache_misses;
     }
     return buf;
 }
