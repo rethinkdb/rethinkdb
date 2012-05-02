@@ -823,13 +823,11 @@
             <div class="header">
                 <h1>Loading log entries...</h1>
             </div>
-            <table>
-                <tbody class="log-table"></tbody>
-            </table>
+            <ul class="log-entries"></ul>
             <a class='next-log-entries'>Older log entries</a>
         </script>
         <script id="log-header-template" type="text/x-handlebars-template">
-            <h1>Log entries from {{from_date}} to {{to_date}}</h1>
+            <h1>Log entries <small>from {{from_date}} to {{to_date}}</small></h1>
             {{#if new_entries}}
                 <div class="alert">
                     <button class="close" data-dismiss="alert">×</button>
@@ -838,10 +836,9 @@
             {{/if}}
         </script>
         <script id="log-entry-template" type="text/x-handlebars-template">
-            <td><a href="#machines/{{machine_uuid}}">{{machine_name}}</a></td>
-            <td>{{level}}</td>
-            <td>{{message}}</td>
-            <td>{{datetime}}</td>
+            <p class="entry-metadata">Reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a> on {{datetime}}</p>
+            <p class="level">{{level}}</p>
+            <p class="message">{{message}}</p>
         </script>
 
         <!-- Alerts -->
