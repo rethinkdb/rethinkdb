@@ -139,16 +139,6 @@ private:
     slice_leaves_iterator_t<Value> *leaves_iterator;
 };
 
-template <class Value>
-class range_txn_t {
-    slice_keys_iterator_t<Value> *it;
-public:
-    explicit range_txn_t(slice_keys_iterator_t<Value> *it);
-};
-
-template <class Value>
-range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, btree_bound_mode_t left_mode, const store_key_t &left_key, btree_bound_mode_t, const store_key_t &right_key);
-
 #include "btree/iteration.tcc"
 
 

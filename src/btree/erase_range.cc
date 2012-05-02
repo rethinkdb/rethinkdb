@@ -124,7 +124,7 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                value_deleter_t *deleter,
                                const btree_key_t *left_exclusive_or_null,
                                const btree_key_t *right_inclusive_or_null,
-                               transaction_t *txn, got_superblock_t& superblock) {
+                               transaction_t *txn, superblock_t *superblock) {
 
     erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
     btree_parallel_traversal(txn, superblock, slice, &helper);

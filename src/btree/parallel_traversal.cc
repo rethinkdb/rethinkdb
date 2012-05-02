@@ -265,21 +265,21 @@ struct internal_node_releaser_t : public parent_releaser_t {
 };
 
 void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_traversal_helper_t *helper) {
-    got_superblock_t superblock;
+    boost::scoped_ptr<real_superblock_t> superblock;
     get_btree_superblock(txn, helper->btree_superblock_mode(), &superblock);
-    btree_parallel_traversal(txn, superblock, slice, helper);
+    btree_parallel_traversal(txn, superblock.get(), slice, helper);
 }
 
-void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblock, btree_slice_t *slice, btree_traversal_helper_t *helper) {
+void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper) {
     traversal_state_t state(txn, slice, helper);
 
     /* Make sure there's a stat block*/
     if (helper->btree_node_mode() == rwi_write) {
-        ensure_stat_block(txn, got_superblock.sb.get(), incr_priority(ZERO_EVICTION_PRIORITY));
+        ensure_stat_block(txn, superblock, incr_priority(ZERO_EVICTION_PRIORITY));
     }
 
     /* Record the stat block for updating populations later */
-    state.stat_block = got_superblock.sb->get_stat_block_id();
+    state.stat_block = superblock->get_stat_block_id();
 
     if (state.stat_block != NULL_BLOCK_ID) {
         /* Give the helper a look at the stat block */
@@ -294,16 +294,16 @@ void btree_parallel_traversal(transaction_t *txn, got_superblock_t &got_superblo
         helper->progress->inform(0, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
     }
 
-    block_id_t root_id = got_superblock.sb->get_root_block_id();
+    block_id_t root_id = superblock->get_root_block_id();
     rassert(root_id != SUPERBLOCK_ID);
 
     struct : public parent_releaser_t {
-        got_superblock_t *superblock;
+        superblock_t *superblock;
         void release() {
-            superblock->sb->release();
+            superblock->release();
         }
     } superblock_releaser;
-    superblock_releaser.superblock = &got_superblock;
+    superblock_releaser.superblock = superblock;
 
     if (root_id == NULL_BLOCK_ID) {
         superblock_releaser.release();
