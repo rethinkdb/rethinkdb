@@ -197,14 +197,9 @@ void coro_t::run() {
 //  assumptions about the format of that string, but if get_and_init_coro is changed, this may
 //  need to be updated.  The only reason we do this is so we don't have to enable RTTI to figure
 //  out the type of the template, but we can still provide a clean typename.
-void coro_t::parse_coroutine_type(const char *)
+void coro_t::parse_coroutine_type(const char *coroutine_function)
 {
-     //const char *first_equal = strchr(coroutine_function, '=');
-     //const char *last_comma = strrchr(coroutine_function, ',');
-
-     //// Unless someone changes the function footprint, everything we're looking for
-     ////  should be between these two indices
-     //coroutine_type.assign(first_equal + 2, last_comma - first_equal - 2);
+     coroutine_type.assign(coroutine_function);
 }
 #endif
 
