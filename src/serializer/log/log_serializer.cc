@@ -17,7 +17,9 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *perfmon_col
       pm_serializer_index_reads("serializer_index_reads", perfmon_collection),
       pm_serializer_block_writes("serializer_block_writes", perfmon_collection),
       pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1), perfmon_collection),
-      pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1), perfmon_collection)
+      pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1), perfmon_collection),
+      pm_extents_in_use("serializer_extents_in_use", perfmon_collection),
+      pm_bytes_in_use("serializer_bytes_in_use", perfmon_collection)
 { }
 
 void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
@@ -92,7 +94,7 @@ struct ls_start_existing_fsm_t :
         }
 
         if (state == state_find_metablock) {
-            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config);
+            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config, &ser->stats);
             ser->extent_manager->reserve_extent(0);   /* For static header */
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);

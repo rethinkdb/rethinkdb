@@ -341,7 +341,7 @@ private:
     struct gc_stats_t {
         gc_stat_t old_total_blocks;
         gc_stat_t old_garbage_blocks;
-        gc_stats_t();
+        explicit gc_stats_t(data_block_manager_stats_t *);
     } gc_stats;
 
 public:

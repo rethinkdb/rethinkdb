@@ -19,8 +19,7 @@
 #include "serializer/log/lba/lba_list.hpp"
 #include "serializer/log/data_block_manager.hpp"
 
-class log_serializer_stats_t {
-public:
+struct log_serializer_stats_t {
     log_serializer_stats_t(perfmon_collection_t *perfmon_collection);
 
     perfmon_duration_sampler_t pm_serializer_block_reads;
@@ -28,6 +27,10 @@ public:
     perfmon_counter_t pm_serializer_block_writes;
     perfmon_duration_sampler_t pm_serializer_index_writes;
     perfmon_sampler_t pm_serializer_index_writes_size;
+
+    /* used in serializer/log/extent_manager.cc */
+    perfmon_counter_t pm_extents_in_use;
+    perfmon_counter_t pm_bytes_in_use;
 };
 
 class log_serializer_t;

@@ -18,6 +18,8 @@
 
 class extent_zone_t;
 
+struct log_serializer_stats_t;
+
 class extent_manager_t {
 public:
     struct metablock_mixin_t {
@@ -29,6 +31,7 @@ private:
 
     log_serializer_on_disk_static_config_t *static_config;
     log_serializer_dynamic_config_t *dynamic_config;
+    log_serializer_stats_t *stats;
 
 public:
     const uint64_t extent_size;   /* Same as static_config->extent_size */
@@ -42,7 +45,7 @@ public:
     };
 
 public:
-    extent_manager_t(direct_file_t *file, log_serializer_on_disk_static_config_t *static_config, log_serializer_dynamic_config_t *dynamic_config);
+    extent_manager_t(direct_file_t *file, log_serializer_on_disk_static_config_t *static_config, log_serializer_dynamic_config_t *dynamic_config, log_serializer_stats_t *);
     ~extent_manager_t();
 
 private:
