@@ -1,18 +1,9 @@
 #!/usr/bin/python
 import sys, os, time, tempfile
-import workload_runner
 rethinkdb_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 sys.path.append(os.path.join(rethinkdb_root, "test", "common"))
 import http_admin, driver
 from vcoptparse import *
-
-op = OptParser()
-op["workload1"] = PositionalArg()
-op["workload2"] = PositionalArg()
-op["workload3"] = PositionalArg()
-op["workload4"] = PositionalArg()
-op["timeout"] = IntFlag("--timeout", 600)
-opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
@@ -38,15 +29,9 @@ with driver.Metacluster() as metacluster:
     host, port = http.get_namespace_host(ns)
     cluster.check()
 
-    workload_runner.run(opts["workload1"], host, port, opts["timeout"])
-    cluster.check()
-
     print "Splitting into two shards..."
     http.add_namespace_shard(ns, "t")
     time.sleep(10)
-    cluster.check()
-
-    workload_runner.run(opts["workload2"], host, port, opts["timeout"])
     cluster.check()
 
     print "Increasing replication factor..."
@@ -54,15 +39,9 @@ with driver.Metacluster() as metacluster:
     time.sleep(10)
     cluster.check()
 
-    workload_runner.run(opts["workload3"], host, port, opts["timeout"])
-    cluster.check()
-
     print "Merging shards together again..."
     http.remove_namespace_shard(ns, "t")
     time.sleep(10)
-    cluster.check()
-
-    workload_runner.run(opts["workload4"], host, port, opts["timeout"])
     cluster.check()
 
     cluster.check_and_stop()
