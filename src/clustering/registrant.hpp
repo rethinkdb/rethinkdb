@@ -72,6 +72,8 @@ private:
     resource_access_t<registrar_business_card_t<business_card_t> > registrar;
 
     registration_id_t registration_id;
+
+    DISABLE_COPYING(registrant_t);
 };
 
 #endif /* CLUSTERING_REGISTRANT_HPP_ */

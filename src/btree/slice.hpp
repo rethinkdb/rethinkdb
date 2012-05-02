@@ -12,7 +12,6 @@ const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
 
 class backfill_callback_t;
 class key_tester_t;
-class got_superblock_t;
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per

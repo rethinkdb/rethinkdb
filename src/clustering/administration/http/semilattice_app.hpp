@@ -17,6 +17,8 @@ private:
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory_metadata;
     boost::uuids::uuid us;
+
+    DISABLE_COPYING(semilattice_http_app_t);
 };
 
 #endif /* CLUSTERING_ADMINSTRATION_HTTP_SEMILATTICE_APP_HPP_ */

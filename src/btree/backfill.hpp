@@ -24,9 +24,9 @@ tree before `btree_backfill()` was called. It may also find changes that
 happened before `since_when`. */
 
 class traversal_progress_t;
-class got_superblock_t;
+class superblock_t;
 
 void do_agnostic_btree_backfill(value_sizer_t<void> *sizer, btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when,
-                                agnostic_backfill_callback_t *callback, transaction_t *txn, got_superblock_t& superblock, traversal_progress_t *);
+                                agnostic_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, traversal_progress_t *);
 
 #endif  // BTREE_BACKFILL_HPP_

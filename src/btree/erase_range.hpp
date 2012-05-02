@@ -9,7 +9,7 @@ class btree_slice_t;
 struct store_key_t;
 struct btree_key_t;
 class order_token_t;
-class got_superblock_t;
+class superblock_t;
 
 class key_tester_t {
 public:
@@ -44,6 +44,6 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                value_deleter_t *deleter,
                                const btree_key_t *left_exclusive_or_null,
                                const btree_key_t *right_inclusive_or_null,
-                               transaction_t *txn, got_superblock_t& superblock);
+                               transaction_t *txn, superblock_t *superblock);
 
 #endif  // BTREE_ERASE_RANGE_HPP_

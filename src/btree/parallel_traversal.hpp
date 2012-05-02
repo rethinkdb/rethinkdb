@@ -16,7 +16,7 @@ class parent_releaser_t;
 class btree_slice_t;
 struct btree_key_t;
 struct internal_node_t;
-class got_superblock_t;
+class superblock_t;
 
 
 // HEY: Make this an abstract class, have two separate implementation
@@ -108,8 +108,6 @@ struct btree_traversal_helper_t {
 
     virtual void postprocess_internal_node(buf_lock_t *internal_node_buf) = 0;
 
-    virtual void postprocess_btree_superblock(buf_lock_t *superblock_buf) = 0;
-
     virtual void filter_interesting_children(transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) = 0;
 
     virtual access_t btree_superblock_mode() = 0;
@@ -122,7 +120,7 @@ struct btree_traversal_helper_t {
 };
 
 void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_traversal_helper_t *helper);
-void btree_parallel_traversal(transaction_t *txn, got_superblock_t &superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
+void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
 class traversal_progress_t : public home_thread_mixin_t {
 public:

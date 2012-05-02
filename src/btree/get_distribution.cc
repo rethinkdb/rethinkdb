@@ -48,9 +48,6 @@ public:
         }
     }
 
-    void postprocess_btree_superblock(buf_lock_t *) {
-    }
-
     void filter_interesting_children(transaction_t *, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
         if (ids_source->get_level() < depth_limit) {
             int num_block_ids = ids_source->num_block_ids();
@@ -83,7 +80,7 @@ public:
     std::vector<store_key_t> *keys; 
 };
 
-void get_btree_key_distribution(btree_slice_t *slice, transaction_t *txn, got_superblock_t& superblock, int depth_limit, int *key_count_out, std::vector<store_key_t> *keys_out) {
+void get_btree_key_distribution(btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, int depth_limit, int *key_count_out, std::vector<store_key_t> *keys_out) {
     get_distribution_traversal_helper_t helper(depth_limit, keys_out);
     rassert(keys_out->empty(), "Why is this output paremeter not an empty vector\n");
 

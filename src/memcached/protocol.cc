@@ -310,12 +310,12 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create)
         // Initialize metainfo to an empty `binary_blob_t` because its domain is
         // required to be `key_range_t::universe()` at all times
         /* Wow, this is a lot of lines of code for a simple concept. Can we do better? */
-        got_superblock_t superblock;
+        boost::scoped_ptr<real_superblock_t> superblock;
         boost::scoped_ptr<transaction_t> txn;
         order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::store_t");
         order_token = btree->order_checkpoint_.check_through(order_token);
         get_btree_superblock(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, txn);
-        buf_lock_t* sb_buf = superblock.get_real_buf();
+        buf_lock_t* sb_buf = superblock->get();
         clear_superblock_metainfo(txn.get(), sb_buf);
 
         vector_stream_t key;
@@ -345,7 +345,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_read(
         bool snapshot,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         boost::scoped_ptr<transaction_t> &txn_out,
-        got_superblock_t &sb_out,
+        boost::scoped_ptr<real_superblock_t> &sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
@@ -364,7 +364,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_read(
 void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         boost::scoped_ptr<transaction_t> &txn_out,
-        got_superblock_t &sb_out,
+        boost::scoped_ptr<real_superblock_t> &sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
@@ -385,7 +385,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_write(
         int expected_change_count,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         boost::scoped_ptr<transaction_t> &txn_out,
-        got_superblock_t &sb_out,
+        boost::scoped_ptr<real_superblock_t> &sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
@@ -406,11 +406,11 @@ memcached_protocol_t::store_t::metainfo_t memcached_protocol_t::store_t::get_met
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    got_superblock_t superblock;
+    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
     acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
 
-    return get_metainfo_internal(txn.get(), superblock.get_real_buf());
+    return get_metainfo_internal(txn.get(), superblock->get());
 }
 
 region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf) const THROWS_NOTHING {
@@ -444,26 +444,26 @@ void memcached_protocol_t::store_t::set_metainfo(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    got_superblock_t superblock;
+    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
     acquire_superblock_for_write(rwi_write, 1, token, txn, superblock, interruptor);
 
-    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock.get_real_buf());
-    update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock);
+    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock->get());
+    update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
 }
 
 struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
 
     memcached_protocol_t::read_response_t operator()(const get_query_t& get) {
         return memcached_protocol_t::read_response_t(
-            memcached_get(get.key, btree, effective_time, txn.get(), superblock));
+            memcached_get(get.key, btree, effective_time, txn.get(), superblock.get()));
     }
     memcached_protocol_t::read_response_t operator()(const rget_query_t& rget) {
         return memcached_protocol_t::read_response_t(
             memcached_rget_slice(btree, rget.left_mode, rget.left_key, rget.right_mode, rget.right_key, effective_time, txn, superblock));
     }
     memcached_protocol_t::read_response_t operator()(const distribution_get_query_t& dget) {
-        distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock);
+        distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock.get());
 
         for (std::map<std::string, int>::iterator it  = dstr.key_counts.begin();
                                                   it != dstr.key_counts.end();
@@ -479,12 +479,13 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
     }
 
 
-    read_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t>& txn_, got_superblock_t& superblock_, exptime_t effective_time_) : btree(btree_), txn(txn_), superblock(superblock_), effective_time(effective_time_) { }
+    read_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t>& txn_, boost::scoped_ptr<superblock_t> &superblock_, exptime_t effective_time_) :
+        btree(btree_), txn(txn_), superblock(superblock_), effective_time(effective_time_) { }
 
 private:
     btree_slice_t *btree;
     boost::scoped_ptr<transaction_t>& txn;
-    got_superblock_t& superblock;
+    boost::scoped_ptr<superblock_t> &superblock;
     exptime_t effective_time;
 };
 
@@ -495,13 +496,17 @@ memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    got_superblock_t superblock;
+    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
     acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
 
-    check_metainfo(DEBUG_ONLY(expected_metainfo, ) txn.get(), superblock);
+    check_metainfo(DEBUG_ONLY(expected_metainfo, ) txn.get(), superblock.get());
 
-    read_visitor_t v(btree.get(), txn, superblock, read.effective_time);
+    /* Ugly hack */
+    boost::scoped_ptr<superblock_t> superblock2;
+    superblock.swap(*reinterpret_cast<boost::scoped_ptr<real_superblock_t> *>(&superblock2));
+
+    read_visitor_t v(btree.get(), txn, superblock2, read.effective_time);
     return boost::apply_visitor(v, read.query);
 }
 
@@ -528,12 +533,12 @@ struct write_visitor_t : public boost::static_visitor<memcached_protocol_t::writ
             memcached_delete(m.key, m.dont_put_in_delete_queue, btree, effective_time, timestamp, txn.get(), superblock));
     }
 
-    write_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t>& txn_, got_superblock_t& superblock_, cas_t proposed_cas_, exptime_t effective_time_, repli_timestamp_t timestamp_) : btree(btree_), txn(txn_), superblock(superblock_), proposed_cas(proposed_cas_), effective_time(effective_time_), timestamp(timestamp_) { }
+    write_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t>& txn_, superblock_t *superblock_, cas_t proposed_cas_, exptime_t effective_time_, repli_timestamp_t timestamp_) : btree(btree_), txn(txn_), superblock(superblock_), proposed_cas(proposed_cas_), effective_time(effective_time_), timestamp(timestamp_) { }
 
 private:
     btree_slice_t *btree;
     boost::scoped_ptr<transaction_t>& txn;
-    got_superblock_t& superblock;
+    superblock_t *superblock;
     cas_t proposed_cas;
     exptime_t effective_time;
     repli_timestamp_t timestamp;
@@ -548,14 +553,14 @@ memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    got_superblock_t superblock;
+    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
     acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
 
-    check_and_update_metainfo(DEBUG_ONLY(expected_metainfo, ) new_metainfo, txn.get(), superblock);
+    check_and_update_metainfo(DEBUG_ONLY(expected_metainfo, ) new_metainfo, txn.get(), superblock.get());
 
-    write_visitor_t v(btree.get(), txn, superblock, write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
+    write_visitor_t v(btree.get(), txn, superblock.get(), write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
     return boost::apply_visitor(v, write.mutation);
 }
 
@@ -597,11 +602,11 @@ bool memcached_protocol_t::store_t::send_backfill(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    got_superblock_t superblock;
+    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
     acquire_superblock_for_backfill(token, txn, superblock, interruptor);
 
-    metainfo_t metainfo = get_metainfo_internal(txn.get(), superblock.get_real_buf()).mask(start_point.get_domain());
+    metainfo_t metainfo = get_metainfo_internal(txn.get(), superblock->get()).mask(start_point.get_domain());
     if (should_backfill(metainfo)) {
         memcached_backfill_callback_t callback(chunk_fun);
 
@@ -611,7 +616,7 @@ bool memcached_protocol_t::store_t::send_backfill(
 
             traversal_progress_t *p = new traversal_progress_t;
             progress->add_constituent(p);
-            memcached_backfill(btree.get(), range, since_when, &callback, txn.get(), superblock, p);
+            memcached_backfill(btree.get(), range, since_when, &callback, txn.get(), superblock.get(), p);
         }
         return true;
     } else {
@@ -620,7 +625,7 @@ bool memcached_protocol_t::store_t::send_backfill(
 }
 
 struct receive_backfill_visitor_t : public boost::static_visitor<> {
-    receive_backfill_visitor_t(btree_slice_t *btree_, transaction_t *txn_, got_superblock_t &superblock_, signal_t *interruptor_) : btree(btree_), txn(txn_), superblock(superblock_), interruptor(interruptor_) { }
+    receive_backfill_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, signal_t *interruptor_) : btree(btree_), txn(txn_), superblock(superblock_), interruptor(interruptor_) { }
     void operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t& delete_key) const {
         // FIXME: we ignored delete_key.recency here. Should we use it in place of repli_timestamp_t::invalid?
         memcached_delete(delete_key.key, true, btree, 0, repli_timestamp_t::invalid, txn, superblock);
@@ -658,7 +663,7 @@ private:
     };
     btree_slice_t *btree;
     transaction_t *txn;
-    got_superblock_t &superblock;
+    superblock_t *superblock;
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
 };
 
@@ -668,13 +673,13 @@ void memcached_protocol_t::store_t::receive_backfill(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    got_superblock_t superblock;
+    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
     acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
 
-    boost::apply_visitor(receive_backfill_visitor_t(btree.get(), txn.get(), superblock, interruptor), chunk.val);
+    boost::apply_visitor(receive_backfill_visitor_t(btree.get(), txn.get(), superblock.get(), interruptor), chunk.val);
 }
 
 void memcached_protocol_t::store_t::reset_data(
@@ -684,7 +689,7 @@ void memcached_protocol_t::store_t::reset_data(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    got_superblock_t superblock;
+    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
 
     // We're passing 2 for the expected_change_count based on the
@@ -696,17 +701,17 @@ void memcached_protocol_t::store_t::reset_data(
     const int expected_change_count = 2;
     acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
 
-    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock.get_real_buf());
-    update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock);
+    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock->get());
+    update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
 
-    memcached_erase_range(btree.get(), NULL, subregion, txn.get(), superblock);
+    memcached_erase_range(btree.get(), NULL, subregion, txn.get(), superblock.get());
 }
 
 void memcached_protocol_t::store_t::check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_t& expected_metainfo, )
         const metainfo_t &new_metainfo,
         transaction_t *txn,
-        got_superblock_t &superblock) const
+        real_superblock_t *superblock) const
         THROWS_NOTHING {
 
     metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(expected_metainfo, ) txn, superblock);
@@ -716,21 +721,21 @@ void memcached_protocol_t::store_t::check_and_update_metainfo(
 memcached_protocol_t::store_t::metainfo_t memcached_protocol_t::store_t::check_metainfo(
         DEBUG_ONLY(const metainfo_t& expected_metainfo, )
         transaction_t *txn,
-        got_superblock_t &superblock) const
+        real_superblock_t *superblock) const
         THROWS_NOTHING {
 
-    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn, superblock.get_real_buf());
+    region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn, superblock->get());
     rassert(old_metainfo.mask(expected_metainfo.get_domain()) == expected_metainfo);
     return old_metainfo;
 }
 
-void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, got_superblock_t &superblock) const THROWS_NOTHING {
+void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superblock) const THROWS_NOTHING {
     region_map_t<memcached_protocol_t, binary_blob_t> updated_metadata = old_metainfo;
     updated_metadata.update(new_metainfo);
 
     rassert(updated_metadata.get_domain() == key_range_t::universe());
 
-    buf_lock_t* sb_buf = superblock.get_real_buf();
+    buf_lock_t* sb_buf = superblock->get();
     clear_superblock_metainfo(txn, sb_buf);
 
     for (region_map_t<memcached_protocol_t, binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
