@@ -70,12 +70,12 @@ std::set<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> na
 void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool *result_out) {
     *result_out = true;
 
-    if (command_args.empty()) {
-        admin_command_parser_t parser(look_up_peers_addresses(joins), client_port);
-        parser.run_console();
-    } else {
-        // Only one command, run it by itself
-        try {
+    try {
+        if (command_args.empty()) {
+            admin_command_parser_t parser(look_up_peers_addresses(joins), client_port);
+            parser.run_console();
+        } else {
+            // Only one command, run it by itself
             admin_command_parser_t parser(look_up_peers_addresses(joins), client_port);
 
             // If we're doing a shell command completion, just print them and exit
@@ -85,10 +85,10 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
                 admin_command_parser_t::command_data data(parser.parse_command(command_args));
                 parser.run_command(data);
             }
-        } catch (std::exception& ex) {
-            fprintf(stderr, "%s\n", ex.what());
-            *result_out = false;
         }
+    } catch (std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        *result_out = false;
     }
 }
 
@@ -284,7 +284,7 @@ po::options_description get_rethinkdb_admin_options() {
 #ifndef NDEBUG
         ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes")
 #endif
-        ("join,j", po::value<std::vector<host_and_port_t> >()->required(), "host:port of a node that we will connect to");
+        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
     return desc;
 }
 

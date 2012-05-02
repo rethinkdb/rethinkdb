@@ -113,6 +113,7 @@ private:
 
     std::map<std::string, command_info *> command_descriptions;
 
+    // Static instance variable to hook in from a c-style library (linenoise), singleton enforced
     static admin_command_parser_t *instance;
 
     // Variables to instantiate a link to the cluster
