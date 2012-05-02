@@ -5,6 +5,7 @@
 #include "btree/operations.hpp"
 #include "btree/slice.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/iterators.hpp"
@@ -593,6 +594,57 @@ protected:
     }
 };
 
+class refcount_superblock_t : public superblock_t {
+public:
+    refcount_superblock_t(superblock_t *sb, int rc) :
+        sub_superblock(sb), refcount(rc) { }
+
+    void release() {
+        refcount--;
+        rassert(refcount >= 0);
+        if (refcount == 0) {
+            sub_superblock->release();
+            sub_superblock = NULL;
+        }
+    }
+
+    block_id_t get_root_block_id() const {
+        return sub_superblock->get_root_block_id();
+    }
+
+    void set_root_block_id(const block_id_t new_root_block) {
+        sub_superblock->set_root_block_id(new_root_block);
+    }
+
+    block_id_t get_stat_block_id() const {
+        return sub_superblock->get_stat_block_id();
+    }
+
+    void set_stat_block_id(block_id_t new_stat_block) {
+        sub_superblock->set_stat_block_id(new_stat_block);
+    }
+
+    void set_eviction_priority(eviction_priority_t eviction_priority) {
+        sub_superblock->set_eviction_priority(eviction_priority);
+    }
+
+    eviction_priority_t get_eviction_priority() {
+        return sub_superblock->get_eviction_priority();
+    }
+
+private:
+    superblock_t *sub_superblock;
+    int refcount;
+};
+
+static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<memcached_protocol_t::region_t, state_timestamp_t> > &regions,
+        backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress) {
+    traversal_progress_t *p = new traversal_progress_t;
+    progress->add_constituent(p);
+    repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
+    memcached_backfill(btree, regions[i].first, timestamp, callback, txn, superblock, p);
+}
+
 bool memcached_protocol_t::store_t::send_backfill(
         const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
         const boost::function<bool(const metainfo_t&)> &should_backfill,
@@ -610,14 +662,11 @@ bool memcached_protocol_t::store_t::send_backfill(
     if (should_backfill(metainfo)) {
         memcached_backfill_callback_t callback(chunk_fun);
 
-        for (region_map_t<memcached_protocol_t, state_timestamp_t>::const_iterator i = start_point.begin(); i != start_point.end(); i++) {
-            const memcached_protocol_t::region_t& range = (*i).first;
-            repli_timestamp_t since_when = (*i).second.to_repli_timestamp(); // FIXME: this loses precision
+        std::vector<std::pair<memcached_protocol_t::region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
+        refcount_superblock_t refcount_wrapper(superblock.get(), regions.size());
+        pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
+            btree.get(), regions, &callback, txn.get(), &refcount_wrapper, progress));
 
-            traversal_progress_t *p = new traversal_progress_t;
-            progress->add_constituent(p);
-            memcached_backfill(btree.get(), range, since_when, &callback, txn.get(), superblock.get(), p);
-        }
         return true;
     } else {
         return false;
