@@ -4,7 +4,6 @@
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
-#include "buffer_cache/stats.hpp"
 #include "do_on_thread.hpp"
 #include "serializer/serializer.hpp"
 
@@ -208,7 +207,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_accou
     coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
 
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
-    ++pm_n_blocks_in_memory;
+    ++_cache->stats.pm_n_blocks_in_memory;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
     _cache->page_repl.make_space();
@@ -236,7 +235,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
 
     array_map_t::constructing_inner_buf(this);
 
-    ++pm_n_blocks_in_memory;
+    ++_cache->stats.pm_n_blocks_in_memory;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     _cache->page_repl.make_space();
     _cache->maybe_unregister_read_ahead_callback();
@@ -313,7 +312,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id
 
     array_map_t::constructing_inner_buf(this);
 
-    ++pm_n_blocks_in_memory;
+    ++_cache->stats.pm_n_blocks_in_memory;
     ++refcount; // Make the refcount nonzero so this block won't be considered safe to unload.
 
     _cache->page_repl.make_space();
@@ -351,7 +350,7 @@ mc_inner_buf_t::~mc_inner_buf_t() {
         remove_from_page_repl();
     }
 
-    --pm_n_blocks_in_memory;
+    --cache->stats.pm_n_blocks_in_memory;
 }
 
 void mc_inner_buf_t::replay_patches() {
@@ -478,10 +477,6 @@ void mc_inner_buf_t::update_data_token(const void *the_data, const intrusive_ptr
     unreachable("data does not correspond to current buffer or any existing snapshot of it");
 }
 
-perfmon_duration_sampler_t
-    pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
-    pm_bufs_held("bufs_held", secs_to_ticks(1));
-
 /* Default constructor does not obtain a lock, but a lock may be allocated or swapped from another mc_buf_lock_t object */
 mc_buf_lock_t::mc_buf_lock_t() :
     acquired(false),
@@ -580,9 +575,9 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
     } else {
         ticks_t lock_start_time;
         // the top version is the right one for us; acquire a lock of the appropriate type first
-        pm_bufs_acquiring.begin(&lock_start_time);
+        inner_buf->cache->stats.pm_bufs_acquiring.begin(&lock_start_time);
         inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
-        pm_bufs_acquiring.end(&lock_start_time);
+        inner_buf->cache->stats.pm_bufs_acquiring.end(&lock_start_time);
 
         // It's possible that, now that we've acquired the lock, that
         // the inner buf's version id has changed, and that we should
@@ -600,7 +595,7 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
         }
     }
 
-    pm_bufs_held.begin(&start_time);
+    inner_buf->cache->stats.pm_bufs_held.begin(&start_time);
     acquired = true;
 }
 
@@ -979,7 +974,7 @@ void mc_buf_lock_t::release() {
     assert_thread();
     guarantee(acquired);
     inner_buf->cache->assert_thread();
-    pm_bufs_held.end(&start_time);
+    inner_buf->cache->stats.pm_bufs_held.end(&start_time);
 
     if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush() && patches_serialized_size_at_start >= 0) {
         if (inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > patches_serialized_size_at_start) {
@@ -1301,7 +1296,21 @@ mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
       pm_registered_snapshot_blocks("registered_snapshot_blocks", parent),
       pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1), parent),
       pm_cache_hits("cache_hits", parent),
-      pm_cache_misses("cache_misses", parent)
+      pm_cache_misses("cache_misses", parent),
+      pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1), parent),
+      pm_bufs_held("bufs_held", secs_to_ticks(1), parent),
+      pm_flushes_diff_flush("flushes_diff_flushing", secs_to_ticks(1), parent),
+      pm_flushes_diff_store("flushes_diff_store", secs_to_ticks(1), parent),
+      pm_flushes_locking("flushes_locking", secs_to_ticks(1), parent),
+      pm_flushes_writing("flushes_writing", secs_to_ticks(1), parent),
+      pm_flushes_blocks("flushes_blocks", secs_to_ticks(1), true, parent),
+      pm_flushes_blocks_dirty("flushes_blocks_need_flush", secs_to_ticks(1), true, parent),
+      pm_flushes_diff_patches_stored("flushes_diff_patches_stored", secs_to_ticks(1), false, parent),
+      pm_flushes_diff_storage_failures("flushes_diff_storage_failures", secs_to_ticks(30), true, parent),
+      pm_n_blocks_in_memory("blocks_in_memory[blocks]", parent),
+      pm_n_blocks_dirty("blocks_dirty[blocks]", parent),
+      pm_n_blocks_total("blocks_total[blocks]", parent),
+      pm_n_blocks_evicted("blocks_evicted", parent)
 { }
 
 void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t *config) {
@@ -1343,7 +1352,7 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
         dynamic_config->flush_waiting_threshold,
         dynamic_config->max_concurrent_flushes),
     /* Build list of free blocks (the free_list constructor blocks) */
-    free_list(_serializer),
+    free_list(_serializer, &stats),
     shutting_down(false),
     num_live_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),

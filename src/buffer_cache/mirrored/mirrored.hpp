@@ -21,7 +21,6 @@
 #include "containers/intrusive_list.hpp"
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/mirrored/config.hpp"
-#include "buffer_cache/stats.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
@@ -315,11 +314,41 @@ private:
 struct mc_cache_stats_t {
     mc_cache_stats_t(perfmon_collection_t *parent);
 
-    perfmon_counter_t pm_registered_snapshots;
-    perfmon_counter_t pm_registered_snapshot_blocks;
+    perfmon_counter_t 
+        pm_registered_snapshots,
+        pm_registered_snapshot_blocks;
+
     perfmon_sampler_t pm_snapshots_per_transaction;
-    perfmon_persistent_counter_t pm_cache_hits;
-    perfmon_persistent_counter_t pm_cache_misses;
+
+    perfmon_persistent_counter_t 
+        pm_cache_hits,
+        pm_cache_misses;
+
+    perfmon_duration_sampler_t
+        pm_bufs_acquiring,
+        pm_bufs_held;
+
+    /* Used in writeback.hpp */
+    perfmon_duration_sampler_t
+        pm_flushes_diff_flush,
+        pm_flushes_diff_store,
+        pm_flushes_locking,
+        pm_flushes_writing;
+
+    perfmon_sampler_t
+        pm_flushes_blocks,
+        pm_flushes_blocks_dirty,
+        pm_flushes_diff_patches_stored,
+        pm_flushes_diff_storage_failures;
+
+    perfmon_counter_t
+        pm_n_blocks_in_memory,
+        pm_n_blocks_dirty,
+        pm_n_blocks_total;
+
+    // used in buffer_cache/mirrored/page_repl_random.cc
+    perfmon_counter_t pm_n_blocks_evicted;
+
 };
 
 class mc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
