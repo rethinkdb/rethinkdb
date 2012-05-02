@@ -15,8 +15,12 @@ public:
     public:
         virtual bool is_acceptable_ack_set(const std::set<peer_id_t> &acks) = 0;
 
+        ack_checker_t() { }
     protected:
         virtual ~ack_checker_t() { }
+
+    private:
+        DISABLE_COPYING(ack_checker_t);
     };
 
     master_t(
@@ -147,6 +151,8 @@ private:
     watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > *master_directory;
     mutex_assertion_t *master_directory_lock;
     master_id_t uuid;
+
+    DISABLE_COPYING(master_t);
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP_ */

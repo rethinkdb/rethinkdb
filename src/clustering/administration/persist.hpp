@@ -56,6 +56,9 @@ public:
         msg << int8_t(PERSISTENCE_ISSUE_CODE);
         msg << message;
     }
+
+private:
+    DISABLE_COPYING(persistence_issue_t);
 };
 
 class semilattice_watching_persister_t {
@@ -74,6 +77,8 @@ private:
 
     local_issue_tracker_t *issue_tracker;
     boost::scoped_ptr<local_issue_tracker_t::entry_t> persistence_issue;
+
+    DISABLE_COPYING(semilattice_watching_persister_t);
 };
 
 }   /* namespace metadata_persistence */

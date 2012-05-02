@@ -52,6 +52,8 @@ private:
         reactor_t<protocol_t> *parent;
         typename protocol_t::region_t region;
         reactor_activity_id_t reactor_activity_id;
+
+        DISABLE_COPYING(directory_entry_t);
     };
 
     /* To save typing */
@@ -155,6 +157,8 @@ private:
     auto_drainer_t drainer;
 
     typename watchable_t<blueprint_t<protocol_t> >::subscription_t blueprint_subscription;
+
+    DISABLE_COPYING(reactor_t);
 };
 
 

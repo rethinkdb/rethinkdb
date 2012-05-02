@@ -22,6 +22,8 @@ public:
 private:
     static void send_stats(mailbox_manager_t* mailbox_manager, return_address_t& reply_address, std::set<stat_id_t>& requested_stats);
     get_stats_mailbox_t get_stats_mailbox;
+
+    DISABLE_COPYING(stat_manager_t);
 };
 
 typedef stat_manager_t::get_stats_mailbox_t::address_t get_stats_mailbox_address_t;
