@@ -30,7 +30,6 @@ module 'LogView', ->
                     @num_new_entries = 0
                     $.getJSON route, (log_data_from_server) =>
                         for machine_uuid, log_entries of log_data_from_server
-                            console.log log_entries.length
                             @num_new_entries += log_entries.length
                         @render_header()
 
@@ -75,7 +74,8 @@ module 'LogView', ->
 
                 # Don't render anything if there are no new log entries.
                 if new_log_entries.length is 0
-                    console.log 'no more log entries available'
+                    @.$('.no-more-entries').show()
+                    @.$('.next-log-entries').hide()
                     return
 
                 @log_entries.add new_log_entries.models[0...@max_log_entries]
@@ -84,14 +84,14 @@ module 'LogView', ->
                 @render_log_entries()
 
         next_entries: (event) =>
+            event.preventDefault()
             # Ensure we have older entries (older than the oldest timestamp we're displaying)
             @fetch_log_entries @log_entries.at(@log_entries.length-1).get('timestamp')-1
-            event.preventDefault()
 
         update_log_entries: (event) =>
+            event.preventDefault()
             @$log_entries.empty()
             @fetch_log_entries()
-            event.preventDefault()
 
     class @LogEntry extends Backbone.View
         className: 'log-entry'

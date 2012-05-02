@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>RethinkDB Administration</title>
+        <title>RethinkDB Administration Console</title>
         <meta name="description" content="">
         <meta name="author" content="">
         <meta http-equiv="no-cache">
@@ -16,11 +16,12 @@
           <div id="topbar" class="navbar">
             <div class="navbar-inner">
               <div class="container">
-                <a class="brand" href="#">RethinkDB Administration Console</a>
+                <a class="brand" href="#">RethinkDB</a>
                 <ul class="nav">
                   <li id="nav-dashboard"><a href="#dashboard">Dashboard</a></li>
                   <li id="nav-namespaces"><a href="#namespaces">Namespaces</a></li>
                   <li id="nav-servers"><a href="#servers">Servers</a></li>
+                  <li id="nav-logs"><a href="#logs">Logs</a></li>
                 </ul>
 
                 <ul class="right-nav nav pull-right">
@@ -824,7 +825,10 @@
                 <h1>Loading log entries...</h1>
             </div>
             <ul class="log-entries"></ul>
-            <a class='next-log-entries'>Older log entries</a>
+            <div class="any-more-log-entries">
+                <div class="no-more-entries">No more log entries to show</div>
+                <p><a class='next-log-entries'>Older log entries</a></p>
+            </div>
         </script>
         <script id="log-header-template" type="text/x-handlebars-template">
             <h1>Log entries <small>from {{from_date}} to {{to_date}}</small></h1>

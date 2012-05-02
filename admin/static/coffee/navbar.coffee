@@ -45,6 +45,8 @@ class NavBarView extends Backbone.View
                 $('ul.nav li#nav-namespaces').addClass('active')
             else if route is 'route:index_servers'
                 $('ul.nav li#nav-servers').addClass('active')
+            else if route is 'route:logs'
+                $('ul.nav li#nav-logs').addClass('active')
 
         if @first_render?
             # Initialize typeahead
