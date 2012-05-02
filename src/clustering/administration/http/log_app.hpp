@@ -24,6 +24,8 @@ private:
     mailbox_manager_t *mailbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, log_server_business_card_t> > > log_mailbox_view;
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
+
+    DISABLE_COPYING(log_http_app_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_HTTP_LOG_APP_HPP_ */

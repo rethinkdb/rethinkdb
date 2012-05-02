@@ -113,13 +113,8 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
     }
 
     // TODO: Can we do all this without having buf_lock being a pointer?
-    buf_lock_t *buf_lock = new buf_lock_t();
-    superblock->swap_buf(*buf_lock);
-
-    {
-        buf_lock_t tmp(transaction, root_id, rwi_read);
-        buf_lock->swap(tmp);
-    }
+    buf_lock_t *buf_lock = new buf_lock_t(transaction, root_id, rwi_read);
+    superblock->release();
 
     // read root node
     const node_t *node = reinterpret_cast<const node_t *>(buf_lock->get_data_read());
@@ -338,19 +333,5 @@ void slice_keys_iterator_t<Value>::done() {
     }
 
     no_more_data = true;
-}
-
-template <class Value>
-range_txn_t<Value>::range_txn_t(slice_keys_iterator_t<Value> *it) : it(it)
-{ }
-
-template <class Value>
-range_txn_t<Value> get_range(btree_slice_t *slice, order_token_t token, btree_bound_mode_t left_mode, const store_key_t &left_key, btree_bound_mode_t right_mode, const store_key_t &right_key) {
-    boost::scoped_ptr<transaction_t> txn;
-    got_superblock_t got_superblock;
-    get_btree_superblock_for_reading(slice, rwi_read, token, true, &got_superblock, txn);
-
-    boost::shared_ptr< value_sizer_t<void> > sizer(new value_sizer_t<Value>(slice->cache()->get_block_size()));
-    return range_txn_t<Value>(new slice_keys_iterator_t<Value>(sizer, txn, slice, left_mode, left_key, right_mode, right_key));
 }
 

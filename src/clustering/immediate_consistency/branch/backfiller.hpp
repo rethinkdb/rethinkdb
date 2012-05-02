@@ -52,6 +52,7 @@ private:
     typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t cancel_backfill_mailbox;
     typename backfiller_business_card_t<protocol_t>::request_progress_mailbox_t request_progress_mailbox;
 
+    DISABLE_COPYING(backfiller_t);
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP_ */

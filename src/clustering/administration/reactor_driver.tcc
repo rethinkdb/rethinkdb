@@ -214,6 +214,8 @@ private:
 
     boost::scoped_ptr<typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t> reactor_directory_subscription;
     boost::scoped_ptr<typename watchable_t<std::map<master_id_t, master_business_card_t<protocol_t> > >::subscription_t> master_directory_subscription;
+
+    DISABLE_COPYING(watchable_and_reactor_t);
 };
 
 template <class protocol_t>

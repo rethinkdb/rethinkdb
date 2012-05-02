@@ -67,9 +67,9 @@ void run_metainfo_test() {
 
         order_token_t otok = order_source.check_in("metainfo unittest");
         boost::scoped_ptr<transaction_t> txn;
-        got_superblock_t got_superblock;
-        get_btree_superblock(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &got_superblock, txn);
-        buf_lock_t *sb_buf = got_superblock.get_real_buf();
+        boost::scoped_ptr<real_superblock_t> superblock;
+        get_btree_superblock(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, &superblock, txn);
+        buf_lock_t *sb_buf = superblock->get();
 
         int op = random() % 100;
         if (op == 0) {

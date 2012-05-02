@@ -62,6 +62,7 @@ private:
     watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t translation_table_subscription;
 
     boost::ptr_vector<perfmon_collection_t> namespace_perfmon_collections;
+    DISABLE_COPYING(reactor_driver_t);
 };
 
 #endif

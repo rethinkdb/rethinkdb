@@ -7,7 +7,7 @@
 #include "arch/os_signal.hpp"
 #include "clustering/administration/main/command_line.hpp"
 #include "clustering/administration/main/serve.hpp"
-#include "clustering/administration/cli/admin.hpp"
+#include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
 #include "mock/dummy_protocol.hpp"
@@ -71,17 +71,22 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     *result_out = true;
 
     if (command_args.empty()) {
-        rethinkdb_admin_app_t app(look_up_peers_addresses(joins), client_port);
-        app.run_console();
+        admin_command_parser_t parser(look_up_peers_addresses(joins), client_port);
+        parser.run_console();
     } else {
         // Only one command, run it by itself
         try {
-            rethinkdb_admin_app_t app(look_up_peers_addresses(joins), client_port);
-            // TODO: it would be nice to check the params before connecting to the cluster
-            rethinkdb_admin_app_t::command_data data(app.parse_command(command_args));
-            app.run_command(data);
+            admin_command_parser_t parser(look_up_peers_addresses(joins), client_port);
+
+            // If we're doing a shell command completion, just print them and exit
+            if (command_args[0] == parser.complete_command) {
+                parser.run_complete(command_args);
+            } else {
+                admin_command_parser_t::command_data data(parser.parse_command(command_args));
+                parser.run_command(data);
+            }
         } catch (std::exception& ex) {
-            printf("%s\n", ex.what());
+            fprintf(stderr, "%s\n", ex.what());
             *result_out = false;
         }
     }
@@ -368,6 +373,12 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
     bool result;
     std::vector<std::string> cmd_args = po::collect_unrecognized(parsed.options, po::include_positional); 
+
+    // This is an ugly hack, but it seems boost will ignore an empty flag at the end, which is very useful for completions
+    std::string last_arg(argv[argc - 1]);
+    if (last_arg == "-" || last_arg == "--")
+        cmd_args.push_back(last_arg);
+
     run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, &result));
 
     return result ? 0 : 1;
@@ -428,13 +439,13 @@ void help_rethinkdb_admin() {
     std::stringstream sstream;
     sstream << get_rethinkdb_admin_options();
     sstream << "\nSubcommands:\n";
-    sstream << "  " << rethinkdb_admin_app_t::set_command << " " << rethinkdb_admin_app_t::set_usage << "\n";
-    sstream << "  " << rethinkdb_admin_app_t::list_command << " " << rethinkdb_admin_app_t::list_usage << "\n";
-    sstream << "  " << rethinkdb_admin_app_t::move_command << " " << rethinkdb_admin_app_t::move_usage << "\n";
-    sstream << "  " << rethinkdb_admin_app_t::make_command << " namespace " << rethinkdb_admin_app_t::make_namespace_usage << "\n";
-    sstream << "  " << rethinkdb_admin_app_t::make_command << " datacenter " << rethinkdb_admin_app_t::make_datacenter_usage << "\n";
-    sstream << "  " << rethinkdb_admin_app_t::rename_command << " " << rethinkdb_admin_app_t::rename_usage << "\n";
-    sstream << "  " << rethinkdb_admin_app_t::remove_command << " " << rethinkdb_admin_app_t::remove_usage << "\n";
-    sstream << "  " << rethinkdb_admin_app_t::help_command << " " << rethinkdb_admin_app_t::help_usage << "\n";
+    sstream << "  " << admin_command_parser_t::set_command << " " << admin_command_parser_t::set_usage << "\n";
+    sstream << "  " << admin_command_parser_t::list_command << " " << admin_command_parser_t::list_usage << "\n";
+    sstream << "  " << admin_command_parser_t::move_command << " " << admin_command_parser_t::move_usage << "\n";
+    sstream << "  " << admin_command_parser_t::make_command << " namespace " << admin_command_parser_t::make_namespace_usage << "\n";
+    sstream << "  " << admin_command_parser_t::make_command << " datacenter " << admin_command_parser_t::make_datacenter_usage << "\n";
+    sstream << "  " << admin_command_parser_t::rename_command << " " << admin_command_parser_t::rename_usage << "\n";
+    sstream << "  " << admin_command_parser_t::remove_command << " " << admin_command_parser_t::remove_usage << "\n";
+    sstream << "  " << admin_command_parser_t::help_command << " " << admin_command_parser_t::help_usage << "\n";
     printf("%s\n", sstream.str().c_str());
 }

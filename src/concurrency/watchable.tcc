@@ -55,7 +55,7 @@ void watchable_t<value_type>::run_until_satisfied(const callable_type &fun, sign
         typename watchable_t<value_type>::subscription_t subs(boost::bind(&pulse_cond_if_not_pulsed, &changed));
         {
             typename watchable_t<value_type>::freeze_t freeze(clone_this);
-            if (fun(get())) {
+            if (fun(clone_this->get())) {
                 return;
             }
             subs.reset(clone_this, &freeze);

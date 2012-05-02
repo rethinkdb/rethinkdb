@@ -28,6 +28,8 @@ private:
     clone_ptr_t<watchable_t<inner_t> > inner;
     watchable_variable_t<outer_t> *outer;
     typename watchable_t<inner_t>::subscription_t subscription;
+
+    DISABLE_COPYING(field_copier_t);
 };
 
 template<class inner_t, class outer_t>
@@ -35,7 +37,7 @@ class field_getter_t {
 public:
     explicit field_getter_t(inner_t outer_t::*f) : field(f) { }
 
-    std::map<peer_id_t, inner_t> operator()(const std::map<peer_id_t, outer_t> &outer) {
+    std::map<peer_id_t, inner_t> operator()(const std::map<peer_id_t, outer_t> &outer) const {
         std::map<peer_id_t, inner_t> inner;
         for (typename std::map<peer_id_t, outer_t>::const_iterator it = outer.begin(); it != outer.end(); it++) {
             inner[it->first] = it->second.*field;
@@ -52,7 +54,7 @@ public:
     };
 
 private:
-    inner_t outer_t::*field;
+    inner_t outer_t::*const field;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_WATCHABLE_FIELDS_HPP_ */

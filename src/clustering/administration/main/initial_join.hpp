@@ -33,6 +33,8 @@ private:
     boost::scoped_ptr<signal_timer_t> grace_period_timer;
     auto_drainer_t drainer;
     connectivity_service_t::peers_list_subscription_t subs;
+
+    DISABLE_COPYING(initial_joiner_t);
 };
 
 

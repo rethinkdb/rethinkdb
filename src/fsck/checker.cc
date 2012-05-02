@@ -17,7 +17,6 @@
 #include "fsck/raw_block.hpp"
 #include "memcached/btree/node.hpp"
 #include "memcached/btree/value.hpp"
-#include "riak/riak_value.hpp"
 #include "serializer/translator.hpp"
 
 namespace fsck {
@@ -903,10 +902,7 @@ private:
 };
 
 bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_t<void> >& sizer, block_magic_t magic) {
-    if (magic == value_sizer_t<riak_value_t>::leaf_magic()) {
-        sizer.reset(new value_sizer_t<riak_value_t>(bs));
-        return true;
-    } else if (magic == value_sizer_t<memcached_value_t>::leaf_magic()) {
+    if (magic == value_sizer_t<memcached_value_t>::leaf_magic()) {
         sizer.reset(new value_sizer_t<memcached_value_t>(bs));
         return true;
     } else {

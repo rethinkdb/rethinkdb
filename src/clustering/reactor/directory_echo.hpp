@@ -34,11 +34,17 @@ public:
     public:
         explicit our_value_change_t(directory_echo_writer_t *p);
         directory_echo_version_t commit();
+
+        // field ordering matters here?
     private:
         directory_echo_writer_t *parent;
         mutex_assertion_t::acq_t lock_acq;
+
     public:
         internal_t buffer;
+
+    private:
+        DISABLE_COPYING(our_value_change_t);
     };
 
     class ack_waiter_t : public signal_t {
@@ -47,6 +53,8 @@ public:
     private:
         friend class directory_echo_writer_t;
         boost::scoped_ptr<multimap_insertion_sentry_t<directory_echo_version_t, ack_waiter_t *> > map_entry;
+
+        DISABLE_COPYING(ack_waiter_t);
     };
 
     directory_echo_writer_t(
@@ -70,6 +78,8 @@ private:
     watchable_variable_t<directory_echo_wrapper_t<internal_t> > value_watchable;
     mutex_assertion_t value_lock;
     directory_echo_version_t version;
+
+    DISABLE_COPYING(directory_echo_writer_t);
 };
 
 template<class internal_t>
@@ -89,6 +99,8 @@ private:
     std::map<peer_id_t, directory_echo_version_t> last_seen;
     auto_drainer_t drainer;
     typename watchable_t<std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > >::subscription_t sub;
+
+    DISABLE_COPYING(directory_echo_mirror_t);
 };
 
 #endif /* CLUSTERING_REACTOR_DIRECTORY_ECHO_HPP_ */

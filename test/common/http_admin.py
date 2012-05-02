@@ -366,8 +366,12 @@ class ClusterAccess(object):
     def get_directory(self):
         return self.do_query("GET", "/ajax/directory")
 
-    def get_log(self, machine_id):
-        return self.do_query_plaintext("GET", "/ajax/log/" + machine_id)
+    def get_log(self, machine_id, max_length = 100):
+        log = self.do_query("GET", "/ajax/log/%s?max_length=%d" % (machine_id, max_length))[machine_id]
+        if isinstance(log, basestring):
+            raise BadServerResponse(log)
+        assert isinstance(log, list)
+        return log
 
     def move_server_to_datacenter(self, serv, datacenter):
         serv = self.find_machine(serv)
@@ -437,8 +441,6 @@ class ClusterAccess(object):
         object_type = type_objects[type(target)]
         target.name = name
         info = self.do_query("POST", "/ajax/%s/%s/name" % (object_type, target.uuid), name)
-        self.wait_for_propagation()
-        self.update_cluster_data()
 
     def get_conflicts(self):
         return self.conflicts

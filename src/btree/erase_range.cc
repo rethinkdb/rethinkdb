@@ -58,10 +58,6 @@ public:
         // We don't want to do anything here.
     }
 
-    void postprocess_btree_superblock(UNUSED buf_lock_t *superblock_buf) {
-        // We don't want to do anything here.
-    }
-
     void filter_interesting_children(UNUSED transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
         for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
             block_id_t block_id;
@@ -128,7 +124,7 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                value_deleter_t *deleter,
                                const btree_key_t *left_exclusive_or_null,
                                const btree_key_t *right_inclusive_or_null,
-                               transaction_t *txn, got_superblock_t& superblock) {
+                               transaction_t *txn, superblock_t *superblock) {
 
     erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
     btree_parallel_traversal(txn, superblock, slice, &helper);

@@ -26,6 +26,9 @@ public:
     std::set<typename protocol_t::region_t> shards;
     region_map_t<protocol_t, machine_id_t> primary_pinnings;
     region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings;
+
+private:
+    DISABLE_COPYING(pinnings_shards_mismatch_issue_t);
 };
 
 template <class protocol_t>
@@ -39,6 +42,8 @@ public:
 
 private:
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > semilattice_view;
+
+    DISABLE_COPYING(pinnings_shards_mismatch_issue_tracker_t);
 };
 
 #include "clustering/administration/issues/pinnings_shards_mismatch.tcc"

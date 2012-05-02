@@ -18,6 +18,8 @@
 #include "timestamps.hpp"
 #include "perfmon.hpp"
 
+class real_superblock_t;
+
 write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf);
 int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);
 write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter);
@@ -224,13 +226,13 @@ public:
                 bool snapshot,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 boost::scoped_ptr<transaction_t> &txn_out,
-                got_superblock_t &sb_out,
+                boost::scoped_ptr<real_superblock_t> &sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void acquire_superblock_for_backfill(
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 boost::scoped_ptr<transaction_t> &txn_out,
-                got_superblock_t &sb_out,
+                boost::scoped_ptr<real_superblock_t> &sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void acquire_superblock_for_write(
@@ -238,21 +240,22 @@ public:
                 int expected_change_count,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                 boost::scoped_ptr<transaction_t> &txn_out,
-                got_superblock_t &sb_out,
+                boost::scoped_ptr<real_superblock_t> &sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void check_and_update_metainfo(
             DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const metainfo_t &new_metainfo,
             transaction_t *txn,
-            got_superblock_t &superbloc) const
+            real_superblock_t *superbloc) const
             THROWS_NOTHING;
         metainfo_t check_metainfo(
             DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             transaction_t *txn,
-            got_superblock_t &superbloc) const
+            real_superblock_t *superbloc) const
             THROWS_NOTHING;
-        void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, got_superblock_t &superbloc) const THROWS_NOTHING;
+
+        void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
 
         perfmon_collection_t *perfmon_collection;
     };

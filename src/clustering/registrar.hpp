@@ -122,6 +122,8 @@ private:
 
     typename registrar_business_card_t<business_card_t>::create_mailbox_t create_mailbox;
     typename registrar_business_card_t<business_card_t>::delete_mailbox_t delete_mailbox;
+
+    DISABLE_COPYING(registrar_t);
 };
 
 #endif /* CLUSTERING_REGISTRAR_HPP_ */
