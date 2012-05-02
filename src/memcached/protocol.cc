@@ -753,7 +753,8 @@ void memcached_protocol_t::store_t::reset_data(
     region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock->get());
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
 
-    memcached_erase_range(btree.get(), NULL, subregion, txn.get(), superblock.get());
+    always_true_key_tester_t key_tester;
+    memcached_erase_range(btree.get(), &key_tester, subregion, txn.get(), superblock.get());
 }
 
 void memcached_protocol_t::store_t::check_and_update_metainfo(

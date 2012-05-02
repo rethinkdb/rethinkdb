@@ -106,11 +106,10 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
 
         /* This actually erases the data. */
         {
-            //TODO uncomment this and see what happens
-            //boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
-            //store->new_write_token(token);
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
+            store->new_write_token(token);
 
-            //store->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), token, interruptor);
+            store->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), token, interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,
