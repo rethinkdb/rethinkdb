@@ -59,6 +59,7 @@ module 'NamespaceView', ->
 
         initialize: ->
             log_initial '(initializing) list view: namespace'
+            @model.on 'change', @render
             super @template
 
         json_for_template: =>

@@ -26,7 +26,7 @@ module 'LogView', ->
                     min_timestamp = @log_entries.at(0).get('timestamp') + 1
                     route = "/ajax/log/_?"
                     route += "min_timestamp=#{min_timestamp}" if min_timestamp?
-                    
+
                     @num_new_entries = 0
                     $.getJSON route, (log_data_from_server) =>
                         for machine_uuid, log_entries of log_data_from_server
@@ -52,7 +52,7 @@ module 'LogView', ->
                 view = new LogView.LogEntry
                     model: entry
                 @$log_entries.append view.render().el
-                
+
             return @
 
         fetch_log_entries: (min_timestamp) =>
