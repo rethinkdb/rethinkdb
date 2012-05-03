@@ -1,0 +1,27 @@
+<script id="log-container-template" type="text/x-handlebars-template">
+  <div class="header">
+    <h1>Loading log entries...</h1>
+  </div>
+  <ul class="log-entries"></ul>
+  <div class="any-more-log-entries">
+    <div class="no-more-entries">No more log entries to show</div>
+    <p><a class='next-log-entries'>Older log entries</a></p>
+  </div>
+</script>
+
+<script id="log-header-template" type="text/x-handlebars-template">
+  <h1>Log entries <small>from {{from_date}} to {{to_date}}</small></h1>
+  {{#if new_entries}}
+  <div class="alert">
+    <button class="close" data-dismiss="alert">×</button>
+    <strong>{{num_new_entries}} new log {{pluralize_noun "entry" num_new_entries}} {{pluralize_verb_to_have num_new_entries}} just been reported.</strong> <a class="update-log-entries" href="#">Update entries</a>
+  </div>
+  {{/if}}
+</script>
+
+<script id="log-entry-template" type="text/x-handlebars-template">
+  <p class="entry-metadata">Reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a> on {{datetime}}</p>
+  <p class="level">{{level}}</p>
+  <p class="message">{{message}}</p>
+</script>
+

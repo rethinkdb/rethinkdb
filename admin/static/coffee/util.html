@@ -1,0 +1,18 @@
+<script id="backfill_progress_summary-partial" type="text/x-handlebars-template">
+  {{#if backfill_progress}}replicating{{#if backfill_progress.ratio_available}}{{#if backfill_progress.backfiller_machines}} from {{#comma_separated backfill_progress.backfiller_machines}}<a href="/#machines/{{machine_id}}">{{machine_name}}</a>{{/comma_separated}}{{/if}}{{/if}}{{else}}up to date{{/if}}
+</script>
+
+<script id="backfill_progress_details-partial" type="text/x-handlebars-template">
+  {{#if backfill_progress}}
+  {{#if backfill_progress.ratio_available}}
+  <div class="progress progress-striped active">
+    <div class="bar"
+         style="width: {{backfill_progress.percentage}}%;"></div>
+  </div>
+  <p>{{backfill_progress.percentage}}%{{#if backfill_progress.block_info_available}}, {{backfill_progress.replicated_blocks}} of {{backfill_progress.total_blocks}} blocks remaining{{/if}}</p>
+  {{else}}
+  <p>Replication progress information is unavailable.</p>
+  {{/if}}
+  {{/if}}
+</script>
+

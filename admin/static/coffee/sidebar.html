@@ -1,0 +1,75 @@
+
+<script id="sidebar-container-template" type="text/x-handlebars-template">
+  <div class="section cluster-status">
+    <div class="client-connection-status"></div>
+    <hr />
+    <div class="issues"></div>
+    <hr />
+    <!-- Connectivity status goes here -->
+    <div class="connectivity-status">
+    </div>
+  </div>
+  <div class="section last">
+    <h3>Recent log entries</h3>
+    <div class="recent-log-entries"></div>
+    <p><a href="#logs">See all recent log entries &rarr;</a></p>
+  </div>
+</script>
+
+<script id="sidebar-client_connection_status-template" type="text/x-handlebars-template">
+  {{#if disconnected}}
+  <h5 class="connection disconnected">Disconnected</h5>
+  {{else}}
+  <h5 class="connection connected">Connected to:</h5>
+  <h5 class="connected-to">{{machine_name}} in {{datacenter_name}}</h5>
+  {{/if}}
+</script>
+
+<script id="sidebar-connectivity_status-template" type="text/x-handlebars-template">
+  <h5 class="cluster">Cluster status</h5>
+  <div class="connectivity-info">
+    <p class="metrics"><strong>{{machines_active}}</strong> of <strong>{{machines_total}}</strong> machines reachable.</p>
+    <p class="metrics"><strong>{{datacenters_active}}</strong> of <strong>{{datacenters_total}}</strong> data centers reachable.</p>
+  </div>
+</script>
+
+<script id="sidebar-issues-template" type="text/x-handlebars-template">
+  {{#if critical_issues.exist}}
+  <h5 class="critical">Critical issues</h5>
+  <div class="critical-issues">
+    {{#each critical_issues.types}}
+    <div class="critical-issues">
+      <div class="priority"></div>
+      <div class="message">
+        {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "machine" num}} {{pluralize_verb_to_be num}} down{{/if}}
+        {{#if PERSISTENCE_ISSUE}}{{num}} {{pluralize_noun "disk" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
+      </div>
+    </div>
+    {{/each}}
+  </div>
+  {{/if}}
+  {{#if other_issues.exist}}
+  <h5 class="other">Non-critical issues</h5>
+  <div class="critical-issues">
+    <div class="priority"></div>
+    <div class="message">
+      {{other_issues.num}} other {{pluralize_noun "issue" other_issues.num}}
+    </div>
+  </div>
+  {{/if}}
+  {{#if no_issues}}
+  <h5 class="no-issues">No issues reported</h5>
+  {{else}}
+  {{#if show_resolve_issues}}
+  <p class="resolve-issues"><a href="#resolve_issues">Resolve issues</a></p>
+  {{/if}}
+  {{/if}}
+</script>
+
+<script id="sidebar-recent_log_entry-template" type="text/x-handlebars-template">
+  <div class="level {{level}}"></div>
+  <div class="message">{{message}}</div>
+  <p class="from-machine">From <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
+  <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
+</script>
+

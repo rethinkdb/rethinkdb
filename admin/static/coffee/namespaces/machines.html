@@ -1,0 +1,63 @@
+<script id="edit_replica_machines-modal-template" type="text/x-handlebars-template">
+  <form class="form">
+    <div class="current-replicas">
+      {{#if change_hints}}
+      <h4>Change replica assignments:</h4>
+      <ul>
+        <!-- We render this the same number of times there are replicas. -->
+        {{#each machines}}
+        <li>
+          <select class="pinned_machine_choice" name="pinned_machine_uuid">
+            {{#each dc_machines}}
+            <option value="{{machine_uuid}}" {{#if selected}}selected="selected"{{/if}}>{{machine_name}}</option>
+            {{/each}}
+          </select>
+        </li>
+        {{/each}}
+      </ul>
+      <p>* Replicas cannot be assigned to <a href="/#machines/{{primary_uuid}}">{{primary_name}}</a> because it's a master for this shard.</p>
+      <a id="btn_change_hints_cancel" href="#">Cancel</a>
+      {{else}}
+      <h4>Current replica assignments:</h4>
+      <ul>
+        {{#each machines}}
+        <li><a href="/#machines/{{uuid}}">{{name}}</a> {{humanize_machine_reachability status}}</li>
+        {{/each}}
+      </ul>
+      <a id="btn_change_hints" href="#">Change assignments</a>
+      {{/if}}
+    </div>
+  </form>
+</script>
+
+<script id="edit_master_machine-modal-template" type="text/x-handlebars-template">s
+  <form class="form">
+    <div class="current-master">
+      {{#if change_hints}}
+      <h4>Change master assignment:</h4>
+      <ul>
+        <li>
+          <select class="pinned_machine_choice" name="pinned_master_uuid">
+            {{#each dc_machines}}
+            <option value="{{machine_uuid}}" {{#if selected}}selected="selected"{{/if}}>{{machine_name}}</option>
+            {{/each}}
+          </select>
+        </li>
+      </ul>
+      <a id="btn_change_hints_cancel" href="#">Cancel</a>
+      {{else}}
+      <h4>Current master assignment:</h4>
+      <li><a href="/#machines/{{master_uuid}}">{{master_name}}</a> {{humanize_machine_reachability master_status}}</li>
+      <a id="btn_change_hints" href="#">Change assignment</a>
+      {{/if}}
+    </div>
+  </form>
+</script>
+
+<script id="edit_machines-alert-template" type="text/x-handlebars-template">
+  <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You successfully changed machine assignments.</p>
+  </div>
+</script>
+

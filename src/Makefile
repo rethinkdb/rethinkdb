@@ -324,6 +324,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			navbar.coffee \
 			router.coffee \
 			app.coffee)
+HANDLEBARDS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/coffee -name '*.html')
 LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/cluster.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
@@ -596,8 +597,9 @@ $(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    STRIP GEN $@"
+	@echo "    INJECT HANDLEBARS $@"
 endif
-	$(QUIET) sed 's:="gen/:=":g' $(CLUSTER_HTML) > $@
+	$(QUIET) sed 's:="gen/:=":g' $(CLUSTER_HTML) | python -c 'import sys; sys.stdout.write(sys.stdin.read().replace("<!--{{INJECT_HANDLEBARS_TEMPLATES}}-->", reduce(lambda acc, fname: acc + open(fname).read(), sys.argv[1:], "")))' $(HANDLEBARDS_SOURCES) > $@
 
 $(WEB_ASSETS_BUILD_DIR)/js:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)

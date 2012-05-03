@@ -1,0 +1,58 @@
+<script id="machine_view-container-template" type="text/x-handlebars-template">
+  <h1>Machine overview for {{name}}</h1> (<a href="#" class="rename-machine">rename</a>)
+  <div id="user-alert-space"></div>
+  <div class="two-panel-section">
+    <div class="panel-left">
+      <h3 class="title">Machine profile</h3>
+      <div class="section summary">
+        <p class="datacenter-name">Datacenter:
+          {{#if assigned_to_datacenter}}
+          <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
+          {{else}}
+          Unassigned 
+          {{/if}}
+          (<a class="set-datacenter" href="#">change</a>)
+        </p>
+        <p>Status: {{humanize_machine_reachability status}}</p>
+        <p>IP address: {{ip}}</p>
+        <p class="uptime">Uptime: {{uptime}}</p>
+      </div>
+    </div>
+    <div class="panel-right">
+      <h3 class="title">Machine resources</h3>
+      <div class="section system-resources">
+        <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
+        <p class="ram">RAM:</p>
+        <p class="disk">Disk:</p>
+      </div>
+    </div>
+    <div class="two-panel-clear"></div>
+  </div>
+  <h3 class="title">Data on this machine</h3>
+  <div class="section data">
+    {{#unless data.namespaces}}
+    <p>No data found on this machine.</p>
+    {{/unless}}
+    {{#each data.namespaces}}
+    <div class="namespace">
+      <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+      <ul>
+        {{#each shards}}
+        <li>{{name}} ({{humanize_role role}})</li>
+        {{/each}}
+      </ul>
+    </div>
+    {{/each}}
+  </div>
+  <h3 class="title">Performance</h3>
+  <div class="section performance-graph"></div>
+  <h3 class="title">Recent log entries</h3>
+  <div class="section recent-log-entries"></div>
+</script>
+
+<script id="machine_view-recent_log_entry-template" type="text/x-handlebars-template">
+  <div class="priority {{priority}}"></div>
+  <div class="message">{{message}}</div>
+  <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+</script>
+
