@@ -22,6 +22,8 @@ with driver.Metacluster() as metacluster:
     time.sleep(10)
     host, port = http.get_namespace_host(ns)
 
+    distribution = http.get_distribution(ns)
+
     with MemcacheConnection(host, port) as mc:
         for i in range(10000):
             mc.set(str(i) * 10, str(i)*20)
