@@ -46,6 +46,7 @@ typedef void(linenoiseCompletionCallback)(const char *, linenoiseCompletions *);
 void linenoiseSetCompletionCallback(linenoiseCompletionCallback *);
 void linenoiseAddCompletion(linenoiseCompletions *, const char *);
 void linenoiseFreeCompletions(linenoiseCompletions *);
+bool linenoiseIsUnescapedSpace(const char *, int);
 
 char *linenoise(const char *prompt);
 int linenoiseHistoryAdd(const char *line);

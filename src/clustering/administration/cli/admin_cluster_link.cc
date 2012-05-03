@@ -2,6 +2,7 @@
 
 #include <cstdarg>
 #include <iostream>
+#include <sstream>
 #include <map>
 #include <stdexcept>
 
@@ -15,6 +16,11 @@
 #include "rpc/semilattice/view.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
+
+// Truncate a uuid for easier user-interface
+std::string admin_cluster_link_t::truncate_uuid(const boost::uuids::uuid& uuid) {
+    return uuid_to_str(uuid).substr(0, uuid_output_length);
+}
 
 // TODO: this was copied from semilattice_http_app, unify them
 void admin_cluster_link_t::fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata) {
@@ -122,35 +128,27 @@ void admin_cluster_link_t::init_uuid_to_path_map(const cluster_semilattice_metad
 }
 
 template <class T>
-void admin_cluster_link_t::add_subset_to_name_path_map(const std::string& base, T& data_map, std::set<std::string>& collisions) {
+void admin_cluster_link_t::add_subset_to_name_path_map(const std::string& base, T& data_map) {
     std::vector<std::string> base_path;
     base_path.push_back(base);
     for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
-        if (!i->second.is_deleted())
+        if (i->second.is_deleted())
             continue;
 
         std::string name(i->second.get().name.get());
         std::string uuid(uuid_to_str(i->first));
-        if (!name.empty() && collisions.count(name) == 0) {
-            if (name_to_path.find(name) != name_to_path.end()) {
-                collisions.insert(name);
-                name_to_path.erase(name);
-            } else {
-                std::vector<std::string> current_path(base_path);
-                current_path.push_back(uuid);
-                name_to_path.insert(std::make_pair<std::string, std::vector<std::string> >(name, current_path));
-            }
-        }
+        std::vector<std::string> current_path(base_path);
+        current_path.push_back(uuid);
+        name_to_path.insert(std::make_pair<std::string, std::vector<std::string> >(name, current_path));
     }
 }
 
 void admin_cluster_link_t::init_name_to_path_map(const cluster_semilattice_metadata_t& cluster_metadata) {
-    std::set<std::string> collisions;
     name_to_path.clear();
-    add_subset_to_name_path_map("machines", cluster_metadata.machines.machines, collisions);
-    add_subset_to_name_path_map("datacenters", cluster_metadata.datacenters.datacenters, collisions);
-    add_subset_to_name_path_map("dummy_namespaces", cluster_metadata.dummy_namespaces.namespaces, collisions);
-    add_subset_to_name_path_map("memcached_namespaces", cluster_metadata.memcached_namespaces.namespaces, collisions);
+    add_subset_to_name_path_map("machines", cluster_metadata.machines.machines);
+    add_subset_to_name_path_map("datacenters", cluster_metadata.datacenters.datacenters);
+    add_subset_to_name_path_map("dummy_namespaces", cluster_metadata.dummy_namespaces.namespaces);
+    add_subset_to_name_path_map("memcached_namespaces", cluster_metadata.memcached_namespaces.namespaces);
 }
 
 void admin_cluster_link_t::sync_from() {
@@ -171,7 +169,7 @@ std::vector<std::string> admin_cluster_link_t::get_ids(const std::string& base) 
 
     // Build completion values
     for (std::map<std::string, std::vector<std::string> >::iterator i = uuid_to_path.lower_bound(base); i != uuid_to_path.end() && i->first.find(base) == 0; ++i)
-        results.push_back(i->first);
+        results.push_back(i->first.substr(0, uuid_output_length));
 
     for (std::map<std::string, std::vector<std::string> >::iterator i = name_to_path.lower_bound(base); i != name_to_path.end() && i->first.find(base) == 0; ++i)
         results.push_back(i->first);
@@ -209,17 +207,26 @@ bool is_uuid(const std::string& value) {
 }
 
 std::vector<std::string> admin_cluster_link_t::get_path_from_id(const std::string& id) {
-    if (is_uuid(id)) {
-        std::map<std::string, std::vector<std::string> >::iterator item = uuid_to_path.find(id);
-        if (item == uuid_to_path.end())
-            throw admin_parse_exc_t("uuid not found: " + id);
-        return item->second;
-    } else {
-        std::map<std::string, std::vector<std::string> >::iterator item = name_to_path.find(id);
-        if (item == name_to_path.end())
-            throw admin_parse_exc_t("name not found or not unique: " + id);
-        return item->second;
-    }
+    // Names must be an exact match, but uuids can be prefix substrings
+    if (name_to_path.count(id) == 0) {
+        std::map<std::string, std::vector<std::string> >::iterator item = uuid_to_path.lower_bound(id);
+
+        if (id.length() < minimum_uuid_substring)
+            throw admin_parse_exc_t("identifier not found, too short to specify a uuid: " + id);
+
+        if (item == uuid_to_path.end() || item->first.find(id) != 0)
+            throw admin_parse_exc_t("identifier not found: " + id);
+
+        // Make sure that the found id is unique
+        ++item;
+        if (item != uuid_to_path.end() && item->first.find(id) == 0)
+            throw admin_parse_exc_t("uuid not unique: " + id);
+
+        return uuid_to_path.lower_bound(id)->second;
+    } else if (name_to_path.count(id) != 1)
+        throw admin_parse_exc_t("name not unique: " + id);
+
+    return name_to_path.find(id)->second;
 }
 
 void admin_cluster_link_t::do_admin_set(admin_command_parser_t::admin_command_parser_t::command_data& data) {
@@ -291,7 +298,7 @@ void admin_cluster_link_t::list_datacenters(bool long_format, cluster_semilattic
     std::cout << "Datacenters:" << std::endl;
     for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator i = cluster_metadata.datacenters.datacenters.begin(); i != cluster_metadata.datacenters.datacenters.end(); ++i) {
         if (!i->second.is_deleted()) {
-            std::cout << " " << i->first;
+            std::cout << " " << truncate_uuid(i->first);
             if (long_format)
                 std::cout << " " << i->second.get().name.get();
             std::cout << std::endl;
@@ -303,7 +310,7 @@ void admin_cluster_link_t::list_dummy_namespaces(bool long_format, cluster_semil
     std::cout << "Dummy Namespaces:" << std::endl;
     for (namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::const_iterator i = cluster_metadata.dummy_namespaces.namespaces.begin(); i != cluster_metadata.dummy_namespaces.namespaces.end(); ++i) {
         if (!i->second.is_deleted()) {
-            std::cout << " " << i->first;
+            std::cout << " " << truncate_uuid(i->first);
             if (long_format)
                 std::cout << " " << i->second.get().name.get();
             std::cout << std::endl;
@@ -315,7 +322,7 @@ void admin_cluster_link_t::list_memcached_namespaces(bool long_format, cluster_s
     std::cout << "Memcached Namespaces:" << std::endl;
     for (namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::const_iterator i = cluster_metadata.memcached_namespaces.namespaces.begin(); i != cluster_metadata.memcached_namespaces.namespaces.end(); ++i) {
         if (!i->second.is_deleted()) {
-            std::cout << " " << i->first;
+            std::cout << " " << truncate_uuid(i->first);
             if (long_format)
                 std::cout << " " << i->second.get().name.get();
             std::cout << std::endl;
@@ -327,7 +334,7 @@ void admin_cluster_link_t::list_machines(bool long_format, cluster_semilattice_m
     std::cout << "Machines:" << std::endl;
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin(); i != cluster_metadata.machines.machines.end(); ++i) {
         if (!i->second.is_deleted()) {
-            std::cout << " " << i->first;
+            std::cout << " " << truncate_uuid(i->first);
             if (long_format)
                 std::cout << " " << i->second.get().name.get();
             std::cout << std::endl;
@@ -426,22 +433,36 @@ void admin_cluster_link_t::do_admin_rename(admin_command_parser_t::command_data&
 void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     namespace_metadata_ctx_t json_ctx(connectivity_cluster.get_me().get_uuid());
-    std::vector<std::string> path(get_path_from_id(data.params["id"][0]));
-    boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(traverse_directory(path, json_ctx, cluster_metadata));
+    std::vector<std::string> ids = data.params["id"];
+    bool errored = false;
 
-    json_adapter_head->erase(json_ctx);
+    for (size_t i = 0; i < ids.size(); ++i) {
+        try {
+            std::vector<std::string> path(get_path_from_id(ids[i]));
+            boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(traverse_directory(path, json_ctx, cluster_metadata));
+
+            json_adapter_head->erase(json_ctx);
+            // TODO: clean up any hanging references to this object's uuid
+        } catch (std::exception& ex) {
+            std::cout << ex.what() << std::endl;
+            errored = true;
+        }
+    }
 
     try {
         fill_in_blueprints(&cluster_metadata);
     } catch (missing_machine_exc_t &e) { }
 
     semilattice_metadata->join(cluster_metadata);
+
+    if (errored)
+        throw admin_parse_exc_t("not all removes were successful");
 }
 
 void admin_cluster_link_t::set_metadata_value(const std::vector<std::string>& path, const std::string& value)
 {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    namespace_metadata_ctx_t json_ctx(sync_peer.get_uuid()); // Use peer rather than ourselves - TODO: race condition on sync?
+    namespace_metadata_ctx_t json_ctx(sync_peer.get_uuid()); // Use peer rather than ourselves - TODO: race condition on sync? need to lock metadata
     boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(traverse_directory(path, json_ctx, cluster_metadata));
 
     scoped_cJSON_t change(cJSON_Parse(value.c_str()));

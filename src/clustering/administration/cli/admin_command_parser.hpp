@@ -28,6 +28,7 @@ public:
     static const char *make_command;
     static const char *move_command;
     static const char *help_command;
+    static const char *join_command;
     static const char *rename_command;
     static const char *remove_command;
     static const char *complete_command;
@@ -40,6 +41,7 @@ public:
     static const char *make_datacenter_usage;
     static const char *move_usage;
     static const char *help_usage;
+    static const char *join_usage;
     static const char *rename_usage;
     static const char *remove_usage;
 
@@ -102,7 +104,10 @@ private:
     void build_command_descriptions();
     admin_cluster_link_t* get_cluster();
 
-    void do_admin_help(command_data& data);
+    void do_admin_help_shell(command_data& data);
+    void do_admin_help_console(command_data& data);
+    void do_admin_join_shell(command_data& data);
+    void do_admin_join_console(command_data& data);
 
     std::map<std::string, command_info *>::const_iterator find_command(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches);
     void add_option_matches(const param_options *option, const std::string& partial, linenoiseCompletions *completions);
@@ -120,6 +125,7 @@ private:
     std::set<peer_address_t> joins_param;
     int client_port_param;
     admin_cluster_link_t *cluster;
+    bool console_mode;
 
     DISABLE_COPYING(admin_command_parser_t);
 };

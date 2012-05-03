@@ -50,6 +50,11 @@ public:
 
 private:
 
+    static std::string truncate_uuid(const boost::uuids::uuid& uuid);
+
+    static const size_t minimum_uuid_substring = 4;
+    static const size_t uuid_output_length = 8;
+
     void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata);
 
     void set_metadata_value(const std::vector<std::string>& path, const std::string& value);
@@ -68,7 +73,7 @@ private:
     template <class T>
     void add_subset_to_uuid_path_map(const std::string& base, T& data_map);
     template <class T>
-    void add_subset_to_name_path_map(const std::string& base, T& data_map, std::set<std::string>& collisions);
+    void add_subset_to_name_path_map(const std::string& base, T& data_map);
 
     std::vector<std::string> get_path_from_id(const std::string& id);
 
@@ -109,7 +114,7 @@ private:
     global_issue_aggregator_t::source_t dummy_pinnings_shards_mismatch_issue_tracker_feed;
 
     std::map<std::string, std::vector<std::string> > uuid_to_path;
-    std::map<std::string, std::vector<std::string> > name_to_path;
+    std::multimap<std::string, std::vector<std::string> > name_to_path;
 
     peer_id_t sync_peer;
 

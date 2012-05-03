@@ -5,8 +5,6 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/registrant.hpp"
 #include "clustering/resource.hpp"
-#include "mock/dummy_protocol.hpp"
-#include "memcached/protocol.hpp"
 
 
 template <class protocol_t>
@@ -492,6 +490,8 @@ void listener_t<protocol_t>::advance_current_timestamp_and_pulse_waiters(transit
 }
 
 
+#include "mock/dummy_protocol.hpp"
+#include "memcached/protocol.hpp"
 
 template class listener_t<memcached_protocol_t>;
 template class listener_t<mock::dummy_protocol_t>;

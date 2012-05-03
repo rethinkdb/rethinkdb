@@ -1,8 +1,6 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 
 #include "clustering/immediate_consistency/branch/listener.hpp"
-#include "mock/dummy_protocol.hpp"
-#include "memcached/protocol.hpp"
 #include "rpc/semilattice/view.hpp"
 
 template <class protocol_t>
@@ -60,6 +58,9 @@ void replier_t<protocol_t>::on_synchronize(state_timestamp_t timestamp, mailbox_
     }
 }
 
+
+#include "mock/dummy_protocol.hpp"
+#include "memcached/protocol.hpp"
 
 template class replier_t<memcached_protocol_t>;
 template class replier_t<mock::dummy_protocol_t>;
