@@ -137,8 +137,6 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         initial_joiner->get_ready_signal()->wait_lazily_unordered();   /* TODO: Listen for `SIGINT`? */
     }
 
-    metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
-
     reactor_driver_t<mock::dummy_protocol_t> dummy_reactor_driver(&mailbox_manager,
                                                                   directory_read_manager.get_root_view()->subview(
                                                                       field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
@@ -193,23 +191,29 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 #endif
                                              &memcached_namespace_repo);
 
+    metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
 
-    administrative_http_server_manager_t administrative_http_interface(
-        port + 1000,
-        &mailbox_manager,
-        semilattice_manager_cluster.get_root_view(),
-        directory_read_manager.get_root_view(),
-        &memcached_namespace_repo,
-        &issue_aggregator,
-        &last_seen_tracker,
-        machine_id,
-        web_assets);
+    {
+        administrative_http_server_manager_t administrative_http_interface(
+            port + 1000,
+            &mailbox_manager,
+            semilattice_manager_cluster.get_root_view(),
+            directory_read_manager.get_root_view(),
+            &memcached_namespace_repo,
+            &issue_aggregator,
+            &last_seen_tracker,
+            machine_id,
+            web_assets);
 
-    printf("Server started; send SIGINT to stop.\n");
+        printf("Server started; send SIGINT to stop.\n");
 
-    wait_for_sigint();
+        wait_for_sigint();
 
-    printf("Server got SIGINT; shutting down...\n");
+        printf("Server got SIGINT; shutting down...\n");
+    }
+
+    cond_t non_interruptor;
+    persister.stop_and_flush(&non_interruptor);
 
     return true;
 }

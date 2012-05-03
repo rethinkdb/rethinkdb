@@ -39,12 +39,12 @@ public:
             reset(v);
         }
         void reset(boost::shared_ptr<semilattice_read_view_t> v) {
-            if (v) {
-                subs.reset(v->get_publisher());
-            } else {
-                subs.reset(NULL);
-            }
+            subs.reset(v->get_publisher());
             view = v;
+        }
+        void reset() {
+            subs.reset(NULL);
+            view.reset();
         }
     private:
         /* Hold a pointer to the `semilattice_read_view_t` so it doesn't die while
