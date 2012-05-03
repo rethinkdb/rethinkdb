@@ -12,18 +12,24 @@
 #include "do_on_thread.hpp"
 #include "perfmon.hpp"
 
-log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *perfmon_collection) 
-    : pm_serializer_block_reads("serializer_block_reads", secs_to_ticks(1), perfmon_collection),
-      pm_serializer_index_reads("serializer_index_reads", perfmon_collection),
-      pm_serializer_block_writes("serializer_block_writes", perfmon_collection),
-      pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1), perfmon_collection),
-      pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1), false, perfmon_collection),
-      pm_extents_in_use("serializer_extents_in_use", perfmon_collection),
-      pm_bytes_in_use("serializer_bytes_in_use", perfmon_collection),
-      pm_serializer_lba_extents("serializer_lba_extents", perfmon_collection)
-{ 
-    rassert(perfmon_collection);
-}
+log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 
+    : serializer_collection("serializer", parent),
+      pm_serializer_block_reads("serializer_block_reads", secs_to_ticks(1), &serializer_collection),
+      pm_serializer_index_reads("serializer_index_reads", &serializer_collection),
+      pm_serializer_block_writes("serializer_block_writes", &serializer_collection),
+      pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1), &serializer_collection),
+      pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1), false, &serializer_collection),
+      pm_extents_in_use("serializer_extents_in_use", &serializer_collection),
+      pm_bytes_in_use("serializer_bytes_in_use", &serializer_collection),
+      pm_serializer_lba_extents("serializer_lba_extents", &serializer_collection),
+      pm_serializer_data_extents("serializer_data_extents", &serializer_collection),
+      pm_serializer_data_extents_allocated("serializer_data_extents_allocated[dexts]", &serializer_collection),
+      pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed[dexts]", &serializer_collection),
+      pm_serializer_data_extents_gced("serializer_data_extents_gced[dexts]", &serializer_collection),
+      pm_serializer_data_blocks_written("serializer_data_blocks_written", &serializer_collection),
+      pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks", &serializer_collection),
+      pm_serializer_old_total_blocks("serializer_old_total_blocks", &serializer_collection)
+{ }
 
 void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
 
@@ -102,7 +108,7 @@ struct ls_start_existing_fsm_t :
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_index_t(ser->extent_manager);
-            ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->perfmon_collection);
+            ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, &ser->stats);
 
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;
@@ -194,8 +200,7 @@ struct ls_start_existing_fsm_t :
 };
 
 log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_, perfmon_collection_t *_perfmon_collection) :
-    perfmon_collection(_perfmon_collection),
-    stats(perfmon_collection),
+      stats(_perfmon_collection),
 #ifndef NDEBUG
       expecting_no_more_tokens(false),
 #endif

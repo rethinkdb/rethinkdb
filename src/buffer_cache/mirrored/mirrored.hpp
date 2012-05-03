@@ -312,6 +312,8 @@ private:
 
 /* A class to hold all the stats we care about for this cache. */
 struct mc_cache_stats_t {
+    perfmon_collection_t cache_collection;
+
     mc_cache_stats_t(perfmon_collection_t *parent);
 
     perfmon_counter_t 

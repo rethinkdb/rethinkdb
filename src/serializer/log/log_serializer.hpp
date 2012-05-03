@@ -20,6 +20,7 @@
 #include "serializer/log/data_block_manager.hpp"
 
 struct log_serializer_stats_t {
+    perfmon_collection_t serializer_collection;
     log_serializer_stats_t(perfmon_collection_t *perfmon_collection);
 
     perfmon_duration_sampler_t pm_serializer_block_reads;
@@ -32,8 +33,17 @@ struct log_serializer_stats_t {
     perfmon_counter_t pm_extents_in_use;
     perfmon_counter_t pm_bytes_in_use;
 
-    /* used in serializer/log/lba/extent.hpp */
+    /* used in serializer/log/lba/extent.cc */
     perfmon_counter_t pm_serializer_lba_extents;
+
+    /* used in serializer/log/data_block_manager.cc */
+    perfmon_counter_t pm_serializer_data_extents;
+    perfmon_counter_t pm_serializer_data_extents_allocated;
+    perfmon_counter_t pm_serializer_data_extents_reclaimed;
+    perfmon_counter_t pm_serializer_data_extents_gced;
+    perfmon_counter_t pm_serializer_data_blocks_written;
+    perfmon_counter_t pm_serializer_old_garbage_blocks;
+    perfmon_counter_t pm_serializer_old_total_blocks;
 };
 
 class log_serializer_t;
@@ -157,7 +167,6 @@ public:
 private:
     std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
     std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
-    perfmon_collection_t *perfmon_collection;//RSI consider removing this
     log_serializer_stats_t stats;
 #ifndef NDEBUG
     // Makes sure we get no tokens after we thought that

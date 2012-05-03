@@ -79,34 +79,12 @@ private:
     DISABLE_COPYING(gc_entry);
 };
 
-
-// Stats
-struct data_block_manager_stats_t {
-    explicit data_block_manager_stats_t(perfmon_collection_t *parent)
-        : pm_serializer_data_extents("serializer_data_extents", parent),
-          pm_serializer_data_extents_allocated("serializer_data_extents_allocated[dexts]", parent),
-          pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed[dexts]", parent),
-          pm_serializer_data_extents_gced("serializer_data_extents_gced[dexts]", parent),
-          pm_serializer_data_blocks_written("serializer_data_blocks_written", parent),
-          pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks", parent),
-          pm_serializer_old_total_blocks("serializer_old_total_blocks", parent)
-    { }
-
-    perfmon_counter_t pm_serializer_data_extents;
-    perfmon_counter_t pm_serializer_data_extents_allocated;
-    perfmon_counter_t pm_serializer_data_extents_reclaimed;
-    perfmon_counter_t pm_serializer_data_extents_gced;
-    perfmon_counter_t pm_serializer_data_blocks_written;
-    perfmon_counter_t pm_serializer_old_garbage_blocks;
-    perfmon_counter_t pm_serializer_old_total_blocks;
-};
-
 class data_block_manager_t {
     friend class gc_entry;
     friend class dbm_read_ahead_fsm_t;
 
 private:
-    data_block_manager_stats_t stats;
+    log_serializer_stats_t *stats;
     struct gc_write_t {
         block_id_t block_id;
         const void *buf;
@@ -126,7 +104,7 @@ private:
     };
 
 public:
-    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config, perfmon_collection_t *parent);
+    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config, log_serializer_stats_t *parent);
     ~data_block_manager_t();
 
     struct metablock_mixin_t {
@@ -341,7 +319,7 @@ private:
     struct gc_stats_t {
         gc_stat_t old_total_blocks;
         gc_stat_t old_garbage_blocks;
-        explicit gc_stats_t(data_block_manager_stats_t *);
+        explicit gc_stats_t(log_serializer_stats_t *);
     } gc_stats;
 
 public:
