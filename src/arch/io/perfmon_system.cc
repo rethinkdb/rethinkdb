@@ -165,10 +165,10 @@ thread to ensure that stats are up to date. It takes a void* so that it can be c
 callback. */
 
 perfmon_sampler_t
-    pm_cpu_user("cpu_user", secs_to_ticks(5)),
-    pm_cpu_system("cpu_system", secs_to_ticks(5)),
-    pm_cpu_combined("cpu_combined", secs_to_ticks(5)),
-    pm_memory_faults("memory_faults", secs_to_ticks(5));
+    pm_cpu_user("cpu_user", secs_to_ticks(5), false, NULL),
+    pm_cpu_system("cpu_system", secs_to_ticks(5), false, NULL),
+    pm_cpu_combined("cpu_combined", secs_to_ticks(5), false, NULL),
+    pm_memory_faults("memory_faults", secs_to_ticks(5), false, NULL);
 
 
 TLS(proc_pid_stat_t, last_stats);

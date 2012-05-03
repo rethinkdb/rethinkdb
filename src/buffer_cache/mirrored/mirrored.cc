@@ -968,7 +968,7 @@ void mc_buf_lock_t::move_data(void *dest, const void *src, const size_t n) {
     }
 }
 
-perfmon_sampler_t pm_patches_size_per_write("patches_size_per_write_buf", secs_to_ticks(1), false);
+perfmon_sampler_t pm_patches_size_per_write("patches_size_per_write_buf", secs_to_ticks(1), false, NULL);
 
 void mc_buf_lock_t::release() {
     assert_thread();
@@ -1294,7 +1294,7 @@ mc_cache_account_t::~mc_cache_account_t() {
 mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent) 
     : pm_registered_snapshots("registered_snapshots", parent),
       pm_registered_snapshot_blocks("registered_snapshot_blocks", parent),
-      pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1), parent),
+      pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1), false, parent),
       pm_cache_hits("cache_hits", parent),
       pm_cache_misses("cache_misses", parent),
       pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1), parent),

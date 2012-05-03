@@ -55,7 +55,7 @@ writeback_t::~writeback_t() {
     }
 }
 
-perfmon_sampler_t pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), false);
+perfmon_sampler_t pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), false, NULL);
 
 bool writeback_t::sync(sync_callback_t *callback) {
     cache->assert_thread();

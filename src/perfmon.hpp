@@ -277,7 +277,7 @@ class perfmon_sampler_t
     ticks_t length;
     bool include_rate;
   public:
-    perfmon_sampler_t(const std::string& name, ticks_t length, bool include_rate = false, perfmon_collection_t *parent = NULL);
+    perfmon_sampler_t(const std::string& name, ticks_t length, bool include_rate, perfmon_collection_t *parent);
     void record(double value);
 };
 
