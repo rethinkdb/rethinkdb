@@ -1,4 +1,3 @@
-#include <stdio.h>
 
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
@@ -16,9 +15,11 @@
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
+#include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "memcached/clustering.hpp"
+#include <stdio.h>
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -139,6 +140,8 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
 
+    perfmon_collection_repo_t perfmon_repo(NULL);
+
     reactor_driver_t<mock::dummy_protocol_t> dummy_reactor_driver(&mailbox_manager,
                                                                   directory_read_manager.get_root_view()->subview(
                                                                       field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
@@ -146,7 +149,8 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
                                                                   metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
                                                                   directory_read_manager.get_root_view()->subview(
                                                                       field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                                                                  filepath);
+                                                                  filepath,
+                                                                  &perfmon_repo);
     field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> dummy_reactor_directory_copier(
         &cluster_directory_metadata_t::dummy_namespaces,
         dummy_reactor_driver.get_watchable(),
@@ -160,7 +164,8 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
                                                                     metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
                                                                     directory_read_manager.get_root_view()->subview(
                                                                         field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                                                                    filepath);
+                                                                    filepath,
+                                                                    &perfmon_repo);
     field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> memcached_reactor_directory_copier(
         &cluster_directory_metadata_t::memcached_namespaces,
         memcached_reactor_driver.get_watchable(),
@@ -176,6 +181,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         directory_read_manager.get_root_view()->subview(
             field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces))
         );
+
 
     mock::dummy_protocol_parser_maker_t dummy_parser_maker(&mailbox_manager,
                                                            metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
