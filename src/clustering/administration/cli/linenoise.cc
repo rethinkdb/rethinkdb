@@ -237,11 +237,9 @@ static size_t maxCompletion(linenoiseCompletions* lc) {
 }
 
 static void printPossibleCompletions(linenoiseCompletions* lc, int fd, size_t cols) {
-    char line_feed[64];
-    char line[cols];
-
-    snprintf(line_feed,64,"\n\x1b[0G");
-    if (write(fd,line_feed,strlen(line_feed)) == -1) return;
+    // Change to normal mode
+    disableRawMode(fd);
+    dprintf(fd, "\n");
 
     // Find the maximum length to print
     size_t max_len = 0;
@@ -261,17 +259,21 @@ static void printPossibleCompletions(linenoiseCompletions* lc, int fd, size_t co
     for(size_t i = 0; i < num_rows * num_columns; ++i) {
         size_t index = (i % num_columns) * num_rows + (i / num_columns);
         if (index < lc->len) {
-            if (num_rows == 1)
-                snprintf(line, cols, "%s   ", lc->cvec[index]);
+            if (i % num_columns == num_columns - 1)
+                dprintf(fd, "%s", lc->cvec[index]);
+            else if (num_rows == 1)
+                dprintf(fd, "%s   ", lc->cvec[index]);
             else
-                snprintf(line, cols, "%-*s", (int)column_width, lc->cvec[index]);
-            if (write(fd,line,strlen(line)) == -1) return;
+                dprintf(fd, "%-*s", (int)column_width, lc->cvec[index]);
         }
 
         if (i % num_columns == num_columns - 1) {
-            if (write(fd,line_feed,strlen(line_feed)) == -1) return;
+            dprintf(fd, "\n");
         }
     }
+
+    // Change back to raw mode
+    enableRawMode(fd);
 }
 
 static bool completionHasSpaces(const char* str) {
@@ -441,6 +443,18 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
 
         switch(c) {
         case 13:    /* enter */
+            // Reset the line, then output the prompt/full buffer (with line wrap)
+            {
+                /* Move cursor to original position. */
+                char temp[64];
+                snprintf(temp,64,"\x1b[0G");
+                if (write(fd, temp, strlen(temp)) == -1) return -1;
+
+                disableRawMode(fd);
+                dprintf(fd, "%s%s", prompt, buf);
+                enableRawMode(fd);
+            }
+
             history_len--;
             free(history[history_len]);
             return (int)len;
