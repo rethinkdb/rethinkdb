@@ -237,11 +237,9 @@ static size_t maxCompletion(linenoiseCompletions* lc) {
 }
 
 static void printPossibleCompletions(linenoiseCompletions* lc, int fd, size_t cols) {
-    char line_feed[64];
-    char line[cols];
-
-    snprintf(line_feed,64,"\n\x1b[0G");
-    if (write(fd,line_feed,strlen(line_feed)) == -1) return;
+    // Change to normal mode
+    disableRawMode(fd);
+    dprintf(fd, "\n");
 
     // Find the maximum length to print
     size_t max_len = 0;
@@ -261,23 +259,39 @@ static void printPossibleCompletions(linenoiseCompletions* lc, int fd, size_t co
     for(size_t i = 0; i < num_rows * num_columns; ++i) {
         size_t index = (i % num_columns) * num_rows + (i / num_columns);
         if (index < lc->len) {
-            if (num_rows == 1)
-                snprintf(line, cols, "%s   ", lc->cvec[index]);
+            if (i % num_columns == num_columns - 1)
+                dprintf(fd, "%s", lc->cvec[index]);
+            else if (num_rows == 1)
+                dprintf(fd, "%s   ", lc->cvec[index]);
             else
-                snprintf(line, cols, "%-*s", (int)column_width, lc->cvec[index]);
-            if (write(fd,line,strlen(line)) == -1) return;
+                dprintf(fd, "%-*s", (int)column_width, lc->cvec[index]);
         }
 
         if (i % num_columns == num_columns - 1) {
-            if (write(fd,line_feed,strlen(line_feed)) == -1) return;
+            dprintf(fd, "\n");
         }
     }
+
+    // Change back to raw mode
+    enableRawMode(fd);
 }
 
 static bool completionHasSpaces(const char* str) {
     for (const char* i = str; *i != '\0'; ++i)
         if (*i == ' ' || *i == '\r' || *i == '\t' || *i == '\n')
             return true;
+    return false;
+}
+
+bool linenoiseIsUnescapedSpace(const char *line, int index) {
+    char c = line[index];
+    if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
+        bool is_space = true;
+        // Make sure the space isn't escaped
+        for (--index; index >= 0 && line[index] == '\\'; --index)
+            is_space = !is_space;
+        return is_space;
+    }
     return false;
 }
 
@@ -301,15 +315,13 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
         }
 
         // We need to truncate the line, then add on completions
-        char new_buf[longest_completion + strlen(buf) + 1];
+        char new_buf[2 * (longest_completion + strlen(buf)) + 1];
         strcpy(new_buf, buf);
         size_t new_buflen = strlen(new_buf);
 
         // Truncate the new buffer after the last space (where we will add the completions)
-        // TODO: make sure the space isn't escaped
         for (int i = new_buflen - 1; i >= 0; --i) {
-            char c = new_buf[i];
-            if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
+            if (linenoiseIsUnescapedSpace(new_buf, i)) {
                 new_buf[i + 1] = '\0';
                 new_buflen = i + 1;
                 break;
@@ -330,13 +342,33 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
             refreshLine(fd, prompt, buf, *len, *pos, cols);
         } else {
             size_t clen = maxCompletion(&lc);
+            int total_length = new_buflen + clen;
 
             // Add the maximum possible completion onto the new_buf
             strcat(new_buf, lc.cvec[0]);
-            new_buf[new_buflen + clen] = '\0';
+            new_buf[total_length] = '\0';
 
             // Refresh with the longest common prefix of all completions
-            refreshLine(fd, prompt, new_buf, new_buflen + clen, new_buflen + clen, cols);
+            if (completionHasSpaces(new_buf + new_buflen)) {
+                // Any spaces in the completion need to be replaced with "\ "
+                char temp[total_length * 2 + 1];
+                temp[0] = '\0';
+
+                int last_copy = 0;
+                for (int i = new_buflen; i < total_length; ++i) {
+                    if (new_buf[i] == ' ' || new_buf[i] == '\t' || new_buf[i] == '\r' || new_buf[i] == '\n') {
+                        strncat(temp, new_buf + last_copy, i - last_copy);
+                        strcat(temp, "\\"); // escape the whitespace character
+                        strncat(temp, new_buf + i, 1);
+                        last_copy = i + 1;
+                    }
+                }
+                strncat(temp, new_buf + last_copy, total_length - last_copy);
+                strcpy(new_buf, temp);
+                total_length = strlen(new_buf);
+            }
+
+            refreshLine(fd, prompt, new_buf, total_length, total_length, cols);
 
             while(true) {
 
@@ -349,7 +381,7 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
                 if (c == 9) { // tab
                     printPossibleCompletions(&lc, fd, cols);
                     beep();
-                    refreshLine(fd, prompt, new_buf, new_buflen + clen, new_buflen + clen, cols);
+                    refreshLine(fd, prompt, new_buf, total_length, total_length, cols);
                 } else if (c == 27) { // escape
                     // Re-show original buffer
                     refreshLine(fd, prompt, buf, *len, *pos, cols);
@@ -411,6 +443,18 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
 
         switch(c) {
         case 13:    /* enter */
+            // Reset the line, then output the prompt/full buffer (with line wrap)
+            {
+                /* Move cursor to original position. */
+                char temp[64];
+                snprintf(temp,64,"\x1b[0G");
+                if (write(fd, temp, strlen(temp)) == -1) return -1;
+
+                disableRawMode(fd);
+                dprintf(fd, "%s%s", prompt, buf);
+                enableRawMode(fd);
+            }
+
             history_len--;
             free(history[history_len]);
             return (int)len;

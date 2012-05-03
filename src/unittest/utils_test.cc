@@ -57,11 +57,12 @@ TEST(UtilsTest, StrtofooStrict) {
 }
 
 TEST(UtilsTest, Time) {
-    time_t time = 1335301122;
+    struct timespec time = {1335301122, 1234};
     std::string formatted = format_time(time);
-    EXPECT_EQ("2012-04-24T13:58:42", formatted);
-    time_t parsed = parse_time(formatted);
-    EXPECT_EQ(time, parsed);
+    EXPECT_EQ("2012-04-24T13:58:42.000001234", formatted);
+    struct timespec parsed = parse_time(formatted);
+    EXPECT_EQ(time.tv_sec, parsed.tv_sec);
+    EXPECT_EQ(time.tv_nsec, parsed.tv_nsec);
 }
 
 TEST(UtilsTest, SizedStrcmp)
