@@ -13,7 +13,8 @@ memcached_parser_maker_t::memcached_parser_maker_t(mailbox_manager_t *_mailbox_m
 #ifndef NDEBUG
                                                    boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> > _machine_semilattice_metadata,
 #endif
-                                                   namespace_repo_t<memcached_protocol_t> *_namespace_repo)
+                                                   namespace_repo_t<memcached_protocol_t> *_namespace_repo,
+                                                   perfmon_collection_repo_t *_perfmon_collection_repo)
     : mailbox_manager(_mailbox_manager),
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
 #ifndef NDEBUG
@@ -21,7 +22,8 @@ memcached_parser_maker_t::memcached_parser_maker_t(mailbox_manager_t *_mailbox_m
       machines_subscription(boost::bind(&memcached_parser_maker_t::on_change, this), machine_semilattice_metadata),
 #endif
       namespaces_subscription(boost::bind(&memcached_parser_maker_t::on_change, this), namespaces_semilattice_metadata),
-      namespace_repo(_namespace_repo)
+      namespace_repo(_namespace_repo),
+      perfmon_collection_repo(_perfmon_collection_repo)
 {
     on_change();
 }
@@ -90,6 +92,6 @@ typedef std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<me
 
 memcached_parser_maker_t::parser_and_namespace_if_t::parser_and_namespace_if_t(namespace_id_t id, memcached_parser_maker_t *parent, int port)
     : namespace_if_access(parent->namespace_repo, id),
-      parser(port, namespace_if_access.get_namespace_if())
+      parser(port, namespace_if_access.get_namespace_if(), parent->perfmon_collection_repo->get_perfmon_collection_for_namespace(id))
 { }
 

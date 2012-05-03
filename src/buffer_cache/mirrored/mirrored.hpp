@@ -356,6 +356,8 @@ struct mc_cache_stats_t {
         pm_n_blocks_dirty,
         pm_n_blocks_total;
 
+    perfmon_sampler_t pm_patches_size_ratio;
+
     // used in buffer_cache/mirrored/page_repl_random.cc
     perfmon_counter_t pm_n_blocks_evicted;
 

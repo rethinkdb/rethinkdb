@@ -197,7 +197,8 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
                                                                                               metadata_field(&cluster_semilattice_metadata_t::machines,
                                                                                                              semilattice_manager_cluster.get_root_view())))),
 #endif
-                                             &memcached_namespace_repo);
+                                             &memcached_namespace_repo,
+                                             &perfmon_repo);
 
 
     administrative_http_server_manager_t administrative_http_interface(

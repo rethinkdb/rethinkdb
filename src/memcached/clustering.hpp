@@ -9,6 +9,7 @@
 #include "clustering/immediate_consistency/query/namespace_interface.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "clustering/administration/perfmon_collection_repo.hpp"
 
 void serve_clustered_memcached(int port, int n_slices, cluster_namespace_interface_t<memcached_protocol_t>& namespace_if_);
 
@@ -19,7 +20,8 @@ public:
 #ifndef NDEBUG
                              boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> >,
 #endif
-                             namespace_repo_t<memcached_protocol_t> *_namespace_repo);
+                             namespace_repo_t<memcached_protocol_t> *_namespace_repo,
+                             perfmon_collection_repo_t *_perfmon_collection_repo);
 
 private:
     void on_change();
@@ -47,6 +49,7 @@ private:
 #endif
     semilattice_read_view_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::subscription_t namespaces_subscription;
     namespace_repo_t<memcached_protocol_t> *namespace_repo;
+    perfmon_collection_repo_t *perfmon_collection_repo;
 };
 
 #endif /* MEMCACHED_CLUSTERING_HPP_ */

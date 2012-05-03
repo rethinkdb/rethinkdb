@@ -1302,6 +1302,7 @@ mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
       pm_n_blocks_in_memory("blocks_in_memory[blocks]", &cache_collection),
       pm_n_blocks_dirty("blocks_dirty[blocks]", &cache_collection),
       pm_n_blocks_total("blocks_total[blocks]", &cache_collection),
+      pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), false, &cache_collection),
       pm_n_blocks_evicted("blocks_evicted", &cache_collection)
 { }
 

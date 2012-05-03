@@ -55,7 +55,6 @@ writeback_t::~writeback_t() {
     }
 }
 
-perfmon_sampler_t pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), false, NULL);
 
 bool writeback_t::sync(sync_callback_t *callback) {
     cache->assert_thread();
@@ -209,7 +208,7 @@ void writeback_t::flush_timer_callback(void *ctx) {
 
     self->cache->assert_thread();
 
-    pm_patches_size_ratio.record(self->cache->get_max_patches_size_ratio());
+    self->cache->stats.pm_patches_size_ratio.record(self->cache->get_max_patches_size_ratio());
 
     /*
      * Update the max_patches_size_ratio. If we detect that the previous writeback

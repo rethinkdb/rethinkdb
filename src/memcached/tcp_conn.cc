@@ -89,18 +89,20 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
     }
 };
 
-void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t> *nsi) {
+void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t> *nsi, memcached_stats_t *stats) {
     tcp_conn_memcached_interface_t interface(conn);
-    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUERIES_PER_CONNECTION);
+    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUERIES_PER_CONNECTION, stats);
 }
 
-perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600));
 
-memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcached_protocol_t> *namespace_if_)
+memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcached_protocol_t> *namespace_if_, perfmon_collection_t *_parent)
     : port(_port), namespace_if(namespace_if_),
       next_thread(0),
       tcp_listener(new tcp_listener_t(port, boost::bind(&memcache_listener_t::handle,
-                                                        this, auto_drainer_t::lock_t(&drainer), _1))) { }
+                                                        this, auto_drainer_t::lock_t(&drainer), _1))),
+      parent(_parent),
+      stats(parent)
+{ }
 
 memcache_listener_t::~memcache_listener_t() {
     delete tcp_listener;
@@ -123,7 +125,7 @@ private:
 void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     assert_thread();
 
-    block_pm_duration conn_timer(&pm_conns);
+    block_pm_duration conn_timer(&stats.pm_conns);
 
     /* We will switch to another thread so there isn't too much load on the thread
     where the `memcache_listener_t` lives */
@@ -145,5 +147,5 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped
 
     /* `serve_memcache()` will continuously serve memcache queries on the given conn
     until the connection is closed. */
-    serve_memcache(conn.get(), namespace_if);
+    serve_memcache(conn.get(), namespace_if, &stats);
 }

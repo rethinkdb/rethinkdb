@@ -4,6 +4,7 @@
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "memcached/protocol.hpp"
+#include "memcached/stats.hpp"
 
 /* Serves memcache queries over the given TCP connection until the connection in question
 is closed. */
@@ -15,7 +16,7 @@ connections until the destructor is called. */
 
 struct memcache_listener_t : public home_thread_mixin_t {
 
-    memcache_listener_t(int port, namespace_interface_t<memcached_protocol_t> *namespace_if);
+    memcache_listener_t(int port, namespace_interface_t<memcached_protocol_t> *namespace_if, perfmon_collection_t *parent);
     ~memcache_listener_t();
 
     int port;
@@ -30,6 +31,10 @@ private:
     auto_drainer_t drainer;
 
     tcp_listener_t *tcp_listener;
+
+    perfmon_collection_t *parent;
+
+    memcached_stats_t stats;
 
     void handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t>& conn);
 };

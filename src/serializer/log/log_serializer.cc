@@ -28,7 +28,8 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
       pm_serializer_data_extents_gced("serializer_data_extents_gced[dexts]", &serializer_collection),
       pm_serializer_data_blocks_written("serializer_data_blocks_written", &serializer_collection),
       pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks", &serializer_collection),
-      pm_serializer_old_total_blocks("serializer_old_total_blocks", &serializer_collection)
+      pm_serializer_old_total_blocks("serializer_old_total_blocks", &serializer_collection),
+      pm_serializer_lba_gcs("serializer_lba_gcs", &serializer_collection)
 { }
 
 void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
