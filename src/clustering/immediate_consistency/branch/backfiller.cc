@@ -1,8 +1,6 @@
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 
 #include "clustering/immediate_consistency/branch/history.hpp"
-#include "memcached/protocol.hpp"
-#include "mock/dummy_protocol.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
 
@@ -164,6 +162,9 @@ void backfiller_t<protocol_t>::request_backfill_progress(backfill_session_id_t s
     //TODO indicate an error has occurred
 }
 
+
+#include "memcached/protocol.hpp"
+#include "mock/dummy_protocol.hpp"
 
 template class backfiller_t<mock::dummy_protocol_t>;
 template class backfiller_t<memcached_protocol_t>;

@@ -6,8 +6,6 @@
 #include "concurrency/coro_fifo.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
-#include "memcached/protocol.hpp"
-#include "mock/dummy_protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
@@ -608,7 +606,8 @@ void broadcaster_t<protocol_t>::sanity_check() {
 
 
 
-
+#include "memcached/protocol.hpp"
+#include "mock/dummy_protocol.hpp"
 
 template class broadcaster_t<mock::dummy_protocol_t>;
 template class broadcaster_t<memcached_protocol_t>;
