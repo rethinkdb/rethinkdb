@@ -328,6 +328,14 @@ struct mc_cache_stats_t {
         pm_bufs_acquiring,
         pm_bufs_held;
 
+    perfmon_sampler_t pm_patches_size_per_write;
+
+    perfmon_duration_sampler_t
+        pm_transactions_starting,
+        pm_transactions_active,
+        pm_transactions_committing;
+
+
     /* Used in writeback.hpp */
     perfmon_duration_sampler_t
         pm_flushes_diff_flush,

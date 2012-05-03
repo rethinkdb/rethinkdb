@@ -11,13 +11,6 @@
  * Buffer implementation.
  */
 
-//RSI
-//perfmon_counter_t pm_registered_snapshots("registered_snapshots"),
-//                  pm_registered_snapshot_blocks("registered_snapshot_blocks");
-//perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1));
-//
-//perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache_misses");
-
 // Types of snapshots
 
 // In order for snapshots to get deleted properly, they must obey the invariant that, after
@@ -968,7 +961,6 @@ void mc_buf_lock_t::move_data(void *dest, const void *src, const size_t n) {
     }
 }
 
-perfmon_sampler_t pm_patches_size_per_write("patches_size_per_write_buf", secs_to_ticks(1), false, NULL);
 
 void mc_buf_lock_t::release() {
     assert_thread();
@@ -978,7 +970,7 @@ void mc_buf_lock_t::release() {
 
     if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush() && patches_serialized_size_at_start >= 0) {
         if (inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > patches_serialized_size_at_start) {
-            pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) - patches_serialized_size_at_start);
+            inner_buf->cache->stats.pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) - patches_serialized_size_at_start);
         }
     }
 
@@ -1054,11 +1046,6 @@ void mc_buf_lock_t::release() {
  * Transaction implementation.
  */
 
-perfmon_duration_sampler_t
-    pm_transactions_starting("transactions_starting", secs_to_ticks(1)),
-    pm_transactions_active("transactions_active", secs_to_ticks(1)),
-    pm_transactions_committing("transactions_committing", secs_to_ticks(1));
-
 mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
     : cache(_cache),
       expected_change_count(_expected_change_count),
@@ -1067,7 +1054,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
       snapshot_version(mc_inner_buf_t::faux_version_id),
       snapshotted(false)
 {
-    block_pm_duration start_timer(&pm_transactions_starting);
+    block_pm_duration start_timer(&cache->stats.pm_transactions_starting);
 
     // HISTORICAL COMMENTS:
 
@@ -1127,7 +1114,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
     cache->num_live_transactions++;
     cache->writeback.begin_transaction(this);
 
-    pm_transactions_active.begin(&start_time);
+    cache->stats.pm_transactions_active.begin(&start_time);
 }
 
 /* This version is only for read transactions from the writeback!  And some unit tests use it. */
@@ -1139,7 +1126,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED int
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false)
 {
-    block_pm_duration start_timer(&pm_transactions_starting);
+    block_pm_duration start_timer(&cache->stats.pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
     // No write throttle acq.
@@ -1148,7 +1135,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED int
     rassert(dont_assert_about_shutting_down || !cache->shutting_down);
     cache->num_live_transactions++;
     cache->writeback.begin_transaction(this);
-    pm_transactions_active.begin(&start_time);
+    cache->stats.pm_transactions_active.begin(&start_time);
 }
 
 mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED i_am_writeback_t i_am_writeback) :
@@ -1159,13 +1146,13 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED i_a
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false)
 {
-    block_pm_duration start_timer(&pm_transactions_starting);
+    block_pm_duration start_timer(&cache->stats.pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
     cache->assert_thread();
     cache->num_live_transactions++;
     cache->writeback.begin_transaction(this);
-    pm_transactions_active.begin(&start_time);
+    cache->stats.pm_transactions_active.begin(&start_time);
 }
 
 
@@ -1179,9 +1166,9 @@ mc_transaction_t::~mc_transaction_t() {
 
     assert_thread();
 
-    pm_transactions_active.end(&start_time);
+    cache->stats.pm_transactions_active.end(&start_time);
 
-    block_pm_duration commit_timer(&pm_transactions_committing);
+    block_pm_duration commit_timer(&cache->stats.pm_transactions_committing);
 
     if (snapshotted && snapshot_version != mc_inner_buf_t::faux_version_id) {
         cache->unregister_snapshot(this);
@@ -1299,6 +1286,10 @@ mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
       pm_cache_misses("cache_misses", parent),
       pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1), parent),
       pm_bufs_held("bufs_held", secs_to_ticks(1), parent),
+      pm_patches_size_per_write("patches_size_per_write_buf", secs_to_ticks(1), false, parent),
+      pm_transactions_starting("transactions_starting", secs_to_ticks(1), parent),
+      pm_transactions_active("transactions_active", secs_to_ticks(1), parent),
+      pm_transactions_committing("transactions_committing", secs_to_ticks(1), parent),
       pm_flushes_diff_flush("flushes_diff_flushing", secs_to_ticks(1), parent),
       pm_flushes_diff_store("flushes_diff_store", secs_to_ticks(1), parent),
       pm_flushes_locking("flushes_locking", secs_to_ticks(1), parent),
