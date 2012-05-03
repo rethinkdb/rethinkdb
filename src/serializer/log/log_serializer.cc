@@ -19,7 +19,8 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *perfmon_col
       pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1), perfmon_collection),
       pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1), false, perfmon_collection),
       pm_extents_in_use("serializer_extents_in_use", perfmon_collection),
-      pm_bytes_in_use("serializer_bytes_in_use", perfmon_collection)
+      pm_bytes_in_use("serializer_bytes_in_use", perfmon_collection),
+      pm_serializer_lba_extents("serializer_lba_extents", perfmon_collection)
 { 
     rassert(perfmon_collection);
 }
