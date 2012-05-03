@@ -726,6 +726,9 @@
 
 .modal {
     display: none;
+    .custom_btn_placeholder {
+        display: inline-block;
+    }
     form {
         input { height: 28px; }
         margin-bottom: 0 !important;
@@ -991,6 +994,36 @@
             text-align: left;
             p {
                 margin-bottom: 6px;
+            }
+        }
+    }
+
+    .sharding-scheme {
+        p.suggest_shards_pathway {
+            margin-top: 1em;
+            margin-bottom: 0;
+        }
+
+        .shard-suggester {
+            h4 {
+               margin-top: 1em;
+            }
+            label {
+               display: inline;
+            }
+            input {
+                height: 1.2em;
+                width: 3em;
+                margin-bottom: 0;
+            }
+            p.current {
+                font-size: 12px;
+                line-height: 24px;
+                color: @gray;
+                margin-top: 0.5em;
+            }
+            .shard_suggest_elements {
+                margin-top: 0.5em;
             }
         }
     }

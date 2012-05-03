@@ -13,6 +13,7 @@ module 'UIComponents', ->
 
         initialize: ->
             @$container = $('#modal-dialog')
+            @custom_buttons = []
 
         # Render and show the modal.
         #   validator_options: object that defines form behavior and validation rules
@@ -39,6 +40,12 @@ module 'UIComponents', ->
             @.setElement @$modal
             @.delegateEvents()
 
+            for btn in @custom_buttons
+                @.$('.custom_btn_placeholder').append("<button class='btn #{ btn.class_str }' data-loading-text='#{ btn.data_loading_text }'>#{ btn.main_text }</button>")
+                @.$('.custom_btn_placeholder > .' + btn.class_str).click (e) =>
+                    btn.on_click(e)
+                @.$('.custom_btn_placeholder > .' + btn.class_str).button()
+
             register_modal @
 
         hide_modal: ->
@@ -64,6 +71,16 @@ module 'UIComponents', ->
         on_submit: (event) =>
             @.$('.btn-primary').button('loading')
             @.$('.cancel').button('loading')
+
+        add_custom_button: (main_text, class_str, data_loading_text, on_click) =>
+            @custom_buttons.push
+                main_text: main_text
+                class_str: class_str
+                data_loading_text: data_loading_text
+                on_click: on_click
+
+        find_custom_button: (class_str) =>
+            return @.$('.custom_btn_placeholder > .' + class_str)
 
     # This is for doing user confirmation easily
     class @ConfirmationDialogModal extends @AbstractModal

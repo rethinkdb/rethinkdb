@@ -88,16 +88,95 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#modify_shards_modal-template').html()
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
         class: 'modify-shards'
+        events: ->
+            _.extend super,
+                'click #suggest_shards_btn': 'suggest_shards'
+                'click #cancel_shards_suggester_btn': 'cancel_shards_suggester_btn'
+                'click .btn-compute-shards-suggestion': 'compute_shards_suggestion'
 
         initialize: (namespace, shard_set) ->
             log_initial '(initializing) modal dialog: ModifyShards'
             @namespace = namespace
-            @shards = compute_renderable_shards_array(namespace.get('id'), shard_set)
 
             # Keep an unmodified copy of the shard boundaries with which we compare against when reviewing the changes.
             @original_shard_set = _.map(shard_set, _.identity)
             @shard_set = _.map(shard_set, _.identity)
+
+            # Shard suggester business
+            @suggest_shards_view = false
+
             super
+
+            @add_custom_button "Reset", "btn-reset", "Reset", (e) =>
+                e.preventDefault()
+                @shard_set = _.map(@original_shard_set, _.identity)
+                clear_modals()
+                @render()
+
+        reset_button_enable: ->
+            @find_custom_button('btn-reset').button('reset')
+
+        reset_button_disable: ->
+            @find_custom_button('btn-reset').button('loading')
+
+        suggest_shards: (e) =>
+            e.preventDefault()
+            @suggest_shards_view = true
+            clear_modals()
+            @render()
+
+        compute_shards_suggestion: (e) =>
+            # Do the bullshit event crap
+            e.preventDefault()
+            @.$('.btn-compute-shards-suggestion').button('loading')
+
+            # grab the data ho, 'cause it's all about the data, it's
+            # all about the data, the data it's all about ho, yes it
+            # is.
+            $.ajax
+                processData: false
+                url: "/ajax/distribution?namespace=#{@namespace.id}&depth=2"
+                type: 'GET'
+                success: (data) =>
+                    # we got the data ho, we got the data. Put that
+                    # shit into the array 'cause who knows if maps
+                    # preserve order, god reset their souls.
+                    distr_keys = []
+                    total_rows = 0
+                    for key, count of data
+                        distr_keys.push(key)
+                        total_rows += count
+                    _.sortBy(distr_keys, _.identity)
+                    # All right, now let's see roughly how many bitch
+                    # ass rows we want per bitch ass shard.
+                    formdata = form_data_as_object($('form', @.el))
+                    rows_per_shard = total_rows / formdata.num_shards
+                    # Phew. Go through the keys now and compute the bitch ass split points.
+                    current_shard_count = 0
+                    split_points = [""]
+                    for key in distr_keys
+                        current_shard_count += data[key]
+                        if current_shard_count >= rows_per_shard
+                            # Hellz yeah ho, we got our split point
+                            split_points.push(key)
+                            current_shard_count = 0
+                    split_points.push(null)
+                    # convert split points into whatever bitch ass format we're using here
+                    @shard_set = []
+                    for splitIndex in [0..(split_points.length - 2)]
+                        @shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
+                    # All right, we be done, boi. Put those
+                    # motherfuckers into the dialog, reset the buttons
+                    # or whateva, and hop on into the sunlight.
+                    @.$('.btn-compute-shards-suggestion').button('reset')
+                    clear_modals()
+                    @render()
+
+        cancel_shards_suggester_btn: (e) =>
+            e.preventDefault()
+            @suggest_shards_view = false
+            clear_modals()
+            @render()
 
         insert_splitpoint: (index, splitpoint) =>
             if (0 <= index || index < @shard_set.length)
@@ -129,11 +208,23 @@ module 'NamespaceView', ->
                 shards: compute_renderable_shards_array(@namespace.get('id'), @shard_set)
                 modal_title: 'Change sharding scheme'
                 btn_primary_text: 'Commit'
+                suggest_shards_view: @suggest_shards_view
+                current_shards_count: @original_shard_set.length
+                new_shard_count: @shard_set.length
 
             super json
 
             shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifyShardsModalShard @namespace, shard, @)
             @.$('.shards tbody').append view.render().el for view in shard_views
+
+            # Control the suggest button
+            @.$('.btn-compute-shards-suggestion').button()
+
+            # Control the reset button, boiii
+            if JSON.stringify(@original_shard_set).replace(/\s/g, '') is JSON.stringify(@shard_set).replace(/\s/g, '')
+                @reset_button_disable()
+            else
+                @reset_button_enable()
 
         on_submit: ->
             super
@@ -188,7 +279,6 @@ module 'NamespaceView', ->
             return @
 
         split: (e) ->
-            console.log 'split event fired'
             shard_index = $(e.target).data 'index'
             log_action "split button clicked with index #{shard_index}"
 
@@ -199,47 +289,27 @@ module 'NamespaceView', ->
             e.preventDefault()
 
         cancel_split: (e) ->
-            console.log 'cancel_split event fired'
             @render()
             e.preventDefault()
 
         commit_split: (e) ->
-            console.log 'commit split event fired'
             splitpoint = $('input[name=splitpoint]', @el).val()
             # TODO validate splitpoint
-            console.log 'splitpoint is', splitpoint
             e.preventDefault()
 
             @parent.insert_splitpoint(@shard.index, splitpoint);
 
         merge: (e) =>
-            console.log 'merge event fired'
-
-            shard_index = parseInt $(e.target).data 'index'
-            log_action "merge button clicked with index #{shard_index}"
-            shards = @namespace.get('shards')
-            low_shard = human_readable_shard(shards[shard_index])
-            high_shard = human_readable_shard(shards[shard_index + 1])
-
-            console.log 'shards to be merged: ',[low_shard, high_shard, shards, shard_index]
-
             @.$el.html @editable_tmpl
                 merging: true
                 shard: @shard
-                low_shard: low_shard
-                high_shard: high_shard
-
             e.preventDefault()
 
         cancel_merge: (e) =>
-            console.log 'cancel_merge event fired'
             @render()
             e.preventDefault()
 
         commit_merge: (e) =>
-            console.log 'commit_merge event fired'
-
             @parent.merge_shard(@shard.index)
-
             e.preventDefault()
 

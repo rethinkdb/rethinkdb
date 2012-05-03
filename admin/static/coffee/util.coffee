@@ -150,6 +150,11 @@ form_data_as_object = (form) ->
 
 # Shards aren't pretty to print, let's change that
 human_readable_shard = (shard) ->
+    # Shard may be null, in which case we need to return the empty
+    # string. Please do not fuck with this code, Michael, as you
+    # removed it once already and it broke shit.
+    if not shard?
+        return ""
     json_shard = $.parseJSON(shard)
     res = ""
     res += if json_shard[0] == "" then "&minus;&infin;" else json_shard[0]

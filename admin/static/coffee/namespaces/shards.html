@@ -42,11 +42,25 @@ This shard has no replicas.
 <script id="modify_shards_modal-template" type="text/x-handlebars-template">
   <form class="form">
     <div class="sharding-scheme">
-      <h4>Define the sharding scheme:</h4>
+      <h4>Sharding settings:</h4>
       <table class="shards table">
         <tbody>
         </tbody>
       </table>
+      {{#if suggest_shards_view}}
+      <div class="shard-suggester clearfix">
+        <h4>Suggest sharding scheme:</h4>
+        <div class="shard_suggest_elements">
+          <label for="replicas">Number of shards:</label>
+          <input name="num_shards" type="text" value="{{new_shard_count}}"/>
+          <button class="btn btn-compute-shards-suggestion" data-loading-text="Calculating...">Suggest</button>
+        </div>
+        <p class="current">Current shards: {{current_shards_count}}</p>
+        <a id="cancel_shards_suggester_btn" href="#">Cancel</a>
+      </div>
+      {{else}}
+      <p class="suggest_shards_pathway"><a id="suggest_shards_btn" href="#">Suggest shards</a></p>
+      {{/if}}
     </div>
     <div class="sharding-plan"></div>
   </form>
@@ -64,8 +78,7 @@ This shard has no replicas.
   <td class="name"><h4>{{name}}</h4></td>
   <td class="status">
     <!-- TODO fake -->
-    <p>4 of 5 replicas live</p>
-    <p>50.3 GB of data in this shard</p>
+    <p>N rows in the shard</p>
   </td>
   <td class="actions">
     <p>
@@ -101,8 +114,7 @@ This shard has no replicas.
       <p>
         <a href="#" class="btn commit_merge primary">Yes</a>
         <a href="#" class="btn cancel_merge secondary">No</a>
-        Are you sure you want to merge the shards <strong>{{low_shard}}
-        </strong> and <strong>{{high_shard}}</strong>?
+        Are you sure you want to merge these shards?
       </p>
       {{/if}}
     </div>
