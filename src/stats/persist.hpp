@@ -26,7 +26,7 @@ struct persistent_stat_t
     static void persist_all(metadata_store_t *store);
     static void unpersist_all(metadata_store_t *store);
 
-  protected:
+protected:
     virtual std::string persist_key() = 0;
     // unpersist is not required, and should not be assumed, to be threadsafe (it should not be
     // called from multiple threads simultaneously)
@@ -36,7 +36,7 @@ struct persistent_stat_t
     // course, visit_persist() may occur simultaneously on different threads).
     virtual void *begin_persist() = 0;
     virtual std::string end_persist(void *) = 0;
-  public:                       // unfortunately needs to be public for implementation reasons
+public:                       // unfortunately needs to be public for implementation reasons
     virtual void visit_persist(void *) = 0;
 };
 
@@ -58,7 +58,7 @@ struct persistent_stat_perthread_t
         return result;
     }
 
-  protected:
+protected:
     virtual void get_thread_persist(thread_stat_t *stat) = 0;
     virtual std::string combine_persist(thread_stat_t *stats) = 0;
 };
@@ -79,7 +79,7 @@ struct perfmon_persistent_counter_t
     PERSISTENT_STAT_PERTHREAD_IMPL(padded_int64_t);
     int64_t combine_stats(padded_int64_t *);
 
-  private:
+private:
     int64_t unpersisted_value;
 };
 
@@ -93,7 +93,7 @@ struct perfmon_persistent_stddev_t
     PERSISTENT_STAT_PERTHREAD_IMPL(stddev_t);
     stddev_t combine_stats(stddev_t *);
 
-  private:
+private:
     stddev_t unpersisted_value;
 };
 
