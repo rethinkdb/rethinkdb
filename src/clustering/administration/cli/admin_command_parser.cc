@@ -287,10 +287,13 @@ void admin_command_parser_t::completion_generator_hook(const char *raw, linenois
     if (instance == NULL)
         logERR("linenoise completion generator called without an instance of admin_command_parser_t");
     else {
-        char last_char = raw[strlen(raw) - 1];
-        bool partial = (last_char != ' ') && (last_char != '\t') && (last_char != '\r') && (last_char != '\n');
-        std::vector<std::string> line = po::split_unix(raw);
-        instance->completion_generator(line, completions, partial);
+        bool partial = !linenoiseIsUnescapedSpace(raw, strlen(raw) - 1);
+        try {
+            std::vector<std::string> line = po::split_unix(raw);
+            instance->completion_generator(line, completions, partial);
+        } catch(std::exception& ex) {
+            // Do nothing - if the line can't be parsed or completions failed, we just can't complete the line
+        }
     }
 }
 
