@@ -1,0 +1,36 @@
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_MULTISTORE_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_MULTISTORE_HPP_
+
+#include <vector>
+
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
+#include "concurrency/fifo_enforcer.hpp"
+
+template <class> class store_view_t;
+
+template <class protocol_t>
+class multistore_ptr_t {
+public:
+    // We don't get ownership of the store_view_t pointers themselves.
+    multistore_ptr_t(const std::vector<store_view_t<protocol_t> *> &store_views);
+
+    typename protocol_t::region_t get_multistore_joined_region() const;
+
+    void new_read_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out, int size);
+
+
+
+private:
+    // We don't own these pointers.
+    const std::vector<store_view_t<protocol_t> *> store_views;
+
+    DISABLE_COPYING(multistore_ptr_t);
+};
+
+
+
+
+#endif  // CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_MULTISTORE_HPP_
+

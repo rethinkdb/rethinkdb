@@ -1,5 +1,8 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 
+#include "errors.hpp"
+#include <boost/scoped_array.hpp>
+
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
@@ -11,7 +14,7 @@ template <class protocol_t>
 listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 				   clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
 				   boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
-				   store_view_t<protocol_t> *s,
+				   multistore_ptr_t<protocol_t> *_svs,
 				   clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
 				   backfill_session_id_t backfill_session_id,
 				   signal_t *interruptor)
@@ -19,7 +22,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
     mailbox_manager(mm),
     branch_history(bh),
-    store(s),
+    svs(_svs),
 
     write_mailbox(mailbox_manager, boost::bind(&listener_t::on_write, this,
 					       auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
@@ -44,14 +47,17 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     branch_birth_certificate_t<protocol_t> this_branch_history =
 	branch_history->get().branches[branch_id];
 
-    rassert(region_is_superset(this_branch_history.region, store->get_region()));
+    rassert(region_is_superset(this_branch_history.region, svs->get_multistore_joined_region()));
 
     /* Sanity-check to make sure we're on the same timeline as the thing
        we're trying to join. The backfiller will perform an equivalent check,
        but if there's an error it would be nice to catch it where the action
        was initiated. */
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
-    store->new_read_token(read_token);
+
+    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[svs->num_stores()]);
+
+    svs->new_read_tokens(read_tokens.get());
 
     typedef region_map_t<protocol_t, version_range_t> version_map_t;
     version_map_t start_point =

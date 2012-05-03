@@ -4,6 +4,7 @@
 #include <map>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/promise.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
@@ -52,7 +53,7 @@ public:
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
-            store_view_t<protocol_t> *s,
+            multistore_ptr_t<protocol_t> *svs,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
             backfill_session_id_t backfill_session_id,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);
@@ -137,7 +138,7 @@ private:
 
     boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
 
-    store_view_t<protocol_t> *store;
+    multistore_ptr_t<protocol_t> *svs;
 
     branch_id_t branch_id;
 
