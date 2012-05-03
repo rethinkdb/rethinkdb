@@ -274,6 +274,13 @@ static void printPossibleCompletions(linenoiseCompletions* lc, int fd, size_t co
     }
 }
 
+static bool completionHasSpaces(const char* str) {
+    for (const char* i = str; *i != '\0'; ++i)
+        if (*i == ' ' || *i == '\r' || *i == '\t' || *i == '\n')
+            return true;
+    return false;
+}
+
 static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, size_t *len, size_t *pos, size_t cols) {
     linenoiseCompletions lc = { 0, NULL };
     int nread, nwritten;
@@ -298,8 +305,8 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
         strcpy(new_buf, buf);
         size_t new_buflen = strlen(new_buf);
 
-        // TODO: this is not truncating back to the beginning of the line (if necessary)
         // Truncate the new buffer after the last space (where we will add the completions)
+        // TODO: make sure the space isn't escaped
         for (int i = new_buflen - 1; i >= 0; --i) {
             char c = new_buf[i];
             if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
@@ -314,7 +321,11 @@ static int completeLine(int fd, const char *prompt, char *buf, size_t buflen, si
 
         if (lc.len == 1) {
             // Update buffer and return (add a space on the end for effect)
-            nwritten = snprintf(buf, buflen, "%s%s ", new_buf, lc.cvec[0]);
+            if (completionHasSpaces(lc.cvec[0]))
+                nwritten = snprintf(buf, buflen, "%s\"%s\" ", new_buf, lc.cvec[0]);
+            else
+                nwritten = snprintf(buf, buflen, "%s%s ", new_buf, lc.cvec[0]);
+
             *len = *pos = nwritten;
             refreshLine(fd, prompt, buf, *len, *pos, cols);
         } else {

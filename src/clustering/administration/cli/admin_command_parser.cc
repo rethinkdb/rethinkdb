@@ -20,6 +20,7 @@ const char *admin_command_parser_t::list_command = "ls";
 const char *admin_command_parser_t::make_command = "mk";
 const char *admin_command_parser_t::move_command = "mv";
 const char *admin_command_parser_t::help_command = "help";
+const char *admin_command_parser_t::join_command = "join"; // TODO: should only be available from console
 const char *admin_command_parser_t::rename_command = "rename";
 const char *admin_command_parser_t::remove_command = "rm";
 const char *admin_command_parser_t::complete_command = "complete";
@@ -31,8 +32,9 @@ const char *admin_command_parser_t::make_namespace_usage = "[--port <port>] [--p
 const char *admin_command_parser_t::make_datacenter_usage = "[--name <name>]";
 const char *admin_command_parser_t::move_usage = "( <target-uuid> | <target-name> ) ( <datacenter-uuid> | <datacenter-name> ) [--resolve]";
 const char *admin_command_parser_t::help_usage = "[ ls | mk | mv | rm | set | rename | help ]";
+const char *admin_command_parser_t::join_usage = "<host>:<port>";
 const char *admin_command_parser_t::rename_usage = "( <uuid> | <name> ) <new name> [--resolve]";
-const char *admin_command_parser_t::remove_usage = "( <uuid> | <name> )";
+const char *admin_command_parser_t::remove_usage = "( <uuid> | <name> ) ...";
 
 namespace po = boost::program_options;
 
@@ -84,7 +86,8 @@ void admin_command_parser_t::command_info::add_subcommand(command_info *info)
 admin_command_parser_t::admin_command_parser_t(const std::set<peer_address_t>& joins, int client_port) :
     joins_param(joins),
     client_port_param(client_port),
-    cluster(NULL)
+    cluster(NULL),
+    console_mode(false)
 {
     rassert(instance == NULL);
     instance = this;
@@ -147,7 +150,7 @@ void admin_command_parser_t::build_command_descriptions() {
 
     {
         command_info *info = new command_info(remove_command, remove_usage, true, &admin_cluster_link_t::do_admin_remove);
-        info->add_positional("id", 1, true)->add_option("!id");
+        info->add_positional("id", -1, true)->add_option("!id");
         command_descriptions.insert(std::make_pair(info->command, info));
     }
 
@@ -156,6 +159,12 @@ void admin_command_parser_t::build_command_descriptions() {
         info->add_positional("id", 1, true)->add_option("!id");
         info->add_positional("new-name", 1, true);
         info->add_flag("resolve", 0, false);
+        command_descriptions.insert(std::make_pair(info->command, info));
+    }
+
+    {
+        command_info *info = new command_info(join_command, join_usage, false, NULL); // Special case, 'join' creates the cluster link
+        info->add_positional("host-port", 1, true);
         command_descriptions.insert(std::make_pair(info->command, info));
     }
 
@@ -250,12 +259,21 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(const
 
 void admin_command_parser_t::run_command(command_data& data)
 {
+    // Special cases for help and join, which do nothing through the cluster
     if (data.info->command == "help") {
-        // Special case for help, which uses the existing command descriptions, and does nothing through the cluster
-        do_admin_help(data);
+        if (console_mode)
+            do_admin_help_console(data);
+        else
+            do_admin_help_shell(data);
+    } else if (data.info->command == "join") {
+        if (console_mode)
+            do_admin_join_console(data);
+        else
+            do_admin_join_shell(data);
     } else if (data.info->do_function == NULL) {
         throw admin_parse_exc_t("incomplete command (should have been caught earlier, though)");
     } else {
+        // TODO: sometimes this isn't downloading the data in time - supposed to be synchronous...
         get_cluster()->sync_from();
 
         (get_cluster()->*(data.info->do_function))(data);
@@ -422,6 +440,14 @@ void admin_command_parser_t::run_complete(const std::vector<std::string>& comman
 }
 
 void admin_command_parser_t::run_console() {
+    console_mode = true;
+
+    if (!joins_param.empty()) {
+        // Do an intial sync to make sure everything's working
+        get_cluster()->sync_from();
+        std::cout << "Connected to cluster" << std::endl;
+    }
+
     linenoiseSetCompletionCallback(completion_generator_hook);
     char *raw_line = linenoise(prompt);
     std::string line;
@@ -448,10 +474,14 @@ void admin_command_parser_t::run_console() {
 
         raw_line = linenoise(prompt);
     }
-    std::cout << std::endl;
+    console_mode = false;
 }
 
-void admin_command_parser_t::do_admin_help(command_data& data) {
+void admin_command_parser_t::do_admin_help_shell(command_data& data UNUSED) {
+    // TODO: interactive help ala v1.1.x
+}
+
+void admin_command_parser_t::do_admin_help_console(command_data& data) {
     if (data.params.count("type") == 0) {
         std::cout << "available commands:" << std::endl;
 
@@ -472,7 +502,7 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
             if (data.params["type"].size() == 2) {
                 std::map<std::string, command_info *>::iterator j = i->second->subcommands.find(data.params["type"][1]);
                 if (j != i->second->subcommands.end())
-                    std::cout << "  usage: " << j->first << " " << j->second->usage << std::endl;
+                    std::cout << "  usage: " << i->first << " " << j->first << " " << j->second->usage << std::endl;
                 else
                     throw admin_parse_exc_t("unknown command: " + data.params["type"][0] + " " + data.params["type"][1]);
             } else
@@ -483,3 +513,29 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
     }
 }
 
+void admin_command_parser_t::do_admin_join_shell(command_data& data UNUSED) {
+    throw admin_parse_exc_t("join specified at the shell - nothing to do");
+}
+
+void admin_command_parser_t::do_admin_join_console(command_data& data) {
+    // Parse out the host and port
+    std::string host_port = data.params["host-port"][0];
+    size_t split = host_port.find(":");
+
+    if (split == std::string::npos)
+        throw admin_parse_exc_t("invalid \"host:port\" format: " + host_port);
+
+    std::string host = host_port.substr(0, split);
+    std::string port = host_port.substr(split + 1);
+
+    // Verify that port is a number
+    for (size_t i = 0; i < port.length(); ++i)
+        if (port[i] > '9' || port[i] < '0')
+            throw admin_parse_exc_t("invalid port: " + port);
+
+    joins_param.clear();
+    joins_param.insert(peer_address_t(ip_address_t(host), atoi(port.c_str())));
+
+    delete cluster;
+    get_cluster();
+}
