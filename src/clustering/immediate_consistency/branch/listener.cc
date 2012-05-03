@@ -55,17 +55,17 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
        was initiated. */
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
 
-    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[svs->num_stores()]);
+    const int num_stores = svs->num_stores();
+    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
 
-    svs->new_read_tokens(read_tokens.get());
 
-    typedef region_map_t<protocol_t, version_range_t> version_map_t;
-    version_map_t start_point =
-	region_map_transform<protocol_t, binary_blob_t, version_range_t>(
-									 store->get_metainfo(read_token, interruptor),
-									 &binary_blob_t::get<version_range_t>
-									 );
-    for (typename version_map_t::const_iterator it = start_point.begin();
+    svs->new_read_tokens(read_tokens.get(), num_stores);
+
+    boost::scoped_array<region_map_t<protocol_t, version_range_t> > start_points(new region_map_t<protocol_t, version_range_t>[num_stores]);
+    svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor, start_points.get(), num_stores);
+
+
+    for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
 	 it != start_point.end();
 	 it++) {
 

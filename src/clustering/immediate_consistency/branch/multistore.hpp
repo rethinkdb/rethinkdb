@@ -9,6 +9,8 @@
 #include "concurrency/fifo_enforcer.hpp"
 
 template <class> class store_view_t;
+template <class, class> class region_map_t;
+class version_range_t;
 
 template <class protocol_t>
 class multistore_ptr_t {
@@ -20,6 +22,9 @@ public:
 
     void new_read_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out, int size);
 
+    void get_all_metainfos(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens, int num_read_tokens,
+			   signal_t *interruptor,
+			   region_map_t<protocol_t, version_range_t> *metainfos_out, int num_metainfos);
 
 
 private:
