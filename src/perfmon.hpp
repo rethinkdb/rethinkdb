@@ -15,6 +15,7 @@
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 #include "perfmon_types.hpp"
+#include "concurrency/rwi_lock.hpp"
 
 // Some arch/runtime declarations.
 int get_num_threads();
@@ -416,12 +417,7 @@ public:
     void end_stats(void *data, perfmon_result_t *dest);
 };
 
-/* A perfmon collection allows you to add hierarchy to stats.
- * RSI more here */
-/* TODO TODO TODO because these encourage adding perfmons at runtime we need to
- * do some locking to make sure we don't get races... please for the love of
- * god jdoliner remember to do this. You have permission to kill me if you ever
- * see this comment in guthub RSI RSI RSI */
+/* A perfmon collection allows you to add hierarchy to stats. */
 class perfmon_collection_t : public perfmon_t {
 public:
     explicit perfmon_collection_t(const std::string &_name, perfmon_collection_t *parent, bool insert = true)
@@ -430,6 +426,7 @@ public:
 
     /* Perfmon interface */
     void *begin_stats() {
+        constituents_access.co_lock(rwi_read);
         void **contexts = new void *[constituents.size()];
         size_t i = 0;
         for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
@@ -458,18 +455,23 @@ public:
         }
 
         result->get_map()->insert(name, map);
+        constituents_access.unlock();
     }
 
     /* Ways to add perfmons */
     void add(perfmon_t *perfmon) {
+        rwi_lock_t::write_acq_t write_acq(&constituents_access);
         constituents.push_back(perfmon);
     }
 
     void remove(perfmon_t *perfmon) {
+        rwi_lock_t::write_acq_t write_acq(&constituents_access);
         constituents.remove(perfmon);
     }
 
 private:
+    rwi_lock_t constituents_access;
+
     std::string name;
     intrusive_list_t<perfmon_t> constituents;
 };
