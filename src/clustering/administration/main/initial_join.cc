@@ -1,7 +1,5 @@
 #include "clustering/administration/main/initial_join.hpp"
 
-#include <sstream>
-
 #include "concurrency/wait_any.hpp"
 #include "logger.hpp"
 
@@ -45,13 +43,12 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
             retry_interval_ms = std::min(int(retry_interval_ms * retry_interval_growth_rate), max_retry_interval_ms);
         } while (!peers_not_heard_from.empty() && (!grace_period_timer || !grace_period_timer->is_pulsed()));
         if (!peers_not_heard_from.empty()) {
-            std::stringstream stringstream;
             std::set<peer_address_t>::const_iterator it = peers_not_heard_from.begin();
-            stringstream << it->ip.as_dotted_decimal() << ":" << it->port;
+            std::string s = strprintf("%s:%d", it->ip.as_dotted_decimal().c_str(), it->port);
             for (it++; it != peers_not_heard_from.end(); it++) {
-                stringstream << ", " << it->ip.as_dotted_decimal() << ":" << it->port;
+                s += strprintf(", %s:%d", it->ip.as_dotted_decimal().c_str(), it->port);
             }
-            logWRN("We were unable to connect to the following peer(s): %s", stringstream.str().c_str());
+            logWRN("We were unable to connect to the following peer(s): %s", s.c_str());
         }
     } catch (interrupted_exc_t) {
         /* ignore */
