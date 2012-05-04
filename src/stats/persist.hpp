@@ -15,9 +15,7 @@ public:
 };
 
 // A stat about the store, persisted via btree_key_value_store_t::{get,set}_meta
-struct persistent_stat_t
-    : public intrusive_list_node_t<persistent_stat_t>
-{
+struct persistent_stat_t : public intrusive_list_node_t<persistent_stat_t> {
     persistent_stat_t();
     virtual ~persistent_stat_t();
 
@@ -42,9 +40,7 @@ public:                       // unfortunately needs to be public for implementa
 
 // Abstract persistent_stat subclass implemented by combining per-thread values.
 template<typename thread_stat_t>
-struct persistent_stat_perthread_t
-    : public persistent_stat_t
-{
+struct persistent_stat_perthread_t : public persistent_stat_t {
     void *begin_persist() { return new thread_stat_t[get_num_threads()]; }
 
     void visit_persist(void *data) {
@@ -70,10 +66,8 @@ protected:
     void unpersist(const std::string&)
 
 // Persistent perfmon counter
-struct perfmon_persistent_counter_t
-    : public perfmon_counter_t
-    , public persistent_stat_perthread_t<cache_line_padded_t<int64_t> >
-{
+struct perfmon_persistent_counter_t : public perfmon_counter_t,
+                                      public persistent_stat_perthread_t<cache_line_padded_t<int64_t> > {
     explicit perfmon_persistent_counter_t(const std::string& name, perfmon_collection_t *parent = NULL);
 
     PERSISTENT_STAT_PERTHREAD_IMPL(padded_int64_t);
@@ -84,10 +78,8 @@ private:
 };
 
 // Persistent stddev
-struct perfmon_persistent_stddev_t
-    : public perfmon_stddev_t
-    , public persistent_stat_perthread_t<stddev_t>
-{
+struct perfmon_persistent_stddev_t : public perfmon_stddev_t,
+                                     public persistent_stat_perthread_t<stddev_t> {
     explicit perfmon_persistent_stddev_t(const std::string& name, perfmon_collection_t *parent = NULL);
 
     PERSISTENT_STAT_PERTHREAD_IMPL(stddev_t);

@@ -7,7 +7,7 @@
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/buf_patch.hpp"
-#include "perfmon.hpp" //RSI
+#include "perfmon_types.hpp"
 
 // TODO: Have the semantic checking cache make sure that the
 // repli_timestamp_ts are correct.

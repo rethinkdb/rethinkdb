@@ -140,8 +140,6 @@ To monitor something, declare a global variable that is an instance of a subclas
 perfmon_t and pass its name to the constructor. It is not safe to create a perfmon_t
 after the server starts up because the global list is not thread-safe. */
 
-class perfmon_collection_t;
-
 class perfmon_t : public intrusive_list_node_t<perfmon_t> {
 public:
     perfmon_collection_t *parent;

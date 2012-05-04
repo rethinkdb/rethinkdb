@@ -13,8 +13,6 @@
 #include "serializer/types.hpp"
 #include "perfmon_types.hpp"
 
-#include "perfmon.hpp" //RSI
-
 class log_serializer_t;
 
 class data_block_manager_t;
