@@ -8,7 +8,6 @@
 
 class tcp_conn_stream_t : public read_stream_t, public write_stream_t {
 public:
-    tcp_conn_stream_t(const char *host, int port, int local_port = 0);
     tcp_conn_stream_t(const ip_address_t &host, int port, int local_port = 0);
 
     // Takes ownership.
