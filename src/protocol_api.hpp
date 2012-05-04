@@ -58,6 +58,9 @@ bool region_is_empty(const region_t &r) {
     return region_is_superset(region_t::empty(), r);
 }
 
+// TODO: you're probably being lazy and should write faster code if
+// you're using this function (and maybe you're temporarily a bad
+// person).
 template<class region_t>
 bool region_overlaps(const region_t &r1, const region_t &r2) {
     return !region_is_empty(region_intersection(r1, r2));

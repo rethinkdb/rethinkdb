@@ -55,6 +55,13 @@ get_all_metainfos(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tok
 }
 
 
+template <class protocol_t>
+typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_region(int i) const {
+    guarantee(0 <= i && i < num_stores());
+    return store_views[i]->get_region();
+}
+
+
 
 
 

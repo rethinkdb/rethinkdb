@@ -9,6 +9,24 @@ Even if the `protocol_t` can tolerate backfill chunks being reordered, it's
 clearly not OK for the end-of-backfill message to be processed before the last
 of the backfill chunks are. Consider using a FIFO enforcer or something. */
 
+template <class protocol_t>
+void actually_call_receive_backfill(multistore_ptr_t<protocol_t> *svs,
+                                    std::vector<int> *indices,
+                                    std::vector<typename protocol_t::backfill_chunk_t> *sharded_chunks,
+                                    signal_t *interruptor,
+                                    int i) {
+    try {
+
+        // TODO: as mentioned below this is pointless b.s. ordering.
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
+        svs->get_store_view(indices[i])->new_write_token(write_token);
+        svs->get_store_view(indices[i])->receive_backfill((*sharded_chunks)[i], write_token, interruptor);
+
+    } catch (interrupted_exc_t&) {
+        // we check if the thing was pulsed after pmap.
+    }
+}
+
 template<class protocol_t>
 void on_receive_backfill_chunk(
         multistore_ptr_t<protocol_t> *svs,
@@ -27,9 +45,31 @@ void on_receive_backfill_chunk(
     }
 
     try {
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
-        store->new_write_token(write_token);
-        store->receive_backfill(chunk, write_token, interruptor);
+        std::vector<int> indices;
+        std::vector<typename protocol_t::backfill_chunk_t> sharded_chunks;
+
+        typename protocol_t::region_t chunk_region = chunk.get_region();
+
+        for (int i = 0, e = svs->num_stores(); i < e; ++i) {
+            typename protocol_t::region_t region = svs->get_region(i);
+
+            typename protocol_t::region_t intersection = region_intersection(region, chunk_region);
+            if (!region_is_empty(intersection)) {
+                indices.push_back(i);
+                sharded_chunks.push_back(chunk.shard(intersection));
+            }
+        }
+
+        // TODO: Ordering is broken here definitely, _especially_ with pmap, USE FIFO ENFORCER TOKENS OR
+
+        pmap(indices.size(), boost::bind(&actually_call_receive_backfill<protocol_t>, svs, &indices, &sharded_chunks, interruptor, _1));
+
+        if (interruptor.is_pulsed()) {
+            // kill me
+            throw interrupted_exc_t();
+        }
+
+        // here have a member pointer:  &std::vector<int>::at
     } catch (interrupted_exc_t) {
         return;
     }

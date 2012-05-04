@@ -20,11 +20,15 @@ public:
 
     typename protocol_t::region_t get_multistore_joined_region() const;
 
+    int num_stores() const { return store_views.size(); }
+
     void new_read_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out, int size);
 
     region_map_t<protocol_t, version_range_t>
     get_all_metainfos(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens, int num_read_tokens,
 		      signal_t *interruptor);
+
+    typename protocol_t::region_t get_region(int i) const;
 
 
 
