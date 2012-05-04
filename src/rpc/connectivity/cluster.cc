@@ -142,9 +142,11 @@ void connectivity_cluster_t::run_t::join_blocking(
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
     parent->assert_thread();
     try {
-        tcp_conn_stream_t conn(address.ip, address.port, cluster_client_port);
+        tcp_conn_stream_t conn(address.ip, address.port, drainer_lock.get_drain_signal(), cluster_client_port);
         handle(&conn, expected_id, boost::optional<peer_address_t>(address), drainer_lock);
     } catch (tcp_conn_t::connect_failed_exc_t) {
+        /* Ignore */
+    } catch (interrupted_exc_t) {
         /* Ignore */
     }
 }

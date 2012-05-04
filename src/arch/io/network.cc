@@ -25,10 +25,15 @@
 
 /* Network connection object */
 
-fd_t connect_to(const ip_address_t &host, int port, int local_port) {
-
-    scoped_fd_t sock;
-    sock.reset(socket(AF_INET, SOCK_STREAM, 0));
+linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
+    write_perfmon(NULL),
+    sock(socket(AF_INET, SOCK_STREAM, 0)),
+    event_watcher(new linux_event_watcher_t(sock.get(), this)),
+    read_in_progress(false), write_in_progress(false),
+    write_handler(this),
+    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+    write_coro_pool(1, &write_queue, &write_handler),
+    current_write_buffer(get_write_buffer()) {
 
     struct sockaddr_in addr;
     if (local_port != 0) {
@@ -49,27 +54,24 @@ fd_t connect_to(const ip_address_t &host, int port, int local_port) {
     addr.sin_addr = host.addr;
     bzero(addr.sin_zero, sizeof(addr.sin_zero));
 
-    if (connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0) {
-        /* for some reason the connection failed */
-        logINF("Failed to make a connection with error: %s", strerror(errno));
-        throw linux_tcp_conn_t::connect_failed_exc_t();
-    }
-
     guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 
-    return sock.release();
+    int res = connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+    if (res != 0) {
+        if (errno == EINPROGRESS) {
+            linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
+            wait_interruptible(&watch, interruptor);
+            int error;
+            socklen_t error_size = sizeof(error);
+            res = getsockopt(sock.get(), SOL_SOCKET, SO_ERROR, &error, &error_size);
+            if (error != 0) {
+                throw linux_tcp_conn_t::connect_failed_exc_t(error);
+            }
+        } else {
+            throw linux_tcp_conn_t::connect_failed_exc_t(errno);
+        }
+    }
 }
-
-linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, int local_port) :
-    write_perfmon(NULL),
-    sock(connect_to(host, port, local_port)),
-    event_watcher(new linux_event_watcher_t(sock.get(), this)),
-    read_in_progress(false), write_in_progress(false),
-    write_handler(this),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
-    write_coro_pool(1, &write_queue, &write_handler),
-    current_write_buffer(get_write_buffer())
-{ }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     write_perfmon(NULL),

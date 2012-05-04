@@ -36,14 +36,17 @@ class linux_tcp_conn_t :
 public:
     friend class linux_nascent_tcp_conn_t;
 
-    struct connect_failed_exc_t : public std::exception {
+    class connect_failed_exc_t : public std::exception {
+    public:
+        connect_failed_exc_t(int en) : error(en) { }
         const char *what() const throw () {
-            return "Could not make connection";
+            return strprintf("Could not make connection: %s", strerror(error)).c_str();
         }
         ~connect_failed_exc_t() throw () { }
+        int error;
     };
 
-    linux_tcp_conn_t(const ip_address_t &host, int port, int local_port = 0);
+    linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port = 0) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
 
     /* Reading */
 
