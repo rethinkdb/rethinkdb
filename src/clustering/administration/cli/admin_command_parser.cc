@@ -214,9 +214,9 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(const
             std::map<std::string, param_options *>::iterator opt_iter = info->flags.find(line[index].substr(2));
             if (opt_iter != info->flags.end()) {
                 param_options *option = opt_iter->second;
-                if (option->count == 0) // Flag only
+                if (option->count == 0) {  // Flag only
                     data.params[option->name] = std::vector<std::string>();
-                else {
+                } else {
                     size_t remaining = option->count;
                     if (index + remaining >= line.size())
                         throw admin_parse_exc_t("not enough arguments provided for flag: " + line[index]);
@@ -229,8 +229,9 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(const
                         data.params[option->name].push_back(line[index]);
                     }
                 }
-            } else
+            } else {
                 throw admin_parse_exc_t("unrecognized flag: " + line[index]);
+            }
         } else { // Otherwise, it must be a positional
             if (positional_index + 1 > info->positionals.size())
                 throw admin_parse_exc_t("too many positional arguments");
@@ -283,9 +284,9 @@ void admin_command_parser_t::run_command(command_data& data)
 }
 
 void admin_command_parser_t::completion_generator_hook(const char *raw, linenoiseCompletions *completions) {
-    if (instance == NULL)
+    if (instance == NULL) {
         logERR("linenoise completion generator called without an instance of admin_command_parser_t");
-    else {
+    } else {
         bool partial = !linenoiseIsUnescapedSpace(raw, strlen(raw) - 1);
         try {
             std::vector<std::string> line = po::split_unix(raw);
@@ -397,8 +398,9 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
                         else // find matches of last word with valid_options
                             add_option_matches(opt_iter->second, line[line.size() - 1], completions);
                         return;
-                    } else
+                    } else {
                         index += opt_iter->second->count;
+                    }
                 } else if (line.size() == index + 1) {
                     if (partial)
                         for (opt_iter = cmd->flags.lower_bound(line[index].substr(2)); opt_iter != cmd->flags.end() && opt_iter->first.find(line[index].substr(2)) == 0; ++opt_iter)
@@ -413,8 +415,9 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
                 if (index == line.size() - 1) {
                     if (!partial) {
                         add_positional_matches(cmd, positional_index + 1, std::string(), completions);
-                    } else
+                    } else {
                         add_positional_matches(cmd, positional_index, line[line.size() - 1], completions);
+                    }
                     return;
                 }
 
