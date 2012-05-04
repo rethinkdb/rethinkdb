@@ -11,16 +11,16 @@
 #include "arch/arch.hpp"
 
 perfmon_result_t::perfmon_result_t() {
-    type = value;
+    type = type_value;
 }
 
 perfmon_result_t::perfmon_result_t(const std::string &s) { 
-    type = value;
+    type = type_value;
     _value = s;
 }
 
 perfmon_result_t::perfmon_result_t(const boost::ptr_map<std::string, perfmon_result_t> &m) {
-    type = map;
+    type = type_map;
     _map = m;
 }
 

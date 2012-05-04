@@ -10,6 +10,7 @@
 #include "clustering/administration/stat_manager.hpp"
 #include "http/json.hpp"
 #include "perfmon.hpp"
+#include "perfmon_archive.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 
 static const char * STAT_REQ_TIMEOUT_PARAM = "timeout";
