@@ -7,9 +7,6 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "perfmon.hpp" //RSI
-#include "stats/persist.hpp" //maybe RSI?
-
 #include "arch/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
@@ -24,6 +21,7 @@
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
+#include "buffer_cache/mirrored/stats.hpp"
 
 #include "buffer_cache/mirrored/writeback.hpp"
 
@@ -296,8 +294,6 @@ private:
     DISABLE_COPYING(mc_transaction_t);
 };
 
-
-
 class mc_cache_account_t {
 public:
     ~mc_cache_account_t();
@@ -308,59 +304,6 @@ private:
     int thread_;
     file_account_t *io_account_;
     DISABLE_COPYING(mc_cache_account_t);
-};
-
-/* A class to hold all the stats we care about for this cache. */
-struct mc_cache_stats_t {
-    perfmon_collection_t cache_collection;
-
-    mc_cache_stats_t(perfmon_collection_t *parent);
-
-    perfmon_counter_t 
-        pm_registered_snapshots,
-        pm_registered_snapshot_blocks;
-
-    perfmon_sampler_t pm_snapshots_per_transaction;
-
-    perfmon_persistent_counter_t 
-        pm_cache_hits,
-        pm_cache_misses;
-
-    perfmon_duration_sampler_t
-        pm_bufs_acquiring,
-        pm_bufs_held;
-
-    perfmon_sampler_t pm_patches_size_per_write;
-
-    perfmon_duration_sampler_t
-        pm_transactions_starting,
-        pm_transactions_active,
-        pm_transactions_committing;
-
-
-    /* Used in writeback.hpp */
-    perfmon_duration_sampler_t
-        pm_flushes_diff_flush,
-        pm_flushes_diff_store,
-        pm_flushes_locking,
-        pm_flushes_writing;
-
-    perfmon_sampler_t
-        pm_flushes_blocks,
-        pm_flushes_blocks_dirty,
-        pm_flushes_diff_patches_stored,
-        pm_flushes_diff_storage_failures;
-
-    perfmon_counter_t
-        pm_n_blocks_in_memory,
-        pm_n_blocks_dirty,
-        pm_n_blocks_total;
-
-    perfmon_sampler_t pm_patches_size_ratio;
-
-    // used in buffer_cache/mirrored/page_repl_random.cc
-    perfmon_counter_t pm_n_blocks_evicted;
-
 };
 
 class mc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {

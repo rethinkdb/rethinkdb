@@ -14,16 +14,14 @@
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
-#include "perfmon.hpp" //RSI put perfmon stuff in a different file
+#include "perfmon_types.hpp"
 
 class signal_t;
 
 namespace mock {
 
 class dummy_protocol_t {
-
 public:
-
     class region_t {
     public:
         static region_t empty() THROWS_NOTHING;

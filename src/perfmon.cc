@@ -11,16 +11,16 @@
 #include "arch/arch.hpp"
 
 perfmon_result_t::perfmon_result_t() {
-    type = value;
+    type = type_value;
 }
 
 perfmon_result_t::perfmon_result_t(const std::string &s) { 
-    type = value;
+    type = type_value;
     _value = s;
 }
 
 perfmon_result_t::perfmon_result_t(const boost::ptr_map<std::string, perfmon_result_t> &m) {
-    type = map;
+    type = type_map;
     _map = m;
 }
 
@@ -47,7 +47,6 @@ spinlock_t &get_var_lock() {
     static spinlock_t lock;
     return lock;
 }
-
 
 /* This is the function that actually gathers the stats. It is illegal to create or destroy
 perfmon_t objects while perfmon_get_stats is active. */

@@ -4,8 +4,7 @@
 #include "serializer/log/lba/disk_format.hpp"
 #include "arch/arch.hpp"
 #include "perfmon.hpp"
-#include "serializer/log/log_serializer.hpp" //RSI
-
+#include "serializer/log/stats.hpp"
 
 lba_list_t::lba_list_t(extent_manager_t *em)
     : shutdown_callback(NULL), gc_count(0), extent_manager(em),

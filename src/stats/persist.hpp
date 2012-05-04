@@ -15,9 +15,7 @@ public:
 };
 
 // A stat about the store, persisted via btree_key_value_store_t::{get,set}_meta
-struct persistent_stat_t
-    : public intrusive_list_node_t<persistent_stat_t>
-{
+struct persistent_stat_t : public intrusive_list_node_t<persistent_stat_t> {
     persistent_stat_t();
     virtual ~persistent_stat_t();
 
@@ -26,7 +24,7 @@ struct persistent_stat_t
     static void persist_all(metadata_store_t *store);
     static void unpersist_all(metadata_store_t *store);
 
-  protected:
+protected:
     virtual std::string persist_key() = 0;
     // unpersist is not required, and should not be assumed, to be threadsafe (it should not be
     // called from multiple threads simultaneously)
@@ -36,15 +34,13 @@ struct persistent_stat_t
     // course, visit_persist() may occur simultaneously on different threads).
     virtual void *begin_persist() = 0;
     virtual std::string end_persist(void *) = 0;
-  public:                       // unfortunately needs to be public for implementation reasons
+public:                       // unfortunately needs to be public for implementation reasons
     virtual void visit_persist(void *) = 0;
 };
 
 // Abstract persistent_stat subclass implemented by combining per-thread values.
 template<typename thread_stat_t>
-struct persistent_stat_perthread_t
-    : public persistent_stat_t
-{
+struct persistent_stat_perthread_t : public persistent_stat_t {
     void *begin_persist() { return new thread_stat_t[get_num_threads()]; }
 
     void visit_persist(void *data) {
@@ -58,7 +54,7 @@ struct persistent_stat_perthread_t
         return result;
     }
 
-  protected:
+protected:
     virtual void get_thread_persist(thread_stat_t *stat) = 0;
     virtual std::string combine_persist(thread_stat_t *stats) = 0;
 };
@@ -70,30 +66,26 @@ struct persistent_stat_perthread_t
     void unpersist(const std::string&)
 
 // Persistent perfmon counter
-struct perfmon_persistent_counter_t
-    : public perfmon_counter_t
-    , public persistent_stat_perthread_t<cache_line_padded_t<int64_t> >
-{
+struct perfmon_persistent_counter_t : public perfmon_counter_t,
+                                      public persistent_stat_perthread_t<cache_line_padded_t<int64_t> > {
     explicit perfmon_persistent_counter_t(const std::string& name, perfmon_collection_t *parent = NULL);
 
     PERSISTENT_STAT_PERTHREAD_IMPL(padded_int64_t);
     int64_t combine_stats(padded_int64_t *);
 
-  private:
+private:
     int64_t unpersisted_value;
 };
 
 // Persistent stddev
-struct perfmon_persistent_stddev_t
-    : public perfmon_stddev_t
-    , public persistent_stat_perthread_t<stddev_t>
-{
+struct perfmon_persistent_stddev_t : public perfmon_stddev_t,
+                                     public persistent_stat_perthread_t<stddev_t> {
     explicit perfmon_persistent_stddev_t(const std::string& name, perfmon_collection_t *parent = NULL);
 
     PERSISTENT_STAT_PERTHREAD_IMPL(stddev_t);
     stddev_t combine_stats(stddev_t *);
 
-  private:
+private:
     stddev_t unpersisted_value;
 };
 

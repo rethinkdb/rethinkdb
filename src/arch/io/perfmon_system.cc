@@ -119,10 +119,7 @@ private:
 };
 
 /* perfmon_system_t is used to monitor system stats that do not need to be polled. */
-
-struct perfmon_system_t :
-    public perfmon_t
-{
+struct perfmon_system_t : public perfmon_t {
     bool have_reported_error;
     explicit perfmon_system_t(perfmon_collection_t *parent = NULL) : perfmon_t(parent), have_reported_error(false), start_time(time(NULL)) { }
 
@@ -141,8 +138,7 @@ struct perfmon_system_t :
             pid_stat = proc_pid_stat_t::for_pid(getpid());
         } catch (proc_pid_stat_exc_t e) {
             if (!have_reported_error) {
-                logWRN("Error in reporting system stats: %s (Further errors like this will "
-                    "be suppressed.)", e.what());
+                logWRN("Error in reporting system stats: %s (Further errors like this will be suppressed.)", e.what());
                 have_reported_error = true;
             }
             return;

@@ -281,15 +281,6 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-//RSI
-//perfmon_duration_sampler_t pm_serializer_block_reads("serializer_block_reads", secs_to_ticks(1));
-//perfmon_counter_t pm_serializer_index_reads("serializer_index_reads");
-//// TODO: Should be a duration sampler (see block_write() below)
-////perfmon_duration_sampler_t pm_serializer_block_writes("serializer_block_writes", secs_to_ticks(1));
-//perfmon_counter_t pm_serializer_block_writes("serializer_block_writes");
-//perfmon_duration_sampler_t pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1));
-//perfmon_sampler_t pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1));
-
 void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
@@ -298,8 +289,7 @@ void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t
     cb.wait();
 }
 
-// TODO(sam): block_read can call the callback before it returns.  Is
-// this acceptable?
+// TODO(sam): block_read can call the callback before it returns. Is this acceptable?
 void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {

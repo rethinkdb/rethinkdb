@@ -113,9 +113,9 @@ public:
     explicit memcache_conn_closing_subscription_t(tcp_conn_t *conn) : conn_(conn) { }
 
     virtual void run() {
-	if (conn_->is_read_open()) {
-	    conn_->shutdown_read();
-	}
+        if (conn_->is_read_open()) {
+            conn_->shutdown_read();
+        }
     }
 private:
     tcp_conn_t *conn_;

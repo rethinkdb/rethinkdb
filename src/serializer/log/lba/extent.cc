@@ -4,7 +4,7 @@
 
 #include "arch/arch.hpp"
 #include "perfmon.hpp"
-#include "serializer/log/log_serializer.hpp" //RSI
+#include "serializer/log/stats.hpp"
 
 struct extent_block_t :
     public extent_t::sync_callback_t,
