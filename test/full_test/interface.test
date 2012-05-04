@@ -2,5 +2,5 @@ for interface_test_name in ['detect_dead', 'distribution', 'log', 'progress']:
     do_test(
         "$RETHINKDB/test/interface/%s.py" % interface_test_name,
         repeat = 3,
-        inputs = ["build/debug/rethinkdb", "test/interface", "test/common"]
+        inputs = ["build/debug/rethinkdb", "test/interface", "test/common", "test/scenarios/workload_common.py"]
         )
