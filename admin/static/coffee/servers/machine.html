@@ -51,8 +51,14 @@
 </script>
 
 <script id="machine_view-recent_log_entry-template" type="text/x-handlebars-template">
-  <div class="priority {{priority}}"></div>
-  <div class="message">{{message}}</div>
-  <p class="datetime"><abbr class="timeago" title="{{datetime}}">{{datetime}}</abbr></p>
+    <div class="entry-metadata">
+        <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
+    </div>
+    <p class="level">{{level}}</p>
+    <p class="message">
+        {{formatted_message}}
+        {{#if json}}
+            <a href="#" class="json" rel="popover" data-content="<pre>{{json}}</pre>" data-title="JSON applied to server">examine JSON</a>
+        {{/if}}
+    </p>
 </script>
-

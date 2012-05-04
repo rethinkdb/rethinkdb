@@ -19,7 +19,7 @@ module 'Sidebar', ->
                 @render()
 
             # Set up bindings for the router
-            $(window.app_events).on 'router_ready', =>
+            app_events.on 'router_ready', =>
                 window.app.on 'all', => @render()
 
         render: (route) =>
@@ -144,10 +144,19 @@ module 'Sidebar', ->
         className: 'recent-log-entry'
         template: Handlebars.compile $('#sidebar-recent_log_entry-template').html()
 
+        events: ->
+            'click a[rel=popover]': 'do_nothing'
+
+        do_nothing: (event) -> event.preventDefault()
+
         render: =>
-            @.$el.html @template _.extend @model.toJSON(),
+            json = _.extend @model.toJSON(), @model.get_formatted_message()
+            @.$el.html @template _.extend json,
                 machine_name: machines.get(@model.get('machine_uuid')).get('name')
                 timeago_timestamp: @model.get_iso_8601_timestamp()
+
             @.$('abbr.timeago').timeago()
+            @.$('a[rel=popover]').popover
+                html: true
             return @
 

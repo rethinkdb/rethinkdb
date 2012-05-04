@@ -67,9 +67,13 @@
 </script>
 
 <script id="sidebar-recent_log_entry-template" type="text/x-handlebars-template">
-  <div class="level {{level}}"></div>
-  <div class="message">{{message}}</div>
-  <p class="from-machine">From <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
-  <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
+    <div class="level {{level}}"></div>
+    <p class="message">
+        {{formatted_message}}
+        {{#if json}}
+                <a href="#" class="json" rel="popover" data-content="<pre>{{json}}</pre>" data-title="JSON applied to server">examine JSON</a>
+        {{/if}}
+    </p>
+    <p class="from-machine">From <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
+    <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
 </script>
-

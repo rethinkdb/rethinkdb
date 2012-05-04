@@ -83,11 +83,14 @@
 
             p { margin-bottom: 0; }
 
-            p.entry-metadata {
-                text-transform: uppercase;
-                color: @gray;
-                text-align: right;
-                font-size: 0.75em;
+            .entry-metadata {
+                p {
+                    text-transform: uppercase;
+                    color: @gray;
+                    text-align: left;
+                    font-size: 0.75em;
+                    margin-bottom: 0;
+                }
                 margin-bottom: 6px;
             }
 
@@ -100,20 +103,34 @@
 
             p.message {
                 margin-left: 50px;
+                a.json {
+                    text-transform: uppercase;
+                    font-size: 0.75em;
+                    color: @gray;
+                    border-bottom: thin dotted @gray;
+                    &:hover {
+                        border-bottom: none;
+                    }
+                }
             }
         }
     }
 
     .any-more-log-entries {
-        margin-bottom: 20px;
-    }
-    .no-more-entries {
-        display: none;
-        text-align: center;
-        font-weight: bold;
-        background: @grayLighter;
-        padding: 15px;
-        border: thin solid #CCC;
+        margin-top: 20px;
+        margin-bottom: 40px;
+        .no-more-entries {
+            display: none;
+            text-align: center;
+            font-weight: bold;
+            background: @grayLighter;
+            padding: 15px;
+            border: thin solid #CCC;
+        }
+        .next-log-entries {
+            font-size: 1.2em;
+            text-align: right;
+        }
     }
 }
 
@@ -233,6 +250,15 @@
             padding: 0 0;
             vertical-align: middle;
             width: 100%;
+            a.json {
+                text-transform: uppercase;
+                font-size: 0.75em;
+                color: @gray;
+                border-bottom: thin dotted @gray;
+                &:hover {
+                    border-bottom: none;
+                }
+            }
         }
 
         .datetime, .from-machine {
@@ -785,6 +811,45 @@
     h1 {
         margin-bottom: 10px;
         display: inline-block;
+    }
+
+    .recent-log-entry {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: thin solid @grayLighter;
+
+        p { margin-bottom: 0; }
+
+        .entry-metadata {
+            p {
+                text-transform: uppercase;
+                color: @gray;
+                text-align: left;
+                font-size: 0.75em;
+                margin-bottom: 0;
+            }
+            margin-bottom: 6px;
+        }
+
+        p.level {
+            text-transform: uppercase;
+            color: @gray;
+            font-size: 0.75em;
+            float: left;
+        }
+
+        p.message {
+            margin-left: 50px;
+            a.json {
+                text-transform: uppercase;
+                font-size: 0.75em;
+                color: @gray;
+                border-bottom: thin dotted @gray;
+                &:hover {
+                    border-bottom: none;
+                }
+            }
+        }
     }
 }
 

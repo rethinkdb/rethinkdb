@@ -9,7 +9,7 @@ class NavBarView extends Backbone.View
     initialize: ->
         log_initial '(initializing) NavBarView'
         # rerender when route changes
-        $(window.app_events).on "router_ready", =>
+        app_events.on "router_ready", =>
             # Render every time the route changes
             window.app.on "all", @render
 

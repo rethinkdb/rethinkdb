@@ -124,10 +124,6 @@ $ ->
 
     window.last_update_tstamp = 0
 
-    # Add fake issues and events for testing | DELETE TODO
-    #generate_fake_events(events)
-    #generate_fake_issues(issues)
-
     # Load the data bootstrapped from the HTML template
     # reset_collections()
     reset_token()
@@ -159,13 +155,23 @@ $ ->
     # This object is for global events whose relevant data may not be available yet. Example include:
     #   - the router is unavailable when first initializing
     #   - machines, namespaces, and datacenters collections are unavailable when first initializing
-    window.app_events = {}
+    window.app_events =
+        triggered_events: {}
+    _.extend(app_events, Backbone.Events)
+    # Count the number of times any particular event has been called
+    app_events.on 'all', (event) ->
+        triggered = app_events.triggered_events
+
+        if not triggered[event]?
+            triggered[event] = 1
+        else
+            triggered[event]+=1
 
     # Create the app
     window.app = new BackboneCluster
 
     # Signal that the router is ready to be bound to
-    $(window.app_events).trigger('router_ready')
+    app_events.trigger('router_ready')
 
     # Now that we're all bound, start routing
     Backbone.history.start()
@@ -174,7 +180,7 @@ $ ->
     declare_client_connected()
 
     # Provide one optional callback that will indicate when collections are fully populated
-    collect_server_data( -> $(window.app_events).trigger('collections_ready'))
+    collect_server_data( -> app_events.trigger('collections_ready'))
 
     # Set up common DOM behavior
     $('.modal').modal

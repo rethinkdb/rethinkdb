@@ -104,11 +104,21 @@ module 'MachineView', ->
 
     # MachineView.RecentLogEntry
     class @RecentLogEntry extends Backbone.View
-        className: 'machine-logs'
+        className: 'recent-log-entry'
         template: Handlebars.compile $('#machine_view-recent_log_entry-template').html()
 
-        render: =>
-            @.$el.html @template @model.toJSON()
-            @.$('abbr.timeago').timeago()
-            return @
+        events: ->
+            'click a[rel=popover]': 'do_nothing'
 
+        do_nothing: (event) -> event.preventDefault()
+
+        render: =>
+            json = _.extend @model.toJSON(), @model.get_formatted_message()
+            @.$el.html @template _.extend json,
+                machine_name: machines.get(@model.get('machine_uuid')).get('name')
+                timeago_timestamp: @model.get_iso_8601_timestamp()
+
+            @.$('abbr.timeago').timeago()
+            @.$('a[rel=popover]').popover
+                html: true
+            return @

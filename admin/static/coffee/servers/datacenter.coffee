@@ -114,10 +114,21 @@ module 'DatacenterView', ->
 
     # DatacenterView.RecentLogEntry
     class @RecentLogEntry extends Backbone.View
-        className: 'datacenter-logs'
+        className: 'recent-log-entry'
         template: Handlebars.compile $('#datacenter_view-recent_log_entry-template').html()
 
+        events: ->
+            'click a[rel=popover]': 'do_nothing'
+
+        do_nothing: (event) -> event.preventDefault()
+
         render: =>
-            @.$el.html @template @model.toJSON()
+            json = _.extend @model.toJSON(), @model.get_formatted_message()
+            @.$el.html @template _.extend json,
+                machine_name: machines.get(@model.get('machine_uuid')).get('name')
+                timeago_timestamp: @model.get_iso_8601_timestamp()
+
             @.$('abbr.timeago').timeago()
+            @.$('a[rel=popover]').popover
+                html: true
             return @

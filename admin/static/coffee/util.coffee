@@ -116,29 +116,8 @@ ISODateString = (d) ->
 # -----------------------------------------------
 random_model_from = (collection) ->_.shuffle(collection.models)[0]
 
-# Create a set of fake issues
-generate_fake_issues = (issues) ->
-    issues.reset [
-            critical: true
-            type: 'master_down'
-            datetime: ISODateString time_travel 15
-        ,
-            critical: true
-            type: 'master_down'
-            datetime: ISODateString time_travel 24
-        ,
-            critical: true
-            type: 'metadata_conflict'
-            datetime: ISODateString time_travel 40
-        ,
-            critical: false
-            type: 'namespace_missing_replicas'
-            datetime: ISODateString time_travel 29
-        ,
-            critical: false
-            type: 'datacenter_inaccessible'
-            datetime: ISODateString time_travel 59
-    ]
+# Generate ISO 8601 timestamps from Unix timestamps
+iso_date_from_unix_time = (unix_time) -> ISODateString new Date(unix_time * 1000)
 
 # Extract form data as an object
 form_data_as_object = (form) ->
