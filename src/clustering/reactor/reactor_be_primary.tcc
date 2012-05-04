@@ -284,7 +284,9 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
                     promise_t<bool> *p = new promise_t<bool>;
                     promises.push_back(p);
                     coro_t::spawn_sometime(boost::bind(&do_backfill<protocol_t>,
-                                                       mailbox_manager, branch_history, store,
+                                                       mailbox_manager,
+                                                       branch_history,
+                                                       store,
                                                        it->first,
                                                        it->second.places_to_get_this_version[0].backfiller,
                                                        backfill_session_id,

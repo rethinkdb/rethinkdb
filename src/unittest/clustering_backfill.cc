@@ -1,6 +1,7 @@
 #include "unittest/gtest.hpp"
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "unittest/clustering_utils.hpp"
@@ -55,7 +56,7 @@ void run_backfill_test() {
 
     // initialize the metainfo in a store
     store_view_t<dummy_protocol_t> *stores[] = { &backfiller_store, &backfillee_store };
-    for (size_t i = 0; i < sizeof stores / sizeof stores[0]; i++) {
+    for (size_t i = 0; i < sizeof(stores) / sizeof(stores[0]); i++) {
         cond_t non_interruptor;
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
         stores[i]->new_write_token(token);
@@ -117,11 +118,14 @@ void run_backfill_test() {
 
     /* Run a backfill */
 
+    // Uhh.. hehhehheh... this might be wrong.
+    multistore_ptr_t<dummy_protocol_t> backfillee_multistore(&backfillee_store, 1);
+
     cond_t interruptor;
     backfillee<dummy_protocol_t>(
         cluster.get_mailbox_manager(),
         branch_history_controller.get_view(),
-        &backfillee_store,
+        &backfillee_multistore,
         backfillee_store.get_region(),
         pseudo_directory.get_watchable()->subview(&wrap_in_optional),
         generate_uuid(),
