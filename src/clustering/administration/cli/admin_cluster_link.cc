@@ -1,8 +1,8 @@
 #include "clustering/administration/cli/admin_cluster_link.hpp"
 
-#include <cstdarg>
-#include <iostream>
-#include <sstream>
+#include <stdarg.h>
+#include <stdio.h>
+
 #include <map>
 #include <stdexcept>
 
@@ -276,7 +276,7 @@ void admin_cluster_link_t::do_admin_list(admin_command_parser_t::admin_command_p
     } else if (!id.empty()) {
         // TODO: special formatting for each object type, instead of JSON
         obj_path = get_path_from_id(id);
-        std::cout << cJSON_print_std_string(scoped_cJSON_t(traverse_directory(obj_path, json_ctx, cluster_metadata)->render(json_ctx)).get()) << std::endl;
+        puts(cJSON_print_std_string(scoped_cJSON_t(traverse_directory(obj_path, json_ctx, cluster_metadata)->render(json_ctx)).get()).c_str());
     } else {
         list_machines(long_format, cluster_metadata);
         list_datacenters(long_format, cluster_metadata);
@@ -287,57 +287,57 @@ void admin_cluster_link_t::do_admin_list(admin_command_parser_t::admin_command_p
 
 void admin_cluster_link_t::list_issues(bool long_format UNUSED) {
     std::list<clone_ptr_t<global_issue_t> > issues = issue_aggregator.get_issues();
-    std::cout << "Issues: " << std::endl;
+    puts("Issues: ");
 
     for (std::list<clone_ptr_t<global_issue_t> >::iterator i = issues.begin(); i != issues.end(); ++i) {
-        std::cout << (*i)->get_description() << std::endl;
+        puts((*i)->get_description().c_str());
     }
 }
 
 void admin_cluster_link_t::list_datacenters(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
-    std::cout << "Datacenters:" << std::endl;
+    puts("Datacenters:");
     for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator i = cluster_metadata.datacenters.datacenters.begin(); i != cluster_metadata.datacenters.datacenters.end(); ++i) {
         if (!i->second.is_deleted()) {
-            std::cout << " " << truncate_uuid(i->first);
+            printf(" %s", truncate_uuid(i->first).c_str());
             if (long_format)
-                std::cout << " " << i->second.get().name.get();
-            std::cout << std::endl;
+                printf(" %s", i->second.get().name.get().c_str());
+            printf("\n");
         }
     }
 }
 
 void admin_cluster_link_t::list_dummy_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
-    std::cout << "Dummy Namespaces:" << std::endl;
+    puts("Dummy Namespaces:");
     for (namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::const_iterator i = cluster_metadata.dummy_namespaces.namespaces.begin(); i != cluster_metadata.dummy_namespaces.namespaces.end(); ++i) {
         if (!i->second.is_deleted()) {
-            std::cout << " " << truncate_uuid(i->first);
+            printf(" %s", truncate_uuid(i->first).c_str());
             if (long_format)
-                std::cout << " " << i->second.get().name.get();
-            std::cout << std::endl;
+                printf(" %s", i->second.get().name.get().c_str());
+            printf("\n");
         }
     }
 }
 
 void admin_cluster_link_t::list_memcached_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
-    std::cout << "Memcached Namespaces:" << std::endl;
+    puts("Memcached Namespaces:");
     for (namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::const_iterator i = cluster_metadata.memcached_namespaces.namespaces.begin(); i != cluster_metadata.memcached_namespaces.namespaces.end(); ++i) {
         if (!i->second.is_deleted()) {
-            std::cout << " " << truncate_uuid(i->first);
+            printf(" %s", truncate_uuid(i->first).c_str());
             if (long_format)
-                std::cout << " " << i->second.get().name.get();
-            std::cout << std::endl;
+                printf(" %s", i->second.get().name.get().c_str());
+            printf("\n");
         }
     }
 }
 
 void admin_cluster_link_t::list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
-    std::cout << "Machines:" << std::endl;
+    puts("Machines:");
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin(); i != cluster_metadata.machines.machines.end(); ++i) {
         if (!i->second.is_deleted()) {
-            std::cout << " " << truncate_uuid(i->first);
+            printf(" %s", truncate_uuid(i->first).c_str());
             if (long_format)
-                std::cout << " " << i->second.get().name.get();
-            std::cout << std::endl;
+                printf(" %s", i->second.get().name.get().c_str());
+            printf("\n");
         }
     }
 }
@@ -356,9 +356,11 @@ void admin_cluster_link_t::do_admin_make_datacenter(admin_command_parser_t::comm
 
 void admin_cluster_link_t::do_admin_make_namespace(admin_command_parser_t::command_data& data) {
     std::vector<std::string> obj_path;
-    std::stringstream value;
+    std::string value;
 
-    value << "{ \"name\": \"" + (data.params.count("name") == 0 ? std::string() : data.params["name"][0]) + "\"";
+    // TODO: WTF?  Is this how we serialize things to json?  By
+    // copying a string and hoping there are no special characters?
+    value += "{ \"name\": \"" + (data.params.count("name") == 0 ? std::string() : data.params["name"][0]) + "\"";
 
     std::string protocol = data.params["protocol"][0];
     if (protocol == "memcached")
@@ -368,7 +370,7 @@ void admin_cluster_link_t::do_admin_make_namespace(admin_command_parser_t::comma
     else
         throw admin_parse_exc_t("unknown protocol: " + protocol);
 
-    value << ", \"port\": " << data.params["port"][0];
+    value += ", \"port\": " + data.params["port"][0];
 
     if (data.params.count("primary") == 1) {
         std::string primary = data.params["primary"][0];
@@ -383,13 +385,13 @@ void admin_cluster_link_t::do_admin_make_namespace(admin_command_parser_t::comma
             primary = i->second[i->second.size() - 1];
         }
 
-        value << ", \"primary_uuid\": \"" << primary << "\"";
+        value += ", \"primary_uuid\": \"" + primary + "\"";
     }
 
     obj_path.push_back("new");
-    value << " }";
+    value += " }";
 
-    set_metadata_value(obj_path, value.str());
+    set_metadata_value(obj_path, value);
 }
 
 void admin_cluster_link_t::do_admin_move(admin_command_parser_t::command_data& data) {
@@ -444,7 +446,7 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
             json_adapter_head->erase(json_ctx);
             // TODO: clean up any hanging references to this object's uuid
         } catch (std::exception& ex) {
-            std::cout << ex.what() << std::endl;
+            puts(ex.what());
             errored = true;
         }
     }
