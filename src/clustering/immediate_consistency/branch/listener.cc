@@ -114,13 +114,13 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 	throw backfiller_lost_exc_t();
     }
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token2;
-    store->new_read_token(read_token2);
+    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens2(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
+    svs->new_read_tokens(read_tokens2.get(), num_stores);
 
     typedef region_map_t<protocol_t, version_range_t> version_map_t;
 
     version_map_t backfill_end_point =
-	region_map_transform<protocol_t, binary_blob_t, version_range_t>(store->get_metainfo(read_token2, interruptor),
+	region_map_transform<protocol_t, binary_blob_t, version_range_t>(svs->get_all_metainfos(read_tokens2, num_stores, interruptor),
 									 &binary_blob_t::get<version_range_t>
 									 );
 
@@ -134,7 +134,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     /* Make sure the backfiller put us in a coherent position on the right
      * branch. */
 #ifndef NDEBUG
-    version_map_t expected_backfill_endpoint(store->get_region(),
+    version_map_t expected_backfill_endpoint(svs->get_multistore_joined_region(),
 					     version_range_t(version_t(branch_id, backfill_end_timestamp)));
 #endif
 
