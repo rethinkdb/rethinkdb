@@ -11,6 +11,7 @@
 template <class> class store_view_t;
 template <class, class> class region_map_t;
 class version_range_t;
+class binary_blob_t;
 
 template <class protocol_t>
 class multistore_ptr_t {
@@ -22,14 +23,20 @@ public:
 
     int num_stores() const { return store_views.size(); }
 
-    void new_read_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out, int size);
+    void new_read_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out, int size_assertion);
 
+    void new_write_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens_out, int size_assertion);
+
+    // TODO: Make this operate on binary_blob_t.
     region_map_t<protocol_t, version_range_t>
     get_all_metainfos(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens, int num_read_tokens,
 		      signal_t *interruptor);
 
     typename protocol_t::region_t get_region(int i) const;
+    store_view_t<protocol_t> *get_store_view(int i) const;
 
+    // This is the opposite of get_all_metainfos but is a bit more scary.
+    void set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens, int num_write_tokens, signal_t *interruptor);
 
 
 private:

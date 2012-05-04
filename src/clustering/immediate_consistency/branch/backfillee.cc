@@ -1,6 +1,7 @@
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 
 #include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/death_runner.hpp"
 
@@ -19,8 +20,8 @@ void actually_call_receive_backfill(multistore_ptr_t<protocol_t> *svs,
 
         // TODO: as mentioned below this is pointless b.s. ordering.
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
-        svs->get_store_view(indices[i])->new_write_token(write_token);
-        svs->get_store_view(indices[i])->receive_backfill((*sharded_chunks)[i], write_token, interruptor);
+        svs->get_store_view((*indices)[i])->new_write_token(write_token);
+        svs->get_store_view((*indices)[i])->receive_backfill((*sharded_chunks)[i], write_token, interruptor);
 
     } catch (interrupted_exc_t&) {
         // we check if the thing was pulsed after pmap.
@@ -64,7 +65,7 @@ void on_receive_backfill_chunk(
 
         pmap(indices.size(), boost::bind(&actually_call_receive_backfill<protocol_t>, svs, &indices, &sharded_chunks, interruptor, _1));
 
-        if (interruptor.is_pulsed()) {
+        if (interruptor->is_pulsed()) {
             // kill me
             throw interrupted_exc_t();
         }
@@ -87,7 +88,7 @@ void backfillee(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
-    rassert(region_is_superset(store->get_multistore_joined_region(), region));
+    rassert(region_is_superset(svs->get_multistore_joined_region(), region));
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
@@ -127,7 +128,7 @@ void backfillee(
         `chunk_mailbox`. */
         mailbox_t<void(typename protocol_t::backfill_chunk_t)> chunk_mailbox(
             mailbox_manager, boost::bind(&on_receive_backfill_chunk<protocol_t>,
-                store, &dont_go_until, _1, interruptor, auto_drainer_t::lock_t(&drainer)
+                svs, &dont_go_until, _1, interruptor, auto_drainer_t::lock_t(&drainer)
                 ));
 
         /* Send off the backfill request */
@@ -201,14 +202,18 @@ void backfillee(
                 }
             }
         }
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
-        store->new_write_token(write_token);
-        store->set_metainfo(
+
+        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+
+        svs->new_write_tokens(write_tokens.get(), num_stores);
+
+        svs->set_all_metainfos(
             region_map_transform<protocol_t, version_range_t, binary_blob_t>(
                 region_map_t<protocol_t, version_range_t>(span_parts.begin(), span_parts.end()),
                 &binary_blob_t::make<version_range_t>
                 ),
-            write_token,
+            write_tokens.get(),
+            num_stores,
             interruptor
             );
 
@@ -234,16 +239,19 @@ void backfillee(
     }
 
     /* Update the metadata to indicate that the backfill occurred */
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
-    store->new_write_token(write_token);
-    store->set_metainfo(
+    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+
+    svs->new_write_tokens(write_tokens.get(), num_stores);
+
+    svs->set_all_metainfos(
         region_map_transform<protocol_t, version_range_t, binary_blob_t>(
             end_point_cond.get_value(),
             &binary_blob_t::make<version_range_t>
             ),
-        write_token,
+        write_tokens.get(),
+        num_stores,
         interruptor
-        );
+    );
 }
 
 
@@ -253,36 +261,21 @@ void backfillee(
 template void backfillee<mock::dummy_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<mock::dummy_protocol_t> > > branch_history,
-        store_view_t<mock::dummy_protocol_t> *store,
+        multistore_ptr_t<mock::dummy_protocol_t> *store,
         mock::dummy_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<mock::dummy_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
 
-template void on_receive_backfill_chunk<mock::dummy_protocol_t>(
-        store_view_t<mock::dummy_protocol_t> *store,
-        signal_t *dont_go_until,
-        mock::dummy_protocol_t::backfill_chunk_t chunk,
-        signal_t *interruptor,
-        UNUSED auto_drainer_t::lock_t keepalive)
-    THROWS_NOTHING;
-
 
 template void backfillee<memcached_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<memcached_protocol_t> > > branch_history,
-        store_view_t<memcached_protocol_t> *store,
+        multistore_ptr_t<memcached_protocol_t> *store,
         memcached_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<memcached_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
 
-template void on_receive_backfill_chunk<memcached_protocol_t>(
-        store_view_t<memcached_protocol_t> *store,
-        signal_t *dont_go_until,
-        memcached_protocol_t::backfill_chunk_t chunk,
-        signal_t *interruptor,
-        UNUSED auto_drainer_t::lock_t keepalive)
-    THROWS_NOTHING;

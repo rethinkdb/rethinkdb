@@ -37,6 +37,15 @@ void multistore_ptr_t<protocol_t>::new_read_tokens(boost::scoped_ptr<fifo_enforc
 }
 
 template <class protocol_t>
+void multistore_ptr_t<protocol_t>::new_write_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens_out,
+                                                   int size) {
+    guarantee(int(store_views.size()) == size);
+    for (int i = 0; i < size; ++i) {
+        store_views[i]->new_write_token(write_tokens_out[i]);
+    }
+}
+
+template <class protocol_t>
 region_map_t<protocol_t, version_range_t>  multistore_ptr_t<protocol_t>::
 get_all_metainfos(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens, int num_read_tokens,
 		  signal_t *interruptor) {
@@ -59,6 +68,23 @@ template <class protocol_t>
 typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_region(int i) const {
     guarantee(0 <= i && i < num_stores());
     return store_views[i]->get_region();
+}
+
+template <class protocol_t>
+store_view_t<protocol_t> *multistore_ptr_t<protocol_t>::get_store_view(int i) const {
+    guarantee(0 <= i && i < num_stores());
+    return store_views[i];
+}
+
+
+
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens, int num_write_tokens, signal_t *interruptor) {
+    guarantee(num_write_tokens == num_stores());
+
+    for (int i = 0; i < num_stores(); ++i) {
+        store_views[i]->set_metainfo(new_metainfo.mask(store_views->get_region()), write_tokens[i], interruptor);
+    }
 }
 
 
