@@ -214,7 +214,7 @@ template <class protocol_t>
 void do_backfill(
         mailbox_manager_t *mailbox_manager,
         boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
-        store_view_t<protocol_t> *store,
+        multistore_ptr_t<protocol_t> *store,
         typename protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
