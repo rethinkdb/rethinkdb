@@ -24,11 +24,16 @@ std::string format_log_level(log_level_t l) {
 }
 
 log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error) {
-    if (s == "debug") return log_level_debug;
-    else if (s == "info") return log_level_info;
-    else if (s == "warn") return log_level_warn;
-    else if (s == "error") return log_level_error;
-    else throw std::runtime_error("cannot parse '" + s + "' as log level");
+    if (s == "debug")
+        return log_level_debug;
+    else if (s == "info")
+        return log_level_info;
+    else if (s == "warn")
+        return log_level_warn;
+    else if (s == "error")
+        return log_level_error;
+    else
+        throw std::runtime_error("cannot parse '" + s + "' as log level");
 }
 
 std::string format_log_message(const log_message_t &m) {

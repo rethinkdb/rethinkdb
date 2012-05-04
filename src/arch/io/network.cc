@@ -814,6 +814,8 @@ std::vector<std::string> get_ips() {
 
     getifaddrs(&ifAddrStruct);
 
+    // TODO: WTF?  Is this copyright RethinkDB??
+
     for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
         if (ifa ->ifa_addr->sa_family==AF_INET) {
             if (ifa->ifa_flags & IFF_LOOPBACK) {
