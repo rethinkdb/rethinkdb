@@ -77,7 +77,7 @@ void random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg) {
 
 template<class cb_t>
 bool maybe_random_delay(cb_t *cb, void (cb_t::*method)()) {
-    if (thread_local_randint(2) == 0) {
+    if (randint(2) == 0) {
         return true;
     } else {
         random_delay(cb, method);
@@ -87,7 +87,7 @@ bool maybe_random_delay(cb_t *cb, void (cb_t::*method)()) {
 
 template<class cb_t, class arg1_t>
 bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg) {
-    if (thread_local_randint(2) == 0) {
+    if (randint(2) == 0) {
         return true;
     } else {
         random_delay(cb, method, arg);

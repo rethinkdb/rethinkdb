@@ -17,8 +17,8 @@
 #include "containers/archive/archive.hpp"
 #include "containers/printf_buffer.hpp"
 #include "containers/scoped_malloc.hpp"
-#include "db_thread_info.hpp"
 #include "logger.hpp"
+#include "thread_local.hpp"
 
 #ifdef VALGRIND
 #include <valgrind/memcheck.h>
@@ -222,13 +222,6 @@ void debugf(const char *msg, ...) {
 }
 #endif
 
-/* This object exists only to call srand(time(NULL)) in its constructor, before main() runs. */
-struct rand_initter_t {
-    rand_initter_t() {
-        srand(time(NULL));
-    }
-} rand_initter;
-
 rng_t::rng_t( UNUSED int seed) {
     memset(&buffer_, 0, sizeof(buffer_));
 #ifndef NDEBUG
@@ -253,8 +246,24 @@ int rng_t::randint(int n) {
     return x % n;
 }
 
+TLS_with_init(bool, rng_initialized, false)
+TLS(drand48_data, rng_data)
+
 int randint(int n) {
-    return thread_local_randint(n);
+    drand48_data buffer;
+    if (!TLS_get_rng_initialized()) {
+        struct timespec ts;
+        int res = clock_gettime(CLOCK_REALTIME, &ts);
+        guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+        srand48_r(ts.tv_nsec, &buffer);
+        TLS_set_rng_initialized(true);
+    } else {
+        buffer = TLS_get_rng_data();
+    }
+    long x;   // NOLINT(runtime/int)
+    lrand48_r(&buffer, &x);
+    TLS_set_rng_data(buffer);
+    return x % n;
 }
 
 std::string rand_string(int len) {
