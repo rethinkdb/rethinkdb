@@ -10,8 +10,6 @@ int get_thread_id();
 
 int get_num_threads();
 
-int thread_local_randint(int n);
-
 #ifndef NDEBUG
 void assert_good_thread_id(int thread);
 #else
