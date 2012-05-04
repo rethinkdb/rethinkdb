@@ -2,7 +2,6 @@
 #include "clustering/administration/cli/admin_cluster_link.hpp"
 
 #include <cstdarg>
-#include <iostream>
 #include <map>
 #include <stdexcept>
 
@@ -448,7 +447,7 @@ void admin_command_parser_t::run_console() {
     if (!joins_param.empty()) {
         // Do an intial sync to make sure everything's working
         get_cluster()->sync_from();
-        std::cout << "Connected to cluster" << std::endl;
+        puts("Connected to cluster");
     }
 
     linenoiseSetCompletionCallback(completion_generator_hook);
@@ -486,16 +485,16 @@ void admin_command_parser_t::do_admin_help_shell(command_data& data UNUSED) {
 
 void admin_command_parser_t::do_admin_help_console(command_data& data) {
     if (data.params.count("type") == 0) {
-        std::cout << "available commands:" << std::endl;
+        puts("available commands:");
 
         for (std::map<std::string, command_info *>::iterator i = command_descriptions.begin();
              i != command_descriptions.end(); ++i) {
-            std::cout << "  " << i->first << std::endl;
+            printf("  %s\n", i->first.c_str());
 
             // TODO: this won't be complete for multiple levels of subcommands - make this more generic
             for (std::map<std::string, command_info *>::iterator j = i->second->subcommands.begin();
                  j != i->second->subcommands.end(); ++j) {
-                std::cout << "    " << j->first << std::endl;
+                printf("    %s\n", j->first.c_str());
             }
         }
     } else {
@@ -505,11 +504,12 @@ void admin_command_parser_t::do_admin_help_console(command_data& data) {
             if (data.params["type"].size() == 2) {
                 std::map<std::string, command_info *>::iterator j = i->second->subcommands.find(data.params["type"][1]);
                 if (j != i->second->subcommands.end())
-                    std::cout << "  usage: " << i->first << " " << j->first << " " << j->second->usage << std::endl;
+                    printf("  usage: %s %s %s\n", i->first.c_str(), j->first.c_str(), j->second->usage.c_str());
                 else
                     throw admin_parse_exc_t("unknown command: " + data.params["type"][0] + " " + data.params["type"][1]);
-            } else
-                std::cout << "  usage: " << i->first << " " << i->second->usage << std::endl;
+            } else {
+                printf("  usage: %s %s\n", i->first.c_str(), i->second->usage.c_str());
+            }
         } else {
             throw admin_parse_exc_t("unknown command: " + data.params["type"][0]);
         }
