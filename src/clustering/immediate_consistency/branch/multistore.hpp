@@ -19,6 +19,9 @@ public:
     // We don't get ownership of the store_view_t pointers themselves.
     multistore_ptr_t(const std::vector<store_view_t<protocol_t> *> &store_views);
 
+    // We don't get ownership of the store_view_t pointers themselves.
+    multistore_ptr_t(store_view_t<protocol_t> *store_views, int num_store_views);
+
     typename protocol_t::region_t get_multistore_joined_region() const;
 
     int num_stores() const { return store_views.size(); }

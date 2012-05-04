@@ -13,6 +13,15 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(const std::vector<store_view_t<pr
 }
 
 template <class protocol_t>
+multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> *_store_views, int num_store_views)
+    : store_views(_store_views, _store_views + num_store_views) {
+
+    // do nothing?  For now.
+
+}
+
+
+template <class protocol_t>
 typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_multistore_joined_region() const {
     std::vector<typename protocol_t::region_t> regions;
     for (int i = 0, e = store_views.size(); i < e; ++i) {

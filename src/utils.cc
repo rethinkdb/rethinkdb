@@ -99,49 +99,52 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
-void format_time(time_t time, char* buf, size_t max_chars) {
+void format_time(struct timespec time, char* buf, size_t max_chars) {
     struct tm t;
-    struct tm *res1 = localtime_r(&time, &t);
+    struct tm *res1 = localtime_r(&time.tv_sec, &t);
     guarantee_err(res1 == &t, "gmtime_r() failed.");
     int res2 = snprintf(buf, max_chars,
-        "%04d-%02d-%02dT%02d:%02d:%02d",
+        "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
         t.tm_year+1900,
         t.tm_mon+1,
         t.tm_mday,
         t.tm_hour,
         t.tm_min,
-        t.tm_sec);
+        t.tm_sec,
+        time.tv_nsec);
     (void) res2;
     rassert(0 <= res2);
 }
 
-std::string format_time(time_t time) {
+std::string format_time(struct timespec time) {
     char buf[formatted_time_length+1];
     format_time(time, buf, sizeof(buf));
     return std::string(buf);
 }
 
-time_t parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
+struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
     struct tm t;
+    struct timespec time;
     int res1 = sscanf(str.c_str(),
-        "%04d-%02d-%02dT%02d:%02d:%02d",
+        "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
         &t.tm_year,
         &t.tm_mon,
         &t.tm_mday,
         &t.tm_hour,
         &t.tm_min,
-        &t.tm_sec);
-    if (res1 != 6) {
+        &t.tm_sec,
+        &time.tv_nsec);
+    if (res1 != 7) {
         throw std::runtime_error("badly formatted time");
     }
     t.tm_year -= 1900;
     t.tm_mon -= 1;
     t.tm_isdst = -1;
-    time_t res2 = mktime(&t);
-    if (res2 == -1) {
+    time.tv_sec = mktime(&t);
+    if (time.tv_sec == -1) {
         throw std::runtime_error("invalid time");
     }
-    return res2;
+    return time;
 }
 
 #ifndef NDEBUG
@@ -205,7 +208,10 @@ void *malloc_aligned(size_t size, size_t alignment) {
 void debugf(const char *msg, ...) {
     flockfile(stderr);
     char formatted_time[formatted_time_length+1];
-    format_time(time(NULL), formatted_time, sizeof(formatted_time));
+    struct timespec t;
+    int res = clock_gettime(CLOCK_REALTIME, &t);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+    format_time(t, formatted_time, sizeof(formatted_time));
     fprintf(stderr, "%s Thread %d: ", formatted_time, get_thread_id());
 
     va_list args;

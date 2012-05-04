@@ -193,12 +193,13 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
 
     /* Set up a second mirror */
     test_store_t<dummy_protocol_t> store2;
+    multistore_ptr_t<dummy_protocol_t> store2_ptr(&store2.store, 1);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_view,
-        &store2.store,
+        &store2_ptr,
         replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
         generate_uuid(),
         &interruptor);
@@ -256,12 +257,13 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     test_store_t<dummy_protocol_t> store2;
     dummy_protocol_t::region_t subregion('a', 'm');
     store_subview_t<dummy_protocol_t> substore(&store2.store, subregion);
+    multistore_ptr_t<dummy_protocol_t> store_ptr(&substore, 1);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_view,
-        &substore,
+        &store_ptr,
         replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
         generate_uuid(),
         &interruptor);
