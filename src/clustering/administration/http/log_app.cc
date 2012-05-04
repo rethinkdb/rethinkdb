@@ -1,16 +1,14 @@
 #include "clustering/administration/http/log_app.hpp"
 
-#include "errors.hpp"
-
 #include "arch/timing.hpp"
 #include "clustering/administration/machine_id_to_peer_id.hpp"
+#include "utils.hpp"
 
 template <class ctx_t>
 cJSON *render_as_json(log_message_t *message, const ctx_t &) {
-    char timestamp_buffer[40];
-    sprintf(timestamp_buffer, "%d.%09ld", int(message->timestamp.tv_sec), message->timestamp.tv_nsec);
+    std::string timestamp_buffer = strprintf("%d.%09ld", int(message->timestamp.tv_sec), message->timestamp.tv_nsec);
     scoped_cJSON_t json(cJSON_CreateObject());
-    cJSON_AddItemToObject(json.get(), "timestamp", cJSON_CreateString(timestamp_buffer));
+    cJSON_AddItemToObject(json.get(), "timestamp", cJSON_CreateString(timestamp_buffer.c_str()));
     cJSON_AddItemToObject(json.get(), "uptime", cJSON_CreateNumber(message->uptime.tv_sec + message->uptime.tv_nsec / 1000000000.0));
     cJSON_AddItemToObject(json.get(), "level", cJSON_CreateString(format_log_level(message->level).c_str()));
     cJSON_AddItemToObject(json.get(), "message", cJSON_CreateString(message->message.c_str()));

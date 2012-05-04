@@ -1,0 +1,102 @@
+<script id="namespace_list-template" type="text/x-handlebars-template">
+  <h1>Namespaces in the cluster</h1>
+  <div id="user-alert-space"></div>
+  <div class="actions-bar">
+    <a href="#" class="btn add-namespace">Add namespace</a>
+    <a href="#" class="btn for-multiple-elements disabled remove-namespace">Remove selected namespaces</a>
+  </div>
+  <div class="namespace-list">
+    <table class="table table-bordered table-striped" cellpadding="0" cellspacing="0">
+      <tbody class="list">
+      </tbody>
+    </table>
+  </div>
+</script>
+
+<script id="namespace_list_element-template" type="text/x-handlebars-template">
+  <td>
+    <input type="checkbox"></input>
+  </td>
+  <td>
+    <div class="details">
+      <h3 class="name"><a href="#namespaces/{{id}}">{{name}}</a></h3>
+      <p><span class="status">Status: {{reachability}} ({{nashards}} of {{nshards}} masters live; {{nareplicas}} of {{nreplicas}} replicas live)</span></p>
+      <p><span class="contains">Contains: {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}</span></p>
+      <p><span class="replication">Replication: {{> backfill_progress_summary}}</span></p>
+      <div class="toolbar">
+        <p><span class="protocol {{protocol}}">{{protocol}}</span></p>
+        <p><a href="#" class="rename-namespace">rename</a></p>
+      </div>
+    </div>
+    <div class="clearboth"></div>
+  </td>
+</script>
+<script id="add_namespace-modal-template" type="text/x-handlebars-template">
+  <form class="form">
+    <fieldset>
+      <legend>Namespace details</legend>
+      <div class="clearfix">
+        <label for="name">Name</label>
+        <div class="input">
+          <input class="xlarge" name="name" size="30" type="text" />
+        </div>
+      </div>
+      <div class="clearfix">
+        <label for="port">Port</label>
+        <div class="input">
+          <input class="xlarge" name="port" size="5" type="text" />
+        </div>
+      </div>
+      <div class="clearfix">
+        <label for="protocol">Protocol</label>
+        <div class="input">
+          <select class="protocol" name="protocol">
+            <option>Memcached</option>
+            <option>Redis</option>
+            <option>Riak</option>
+            <option>MongoDB</option>
+          </select>
+        </div>
+      </div>
+      <div class="clearfix">
+        <label for="primary_datacenter">Select a primary datacenter:</label>
+        <div class="input">
+          <select class="primary_datacenter" name="primary_datacenter">
+            {{#each datacenters}}
+            <option value="{{this.id}}">{{this.name}}</option>
+            {{/each}}
+          </select>
+        </div>
+      </div>
+      <hr />
+      <div class="user-tip">
+        <p>* You can tweak configuration options for
+          the namespace once it's created.</p>
+      </div>
+    </fieldset>
+  </form>
+</script>
+
+<script id="added_namespace-alert-template" type="text/x-handlebars-template">
+  <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You added namespace <span class="name">{{name}}</span>. You can now <a href="#namespaces/{{uuid}}">configure</a> it further.</p>
+  </div>
+</script>
+
+<script id="remove_namespace-modal-template" type="text/x-handlebars-template">
+  <h2>Are you sure you want to remove these namespaces:</h2>
+  <ul class="namespace-list">
+    {{#each namespaces}}
+    <li><a href="#namespaces/{{id}}">{{name}}</a></li>
+    {{/each}}
+  </ul>
+</script>
+
+<script id="removed_namespace-alert-template" type="text/x-handlebars-template">
+  <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You removed namespace <span class="name">{{name}}</span>.</p>
+  </div>
+</script>
+

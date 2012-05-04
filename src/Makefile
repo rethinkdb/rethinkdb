@@ -310,7 +310,21 @@ WEB_SOURCE_DIR:=../admin
 WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/web
 #This atrociousness comes from the fact... fuck it blah blah blah coffee script.
 #Basically coffee script can't handle dependencies.
-COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%, util.coffee clusterview.coffee namespaceview.coffee otherviews.coffee vis.coffee cluster.coffee)
+COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
+			util.coffee \
+			ui_components/modals.coffee ui_components/list.coffee \
+			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/machines.coffee namespaces/namespace.coffee \
+			servers/index.coffee servers/machine.coffee servers/datacenter.coffee \
+			dashboard.coffee \
+			sidebar.coffee \
+			resolve_issues.coffee \
+			log_view.coffee \
+			vis.coffee \
+			models.coffee \
+			navbar.coffee \
+			router.coffee \
+			app.coffee)
+HANDLEBARS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/coffee -name '*.html')
 LESS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN:=$(WEB_SOURCE_DIR)/static/less/cluster.less
 CLUSTER_HTML:=$(WEB_SOURCE_DIR)/templates/cluster.html
@@ -579,12 +593,13 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) lessc $(LESS_MAIN) > $@
 
-$(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML)
+$(WEB_ASSETS_BUILD_DIR)/index.html: $(CLUSTER_HTML) $(HANDLEBARS_SOURCES)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    STRIP GEN $@"
+	@echo "    INJECT HANDLEBARS $@"
 endif
-	$(QUIET) sed 's:="gen/:=":g' $(CLUSTER_HTML) > $@
+	$(QUIET) sed 's:="gen/:=":g' $(CLUSTER_HTML) | python -c 'import sys; sys.stdout.write(sys.stdin.read().replace("<!--{{INJECT_HANDLEBARS_TEMPLATES}}-->", reduce(lambda acc, fname: acc + open(fname).read(), sys.argv[1:], "")))' $(HANDLEBARS_SOURCES) > $@
 
 $(WEB_ASSETS_BUILD_DIR)/js:
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -714,7 +729,7 @@ analyze: $(SOURCES)
 	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
 
 style:
-	$(QUIET) find . -name \*.cc -o -name \*.hpp -o -name \*.tcc | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,-whitespace/labels,-runtime/references,-whitespace/blank_line,-readability/function 2>&1 | grep -v Done\ processing
+	$(QUIET) find . -name \*.cc -o -name \*.hpp -o -name \*.tcc | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,+build/include_order,-whitespace/labels,-runtime/references,-whitespace/blank_line,-readability/function 2>&1 | grep -v Done\ processing
 
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null

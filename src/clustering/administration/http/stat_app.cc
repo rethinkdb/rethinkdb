@@ -35,7 +35,7 @@ stat_http_app_t::stat_http_app_t(mailbox_manager_t *_mbox_manager,
 http_res_t stat_http_app_t::handle(const http_req_t &req) {
     scoped_cJSON_t body(cJSON_CreateObject());
 
-   peers_to_metadata_t peers_to_metadata = directory->get();
+    peers_to_metadata_t peers_to_metadata = directory->get();
 
     typedef boost::ptr_map<machine_id_t, stats_request_record_t> stats_promises_t;
     stats_promises_t stats_promises;

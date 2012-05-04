@@ -1,0 +1,141 @@
+
+<script id="resolve_issues-container-outer-template" type="text/x-handlebars-template">
+  <h1>Resolve issues</h1>
+  <div id="user-alert-space"></div>
+  <div id="resolve_issues-container-inner-placeholder"></div>
+</script>
+
+<script id="resolve_issues-container-inner-template" type="text/x-handlebars-template">
+  {{#if issues_exist}}
+  <div class="issues"></div>
+  {{else}}
+  <p class="no-issues">No issues reported in the cluster.</p>
+  {{/if}}
+</script>
+
+<script id="declare_machine_dead-modal-template" type="text/x-handlebars-template">
+  <p>Are you sure you want to declare <strong>{{machine_name}}</strong> dead?</p>
+</script>
+
+<script id="declared_machine_dead-alert-template" type="text/x-handlebars-template">
+  <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You successfully declared machine <span class="name">{{machine_name}}</span> dead.</p>
+  </div>
+</script>
+
+<script id="resolve_vclock-modal-template" type="text/x-handlebars-template">
+  <p>Are you sure you want to use the value <strong>{{final_value}}</strong>?</p>
+</script>
+
+<script id="resolved_vclock-alert-template" type="text/x-handlebars-template">
+  <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You successfully resolved the configuration value to <span class="name">{{final_value}}</span>.</p>
+  </div>
+</script>
+
+<script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
+  <div class="issue {{#if critical }}critical{{/if}}">
+    <div class="header">
+      <h3 class="title">Machine {{name}} is unreachable.</h3>
+      {{#if datetime}}
+      <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+      {{/if}}
+    </div>
+    <hr />
+    {{#if no_responsibilities}}
+    <h4>This machine has no master or replica responsibilities.</h4>
+
+    {{else}}
+
+    <!-- Masters -->
+    {{#if masters}}
+    <h4>This machine is responsible for the following masters:</h4>
+    <ul>
+      {{#each masters}}
+      <li>Namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+      {{/each}}
+    </ul>
+    {{else}}
+    <h4>This machine has no master responsibilities.</h4>
+    {{/if}}
+
+    <!-- Replicas -->
+    {{#if replicas}}
+    <h4>This machine is responsible for the following replicas:</h4>
+    <ul>
+      {{#each replicas}}
+      <li>Namespace <a href="#namespaces/{{uuid}}">{{name}}</a> for the shard {{shard}}.</li>
+      {{/each}}
+    </ul>
+    {{else}}
+    <h4>This machine has no replica responsibilities.</h4>
+    {{/if}}
+
+    {{/if}}
+
+    <p><a class="btn large danger">Declare Dead</a></p>
+  </div>
+</script>
+<script id="resolve_issues-name_conflict-template" type="text/x-handlebars-template">
+  <div class="issue {{#if critical }}critical{{/if}} name-conflict">
+    <div class="header">
+      <h3 class="title">The name {{name}} is used by more than one {{type}}.</h3>
+      {{#if datetime}}
+      <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+      {{/if}}
+    </div>
+    <hr />
+    <h4>{{pluralize_noun type num_contestants true}} with the name {{name}}:</h4>
+    <ul>
+      {{#each contestants}}
+      <li><a href="#{{pluralize_noun type 2}}/{{uuid}}"><span class="uuid">{{humanize_uuid uuid}}</span></a> (<a id="rename_{{uuid}}" href="#">rename</a>)</li>
+      {{/each}}
+    </ul>
+  </div>
+</script>
+<script id="resolve_issues-persistence-template" type="text/x-handlebars-template">
+  <div class="issue {{#if critical }}critical{{/if}}">
+    <div class="header">
+      <h3 class="title">Persistence has been lost.</h3>
+      {{#if datetime}}
+      <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+      {{/if}}
+    </div>
+    <hr />
+    <p>Disk is inaccessible on machine <a href="/#machines/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the machine, or declare it dead.<p>
+    <p><a class="btn large danger">Declare Dead</a></p>
+  </div>
+</script>
+<script id="resolve_issues-vclock_conflict-template" type="text/x-handlebars-template">
+  <div class="issue {{#if critical }}critical{{/if}} vclock-conflict">
+    <div class="header">
+      <h3 class="title">Cluster configuration conflict.</h3>
+      {{#if datetime}}
+      <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+      {{/if}}
+    </div>
+    <hr />
+    <p>This issue is caused by making changes to the cluster configuration on both sides of an intermittent network connection.</p>
+    <h4>{{capitalize field}} of {{object_type}} <a href="">{{#if name_contest}}{{humanize_uuid object_id}}{{else}}{{object_name}}{{/if}}</a> has the following conflicting values:</h4>
+    <ul>
+      {{#each contestants}}
+      <li>{{value}} (<a id="resolve_{{contestant_id}}" href="#">use this value</a>)</li>
+      {{/each}}
+    </ul>
+  </div>
+</script>
+<script id="resolve_issues-unknown-template" type="text/x-handlebars-template">
+  <div class="issue {{#if critical }}critical{{/if}}">
+    <div class="header">
+      <h3 class="title">Unknown issue: {{issue_type}}</h3>
+      {{#if datetime}}
+      <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+      {{/if}}
+    </div>
+    <hr />
+    <h4>Whoops, this shouldn't happen. Please contact support and hope for the best.</h4>
+  </div>
+</script>
+
