@@ -223,8 +223,9 @@ std::vector<std::string> admin_cluster_link_t::get_path_from_id(const std::strin
             throw admin_parse_exc_t("uuid not unique: " + id);
 
         return uuid_to_path.lower_bound(id)->second;
-    } else if (name_to_path.count(id) != 1)
+    } else if (name_to_path.count(id) != 1) {
         throw admin_parse_exc_t("name not unique: " + id);
+    }
 
     return name_to_path.find(id)->second;
 }
