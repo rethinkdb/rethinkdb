@@ -15,6 +15,8 @@ public:
 private:
     mailbox_manager_t *mbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory;
+
+    DISABLE_COPYING(stat_http_app_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_HTTP_STAT_APP_HPP_ */

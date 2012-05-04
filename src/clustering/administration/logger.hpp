@@ -21,9 +21,9 @@ RDB_MAKE_SERIALIZABLE_2(struct timespec, tv_sec, tv_nsec);
 class log_message_t {
 public:
     log_message_t() { }
-    log_message_t(time_t t, struct timespec u, log_level_t l, std::string m) :
+    log_message_t(struct timespec t, struct timespec u, log_level_t l, std::string m) :
         timestamp(t), uptime(u), level(l), message(m) { }
-    time_t timestamp;
+    struct timespec timestamp;
     struct timespec uptime;
     log_level_t level;
     std::string message;
@@ -41,7 +41,7 @@ public:
     log_writer_t(const std::string &filename, local_issue_tracker_t *issue_tracker);
     ~log_writer_t();
 
-    std::vector<log_message_t> tail(int max_lines, time_t min_timestamp, time_t max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t);
+    std::vector<log_message_t> tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t);
 
 private:
     friend void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t lock);
@@ -50,13 +50,15 @@ private:
     void uninstall_on_thread(int i);
     void write(const log_message_t &msg);
     void write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out);
-    void tail_blocking(int max_lines, time_t min_timestamp, time_t max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out);
+    void tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out);
     std::string filename;
     struct timespec uptime_reference;
     mutex_t write_mutex;
     scoped_fd_t fd;
     local_issue_tracker_t *issue_tracker;
     boost::scoped_ptr<local_issue_tracker_t::entry_t> issue;
+
+    DISABLE_COPYING(log_writer_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_LOGGER_HPP_ */

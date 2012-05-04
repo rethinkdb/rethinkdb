@@ -56,6 +56,9 @@ public:
         msg << int8_t(PERSISTENCE_ISSUE_CODE);
         msg << message;
     }
+
+private:
+    DISABLE_COPYING(persistence_issue_t);
 };
 
 class semilattice_watching_persister_t {
@@ -65,15 +68,34 @@ public:
             machine_id_t machine_id,
             boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > view,
             local_issue_tracker_t *issue_tracker);
+
+    /* `stop_and_flush()` finishes flushing the current value to disk but stops
+    responding to future changes. It's usually called right before the
+    destructor. */
+    void stop_and_flush(signal_t *interruptor) THROWS_NOTHING {
+        subs.reset();
+        stop.pulse();
+        wait_interruptible(&stopped, interruptor);
+    }
+
 private:
-    void dump();
+    void dump_loop(auto_drainer_t::lock_t lock);
+    void on_change();
     std::string file_path;
     machine_id_t machine_id;
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > view;
-    semilattice_read_view_t<cluster_semilattice_metadata_t>::subscription_t subs;
+
+    boost::scoped_ptr<cond_t> flush_again;
 
     local_issue_tracker_t *issue_tracker;
     boost::scoped_ptr<local_issue_tracker_t::entry_t> persistence_issue;
+
+    cond_t stop, stopped;
+    auto_drainer_t drainer;
+
+    semilattice_read_view_t<cluster_semilattice_metadata_t>::subscription_t subs;
+
+    DISABLE_COPYING(semilattice_watching_persister_t);
 };
 
 }   /* namespace metadata_persistence */

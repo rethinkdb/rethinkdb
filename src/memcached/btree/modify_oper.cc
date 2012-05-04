@@ -6,7 +6,7 @@
 #include "btree/slice.hpp"
 
 void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp,
-    transaction_t *txn, got_superblock_t& superblock) {
+    transaction_t *txn, superblock_t *superblock) {
 
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
@@ -14,7 +14,7 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
     block_size_t block_size = slice->cache()->get_block_size();
 
     keyvalue_location_t<memcached_value_t> kv_location;
-    find_keyvalue_location_for_write(txn, &superblock, key, &kv_location, &slice->root_eviction_priority);
+    find_keyvalue_location_for_write(txn, superblock, key, &kv_location, &slice->root_eviction_priority);
     scoped_malloc<memcached_value_t> the_value;
     the_value.reinterpret_swap(kv_location.value);
 

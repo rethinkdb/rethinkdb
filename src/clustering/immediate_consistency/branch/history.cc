@@ -1,8 +1,5 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 
-#include "memcached/protocol.hpp"
-#include "mock/dummy_protocol.hpp"
-
 template<class protocol_t>
 bool version_is_ancestor(
         const branch_history_t<protocol_t> &branch_history,
@@ -59,6 +56,9 @@ bool version_is_divergent(
 }
 
 
+
+#include "memcached/protocol.hpp"
+#include "mock/dummy_protocol.hpp"
 
 
 template

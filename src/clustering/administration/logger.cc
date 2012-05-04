@@ -11,6 +11,7 @@
 #include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
 #include "clustering/administration/persist.hpp"
 #include "concurrency/promise.hpp"
+#include "thread_local.hpp"
 
 std::string format_log_level(log_level_t l) {
     switch (l) {
@@ -79,7 +80,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
     p++;
     if (*p) throw std::runtime_error("cannot parse log message (8)");
 
-    time_t timestamp = parse_time(std::string(start_timestamp, end_timestamp - start_timestamp));
+    struct timespec timestamp = parse_time(std::string(start_timestamp, end_timestamp - start_timestamp));
     struct timespec uptime;
     try {
         uptime.tv_sec = boost::lexical_cast<int>(std::string(start_uptime_ipart, end_uptime_ipart - start_uptime_ipart));
@@ -152,8 +153,8 @@ private:
     off64_t current_chunk_start;
 };
 
-static __thread log_writer_t *global_log_writer = NULL;
-static __thread auto_drainer_t *global_log_drainer = NULL;
+TLS_with_init(log_writer_t *, global_log_writer, NULL);
+TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
 
 log_writer_t::log_writer_t(const std::string &filename, local_issue_tracker_t *it) : filename(filename), issue_tracker(it) {
 
@@ -167,7 +168,7 @@ log_writer_t::~log_writer_t() {
     pmap(get_num_threads(), boost::bind(&log_writer_t::uninstall_on_thread, this, _1));
 }
 
-std::vector<log_message_t> log_writer_t::tail(int max_lines, time_t min_timestamp, time_t max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t) {
+std::vector<log_message_t> log_writer_t::tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t) {
     volatile bool cancel = false;
     class cancel_subscription_t : public signal_t::subscription_t {
     public:
@@ -198,17 +199,17 @@ std::vector<log_message_t> log_writer_t::tail(int max_lines, time_t min_timestam
 
 void log_writer_t::install_on_thread(int i) {
     on_thread_t thread_switcher(i);
-    rassert(global_log_writer == NULL);
-    global_log_drainer = new auto_drainer_t;
-    global_log_writer = this;
+    rassert(TLS_get_global_log_writer() == NULL);
+    TLS_set_global_log_drainer(new auto_drainer_t);
+    TLS_set_global_log_writer(this);
 }
 
 void log_writer_t::uninstall_on_thread(int i) {
     on_thread_t thread_switcher(i);
-    rassert(global_log_writer == this);
-    global_log_writer = NULL;
-    delete global_log_drainer;
-    global_log_drainer = NULL;
+    rassert(TLS_get_global_log_writer() == this);
+    TLS_set_global_log_writer(NULL);
+    delete TLS_get_global_log_drainer();
+    TLS_set_global_log_drainer(NULL);
 }
 
 void log_writer_t::write(const log_message_t &lm) {
@@ -250,7 +251,15 @@ void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_o
     return;
 }
 
-void log_writer_t::tail_blocking(int max_lines, time_t min_timestamp, time_t max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
+bool operator<(const struct timespec &t1, const struct timespec &t2) {
+    return t1.tv_sec < t2.tv_sec || (t1.tv_sec == t2.tv_sec && t1.tv_nsec < t2.tv_nsec);
+}
+
+bool operator>(const struct timespec &t1, const struct timespec &t2) {
+    return t2 < t1;
+}
+
+void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
     try {
         file_reverse_reader_t reader(filename);
         std::string line;
@@ -275,10 +284,14 @@ void log_writer_t::tail_blocking(int max_lines, time_t min_timestamp, time_t max
 void log_coro(log_writer_t *writer, log_level_t level, const std::string &message, auto_drainer_t::lock_t) {
     on_thread_t thread_switcher(writer->home_thread());
 
-    time_t timestamp = time(NULL);
+    int res;
+
+    struct timespec timestamp;
+    res = clock_gettime(CLOCK_REALTIME, &timestamp);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
 
     struct timespec uptime;
-    int res = clock_gettime(CLOCK_MONOTONIC, &uptime);
+    res = clock_gettime(CLOCK_MONOTONIC, &uptime);
     guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
     if (uptime.tv_nsec < writer->uptime_reference.tv_nsec) {
         uptime.tv_nsec += 1000000000;
@@ -293,8 +306,8 @@ void log_coro(log_writer_t *writer, log_level_t level, const std::string &messag
 /* Declared in `logger.hpp`, not `clustering/administration/logger.hpp` like the
 other things in this file. */
 void log_internal(UNUSED const char *src_file, UNUSED int src_line, UNUSED log_level_t level, const char *format, ...) {
-    if (log_writer_t *writer = global_log_writer) {
-        auto_drainer_t::lock_t lock(global_log_drainer);
+    if (log_writer_t *writer = TLS_get_global_log_writer()) {
+        auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
 
         va_list args;
         va_start(args, format);

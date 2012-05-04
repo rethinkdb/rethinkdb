@@ -48,6 +48,8 @@ private:
     boost::scoped_ptr<routing_http_app_t> ajax_routing_app;
     boost::scoped_ptr<routing_http_app_t> root_routing_app;
     boost::scoped_ptr<http_server_t> server;
+
+    DISABLE_COPYING(administrative_http_server_manager_t);  // kind of redundant with the scoped_ptrs but too bad.
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_ */

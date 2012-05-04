@@ -11,7 +11,9 @@ log_server_business_card_t log_server_t::get_business_card() {
     return log_server_business_card_t(request_mailbox.get_address());
 }
 
-void log_server_t::handle_request(int max_lines, time_t min_timestamp, time_t max_timestamp, log_server_business_card_t::result_mailbox_t::address_t cont, auto_drainer_t::lock_t keepalive) {
+void log_server_t::handle_request(int max_lines, struct timespec min_timestamp,
+        struct timespec max_timestamp, log_server_business_card_t::result_mailbox_t::address_t cont,
+        auto_drainer_t::lock_t keepalive) {
     std::string error;
     try {
         std::vector<log_message_t> messages =
@@ -32,7 +34,7 @@ void log_server_t::handle_request(int max_lines, time_t min_timestamp, time_t ma
 std::vector<log_message_t> fetch_log_file(
         mailbox_manager_t *mm,
         const log_server_business_card_t &bcard,
-        int max_lines, time_t min_timestamp, time_t max_timestamp,
+        int max_lines, struct timespec min_timestamp, struct timespec max_timestamp,
         signal_t *interruptor) THROWS_ONLY(resource_lost_exc_t, std::runtime_error, interrupted_exc_t) {
     promise_t<log_server_business_card_t::result_t> promise;
     log_server_business_card_t::result_mailbox_t reply_mailbox(

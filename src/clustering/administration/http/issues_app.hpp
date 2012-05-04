@@ -12,6 +12,8 @@ public:
 
 private:
     global_issue_tracker_t *issue_tracker;
+
+    DISABLE_COPYING(issues_http_app_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_HTTP_ISSUES_APP_HPP_ */

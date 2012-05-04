@@ -99,6 +99,8 @@ private:
     typename watchable_t<boost::optional<boost::optional<business_card_t> > >::subscription_t change_subscription;
     cond_t failed_signal;
     std::string failed_reason;
+
+    DISABLE_COPYING(resource_access_t);
 };
 
 #endif /* CLUSTERING_RESOURCE_HPP_ */

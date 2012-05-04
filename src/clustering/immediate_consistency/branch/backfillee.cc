@@ -3,8 +3,6 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/death_runner.hpp"
-#include "memcached/protocol.hpp"
-#include "mock/dummy_protocol.hpp"
 
 template<class protocol_t>
 void on_receive_backfill_chunk(
@@ -204,6 +202,9 @@ void backfillee(
         );
 }
 
+
+#include "memcached/protocol.hpp"
+#include "mock/dummy_protocol.hpp"
 
 template void backfillee<mock::dummy_protocol_t>(
         mailbox_manager_t *mailbox_manager,

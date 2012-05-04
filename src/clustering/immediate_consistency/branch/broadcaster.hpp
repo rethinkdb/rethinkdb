@@ -98,6 +98,8 @@ private:
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
     registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
+
+    DISABLE_COPYING(broadcaster_t);
 };
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_ */

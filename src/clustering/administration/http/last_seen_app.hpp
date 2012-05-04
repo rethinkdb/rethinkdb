@@ -12,6 +12,8 @@ public:
 
 private:
     last_seen_tracker_t *last_seen_tracker;
+
+    DISABLE_COPYING(last_seen_http_app_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_HTTP_LAST_SEEN_APP_HPP_ */

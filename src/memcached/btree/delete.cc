@@ -30,7 +30,7 @@ struct memcached_delete_oper_t : public memcached_modify_oper_t {
 };
 
 delete_result_t memcached_delete(const store_key_t &key, bool dont_put_in_delete_queue, btree_slice_t *slice, exptime_t effective_time, repli_timestamp_t timestamp,
-    transaction_t *txn, got_superblock_t& superblock) {
+    transaction_t *txn, superblock_t *superblock) {
 
     memcached_delete_oper_t oper(dont_put_in_delete_queue, slice);
     run_memcached_modify_oper(&oper, slice, key, BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, effective_time, timestamp, txn, superblock);

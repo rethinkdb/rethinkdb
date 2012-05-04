@@ -57,13 +57,13 @@ struct memcached_get_cas_oper_t : public memcached_modify_oper_t, public home_th
 };
 
 void co_memcached_get_cas(const store_key_t &key, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, btree_slice_t *slice,
-                      promise_t<get_result_t> *res, transaction_t *txn, got_superblock_t& superblock) {
+                      promise_t<get_result_t> *res, transaction_t *txn, superblock_t *superblock) {
 
     memcached_get_cas_oper_t oper(proposed_cas, res);
     run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
 }
 
-get_result_t memcached_get_cas(const store_key_t &key, btree_slice_t *slice, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, got_superblock_t& superblock) {
+get_result_t memcached_get_cas(const store_key_t &key, btree_slice_t *slice, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
     promise_t<get_result_t> res;
     coro_t::spawn_now(boost::bind(co_memcached_get_cas, boost::ref(key), proposed_cas, effective_time, timestamp, slice, &res, txn, boost::ref(superblock)));
     return res.wait();

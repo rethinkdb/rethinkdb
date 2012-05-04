@@ -99,27 +99,12 @@ private:
     block_id_t root_block_id_;
 };
 
-class got_superblock_t {
-public:
-    got_superblock_t() { }
-    explicit got_superblock_t(superblock_t *sb_) : sb(sb_) { }
-
-    // This is a convenience function which should only be used for real superblocks.
-    buf_lock_t *get_real_buf() {
-        return static_cast<real_superblock_t*>(sb.get())->get();
-    }
-
-    boost::scoped_ptr<superblock_t> sb;
-private:
-    DISABLE_COPYING(got_superblock_t);
-};
-
 template <class Value>
 class keyvalue_location_t {
 public:
     keyvalue_location_t() : there_originally_was_value(false), stat_block(NULL_BLOCK_ID) { }
 
-    boost::scoped_ptr<superblock_t> sb;
+    superblock_t *superblock;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
     buf_lock_t last_buf;
@@ -133,7 +118,7 @@ public:
     scoped_malloc<Value> value;
 
     void swap(keyvalue_location_t& other) {
-        sb.swap(other.sb);
+        std::swap(superblock, other.superblock);
         last_buf.swap(other.last_buf);
         buf.swap(other.buf);
         std::swap(there_originally_was_value, other.there_originally_was_value);
@@ -257,23 +242,24 @@ void insert_root(block_id_t root_id, superblock_t* sb);
 /* Create a stat block for the superblock if it doesn't already have one. */
 void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority);
 
-void get_btree_superblock(transaction_t *txn, access_t access, got_superblock_t *got_superblock_out);
+void get_btree_superblock(transaction_t *txn, access_t access, boost::scoped_ptr<real_superblock_t> *got_superblock_out);
 
 void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, 
                           repli_timestamp_t tstamp, order_token_t token, bool snapshotted, 
                           const boost::shared_ptr<cache_account_t> &cache_account, 
-                          got_superblock_t *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
+                          boost::scoped_ptr<real_superblock_t> *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
 
 void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, 
-                                 repli_timestamp_t tstamp, order_token_t token, got_superblock_t *got_superblock_out, 
+                                 repli_timestamp_t tstamp, order_token_t token,
+                                 boost::scoped_ptr<real_superblock_t> *got_superblock_out, 
                                  boost::scoped_ptr<transaction_t>& txn_out);
 
 void get_btree_superblock_for_backfilling(btree_slice_t *slice, order_token_t token, 
-                                                 got_superblock_t *got_superblock_out, 
+                                                 boost::scoped_ptr<real_superblock_t> *got_superblock_out, 
                                                  boost::scoped_ptr<transaction_t>& txn_out);
 
 void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token, 
-                                             bool snapshotted, got_superblock_t *got_superblock_out, 
+                                             bool snapshotted, boost::scoped_ptr<real_superblock_t> *got_superblock_out, 
                                              boost::scoped_ptr<transaction_t>& txn_out);
 
 #include "btree/operations.tcc"

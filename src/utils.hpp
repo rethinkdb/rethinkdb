@@ -151,13 +151,13 @@ struct demangle_failed_exc_t : public std::exception {
 std::string demangle_cpp_name(const char *mangled_name);
 
 // formatted time:
-// yyyy-mm-dd hh:mm:ss   (19 characters)
-const size_t formatted_time_length = 19;    // not including null
+// yyyy-mm-ddThh:mm:ss.nnnnnnnnn   (29 characters)
+const size_t formatted_time_length = 29;    // not including null
 
-void format_time(time_t time, char* buf, size_t max_chars);
-std::string format_time(time_t time);
+void format_time(struct timespec time, char* buf, size_t max_chars);
+std::string format_time(struct timespec time);
 
-time_t parse_time(const std::string &str) THROWS_ONLY(std::runtime_error);
+struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error);
 
 /* Printing binary data to stdout in a nice format */
 

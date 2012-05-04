@@ -14,7 +14,7 @@ struct priority_t {
     int redundancy_cost;
     float backfill_cost;
 
-    priority_t() { }
+    priority_t() { }  // TODO: fix priority_queue_t
 
     priority_t(machine_id_t _machine_id, bool _pinned, bool _would_rob_secondary,
                int _redundancy_cost, float _backfill_cost)

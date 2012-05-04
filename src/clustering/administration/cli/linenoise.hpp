@@ -34,8 +34,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LINENOISE_H
-#define __LINENOISE_H
+#ifndef LINENOISE_H_
+#define LINENOISE_H_
 
 typedef struct linenoiseCompletions {
   size_t len;
@@ -46,6 +46,7 @@ typedef void(linenoiseCompletionCallback)(const char *, linenoiseCompletions *);
 void linenoiseSetCompletionCallback(linenoiseCompletionCallback *);
 void linenoiseAddCompletion(linenoiseCompletions *, const char *);
 void linenoiseFreeCompletions(linenoiseCompletions *);
+bool linenoiseIsUnescapedSpace(const char *, int);
 
 char *linenoise(const char *prompt);
 int linenoiseHistoryAdd(const char *line);
@@ -54,4 +55,4 @@ int linenoiseHistorySave(char *filename);
 int linenoiseHistoryLoad(char *filename);
 void linenoiseClearScreen(void);
 
-#endif /* __LINENOISE_H */
+#endif /* LINENOISE_H_ */

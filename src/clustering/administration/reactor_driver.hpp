@@ -60,6 +60,8 @@ private:
 
     typename semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> >::subscription_t semilattice_subscription;
     watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t translation_table_subscription;
+
+    DISABLE_COPYING(reactor_driver_t);
 };
 
 #endif
