@@ -22,9 +22,10 @@ public:
 
     void new_read_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out, int size);
 
-    void get_all_metainfos(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens, int num_read_tokens,
-			   signal_t *interruptor,
-			   region_map_t<protocol_t, version_range_t> *metainfos_out, int num_metainfos);
+    region_map_t<protocol_t, version_range_t>
+    get_all_metainfos(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens, int num_read_tokens,
+		      signal_t *interruptor);
+
 
 
 private:

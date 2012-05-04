@@ -4,9 +4,14 @@
 #include "concurrency/promise.hpp"
 #include "containers/death_runner.hpp"
 
+/* TODO: What if the backfill chunks on the network get reordered in transit?
+Even if the `protocol_t` can tolerate backfill chunks being reordered, it's
+clearly not OK for the end-of-backfill message to be processed before the last
+of the backfill chunks are. Consider using a FIFO enforcer or something. */
+
 template<class protocol_t>
 void on_receive_backfill_chunk(
-        store_view_t<protocol_t> *store,
+        multistore_ptr_t<protocol_t> *svs,
         signal_t *dont_go_until,
         typename protocol_t::backfill_chunk_t chunk,
         signal_t *interruptor,
@@ -35,24 +40,23 @@ template<class protocol_t>
 void backfillee(
         mailbox_manager_t *mailbox_manager,
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
-        store_view_t<protocol_t> *store,
+        multistore_ptr_t<protocol_t> *svs,
         typename protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
-    rassert(region_is_superset(store->get_region(), region));
+    rassert(region_is_superset(store->get_multistore_joined_region(), region));
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
-    store->new_read_token(read_token);
+    const int num_stores = svs->num_stores();
+    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[svs->num_stores()]);
+    svs->new_read_tokens(read_tokens.get(), num_stores);
+
     region_map_t<protocol_t, version_range_t> start_point =
-        region_map_transform<protocol_t, binary_blob_t, version_range_t>(
-            store->get_metainfo(read_token, interruptor),
-            &binary_blob_t::get<version_range_t>
-            );
+	svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor);
 
     start_point = start_point.mask(region);
 

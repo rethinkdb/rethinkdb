@@ -61,8 +61,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
     svs->new_read_tokens(read_tokens.get(), num_stores);
 
-    boost::scoped_array<region_map_t<protocol_t, version_range_t> > start_points(new region_map_t<protocol_t, version_range_t>[num_stores]);
-    svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor, start_points.get(), num_stores);
+    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor);
 
 
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
@@ -105,8 +104,8 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 	/* Backfill */
 	backfillee<protocol_t>(mailbox_manager,
 			       branch_history,
-			       store,
-			       store->get_region(),
+			       svs,
+			       svs->get_multistore_joined_region(),
 			       replier->subview(&listener_t<protocol_t>::get_backfiller_from_replier_bcard),
 			       backfill_session_id,
 			       interruptor

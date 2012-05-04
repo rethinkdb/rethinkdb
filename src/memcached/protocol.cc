@@ -260,7 +260,7 @@ struct write_get_region_visitor_t : public boost::static_visitor<key_range_t> {
 
 key_range_t memcached_protocol_t::write_t::get_region() const THROWS_NOTHING {
     write_get_region_visitor_t v;
-    return apply_visitor(v, mutation);
+    return boost::apply_visitor(v, mutation);
 }
 
 /* `memcached_protocol_t::write_t::shard()` */
@@ -277,6 +277,37 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     rassert(responses.size() == 1);
     return responses[0];
 }
+
+struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<memcached_protocol_t::region_t> {
+    memcached_protocol_t::region_t operator()(const delete_key_t &del) {
+        return monokey_region(del.key);
+    }
+
+    memcached_protocol_t::region_t operator()(const delete_range_t &del) {
+        return del.range;
+    }
+
+    memcached_protocol_t::region_t operator()(const key_value_pair_t &kv) {
+        return monokey_region(kv.backfill_atom.key);
+    }
+
+private:
+    static memcached_protocol_t::region_t monokey_region(const store_key_t &k) {
+        return key_range_t(key_range_t::closed, k, key_range_t::closed, k);
+    }
+}
+
+
+memcached_protocol_t::region_t backfill_chunk_t::get_region() const THROWS_NOTHING {
+    backfill_chunk_get_region_visitor_t v;
+    return boost::apply_visitor(v, val);
+}
+
+
+
+
+
+
 
 memcached_protocol_t::store_t::store_t(const std::string& filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::universe()) {
     if (create) {

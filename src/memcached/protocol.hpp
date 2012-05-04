@@ -115,10 +115,10 @@ public:
             RDB_MAKE_ME_SERIALIZABLE_1(key);
         };
         struct delete_range_t {
-            key_range_t range;
+            region_t range;
 
             delete_range_t() { }
-            explicit delete_range_t(const key_range_t& _range) : range(_range) { }
+            explicit delete_range_t(const region_t& _range) : range(_range) { }
 
             RDB_MAKE_ME_SERIALIZABLE_1(range);
         };
@@ -133,6 +133,13 @@ public:
 
         backfill_chunk_t() { }
         explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val_) : val(val_) { }
+
+        region_t get_region() const THROWS_NOTHING;
+        backfill_chunk_t shard(const region_t &r) const THROWS_NOTHING;
+
+
+
+
         boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
 
         static backfill_chunk_t delete_range(const key_range_t& range) {

@@ -76,6 +76,17 @@ public:
         std::string key, value;
         state_timestamp_t timestamp;
 
+        region_t get_region() const THROWS_NOTHING {
+            region_t r;
+            r.keys.insert(key);
+            return r;
+        }
+
+        backfill_chunk_t shard(const region_t &r) const THROWS_NOTHING {
+            rassert(r.keys.find(key) != r.keys.end());
+            return *this;
+        }
+
         RDB_MAKE_ME_SERIALIZABLE_3(key, value, timestamp);
     };
 

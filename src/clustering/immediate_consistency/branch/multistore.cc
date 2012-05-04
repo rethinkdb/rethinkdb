@@ -1,5 +1,6 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 
+#include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "protocol_api.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 
@@ -36,18 +37,21 @@ void multistore_ptr_t<protocol_t>::new_read_tokens(boost::scoped_ptr<fifo_enforc
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::get_all_metainfos(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens, int num_read_tokens,
-						     signal_t *interruptor,
-						     region_map_t<protocol_t, version_range_t> *metainfos_out, int num_metainfos) {
-    guarantee(num_read_tokens == num_metainfos);
+region_map_t<protocol_t, version_range_t>  multistore_ptr_t<protocol_t>::
+get_all_metainfos(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens, int num_read_tokens,
+		  signal_t *interruptor) {
+
     guarantee(int(store_views.size()) == num_read_tokens);
     // TODO: Replace this with pmap, or have the caller do this
     // differently parallelly.
 
+    region_map_t<protocol_t, version_range_t> ret(get_multistore_joined_region());
     for (int i = 0; i < num_read_tokens; ++i) {
-	metainfos_out[i] = region_map_transform<protocol_t, binary_blob_t, version_range_t>(store_views[i]->get_metainfo(read_tokens[i], interruptor),
-											    &binary_blob_t::get<version_range_t>);
+	ret.update(region_map_transform<protocol_t, binary_blob_t, version_range_t>(store_views[i]->get_metainfo(read_tokens[i], interruptor),
+										    &binary_blob_t::get<version_range_t>));
     }
+
+    return ret;
 }
 
 
