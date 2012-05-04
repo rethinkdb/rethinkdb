@@ -1,5 +1,0 @@
-do_test(
-    "$RETHINKDB/test/interface/detect_dead.py",
-    repeat = 3,
-    inputs = ["build/debug/rethinkdb", "test/interface", "test/common"]
-    )
