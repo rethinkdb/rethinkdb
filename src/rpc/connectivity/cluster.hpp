@@ -113,6 +113,15 @@ public:
 
         message_handler_t *message_handler;
 
+        /* `attempt_table` is a table of all the host:port pairs we're currently
+        trying to connect to or have connected to. If we are told to connect to
+        an address already in this table, we'll just ignore it. That's important
+        because when `client_port` is specified we will make all of our
+        connections from the same source, and TCP might not be able to
+        disambiguate between them. */
+        std::set<peer_address_t> attempt_table;
+        mutex_assertion_t attempt_table_mutex;
+
         /* `routing_table` is all the peers we can currently access and their
         addresses. Peers that are in the process of connecting or disconnecting
         may be in `routing_table` but not in

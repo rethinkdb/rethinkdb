@@ -141,6 +141,13 @@ void connectivity_cluster_t::run_t::join_blocking(
         boost::optional<peer_id_t> expected_id,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
     parent->assert_thread();
+    {
+        mutex_assertion_t::acq_t acq(&attempt_table_mutex);
+        if (attempt_table.find(address) != attempt_table.end()) {
+            return;
+        }
+        attempt_table.insert(address);
+    }
     try {
         tcp_conn_stream_t conn(address.ip, address.port, drainer_lock.get_drain_signal(), cluster_client_port);
         handle(&conn, expected_id, boost::optional<peer_address_t>(address), drainer_lock);
@@ -148,6 +155,10 @@ void connectivity_cluster_t::run_t::join_blocking(
         /* Ignore */
     } catch (interrupted_exc_t) {
         /* Ignore */
+    }
+    {
+        mutex_assertion_t::acq_t acq(&attempt_table_mutex);
+        attempt_table.erase(address);
     }
 }
 
