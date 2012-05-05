@@ -171,11 +171,13 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
     /* We take our store directly from the broadcaster to make sure that we
        get the correct one. */
-    rassert(broadcaster->bootstrap_store != NULL);
-    store = broadcaster->bootstrap_store;
-    broadcaster->bootstrap_store = NULL;
+    rassert(broadcaster->bootstrap_svs != NULL);
+    svs = broadcaster->bootstrap_svs;
+    broadcaster->bootstrap_svs = NULL;
 
     branch_id = broadcaster->branch_id;
+
+    const int num_stores = svs->num_stores();
 
 #ifndef NDEBUG
     /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
@@ -187,13 +189,11 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     /* Make sure the initial state of the store is sane */
     branch_birth_certificate_t<protocol_t> this_branch_history =
 	branch_history->get().branches[branch_id];
-    rassert(store->get_region() == this_branch_history.region);
+    rassert(svs->get_multistore_joined_region() == this_branch_history.region);
     /* Snapshot the metainfo before we start receiving writes */
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
-    store->new_read_token(read_token);
-
-    region_map_t<protocol_t, binary_blob_t> initial_metainfo =
-	store->get_metainfo(read_token, interruptor);
+    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
+    svs->new_read_tokens(read_tokens.get(), num_stores);
+    region_map_t<protocol_t, version_range_t> initial_metainfo = svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor);
 #endif
 
     /* Attempt to register for reads and writes */
@@ -201,9 +201,9 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     rassert(registration_done_cond.get_ready_signal()->is_pulsed());
 
 #ifndef NDEBUG
-    region_map_t<protocol_t, binary_blob_t> expected_initial_metainfo(store->get_region(),
-								      binary_blob_t(version_range_t(version_t(branch_id,
-													      registration_done_cond.get_value().broadcaster_begin_timestamp))));
+    region_map_t<protocol_t, version_range_t> expected_initial_metainfo(svs->get_multistore_joined_region(),
+                                                                        version_range_t(version_t(branch_id,
+                                                                                                  registration_done_cond.get_value().broadcaster_begin_timestamp)));
 
     rassert(expected_initial_metainfo == initial_metainfo);
 #endif
