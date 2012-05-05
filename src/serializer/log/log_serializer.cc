@@ -13,7 +13,7 @@
 #include "perfmon.hpp"
 
 log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 
-    : serializer_collection("serializer", parent),
+    : serializer_collection("serializer", parent, true, true),
       pm_serializer_block_reads("serializer_block_reads", secs_to_ticks(1), &serializer_collection),
       pm_serializer_index_reads("serializer_index_reads", &serializer_collection),
       pm_serializer_block_writes("serializer_block_writes", &serializer_collection),

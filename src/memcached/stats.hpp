@@ -6,7 +6,7 @@
 
 struct memcached_stats_t {
     memcached_stats_t(perfmon_collection_t *parent)
-        : parser_collection("parser", parent),
+        : parser_collection("parser", parent, true, true),
           pm_cmd_set("cmd_set", secs_to_ticks(1.0), &parser_collection),
           pm_cmd_get("cmd_get", secs_to_ticks(1.0), &parser_collection),
           pm_cmd_rget("cmd_rget", secs_to_ticks(1.0), &parser_collection),

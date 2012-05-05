@@ -420,13 +420,13 @@ public:
 /* A perfmon collection allows you to add hierarchy to stats. */
 class perfmon_collection_t : public perfmon_t {
 public:
-    explicit perfmon_collection_t(const std::string &_name, perfmon_collection_t *parent, bool insert = true)
-        : perfmon_t(parent, insert), name(_name)
+    explicit perfmon_collection_t(const std::string &_name, perfmon_collection_t *parent, bool insert, bool _create_submap)
+        : perfmon_t(parent, insert), name(_name), create_submap(_create_submap)
     { }
 
     /* Perfmon interface */
     void *begin_stats() {
-        constituents_access.co_lock(rwi_read);
+        constituents_access.co_lock(rwi_read); // RSI: should that be scoped somehow, so that we unlock, should the results collection fail?
         void **contexts = new void *[constituents.size()];
         size_t i = 0;
         for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
@@ -437,7 +437,6 @@ public:
 
     void visit_stats(void *_contexts) {
         void **contexts = reinterpret_cast<void **>(_contexts);
-        //RSI what happens if constituents size changes?
         size_t i = 0;
         for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
             p->visit_stats(contexts[i]);
@@ -446,15 +445,16 @@ public:
 
     void end_stats(void *_contexts, perfmon_result_t *result) {
         void **contexts = reinterpret_cast<void **>(_contexts);
-        perfmon_result_t *map = perfmon_result_t::new_map();
+        perfmon_result_t *map = create_submap ? perfmon_result_t::new_map() : result;
 
-        //RSI what happens if constituents size changes?
         size_t i = 0;
         for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
             p->end_stats(contexts[i], map);
         }
 
-        result->get_map()->insert(name, map);
+        if (create_submap) {
+            result->get_map()->insert(name, map);
+        }
         constituents_access.unlock();
     }
 
@@ -473,6 +473,7 @@ private:
     rwi_lock_t constituents_access;
 
     std::string name;
+    bool create_submap;
     intrusive_list_t<perfmon_t> constituents;
 };
 

@@ -31,7 +31,7 @@ perfmon_collection_t &get_global_collection() {
     as advised by the C++ FAQ. Otherwise, a perfmon_t might be initialized before the var list
     was initialized. */
 
-    static perfmon_collection_t collection("Global", NULL, false);
+    static perfmon_collection_t collection("Global", NULL, false, false);
     return collection;
 }
 

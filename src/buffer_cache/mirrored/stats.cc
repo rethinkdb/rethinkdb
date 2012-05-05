@@ -1,7 +1,7 @@
 #include "buffer_cache/mirrored/stats.hpp"
 
 mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
-    : cache_collection("cache", parent),
+    : cache_collection("cache", parent, true, true),
       pm_registered_snapshots("registered_snapshots", &cache_collection),
       pm_registered_snapshot_blocks("registered_snapshot_blocks", &cache_collection),
       pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1), false, &cache_collection),
