@@ -2,6 +2,7 @@
 #include <sys/resource.h>
 
 #include "clustering/administration/main/command_line.hpp"
+#include "clustering/administration/cli/admin_command_parser.hpp"
 #include "utils.hpp"
 #include "help.hpp"
 #include "config/args.hpp"
@@ -72,7 +73,7 @@ int main(int argc, char *argv[]) {
                     help_rethinkdb_serve();
                     return 0;
                 } else if (subcommand2 == "admin") {
-                    help_rethinkdb_admin();
+                    admin_command_parser_t::do_usage(false);
                     return 0;
                 } else {
                     printf("ERROR: No help for '%s'\n", subcommand2.c_str());

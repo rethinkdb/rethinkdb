@@ -20,6 +20,8 @@
 
 class Help_Pager {
 private:
+    friend class admin_command_parser_t;
+
     char msg[MAX_HELP_MSG_LEN];
     char *msg_hd;
 

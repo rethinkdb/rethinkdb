@@ -37,12 +37,14 @@ public:
     std::vector<std::string> get_ids(const std::string& base);
 
     // Commands that may be run by the parser
-    void do_admin_set(admin_command_parser_t::command_data& data);
     void do_admin_list(admin_command_parser_t::command_data& data);
-    void do_admin_move(admin_command_parser_t::command_data& data);
-    void do_admin_make_datacenter(admin_command_parser_t::command_data& data);
-    void do_admin_make_namespace(admin_command_parser_t::command_data& data);
-    void do_admin_rename(admin_command_parser_t::command_data& data);
+    void do_admin_split_shard(admin_command_parser_t::command_data& data);
+    void do_admin_merge_shard(admin_command_parser_t::command_data& data);
+    void do_admin_set_name(admin_command_parser_t::command_data& data);
+    void do_admin_set_affinities(admin_command_parser_t::command_data& data);
+    void do_admin_set_datacenter(admin_command_parser_t::command_data& data);
+    void do_admin_create_datacenter(admin_command_parser_t::command_data& data);
+    void do_admin_create_namespace(admin_command_parser_t::command_data& data);
     void do_admin_remove(admin_command_parser_t::command_data& data);
 
     void sync_from();
