@@ -9,6 +9,8 @@
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/semilattice/view.hpp"
 
+template <class> class multistore_ptr_t;
+
 template<class protocol_t>
 class reactor_t {
 public:
@@ -71,7 +73,7 @@ private:
             auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
     /* Implemented in clustering/reactor/reactor_be_primary.tcc */
-    void be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
+    void be_primary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *store, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
 
     /* A backfill candidate is a structure we use to keep track of the different
@@ -105,7 +107,7 @@ private:
     bool is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                       const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out);
 
-    static backfill_candidate_t make_backfill_candidate_from_binary_blob(const binary_blob_t &b);
+    static backfill_candidate_t make_backfill_candidate_from_version_range(const version_range_t &b);
 
     /* Implemented in clustering/reactor/reactor_be_secondary.tcc */
     bool find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
