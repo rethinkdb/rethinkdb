@@ -23,6 +23,7 @@ boost::optional<boost::optional<replier_business_card_t<dummy_protocol_t> > > wr
     return boost::optional<boost::optional<replier_business_card_t<dummy_protocol_t> > >(inner);
 }
 
+// TODO: Make this's argument take the multistore_ptr_t in addition to the test_store_t.
 void run_with_broadcaster(
         boost::function< void(
             simple_mailbox_cluster_t *,
@@ -43,13 +44,14 @@ void run_with_broadcaster(
 
     /* Set up a broadcaster and initial listener */
     test_store_t<dummy_protocol_t> initial_store;
+    multistore_ptr_t<dummy_protocol_t> initial_svs(&initial_store.store, 1);
     cond_t interruptor;
 
     boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > broadcaster(
         new broadcaster_t<dummy_protocol_t>(
             cluster.get_mailbox_manager(),
             branch_history_controller.get_view(),
-            &initial_store.store,
+            &initial_svs,
             &interruptor
         ));
 

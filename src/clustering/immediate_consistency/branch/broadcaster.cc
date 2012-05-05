@@ -6,6 +6,7 @@
 #include "concurrency/coro_fifo.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
@@ -13,7 +14,7 @@
 template <class protocol_t>
 broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
 	      boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
-	      store_view_t<protocol_t> *initial_store,
+	      multistore_ptr_t<protocol_t> *initial_svs,
 	      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
@@ -21,12 +22,11 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
 
     /* Snapshot the starting point of the store; we'll need to record this
        and store it in the metadata. */
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
-    initial_store->new_read_token(read_token);
+    const int num_stores = initial_svs->num_stores();
+    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
+    initial_svs->new_read_tokens(read_tokens.get(), num_stores);
 
-    region_map_t<protocol_t, version_range_t> origins =
-	region_map_transform<protocol_t, binary_blob_t, version_range_t>(initial_store->get_metainfo(read_token, interruptor),
-									 &binary_blob_t::get<version_range_t>);
+    region_map_t<protocol_t, version_range_t> origins = initial_svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor);
 
     /* Determine what the first timestamp of the new branch will be */
     state_timestamp_t initial_timestamp = state_timestamp_t::zero();
@@ -47,7 +47,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
        semilattice */
     {
 	branch_birth_certificate_t<protocol_t> our_metadata;
-	our_metadata.region = initial_store->get_region();
+	our_metadata.region = initial_svs->get_multistore_joined_region();
 	our_metadata.initial_timestamp = initial_timestamp;
 	our_metadata.origin = origins;
 
@@ -60,12 +60,12 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
        entry in the global metadata so that we aren't left in a state where
        the store has been marked as belonging to a branch for which no
        information exists. */
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
-    initial_store->new_write_token(write_token);
-    initial_store->set_metainfo(
+    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+    initial_store->new_write_tokens(write_tokens.get(), num_stores);
+    initial_store->set_all_metainfos(
 				region_map_t<protocol_t, binary_blob_t>(initial_store->get_region(),
 									binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
-				write_token,
+				write_tokens.get(), num_stores,
 				interruptor
 				);
 
@@ -73,7 +73,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     sanity_check();
 
     /* Set `bootstrap_store` so that the initial listener can find it */
-    bootstrap_store = initial_store;
+    bootstrap_svs = initial_svs;
 }
 
 template <class protocol_t>

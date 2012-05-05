@@ -331,7 +331,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
             }
         }
 
-        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history, store, interruptor);
+        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history, svs, interruptor);
 
         directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card()));
 

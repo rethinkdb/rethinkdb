@@ -11,6 +11,7 @@
 
 template <class> class listener_t;
 template <class> class semilattice_readwrite_view_t;
+template <class> class multistore_ptr_t;
 struct mailbox_manager_t;
 
 
@@ -23,7 +24,7 @@ public:
     broadcaster_t(
             mailbox_manager_t *mm,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
-            store_view_t<protocol_t> *initial_store,
+            multistore_ptr_t<protocol_t> *initial_svs,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
@@ -72,9 +73,10 @@ private:
 
     branch_id_t branch_id;
 
-    /* Until our initial listener has been constructed, this holds the store
-    that was passed to our constructor. After that, it's `NULL`. */
-    store_view_t<protocol_t> *bootstrap_store;
+    /* Until our initial listener has been constructed, this holds the
+    multistore_ptr that was passed to our constructor. After that,
+    it's `NULL`. */
+    multistore_ptr_t<protocol_t> *bootstrap_svs;
 
     /* If a write has begun, but some mirror might not have completed it yet,
     then it goes in `incomplete_writes`. The idea is that a new mirror that
