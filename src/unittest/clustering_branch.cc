@@ -44,7 +44,8 @@ void run_with_broadcaster(
 
     /* Set up a broadcaster and initial listener */
     test_store_t<dummy_protocol_t> initial_store;
-    multistore_ptr_t<dummy_protocol_t> initial_svs(&initial_store.store, 1);
+    store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
+    multistore_ptr_t<dummy_protocol_t> initial_svs(&initial_store_ptr, 1);
     cond_t interruptor;
 
     boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > broadcaster(
@@ -195,7 +196,8 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
 
     /* Set up a second mirror */
     test_store_t<dummy_protocol_t> store2;
-    multistore_ptr_t<dummy_protocol_t> store2_ptr(&store2.store, 1);
+    store_view_t<dummy_protocol_t> *store2_ptr = &store2.store;
+    multistore_ptr_t<dummy_protocol_t> store2_ptr(&store2_ptr, 1);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         cluster->get_mailbox_manager(),
@@ -259,7 +261,8 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     test_store_t<dummy_protocol_t> store2;
     dummy_protocol_t::region_t subregion('a', 'm');
     store_subview_t<dummy_protocol_t> substore(&store2.store, subregion);
-    multistore_ptr_t<dummy_protocol_t> store_ptr(&substore, 1);
+    store_view_t<dummy_protocol_t> *substore_ptr = &substore;
+    multistore_ptr_t<dummy_protocol_t> store_ptr(&substore_ptr, 1);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         cluster->get_mailbox_manager(),

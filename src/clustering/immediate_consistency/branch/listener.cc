@@ -120,7 +120,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     typedef region_map_t<protocol_t, version_range_t> version_map_t;
 
     version_map_t backfill_end_point =
-	region_map_transform<protocol_t, binary_blob_t, version_range_t>(svs->get_all_metainfos(read_tokens2, num_stores, interruptor),
+	region_map_transform<protocol_t, binary_blob_t, version_range_t>(svs->get_all_metainfos(read_tokens2.get(), num_stores, interruptor),
 									 &binary_blob_t::get<version_range_t>
 									 );
 

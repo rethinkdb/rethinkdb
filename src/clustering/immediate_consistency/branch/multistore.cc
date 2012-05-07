@@ -13,7 +13,7 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(const std::vector<store_view_t<pr
 }
 
 template <class protocol_t>
-multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> *_store_views, int num_store_views)
+multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store_views, int num_store_views)
     : store_views(_store_views, _store_views + num_store_views) {
 
     // do nothing?  For now.
@@ -92,7 +92,7 @@ void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol
     guarantee(num_write_tokens == num_stores());
 
     for (int i = 0; i < num_stores(); ++i) {
-        store_views[i]->set_metainfo(new_metainfo.mask(store_views->get_region()), write_tokens[i], interruptor);
+        store_views[i]->set_metainfo(new_metainfo.mask(store_views[i]->get_region()), write_tokens[i], interruptor);
     }
 }
 

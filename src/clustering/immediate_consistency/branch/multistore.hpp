@@ -20,7 +20,7 @@ public:
     multistore_ptr_t(const std::vector<store_view_t<protocol_t> *> &store_views);
 
     // We don't get ownership of the store_view_t pointers themselves.
-    multistore_ptr_t(store_view_t<protocol_t> *store_views, int num_store_views);
+    multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views);
 
     typename protocol_t::region_t get_multistore_joined_region() const;
 
@@ -40,6 +40,8 @@ public:
 
     // This is the opposite of get_all_metainfos but is a bit more scary.
     void set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens, int num_write_tokens, signal_t *interruptor);
+
+
 
 
 private:
