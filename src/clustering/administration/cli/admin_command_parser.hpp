@@ -18,6 +18,15 @@ private:
     std::string info;
 };
 
+struct admin_no_connection_exc_t : public std::exception {
+public:
+    explicit admin_no_connection_exc_t(const std::string& data) : info(data) { }
+    ~admin_no_connection_exc_t() throw () { }
+    const char *what() const throw () { return info.c_str(); }
+private:
+    std::string info;
+};
+
 class admin_command_parser_t {
 public:
     struct command_data;
@@ -81,11 +90,12 @@ private:
     };
 
     struct command_info {
-        command_info(std::string cmd,
+        command_info(std::string full_cmd,
+                     std::string cmd,
                      std::string use,
                      bool sync,
                      void (admin_cluster_link_t::* const fn)(command_data&)) :
-            command(cmd), usage(use), post_sync(sync), do_function(fn) { }
+            full_command(full_cmd), command(cmd), usage(use), post_sync(sync), do_function(fn) { }
 
         ~command_info();
 
@@ -93,6 +103,7 @@ private:
         param_options * add_positional(const std::string& name, int count, bool required);
         void add_subcommand(command_info *info);
 
+        std::string full_command;
         std::string command;
         std::string usage;
         const bool post_sync;
@@ -114,10 +125,9 @@ public:
     admin_command_parser_t(const std::set<peer_address_t>& joins, int client_port);
     ~admin_command_parser_t();
 
-    command_data parse_command(const std::vector<std::string>& command_args);
-    void run_command(command_data& data);
+    void parse_and_run_command(const std::vector<std::string>& line);
     void run_console();
-    void run_complete(const std::vector<std::string>& command_args);
+    void run_completion(const std::vector<std::string>& command_args);
 
     static void do_usage(bool console);
     static void do_set_usage(bool console);
@@ -134,9 +144,9 @@ private:
     struct admin_help_info_t {
         admin_help_info_t(const char* _command, const char* _usage, const char* _description) :
             command(_command), usage(_usage), description(_description) { }
-        const char* command;
-        const char* usage;
-        const char* description;
+        std::string command;
+        std::string usage;
+        std::string description;
     };
 
     static void do_usage_internal(const std::vector<admin_help_info_t>& helps,
@@ -146,6 +156,7 @@ private:
 
     void build_command_descriptions();
     command_info* add_command(std::map<std::string, command_info*>& cmd_map,
+                              const std::string& full_cmd,
                               const std::string& cmd,
                               const std::string& usage, 
                               bool post_sync,
@@ -155,7 +166,13 @@ private:
     void do_admin_help(command_data& data);
     void do_admin_join(command_data& data);
 
-    std::map<std::string, command_info *>::const_iterator find_command(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches);
+    command_info * find_command(const std::map<std::string, command_info *>& cmd_map, const std::vector<std::string>& line, size_t& index);
+    command_data parse_command(command_info *info, const std::vector<std::string>& command_args);
+    void run_command(command_data& data);
+
+    void print_subcommands_usage(command_info *info, FILE* file);
+
+    std::map<std::string, command_info *>::const_iterator find_command_with_completion(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches);
     void add_option_matches(const param_options *option, const std::string& partial, linenoiseCompletions *completions);
     void add_positional_matches(const command_info *info, size_t offset, const std::string& partial, linenoiseCompletions *completions);
     void get_id_completions(const std::string& base, linenoiseCompletions *completions);

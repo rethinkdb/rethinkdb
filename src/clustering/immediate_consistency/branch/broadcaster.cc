@@ -103,9 +103,20 @@ public:
         rassert(ack_callback);
     }
 
+    void notify_acked(peer_id_t peer, typename protocol_t::write_response_t _resp) {
+        if (!resp) {
+            resp = _resp;
+        }
+        if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
+            if (ack_callback->on_ack(peer) && resp) {
+                done_promise.pulse(true);
+            }
+        }
+    }
+
     void notify_acked(peer_id_t peer) {
         if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
-            if (ack_callback->on_ack(peer)) {
+            if (ack_callback->on_ack(peer) && resp) {
                 done_promise.pulse(true);
             }
         }
@@ -131,12 +142,18 @@ public:
        satisfied, or with `false` if it will never be satisfied. */
     promise_t<bool> done_promise;
 
+    typename protocol_t::write_response_t get_resp() {
+        rassert(resp);
+        return *resp;
+    }
+
 private:
     friend class incomplete_write_ref_t;
 
     broadcaster_t *parent;
     int incomplete_count;
     ack_callback_t *ack_callback;
+    boost::optional<typename protocol_t::write_response_t> resp;
 
     DISABLE_COPYING(incomplete_write_t);
 };
@@ -359,8 +376,6 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
         incomplete_write_ref_t write_ref;
 
         std::map<dispatchee_t *, auto_drainer_t::lock_t> writers;
-        dispatchee_t *writereader;
-        auto_drainer_t::lock_t writereader_lock;
         std::map<dispatchee_t *, fifo_enforcer_write_token_t> enforcer_tokens;
 
         /* Set up the write. We have to be careful about the case where
@@ -405,7 +420,6 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
             /* As long as we hold the lock, choose our writereader and take a
             snapshot of the dispatchee map */
-            pick_a_readable_dispatchee(&writereader, &mutex_acq, &writereader_lock);
             writers = dispatchees;
             for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
                     it != dispatchees.end(); it++) {
@@ -419,30 +433,16 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
         sanity_check();
 
-        /* Dispatch the write to all the dispatchees */
+        /* First check that someone is going to be able to give us a response */
+        if (readable_dispatchees.empty()) {
+            throw cannot_perform_query_exc_t("no mirrors readable. this is strange because the primary mirror should be always readable.");
+        }
 
-        /* First dispatch it to all the non-writereaders... */
+        /* Dispatch the write to all the dispatchees */
         for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = writers.begin(); it != writers.end(); it++) {
-            /* Make sure not to send a duplicate operation to `writereader` */
-            if ((*it).first == writereader) continue;
             coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, this,
                 (*it).first, (*it).second, write_ref, enforcer_tokens[(*it).first]));
         }
-
-        /* ... then dispatch it to the writereader */
-        try {
-            wait_any_t interruptor2(writereader_lock.get_drain_signal(), interruptor);
-            resp = listener_writeread<protocol_t>(mailbox_manager, writereader->writeread_mailbox,
-                write_ref.get()->write, write_ref.get()->timestamp, enforcer_tokens[writereader],
-                &interruptor2);
-        } catch (interrupted_exc_t) {
-            if (interruptor->is_pulsed()) {
-                throw;
-            } else {
-                throw cannot_perform_query_exc_t("lost contact with designated responder in write");
-            }
-        }
-        write_ref.get()->notify_acked(writereader->get_peer());
     }
 
     wait_interruptible(write_wrapper->done_promise.get_ready_signal(), interruptor);
@@ -450,7 +450,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
         throw cannot_perform_query_exc_t("insufficient mirrors to meet desired ack count");
     }
 
-    return resp;
+    return write_wrapper->get_resp();
 }
 
 template<class protocol_t>
@@ -557,13 +557,21 @@ void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispat
 template<class protocol_t>
 void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
-        listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
-            write_ref.get()->write, write_ref.get()->timestamp, token,
-            mirror_lock.get_drain_signal());
+        if (mirror->is_readable) {
+            typename protocol_t::write_response_t resp = listener_writeread<protocol_t>(mailbox_manager, mirror->writeread_mailbox,
+                    write_ref.get()->write, write_ref.get()->timestamp, token,
+                    mirror_lock.get_drain_signal());
+
+            write_ref.get()->notify_acked(mirror->get_peer(), resp);
+        } else {
+            listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
+                    write_ref.get()->write, write_ref.get()->timestamp, token,
+                    mirror_lock.get_drain_signal());
+            write_ref.get()->notify_acked(mirror->get_peer());
+        }
     } catch (interrupted_exc_t) {
         return;
     }
-    write_ref.get()->notify_acked(mirror->get_peer());
 }
 
 template<class protocol_t>

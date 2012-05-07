@@ -16,8 +16,9 @@ parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox
       machine_semilattice_metadata(_machine_semilattice_metadata),
 #endif
       repo(_repo),
-      namespaces_subscription(boost::bind(&parser_maker_t::on_change, this), namespaces_semilattice_metadata),
+      namespaces_subscription(boost::bind(&parser_maker_t::on_change, this), namespaces_semilattice_metadata)
 #ifndef NDEBUG
+        ,
       machine_subscription(boost::bind(&parser_maker_t::on_change, this), machine_semilattice_metadata)
 #endif
 {

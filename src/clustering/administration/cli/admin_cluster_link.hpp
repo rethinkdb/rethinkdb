@@ -50,6 +50,8 @@ public:
     void sync_from();
     void sync_to();
 
+    size_t machine_count();
+
 private:
 
     static std::string truncate_uuid(const boost::uuids::uuid& uuid);
