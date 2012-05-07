@@ -400,10 +400,10 @@ void listener_t<protocol_t>::on_writeread(auto_drainer_t::lock_t keepalive,
 
 	// Perform the operation
 	cond_t non_interruptor;
-	typename protocol_t::write_response_t response = svs->write(DEBUG_ONLY(region_map_t<protocol_t, binary_blob_t>(svs->get_region(),
-                                                                                                                         binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
-                                                                                 )
-                                                                    region_map_t<protocol_t, binary_blob_t>(svs->get_region(),
+	typename protocol_t::write_response_t response = svs->write(DEBUG_ONLY(region_map_t<protocol_t, binary_blob_t>(svs->get_multistore_joined_region(),
+                                                                                                                       binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
+                                                                               )
+                                                                    region_map_t<protocol_t, binary_blob_t>(svs->get_multistore_joined_region(),
                                                                                                             binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))),
                                                                     write,
                                                                     transition_timestamp,

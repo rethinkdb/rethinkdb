@@ -158,8 +158,6 @@ public:
     typedef traversal_progress_combiner_t backfill_progress_t;
 
     class store_t : public store_view_t<memcached_protocol_t> {
-        typedef region_map_t<memcached_protocol_t, binary_blob_t> metainfo_t;
-
         boost::scoped_ptr<standard_serializer_t> serializer;
         mirrored_cache_config_t cache_dynamic_config;
         boost::scoped_ptr<cache_t> cache;
@@ -170,6 +168,9 @@ public:
         fifo_enforcer_sink_t token_sink;
 
     public:
+        // TODO: This was originally private.  Do we still want it to be private?
+        typedef region_map_t<memcached_protocol_t, binary_blob_t> metainfo_t;
+
         store_t(const std::string& filename, bool create);
         ~store_t();
 

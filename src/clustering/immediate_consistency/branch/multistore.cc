@@ -1,5 +1,8 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 
+#include "errors.hpp"
+#include <boost/function.hpp>
+
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "protocol_api.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
@@ -96,7 +99,68 @@ void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol
     }
 }
 
+/* This has to be compatible with the conditions given by
+   send_backfill in protocol_api.hpp.  Here is a copy that might be
+   out-of-date.
 
+   Expresses the changes that have happened since `start_point` as a
+   series of `backfill_chunk_t` objects.
+   [Precondition] start_point.get_domain() <= view->get_region()
+   [Side-effect] `should_backfill` must be called exactly once
+   [Return value] Value equal to the value returned by should_backfill
+   [May block]
+*/
+template <class protocol_t>
+bool multistore_ptr_t<protocol_t>::send_multistore_backfill(UNUSED const region_map_t<protocol_t, state_timestamp_t> &start_point,
+                                                            UNUSED const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,
+                                                            UNUSED const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                                                            UNUSED typename protocol_t::backfill_progress_t *progress,
+                                                            UNUSED boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                                                            UNUSED int num_stores_assertion,
+                                                            UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    // We need to acquire all the superblocks of all the stores.  Then
+    // we need to get and join all their metainfo.  Then we need to
+    // call should_backfill(metainfo).
+
+    // TODO: All the parameters must be not marked UNUSED.
+
+    // TODO: uh, no.
+    return false;
+
+}
+
+
+
+template <class protocol_t>
+typename protocol_t::read_response_t
+multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(UNUSED const typename  protocol_t::store_t::metainfo_t& expected_metainfo, )
+                                   UNUSED const typename protocol_t::read_t &read,
+                                   UNUSED boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                                   UNUSED int num_stores_assertion,
+                                   UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+
+    // TODO: uh, implement.
+
+    // TODO: no unused parameters.
+
+    return typename protocol_t::read_response_t();
+
+}
+
+template <class protocol_t>
+typename protocol_t::write_response_t
+multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(UNUSED const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
+                                    UNUSED const typename protocol_t::store_t::metainfo_t& new_metainfo,
+                                    UNUSED const typename protocol_t::write_t &write,
+                                    UNUSED transition_timestamp_t timestamp,
+                                    UNUSED boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                    UNUSED int num_stores_assertion,
+                                    UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    // TODO: uh, implement
+    // TODO: no unused parameters.
+
+    return typename protocol_t::write_response_t();
+}
 
 
 
