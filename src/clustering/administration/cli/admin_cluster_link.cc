@@ -215,16 +215,16 @@ std::vector<std::string> admin_cluster_link_t::get_path_from_id(const std::strin
             throw admin_parse_exc_t("identifier not found, too short to specify a uuid: " + id);
 
         if (item == uuid_to_path.end() || item->first.find(id) != 0)
-            throw admin_parse_exc_t("identifier not found: " + id);
+            throw admin_cluster_exc_t("identifier not found: " + id);
 
         // Make sure that the found id is unique
         ++item;
         if (item != uuid_to_path.end() && item->first.find(id) == 0)
-            throw admin_parse_exc_t("uuid not unique: " + id);
+            throw admin_cluster_exc_t("uuid not unique: " + id);
 
         return uuid_to_path.lower_bound(id)->second;
     } else if (name_to_path.count(id) != 1) {
-        throw admin_parse_exc_t("name not unique: " + id);
+        throw admin_cluster_exc_t("name not unique: " + id);
     }
 
     return name_to_path.find(id)->second;
@@ -381,7 +381,7 @@ void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::com
     else if (protocol == "dummy")
         obj_path.push_back("dummy_namespaces");
     else
-        throw admin_parse_exc_t("unknown protocol: " + protocol);
+        throw admin_parse_exc_t("unrecognized protocol: " + protocol);
 
     value += ", \"port\": " + data.params["port"][0];
 
@@ -414,7 +414,7 @@ void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::comma
 
     // Make sure the path is as expected
     if (!is_uuid(target_path[1]))
-        throw admin_parse_exc_t("unexpected error when looking up destination: " + datacenter_id);
+        throw admin_cluster_exc_t("unexpected error when looking up destination: " + datacenter_id);
 
     // Target must be a datacenter in all existing use cases
     if (datacenter_path[0] != "datacenters")
@@ -425,7 +425,7 @@ void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::comma
     else if (target_path[0] == "machines")
         target_path.push_back("datacenter_uuid");
     else
-        throw admin_parse_exc_t("");
+        throw admin_parse_exc_t("target object is not a namespace or machine");
 
     if (data.params.count("resolve") == 1)
         target_path.push_back("resolve");
@@ -471,7 +471,7 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
     semilattice_metadata->join(cluster_metadata);
 
     if (errored)
-        throw admin_parse_exc_t("not all removes were successful");
+        throw admin_cluster_exc_t("not all removes were successful");
 }
 
 void admin_cluster_link_t::set_metadata_value(const std::vector<std::string>& path, const std::string& value)
