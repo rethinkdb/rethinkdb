@@ -1,5 +1,6 @@
 #include "clustering/administration/http/server.hpp"
 
+#include "clustering/administration/http/cyanide.hpp"
 #include "clustering/administration/http/directory_app.hpp"
 #include "clustering/administration/http/distribution_app.hpp"
 #include "clustering/administration/http/issues_app.hpp"
@@ -88,6 +89,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         ));
     progress_app.reset(new progress_app_t(_directory_metadata, mbox_manager));
     distribution_app.reset(new distribution_app_t(metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, _semilattice_metadata), _namespace_repo));
+    cyanide_app.reset(new cyanide_http_app_t);
 
     std::map<std::string, http_app_t *> ajax_routes;
     ajax_routes["directory"] = directory_app.get();
@@ -97,6 +99,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     ajax_routes["log"] = log_app.get();
     ajax_routes["progress"] = progress_app.get();
     ajax_routes["distribution"] = distribution_app.get();
+    ajax_routes["cyanide"] = cyanide_app.get();
+
     ajax_routing_app.reset(new routing_http_app_t(semilattice_app.get(), ajax_routes));
 
     std::map<std::string, http_app_t *> root_routes;
