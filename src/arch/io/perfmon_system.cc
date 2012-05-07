@@ -144,8 +144,8 @@ struct perfmon_system_t : public perfmon_t {
             return;
         }
 
-        dest->insert("memory_virtual[bytes]", new perfmon_result_t(strprintf("%lu", pid_stat.vsize)));
-        dest->insert("memory_real[bytes]", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
+        dest->insert("memory_virtual", new perfmon_result_t(strprintf("%lu", pid_stat.vsize)));
+        dest->insert("memory_real", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
     }
     void put_timestamp(perfmon_result_t *dest) {
         time_t now = time(NULL);
