@@ -71,21 +71,12 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     *result_out = true;
 
     try {
-        if (command_args.empty()) {
-            admin_command_parser_t parser(look_up_peers_addresses(joins), client_port);
-            parser.run_console();
-        } else {
-            // Only one command, run it by itself
-            admin_command_parser_t parser(look_up_peers_addresses(joins), client_port);
-
-            // If we're doing a shell command completion, just print them and exit
-            if (command_args[0] == parser.complete_command) {
-                parser.run_complete(command_args);
-            } else {
-                admin_command_parser_t::command_data data(parser.parse_command(command_args));
-                parser.run_command(data);
-            }
-        }
+        if (command_args.empty())
+            admin_command_parser_t(look_up_peers_addresses(joins), client_port).run_console();
+        else if (command_args[0] == admin_command_parser_t::complete_command)
+            admin_command_parser_t(look_up_peers_addresses(joins), client_port).run_completion(command_args);
+        else
+            admin_command_parser_t(look_up_peers_addresses(joins), client_port).parse_and_run_command(command_args);
     } catch (std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
         *result_out = false;
