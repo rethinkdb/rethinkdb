@@ -49,6 +49,7 @@ void admin_cluster_link_t::fill_in_blueprints(cluster_semilattice_metadata_t *cl
             connectivity_cluster.get_me().get_uuid());
 }
 
+// TODO: timeout connecting to cluster, throw admin_no_connection_exc_t if failed
 admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port) :
     local_issue_tracker(),
     log_writer("./rethinkdb_log_file", &local_issue_tracker), // TODO: come up with something else for this file
@@ -493,4 +494,15 @@ void admin_cluster_link_t::set_metadata_value(const std::vector<std::string>& pa
     } catch (missing_machine_exc_t &e) { }
 
     semilattice_metadata->join(cluster_metadata);
+}
+
+size_t admin_cluster_link_t::machine_count() {
+    size_t count = 0;
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+
+    for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin(); i != cluster_metadata.machines.machines.end(); ++i)
+        if (!i->second.is_deleted())
+            ++count;
+
+    return count;
 }

@@ -45,18 +45,18 @@ const char *admin_command_parser_t::create_datacenter_usage = "[--name <name>]";
 const char *admin_command_parser_t::remove_usage = "<id>...";
 const char *admin_command_parser_t::join_usage = "<host>:<port>";
 
-const char *admin_command_parser_t::list_description;
-const char *admin_command_parser_t::exit_description;
-const char *admin_command_parser_t::help_description;
-const char *admin_command_parser_t::split_shard_description;
-const char *admin_command_parser_t::merge_shard_description;
-const char *admin_command_parser_t::set_name_description;
-const char *admin_command_parser_t::set_datacenter_description;
-const char *admin_command_parser_t::set_affinities_description;
-const char *admin_command_parser_t::create_namespace_description;
-const char *admin_command_parser_t::create_datacenter_description;
-const char *admin_command_parser_t::remove_description;
-const char *admin_command_parser_t::join_description;
+const char *admin_command_parser_t::list_description = "NYI";
+const char *admin_command_parser_t::exit_description = "NYI";
+const char *admin_command_parser_t::help_description = "NYI";
+const char *admin_command_parser_t::split_shard_description = "NYI";
+const char *admin_command_parser_t::merge_shard_description = "NYI";
+const char *admin_command_parser_t::set_name_description = "NYI";
+const char *admin_command_parser_t::set_datacenter_description = "NYI";
+const char *admin_command_parser_t::set_affinities_description = "NYI";
+const char *admin_command_parser_t::create_namespace_description = "NYI";
+const char *admin_command_parser_t::create_datacenter_description = "NYI";
+const char *admin_command_parser_t::remove_description = "NYI";
+const char *admin_command_parser_t::join_description = "NYI";
 
 namespace po = boost::program_options;
 
@@ -139,7 +139,7 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
             help->pagef("\nDescription:\n");
             description_header_printed = true;
         }
-        help->pagef("  %s%s %s\n    %s\n", prefix, helps[i].command.c_str(), helps[i].usage.c_str(), helps[i].description.c_str());
+        help->pagef("  %s%s %s\n    %s\n\n", prefix, helps[i].command.c_str(), helps[i].usage.c_str(), helps[i].description.c_str());
     }
 
     if (!options.empty()) {
@@ -340,8 +340,13 @@ void admin_command_parser_t::build_command_descriptions() {
 admin_cluster_link_t* admin_command_parser_t::get_cluster() {
     if (cluster == NULL) {
         if (joins_param.empty())
-            throw admin_parse_exc_t("need to join a cluster to proceed");
+            throw admin_no_connection_exc_t("no join parameter specified");
         cluster = new admin_cluster_link_t(joins_param, client_port_param);
+
+        if (console_mode) {
+            cluster->sync_from();
+            fprintf(stdout, "Connected to cluster with %ld machines, run 'help' for more information\n", cluster->machine_count());
+        }
     }
 
     return cluster;
@@ -630,6 +635,8 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
             fprintf(stderr, "usage: ");
             print_subcommands_usage(info, stderr);
         }
+    } catch (admin_no_connection_exc_t& ex) {
+        throw; // This will be caught and handled elsewhere
     } catch (std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
     }
@@ -638,11 +645,8 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
 void admin_command_parser_t::run_console() {
     console_mode = true;
 
-    if (!joins_param.empty()) {
-        // Do an intial sync to make sure everything's working
-        get_cluster()->sync_from();
-        puts("Connected to cluster");
-    }
+    if (!joins_param.empty())
+        get_cluster();
 
     linenoiseSetCompletionCallback(completion_generator_hook);
     char *raw_line = linenoise(prompt);
@@ -661,6 +665,8 @@ void admin_command_parser_t::run_console() {
 
                 if (!split_line.empty())
                     parse_and_run_command(split_line);
+            } catch (admin_no_connection_exc_t& ex) {
+                fprintf(stderr, "not connected to a cluster, run 'help join' for more information\n");
             } catch (...) {
                 fprintf(stderr, "could not parse line\n");
             }
@@ -715,6 +721,7 @@ void admin_command_parser_t::do_admin_join(command_data& data) {
     joins_param.clear();
     joins_param.insert(peer_address_t(ip_address_t(host), atoi(port.c_str())));
 
+    // TODO: this probably doesn't work
     delete cluster;
     get_cluster();
 }
