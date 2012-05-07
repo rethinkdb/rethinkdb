@@ -19,7 +19,7 @@ static const uint64_t MAX_STAT_REQ_TIMEOUT_MS = 60*1000;
 class stats_request_record_t {
 public:
     explicit stats_request_record_t(mailbox_manager_t *mbox_manager)
-        : response_mailbox(mbox_manager, boost::bind(&promise_t<stat_manager_t::stats_t>::pulse, &stats, _1))
+        : response_mailbox(mbox_manager, boost::bind(&promise_t<stat_manager_t::stats_t>::pulse, &stats, _1), mailbox_callback_mode_inline)
     { }
     promise_t<stat_manager_t::stats_t> stats;
     mailbox_t<void(stat_manager_t::stats_t)> response_mailbox;

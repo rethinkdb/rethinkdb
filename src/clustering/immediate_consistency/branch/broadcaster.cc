@@ -251,7 +251,9 @@ void listener_write(
 {
     cond_t ack_cond;
     mailbox_t<void()> ack_mailbox(
-        mailbox_manager, boost::bind(&cond_t::pulse, &ack_cond));
+        mailbox_manager,
+        boost::bind(&cond_t::pulse, &ack_cond),
+        mailbox_callback_mode_inline);
 
     send(mailbox_manager, write_mailbox,
         w, ts, token, ack_mailbox.get_address());
@@ -269,7 +271,9 @@ typename protocol_t::write_response_t listener_writeread(
 {
     promise_t<typename protocol_t::write_response_t> resp_cond;
     mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
-        mailbox_manager, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1));
+        mailbox_manager,
+        boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1),
+        mailbox_callback_mode_inline);
 
     send(mailbox_manager, writeread_mailbox,
         w, ts, token, resp_mailbox.get_address());
@@ -289,7 +293,9 @@ typename protocol_t::read_response_t listener_read(
 {
     promise_t<typename protocol_t::read_response_t> resp_cond;
     mailbox_t<void(typename protocol_t::read_response_t)> resp_mailbox(
-        mailbox_manager, boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1));
+        mailbox_manager,
+        boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1),
+        mailbox_callback_mode_inline);
 
     send(mailbox_manager, read_mailbox,
         r, ts, token, resp_mailbox.get_address());

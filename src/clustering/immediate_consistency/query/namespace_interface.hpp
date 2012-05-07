@@ -170,7 +170,9 @@ private:
 
         promise_t<boost::variant<op_response_type, std::string> > result_or_failure;
         mailbox_t<void(boost::variant<op_response_type, std::string>)> result_or_failure_mailbox(
-            mailbox_manager, boost::bind(&promise_t<boost::variant<op_response_type, std::string> >::pulse, &result_or_failure, _1));
+            mailbox_manager,
+            boost::bind(&promise_t<boost::variant<op_response_type, std::string> >::pulse, &result_or_failure, _1),
+            mailbox_callback_mode_inline);
 
         mailbox_addr_t<void(namespace_interface_id_t, op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> query_address =
             master_to_contact.master->*mailbox_field;
@@ -283,7 +285,10 @@ private:
         // this function is responsible for removing master_id from handled_master_ids before it returns.
 
         cond_t ack_signal;
-        namespace_interface_business_card_t::ack_mailbox_type ack_mailbox(mailbox_manager, boost::bind(&cond_t::pulse, &ack_signal));
+        namespace_interface_business_card_t::ack_mailbox_type ack_mailbox(
+            mailbox_manager,
+            boost::bind(&cond_t::pulse, &ack_signal),
+            mailbox_callback_mode_inline);
 
         registrant_t<namespace_interface_business_card_t>
             registrant(mailbox_manager,

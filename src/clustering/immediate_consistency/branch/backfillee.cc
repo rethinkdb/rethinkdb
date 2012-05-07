@@ -61,7 +61,9 @@ void backfillee(
     the backfill is over. */
     promise_t<region_map_t<protocol_t, version_range_t> > end_point_cond;
     mailbox_t<void(region_map_t<protocol_t, version_range_t>)> end_point_mailbox(
-        mailbox_manager, boost::bind(&promise_t<region_map_t<protocol_t, version_range_t> >::pulse, &end_point_cond, _1));
+        mailbox_manager,
+        boost::bind(&promise_t<region_map_t<protocol_t, version_range_t> >::pulse, &end_point_cond, _1),
+        mailbox_callback_mode_inline);
 
     /* `dont_go_until` prevents any backfill chunks from being applied before we
     update the store metadata to indicate that the backfill is in progress. */
@@ -71,7 +73,9 @@ void backfillee(
     and the version described in `end_point_mailbox` has been achieved. */
     cond_t done_cond;
     mailbox_t<void()> done_mailbox(
-        mailbox_manager, boost::bind(&cond_t::pulse, &done_cond));
+        mailbox_manager,
+        boost::bind(&cond_t::pulse, &done_cond),
+        mailbox_callback_mode_inline);
 
     {
         /* Use an `auto_drainer_t` to wait for all the bits of the backfill to
