@@ -9,9 +9,7 @@ class NavBarView extends Backbone.View
     initialize: ->
         log_initial '(initializing) NavBarView'
         # rerender when route changes
-        app_events.on "router_ready", =>
-            # Render every time the route changes
-            window.app.on "all", @render
+        window.app.on "all", @render
 
     init_typeahead: ->
         @.$('input.search-query').typeahead

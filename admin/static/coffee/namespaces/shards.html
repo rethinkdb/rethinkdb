@@ -1,7 +1,7 @@
 <script id="shard_name_td-partial" type="text/x-handlebars-template">
   <td class="name">
     <h4>{{name}}</h4>
-    Rows: ~{{shard_stats.rows_approx}}
+    Keys: ~{{shard_stats.rows_approx}}
   </td>
 </script>
 
@@ -43,34 +43,40 @@ This shard has no replicas.
 {{/each}}
 </tbody>
 </table>
-<p><a class="edit" href="#">Change sharding scheme</a></p>
+<p><a class="edit" href="/#namespaces/{{namespace_uuid}}/sharding_scheme">Change sharding scheme</a></p>
 </script>
 
-<script id="modify_shards_modal-template" type="text/x-handlebars-template">
-  <form class="form">
-    <div class="sharding-scheme">
-      <h4>Sharding settings:</h4>
-      <table class="shards table">
-        <tbody>
-        </tbody>
-      </table>
-      {{#if suggest_shards_view}}
-      <div class="shard-suggester clearfix">
-        <h4>Suggest sharding scheme:</h4>
-        <div class="shard_suggest_elements">
-          <label for="replicas">Number of shards:</label>
-          <input name="num_shards" type="text" value="{{new_shard_count}}"/>
-          <button class="btn btn-compute-shards-suggestion" data-loading-text="Calculating...">Suggest</button>
-        </div>
-        <p class="current">Current shards: {{current_shards_count}}</p>
-        <a id="cancel_shards_suggester_btn" href="#">Cancel</a>
-      </div>
-      {{else}}
-      <p class="suggest_shards_pathway"><a id="suggest_shards_btn" href="#">Suggest shards</a></p>
-      {{/if}}
+<script id="modify_shards-template" type="text/x-handlebars-template">
+    <div class="modify-shards">
+        <h1>Sharding settings for namespace <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a></h1>
+        <form class="form">
+            <div class="sharding-scheme">
+                <table class="shards table">
+                    <tbody>
+                    </tbody>
+                </table>
+                {{#if suggest_shards_view}}
+                <div class="shard-suggester clearfix">
+                    <h4>Suggest sharding scheme:</h4>
+                    <div class="shard_suggest_elements">
+                        <label for="replicas">Number of shards:</label>
+                        <input name="num_shards" type="text" value="{{new_shard_count}}"/>
+                        <button class="btn btn-compute-shards-suggestion" data-loading-text="Calculating...">Suggest</button>
+                    </div>
+                    <p class="current">Current shards: {{current_shards_count}}</p>
+                    <a id="cancel_shards_suggester_btn" href="#">Cancel</a>
+                </div>
+                {{else}}
+                <p class="suggest_shards_pathway"><a id="suggest_shards_btn" href="#">Suggest shards</a></p>
+                {{/if}}
+            </div>
+            <div class="sharding-plan"></div>
+            <div class="btn-footer">
+                <button class="btn btn-reset" data-loading-text="Reset">Reset</button>
+                <button class="btn btn-primary" data-loading-text="Saving...">Commit settings</button>
+            </div>
+        </form>
     </div>
-    <div class="sharding-plan"></div>
-  </form>
 </script>
 
 <script id="modify_shards-alert-template" type="text/x-handlebars-template">
@@ -80,7 +86,7 @@ This shard has no replicas.
   </div>
 </script>
 
-<script id="modify_shards_modal-shard-template" type="text/x-handlebars-template">
+<script id="modify_shards-view_shard-template" type="text/x-handlebars-template">
   {{#with shard}}
   {{> shard_name_td}}
   <td class="actions">
@@ -94,7 +100,7 @@ This shard has no replicas.
   {{/with}}
 </script>
 
-<script id="modify_shards_modal-edit_shard-template" type="text/x-handlebars-template">
+<script id="modify_shards-edit_shard-template" type="text/x-handlebars-template">
   {{#with shard}}
   {{> shard_name_td}}
   {{/with}}
@@ -110,9 +116,9 @@ This shard has no replicas.
       {{/if}}
       {{#if merging}}
       <p>
+        Are you sure you want to merge these shards?
         <a href="#" class="btn commit_merge primary">Yes</a>
         <a href="#" class="btn cancel_merge secondary">No</a>
-        Are you sure you want to merge these shards?
       </p>
       {{/if}}
     </div>

@@ -1046,11 +1046,11 @@
     -----------------------------------------------
 */
 
-.modal.modify-shards {
-    .modal-body {
-        padding-top: 10px;
+.modify-shards {
+    h1 {
+       margin-bottom: 1em;
     }
-
+    
     form {
         label {
             padding-top: 0px;
@@ -1065,12 +1065,10 @@
         p.suggest_shards_pathway {
             margin-top: 1em;
             margin-bottom: 0;
+            font-size: large;
         }
 
         .shard-suggester {
-            h4 {
-               margin-top: 1em;
-            }
             label {
                display: inline;
             }
@@ -1083,11 +1081,11 @@
                 font-size: 12px;
                 line-height: 24px;
                 color: @gray;
-                margin-top: 0.5em;
             }
             .shard_suggest_elements {
                 margin-top: 0.5em;
             }
+
         }
     }
 
@@ -1096,29 +1094,26 @@
             border-bottom: thin solid @grayLighter;
             padding: 15px 0 10px;
             &.name {
-                width: 15%;
                 h4 { line-height: 16px; }
             }
         }
     }
 
-    .sharding-scheme table.shards {
-        td .action {
-            .border-radius(4px);
-            background-color: #F0F2EB;
-            border: thin solid #B9D7D9;
-            padding: 10px 14px;
+    .action, .shard-suggester {
+       margin-right: 1em;
+        .border-radius(4px);
+        background-color: #F0F2EB;
+        border: thin solid #B9D7D9;
+        padding: 5px 14px;
 
-            p { margin-bottom: 0; }
-            label {
-                width: auto;
-                p { line-height: 28px; }
-            }
-            input { margin-left: 15px; }
-            .btn {
-                float: right;
-                margin-left: 10px;
-            }
+        p { margin-bottom: 0; }
+        label {
+            width: auto;
+            p { line-height: 28px; }
+        }
+        input { margin-left: 15px; }
+        .btn {
+            margin-left: 10px;
         }
     }
 
@@ -1149,6 +1144,11 @@
                 p { margin-bottom: 0; }
             }
         }
+    }
+
+    .btn-footer {
+        margin-top: 1em;
+        text-align: right;
     }
 
     /* Override Bootstrap */
