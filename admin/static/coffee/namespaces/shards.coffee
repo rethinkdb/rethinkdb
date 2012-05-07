@@ -1,4 +1,7 @@
 
+# Helper stuff
+Handlebars.registerPartial 'shard_name_td', $('#shard_name_td-partial').html()
+
 # Namespace view
 module 'NamespaceView', ->
     # All of our rendering code needs a view of available shards
@@ -10,6 +13,8 @@ module 'NamespaceView', ->
             ret.push
                 name: human_readable_shard shards[i]
                 shard: shards[i]
+                shard_stats:
+                    rows_approx: namespaces.get(namespace_uuid).compute_shard_rows_approximation(shards[i])
                 notlast: i != shards.length - 1
                 index: i
                 primary:
@@ -47,6 +52,7 @@ module 'NamespaceView', ->
 
         initialize: ->
             log_initial '(initializing) namespace view: shards'
+            # Basic setup
             @model.on 'all', @render
             directory.on 'all', @render
             progress_list.on 'all', @render
@@ -130,47 +136,40 @@ module 'NamespaceView', ->
             e.preventDefault()
             @.$('.btn-compute-shards-suggestion').button('loading')
 
-            # grab the data ho, 'cause it's all about the data, it's
-            # all about the data, the data it's all about ho, yes it
-            # is.
-            $.ajax
-                processData: false
-                url: "/ajax/distribution?namespace=#{@namespace.id}&depth=2"
-                type: 'GET'
-                success: (data) =>
-                    # we got the data ho, we got the data. Put that
-                    # shit into the array 'cause who knows if maps
-                    # preserve order, god reset their souls.
-                    distr_keys = []
-                    total_rows = 0
-                    for key, count of data
-                        distr_keys.push(key)
-                        total_rows += count
-                    _.sortBy(distr_keys, _.identity)
-                    # All right, now let's see roughly how many bitch
-                    # ass rows we want per bitch ass shard.
-                    formdata = form_data_as_object($('form', @.el))
-                    rows_per_shard = total_rows / formdata.num_shards
-                    # Phew. Go through the keys now and compute the bitch ass split points.
+            # grab the data
+            data = @namespace.get('key_distr')
+            distr_keys = @namespace.sorted_key_distr_keys(data)
+            total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
+            desired_shards = form_data_as_object($('form', @.el)).num_shards
+            rows_per_shard = total_rows / desired_shards
+
+            # Phew. Go through the keys now and compute the bitch ass split points.
+            current_shard_count = 0
+            split_points = [""]
+            no_more_splits = false
+            for key in distr_keys
+                # Let's not overdo it :-D
+                if split_points.length >= desired_shards
+                    no_more_splits = true
+                current_shard_count += data[key]
+                if current_shard_count >= rows_per_shard and not no_more_splits
+                    # Hellz yeah ho, we got our split point
+                    split_points.push(key)
                     current_shard_count = 0
-                    split_points = [""]
-                    for key in distr_keys
-                        current_shard_count += data[key]
-                        if current_shard_count >= rows_per_shard
-                            # Hellz yeah ho, we got our split point
-                            split_points.push(key)
-                            current_shard_count = 0
-                    split_points.push(null)
-                    # convert split points into whatever bitch ass format we're using here
-                    @shard_set = []
-                    for splitIndex in [0..(split_points.length - 2)]
-                        @shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
-                    # All right, we be done, boi. Put those
-                    # motherfuckers into the dialog, reset the buttons
-                    # or whateva, and hop on into the sunlight.
-                    @.$('.btn-compute-shards-suggestion').button('reset')
-                    clear_modals()
-                    @render()
+            split_points.push(null)
+            # Go through the split points and trim the keys to be as short as possible
+            for j in [1..(split_points.length - 2)]
+
+            # convert split points into whatever bitch ass format we're using here
+            @shard_set = []
+            for splitIndex in [0..(split_points.length - 2)]
+                @shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
+            # All right, we be done, boi. Put those
+            # motherfuckers into the dialog, reset the buttons
+            # or whateva, and hop on into the sunlight.
+            @.$('.btn-compute-shards-suggestion').button('reset')
+            clear_modals()
+            @render()
 
         cancel_shards_suggester_btn: (e) =>
             e.preventDefault()
