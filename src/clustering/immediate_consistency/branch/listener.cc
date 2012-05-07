@@ -307,7 +307,8 @@ void listener_t<protocol_t>::on_write(auto_drainer_t::lock_t keepalive,
 	mailbox_addr_t<void()> ack_addr)
 	THROWS_NOTHING {
     try {
-	boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
+        const int num_stores = svs->num_stores();
+        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
 	{
 	    /* Enforce that we start our transaction in the same order as we
 	    entered the FIFO at the broadcaster. */
@@ -335,24 +336,25 @@ void listener_t<protocol_t>::on_write(auto_drainer_t::lock_t keepalive,
 
 	    advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
-	    store->new_write_token(token);
+	    svs->new_write_tokens(write_tokens.get(), num_stores);
 	    /* Now that we've gotten a write token, it's safe to allow the next write or read to proceed. */
 	}
 
 	/* Mask out any parts of the operation that don't apply to us */
-	write = write.shard(region_intersection(write.get_region(), store->get_region()));
+	write = write.shard(region_intersection(write.get_region(), svs->get_multistore_joined_region()));
 
 	cond_t non_interruptor;
-	store->write(
+	svs->write(
 	    DEBUG_ONLY(
-		region_map_t<protocol_t, binary_blob_t>(store->get_region(),
+		region_map_t<protocol_t, binary_blob_t>(svs->get_multistore_joined_region(),
 		    binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
 		)
-	    region_map_t<protocol_t, binary_blob_t>(store->get_region(),
+	    region_map_t<protocol_t, binary_blob_t>(svs->get_multistore_joined_region(),
 		binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))),
 	    write,
 	    transition_timestamp,
-	    token,
+	    write_tokens.get(),
+            num_stores,
 	    &non_interruptor);
 
 	send(mailbox_manager, ack_addr);
@@ -371,7 +373,8 @@ void listener_t<protocol_t>::on_writeread(auto_drainer_t::lock_t keepalive,
 	THROWS_NOTHING
 {
     try {
-	boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
+        const int num_stores = svs->num_stores();
+        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
 	{
 	    fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token);
 	    wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
@@ -392,26 +395,26 @@ void listener_t<protocol_t>::on_writeread(auto_drainer_t::lock_t keepalive,
 
 	    advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
-	    store->new_write_token(token);
+	    svs->new_write_token(write_tokens.get(), num_stores);
 	    /* Now that we've gotten a write token, allow the next guy to proceed */
 	}
 
 	// Make sure we can serve the entire operation without masking it.
 	// (We shouldn't have been signed up for writereads if we couldn't.)
-	rassert(region_is_superset(store->get_region(), write.get_region()));
+	rassert(region_is_superset(svs->get_region(), write.get_region()));
 
 	// Perform the operation
 	cond_t non_interruptor;
-	typename protocol_t::write_response_t response = store->write(DEBUG_ONLY(
-		region_map_t<protocol_t, binary_blob_t>(store->get_region(),
-		    binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
-		)
-	    region_map_t<protocol_t, binary_blob_t>(store->get_region(),
-		binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))),
-	    write,
-	    transition_timestamp,
-	    token,
-	    &non_interruptor);
+	typename protocol_t::write_response_t response = svs->write(DEBUG_ONLY(region_map_t<protocol_t, binary_blob_t>(svs->get_region(),
+                                                                                                                         binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
+                                                                                 )
+                                                                    region_map_t<protocol_t, binary_blob_t>(svs->get_region(),
+                                                                                                            binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))),
+                                                                    write,
+                                                                    transition_timestamp,
+                                                                    write_tokens.get(),
+                                                                    num_stores,
+                                                                    &non_interruptor);
 
 	send(mailbox_manager, ack_addr, response);
 
@@ -429,7 +432,8 @@ void listener_t<protocol_t>::on_read(auto_drainer_t::lock_t keepalive,
 	THROWS_NOTHING
 {
     try {
-	boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token;
+        const int num_stores = svs->num_stores();
+        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
 	{
 	    fifo_enforcer_sink_t::exit_read_t fifo_exit(&fifo_sink, fifo_token);
 	    wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
@@ -444,21 +448,22 @@ void listener_t<protocol_t>::on_read(auto_drainer_t::lock_t keepalive,
 	    rassert(backfill_done_cond.get_ready_signal()->is_pulsed());
 
 	    /* Now that we have the superblock, allow the next guy to proceed */
-	    store->new_read_token(token);
+	    svs->new_read_tokens(read_tokens.get(), num_stores);
 	}
 
 	/* Make sure we can serve the entire operation without masking it.
 	(We shouldn't have been signed up for reads if we couldn't.) */
-	rassert(region_is_superset(store->get_region(), read.get_region()));
+	rassert(region_is_superset(svs->get_multistore_joined_region(), read.get_region()));
 
 	/* Perform the operation */
-	typename protocol_t::read_response_t response = store->read(
+	typename protocol_t::read_response_t response = svs->read(
 	    DEBUG_ONLY(
-		region_map_t<protocol_t, binary_blob_t>(store->get_region(),
+		region_map_t<protocol_t, binary_blob_t>(svs->get_multistore_joined_region(),
 		    binary_blob_t(version_range_t(version_t(branch_id, expected_timestamp)))),
 		)
 	    read,
-	    token,
+	    read_tokens.get(),
+            num_stores,
 	    keepalive.get_drain_signal());
 
 	send(mailbox_manager, ack_addr, response);

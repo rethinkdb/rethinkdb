@@ -17,9 +17,9 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *l) :
     /* Start serving backfills */
     backfiller(listener->mailbox_manager,
 	       listener->branch_history,
-	       listener->store)
+	       listener->svs)
 {
-    rassert(listener->store->get_region() ==
+    rassert(listener->svs->get_multistore_joined_region() ==
             listener->branch_history->get().branches[listener->branch_id].region,
             "Even though you can have a listener that only watches some subset "
             "of a branch, you can't have a replier for some subset of a "

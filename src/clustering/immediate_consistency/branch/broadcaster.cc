@@ -61,13 +61,11 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
        the store has been marked as belonging to a branch for which no
        information exists. */
     boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
-    initial_store->new_write_tokens(write_tokens.get(), num_stores);
-    initial_store->set_all_metainfos(
-				region_map_t<protocol_t, binary_blob_t>(initial_store->get_region(),
-									binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
-				write_tokens.get(), num_stores,
-				interruptor
-				);
+    initial_svs->new_write_tokens(write_tokens.get(), num_stores);
+    initial_svs->set_all_metainfos(region_map_t<protocol_t, binary_blob_t>(initial_svs->get_multistore_joined_region(),
+                                                                           binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
+                                   write_tokens.get(), num_stores,
+                                   interruptor);
 
     /* Perform an initial sanity check. */
     sanity_check();
