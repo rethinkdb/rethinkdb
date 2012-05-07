@@ -18,6 +18,15 @@ private:
     std::string info;
 };
 
+struct admin_no_connection_exc_t : public std::exception {
+public:
+    explicit admin_no_connection_exc_t(const std::string& data) : info(data) { }
+    ~admin_no_connection_exc_t() throw () { }
+    const char *what() const throw () { return info.c_str(); }
+private:
+    std::string info;
+};
+
 class admin_command_parser_t {
 public:
     struct command_data;
