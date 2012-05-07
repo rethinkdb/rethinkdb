@@ -171,8 +171,7 @@ void reactor_t<protocol_t>::run_role(
 }
 
 template<class protocol_t>
-boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > reactor_t<protocol_t>::extract_broadcaster_from_reactor_business_card_primary(
-        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard) {
+boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > reactor_t<protocol_t>::extract_broadcaster_from_reactor_business_card_primary(const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard) {
     if (!bcard) {
         return boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > >();
     }

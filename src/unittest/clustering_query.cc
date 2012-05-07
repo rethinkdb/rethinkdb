@@ -42,11 +42,12 @@ static void run_read_write_test() {
 
     /* Set up a branch */
     test_store_t<dummy_protocol_t> initial_store;
+    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store.store, 1);
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(
         cluster.get_mailbox_manager(),
         branch_history_controller.get_view(),
-        &initial_store.store,
+        &multi_initial_store,
         &interruptor
         );
 
