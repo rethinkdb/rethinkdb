@@ -1,9 +1,16 @@
+<script id="shard_name_td-partial" type="text/x-handlebars-template">
+  <td class="name">
+    <h4>{{name}}</h4>
+    Rows: ~{{shard_stats.rows_approx}}
+  </td>
+</script>
+
 <script id="namespace_view-sharding-template" type="text/x-handlebars-template">
   <table class="shards table">
     <tbody>
       {{#each shards}}
       <tr>
-        <td class="name"><h4>{{name}}</h4></td>
+        {{> shard_name_td}}
         <td class="status">
           <p>
             <strong>Master:</strong> <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> {{humanize_machine_reachability primary.status}}{{#if primary.status.reachable}}{{> backfill_progress_summary primary}}{{/if}}</span>
@@ -75,11 +82,7 @@ This shard has no replicas.
 
 <script id="modify_shards_modal-shard-template" type="text/x-handlebars-template">
   {{#with shard}}
-  <td class="name"><h4>{{name}}</h4></td>
-  <td class="status">
-    <!-- TODO fake -->
-    <p>N rows in the shard</p>
-  </td>
+  {{> shard_name_td}}
   <td class="actions">
     <p>
       (<a href="#" class="split" data-index="{{index}}">split</a>)
@@ -92,15 +95,10 @@ This shard has no replicas.
 </script>
 
 <script id="modify_shards_modal-edit_shard-template" type="text/x-handlebars-template">
-  <td class="name">
-    {{#with shard}}
-    <h4>{{name}} </h4>
-    {{/with}}
-  </td>
-  <td class="status" colspan="2">
-    <!-- TODO fake -->
-    <p>4 of 5 replicas live</p>
-    <p>50.3 GB of data in this shard</p>
+  {{#with shard}}
+  {{> shard_name_td}}
+  {{/with}}
+  <td class="status">
     <div class="action">
       {{#if splitting}}
       <label for="splitpoint">

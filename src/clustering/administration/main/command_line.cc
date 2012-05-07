@@ -434,18 +434,3 @@ void help_rethinkdb_serve() {
     printf("%s\n", sstream.str().c_str());
 }
 
-void help_rethinkdb_admin() {
-    printf("'rethinkdb admin' is used to access and modify cluster metadata\n");
-    std::stringstream sstream;
-    sstream << get_rethinkdb_admin_options();
-    sstream << "\nSubcommands:\n";
-    sstream << "  " << admin_command_parser_t::set_command << " " << admin_command_parser_t::set_usage << "\n";
-    sstream << "  " << admin_command_parser_t::list_command << " " << admin_command_parser_t::list_usage << "\n";
-    sstream << "  " << admin_command_parser_t::move_command << " " << admin_command_parser_t::move_usage << "\n";
-    sstream << "  " << admin_command_parser_t::make_command << " namespace " << admin_command_parser_t::make_namespace_usage << "\n";
-    sstream << "  " << admin_command_parser_t::make_command << " datacenter " << admin_command_parser_t::make_datacenter_usage << "\n";
-    sstream << "  " << admin_command_parser_t::rename_command << " " << admin_command_parser_t::rename_usage << "\n";
-    sstream << "  " << admin_command_parser_t::remove_command << " " << admin_command_parser_t::remove_usage << "\n";
-    sstream << "  " << admin_command_parser_t::help_command << " " << admin_command_parser_t::help_usage << "\n";
-    printf("%s\n", sstream.str().c_str());
-}

@@ -12,9 +12,9 @@
 
 template <class protocol_t>
 broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
-	      boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
-	      store_view_t<protocol_t> *initial_store,
-	      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
+              boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
+              store_view_t<protocol_t> *initial_store,
+              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
       registrar(mailbox_manager, this) {
@@ -25,8 +25,8 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     initial_store->new_read_token(read_token);
 
     region_map_t<protocol_t, version_range_t> origins =
-	region_map_transform<protocol_t, binary_blob_t, version_range_t>(initial_store->get_metainfo(read_token, interruptor),
-									 &binary_blob_t::get<version_range_t>);
+        region_map_transform<protocol_t, binary_blob_t, version_range_t>(initial_store->get_metainfo(read_token, interruptor),
+                                                                         &binary_blob_t::get<version_range_t>);
 
     /* Determine what the first timestamp of the new branch will be */
     state_timestamp_t initial_timestamp = state_timestamp_t::zero();
@@ -34,26 +34,26 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     typedef region_map_t<protocol_t, version_range_t> version_map_t;
 
     for (typename version_map_t::const_iterator it =  origins.begin();
-	 it != origins.end();
-	 it++) {
-	state_timestamp_t part_timestamp = it->second.latest.timestamp;
-	if (part_timestamp > initial_timestamp) {
-	    initial_timestamp = part_timestamp;
-	}
+         it != origins.end();
+         it++) {
+        state_timestamp_t part_timestamp = it->second.latest.timestamp;
+        if (part_timestamp > initial_timestamp) {
+            initial_timestamp = part_timestamp;
+        }
     }
     current_timestamp = newest_complete_timestamp = initial_timestamp;
 
     /* Make an entry for this branch in the global branch history
        semilattice */
     {
-	branch_birth_certificate_t<protocol_t> our_metadata;
-	our_metadata.region = initial_store->get_region();
-	our_metadata.initial_timestamp = initial_timestamp;
-	our_metadata.origin = origins;
+        branch_birth_certificate_t<protocol_t> our_metadata;
+        our_metadata.region = initial_store->get_region();
+        our_metadata.initial_timestamp = initial_timestamp;
+        our_metadata.origin = origins;
 
-	std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > singleton;
-	singleton[branch_id] = our_metadata;
-	metadata_field(&branch_history_t<protocol_t>::branches, branch_history)->join(singleton);
+        std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > singleton;
+        singleton[branch_id] = our_metadata;
+        metadata_field(&branch_history_t<protocol_t>::branches, branch_history)->join(singleton);
     }
 
     /* Reset the store metadata. We should do this after making the branch
@@ -63,11 +63,11 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
     initial_store->new_write_token(write_token);
     initial_store->set_metainfo(
-				region_map_t<protocol_t, binary_blob_t>(initial_store->get_region(),
-									binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
-				write_token,
-				interruptor
-				);
+                                region_map_t<protocol_t, binary_blob_t>(initial_store->get_region(),
+                                                                        binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
+                                write_token,
+                                interruptor
+                                );
 
     /* Perform an initial sanity check. */
     sanity_check();
@@ -94,34 +94,34 @@ template <class protocol_t>
 class broadcaster_t<protocol_t>::incomplete_write_t : public home_thread_mixin_t {
 public:
     incomplete_write_t(broadcaster_t *p,
-		       typename protocol_t::write_t w, transition_timestamp_t ts,
-		       ack_callback_t *cb) :
-	write(w), timestamp(ts),
-	parent(p), incomplete_count(0),
-	ack_callback(cb)
+                       typename protocol_t::write_t w, transition_timestamp_t ts,
+                       ack_callback_t *cb) :
+        write(w), timestamp(ts),
+        parent(p), incomplete_count(0),
+        ack_callback(cb)
     {
-	rassert(ack_callback);
+        rassert(ack_callback);
     }
 
     void notify_acked(peer_id_t peer) {
-	if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
-	    if (ack_callback->on_ack(peer)) {
-		done_promise.pulse(true);
-	    }
-	}
+        if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
+            if (ack_callback->on_ack(peer)) {
+                done_promise.pulse(true);
+            }
+        }
     }
 
     void notify_no_more_acks() {
-	if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
-	    done_promise.pulse(false);
-	}
+        if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
+            done_promise.pulse(false);
+        }
     }
 
     /* This is called if `write()` gets interrupted and it's no longer
        safe to access `ack_callback`. If this is called, `done_promise`
        won't get pulsed unless it already is. */
     void dont_touch_ack_callback() {
-	ack_callback = NULL;
+        ack_callback = NULL;
     }
 
     typename protocol_t::write_t write;
@@ -152,37 +152,37 @@ class broadcaster_t<protocol_t>::incomplete_write_ref_t {
 public:
     incomplete_write_ref_t() { }
     explicit incomplete_write_ref_t(const boost::shared_ptr<incomplete_write_t> &w) : write(w) {
-	rassert(w);
-	w->incomplete_count++;
+        rassert(w);
+        w->incomplete_count++;
     }
     incomplete_write_ref_t(const incomplete_write_ref_t &r) : write(r.write) {
-	if (r.write) {
-	    r.write->incomplete_count++;
-	}
+        if (r.write) {
+            r.write->incomplete_count++;
+        }
     }
     ~incomplete_write_ref_t() {
-	if (write) {
-	    write->incomplete_count--;
-	    if (write->incomplete_count == 0) {
-		write->parent->end_write(write);
-	    }
-	}
+        if (write) {
+            write->incomplete_count--;
+            if (write->incomplete_count == 0) {
+                write->parent->end_write(write);
+            }
+        }
     }
     incomplete_write_ref_t &operator=(const incomplete_write_ref_t &r) {
-	if (r.write) {
-	    r.write->incomplete_count++;
-	}
-	if (write) {
-	    write->incomplete_count--;
-	    if (write->incomplete_count == 0) {
-		write->parent->end_write(write);
-	    }
-	}
-	write = r.write;
-	return *this;
+        if (r.write) {
+            r.write->incomplete_count++;
+        }
+        if (write) {
+            write->incomplete_count--;
+            if (write->incomplete_count == 0) {
+                write->parent->end_write(write);
+            }
+        }
+        write = r.write;
+        return *this;
     }
     boost::shared_ptr<incomplete_write_t> get() {
-	return write;
+        return write;
     }
 private:
     boost::shared_ptr<incomplete_write_t> write;
@@ -199,7 +199,7 @@ public:
     ~dispatchee_t() THROWS_NOTHING;
 
     peer_id_t get_peer() {
-	return write_mailbox.get_peer();
+        return write_mailbox.get_peer();
     }
 
     typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
@@ -215,17 +215,17 @@ public:
 private:
     /* The constructor spawns `send_intro()` in the background. */
     void send_intro(
-		    listener_business_card_t<protocol_t> to_send_intro_to,
-		    state_timestamp_t intro_timestamp,
-		    auto_drainer_t::lock_t)
-	THROWS_NOTHING;
+                    listener_business_card_t<protocol_t> to_send_intro_to,
+                    state_timestamp_t intro_timestamp,
+                    auto_drainer_t::lock_t)
+        THROWS_NOTHING;
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */
     void upgrade(
-		 typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t,
-		 typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t,
-		 auto_drainer_t::lock_t)
-	THROWS_NOTHING;
+                 typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t,
+                 typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t,
+                 auto_drainer_t::lock_t)
+        THROWS_NOTHING;
     void downgrade(mailbox_addr_t<void()>, auto_drainer_t::lock_t) THROWS_NOTHING;
 
     broadcaster_t *controller;
@@ -596,9 +596,9 @@ void broadcaster_t<protocol_t>::sanity_check() {
     mutex_t::acq_t acq(&mutex);
     state_timestamp_t ts = newest_complete_timestamp;
     for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
-	 it != incomplete_writes.end(); it++) {
-	rassert(ts == (*it)->timestamp.timestamp_before());
-	ts = (*it)->timestamp.timestamp_after();
+         it != incomplete_writes.end(); it++) {
+        rassert(ts == (*it)->timestamp.timestamp_before());
+        ts = (*it)->timestamp.timestamp_after();
     }
     rassert(ts == current_timestamp);
 #endif

@@ -25,29 +25,16 @@ private:
     order_source_t order_source;
 };
 
-class dummy_protocol_parser_maker_t {
+class dummy_protocol_parser_t {
 public:
-    dummy_protocol_parser_maker_t(mailbox_manager_t *,
-                                  boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> > >,
-                                  namespace_repo_t<dummy_protocol_t> *repo);
+    dummy_protocol_parser_t(int port, namespace_interface_t<dummy_protocol_t> *nif) :
+        query_app(nif),
+        server(port, &query_app)
+        { }
 
 private:
-    void on_change();
-
-    mailbox_manager_t *mailbox_manager;
-    boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> > > namespaces_semilattice_metadata;
-    namespace_repo_t<dummy_protocol_t> *repo;
-
-    struct parser_and_namespace_if_t {
-        parser_and_namespace_if_t(namespace_id_t, dummy_protocol_parser_maker_t *parent, int port);
-
-        namespace_repo_t<dummy_protocol_t>::access_t namespace_access;
-        query_http_app_t parser;
-        http_server_t server;
-    };
-    boost::ptr_map<namespace_id_t, parser_and_namespace_if_t> parsers;
-
-    semilattice_read_view_t<namespaces_semilattice_metadata_t<mock::dummy_protocol_t> >::subscription_t subscription;
+    query_http_app_t query_app;
+    http_server_t server;
 };
 
 }//namespace mock

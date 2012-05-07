@@ -44,13 +44,26 @@ public:
         self_id(generate_uuid()),
         mailbox_manager(mm),
         masters_view(mv),
-        watcher_subscription(boost::bind(&cluster_namespace_interface_t::update_registrants, this))
+        start_count(0),
+        watcher_subscription(boost::bind(&cluster_namespace_interface_t::update_registrants, this, false))
     {
+        {
+            typename watchable_t< std::map<peer_id_t, master_map_t> >::freeze_t freeze(masters_view);
+            update_registrants(true);
+            watcher_subscription.reset(masters_view, &freeze);
+        }
+        if (start_count == 0) {
+            start_cond.pulse();
+        }
+    }
 
-        typename watchable_t< std::map<peer_id_t, master_map_t> >::freeze_t freeze(masters_view);
-        update_registrants();
-
-        watcher_subscription.reset(masters_view, &freeze);
+    /* Returns a signal that will be pulsed when we have either successfully
+    connected or tried and failed to connect to every master that was present
+    at the time that the constructor was called. This is to avoid the case where
+    we get errors like "lost contact with master" when really we just haven't
+    finished connecting yet. */
+    signal_t *get_initial_ready_signal() {
+        return &start_cond;
     }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
@@ -252,7 +265,7 @@ private:
         }
     }
 
-    void update_registrants() {
+    void update_registrants(bool is_start) {
         ASSERT_NO_CORO_WAITING;
         std::map<peer_id_t, master_map_t> existings = masters_view->get();
 
@@ -263,14 +276,17 @@ private:
                     // We have an unhandled master id.  Say it's handled NOW!  And handle it.
                     handled_master_ids.insert(id);  // We said it.
 
-                    spawn_registrant_coroutine(it->first, id);  // We handled it.
+                    start_count++;
+
+                    /* We handled it. */
+                    coro_t::spawn_sometime(boost::bind(
+                        &cluster_namespace_interface_t::registrant_coroutine, this,
+                        it->first, id, is_start,
+                        auto_drainer_t::lock_t(&registrant_coroutine_auto_drainer)
+                        ));
                 }
             }
         }
-    }
-
-    void spawn_registrant_coroutine(peer_id_t peer_id, master_id_t master_id) {
-        coro_t::spawn_sometime(boost::bind(&cluster_namespace_interface_t::registrant_coroutine, this, peer_id, master_id, auto_drainer_t::lock_t(&registrant_coroutine_auto_drainer)));
     }
 
     static boost::optional<boost::optional<registrar_business_card_t<namespace_interface_business_card_t> > > extract_registrar_business_card(const std::map<peer_id_t, master_map_t> &map, const peer_id_t &peer, const master_id_t &master) {
@@ -286,7 +302,7 @@ private:
         return ret;
     }
 
-    void registrant_coroutine(peer_id_t peer_id, master_id_t master_id, auto_drainer_t::lock_t lock) {
+    void registrant_coroutine(peer_id_t peer_id, master_id_t master_id, bool is_start, auto_drainer_t::lock_t lock) {
         // this function is responsible for removing master_id from handled_master_ids before it returns.
 
         cond_t ack_signal;
@@ -303,6 +319,14 @@ private:
         {
             wait_any_t ack_waiter(&ack_signal, drain_signal, failed_signal);
             ack_waiter.wait_lazily_unordered();
+        }
+
+        if (is_start) {
+            rassert(start_count > 0);
+            start_count--;
+            if (start_count == 0) {
+                start_cond.pulse();
+            }
         }
 
         if (ack_signal.is_pulsed()) {
@@ -322,7 +346,7 @@ private:
         // the reconnection, because handled_master_ids already noted
         // ourselves as handled.
         if (!drain_signal->is_pulsed()) {
-            update_registrants();
+            update_registrants(false);
         }
     }
 
@@ -334,6 +358,12 @@ private:
 
     std::set<master_id_t> handled_master_ids;
     boost::ptr_map<master_id_t, fifo_enforcer_source_t> fifo_enforcers;
+
+    /* `start_cond` will be pulsed when we have either successfully connected to
+    or tried and failed to connect to every peer present when the constructor
+    was called. `start_count` is the number of peers we're still waiting for. */
+    int start_count;
+    cond_t start_cond;
 
     auto_drainer_t registrant_coroutine_auto_drainer;
 

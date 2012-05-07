@@ -230,22 +230,34 @@ std::vector<std::string> admin_cluster_link_t::get_path_from_id(const std::strin
     return name_to_path.find(id)->second;
 }
 
-void admin_cluster_link_t::do_admin_set(admin_command_parser_t::admin_command_parser_t::command_data& data) {
-    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    std::vector<std::string> param_path(data.params["path"]);
-    std::vector<std::string> fields(data.params["fields"]);
-    std::vector<std::string> full_path(get_path_from_id(param_path[0]));
+void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_data& data) {
+    std::vector<std::string> split_points(data.params["split-points"]);
+    std::string ns(data.params["namespace"][0]);
 
-    std::copy(param_path.begin() + 1, param_path.end(), std::back_inserter(full_path));
-    std::copy(fields.begin(), fields.end(), std::back_inserter(full_path));
-
-    if (data.params.count("resolve") == 1)
-        full_path.push_back("resolve");
-
-    set_metadata_value(full_path, data.params["value"][0]);
+    for (std::vector<std::string>::iterator i = split_points.begin(); i != split_points.end(); ++i) {
+        printf("NYI: adding split point '%s' to namespace '%s'\n", i->c_str(), ns.c_str());
+    }
 }
 
-void admin_cluster_link_t::do_admin_list(admin_command_parser_t::admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_data& data) {
+    std::vector<std::string> split_points(data.params["split-points"]);
+    std::string ns(data.params["namespace"][0]);
+
+    for (std::vector<std::string>::iterator i = split_points.begin(); i != split_points.end(); ++i) {
+        printf("NYI: merging split point '%s' in namespace '%s'\n", i->c_str(), ns.c_str());
+    }
+}
+
+void admin_cluster_link_t::do_admin_set_affinities(admin_command_parser_t::command_data& data UNUSED) {
+    std::vector<std::string> affinities(data.params["affinities"]);
+    std::string ns(data.params["namespace"][0]);
+
+    for (std::vector<std::string>::iterator i = affinities.begin(); i != affinities.end(); ++i) {
+        printf("NYI: setting affinity '%s' in namespace '%s'\n", i->c_str(), ns.c_str());
+    }
+}
+
+void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     namespace_metadata_ctx_t json_ctx(connectivity_cluster.get_me().get_uuid());
     std::string id = (data.params.count("filter") == 0 ? "" : data.params["filter"][0]);
@@ -343,7 +355,7 @@ void admin_cluster_link_t::list_machines(bool long_format, cluster_semilattice_m
     }
 }
 
-void admin_cluster_link_t::do_admin_make_datacenter(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_create_datacenter(admin_command_parser_t::command_data& data) {
     std::vector<std::string> obj_path;
     obj_path.push_back("datacenters");
     obj_path.push_back("new");
@@ -355,7 +367,7 @@ void admin_cluster_link_t::do_admin_make_datacenter(admin_command_parser_t::comm
 }
 
 
-void admin_cluster_link_t::do_admin_make_namespace(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::command_data& data) {
     std::vector<std::string> obj_path;
     std::string value;
 
@@ -395,7 +407,7 @@ void admin_cluster_link_t::do_admin_make_namespace(admin_command_parser_t::comma
     set_metadata_value(obj_path, value);
 }
 
-void admin_cluster_link_t::do_admin_move(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::command_data& data) {
     std::vector<std::string> target_path(get_path_from_id(data.params["id"][0]));
     std::string datacenter_id = data.params["datacenter"][0];
     std::vector<std::string> datacenter_path(get_path_from_id(datacenter_id));
@@ -422,7 +434,7 @@ void admin_cluster_link_t::do_admin_move(admin_command_parser_t::command_data& d
     set_metadata_value(target_path, "\"" + datacenter_path[1] + "\""); // TODO: adding quotes like this is kind of silly - better way to get past the json parsing?
 }
 
-void admin_cluster_link_t::do_admin_rename(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_name(admin_command_parser_t::command_data& data) {
     // TODO: make sure names aren't silly things like uuids or reserved strings
     std::vector<std::string> path(get_path_from_id(data.params["id"][0]));
     path.push_back("name");

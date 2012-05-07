@@ -16,9 +16,10 @@
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
+#include "clustering/administration/parser_maker.hpp"
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/reactor_driver.hpp"
-#include "memcached/clustering.hpp"
+#include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -175,21 +176,31 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
             field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces))
         );
 
-    mock::dummy_protocol_parser_maker_t dummy_parser_maker(&mailbox_manager,
-                                                           metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-                                                           &dummy_namespace_repo);
-
-    memcached_parser_maker_t mc_parser_maker(&mailbox_manager,
-                                             metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
 #ifndef NDEBUG
-                                             /* TODO: This will crash if we are declared dead. */
-                                             metadata_function<deletable_t<machine_semilattice_metadata_t>, machine_semilattice_metadata_t>(boost::bind(&deletable_getter<machine_semilattice_metadata_t>, _1),
-                                                               metadata_member(machine_id,
-                                                                               metadata_field(&machines_semilattice_metadata_t::machines,
-                                                                                              metadata_field(&cluster_semilattice_metadata_t::machines,
-                                                                                                             semilattice_manager_cluster.get_root_view())))),
+    boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> > machine_semilattice_view =
+        /* TODO: This will crash if we are declared dead. */
+        metadata_function<deletable_t<machine_semilattice_metadata_t>, machine_semilattice_metadata_t>(boost::bind(&deletable_getter<machine_semilattice_metadata_t>, _1),
+            metadata_member(machine_id,
+                metadata_field(&machines_semilattice_metadata_t::machines,
+                    metadata_field(&cluster_semilattice_metadata_t::machines,
+                        semilattice_manager_cluster.get_root_view()))));
 #endif
-                                             &memcached_namespace_repo);
+
+    parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
+        &mailbox_manager,
+        metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
+#ifndef NDEBUG
+        machine_semilattice_view,
+#endif
+        &dummy_namespace_repo);
+
+    parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
+        &mailbox_manager,
+        metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
+#ifndef NDEBUG
+        machine_semilattice_view,
+#endif
+        &memcached_namespace_repo);
 
     metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
 
