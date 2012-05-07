@@ -157,8 +157,6 @@ module 'NamespaceView', ->
                     split_points.push(key)
                     current_shard_count = 0
             split_points.push(null)
-            # Go through the split points and trim the keys to be as short as possible
-            for j in [1..(split_points.length - 2)]
 
             # convert split points into whatever bitch ass format we're using here
             @shard_set = []
