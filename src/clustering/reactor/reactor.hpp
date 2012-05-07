@@ -116,7 +116,7 @@ private:
     bool find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
                                       clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_out);
 
-    void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &,
+    void be_secondary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
 
 
