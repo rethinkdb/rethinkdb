@@ -117,12 +117,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens2(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
     svs->new_read_tokens(read_tokens2.get(), num_stores);
 
-    typedef region_map_t<protocol_t, version_range_t> version_map_t;
-
-    version_map_t backfill_end_point =
-	region_map_transform<protocol_t, binary_blob_t, version_range_t>(svs->get_all_metainfos(read_tokens2.get(), num_stores, interruptor),
-									 &binary_blob_t::get<version_range_t>
-									 );
+    region_map_t<protocol_t, version_range_t> backfill_end_point = svs->get_all_metainfos(read_tokens2.get(), num_stores, interruptor);
 
     /* Sanity checking. */
 
@@ -134,8 +129,8 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     /* Make sure the backfiller put us in a coherent position on the right
      * branch. */
 #ifndef NDEBUG
-    version_map_t expected_backfill_endpoint(svs->get_multistore_joined_region(),
-					     version_range_t(version_t(branch_id, backfill_end_timestamp)));
+    region_map_t<protocol_t, version_range_t> expected_backfill_endpoint(svs->get_multistore_joined_region(),
+                                                                         version_range_t(version_t(branch_id, backfill_end_timestamp)));
 #endif
 
     rassert(backfill_end_point == expected_backfill_endpoint);
@@ -395,13 +390,13 @@ void listener_t<protocol_t>::on_writeread(auto_drainer_t::lock_t keepalive,
 
 	    advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
-	    svs->new_write_token(write_tokens.get(), num_stores);
+	    svs->new_write_tokens(write_tokens.get(), num_stores);
 	    /* Now that we've gotten a write token, allow the next guy to proceed */
 	}
 
 	// Make sure we can serve the entire operation without masking it.
 	// (We shouldn't have been signed up for writereads if we couldn't.)
-	rassert(region_is_superset(svs->get_region(), write.get_region()));
+	rassert(region_is_superset(svs->get_multistore_joined_region(), write.get_region()));
 
 	// Perform the operation
 	cond_t non_interruptor;

@@ -53,23 +53,23 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &blueprint, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const blueprint_t<protocol_t> &blueprint, signal_t *interruptor) THROWS_NOTHING {
+
+    const int num_stores = svs->num_stores();
+
     try {
         directory_entry_t directory_entry(this, region);
 
         {
             /* We offer backfills while waiting for it to be safe to shutdown
              * in case another peer needs a copy of the data */
-            backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history, store);
+            backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history, svs);
 
             /* Tell the other peers that we are looking to shutdown and
              * offering backfilling until we do. */
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token;
-            store->new_read_token(order_token);
-            typename reactor_business_card_t<protocol_t>::nothing_when_safe_t activity(region_map_transform<protocol_t,
-                                                                                                            binary_blob_t,
-                                                                                                            version_range_t>(store->get_metainfo(order_token, interruptor),
-                                                                                                                             &binary_blob_t::get<version_range_t>),
+            boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
+            svs->new_read_tokens(read_tokens.get(), num_stores);
+            typename reactor_business_card_t<protocol_t>::nothing_when_safe_t activity(svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor),
                                                                                        backfiller.get_business_card());
             directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
 
@@ -106,10 +106,10 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, sto
 
         /* This actually erases the data. */
         {
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
-            store->new_write_token(token);
+            boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+            svs->new_write_tokens(write_tokens.get(), num_stores);
 
-            store->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), token, interruptor);
+            svs->reset_all_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), write_tokens.get(), num_stores, interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,

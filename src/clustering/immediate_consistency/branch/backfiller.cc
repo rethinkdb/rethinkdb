@@ -108,7 +108,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
 
 	/* Actually perform the backfill */
 	svs->send_multistore_backfill(region_map_transform<protocol_t, version_range_t, state_timestamp_t>(start_point,
-                                                                                                &get_earliest_timestamp_of_version_range),
+                                                                                                           &get_earliest_timestamp_of_version_range),
                                       boost::bind(&backfiller_t<protocol_t>::confirm_and_send_metainfo, this, _1, start_point, end_point_cont),
                                       send_fun,
                                       local_backfill_progress[session_id],

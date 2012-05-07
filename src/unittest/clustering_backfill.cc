@@ -29,7 +29,8 @@ void run_backfill_test() {
         region.keys.insert(std::string(&c, 1));
     }
 
-    dummy_protocol_t::store_t backfiller_store, backfillee_store;
+    dummy_protocol_t::store_t backfiller_store;
+    dummy_protocol_t::store_t backfillee_store;
 
     /* Make a dummy metadata view to hold a branch tree so branch history checks
     can be performed */
@@ -108,10 +109,13 @@ void run_backfill_test() {
 
     /* Expose the backfiller to the cluster */
 
+    store_view_t<dummy_protocol_t> *backfiller_store_ptr = &backfiller_store;
+    multistore_ptr_t<dummy_protocol_t> backfiller_multistore(&backfiller_store_ptr, 1);
+
     backfiller_t<dummy_protocol_t> backfiller(
         cluster.get_mailbox_manager(),
         branch_history_controller.get_view(),
-        &backfiller_store);
+        &backfiller_multistore);
 
     watchable_variable_t<boost::optional<backfiller_business_card_t<dummy_protocol_t> > > pseudo_directory(
         boost::optional<backfiller_business_card_t<dummy_protocol_t> >(backfiller.get_business_card()));
@@ -119,7 +123,8 @@ void run_backfill_test() {
     /* Run a backfill */
 
     // Uhh.. hehhehheh... this might be wrong.
-    multistore_ptr_t<dummy_protocol_t> backfillee_multistore(&backfillee_store, 1);
+    store_view_t<dummy_protocol_t> *backfillee_store_ptr = &backfillee_store;
+    multistore_ptr_t<dummy_protocol_t> backfillee_multistore(&backfillee_store_ptr, 1);
 
     cond_t interruptor;
     backfillee<dummy_protocol_t>(

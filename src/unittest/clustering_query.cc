@@ -42,7 +42,8 @@ static void run_read_write_test() {
 
     /* Set up a branch */
     test_store_t<dummy_protocol_t> initial_store;
-    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store.store, 1);
+    store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
+    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(
         cluster.get_mailbox_manager(),
@@ -123,7 +124,8 @@ static void run_broadcaster_problem_test() {
 
     /* Set up a branch */
     test_store_t<dummy_protocol_t> initial_store;
-    multistore_ptr_t multi_initial_store(&initial_store.store, 1);
+    store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
+    multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(
         cluster.get_mailbox_manager(),
