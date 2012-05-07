@@ -56,14 +56,17 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
 
     guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 
-    int res = connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
-    if (res != 0) {
+    int res = connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)); if (res != 0) {
         if (errno == EINPROGRESS) {
             linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
             wait_interruptible(&watch, interruptor);
             int error;
             socklen_t error_size = sizeof(error);
-            res = getsockopt(sock.get(), SOL_SOCKET, SO_ERROR, &error, &error_size);
+            int getsockoptres = getsockopt(sock.get(), SOL_SOCKET, SO_ERROR, &error, &error_size);
+            if (getsockoptres != 0) {
+                //Things are so fucked we can't even get an option here
+                throw linux_tcp_conn_t::connect_failed_exc_t(error);
+            }
             if (error != 0) {
                 throw linux_tcp_conn_t::connect_failed_exc_t(error);
             }
