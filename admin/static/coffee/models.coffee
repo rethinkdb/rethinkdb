@@ -3,12 +3,58 @@ class Namespace extends Backbone.Model
     urlRoot: '/ajax/namespaces'
     initialize: ->
         log_initial '(initializing) namespace model'
+        super
+        @load_key_distr()
+
+    # Cache key distribution info.
+    load_key_distr: =>
+        $.ajax
+            processData: false
+            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
+            type: 'GET'
+            success: (data) =>
+                @set('key_distr', data)
+                # TODO: magic number; also commenting out the whole thing as it's crashing the server
+                #window.setTimeout @load_key_distr, 5000
+
+    sorted_key_distr_keys: (distr_data) =>
+        distr_keys = []
+        for key, count of distr_data
+            distr_keys.push(key)
+        _.sortBy(distr_keys, _.identity)
+        return distr_keys
+
+    # Some shard helpers
+    compute_shard_rows_approximation: (shard) =>
+        # first see if we can grab the distr data
+        shard = $.parseJSON(shard)
+        distr_data = @get('key_distr')
+        if not distr_data?
+            return null
+        # some basic initialization
+        start_key = shard[0]
+        end_key = shard[1]
+        distr_keys = @sorted_key_distr_keys(distr_data)
+        # TODO: we should probably support interpolation here, but
+        # fuck it for now.
+
+        # find the first key greater than the beginning of our shard
+        # and keep summing until we get past our shard boundary.
+        count = 0
+        for key in distr_keys
+            if key >= start_key
+                count += distr_data[key]
+            if end_key? and key >= end_key
+                break
+
+        return count
 
     # Is x between the lower and upper splitpoints (the open interval) for the given index?
     splitpoint_between: (shard_index, sp) =>
         console.log "splitpoint_between #{shard_index}, #{sp}"
         all_sps = @.get('splitpoints')
         return (shard_index == 0 || all_sps[shard_index - 1] < sp) && (shard_index == all_sps.length || sp < all_sps[shard_index])
+
 
 class Datacenter extends Backbone.Model
 
