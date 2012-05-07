@@ -21,7 +21,7 @@ private:
     typedef int id_t;
     id_t mailbox_id;
 
-    boost::function<void(read_stream_t *, const boost::function<void()> &)> callback;
+    boost::function<void(read_stream_t *)> callback;
 
     DISABLE_COPYING(raw_mailbox_t);
 
@@ -60,7 +60,7 @@ public:
         id_t mailbox_id;
     };
 
-    raw_mailbox_t(mailbox_manager_t *, const boost::function<void(read_stream_t *, const boost::function<void()> &)> &);
+    raw_mailbox_t(mailbox_manager_t *, const boost::function<void(read_stream_t *)> &);
     ~raw_mailbox_t();
 
     address_t get_address();
