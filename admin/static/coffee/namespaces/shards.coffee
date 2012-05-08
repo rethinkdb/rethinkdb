@@ -192,12 +192,14 @@ module 'NamespaceView', ->
             log_render '(rendering) ModifyShards'
 
             # TODO render "touched" shards (that have been split or merged within this view) a bit differently
+            user_made_changes = JSON.stringify(@original_shard_set).replace(/\s/g, '') isnt JSON.stringify(@shard_set).replace(/\s/g, '')
             json =
                 namespace: @namespace.toJSON()
                 shards: compute_renderable_shards_array(@namespace.get('id'), @shard_set)
                 suggest_shards_view: @suggest_shards_view
                 current_shards_count: @original_shard_set.length
                 new_shard_count: @shard_set.length
+                unsaved_settings: user_made_changes
             @.$el.html(@template json)
 
             shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
@@ -207,10 +209,10 @@ module 'NamespaceView', ->
             @.$('.btn-compute-shards-suggestion').button()
 
             # Control the reset button, boiii
-            if JSON.stringify(@original_shard_set).replace(/\s/g, '') is JSON.stringify(@shard_set).replace(/\s/g, '')
-                @reset_button_disable()
-            else
+            if user_made_changes
                 @reset_button_enable()
+            else
+                @reset_button_disable()
 
             return @
 

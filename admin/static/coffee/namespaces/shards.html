@@ -49,6 +49,9 @@ This shard has no replicas.
 <script id="modify_shards-template" type="text/x-handlebars-template">
     <div class="modify-shards">
         <h1>Change sharding settings for <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a>:</h1>
+        {{#if unsaved_settings}}
+        <div class="unsaved-settings-warning">You have unsaved changes. Please click "Commit settings" for them to take effect.</div>
+        {{/if}}
         <form class="form">
             <div class="sharding-scheme">
                 <table class="shards table">

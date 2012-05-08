@@ -1048,9 +1048,9 @@
 
 .modify-shards {
     h1 {
-       margin-bottom: 1em;
+       margin-bottom: 10px;
     }
-    
+
     form {
         label {
             padding-top: 0px;
@@ -1089,6 +1089,9 @@
         }
     }
 
+    .sharding-scheme table.shards {
+        border-top: thin solid @grayLighter;
+    }
     .sharding-scheme table.shards, .sharding-plan table.datacenters {
         td {
             border-bottom: thin solid @grayLighter;
@@ -1099,7 +1102,10 @@
         }
     }
 
-    .action, .shard-suggester {
+    .shard-suggester {
+        margin-top: 1em;
+    }
+    .action, .shard-suggester, .unsaved-settings-warning {
        margin-right: 1em;
         .border-radius(4px);
         background-color: #F0F2EB;
@@ -1115,6 +1121,10 @@
         .btn {
             margin-left: 10px;
         }
+    }
+    .unsaved-settings-warning {
+        margin-bottom: 1em;
+        margin-right: 0;
     }
 
     .sharding-plan table.datacenters {
