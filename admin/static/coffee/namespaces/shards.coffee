@@ -152,6 +152,12 @@ module 'NamespaceView', ->
             total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
             rows_per_shard = total_rows / @desired_shards
 
+            # Make sure there is enough data to actually suggest stuff
+            if distr_keys.length < 2
+                @error_msg = "There isn't enough data in the database to suggest shards."
+                @render()
+                return
+
             # Phew. Go through the keys now and compute the bitch ass split points.
             current_shard_count = 0
             split_points = [""]
@@ -168,9 +174,17 @@ module 'NamespaceView', ->
             split_points.push(null)
 
             # convert split points into whatever bitch ass format we're using here
-            @shard_set = []
+            _shard_set = []
             for splitIndex in [0..(split_points.length - 2)]
-                @shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
+                _shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
+
+            # See if we have enough shards
+            if _shard_set.length < @desired_shards
+                @error_msg = "There is only enough data to suggest " + _shard_set.length + " shards."
+                @render()
+                return
+            @shard_set = _shard_set
+
             # All right, we be done, boi. Put those
             # motherfuckers into the dialog, reset the buttons
             # or whateva, and hop on into the sunlight.
