@@ -5,7 +5,6 @@ module 'LogView', ->
         className: 'log-view'
         template: Handlebars.compile $('#log-container-template').html()
         header_template: Handlebars.compile $('#log-header-template').html()
-        loading_template: Handlebars.compile $('#log-loading-template').html()
         max_log_entries: 20
         log_route: '#logs'
 
@@ -31,26 +30,22 @@ module 'LogView', ->
                         @num_new_entries += log_entries.length
                     @render_header()
 
-        render: (collections_are_ready) =>
-            if not app_events.triggered_events.collections_ready? and not collections_are_ready
-                @.$el.html @loading_template({})
-                app_events.on('collections_ready', => @render(true))
-            else
-                @.$el.html @template({})
-                @$log_entries = @.$('ul.log-entries')
-                @fetch_log_entries(
-                    {}, (new_log_entries) =>
-                        @log_entries.add new_log_entries.models[0...@max_log_entries]
-                        @render_header()
+        render: =>
+            @.$el.html @template({})
+            @$log_entries = @.$('ul.log-entries')
+            @fetch_log_entries(
+                {}, (new_log_entries) =>
+                    @log_entries.add new_log_entries.models[0...@max_log_entries]
+                    @render_header()
 
-                        # Render each log entry (append it to the list)
-                        @log_entries.each (entry) =>
-                            view = new LogView.LogEntry
-                                model: entry
-                            @$log_entries.append view.render().el
-                )
+                    # Render each log entry (append it to the list)
+                    @log_entries.each (entry) =>
+                        view = new LogView.LogEntry
+                            model: entry
+                        @$log_entries.append view.render().el
+            )
 
-                @.delegateEvents()
+            @.delegateEvents()
 
             return @
 
@@ -114,12 +109,6 @@ module 'LogView', ->
             $.getJSON route, (log_data_from_server) =>
                 new_log_entries = new LogEntries
                 for machine_uuid, log_entries of log_data_from_server
-                    # If the machine referenced in the log entry isn't among known machines in the collections, we're probably just starting the app up.
-                    # Bind to the global event that will indicate when collections are fully populated, and rerender the logs then.
-                    if not machines.get(machine_uuid)?
-                        app_events.on 'collections_ready', =>
-                            @fetch_log_entries _.extend(url_params, {testing:'testing'}), callback
-                        return
                     # Otherwise, keep processing log entry json and prepare to render it
                     for json in log_entries
                         entry = new LogEntry json
@@ -131,7 +120,7 @@ module 'LogView', ->
                     @.$('.no-more-entries').show()
                     @.$('.next-log-entries').hide()
                     return
-                
+
                 callback(new_log_entries)
 
     class @LogEntry extends Backbone.View

@@ -18,9 +18,8 @@ module 'Sidebar', ->
                 @reset_log_entries()
                 @render()
 
-            # Set up bindings for the router
-            app_events.on 'router_ready', =>
-                window.app.on 'all', => @render()
+            # Render when roude changes
+            window.app.on 'all', @render
 
         render: (route) =>
             @.$el.html @template({})
