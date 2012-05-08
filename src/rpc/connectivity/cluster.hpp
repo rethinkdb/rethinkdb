@@ -16,7 +16,7 @@
 
 struct connection_stats_t {
     connection_stats_t(peer_id_t id, perfmon_collection_t *parent)
-        : peer_collection(uuid_to_str(id.get_uuid()), parent),
+        : peer_collection(uuid_to_str(id.get_uuid()), parent, true, true),
           pm_bytes_sent("bytes_sent", secs_to_ticks(1), true, &peer_collection)
     { }
 

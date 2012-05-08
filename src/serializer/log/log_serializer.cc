@@ -13,7 +13,7 @@
 #include "perfmon.hpp"
 
 log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 
-    : serializer_collection("serializer", parent),
+    : serializer_collection("serializer", parent, true, true),
       pm_serializer_block_reads("serializer_block_reads", secs_to_ticks(1), &serializer_collection),
       pm_serializer_index_reads("serializer_index_reads", &serializer_collection),
       pm_serializer_block_writes("serializer_block_writes", &serializer_collection),
@@ -23,9 +23,9 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
       pm_bytes_in_use("serializer_bytes_in_use", &serializer_collection),
       pm_serializer_lba_extents("serializer_lba_extents", &serializer_collection),
       pm_serializer_data_extents("serializer_data_extents", &serializer_collection),
-      pm_serializer_data_extents_allocated("serializer_data_extents_allocated[dexts]", &serializer_collection),
-      pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed[dexts]", &serializer_collection),
-      pm_serializer_data_extents_gced("serializer_data_extents_gced[dexts]", &serializer_collection),
+      pm_serializer_data_extents_allocated("serializer_data_extents_allocated", &serializer_collection),
+      pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed", &serializer_collection),
+      pm_serializer_data_extents_gced("serializer_data_extents_gced", &serializer_collection),
       pm_serializer_data_blocks_written("serializer_data_blocks_written", &serializer_collection),
       pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks", &serializer_collection),
       pm_serializer_old_total_blocks("serializer_old_total_blocks", &serializer_collection),
