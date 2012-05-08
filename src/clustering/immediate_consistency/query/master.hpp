@@ -34,11 +34,11 @@ public:
         mailbox_manager(mm),
         ack_checker(ac),
         broadcaster(b),
+        registrar(mm, this),
         read_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_read,
                                                   this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
         write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
                                                    this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
-        registrar(mm, this),
         master_directory(md), master_directory_lock(mdl),
         uuid(generate_uuid()) {
 
@@ -62,7 +62,6 @@ public:
     }
 
 private:
-
     struct parser_lifetime_t {
         parser_lifetime_t(master_t *m, namespace_interface_business_card_t bc) : m_(m), namespace_interface_id_(bc.namespace_interface_id) {
             m->sink_map.insert(std::pair<namespace_interface_id_t, parser_lifetime_t *>(bc.namespace_interface_id, this));
@@ -94,8 +93,12 @@ private:
             boost::variant<typename protocol_t::read_response_t, std::string> reply;
             try {
                 typename std::map<namespace_interface_id_t, parser_lifetime_t *>::iterator it = sink_map.find(parser_id);
-                // TODO: Remove this assertion.  Out-of-order operations (which allegedly can happen) could cause it to be wrong?
-                rassert(it != sink_map.end());
+                if (it == sink_map.end()) {
+                    /* We got a message from a parser that already deregistered
+                    itself. This happened because the deregistration message
+                    raced ahead of the query. Ignore it. */
+                    return;
+                }
 
                 auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
                 fifo_enforcer_sink_t::exit_read_t exiter(it->second->sink(), token);
@@ -121,8 +124,12 @@ private:
             boost::variant<typename protocol_t::write_response_t, std::string> reply;
             try {
                 typename std::map<namespace_interface_id_t, parser_lifetime_t *>::iterator it = sink_map.find(parser_id);
-                // TODO: Remove this assertion.  Out-of-order operations (which allegedly can hoppen) could cause it to be wrong?
-                rassert(it != sink_map.end());
+                if (it == sink_map.end()) {
+                    /* We got a message from a parser that already deregistered
+                    itself. This happened because the deregistration message
+                    raced ahead of the query. Ignore it. */
+                    return;
+                }
 
                 class ac_t : public broadcaster_t<protocol_t>::ack_callback_t {
                 public:
@@ -153,10 +160,10 @@ private:
     std::map<namespace_interface_id_t, parser_lifetime_t *> sink_map;
     auto_drainer_t drainer;
 
+    registrar_t<namespace_interface_business_card_t, master_t *, parser_lifetime_t> registrar;
+
     typename master_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
     typename master_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
-
-    registrar_t<namespace_interface_business_card_t, master_t *, parser_lifetime_t> registrar;
 
     watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > *master_directory;
     mutex_assertion_t *master_directory_lock;
