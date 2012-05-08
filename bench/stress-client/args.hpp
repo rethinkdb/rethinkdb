@@ -160,7 +160,7 @@ public:
         : clients(64), duration(10000000L, duration_t::queries_t), op_ratios(op_ratios_t()),
             keys(distr_t(8, 16)), values(distr_t(8, 128)),
             batch_factor(distr_t(1, 16)), range_size(distr_t(16, 128)),
-            distr(rnd_uniform_t), mu(1), pipeline_limit(0)
+            distr(rnd_uniform_t), mu(1), pipeline_limit(0), ignore_protocol_errors(0)
         {
             latency_file[0] = 0;
             worst_latency_file[0] = 0;
@@ -223,6 +223,7 @@ public:
     char in_file[MAX_FILE];
     char db_file[MAX_FILE];
     int pipeline_limit;
+    int ignore_protocol_errors;
 };
 
 /* List supported protocols. */
@@ -256,6 +257,7 @@ void usage(const char *name) {
     printf("].\n");
     printf("\t-c, --clients\n\t\tNumber of concurrent clients. Defaults to [%d].\n", _d.clients);
     printf("\t--client-suffix\n\t\tAppend a per-client id to key names.\n");
+    printf("\t--ignore-protocol-errors\n\t\tDo not quit if the protocol throws errors.\n");
     printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R/A/P/V/RR, where\n" \
            "\t\t\tD - number of deletes\n" \
            "\t\t\tU - number of updates\n" \
@@ -351,6 +353,7 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"mu",                 required_argument, 0, 'm'},
                 {"pipeline",           required_argument, 0, 'p'},
                 {"client-suffix",      no_argument, 0, 'a'},
+                {"ignore-protocol-errors", no_argument, &config->ignore_protocol_errors, 1},
                 {"help",               no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
