@@ -71,6 +71,11 @@ public:
                                                 signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
+    void reset_all_data(typename protocol_t::region_t subregion,
+                        const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                        int num_stores_assertion,
+                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 
 

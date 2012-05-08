@@ -162,6 +162,18 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(UNUSED const typename protocol_t:
     return typename protocol_t::write_response_t();
 }
 
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::reset_all_data(UNUSED typename protocol_t::region_t subregion,
+                                                  UNUSED const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                                                  UNUSED boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                                  UNUSED int num_stores_assertion,
+                                                  UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    // todo: uh, implement
+    // TODO: no unused parameters.
+
+}
+
+
 
 
 
