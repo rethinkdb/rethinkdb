@@ -173,7 +173,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
     check_and_handle_underfull(&sizer, txn, kv_loc->buf, kv_loc->last_buf, kv_loc->superblock, key);
 
     //Modify the stats block
-    buf_lock_t stat_block(txn, kv_loc->stat_block, rwi_write);
+    buf_lock_t stat_block(txn, kv_loc->stat_block, rwi_write, buffer_cache_order_mode_ignore);
     reinterpret_cast<btree_statblock_t *>(stat_block.get_data_major_write())->population += population_change;
 }
 
