@@ -29,7 +29,7 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
     if num is 1
         result = noun
     else
-        if noun.substr(-1) is 'y'
+        if noun.substr(-1) is 'y' and (noun isnt 'key')
             result = noun.slice(0, noun.length - 1) + "ies"
         else
             result = noun + "s"

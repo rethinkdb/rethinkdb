@@ -9,6 +9,8 @@ module 'MachineView', ->
             'click a.set-datacenter': 'set_datacenter'
             'click a.rename-machine': 'rename_machine'
 
+        max_log_entries_to_render: 3
+
         initialize: (id) =>
             log_initial '(initializing) machine view: container'
             @machine_uuid = id
@@ -90,10 +92,12 @@ module 'MachineView', ->
             @.$el.html @template json
 
             if @model.get('log_entries')?
+                entries_to_render = []
                 @model.get('log_entries').each (log_entry) =>
-                    view = new MachineView.RecentLogEntry
-                        model: log_entry
-                    @.$('.recent-log-entries').append view.render().el
+                    entries_to_render.push(new MachineView.RecentLogEntry
+                        model: log_entry)
+                entries_to_render = entries_to_render.slice(0, @max_log_entries_to_render)
+                @.$('.recent-log-entries').append entry.render().el for entry in entries_to_render
 
             return @
 
