@@ -4,6 +4,9 @@ Handlebars.registerPartial 'shard_name_td', $('#shard_name_td-partial').html()
 
 # Namespace view
 module 'NamespaceView', ->
+    # Hardcoded!
+    MAX_SHARD_COUNT = 32
+
     # All of our rendering code needs a view of available shards
     compute_renderable_shards_array = (namespace_uuid, shards) ->
         ret = []
@@ -132,12 +135,22 @@ module 'NamespaceView', ->
             e.preventDefault()
             @.$('.btn-compute-shards-suggestion').button('loading')
 
+            # Make sure their input aint crazy
+            @desired_shards = parseInt(form_data_as_object($('form', @.el)).num_shards)
+            if isNaN(@desired_shards)
+                @error_msg = "The number of shards must be an integer."
+                @render()
+                return
+            if @desired_shards < 1 or @desired_shards > MAX_SHARD_COUNT
+                @error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
+                @render()
+                return
+
             # grab the data
             data = @namespace.get('key_distr')
             distr_keys = @namespace.sorted_key_distr_keys(data)
             total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
-            desired_shards = form_data_as_object($('form', @.el)).num_shards
-            rows_per_shard = total_rows / desired_shards
+            rows_per_shard = total_rows / @desired_shards
 
             # Phew. Go through the keys now and compute the bitch ass split points.
             current_shard_count = 0
@@ -145,7 +158,7 @@ module 'NamespaceView', ->
             no_more_splits = false
             for key in distr_keys
                 # Let's not overdo it :-D
-                if split_points.length >= desired_shards
+                if split_points.length >= @desired_shards
                     no_more_splits = true
                 current_shard_count += data[key]
                 if current_shard_count >= rows_per_shard and not no_more_splits
@@ -198,8 +211,11 @@ module 'NamespaceView', ->
                 shards: compute_renderable_shards_array(@namespace.get('id'), @shard_set)
                 suggest_shards_view: @suggest_shards_view
                 current_shards_count: @original_shard_set.length
-                new_shard_count: @shard_set.length
+                max_shard_count: MAX_SHARD_COUNT
+                new_shard_count: if @desired_shards? then @desired_shards else @shard_set.length
                 unsaved_settings: user_made_changes
+                error_msg: @error_msg
+            @error_msg = null
             @.$el.html(@template json)
 
             shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
@@ -220,6 +236,7 @@ module 'NamespaceView', ->
             e.preventDefault()
             @.$('.btn-primary').button('loading')
             formdata = form_data_as_object($('form', @el))
+
             empty_master_pin = {}
             empty_master_pin[JSON.stringify(["", null])] = null
             empty_replica_pins = {}
