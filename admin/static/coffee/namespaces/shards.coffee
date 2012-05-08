@@ -106,6 +106,9 @@ module 'NamespaceView', ->
             # Shard suggester business
             @suggest_shards_view = false
 
+            # We should rerender on key distro updates
+            @namespace.on 'all', @render
+
             super
 
         reset_shards: (e) ->
