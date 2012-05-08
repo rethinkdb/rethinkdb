@@ -5,6 +5,7 @@ class BackboneCluster extends Backbone.Router
         '': 'dashboard'
         'namespaces': 'index_namespaces'
         'namespaces/:id': 'namespace'
+        'namespaces/:id/sharding_scheme': 'sharding_scheme'
         'servers': 'index_servers'
         'datacenters/:id': 'datacenter'
         'machines/:id': 'machine'
@@ -14,6 +15,8 @@ class BackboneCluster extends Backbone.Router
 
     initialize: ->
         log_initial '(initializing) router'
+        super
+        window.app = @
 
         @$container = $('#cluster')
 
@@ -72,6 +75,18 @@ class BackboneCluster extends Backbone.Router
 
         # Return the existing namespace from the collection if it exists
         return build_namespace_view id
+
+    sharding_scheme: (id) ->
+        log_router '/namespaces/' + id + '/sharding_scheme'
+        clear_modals()
+
+        # Helper function to build the namespace view
+        build_sharding_scheme_view = (id) =>
+            sharding_scheme_view = new NamespaceView.ModifyShards(id)
+            @$container.html sharding_scheme_view.render().el
+
+        # Return the existing namespace from the collection if it exists
+        return build_sharding_scheme_view id
 
     datacenter: (id) ->
         log_router '/datacenters/' + id

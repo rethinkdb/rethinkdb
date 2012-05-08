@@ -12,17 +12,24 @@ class Namespace extends Backbone.Model
             processData: false
             url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
             type: 'GET'
-            success: (data) =>
-                @set('key_distr', data)
-                # TODO: magic number; also commenting out the whole thing as it's crashing the server
-                #window.setTimeout @load_key_distr, 5000
+            success: (distr_data) =>
+                # Cache the data
+                @set('key_distr', distr_data)
+                # Sort the keys and cache that too
+                distr_keys = []
+                for key, count of distr_data
+                    distr_keys.push(key)
+                _.sortBy(distr_keys, _.identity)
+                @set('key_distr_sorted', distr_keys)
+                # TODO: magic number
+                window.setTimeout @load_key_distr, 5000
 
-    sorted_key_distr_keys: (distr_data) =>
-        distr_keys = []
-        for key, count of distr_data
-            distr_keys.push(key)
-        _.sortBy(distr_keys, _.identity)
-        return distr_keys
+    sorted_key_distr_keys: =>
+        keys = @get('key_distr_sorted')
+        if keys?
+            return keys
+        else
+            return []
 
     # Some shard helpers
     compute_shard_rows_approximation: (shard) =>
@@ -34,7 +41,7 @@ class Namespace extends Backbone.Model
         # some basic initialization
         start_key = shard[0]
         end_key = shard[1]
-        distr_keys = @sorted_key_distr_keys(distr_data)
+        distr_keys = @sorted_key_distr_keys()
         # TODO: we should probably support interpolation here, but
         # fuck it for now.
 
