@@ -1,7 +1,7 @@
 <script id="shard_name_td-partial" type="text/x-handlebars-template">
   <td class="name">
     <h4>{{name}}</h4>
-    Keys: ~{{shard_stats.rows_approx}}
+    About {{shard_stats.rows_approx}} {{pluralize_noun "key" shard_stats.rows_approx}}
   </td>
 </script>
 
