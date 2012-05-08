@@ -221,6 +221,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
 
         buf_lock_t *block = new buf_lock_t(state->transaction_ptr,
                                            block_id, state->helper->btree_node_mode(),
+                                           buffer_cache_order_mode_check,
                                            acq_start_cb);
 
         rassert(coro_t::self());
@@ -264,12 +265,6 @@ struct internal_node_releaser_t : public parent_releaser_t {
     virtual ~internal_node_releaser_t() { }
 };
 
-void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_traversal_helper_t *helper) {
-    boost::scoped_ptr<real_superblock_t> superblock;
-    get_btree_superblock(txn, helper->btree_superblock_mode(), &superblock);
-    btree_parallel_traversal(txn, superblock.get(), slice, helper);
-}
-
 void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper) {
     traversal_state_t state(txn, slice, helper);
 
@@ -283,7 +278,7 @@ void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btre
 
     if (state.stat_block != NULL_BLOCK_ID) {
         /* Give the helper a look at the stat block */
-        buf_lock_t stat_block(txn, state.stat_block, rwi_read);
+        buf_lock_t stat_block(txn, state.stat_block, rwi_read, buffer_cache_order_mode_ignore);
         helper->read_stat_block(&stat_block);
     } else {
         helper->read_stat_block(NULL);
@@ -391,6 +386,7 @@ void process_a_internal_node(traversal_state_t *state, buf_lock_t *buf, int leve
 // This releases its buf_lock_t parameter.
 void process_a_leaf_node(traversal_state_t *state, buf_lock_t *buf, int level,
                          const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
+    // TODO: The below comment is wrong because we acquire the stat block
     // This can be run in the scheduler thread.
     //
     //
@@ -401,7 +397,7 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t *buf, int level,
     if (state->helper->btree_node_mode() != rwi_write) {
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
     } else if (population_change != 0) {
-        buf_lock_t stat_block(state->transaction_ptr, state->stat_block, rwi_write);
+        buf_lock_t stat_block(state->transaction_ptr, state->stat_block, rwi_write, buffer_cache_order_mode_ignore);
         reinterpret_cast<btree_statblock_t *>(stat_block.get_data_major_write())->population += population_change;
     } else {
         //don't aquire the block to not change the value

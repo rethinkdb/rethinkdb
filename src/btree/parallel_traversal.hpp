@@ -119,7 +119,6 @@ struct btree_traversal_helper_t {
     traversal_progress_t *progress;
 };
 
-void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_traversal_helper_t *helper);
 void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
 class traversal_progress_t : public home_thread_mixin_t {
