@@ -1,4 +1,3 @@
-
 # Namespace view
 module 'NamespaceView', ->
     # All of our rendering code needs a view of available shards
@@ -31,7 +30,15 @@ module 'NamespaceView', ->
         return ret
 
     # Shards view
-    class @Shards extends Backbone.View
+    # The sharding view consists of several lists. Here's the hierarchy:
+    #   @Sharding
+    #   |-- @ShardList
+    #   |   `-- @Shard
+    #   |      `-- @ShardDatacenterList: primary and secondary replicas organized by datacenter
+    #   |          `-- @ShardDatacenter
+    #   |              `-- @ShardMachineList: machines with primary and secondary replicas
+    #   |                  `-- @ShardMachine
+    class @Sharding extends UIComponents.AbstractList
         className: 'namespace-shards'
         template: Handlebars.compile $('#namespace_view-sharding-template').html()
 
@@ -47,11 +54,21 @@ module 'NamespaceView', ->
 
         initialize: ->
             log_initial '(initializing) namespace view: shards'
-            @model.on 'all', @render
-            directory.on 'all', @render
-            progress_list.on 'all', @render
-            @shards = []
+            #@model.on 'all', @render
+            #directory.on 'all', @render
+            #progress_list.on 'all', @render
+            @shards = new Shards
+            for shard in @model.get('shards')
+                primary_uuid = DataUtils.get_shard_primary_uuid @model.get('id'), shard
+                secondary_uuids = DataUtils.get_shard_secondary_uuids @model.get('id'), shard
+                @shards.add new Shard
+                    name: human_readable_shard shard
+                    shard_boundaries: shard
+                    primary_uuid: primary_uuid
+                    secondary_uuids: secondary_uuids
 
+            super @shards, NamespaceView.Shard, 'table.shards tbody',
+            
         bind_edit_machines: (shard) ->
             # Master assignments
             @.$('#assign_master_' + shard.index).click (e) =>
@@ -59,7 +76,7 @@ module 'NamespaceView', ->
                 modal = new NamespaceView.EditMasterMachineModal @model, shard.shard
                 modal.render()
 
-            # Fucking JS closures
+            # JS closure
             bind_shard = (shard, secondary) =>
                 @.$('#assign_machines_' + shard.index + '_' + secondary.datacenter_uuid).click (e) =>
                     e.preventDefault()
@@ -73,15 +90,101 @@ module 'NamespaceView', ->
 
         render: =>
             log_render '(rendering) namespace view: shards'
-
-            shards_array = compute_renderable_shards_array(@model.get('id'), @model.get('shards'))
-            @.$el.html @template
-                shards: shards_array
+            super
+            #shards_array = compute_renderable_shards_array(@model.get('id'), @model.get('shards'))
 
             # Bind events to 'assign machine' links
-            for shard in shards_array
-                @bind_edit_machines(shard)
+            #for shard in shards_array
+            #    @bind_edit_machines(shard)
 
+            return @
+
+    class @Shard extends Backbone.View
+        tagName: 'tr'
+        template: Handlebars.compile $('#namespace_view-shard-template').html()
+
+        initialize: ->
+            @datacenter_list = new NamespaceView.ShardDatacenterList datacenters, NamespaceView.ShardDatacenter, 'div.datacenters',
+                filter: (datacenter) =>
+                    for datacenter_uuid of @model.get('secondary_uuids')
+                        return true if datacenter.get('id') is datacenter_uuid
+                    if @model.get('primary_uuid')
+                        return true if datacenter.get('id') is machines.get(@model.get('primary_uuid')).get('datacenter_uuid')
+                element_args:
+                    shard: @model
+
+        render: =>
+            @.$el.html @template @model.toJSON()
+
+            @.$('.datacenter-list').html @datacenter_list.render().el
+            return @
+
+    class @ShardDatacenterList extends UIComponents.AbstractList
+        template: Handlebars.compile $('#namespace_view-shard_datacenter_list-template').html()
+        
+    class @ShardDatacenter extends UIComponents.CollapsibleListElement
+        template: Handlebars.compile $('#namespace_view-shard_datacenter-template').html()
+        summary_template: Handlebars.compile $('#namespace_view-shard_datacenter-summary-template').html()
+
+        initialize: ->
+            super
+
+            @machine_list = new NamespaceView.ShardMachineList machines, NamespaceView.ShardMachine, 'ul.machines',
+                filter: (machine) =>
+                    shard = @options.args.shard
+                    return false if machine.get('datacenter_uuid') isnt @model.get('id')
+                    for datacenter_uuid, machine_uuids of shard.get('secondary_uuids')
+                        for machine_uuid of machine_uuids
+                            return true if machine.get('id') is machine_uuid
+                    if shard.get('primary_uuid')
+                        return true if machine.get('id') is shard.get('primary_uuid')
+
+
+        render: =>
+            @.$el.html @template({})
+            @render_summary()
+            @.$('.machine-list').html @machine_list.render().el
+
+            super
+
+            return @
+
+        render_summary: =>
+            json = _.extend @model.toJSON(),
+                status: DataUtils.get_datacenter_reachability(@model.get('id'))
+                primary_count: 0
+                secondary_count: 0
+
+            # primary, secondary, and namespace counts
+            _namespaces = []
+            for namespace in namespaces.models
+                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
+                    if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
+                        machine_active_for_namespace = false
+                        for shard, role of peer_role
+                            if role is 'role_primary'
+                                machine_active_for_namespace = true
+                                json.primary_count += 1
+                            if role is 'role_secondary'
+                                machine_active_for_namespace = true
+                                json.secondary_count += 1
+                        if machine_active_for_namespace
+                            _namespaces[_namespaces.length] = namespace
+            json.namespace_count = _.uniq(_namespaces).length
+
+            @.$('.datacenter.summary').html @summary_template json
+
+    class @ShardMachineList extends UIComponents.AbstractList
+        template: Handlebars.compile $('#namespace_view-shard_machine_list-template').html()
+
+    class @ShardMachine extends Backbone.View
+        template: Handlebars.compile $('#namespace_view-shard_machine-template').html()
+        tagName: 'li'
+
+        render: =>
+            @.$el.html @template _.extend @model.toJSON(),
+                status: DataUtils.get_machine_reachability(@model.get('id'))
+            
             return @
 
     class @ModifyShardsModal extends UIComponents.AbstractModal
@@ -147,6 +250,7 @@ module 'NamespaceView', ->
                         distr_keys.push(key)
                         total_rows += count
                     _.sortBy(distr_keys, _.identity)
+
                     # All right, now let's see roughly how many bitch
                     # ass rows we want per bitch ass shard.
                     formdata = form_data_as_object($('form', @.el))

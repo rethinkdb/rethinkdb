@@ -33,7 +33,7 @@ module 'NamespaceView', ->
             # Some additional setup
             @profile = new NamespaceView.Profile(model: @model)
             @replicas = new NamespaceView.Replicas(model: @model)
-            @shards = new NamespaceView.Shards(model: @model)
+            @shards = new NamespaceView.Sharding(model: @model)
 
             # We no longer need all this logic in wait_for_model, so
             # switch it to noop for the callers

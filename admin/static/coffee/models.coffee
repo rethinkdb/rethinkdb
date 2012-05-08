@@ -10,6 +10,8 @@ class Namespace extends Backbone.Model
         all_sps = @.get('splitpoints')
         return (shard_index == 0 || all_sps[shard_index - 1] < sp) && (shard_index == all_sps.length || sp < all_sps[shard_index])
 
+class Shard extends Backbone.Model
+
 class Datacenter extends Backbone.Model
 
 class Machine extends Backbone.Model
@@ -54,6 +56,9 @@ class ColorMap extends Backbone.Model
 class Namespaces extends Backbone.Collection
     model: Namespace
     name: 'Namespaces'
+
+class Shards extends Backbone.Collection
+    model: Shard
 
 class Datacenters extends Backbone.Collection
     model: Datacenter

@@ -1,123 +1,154 @@
 <script id="namespace_view-sharding-template" type="text/x-handlebars-template">
-  <table class="shards table">
-    <tbody>
-      {{#each shards}}
-      <tr>
-        <td class="name"><h4>{{name}}</h4></td>
-        <td class="status">
-          <p>
+    <table class="shards table">
+        <tbody>
+        </tbody>
+    </table>
+    <p><a class="edit" href="#">Change sharding scheme</a></p>
+</script>
+
+<script id="namespace_view-shard-template" type="text/x-handlebars-template">
+    <td class="name"><h4>{{name}}</h4></td>
+    <td class="status">
+        <div class="datacenter-list"></div>
+        <p>
             <strong>Master:</strong> <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> {{humanize_machine_reachability primary.status}}{{#if primary.status.reachable}}{{> backfill_progress_summary primary}}{{/if}}</span>
-<br />
-{{> backfill_progress_details primary}}
-<a id="assign_master_{{index}}" href="#">Assign master</a>
-</p>
-{{#if secondaries}}
-{{#each secondaries}}
-<p><strong>Replicas in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>:</strong></p>
-<ul>
-  {{#each machines}}
-  <li>
-    <p>
-      <a href="/#machines/{{uuid}}">{{name}}</a>
-      <span>{{humanize_machine_reachability status}}{{#if status.reachable}}{{> backfill_progress_summary}}{{/if}}</span>
-    </p>
-    {{> backfill_progress_details}}
-  </li>
-  {{/each}}
-</ul>
-<a id="assign_machines_{{../index}}_{{datacenter_uuid}}" href="#">Assign machines</a>
-<hr />
-{{/each}}
-{{else}}
-This shard has no replicas.
-{{/if}}
-</td>
-</tr>
-{{/each}}
-</tbody>
-</table>
-<p><a class="edit" href="#">Change sharding scheme</a></p>
+            {{! > backfill_progress_details primary}}
+            <a id="assign_master_{{index}}" href="#">Assign master</a>
+        </p>
+        {{#if secondaries}}
+        {{#each secondaries}}
+        <p><strong>Replicas in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>:</strong></p>
+        <ul>
+            {{#each machines}}
+            <li>
+                <p>
+                    <a href="/#machines/{{uuid}}">{{name}}</a>
+                    <span>{{humanize_machine_reachability status}}{{#if status.reachable}}{{! > backfill_progress_summary}}{{/if}}</span>
+                </p>
+                {{! > backfill_progress_details}}
+            </li>
+            {{/each}}
+        </ul>
+        <a id="assign_machines_{{../index}}_{{datacenter_uuid}}" href="#">Assign machines</a>
+        <hr />
+    {{/each}}
+    {{else}}
+        This shard has no replicas.
+    {{/if}}
+    </td>
+</script>
+
+<script id="namespace_view-shard_datacenter_list-template" type="text/x-handlebars-template">
+    <div class="datacenters"></div>
+</script>
+
+<script id="namespace_view-shard_datacenter-template" type="text/x-handlebars-template">
+    <div class="row header">
+        <div class="expanded arrow"></div>
+        <div class="datacenter summary"></div>
+    </div>
+    <div class="machine-list"></div>
+</script>
+
+<script id="namespace_view-shard_datacenter-summary-template" type="text/x-handlebars-template">
+    <h3 class="datacenter name"><span class="element-type label label-inverse">Datacenter</span><a href="#datacenters/{{id}}">{{name}}</a></h3>
+    <div class="datacenter details">
+        <p class="status">{{humanize_datacenter_reachability status}}</p>
+        <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Namespaces: {{namespace_count}}</p>
+    </div>
+</script>
+
+<script id="namespace_view-shard_machine_list-template" type="text/x-handlebars-template">
+    <ul class="machines"></ul>
+</script>
+
+<script id="namespace_view-shard_machine-template" type="text/x-handlebars-template">
+    {{name}}
+    {{#if is_master}}
+        (master)
+    {{/if}}
+    <span>{{humanize_machine_reachability status}}{{#if status.reachable}}{{! > backfill_progress_summary}}{{/if}}</span>
 </script>
 
 <script id="modify_shards_modal-template" type="text/x-handlebars-template">
-  <form class="form">
-    <div class="sharding-scheme">
-      <h4>Sharding settings:</h4>
-      <table class="shards table">
-        <tbody>
-        </tbody>
-      </table>
-      {{#if suggest_shards_view}}
-      <div class="shard-suggester clearfix">
-        <h4>Suggest sharding scheme:</h4>
-        <div class="shard_suggest_elements">
-          <label for="replicas">Number of shards:</label>
-          <input name="num_shards" type="text" value="{{new_shard_count}}"/>
-          <button class="btn btn-compute-shards-suggestion" data-loading-text="Calculating...">Suggest</button>
+    <form class="form">
+        <div class="sharding-scheme">
+            <h4>Sharding settings:</h4>
+            <table class="shards table">
+                <tbody>
+                </tbody>
+            </table>
+            {{#if suggest_shards_view}}
+            <div class="shard-suggester clearfix">
+                <h4>Suggest sharding scheme:</h4>
+                <div class="shard_suggest_elements">
+                    <label for="replicas">Number of shards:</label>
+                    <input name="num_shards" type="text" value="{{new_shard_count}}"/>
+                    <button class="btn btn-compute-shards-suggestion" data-loading-text="Calculating...">Suggest</button>
+                </div>
+                <p class="current">Current shards: {{current_shards_count}}</p>
+                <a id="cancel_shards_suggester_btn" href="#">Cancel</a>
+            </div>
+            {{else}}
+            <p class="suggest_shards_pathway"><a id="suggest_shards_btn" href="#">Suggest shards</a></p>
+            {{/if}}
         </div>
-        <p class="current">Current shards: {{current_shards_count}}</p>
-        <a id="cancel_shards_suggester_btn" href="#">Cancel</a>
-      </div>
-      {{else}}
-      <p class="suggest_shards_pathway"><a id="suggest_shards_btn" href="#">Suggest shards</a></p>
-      {{/if}}
-    </div>
-    <div class="sharding-plan"></div>
-  </form>
+        <div class="sharding-plan"></div>
+    </form>
 </script>
 
 <script id="modify_shards-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-    <p>You successfully modified the shard plan. Machine assignments for this namespace have been reset.</p>
-  </div>
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>You successfully modified the shard plan. Machine assignments for this namespace have been reset.</p>
+    </div>
 </script>
 
 <script id="modify_shards_modal-shard-template" type="text/x-handlebars-template">
-  {{#with shard}}
-  <td class="name"><h4>{{name}}</h4></td>
-  <td class="status">
-    <!-- TODO fake -->
-    <p>N rows in the shard</p>
-  </td>
-  <td class="actions">
-    <p>
-      (<a href="#" class="split" data-index="{{index}}">split</a>)
-      {{#if notlast}}
-      (<a href="#" class="merge" data-index="{{index}}">merge with next</a>)
-      {{/if}}
-    </p>
-  </td>
-  {{/with}}
+    {{#with shard}}
+    <td class="name"><h4>{{name}}</h4></td>
+    <td class="status">
+        <!-- TODO fake -->
+        <p>N rows in the shard</p>
+    </td>
+    <td class="actions">
+        <p>
+            (<a href="#" class="split" data-index="{{index}}">split</a>)
+            {{#if notlast}}
+            (<a href="#" class="merge" data-index="{{index}}">merge with next</a>)
+            {{/if}}
+        </p>
+    </td>
+    {{/with}}
 </script>
 
 <script id="modify_shards_modal-edit_shard-template" type="text/x-handlebars-template">
-  <td class="name">
-    {{#with shard}}
-    <h4>{{name}} </h4>
-    {{/with}}
-  </td>
-  <td class="status" colspan="2">
-    <!-- TODO fake -->
-    <p>4 of 5 replicas live</p>
-    <p>50.3 GB of data in this shard</p>
-    <div class="action">
-      {{#if splitting}}
-      <label for="splitpoint">
-        <p>Split point:</p>
-      </label>
-      <input class="small" name="splitpoint" type="text" />
-      <a href="#" class="btn commit_split primary">Split</a>
-      <a href="#" class="btn cancel_split secondary">Cancel</a>
-      {{/if}}
-      {{#if merging}}
-      <p>
-        <a href="#" class="btn commit_merge primary">Yes</a>
-        <a href="#" class="btn cancel_merge secondary">No</a>
-        Are you sure you want to merge these shards?
-      </p>
-      {{/if}}
-    </div>
-  </td>
+    <td class="name">
+        {{#with shard}}
+        <h4>{{name}} </h4>
+        {{/with}}
+    </td>
+    <td class="status" colspan="2">
+        <!-- TODO fake -->
+        <p>4 of 5 replicas live</p>
+        <p>50.3 GB of data in this shard</p>
+        <div class="action">
+            {{#if splitting}}
+            <label for="splitpoint">
+                <p>Split point:</p>
+            </label>
+            <input class="small" name="splitpoint" type="text" />
+            <a href="#" class="btn commit_split primary">Split</a>
+            <a href="#" class="btn cancel_split secondary">Cancel</a>
+            {{/if}}
+            {{#if merging}}
+            <p>
+                <a href="#" class="btn commit_merge primary">Yes</a>
+                <a href="#" class="btn cancel_merge secondary">No</a>
+                Are you sure you want to merge these shards?
+            </p>
+            {{/if}}
+        </div>
+    </td>
 </script>
 
