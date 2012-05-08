@@ -35,19 +35,6 @@ perfmon_collection_t &get_global_collection() {
     return collection;
 }
 
-// TODO (rntz) remove lock, not necessary with perfmon static initialization restrictions
-
-/* The var lock protects the var list when it is being modified. In theory, this should all work
-automagically because the constructor of every perfmon_t calls get_var_lock(), causing the var lock
-to be constructed before the first perfmon, so it is destroyed after the last perfmon. */
-
-spinlock_t &get_var_lock() {
-    /* To avoid static initialization fiasco */
-
-    static spinlock_t lock;
-    return lock;
-}
-
 /* This is the function that actually gathers the stats. It is illegal to create or destroy
 perfmon_t objects while perfmon_get_stats is active. */
 
@@ -72,8 +59,6 @@ perfmon_t::perfmon_t(perfmon_collection_t *_parent, bool _insert)
     : parent(_parent), insert(_insert)
 {
     if (insert) {
-        //RSI maybe get rid of this spinlock, especially when parent isn't global
-        spinlock_acq_t acq(&get_var_lock());
         if (!parent) {
             get_global_collection().add(this);
         } else {
@@ -84,7 +69,6 @@ perfmon_t::perfmon_t(perfmon_collection_t *_parent, bool _insert)
 
 perfmon_t::~perfmon_t() {
     if (insert) {
-        spinlock_acq_t acq(&get_var_lock());
         if (!parent) {
             get_global_collection().remove(this);
         } else {
