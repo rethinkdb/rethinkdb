@@ -182,7 +182,7 @@ module 'ServerView', ->
             @machine_list.on 'size_changed', @ml_size_changed
             @ml_size_changed()
 
-        ml_size_changed: ->
+        ml_size_changed: =>
             num_machines = @machine_list.element_views.length
 
             we_should_rerender = false
@@ -268,7 +268,7 @@ module 'ServerView', ->
 
             @callbacks = []
 
-        ml_size_changed: ->
+        ml_size_changed: =>
             num_machines = @machine_list.element_views.length
 
             we_should_rerender = false
