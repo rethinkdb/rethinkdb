@@ -13,9 +13,9 @@
 
 template <class protocol_t>
 broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
-	      boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
-	      multistore_ptr_t<protocol_t> *initial_svs,
-	      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
+              boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
+              multistore_ptr_t<protocol_t> *initial_svs,
+              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
       registrar(mailbox_manager, this) {
@@ -34,26 +34,26 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     typedef region_map_t<protocol_t, version_range_t> version_map_t;
 
     for (typename version_map_t::const_iterator it =  origins.begin();
-	 it != origins.end();
-	 it++) {
-	state_timestamp_t part_timestamp = it->second.latest.timestamp;
-	if (part_timestamp > initial_timestamp) {
-	    initial_timestamp = part_timestamp;
-	}
+         it != origins.end();
+         it++) {
+        state_timestamp_t part_timestamp = it->second.latest.timestamp;
+        if (part_timestamp > initial_timestamp) {
+            initial_timestamp = part_timestamp;
+        }
     }
     current_timestamp = newest_complete_timestamp = initial_timestamp;
 
     /* Make an entry for this branch in the global branch history
        semilattice */
     {
-	branch_birth_certificate_t<protocol_t> our_metadata;
-	our_metadata.region = initial_svs->get_multistore_joined_region();
-	our_metadata.initial_timestamp = initial_timestamp;
-	our_metadata.origin = origins;
+        branch_birth_certificate_t<protocol_t> our_metadata;
+        our_metadata.region = initial_svs->get_multistore_joined_region();
+        our_metadata.initial_timestamp = initial_timestamp;
+        our_metadata.origin = origins;
 
-	std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > singleton;
-	singleton[branch_id] = our_metadata;
-	metadata_field(&branch_history_t<protocol_t>::branches, branch_history)->join(singleton);
+        std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > singleton;
+        singleton[branch_id] = our_metadata;
+        metadata_field(&branch_history_t<protocol_t>::branches, branch_history)->join(singleton);
     }
 
     /* Reset the store metadata. We should do this after making the branch
@@ -92,34 +92,45 @@ template <class protocol_t>
 class broadcaster_t<protocol_t>::incomplete_write_t : public home_thread_mixin_t {
 public:
     incomplete_write_t(broadcaster_t *p,
-		       typename protocol_t::write_t w, transition_timestamp_t ts,
-		       ack_callback_t *cb) :
-	write(w), timestamp(ts),
-	parent(p), incomplete_count(0),
-	ack_callback(cb)
+                       typename protocol_t::write_t w, transition_timestamp_t ts,
+                       ack_callback_t *cb) :
+        write(w), timestamp(ts),
+        parent(p), incomplete_count(0),
+        ack_callback(cb)
     {
-	rassert(ack_callback);
+        rassert(ack_callback);
+    }
+
+    void notify_acked(peer_id_t peer, typename protocol_t::write_response_t _resp) {
+        if (!resp) {
+            resp = _resp;
+        }
+        if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
+            if (ack_callback->on_ack(peer) && resp) {
+                done_promise.pulse(true);
+            }
+        }
     }
 
     void notify_acked(peer_id_t peer) {
-	if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
-	    if (ack_callback->on_ack(peer)) {
-		done_promise.pulse(true);
-	    }
-	}
+        if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
+            if (ack_callback->on_ack(peer) && resp) {
+                done_promise.pulse(true);
+            }
+        }
     }
 
     void notify_no_more_acks() {
-	if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
-	    done_promise.pulse(false);
-	}
+        if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
+            done_promise.pulse(false);
+        }
     }
 
     /* This is called if `write()` gets interrupted and it's no longer
        safe to access `ack_callback`. If this is called, `done_promise`
        won't get pulsed unless it already is. */
     void dont_touch_ack_callback() {
-	ack_callback = NULL;
+        ack_callback = NULL;
     }
 
     typename protocol_t::write_t write;
@@ -129,12 +140,18 @@ public:
        satisfied, or with `false` if it will never be satisfied. */
     promise_t<bool> done_promise;
 
+    typename protocol_t::write_response_t get_resp() {
+        rassert(resp);
+        return *resp;
+    }
+
 private:
     friend class incomplete_write_ref_t;
 
     broadcaster_t *parent;
     int incomplete_count;
     ack_callback_t *ack_callback;
+    boost::optional<typename protocol_t::write_response_t> resp;
 
     DISABLE_COPYING(incomplete_write_t);
 };
@@ -150,37 +167,37 @@ class broadcaster_t<protocol_t>::incomplete_write_ref_t {
 public:
     incomplete_write_ref_t() { }
     explicit incomplete_write_ref_t(const boost::shared_ptr<incomplete_write_t> &w) : write(w) {
-	rassert(w);
-	w->incomplete_count++;
+        rassert(w);
+        w->incomplete_count++;
     }
     incomplete_write_ref_t(const incomplete_write_ref_t &r) : write(r.write) {
-	if (r.write) {
-	    r.write->incomplete_count++;
-	}
+        if (r.write) {
+            r.write->incomplete_count++;
+        }
     }
     ~incomplete_write_ref_t() {
-	if (write) {
-	    write->incomplete_count--;
-	    if (write->incomplete_count == 0) {
-		write->parent->end_write(write);
-	    }
-	}
+        if (write) {
+            write->incomplete_count--;
+            if (write->incomplete_count == 0) {
+                write->parent->end_write(write);
+            }
+        }
     }
     incomplete_write_ref_t &operator=(const incomplete_write_ref_t &r) {
-	if (r.write) {
-	    r.write->incomplete_count++;
-	}
-	if (write) {
-	    write->incomplete_count--;
-	    if (write->incomplete_count == 0) {
-		write->parent->end_write(write);
-	    }
-	}
-	write = r.write;
-	return *this;
+        if (r.write) {
+            r.write->incomplete_count++;
+        }
+        if (write) {
+            write->incomplete_count--;
+            if (write->incomplete_count == 0) {
+                write->parent->end_write(write);
+            }
+        }
+        write = r.write;
+        return *this;
     }
     boost::shared_ptr<incomplete_write_t> get() {
-	return write;
+        return write;
     }
 private:
     boost::shared_ptr<incomplete_write_t> write;
@@ -197,7 +214,7 @@ public:
     ~dispatchee_t() THROWS_NOTHING;
 
     peer_id_t get_peer() {
-	return write_mailbox.get_peer();
+        return write_mailbox.get_peer();
     }
 
     typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
@@ -213,17 +230,17 @@ public:
 private:
     /* The constructor spawns `send_intro()` in the background. */
     void send_intro(
-		    listener_business_card_t<protocol_t> to_send_intro_to,
-		    state_timestamp_t intro_timestamp,
-		    auto_drainer_t::lock_t)
-	THROWS_NOTHING;
+                    listener_business_card_t<protocol_t> to_send_intro_to,
+                    state_timestamp_t intro_timestamp,
+                    auto_drainer_t::lock_t)
+        THROWS_NOTHING;
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */
     void upgrade(
-		 typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t,
-		 typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t,
-		 auto_drainer_t::lock_t)
-	THROWS_NOTHING;
+                 typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t,
+                 typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t,
+                 auto_drainer_t::lock_t)
+        THROWS_NOTHING;
     void downgrade(mailbox_addr_t<void()>, auto_drainer_t::lock_t) THROWS_NOTHING;
 
     broadcaster_t *controller;
@@ -249,7 +266,9 @@ void listener_write(
 {
     cond_t ack_cond;
     mailbox_t<void()> ack_mailbox(
-        mailbox_manager, boost::bind(&cond_t::pulse, &ack_cond));
+        mailbox_manager,
+        boost::bind(&cond_t::pulse, &ack_cond),
+        mailbox_callback_mode_inline);
 
     send(mailbox_manager, write_mailbox,
         w, ts, token, ack_mailbox.get_address());
@@ -267,7 +286,9 @@ typename protocol_t::write_response_t listener_writeread(
 {
     promise_t<typename protocol_t::write_response_t> resp_cond;
     mailbox_t<void(typename protocol_t::write_response_t)> resp_mailbox(
-        mailbox_manager, boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1));
+        mailbox_manager,
+        boost::bind(&promise_t<typename protocol_t::write_response_t>::pulse, &resp_cond, _1),
+        mailbox_callback_mode_inline);
 
     send(mailbox_manager, writeread_mailbox,
         w, ts, token, resp_mailbox.get_address());
@@ -287,7 +308,9 @@ typename protocol_t::read_response_t listener_read(
 {
     promise_t<typename protocol_t::read_response_t> resp_cond;
     mailbox_t<void(typename protocol_t::read_response_t)> resp_mailbox(
-        mailbox_manager, boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1));
+        mailbox_manager,
+        boost::bind(&promise_t<typename protocol_t::read_response_t>::pulse, &resp_cond, _1),
+        mailbox_callback_mode_inline);
 
     send(mailbox_manager, read_mailbox,
         r, ts, token, resp_mailbox.get_address());
@@ -351,8 +374,6 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
         incomplete_write_ref_t write_ref;
 
         std::map<dispatchee_t *, auto_drainer_t::lock_t> writers;
-        dispatchee_t *writereader;
-        auto_drainer_t::lock_t writereader_lock;
         std::map<dispatchee_t *, fifo_enforcer_write_token_t> enforcer_tokens;
 
         /* Set up the write. We have to be careful about the case where
@@ -397,7 +418,6 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
             /* As long as we hold the lock, choose our writereader and take a
             snapshot of the dispatchee map */
-            pick_a_readable_dispatchee(&writereader, &mutex_acq, &writereader_lock);
             writers = dispatchees;
             for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
                     it != dispatchees.end(); it++) {
@@ -411,30 +431,16 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
         sanity_check();
 
-        /* Dispatch the write to all the dispatchees */
+        /* First check that someone is going to be able to give us a response */
+        if (readable_dispatchees.empty()) {
+            throw cannot_perform_query_exc_t("no mirrors readable. this is strange because the primary mirror should be always readable.");
+        }
 
-        /* First dispatch it to all the non-writereaders... */
+        /* Dispatch the write to all the dispatchees */
         for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = writers.begin(); it != writers.end(); it++) {
-            /* Make sure not to send a duplicate operation to `writereader` */
-            if ((*it).first == writereader) continue;
             coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, this,
                 (*it).first, (*it).second, write_ref, enforcer_tokens[(*it).first]));
         }
-
-        /* ... then dispatch it to the writereader */
-        try {
-            wait_any_t interruptor2(writereader_lock.get_drain_signal(), interruptor);
-            resp = listener_writeread<protocol_t>(mailbox_manager, writereader->writeread_mailbox,
-                write_ref.get()->write, write_ref.get()->timestamp, enforcer_tokens[writereader],
-                &interruptor2);
-        } catch (interrupted_exc_t) {
-            if (interruptor->is_pulsed()) {
-                throw;
-            } else {
-                throw cannot_perform_query_exc_t("lost contact with designated responder in write");
-            }
-        }
-        write_ref.get()->notify_acked(writereader->get_peer());
     }
 
     wait_interruptible(write_wrapper->done_promise.get_ready_signal(), interruptor);
@@ -442,7 +448,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
         throw cannot_perform_query_exc_t("insufficient mirrors to meet desired ack count");
     }
 
-    return resp;
+    return write_wrapper->get_resp();
 }
 
 template<class protocol_t>
@@ -549,13 +555,21 @@ void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispat
 template<class protocol_t>
 void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
-        listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
-            write_ref.get()->write, write_ref.get()->timestamp, token,
-            mirror_lock.get_drain_signal());
+        if (mirror->is_readable) {
+            typename protocol_t::write_response_t resp = listener_writeread<protocol_t>(mailbox_manager, mirror->writeread_mailbox,
+                    write_ref.get()->write, write_ref.get()->timestamp, token,
+                    mirror_lock.get_drain_signal());
+
+            write_ref.get()->notify_acked(mirror->get_peer(), resp);
+        } else {
+            listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
+                    write_ref.get()->write, write_ref.get()->timestamp, token,
+                    mirror_lock.get_drain_signal());
+            write_ref.get()->notify_acked(mirror->get_peer());
+        }
     } catch (interrupted_exc_t) {
         return;
     }
-    write_ref.get()->notify_acked(mirror->get_peer());
 }
 
 template<class protocol_t>
@@ -594,9 +608,9 @@ void broadcaster_t<protocol_t>::sanity_check() {
     mutex_t::acq_t acq(&mutex);
     state_timestamp_t ts = newest_complete_timestamp;
     for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = incomplete_writes.begin();
-	 it != incomplete_writes.end(); it++) {
-	rassert(ts == (*it)->timestamp.timestamp_before());
-	ts = (*it)->timestamp.timestamp_after();
+         it != incomplete_writes.end(); it++) {
+        rassert(ts == (*it)->timestamp.timestamp_before());
+        ts = (*it)->timestamp.timestamp_after();
     }
     rassert(ts == current_timestamp);
 #endif

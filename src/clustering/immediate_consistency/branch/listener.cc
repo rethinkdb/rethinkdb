@@ -93,7 +93,10 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 	 * live streaming from. */
 
 	cond_t backfiller_is_up_to_date;
-	mailbox_t<void()> ack_mbox(mailbox_manager, boost::bind(&cond_t::pulse, &backfiller_is_up_to_date));
+	mailbox_t<void()> ack_mbox(
+	    mailbox_manager,
+	    boost::bind(&cond_t::pulse, &backfiller_is_up_to_date),
+	    mailbox_callback_mode_inline);
 
 	resource_access_t<replier_business_card_t<protocol_t> > replier_access(replier);
 	send(mailbox_manager, replier_access.access().synchronize_mailbox, streaming_begin_point, ack_mbox.get_address());

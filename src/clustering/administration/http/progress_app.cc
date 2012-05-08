@@ -140,7 +140,10 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
         boost::optional<backfiller_business_card_t<memcached_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<memcached_protocol_t>(), region_activity_pair.second);
         if (backfiller) {
             promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
-            mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(mbox_manager, boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1));
+            mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(
+                mbox_manager,
+                boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1),
+                mailbox_callback_mode_inline);
 
             send(mbox_manager, backfiller->request_progress_mailbox, b_it->backfill_session_id, resp_mbox->get_address());
 
@@ -175,7 +178,10 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<memcached_prot
     boost::optional<backfiller_business_card_t<memcached_protocol_t> > backfiller = boost::apply_visitor(get_backfiller_business_card_t<memcached_protocol_t>(), region_activity_pair.second);
     if (backfiller) {
         promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
-        mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(mbox_manager, boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1));
+        mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(
+            mbox_manager,
+            boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1),
+            mailbox_callback_mode_inline);
 
         send(mbox_manager, backfiller->request_progress_mailbox, b_loc.backfill_session_id, resp_mbox->get_address());
 

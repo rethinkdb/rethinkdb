@@ -4,6 +4,7 @@
 #include <cstdarg>
 #include <map>
 #include <stdexcept>
+#include <iostream>
 
 #include "help.hpp"
 #include "errors.hpp"
@@ -44,18 +45,18 @@ const char *admin_command_parser_t::create_datacenter_usage = "[--name <name>]";
 const char *admin_command_parser_t::remove_usage = "<id>...";
 const char *admin_command_parser_t::join_usage = "<host>:<port>";
 
-const char *admin_command_parser_t::list_description;
-const char *admin_command_parser_t::exit_description;
-const char *admin_command_parser_t::help_description;
-const char *admin_command_parser_t::split_shard_description;
-const char *admin_command_parser_t::merge_shard_description;
-const char *admin_command_parser_t::set_name_description;
-const char *admin_command_parser_t::set_datacenter_description;
-const char *admin_command_parser_t::set_affinities_description;
-const char *admin_command_parser_t::create_namespace_description;
-const char *admin_command_parser_t::create_datacenter_description;
-const char *admin_command_parser_t::remove_description;
-const char *admin_command_parser_t::join_description;
+const char *admin_command_parser_t::list_description = "NYI";
+const char *admin_command_parser_t::exit_description = "NYI";
+const char *admin_command_parser_t::help_description = "NYI";
+const char *admin_command_parser_t::split_shard_description = "NYI";
+const char *admin_command_parser_t::merge_shard_description = "NYI";
+const char *admin_command_parser_t::set_name_description = "NYI";
+const char *admin_command_parser_t::set_datacenter_description = "NYI";
+const char *admin_command_parser_t::set_affinities_description = "NYI";
+const char *admin_command_parser_t::create_namespace_description = "NYI";
+const char *admin_command_parser_t::create_datacenter_description = "NYI";
+const char *admin_command_parser_t::remove_description = "NYI";
+const char *admin_command_parser_t::join_description = "NYI";
 
 namespace po = boost::program_options;
 
@@ -118,7 +119,7 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
 
     help->pagef("Usage:\n");
     for (size_t i = 0; i < helps.size(); ++i)
-        help->pagef("  %s%s %s\n", prefix, helps[i].command, helps[i].usage);
+        help->pagef("  %s%s %s\n", prefix, helps[i].command.c_str(), helps[i].usage.c_str());
 
     if (console)
         help->pagef("\n"
@@ -132,13 +133,13 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
 
     bool description_header_printed = false;
     for (size_t i = 0; i < helps.size(); ++i) {
-        if (helps[i].description == NULL)
+        if (helps[i].description.c_str() == NULL)
             continue;
         if (description_header_printed == false) {
             help->pagef("\nDescription:\n");
             description_header_printed = true;
         }
-        help->pagef("  %s%s %s\n    %s\n", prefix, helps[i].command, helps[i].usage, helps[i].description);
+        help->pagef("  %s%s %s\n    %s\n\n", prefix, helps[i].command.c_str(), helps[i].usage.c_str(), helps[i].description.c_str());
     }
 
     if (!options.empty()) {
@@ -260,8 +261,9 @@ admin_command_parser_t::~admin_command_parser_t() {
 }
 
 admin_command_parser_t::command_info* admin_command_parser_t::add_command(std::map<std::string, command_info*>& cmd_map,
+                                                  const std::string& full_cmd,
                                                   const std::string& cmd,
-                                                  const std::string& usage, 
+                                                  const std::string& usage,
                                                   bool post_sync,
                                                   void (admin_cluster_link_t::* const fn)(command_data&)) {
     command_info* info = NULL;
@@ -273,11 +275,11 @@ admin_command_parser_t::command_info* admin_command_parser_t::add_command(std::m
         std::map<std::string, command_info*>::iterator i = cmd_map.find(fragment);
 
         if (i == cmd_map.end())
-            i = cmd_map.insert(std::make_pair(fragment, new command_info(fragment, "", false, NULL))).first;
+            i = cmd_map.insert(std::make_pair(fragment, new command_info(full_cmd, fragment, "", false, NULL))).first;
 
-        info = add_command(i->second->subcommands, cmd.substr(space_index + 1), usage, post_sync, fn);
+        info = add_command(i->second->subcommands, full_cmd, cmd.substr(space_index + 1), usage, post_sync, fn);
     } else {
-        info = new command_info(cmd, usage, post_sync, fn);
+        info = new command_info(full_cmd, cmd, usage, post_sync, fn);
         cmd_map.insert(std::make_pair(info->command, info));
     }
 
@@ -288,88 +290,94 @@ void admin_command_parser_t::build_command_descriptions() {
     rassert(commands.empty());
     command_info* info = NULL;
 
-    info = add_command(commands, split_shard_command, split_shard_usage, true, &admin_cluster_link_t::do_admin_split_shard);
+    info = add_command(commands, split_shard_command, split_shard_command, split_shard_usage, true, &admin_cluster_link_t::do_admin_split_shard);
     info->add_positional("namespace", 1, true)->add_option("!id");
     info->add_positional("split-points", -1, true);
 
-    info = add_command(commands, merge_shard_command, merge_shard_usage, true, &admin_cluster_link_t::do_admin_merge_shard);
+    info = add_command(commands, merge_shard_command, merge_shard_command, merge_shard_usage, true, &admin_cluster_link_t::do_admin_merge_shard);
     info->add_positional("namespace", 1, true)->add_option("!id");
     info->add_positional("split-points", -1, true);
 
-    info = add_command(commands, set_name_command, set_name_usage, true, &admin_cluster_link_t::do_admin_set_name);
+    info = add_command(commands, set_name_command, set_name_command, set_name_usage, true, &admin_cluster_link_t::do_admin_set_name);
     info->add_positional("id", 1, true)->add_option("!id");
     info->add_positional("new-name", 1, true);
     info->add_flag("resolve", 0, false);
 
-    info = add_command(commands, set_datacenter_command, set_datacenter_usage, true, &admin_cluster_link_t::do_admin_set_datacenter);
+    info = add_command(commands, set_datacenter_command, set_datacenter_command, set_datacenter_usage, true, &admin_cluster_link_t::do_admin_set_datacenter);
     info->add_positional("id", 1, true)->add_option("!id");
     info->add_positional("datacenter", 1, true)->add_option("!id"); // TODO: restrict this to datacenters only
     info->add_flag("resolve", 0, false);
 
-    info = add_command(commands, set_affinities_command, set_affinities_usage, true, &admin_cluster_link_t::do_admin_set_affinities);
+    info = add_command(commands, set_affinities_command, set_affinities_command, set_affinities_usage, true, &admin_cluster_link_t::do_admin_set_affinities);
     info->add_positional("namespace", 1, true)->add_option("!id");
     info->add_positional("affinities", -1, true);
+    info->add_flag("resolve", 0, false);
 
-    info = add_command(commands, list_command, list_usage, false, &admin_cluster_link_t::do_admin_list);
+    info = add_command(commands, list_command, list_command, list_usage, false, &admin_cluster_link_t::do_admin_list);
     info->add_positional("filter", 1, false)->add_options("issues", "machines", "namespaces", "datacenters", "!id", NULL); // TODO: how to handle --protocol: for now, just error if specified in the wrong situation
     info->add_flag("protocol", 1, false)->add_options("memcached", "dummy", NULL);
     info->add_flag("long", 0, false);
 
-    info = add_command(commands, create_namespace_command, create_namespace_usage, true, &admin_cluster_link_t::do_admin_create_namespace);
+    info = add_command(commands, create_namespace_command, create_namespace_command, create_namespace_usage, true, &admin_cluster_link_t::do_admin_create_namespace);
     info->add_flag("name", 1, false);
     info->add_flag("protocol", 1, true)->add_options("memcached", "dummy", NULL);
     info->add_flag("primary", 1, false)->add_option("!id");
     info->add_flag("port", 1, true);
 
-    info = add_command(commands, create_datacenter_command, create_datacenter_usage, true, &admin_cluster_link_t::do_admin_create_datacenter);
+    info = add_command(commands, create_datacenter_command, create_datacenter_command, create_datacenter_usage, true, &admin_cluster_link_t::do_admin_create_datacenter);
     info->add_flag("name", 1, false);
 
-    info = add_command(commands, remove_command, remove_usage, true, &admin_cluster_link_t::do_admin_remove);
+    info = add_command(commands, remove_command, remove_command, remove_usage, true, &admin_cluster_link_t::do_admin_remove);
     info->add_positional("id", -1, true)->add_option("!id");
 
-    info = add_command(commands, join_command, join_usage, false, NULL); // Special case, 'join' creates the cluster link
+    info = add_command(commands, join_command, join_command, join_usage, false, NULL); // Special case, 'join' creates the cluster link
     info->add_positional("host-port", 1, true);
 
-    info = add_command(commands, help_command, help_usage, false, NULL); // Special case, 'help' is not done through the cluster
+    info = add_command(commands, help_command, help_command, help_usage, false, NULL); // Special case, 'help' is not done through the cluster
     info->add_positional("type", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "join", "help", NULL);
 }
 
 admin_cluster_link_t* admin_command_parser_t::get_cluster() {
     if (cluster == NULL) {
         if (joins_param.empty())
-            throw admin_parse_exc_t("need to join a cluster to proceed");
+            throw admin_no_connection_exc_t("no join parameter specified");
         cluster = new admin_cluster_link_t(joins_param, client_port_param);
+
+        if (console_mode) {
+            cluster->sync_from();
+            fprintf(stdout, "Connected to cluster with %ld machines, run 'help' for more information\n", cluster->machine_count());
+        }
     }
 
     return cluster;
 }
 
-admin_command_parser_t::command_data admin_command_parser_t::parse_command(const std::vector<std::string>& line)
-{
-    std::map<std::string, command_info *>::iterator i = commands.find(line[0]);
-    size_t index;
+
+admin_command_parser_t::command_info* admin_command_parser_t::find_command(const std::map<std::string, admin_command_parser_t::command_info *>& cmd_map, const std::vector<std::string>& line, size_t& index) {
+    std::map<std::string, command_info *>::const_iterator i = cmd_map.find(line[0]);
 
     if (i == commands.end())
-        throw admin_parse_exc_t("unrecognized command: " + line[0]);
+        return NULL;
     else
         // If any subcommands exist, one must be selected by the next substring
         for (index = 1; index < line.size() && !i->second->subcommands.empty(); ++index) {
             std::map<std::string, command_info *>::iterator temp = i->second->subcommands.find(line[index]);
             if (temp == i->second->subcommands.end())
-                throw admin_parse_exc_t("unrecognized subcommand: " + line[index]);
+                break;
             i = temp;
         }
 
-    if (!i->second->subcommands.empty())
-        throw admin_parse_exc_t("incomplete command");
+    return i->second;
+}
 
-    command_info *info = i->second;
+admin_command_parser_t::command_data admin_command_parser_t::parse_command(command_info *info, const std::vector<std::string>& line)
+{
     command_data data(info);
     size_t positional_index = 0;
     size_t positional_count = 0;
 
-    // Now we have arrived at the correct command info, parse the rest of the command line
-    for (; index < line.size(); ++index) {
+    // Parse out options and parameters
+    for (size_t index = 0; index < line.size(); ++index) {
         if (line[index].find("--") == 0) { // If the argument starts with a "--", it must be a flag option
             std::map<std::string, param_options *>::iterator opt_iter = info->flags.find(line[index].substr(2));
             if (opt_iter != info->flags.end()) {
@@ -459,7 +467,7 @@ void admin_command_parser_t::get_id_completions(const std::string& base, linenoi
         linenoiseAddCompletion(completions, i->c_str());
 }
 
-std::map<std::string, admin_command_parser_t::command_info *>::const_iterator admin_command_parser_t::find_command(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches) {
+std::map<std::string, admin_command_parser_t::command_info *>::const_iterator admin_command_parser_t::find_command_with_completion(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches) {
     std::map<std::string, command_info *>::const_iterator i = commands.find(str);
     if (add_matches) {
         if (i == commands.end())
@@ -505,13 +513,13 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
         std::map<std::string, command_info *>::const_iterator i = commands.find(line[0]);
         std::map<std::string, command_info *>::const_iterator end = commands.end();
 
-        i = find_command(commands, line[index], completions, partial && line.size() == 1);
+        i = find_command_with_completion(commands, line[index], completions, partial && line.size() == 1);
         if (i == end)
             return;
 
         for (index = 1; index < line.size() && !i->second->subcommands.empty(); ++index) {
             end = i->second->subcommands.end();
-            i = find_command(i->second->subcommands, line[index], completions, partial && line.size() == index + 1);
+            i = find_command_with_completion(i->second->subcommands, line[index], completions, partial && line.size() == index + 1);
             if (i == end)
                 return;
         }
@@ -520,7 +528,7 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
 
         if (!cmd->subcommands.empty()) {
             // We're at the end of the line, and there are still more subcommands
-            find_command(cmd->subcommands, std::string(), completions, !partial);
+            find_command_with_completion(cmd->subcommands, std::string(), completions, !partial);
             return;
         }
 
@@ -584,7 +592,7 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
     }
 }
 
-void admin_command_parser_t::run_complete(const std::vector<std::string>& command_args) {
+void admin_command_parser_t::run_completion(const std::vector<std::string>& command_args) {
     linenoiseCompletions completions = { 0, NULL };
 
     if (command_args.size() < 2 || (command_args[1] != "partial" && command_args[1] != "full"))
@@ -598,14 +606,47 @@ void admin_command_parser_t::run_complete(const std::vector<std::string>& comman
     linenoiseFreeCompletions(&completions);
 }
 
+void admin_command_parser_t::print_subcommands_usage(command_info *info, FILE* file) {
+    if (!info->subcommands.empty()) {
+        for (std::map<std::string, command_info *>::const_iterator i = info->subcommands.begin(); i != info->subcommands.end(); ++i) {
+            print_subcommands_usage(i->second, file);
+        }
+    } else
+        fprintf(file, "\t%s %s\n", info->full_command.c_str(), info->usage.c_str());
+}
+
+void admin_command_parser_t::parse_and_run_command(const std::vector<std::string>& line) {
+    command_info* info = NULL;
+    try {
+        size_t index;
+        info = find_command(commands, line, index);
+
+        if (info == NULL)
+            throw admin_parse_exc_t("unrecognized command: " + line[0]);
+        else if (!info->subcommands.empty())
+            throw admin_parse_exc_t("incomplete command");
+
+        command_data data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
+        run_command(data);
+
+    } catch (admin_parse_exc_t& ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        if (info != NULL) {
+            fprintf(stderr, "usage: ");
+            print_subcommands_usage(info, stderr);
+        }
+    } catch (admin_no_connection_exc_t& ex) {
+        throw; // This will be caught and handled elsewhere
+    } catch (std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
+    }
+}
+
 void admin_command_parser_t::run_console() {
     console_mode = true;
 
-    if (!joins_param.empty()) {
-        // Do an intial sync to make sure everything's working
-        get_cluster()->sync_from();
-        puts("Connected to cluster");
-    }
+    if (!joins_param.empty())
+        get_cluster();
 
     linenoiseSetCompletionCallback(completion_generator_hook);
     char *raw_line = linenoise(prompt);
@@ -618,19 +659,22 @@ void admin_command_parser_t::run_console() {
             break;
 
         if (!line.empty()) {
+
             try {
-                std::vector<std::string> cmd_line = po::split_unix(line);
-                command_data data(parse_command(cmd_line));
-                run_command(data);
-            } catch (std::exception& ex) {
-                std::cerr << ex.what() << std::endl;
+                std::vector<std::string> split_line = po::split_unix(line);
+
+                if (!split_line.empty())
+                    parse_and_run_command(split_line);
+            } catch (admin_no_connection_exc_t& ex) {
+                fprintf(stderr, "not connected to a cluster, run 'help join' for more information\n");
             } catch (...) {
-                std::cerr << "unknown error" << std::endl;
+                fprintf(stderr, "could not parse line\n");
             }
 
             linenoiseHistoryAdd(raw_line);
         }
 
+        // TODO: update prompt, timeout?
         raw_line = linenoise(prompt);
     }
     console_mode = false;
@@ -639,7 +683,7 @@ void admin_command_parser_t::run_console() {
 void admin_command_parser_t::do_admin_help(command_data& data) {
     if (data.params.count("type") == 1) {
         std::string type = data.params["type"][0];
-        
+
         if (type == "rm")           do_remove_usage(console_mode);
         else if (type == "ls")      do_list_usage(console_mode);
         else if (type == "set")     do_set_usage(console_mode);
@@ -677,6 +721,7 @@ void admin_command_parser_t::do_admin_join(command_data& data) {
     joins_param.clear();
     joins_param.insert(peer_address_t(ip_address_t(host), atoi(port.c_str())));
 
+    // TODO: this probably doesn't work
     delete cluster;
     get_cluster();
 }

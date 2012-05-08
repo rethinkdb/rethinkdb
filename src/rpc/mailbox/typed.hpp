@@ -8,8 +8,19 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include "rpc/serialize_macros.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 
+/* If you pass `mailbox_callback_mode_coroutine` to the `mailbox_t` 
+constructor, it will spawn the callback in a new coroutine. If you 
+`mailbox_callback_mode_inline`, it will call the callback inline 
+and the callback must not block. The former is the default for 
+historical reasons, but the latter is better. Eventually the former 
+will go away. */
+enum mailbox_callback_mode_t {
+    mailbox_callback_mode_coroutine,
+    mailbox_callback_mode_inline
+};
+
 template<class invalid_proto_t> class mailbox_t {
-    /* If someone tries to instantiate `mailbox_t`
+    /* If someone tries to instantiate `mailbox_t` 
     incorrectly, this should cause an error. */
     typename invalid_proto_t::you_are_using_mailbox_t_incorrectly foo;
 };
@@ -39,14 +50,9 @@ class mailbox_t< void() > {
 public:
     typedef mailbox_addr_t< void() > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void() > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void() > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -61,11 +67,16 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(UNUSED read_stream_t *stream, const boost::function<void()> &done, const boost::function< void() > &fun) {
-        done();
-        fun();
+    void on_message(UNUSED read_stream_t *stream) {
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun));
+        } else {
+            fun();
+        }
     }
 
+    boost::function< void() > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -96,14 +107,9 @@ class mailbox_t< void(arg0_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -120,14 +126,19 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         int res = deserialize(stream, &arg0);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0));
+        } else {
+            fun(arg0);
+        }
     }
 
+    boost::function< void(arg0_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -158,14 +169,9 @@ class mailbox_t< void(arg0_t, arg1_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -183,17 +189,22 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         int res = deserialize(stream, &arg0);
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg1);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1));
+        } else {
+            fun(arg0, arg1);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -224,14 +235,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -250,7 +256,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -260,10 +266,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg2);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2));
+        } else {
+            fun(arg0, arg1, arg2);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -294,14 +305,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -321,7 +327,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -334,10 +340,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg3);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2, arg3);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2, arg3));
+        } else {
+            fun(arg0, arg1, arg2, arg3);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -368,14 +379,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -396,7 +402,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -412,10 +418,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg4);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2, arg3, arg4);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2, arg3, arg4));
+        } else {
+            fun(arg0, arg1, arg2, arg3, arg4);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -446,14 +457,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > {
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -475,7 +481,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -494,10 +500,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg5);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2, arg3, arg4, arg5);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2, arg3, arg4, arg5));
+        } else {
+            fun(arg0, arg1, arg2, arg3, arg4, arg5);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -528,14 +539,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > 
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -558,7 +564,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -580,10 +586,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg6);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6));
+        } else {
+            fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -614,14 +625,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -645,7 +651,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -670,10 +676,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg7);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
+        } else {
+            fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -704,14 +715,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -736,7 +742,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -764,10 +770,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg8);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8));
+        } else {
+            fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -798,14 +809,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -831,7 +837,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -862,10 +868,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg9);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9));
+        } else {
+            fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -896,14 +907,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -930,7 +936,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -964,10 +970,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg10);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10));
+        } else {
+            fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -998,14 +1009,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -1033,7 +1039,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -1070,10 +1076,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg11);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11));
+        } else {
+            fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -1104,14 +1115,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -1140,7 +1146,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -1180,10 +1186,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg12);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12));
+        } else {
+            fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 
@@ -1214,14 +1225,9 @@ class mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, ar
 public:
     typedef mailbox_addr_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > address_t;
 
-    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &fun) :
-        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))
-        {
-            rassert(fun);
-        }
-
-    ~mailbox_t() {
-    }
+    mailbox_t(mailbox_manager_t *manager, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :
+        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))
+        { }
 
     address_t get_address() {
         address_t a;
@@ -1251,7 +1257,7 @@ private:
         int res = send_write_message(stream, &msg);
         if (res) { throw fake_archive_exc_t(); }
     }
-    static void on_message(read_stream_t *stream, const boost::function<void()> &done, const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > &fun) {
+    void on_message(read_stream_t *stream) {
         arg0_t arg0;
         arg1_t arg1;
         arg2_t arg2;
@@ -1294,10 +1300,15 @@ private:
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(stream, &arg13);
         if (res) { throw fake_archive_exc_t(); }
-        done();
-        fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
+        if (callback_mode == mailbox_callback_mode_coroutine) {
+            coro_t::spawn_sometime(boost::bind(fun, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13));
+        } else {
+            fun(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13);
+        }
     }
 
+    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) > fun;
+    mailbox_callback_mode_t callback_mode;
     raw_mailbox_t mailbox;
 };
 

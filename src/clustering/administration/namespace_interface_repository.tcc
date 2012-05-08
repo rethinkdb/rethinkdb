@@ -29,15 +29,19 @@ std::map<peer_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > >
 }
 
 template<class protocol_t>
-namespace_repo_t<protocol_t>::access_t::access_t(namespace_repo_t *repo, namespace_id_t _ns_id) :
-    parent(repo), ns_id(_ns_id) {
-    if (parent->interface_map.find(ns_id) == parent->interface_map.end()) {
-        parent->interface_map.insert(
-            ns_id,
-            new cluster_namespace_interface_t<protocol_t>(parent->mailbox_manager,
-                parent->namespaces_directory_metadata->
-                    subview(boost::bind(&get_master_map<protocol_t>, _1, ns_id))));
+namespace_repo_t<protocol_t>::access_t::access_t(namespace_repo_t *parent, namespace_id_t ns_id, signal_t *interruptor) {
+    typename boost::ptr_map<namespace_id_t, cluster_namespace_interface_t<protocol_t> >::iterator it =
+        parent->interface_map.find(ns_id);
+    if (it == parent->interface_map.end()) {
+        ns_if = new cluster_namespace_interface_t<protocol_t>(parent->mailbox_manager,
+            parent->namespaces_directory_metadata->
+                subview(boost::bind(&get_master_map<protocol_t>, _1, ns_id))
+            );
+        parent->interface_map.insert(ns_id, ns_if);
+    } else {
+        ns_if = it->second;
     }
+    wait_interruptible(ns_if->get_initial_ready_signal(), interruptor);
 }
 
 #endif

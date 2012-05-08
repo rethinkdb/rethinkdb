@@ -110,6 +110,9 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
 
+    /* Give time for the broadcaster to see the replier */
+    let_stuff_happen();
+
     order_source_t order_source;
 
     /* Send some writes via the broadcaster to the mirror */

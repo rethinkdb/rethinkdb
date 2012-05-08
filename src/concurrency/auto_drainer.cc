@@ -38,7 +38,7 @@ void auto_drainer_t::lock_t::reset() {
     parent = NULL;
 }
 
-signal_t *auto_drainer_t::lock_t::get_drain_signal() {
+signal_t *auto_drainer_t::lock_t::get_drain_signal() const {
     rassert(parent, "calling `get_drain_signal()` on a nil "
         "`auto_drainer_t::lock_t`.");
     return &parent->draining;
