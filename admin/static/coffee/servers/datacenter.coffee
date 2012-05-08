@@ -6,6 +6,7 @@ module 'DatacenterView', ->
         template: Handlebars.compile $('#datacenter_view-container-template').html()
         events: ->
             'click a.rename-datacenter': 'rename_datacenter'
+        max_log_entries_to_render: 3
 
         initialize: (id) =>
             log_initial '(initializing) datacenter view: container'
@@ -105,10 +106,12 @@ module 'DatacenterView', ->
                 if machine.get('log_entries')?
                     dc_log_entries.add machine.get('log_entries').models
 
+            entries_to_render = []
             dc_log_entries.each (log_entry) =>
-                view = new DatacenterView.RecentLogEntry
-                    model: log_entry
-                @.$('.recent-log-entries').append view.render().el
+                entries_to_render.push(new DatacenterView.RecentLogEntry
+                    model: log_entry)
+            entries_to_render = entries_to_render.slice(0, @max_log_entries_to_render)
+            @.$('.recent-log-entries').append entry.render().el for entry in entries_to_render
 
             return @
 
