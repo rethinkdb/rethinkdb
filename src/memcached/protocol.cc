@@ -406,7 +406,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
     local_token.swap(token);
     wait_interruptible(local_token.get(), interruptor);
 
-    order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_read");
+    order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_backfill");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
     get_btree_superblock_for_backfilling(btree.get(), order_token, &sb_out, txn_out);

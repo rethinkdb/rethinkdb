@@ -59,7 +59,7 @@ private:
     `dispatchee_mutex` and pass in `proof` of the mutex acquisition. (A
     dispatchee is "readable" if a `replier_t` exists for it on the remote
     machine.) */
-    void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
+    void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
 
     void background_write(dispatchee_t *, auto_drainer_t::lock_t, incomplete_write_ref_t, fifo_enforcer_write_token_t) THROWS_NOTHING;
     void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
@@ -90,7 +90,7 @@ private:
     finishing, and by dispatchees joining, leaving, or upgrading. It protects
     `incomplete_writes`, `current_timestamp`, `newest_complete_timestamp`,
     `order_sink`, `dispatchees`, and `readable_dispatchees`. */
-    mutex_t mutex;
+    mutex_assertion_t mutex;
 
     std::list<boost::shared_ptr<incomplete_write_t> > incomplete_writes;
     state_timestamp_t current_timestamp, newest_complete_timestamp;

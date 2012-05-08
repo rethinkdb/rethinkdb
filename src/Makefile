@@ -312,6 +312,8 @@ WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/web
 #Basically coffee script can't handle dependencies.
 COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			util.coffee \
+			loading.coffee \
+			body.coffee \
 			ui_components/modals.coffee ui_components/list.coffee \
 			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/machines.coffee namespaces/namespace.coffee \
 			servers/index.coffee servers/machine.coffee servers/datacenter.coffee \

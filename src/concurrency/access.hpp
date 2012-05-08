@@ -1,6 +1,19 @@
 #ifndef ACCESS_HPP_
 #define ACCESS_HPP_
 
+/* TODO: This enum is pretty terrible. It's used for several barely-related
+things:
+
+* The buffer cache uses it to identify transaction modes. For this, `rwi_intent`
+    and `rwi_upgrade` are illegal.
+* The buffer cache uses it to identify block acquisition modes. For this,
+    `rwi_intent` and `rwi_upgrade` are illegal, and all the `rwi_read_*` modes
+    are equivalent (I think)
+* `rwi_lock_t` uses it to identify how the lock is being locked or unlocked. For
+    this, `rwi_read_outdated_ok` and `rwi_read_sync` are illegal.
+
+Probably it should be split into several enums. */
+
 enum access_t {
     // Intent to read
     rwi_read,
