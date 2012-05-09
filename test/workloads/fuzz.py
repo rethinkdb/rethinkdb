@@ -1,5 +1,7 @@
 #!/usr/bin/python
-import sys, random, workload_common, time
+import sys, random, time
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import workload_common
 from vcoptparse import *
 
 # "I am a string" -> ["I a", "m a s", "trin", "g"]
