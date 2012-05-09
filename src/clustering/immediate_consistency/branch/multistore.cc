@@ -8,26 +8,9 @@
 #include "rpc/semilattice/joins/vclock.hpp"
 
 template <class protocol_t>
-multistore_ptr_t<protocol_t>::multistore_ptr_t(const std::vector<store_view_t<protocol_t> *> &_store_views)
-    : store_views(_store_views) {
-
-    // do nothing?  For now.
-
-}
-
-template <class protocol_t>
-multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store_views, int num_store_views)
-    : store_views(_store_views, _store_views + num_store_views) {
-
-    // do nothing?  For now.
-
-}
-
-
-template <class protocol_t>
-typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_multistore_joined_region() const {
+typename protocol_t::region_t compute_unmasked_multistore_joined_region(store_view_t<protocol_t> *const *store_views, int num_store_views) {
     std::vector<typename protocol_t::region_t> regions;
-    for (int i = 0, e = store_views.size(); i < e; ++i) {
+    for (int i = 0; i < num_store_views; ++i) {
         regions.push_back(store_views[i]->get_region());
     }
 
@@ -37,6 +20,33 @@ typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_multistore_joine
     guarantee(res == REGION_JOIN_OK);
 
     return reg;
+}
+
+template <class protocol_t>
+multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store_views, int num_store_views, const typename protocol_t::region_t &_region_mask)
+    : store_views(num_store_views, NULL), region_mask(_region_mask) {
+
+    rassert(region_is_superset(compute_unmasked_multistore_joined_region(_store_views, num_store_views), _region_mask));
+
+    for (int i = 0, e = store_views.size(); i < e; ++i) {
+        rassert(store_views[i] == NULL);
+
+        // We do a region intersection because store_subview_t requires that the region mask be a subset of the store region.
+        store_views[i] = new store_subview_t<protocol_t>(_store_views[i], region_intersection(_region_mask, _store_views[i]->get_region()));
+    }
+}
+
+template <class protocol_t>
+multistore_ptr_t<protocol_t>::~multistore_ptr_t() {
+    for (int i = 0, e = store_views.size(); i < e; ++i) {
+        delete store_views[i];
+    }
+}
+
+template <class protocol_t>
+typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_multistore_joined_region() const {
+    store_view_t<protocol_t> *const *data = store_views.data();
+    return compute_unmasked_multistore_joined_region(data, store_views.size());
 }
 
 template <class protocol_t>
@@ -71,6 +81,8 @@ get_all_metainfos(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tok
 	ret.update(region_map_transform<protocol_t, binary_blob_t, version_range_t>(store_views[i]->get_metainfo(read_tokens[i], interruptor),
 										    &binary_blob_t::get<version_range_t>));
     }
+
+    rassert(ret.get_domain() == region_mask);
 
     return ret;
 }

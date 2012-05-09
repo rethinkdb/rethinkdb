@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include <algorithm>
+#include <vector>
 
 #include "utils.hpp"
 

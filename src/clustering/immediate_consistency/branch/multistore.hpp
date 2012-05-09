@@ -9,6 +9,7 @@
 #include "concurrency/fifo_enforcer.hpp"
 
 template <class> class store_view_t;
+template <class> class store_subview_t;
 template <class, class> class region_map_t;
 class version_range_t;
 class binary_blob_t;
@@ -18,10 +19,11 @@ template <class protocol_t>
 class multistore_ptr_t {
 public:
     // We don't get ownership of the store_view_t pointers themselves.
-    multistore_ptr_t(const std::vector<store_view_t<protocol_t> *> &store_views);
+    multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views, const typename protocol_t::region_t &region_mask = protocol_t::region_t::universe());
 
-    // We don't get ownership of the store_view_t pointers themselves.
-    multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views);
+    // deletes the store_subview_t objects.
+    ~multistore_ptr_t();
+
 
     typename protocol_t::region_t get_multistore_joined_region() const;
 
@@ -80,8 +82,13 @@ public:
 
 
 private:
-    // We don't own these pointers.
-    const std::vector<store_view_t<protocol_t> *> store_views;
+    // We _own_ these pointers and must delete them at destruction.
+    std::vector<store_view_t<protocol_t> *> store_views;
+
+    // TODO: Can this be wrapped in ifndef NDEBUG?
+#ifndef NDEBUG
+    typename protocol_t::region_t region_mask;
+#endif
 
     DISABLE_COPYING(multistore_ptr_t);
 };
