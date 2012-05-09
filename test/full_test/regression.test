@@ -1,0 +1,17 @@
+do_test(
+    "$RETHINKDB/test/regression/issue_649.py",
+    repeat = 3,
+    inputs = ["build/debug/rethinkdb", "test/regression", "test/common"]
+    )
+
+do_test(
+    "$RETHINKDB/test/interface/issue_659.py",
+    repeat = 3,
+    inputs = ["build/debug/rethinkdb", "test/regression", "test/common"]
+    )
+
+do_test(
+    "$RETHINKDB/test/interface/issue_676.py '$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d 20s'",
+    repeat = 3,
+    inputs = ["build/debug/rethinkdb", "test/regression", "test/common", "bench/stress-client/stress"]
+    )
