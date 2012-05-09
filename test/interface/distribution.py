@@ -31,4 +31,4 @@ with driver.Metacluster() as metacluster:
 
     distribution = http.get_distribution(ns)
 
-    cluster.check_and_stop()
+    cluster.check_and_close()

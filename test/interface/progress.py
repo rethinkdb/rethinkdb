@@ -36,4 +36,4 @@ with driver.Metacluster() as metacluster:
                     assert(progress_val[0] != "Timeout")
                     assert(progress_val[0] < progress_val[1])
 
-    cluster.check_and_stop()
+    cluster.check_and_close()

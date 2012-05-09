@@ -24,6 +24,6 @@ with driver.Metacluster() as metacluster:
     log = access.get_log(access.machines.keys()[0], max_length = num_entries + 100)
     print "Log is %d lines" % len(log)
     assert len(log) >= num_entries
-    cluster.check_and_stop()
+    cluster.check_and_close()
 print "Done."
 

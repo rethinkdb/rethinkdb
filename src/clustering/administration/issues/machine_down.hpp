@@ -37,6 +37,37 @@ private:
     DISABLE_COPYING(machine_down_issue_t);
 };
 
+class machine_ghost_issue_t : public global_issue_t {
+public:
+    explicit machine_ghost_issue_t(const machine_id_t &mid) : machine_id(mid) { }
+
+    std::string get_description() const {
+        return "Machine " + uuid_to_str(machine_id) + " was declared dead, but it's connected to the cluster.";
+    }
+
+    cJSON *get_json_description() {
+        issue_json_t json;
+        json.critical = false;
+        json.description = get_description();
+        json.type.issue_type = MACHINE_GHOST;
+        json.time = get_secs();
+
+        cJSON *res = render_as_json(&json, 0);
+        cJSON_AddItemToObject(res, "ghost", render_as_json(&machine_id, 0));
+
+        return res;
+    }
+
+    machine_ghost_issue_t *clone() const {
+        return new machine_ghost_issue_t(machine_id);
+    }
+
+    machine_id_t machine_id;
+
+private:
+    DISABLE_COPYING(machine_ghost_issue_t);
+};
+
 class machine_down_issue_tracker_t : public global_issue_tracker_t {
 public:
     machine_down_issue_tracker_t(
