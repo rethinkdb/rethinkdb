@@ -26,8 +26,8 @@ with driver.Metacluster() as metacluster:
     host, port = http.get_namespace_host(ns)
     workload_runner.run(opts["workload1"], host, port, opts["timeout"])
     print "Restarting server..."
-    process.check_and_stop()
+    process.check_and_close()
     process2 = driver.Process(cluster, files)
     time.sleep(10)
     workload_runner.run(opts["workload2"], host, port, opts["timeout"])
-    cluster.check_and_stop()
+    cluster.check_and_close()

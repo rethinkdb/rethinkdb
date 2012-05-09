@@ -36,4 +36,4 @@ with driver.Metacluster() as metacluster:
     print "Removing the replica..."
     http.set_namespace_affinities(ns, {dc: 0})
     workload_runner.run(opts["workload3"], host, port, opts["timeout"])
-    cluster.check_and_stop()
+    cluster.check_and_close()
