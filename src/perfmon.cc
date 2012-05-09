@@ -82,7 +82,8 @@ bool global_full_perfmon = false;
 /* perfmon_counter_t */
 
 perfmon_counter_t::perfmon_counter_t(const std::string& _name, perfmon_collection_t *parent)
-    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t>(parent), name(_name)
+    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t>(parent), name(_name),
+      thread_data(new padded_int64_t[MAX_THREADS])
 {
     for (int i = 0; i < MAX_THREADS; i++) thread_data[i].value = 0;
 }

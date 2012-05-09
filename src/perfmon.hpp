@@ -196,7 +196,9 @@ class perfmon_counter_t : public perfmon_perthread_t<cache_line_padded_t<int64_t
 protected:
     typedef cache_line_padded_t<int64_t> padded_int64_t;
     std::string name;
-    padded_int64_t thread_data[MAX_THREADS];
+    boost::scoped_array<padded_int64_t> thread_data;
+
+    //padded_int64_t thread_data[MAX_THREADS];
     int64_t &get();
 
     void get_thread_stat(padded_int64_t *);
