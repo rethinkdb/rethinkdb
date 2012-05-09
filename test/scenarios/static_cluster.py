@@ -1,8 +1,7 @@
 #!/usr/bin/python
 import sys, os, time
-import workload_runner
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver
+import http_admin, driver, workload_runner
 from vcoptparse import *
 
 op = OptParser()

@@ -2,8 +2,6 @@
 import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, http_admin
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'workloads')))
 from workload_common import MemcacheConnection
 
 

@@ -1,0 +1,38 @@
+RethinkDB admin.
+
+DEPENDENCIES:
+
+sudo apt-get install libssl-dev
+
+# You could instead use easy_install
+
+sudo pip install Flask beaker requests flask-assets jsmin cssmin colorama
+
+# install nodejs
+
+git clone --depth 1 git://github.com/joyent/node.git
+cd node
+git checkout v0.6.2
+./configure
+make -j
+sudo make install
+
+# install npm
+
+curl http://npmjs.org/install.sh | sudo sh
+
+# install less
+
+sudo npm install -g less
+
+# for some strange reason flask looks for less in
+# /usr/local/bin/lessc, and less gets installed in /usr/bin/lessc. Do
+# a symlink if necessary to fix this.
+
+sudo ln -s /usr/local/bin/lessc /usr/bin/
+
+# also, less uses a sys module that's been renamed to util. If the dependency isn't fixed, hack lessc file to fix this issue.
+
+# install coffeescript
+
+sudo npm install -g coffee-script

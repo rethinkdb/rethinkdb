@@ -1,5 +1,7 @@
 #!/usr/bin/python
-import sys, socket, random, time, workload_common
+import sys, socket, random, time
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import workload_common
 from vcoptparse import *
 
 # A hacky function that reads a response from a socket of an expected size.
