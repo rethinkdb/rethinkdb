@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
             range_read_op_generator(config->pipeline_limit + 1, protocol, distr_t(50, 50), config->range_size, config->key_prefix),
 
             /* Construct the client object */
-            client(config->pipeline_limit)
+            client(config->pipeline_limit, config->ignore_protocol_errors)
         {
             int expected_batch_factor = (config->batch_factor.min + config->batch_factor.max) / 2;
 

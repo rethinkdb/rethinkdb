@@ -264,6 +264,14 @@ bool operator>(const struct timespec &t1, const struct timespec &t2) {
     return t2 < t1;
 }
 
+bool operator<=(const struct timespec &t1, const struct timespec &t2) {
+    return t1.tv_sec < t2.tv_sec || (t1.tv_sec == t2.tv_sec && t1.tv_nsec <= t2.tv_nsec);
+}
+
+bool operator>=(const struct timespec &t1, const struct timespec &t2) {
+    return t2 <= t1;
+}
+
 void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, volatile bool *cancel, std::vector<log_message_t> *messages_out, std::string *error_out, bool *ok_out) {
     try {
         file_reverse_reader_t reader(filename);
@@ -273,8 +281,8 @@ void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, s
                 continue;
             }
             log_message_t lm = parse_log_message(line);
-            if (lm.timestamp > max_timestamp) continue;
-            if (lm.timestamp < min_timestamp) break;
+            if (lm.timestamp >= max_timestamp) continue;
+            if (lm.timestamp <= min_timestamp) break;
             messages_out->push_back(lm);
         }
         *ok_out = true;

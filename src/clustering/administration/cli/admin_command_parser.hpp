@@ -38,8 +38,9 @@ public:
     static const char *split_shard_command;
     static const char *merge_shard_command;
     static const char *set_name_command;
+    static const char *set_acks_command;
+    static const char *set_replicas_command;
     static const char *set_datacenter_command;
-    static const char *set_affinities_command;
     static const char *create_namespace_command;
     static const char *create_datacenter_command;
     static const char *remove_command;
@@ -53,8 +54,9 @@ public:
     static const char *split_shard_usage;
     static const char *merge_shard_usage;
     static const char *set_name_usage;
+    static const char *set_acks_usage;
+    static const char *set_replicas_usage;
     static const char *set_datacenter_usage;
-    static const char *set_affinities_usage;
     static const char *create_namespace_usage;
     static const char *create_datacenter_usage;
     static const char *remove_usage;
@@ -67,8 +69,9 @@ public:
     static const char *split_shard_description;
     static const char *merge_shard_description;
     static const char *set_name_description;
+    static const char *set_acks_description;
+    static const char *set_replicas_description;
     static const char *set_datacenter_description;
-    static const char *set_affinities_description;
     static const char *create_namespace_description;
     static const char *create_datacenter_description;
     static const char *remove_description;
@@ -142,7 +145,7 @@ public:
 private:
 
     struct admin_help_info_t {
-        admin_help_info_t(const char* _command, const char* _usage, const char* _description) :
+        admin_help_info_t(const char *_command, const char *_usage, const char *_description) :
             command(_command), usage(_usage), description(_description) { }
         std::string command;
         std::string usage;
@@ -150,18 +153,18 @@ private:
     };
 
     static void do_usage_internal(const std::vector<admin_help_info_t>& helps,
-                                  const std::vector<const char*>& options,
-                                  const char* header,
+                                  const std::vector<const char *>& options,
+                                  const char *header,
                                   bool console);
 
     void build_command_descriptions();
-    command_info* add_command(std::map<std::string, command_info*>& cmd_map,
-                              const std::string& full_cmd,
-                              const std::string& cmd,
-                              const std::string& usage, 
-                              bool post_sync,
-                              void (admin_cluster_link_t::* const fn)(command_data&));
-    admin_cluster_link_t* get_cluster();
+    command_info * add_command(std::map<std::string, command_info *>& cmd_map,
+                               const std::string& full_cmd,
+                               const std::string& cmd,
+                               const std::string& usage, 
+                               bool post_sync,
+                               void (admin_cluster_link_t::* const fn)(command_data&));
+    admin_cluster_link_t * get_cluster();
 
     void do_admin_help(command_data& data);
     void do_admin_join(command_data& data);
@@ -170,7 +173,7 @@ private:
     command_data parse_command(command_info *info, const std::vector<std::string>& command_args);
     void run_command(command_data& data);
 
-    void print_subcommands_usage(command_info *info, FILE* file);
+    void print_subcommands_usage(command_info *info, FILE *file);
 
     std::map<std::string, command_info *>::const_iterator find_command_with_completion(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches);
     void add_option_matches(const param_options *option, const std::string& partial, linenoiseCompletions *completions);

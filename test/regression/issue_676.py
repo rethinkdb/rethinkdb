@@ -3,7 +3,14 @@ import sys, os, time, tempfile
 rethinkdb_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir))
 sys.path.append(os.path.join(rethinkdb_root, "test", "common"))
 import http_admin, driver
+sys.path.append(os.path.join(rethinkdb_root, "test", "scenarios"))
+import workload_runner
 from vcoptparse import *
+
+op = OptParser()
+op["workload"] = PositionalArg()
+op["timeout"] = IntFlag("--timeout", 600)
+opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
@@ -28,13 +35,12 @@ with driver.Metacluster() as metacluster:
     host, port = http.get_namespace_host(ns)
     cluster.check()
 
-    print "Splitting into two shards..."
-    http.add_namespace_shard(ns, "t")
-    time.sleep(10)
+    host, port = http.get_namespace_host(ns)
+    workload_runner.run(opts["workload"], host, port, opts["timeout"])
     cluster.check()
 
-    print "Increasing replication factor..."
-    http.set_namespace_affinities(ns, {dc: 1})
+    print "Splitting into two shards..."
+    http.add_namespace_shard(ns, "t")
     time.sleep(10)
     cluster.check()
 

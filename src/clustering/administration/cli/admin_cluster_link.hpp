@@ -41,7 +41,8 @@ public:
     void do_admin_split_shard(admin_command_parser_t::command_data& data);
     void do_admin_merge_shard(admin_command_parser_t::command_data& data);
     void do_admin_set_name(admin_command_parser_t::command_data& data);
-    void do_admin_set_affinities(admin_command_parser_t::command_data& data);
+    void do_admin_set_acks(admin_command_parser_t::command_data& data);
+    void do_admin_set_replicas(admin_command_parser_t::command_data& data);
     void do_admin_set_datacenter(admin_command_parser_t::command_data& data);
     void do_admin_create_datacenter(admin_command_parser_t::command_data& data);
     void do_admin_create_namespace(admin_command_parser_t::command_data& data);
@@ -62,6 +63,13 @@ private:
     void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata);
 
     void set_metadata_value(const std::vector<std::string>& path, const std::string& value);
+
+    size_t get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter);
+
+    template <class protocol_t>
+    void do_admin_set_acks_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_acks);
+    template <class protocol_t>
+    void do_admin_set_replicas_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_replicas);
 
     void list_issues(bool long_format);
     void list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);

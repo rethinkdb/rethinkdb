@@ -249,15 +249,6 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
     }
 }
 
-void admin_cluster_link_t::do_admin_set_affinities(admin_command_parser_t::command_data& data UNUSED) {
-    std::vector<std::string> affinities(data.params["affinities"]);
-    std::string ns(data.params["namespace"][0]);
-
-    for (std::vector<std::string>::iterator i = affinities.begin(); i != affinities.end(); ++i) {
-        printf("NYI: setting affinity '%s' in namespace '%s'\n", i->c_str(), ns.c_str());
-    }
-}
-
 void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     namespace_metadata_ctx_t json_ctx(connectivity_cluster.get_me().get_uuid());
@@ -434,7 +425,6 @@ void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::comma
     // Convert target name to uuid if necessary
     set_metadata_value(target_path, "\"" + datacenter_path[1] + "\""); // TODO: adding quotes like this is kind of silly - better way to get past the json parsing?
 }
-
 void admin_cluster_link_t::do_admin_set_name(admin_command_parser_t::command_data& data) {
     // TODO: make sure names aren't silly things like uuids or reserved strings
     std::vector<std::string> path(get_path_from_id(data.params["id"][0]));
@@ -444,6 +434,147 @@ void admin_cluster_link_t::do_admin_set_name(admin_command_parser_t::command_dat
         path.push_back("resolve");
 
     set_metadata_value(path, "\"" + data.params["new-name"][0] + "\""); // TODO: adding quotes like this is kind of silly - better way to get past the json parsing?
+}
+
+void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_data& data) {
+    std::vector<std::string> ns_path(get_path_from_id(data.params["namespace"][0]));
+    std::vector<std::string> dc_path(get_path_from_id(data.params["datacenter"][0]));
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    std::string acks_str = data.params["num-acks"][0].c_str();
+
+    // Make sure num-acks is a number
+    for (size_t i = 0; i < acks_str.length(); ++i)
+        if (acks_str[i] < '0' || acks_str[i] > '9')
+            throw admin_parse_exc_t("num-acks is not a number");
+
+    // TODO: use resolve flag
+
+    if (dc_path[0] != "datacenters")
+        throw admin_parse_exc_t(data.params["datacenter"][0] + " is not a datacenter");
+    
+    if (ns_path[0] == "dummy_namespaces") {
+        namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(str_to_uuid(ns_path[1]));
+        if (i == cluster_metadata.dummy_namespaces.namespaces.end())
+            throw admin_parse_exc_t("unexpected error, namespace not found");
+        if (i->second.is_deleted())
+            throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
+        do_admin_set_acks_internal(i->second.get_mutable(), str_to_uuid(dc_path[1]), atoi(acks_str.c_str()));
+
+    } else if (ns_path[0] == "memcached_namespaces") {
+        namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(str_to_uuid(ns_path[1]));
+        if (i == cluster_metadata.memcached_namespaces.namespaces.end())
+            throw admin_parse_exc_t("unexpected error, namespace not found");
+        if (i->second.is_deleted())
+            throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
+        do_admin_set_acks_internal(i->second.get_mutable(), str_to_uuid(dc_path[1]), atoi(acks_str.c_str()));
+
+    } else
+        throw admin_parse_exc_t(data.params["namespace"][0] + " is not a namespace");
+
+    try {
+        fill_in_blueprints(&cluster_metadata);
+    } catch (missing_machine_exc_t &e) { }
+
+    semilattice_metadata->join(cluster_metadata);
+}
+
+template <class protocol_t>
+void admin_cluster_link_t::do_admin_set_acks_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_acks) {
+    if (ns.primary_datacenter.in_conflict())
+        throw admin_cluster_exc_t("namespace primary datacenter is in conflict, run 'help resolve' for more information");
+
+    if (ns.replica_affinities.in_conflict())
+        throw admin_cluster_exc_t("namespace replica affinities are in conflict, run 'help resolve' for more information");
+
+    if (ns.ack_expectations.in_conflict())
+        throw admin_cluster_exc_t("namespace ack expectations are in conflict, run 'help resolve' for more information");
+
+    // Make sure the selected datacenter is assigned to the namespace and that the number of replicas is less than or equal to the number of acks
+    std::map<datacenter_id_t, int>::iterator i = ns.replica_affinities.get().find(datacenter);
+    bool is_primary = (datacenter == ns.primary_datacenter.get());
+    if ((i == ns.replica_affinities.get().end() || i->second == 0) && !is_primary)
+        throw admin_cluster_exc_t("the specified datacenter has no replica affinities with the given namespace");
+    else if (num_acks > i->second + (is_primary ? 1 : 0))
+        throw admin_cluster_exc_t("cannot assign more ack expectations than replicas in a datacenter");
+
+    // TODO: get a lock to avoid a race condition
+    ns.ack_expectations.get_mutable()[datacenter] = num_acks;
+    ns.ack_expectations.upgrade_version(sync_peer.get_uuid());
+}
+
+void admin_cluster_link_t::do_admin_set_replicas(admin_command_parser_t::command_data& data) {
+    std::vector<std::string> ns_path(get_path_from_id(data.params["namespace"][0]));
+    std::vector<std::string> dc_path(get_path_from_id(data.params["datacenter"][0]));
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    std::string replicas_str = data.params["num-replicas"][0].c_str();
+    int num_replicas = atoi(replicas_str.c_str());
+
+    // Make sure num-acks is a number
+    for (size_t i = 0; i < replicas_str.length(); ++i)
+        if (replicas_str[i] < '0' || replicas_str[i] > '9')
+            throw admin_parse_exc_t("num-replicas is not a number");
+
+    // TODO: use resolve flag
+
+    if (dc_path[0] != "datacenters")
+        throw admin_parse_exc_t(data.params["datacenter"][0] + " is not a datacenter");
+
+    // TODO: it might make more sense for this error to happen later
+    datacenter_id_t datacenter(str_to_uuid(dc_path[1]));
+    if (get_machine_count_in_datacenter(cluster_metadata, datacenter) < (size_t)num_replicas)
+        throw admin_cluster_exc_t("the number of replicas cannot be more than the number of machines in the datacenter");
+    
+    if (ns_path[0] == "dummy_namespaces") {
+        namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(str_to_uuid(ns_path[1]));
+        if (i == cluster_metadata.dummy_namespaces.namespaces.end())
+            throw admin_parse_exc_t("unexpected error, namespace not found");
+        if (i->second.is_deleted())
+            throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
+        do_admin_set_replicas_internal(i->second.get_mutable(), datacenter, num_replicas);
+
+    } else if (ns_path[0] == "memcached_namespaces") {
+        namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(str_to_uuid(ns_path[1]));
+        if (i == cluster_metadata.memcached_namespaces.namespaces.end())
+            throw admin_parse_exc_t("unexpected error, namespace not found");
+        if (i->second.is_deleted())
+            throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
+        do_admin_set_replicas_internal(i->second.get_mutable(), datacenter, num_replicas);
+
+    } else
+        throw admin_parse_exc_t(data.params["namespace"][0] + " is not a namespace");
+
+    try {
+        fill_in_blueprints(&cluster_metadata);
+    } catch (missing_machine_exc_t &e) { }
+
+    semilattice_metadata->join(cluster_metadata);
+}
+
+template <class protocol_t>
+void admin_cluster_link_t::do_admin_set_replicas_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_replicas) {
+    if (ns.primary_datacenter.in_conflict())
+        throw admin_cluster_exc_t("namespace primary datacenter is in conflict, run 'help resolve' for more information");
+
+    if (ns.replica_affinities.in_conflict())
+        throw admin_cluster_exc_t("namespace replica affinities are in conflict, run 'help resolve' for more information");
+
+    if (ns.ack_expectations.in_conflict())
+        throw admin_cluster_exc_t("namespace ack expectations are in conflict, run 'help resolve' for more information");
+
+    bool is_primary = (datacenter == ns.primary_datacenter.get());
+    if (is_primary && num_replicas == 0)
+        throw admin_cluster_exc_t("the number of replicas for the primary datacenter cannot be 0");
+
+    std::map<datacenter_id_t, int>::iterator i = ns.ack_expectations.get().find(datacenter);
+    if (i == ns.ack_expectations.get().end()) {
+        ns.ack_expectations.get_mutable()[datacenter] = 0;
+        ns.ack_expectations.upgrade_version(sync_peer.get_uuid());
+    } else if (i->second > num_replicas)
+        throw admin_cluster_exc_t("the number of replicas for this datacenter cannot be less than the number of acks");
+
+    // TODO: get a lock to avoid a race condition
+    ns.replica_affinities.get_mutable()[datacenter] = num_replicas - (is_primary ? 1 : 0);
+    ns.replica_affinities.upgrade_version(sync_peer.get_uuid());
 }
 
 void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data& data) {
@@ -506,3 +637,15 @@ size_t admin_cluster_link_t::machine_count() {
 
     return count;
 }
+
+size_t admin_cluster_link_t::get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter) {
+    size_t count = 0;
+
+    for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin();
+         i != cluster_metadata.machines.machines.end(); ++i)
+        if (!i->second.is_deleted() && i->second.get().datacenter.get() == datacenter)
+            ++count;
+    
+    return count;
+}
+
