@@ -19,6 +19,9 @@ cJSON *render_as_json(issue_type_t *target, const ctx_t &) {
         case MACHINE_DOWN:
             return cJSON_CreateString("MACHINE_DOWN");
             break;
+        case MACHINE_GHOST:
+            return cJSON_CreateString("MACHINE_GHOST");
+            break;
         case NAME_CONFLICT_ISSUE:
             return cJSON_CreateString("NAME_CONFLICT_ISSUE");
             break;
