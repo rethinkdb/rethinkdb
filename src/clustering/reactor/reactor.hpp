@@ -20,7 +20,7 @@ public:
             clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > reactor_directory,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
             clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable,
-            store_view_t<protocol_t> *_underlying_store) THROWS_NOTHING;
+            multistore_ptr_t<protocol_t> *_underlying_svs) THROWS_NOTHING;
 
     clone_ptr_t<watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > get_reactor_directory() {
         return directory_echo_writer.get_watchable();
@@ -73,7 +73,7 @@ private:
             auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
     /* Implemented in clustering/reactor/reactor_be_primary.tcc */
-    void be_primary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *store, const blueprint_t<protocol_t> &,
+    void be_primary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const blueprint_t<protocol_t> &,
             signal_t *interruptor) THROWS_NOTHING;
 
     /* A backfill candidate is a structure we use to keep track of the different
@@ -149,7 +149,7 @@ private:
 
     clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable;
 
-    store_view_t<protocol_t> *underlying_store;
+    multistore_ptr_t<protocol_t> *underlying_svs;
 
     std::map<
             typename protocol_t::region_t,

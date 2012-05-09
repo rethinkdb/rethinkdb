@@ -303,6 +303,33 @@ memcached_protocol_t::region_t memcached_protocol_t::backfill_chunk_t::get_regio
     return boost::apply_visitor(v, val);
 }
 
+struct backfill_chunk_shard_visitor_t : public boost::static_visitor<memcached_protocol_t::backfill_chunk_t> {
+public:
+    backfill_chunk_shard_visitor_t(const memcached_protocol_t::region_t &_region) : region(_region) { }
+    memcached_protocol_t::backfill_chunk_t operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t &del) {
+        memcached_protocol_t::backfill_chunk_t ret(del);
+        rassert(region_is_superset(region, ret.get_region()));
+        return ret;
+    }
+    memcached_protocol_t::backfill_chunk_t operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t &del) {
+        memcached_protocol_t::region_t r = region_intersection(del.range, region);
+        rassert(!region_is_empty(r));
+        return memcached_protocol_t::backfill_chunk_t(memcached_protocol_t::backfill_chunk_t::delete_range_t(r));
+    }
+    memcached_protocol_t::backfill_chunk_t operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
+        memcached_protocol_t::backfill_chunk_t ret(kv);
+        rassert(region_is_superset(region, ret.get_region()));
+        return ret;
+    }
+private:
+    const memcached_protocol_t::region_t &region;
+};
+
+memcached_protocol_t::backfill_chunk_t memcached_protocol_t::backfill_chunk_t::shard(const memcached_protocol_t::region_t &region) const THROWS_NOTHING {
+    backfill_chunk_shard_visitor_t v(region);
+    return boost::apply_visitor(v, val);
+}
+
 
 
 

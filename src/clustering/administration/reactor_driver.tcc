@@ -167,13 +167,19 @@ private:
             store->set_metainfo(region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(version_range_t(version_t::zero()))), token, &dummy_interruptor);
         }
 
+        // TODO: Support multiple stores.
+        {
+            store_view_t<protocol_t> *store_ptr = store.get();
+            svs.reset(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
+        }
+
         reactor.reset(new reactor_t<protocol_t>(
             parent->mbox_manager,
             this,
             parent->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
             parent->branch_history,
             watchable.get_watchable(),
-            store.get()));
+            svs.get()));
 
         {
             typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::freeze_t reactor_directory_freeze(reactor->get_reactor_directory());
@@ -207,6 +213,7 @@ private:
     std::string file_path;
 
     boost::scoped_ptr<typename protocol_t::store_t> store;
+    boost::scoped_ptr<multistore_ptr_t<protocol_t> > svs;
     boost::scoped_ptr<reactor_t<protocol_t> > reactor;
 
     boost::scoped_ptr<typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t> reactor_directory_subscription;
