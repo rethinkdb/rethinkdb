@@ -17,8 +17,8 @@
 #include "containers/archive/archive.hpp"
 #include "containers/printf_buffer.hpp"
 #include "containers/scoped_malloc.hpp"
-#include "db_thread_info.hpp"
 #include "logger.hpp"
+#include "thread_local.hpp"
 
 #ifdef VALGRIND
 #include <valgrind/memcheck.h>
@@ -99,49 +99,52 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
-void format_time(time_t time, char* buf, size_t max_chars) {
+void format_time(struct timespec time, char* buf, size_t max_chars) {
     struct tm t;
-    struct tm *res1 = localtime_r(&time, &t);
+    struct tm *res1 = localtime_r(&time.tv_sec, &t);
     guarantee_err(res1 == &t, "gmtime_r() failed.");
     int res2 = snprintf(buf, max_chars,
-        "%04d-%02d-%02dT%02d:%02d:%02d",
+        "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
         t.tm_year+1900,
         t.tm_mon+1,
         t.tm_mday,
         t.tm_hour,
         t.tm_min,
-        t.tm_sec);
+        t.tm_sec,
+        time.tv_nsec);
     (void) res2;
     rassert(0 <= res2);
 }
 
-std::string format_time(time_t time) {
+std::string format_time(struct timespec time) {
     char buf[formatted_time_length+1];
     format_time(time, buf, sizeof(buf));
     return std::string(buf);
 }
 
-time_t parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
+struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
     struct tm t;
+    struct timespec time;
     int res1 = sscanf(str.c_str(),
-        "%04d-%02d-%02dT%02d:%02d:%02d",
+        "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
         &t.tm_year,
         &t.tm_mon,
         &t.tm_mday,
         &t.tm_hour,
         &t.tm_min,
-        &t.tm_sec);
-    if (res1 != 6) {
+        &t.tm_sec,
+        &time.tv_nsec);
+    if (res1 != 7) {
         throw std::runtime_error("badly formatted time");
     }
     t.tm_year -= 1900;
     t.tm_mon -= 1;
     t.tm_isdst = -1;
-    time_t res2 = mktime(&t);
-    if (res2 == -1) {
+    time.tv_sec = mktime(&t);
+    if (time.tv_sec == -1) {
         throw std::runtime_error("invalid time");
     }
-    return res2;
+    return time;
 }
 
 #ifndef NDEBUG
@@ -205,7 +208,10 @@ void *malloc_aligned(size_t size, size_t alignment) {
 void debugf(const char *msg, ...) {
     flockfile(stderr);
     char formatted_time[formatted_time_length+1];
-    format_time(time(NULL), formatted_time, sizeof(formatted_time));
+    struct timespec t;
+    int res = clock_gettime(CLOCK_REALTIME, &t);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+    format_time(t, formatted_time, sizeof(formatted_time));
     fprintf(stderr, "%s Thread %d: ", formatted_time, get_thread_id());
 
     va_list args;
@@ -215,13 +221,6 @@ void debugf(const char *msg, ...) {
     funlockfile(stderr);
 }
 #endif
-
-/* This object exists only to call srand(time(NULL)) in its constructor, before main() runs. */
-struct rand_initter_t {
-    rand_initter_t() {
-        srand(time(NULL));
-    }
-} rand_initter;
 
 rng_t::rng_t( UNUSED int seed) {
     memset(&buffer_, 0, sizeof(buffer_));
@@ -247,8 +246,24 @@ int rng_t::randint(int n) {
     return x % n;
 }
 
+TLS_with_init(bool, rng_initialized, false)
+TLS(drand48_data, rng_data)
+
 int randint(int n) {
-    return thread_local_randint(n);
+    drand48_data buffer;
+    if (!TLS_get_rng_initialized()) {
+        struct timespec ts;
+        int res = clock_gettime(CLOCK_REALTIME, &ts);
+        guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+        srand48_r(ts.tv_nsec, &buffer);
+        TLS_set_rng_initialized(true);
+    } else {
+        buffer = TLS_get_rng_data();
+    }
+    long x;   // NOLINT(runtime/int)
+    lrand48_r(&buffer, &x);
+    TLS_set_rng_data(buffer);
+    return x % n;
 }
 
 std::string rand_string(int len) {
@@ -272,7 +287,7 @@ bool begins_with_minus(const char *string) {
 }
 
 int64_t strtoi64_strict(const char *string, const char **end, int base) {
-    CT_ASSERT(sizeof(long) == sizeof(int64_t));
+    CT_ASSERT(sizeof(long) == sizeof(int64_t));  // NOLINT(runtime/int)
     long result = strtol(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if ((result == LONG_MAX || result == LONG_MIN) && errno == ERANGE) {
         *end = string;
@@ -286,7 +301,7 @@ uint64_t strtou64_strict(const char *string, const char **end, int base) {
         *end = string;
         return 0;
     }
-    CT_ASSERT(sizeof(unsigned long) == sizeof(uint64_t));
+    CT_ASSERT(sizeof(unsigned long) == sizeof(uint64_t));  // NOLINT(runtime/int)
     unsigned long result = strtoul(string, const_cast<char **>(end), base);  // NOLINT(runtime/int)
     if (result == ULONG_MAX && errno == ERANGE) {
         *end = string;

@@ -16,10 +16,11 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
+#include "clustering/administration/parser_maker.hpp"
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/reactor_driver.hpp"
-#include "memcached/clustering.hpp"
 #include <stdio.h>
+#include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -138,8 +139,6 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         initial_joiner->get_ready_signal()->wait_lazily_unordered();   /* TODO: Listen for `SIGINT`? */
     }
 
-    metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
-
     perfmon_collection_repo_t perfmon_repo(NULL);
 
     reactor_driver_t<mock::dummy_protocol_t> dummy_reactor_driver(&mailbox_manager,
@@ -182,41 +181,57 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
             field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces))
         );
 
-
-    mock::dummy_protocol_parser_maker_t dummy_parser_maker(&mailbox_manager,
-                                                           metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-                                                           &dummy_namespace_repo);
-
-    memcached_parser_maker_t mc_parser_maker(&mailbox_manager,
-                                             metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
 #ifndef NDEBUG
-                                             /* TODO: This will crash if we are declared dead. */
-                                             metadata_function<deletable_t<machine_semilattice_metadata_t>, machine_semilattice_metadata_t>(boost::bind(&deletable_getter<machine_semilattice_metadata_t>, _1),
-                                                               metadata_member(machine_id,
-                                                                               metadata_field(&machines_semilattice_metadata_t::machines,
-                                                                                              metadata_field(&cluster_semilattice_metadata_t::machines,
-                                                                                                             semilattice_manager_cluster.get_root_view())))),
+    boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> > machine_semilattice_view =
+        /* TODO: This will crash if we are declared dead. */
+        metadata_function<deletable_t<machine_semilattice_metadata_t>, machine_semilattice_metadata_t>(boost::bind(&deletable_getter<machine_semilattice_metadata_t>, _1),
+            metadata_member(machine_id,
+                metadata_field(&machines_semilattice_metadata_t::machines,
+                    metadata_field(&cluster_semilattice_metadata_t::machines,
+                        semilattice_manager_cluster.get_root_view()))));
 #endif
-                                             &memcached_namespace_repo,
-                                             &perfmon_repo);
 
-
-    administrative_http_server_manager_t administrative_http_interface(
-        port + 1000,
+    parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
         &mailbox_manager,
-        semilattice_manager_cluster.get_root_view(),
-        directory_read_manager.get_root_view(),
+        metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
+#ifndef NDEBUG
+        machine_semilattice_view,
+#endif
+        &dummy_namespace_repo,
+        &perfmon_repo);
+
+    parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
+        &mailbox_manager,
+        metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
+#ifndef NDEBUG
+        machine_semilattice_view,
+#endif
         &memcached_namespace_repo,
-        &issue_aggregator,
-        &last_seen_tracker,
-        machine_id,
-        web_assets);
+        &perfmon_repo);
 
-    printf("Server started; send SIGINT to stop.\n");
+    metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
 
-    wait_for_sigint();
+    {
+        administrative_http_server_manager_t administrative_http_interface(
+            port + 1000,
+            &mailbox_manager,
+            semilattice_manager_cluster.get_root_view(),
+            directory_read_manager.get_root_view(),
+            &memcached_namespace_repo,
+            &issue_aggregator,
+            &last_seen_tracker,
+            machine_id,
+            web_assets);
 
-    printf("Server got SIGINT; shutting down...\n");
+        printf("Server started; send SIGINT to stop.\n");
+
+        wait_for_sigint();
+
+        printf("Server got SIGINT; shutting down...\n");
+    }
+
+    cond_t non_interruptor;
+    persister.stop_and_flush(&non_interruptor);
 
     return true;
 }

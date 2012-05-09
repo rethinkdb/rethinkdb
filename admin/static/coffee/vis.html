@@ -1,0 +1,39 @@
+
+<script id="data_picker-template" type="text/x-handlebars-template">
+  <ul class="nav nav-tabs">
+    {{#each stream_filters}}
+    <li class="{{#if this.selected}}active{{/if}}" data-filter="{{this.name}}"><a href="#">{{this.name}}</a></li>
+    {{/each}}
+  </ul>
+  <div class="filter">
+  </div>
+</script>
+
+<script id="data_stream_filter-template" type="text/x-handlebars-template">
+  {{#each models}}
+  <div class="model" style="background:{{this.color}}" data-id="{{this.id}}">
+    <input {{#if this.selected}}checked="true"{{/if}} type="checkbox" />
+    {{this.name}}
+  </div>
+  {{/each}}
+</script>
+
+<script id="vis_no_data-template" type="text/x-handlebars-template">
+  <p class="no-data">No data selected.</p>
+</script>
+
+<script id="vis_loading-template" type="text/x-handlebars-template">
+  <div class="loading"><h4>Loading data...</h4><img src="/images/loading.gif" /></div>
+</script>
+
+<script id="vis-graph_stream_picker-template" type="text/x-handlebars-template">
+  <form class="stream-picker">
+    {{#each datastreams}}
+    <div class="datastream" data-id="{{this.id}}">
+      <input {{#if this.selected}}checked="true"{{/if}} type="radio" name="graph-data-stream"/>
+      {{this.name}}
+    </div>
+    {{/each}}
+  </form>
+</script>
+

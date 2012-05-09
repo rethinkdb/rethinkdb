@@ -62,6 +62,79 @@
 
 /*
     ----------------------------
+    Log view
+    ----------------------------
+*/
+
+.log-view {
+    .header h1 {
+        margin-bottom: 15px;
+    }
+
+    ul.log-entries {
+        margin-left: 0;
+
+        li.log-entry {
+            list-style-type: none;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: thin solid @grayLighter;
+
+            p { margin-bottom: 0; }
+
+            .entry-metadata {
+                p {
+                    text-transform: uppercase;
+                    color: @gray;
+                    text-align: left;
+                    font-size: 0.75em;
+                    margin-bottom: 0;
+                }
+                margin-bottom: 6px;
+            }
+
+            p.level {
+                text-transform: uppercase;
+                color: @gray;
+                font-size: 0.75em;
+                float: left;
+            }
+
+            p.message {
+                margin-left: 50px;
+                a.json {
+                    text-transform: uppercase;
+                    font-size: 0.75em;
+                    color: @gray;
+                    border-bottom: thin dotted @gray;
+                    &:hover {
+                        border-bottom: none;
+                    }
+                }
+            }
+        }
+    }
+
+    .any-more-log-entries {
+        margin-top: 20px;
+        margin-bottom: 40px;
+        .no-more-entries {
+            display: none;
+            text-align: center;
+            font-weight: bold;
+            background: @grayLighter;
+            padding: 15px;
+            border: thin solid #CCC;
+        }
+        .next-log-entries {
+            font-size: 1.2em;
+            text-align: right;
+        }
+    }
+}
+
+/*
+    ----------------------------
     Sidebar
     ----------------------------
 */
@@ -151,20 +224,20 @@
         }
     }
 
-    .event {
-        padding: 8px 0px;
+    .recent-log-entry {
+        padding: 7px 0px;
 
-        .priority {
+        .level {
             width: 24px;
             height: 24px;
             float: left;
             margin-top: 4px;
             margin-bottom: 4px;
             margin-right: 15px;
-            &.medium {
+            &.error {
                 background: url('/images/alert-icon_small.png') no-repeat center center;
             }
-            &.low {
+            &.info {
                 background: url('/images/information-icon_small.png') no-repeat center center;
             }
         }
@@ -176,13 +249,23 @@
             padding: 0 0;
             vertical-align: middle;
             width: 100%;
+            a.json {
+                text-transform: uppercase;
+                font-size: 0.75em;
+                color: @gray;
+                border-bottom: thin dotted @gray;
+                &:hover {
+                    border-bottom: none;
+                }
+            }
         }
 
-        .datetime {
+        .datetime, .from-machine {
             color: @gray;
             text-align: right;
             text-transform: uppercase;
             font-size: 0.75em;
+            margin-bottom: 0;
         }
     }
 }
@@ -667,6 +750,9 @@
 
 .modal {
     display: none;
+    .custom_btn_placeholder {
+        display: inline-block;
+    }
     form {
         input { height: 28px; }
         margin-bottom: 0 !important;
@@ -723,6 +809,45 @@
     h1 {
         margin-bottom: 10px;
         display: inline-block;
+    }
+
+    .recent-log-entry {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: thin solid @grayLighter;
+
+        p { margin-bottom: 0; }
+
+        .entry-metadata {
+            p {
+                text-transform: uppercase;
+                color: @gray;
+                text-align: left;
+                font-size: 0.75em;
+                margin-bottom: 0;
+            }
+            margin-bottom: 6px;
+        }
+
+        p.level {
+            text-transform: uppercase;
+            color: @gray;
+            font-size: 0.75em;
+            float: left;
+        }
+
+        p.message {
+            margin-left: 50px;
+            a.json {
+                text-transform: uppercase;
+                font-size: 0.75em;
+                color: @gray;
+                border-bottom: thin dotted @gray;
+                &:hover {
+                    border-bottom: none;
+                }
+            }
+        }
     }
 }
 
@@ -921,9 +1046,9 @@
     -----------------------------------------------
 */
 
-.modal.modify-shards {
-    .modal-body {
-        padding-top: 10px;
+.modify-shards {
+    h1 {
+       margin-bottom: 10px;
     }
 
     form {
@@ -936,35 +1061,70 @@
         }
     }
 
+    .sharding-scheme {
+        p.suggest_shards_pathway {
+            margin-top: 1em;
+            margin-bottom: 0;
+            font-size: large;
+        }
+
+        .shard-suggester {
+            label {
+               display: inline;
+            }
+            input {
+                height: 1.2em;
+                width: 3em;
+                margin-bottom: 0;
+            }
+            p.current, p.max {
+                font-size: 12px;
+                line-height: 24px;
+                color: @gray;
+            }
+            .shard_suggest_elements {
+                margin-top: 0.5em;
+            }
+
+        }
+    }
+
+    .sharding-scheme table.shards {
+        border-top: thin solid @grayLighter;
+    }
     .sharding-scheme table.shards, .sharding-plan table.datacenters {
         td {
             border-bottom: thin solid @grayLighter;
             padding: 15px 0 10px;
             &.name {
-                width: 15%;
                 h4 { line-height: 16px; }
             }
         }
     }
 
-    .sharding-scheme table.shards {
-        td .action {
-            .border-radius(4px);
-            background-color: #F0F2EB;
-            border: thin solid #B9D7D9;
-            padding: 10px 14px;
+    .shard-suggester {
+        margin-top: 1em;
+    }
+    .action, .shard-suggester, .unsaved-settings-warning {
+       margin-right: 1em;
+        .border-radius(4px);
+        background-color: #F0F2EB;
+        border: thin solid #B9D7D9;
+        padding: 5px 14px;
 
-            p { margin-bottom: 0; }
-            label {
-                width: auto;
-                p { line-height: 28px; }
-            }
-            input { margin-left: 15px; }
-            .btn {
-                float: right;
-                margin-left: 10px;
-            }
+        p { margin-bottom: 0; }
+        label {
+            width: auto;
+            p { line-height: 28px; }
         }
+        input { margin-left: 15px; }
+        .btn {
+            margin-left: 10px;
+        }
+    }
+    .unsaved-settings-warning {
+        margin-bottom: 1em;
+        margin-right: 0;
     }
 
     .sharding-plan table.datacenters {
@@ -994,6 +1154,11 @@
                 p { margin-bottom: 0; }
             }
         }
+    }
+
+    .btn-footer {
+        margin-top: 1em;
+        text-align: right;
     }
 
     /* Override Bootstrap */

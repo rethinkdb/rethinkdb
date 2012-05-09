@@ -28,6 +28,9 @@ void check_namespaces_for_protocol(
             check("namespace", it->first, "ack_expectations", it->second.get().ack_expectations, out);
             check("namespace", it->first, "shards", it->second.get().shards, out);
             check("namespace", it->first, "name", it->second.get().name, out);
+            check("namespace", it->first, "port", it->second.get().port, out);
+            check("namespace", it->first, "primary_pinnings", it->second.get().primary_pinnings, out);
+            check("namespace", it->first, "secondary_pinnings", it->second.get().secondary_pinnings, out);
         }
     }
 }
@@ -54,6 +57,7 @@ std::list<clone_ptr_t<global_issue_t> > vector_clock_conflict_issue_tracker_t::g
         if (!it->second.is_deleted()) {
             check("machine", it->first, "datacenter", it->second.get().datacenter, &issues);
             check("machine", it->first, "name", it->second.get().name, &issues);
+            DEBUG_ONLY_CODE(check("machine", it->first, "port_offset", it->second.get().port_offset, &issues););
         }
     }
 

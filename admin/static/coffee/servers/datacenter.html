@@ -1,0 +1,63 @@
+<script id="datacenter_view-container-template" type="text/x-handlebars-template">
+  <h1>Datacenter overview for {{name}}</h1> (<a href="#" class="rename-datacenter">rename</a>)
+  <div class="two-panel-section">
+    <div class="panel-left">
+      <h3 class="title">Datacenter profile</h3>
+      <div class="section summary">
+        <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
+      </div>
+    </div>
+    <div class="panel-right">
+      <h3 class="title">Datacenter resources</h3>
+      <div class="section system-resources">
+        <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
+        <p class="ram">RAM:</p>
+        <p class="disk">Disk:</p>
+      </div>
+    </div>
+    <div class="two-panel-clear"></div>
+  </div>
+  <h3 class="title">Machines</h3>
+  <div class="section dc-machine-list">
+    <ul>
+      {{#each machines}}
+      <li><a href='#machines/{{id}}'>{{name}}</a> {{humanize_machine_reachability status}}</li>
+      {{/each}}
+    </ul>
+  </div>
+  <h3 class="title">Data in this datacenter</h3>
+  <div class="section data">
+    {{#unless data.namespaces}}
+    <p>No data found in this datacenter.</p>
+    {{/unless}}
+    {{#each data.namespaces}}
+    <div class="namespace">
+      <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
+      <ul>
+
+        {{#each shards}}
+        <li>{{name}} ({{nprimaries}} {{pluralize_noun "primary" nprimaries}}, {{nsecondaries}} {{pluralize_noun "secondary" nsecondaries}})</li>
+        {{/each}}
+      </ul>
+    </div>
+    {{/each}}
+  </div>
+  <h3 class="title">Performance</h3>
+  <div class="section performance-graph"></div>
+  <h3 class="title">Recent log entries for this datacenter</h3>
+  <div class="section recent-log-entries"></div>
+</script>
+
+<script id="datacenter_view-recent_log_entry-template" type="text/x-handlebars-template">
+    <div class="entry-metadata">
+        <p class="from-machine">Reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
+        <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
+    </div>
+    <p class="level">{{level}}</p>
+    <p class="message">
+        {{formatted_message}}
+        {{#if json}}
+                <a href="#" class="json" rel="popover" data-content="<pre>{{json}}</pre>" data-title="JSON applied to server">examine JSON</a>
+        {{/if}}
+    </p>
+</script>

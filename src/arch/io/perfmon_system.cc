@@ -148,8 +148,10 @@ struct perfmon_system_t : public perfmon_t {
         dest->insert("memory_real", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
     }
     void put_timestamp(perfmon_result_t *dest) {
-        time_t now = time(NULL);
-        dest->insert("uptime", new perfmon_result_t(strprintf("%d", int(difftime(start_time, now)))));
+        struct timespec now;
+        int res = clock_gettime(CLOCK_REALTIME, &now);
+        guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
+        dest->insert("uptime", new perfmon_result_t(strprintf("%d", int(difftime(start_time, now.tv_sec)))));
         dest->insert("timestamp", new perfmon_result_t(format_time(now)));
     }
 

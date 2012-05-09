@@ -37,22 +37,39 @@ public:
     std::vector<std::string> get_ids(const std::string& base);
 
     // Commands that may be run by the parser
-    void do_admin_set(admin_command_parser_t::command_data& data);
     void do_admin_list(admin_command_parser_t::command_data& data);
-    void do_admin_move(admin_command_parser_t::command_data& data);
-    void do_admin_make_datacenter(admin_command_parser_t::command_data& data);
-    void do_admin_make_namespace(admin_command_parser_t::command_data& data);
-    void do_admin_rename(admin_command_parser_t::command_data& data);
+    void do_admin_split_shard(admin_command_parser_t::command_data& data);
+    void do_admin_merge_shard(admin_command_parser_t::command_data& data);
+    void do_admin_set_name(admin_command_parser_t::command_data& data);
+    void do_admin_set_acks(admin_command_parser_t::command_data& data);
+    void do_admin_set_replicas(admin_command_parser_t::command_data& data);
+    void do_admin_set_datacenter(admin_command_parser_t::command_data& data);
+    void do_admin_create_datacenter(admin_command_parser_t::command_data& data);
+    void do_admin_create_namespace(admin_command_parser_t::command_data& data);
     void do_admin_remove(admin_command_parser_t::command_data& data);
 
     void sync_from();
     void sync_to();
 
+    size_t machine_count();
+
 private:
+
+    static std::string truncate_uuid(const boost::uuids::uuid& uuid);
+
+    static const size_t minimum_uuid_substring = 4;
+    static const size_t uuid_output_length = 8;
 
     void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata);
 
     void set_metadata_value(const std::vector<std::string>& path, const std::string& value);
+
+    size_t get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter);
+
+    template <class protocol_t>
+    void do_admin_set_acks_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_acks);
+    template <class protocol_t>
+    void do_admin_set_replicas_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_replicas);
 
     void list_issues(bool long_format);
     void list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
@@ -68,7 +85,7 @@ private:
     template <class T>
     void add_subset_to_uuid_path_map(const std::string& base, T& data_map);
     template <class T>
-    void add_subset_to_name_path_map(const std::string& base, T& data_map, std::set<std::string>& collisions);
+    void add_subset_to_name_path_map(const std::string& base, T& data_map);
 
     std::vector<std::string> get_path_from_id(const std::string& id);
 
@@ -109,7 +126,7 @@ private:
     global_issue_aggregator_t::source_t dummy_pinnings_shards_mismatch_issue_tracker_feed;
 
     std::map<std::string, std::vector<std::string> > uuid_to_path;
-    std::map<std::string, std::vector<std::string> > name_to_path;
+    std::multimap<std::string, std::vector<std::string> > name_to_path;
 
     peer_id_t sync_peer;
 

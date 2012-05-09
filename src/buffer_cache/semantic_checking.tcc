@@ -137,17 +137,17 @@ void scc_transaction_t<inner_cache_t>::set_account(const boost::shared_ptr<typen
 }
 
 template<class inner_cache_t>
-scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line) :
+scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode, buffer_cache_order_mode_t order_mode, lock_in_line_callback_t *call_when_in_line) :
     snapshotted(txn->snapshotted || mode == rwi_read_outdated_ok),
     has_been_changed(false),
     internal_buf_lock(NULL),
     cache(txn->cache)
 {
-    if (!txn->snapshotted) {
+    if (order_mode == buffer_cache_order_mode_check && !txn->snapshotted) {
         cache->sink_map[block_id].check_out(txn->order_token);
     }
 
-    internal_buf_lock = new typename inner_cache_t::buf_lock_t(&txn->inner_transaction, block_id, mode, call_when_in_line);
+    internal_buf_lock = new typename inner_cache_t::buf_lock_t(&txn->inner_transaction, block_id, mode, order_mode, call_when_in_line);
     rassert(block_id == get_block_id());
     if (!txn->snapshotted) {
         if (cache->crc_map.get(block_id)) {

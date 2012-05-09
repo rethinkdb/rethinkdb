@@ -1,5 +1,7 @@
 #!/usr/bin/python
-import random, sys, workload_common
+import random, sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import workload_common
 from vcoptparse import *
 
 op = workload_common.option_parser_for_memcache()

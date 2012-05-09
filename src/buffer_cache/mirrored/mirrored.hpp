@@ -146,7 +146,9 @@ struct i_am_writeback_t { };
 // release the mc_inner_buf_t, so don't worry!
 class mc_buf_lock_t : public home_thread_mixin_t {
 public:
-    mc_buf_lock_t(mc_transaction_t *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line = 0);
+    mc_buf_lock_t(mc_transaction_t *txn, block_id_t block_id, access_t mode,
+            buffer_cache_order_mode_t order_mode = buffer_cache_order_mode_check,
+            lock_in_line_callback_t *call_when_in_line = 0);
     explicit mc_buf_lock_t(mc_transaction_t *txn); // Constructor used to allocate a new block
     mc_buf_lock_t();
     ~mc_buf_lock_t();

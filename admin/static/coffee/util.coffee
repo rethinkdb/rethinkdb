@@ -29,7 +29,7 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
     if num is 1
         result = noun
     else
-        if noun.substr(-1) is 'y'
+        if noun.substr(-1) is 'y' and (noun isnt 'key')
             result = noun.slice(0, noun.length - 1) + "ies"
         else
             result = noun + "s"
@@ -38,6 +38,7 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
     return result
 
 Handlebars.registerHelper 'pluralize_verb_to_be', (num) -> if num is 1 then 'is' else 'are'
+Handlebars.registerHelper 'pluralize_verb_to_have', (num) -> if num is 1 then 'has' else 'have'
 
 # Helpers for capitalization
 Handlebars.registerHelper 'capitalize', (str) -> str.charAt(0).toUpperCase() + str.slice(1)
@@ -99,7 +100,7 @@ window.log_binding = (msg) -> #console.log msg
 window.log_ajax = (msg) -> #console.log msg
 window.class_name = (obj) ->  obj.__proto__.constructor.name
 
-# Date utility functions (helps with testing)
+# Date utility functions
 # -------------------------------------------
 # Taken from the Mozilla Developer Center, quick function to generate ISO 8601 dates in Javascript for these sample alerts
 ISODateString = (d) ->
@@ -111,35 +112,12 @@ ISODateString = (d) ->
         pad(d.getUTCMinutes())+':' +
         pad(d.getUTCSeconds())+'Z'
 
-iso_date_from_unix_time = (unix_time) -> ISODateString new Date(unix_time * 1000)
-
 # Choose a random model from the given collection
 # -----------------------------------------------
 random_model_from = (collection) ->_.shuffle(collection.models)[0]
 
-# Create a set of fake issues
-generate_fake_issues = (issues) ->
-    issues.reset [
-            critical: true
-            type: 'master_down'
-            datetime: ISODateString time_travel 15
-        ,
-            critical: true
-            type: 'master_down'
-            datetime: ISODateString time_travel 24
-        ,
-            critical: true
-            type: 'metadata_conflict'
-            datetime: ISODateString time_travel 40
-        ,
-            critical: false
-            type: 'namespace_missing_replicas'
-            datetime: ISODateString time_travel 29
-        ,
-            critical: false
-            type: 'datacenter_inaccessible'
-            datetime: ISODateString time_travel 59
-    ]
+# Generate ISO 8601 timestamps from Unix timestamps
+iso_date_from_unix_time = (unix_time) -> ISODateString new Date(unix_time * 1000)
 
 # Extract form data as an object
 form_data_as_object = (form) ->
@@ -151,6 +129,11 @@ form_data_as_object = (form) ->
 
 # Shards aren't pretty to print, let's change that
 human_readable_shard = (shard) ->
+    # Shard may be null, in which case we need to return the empty
+    # string. Please do not fuck with this code, Michael, as you
+    # removed it once already and it broke shit.
+    if not shard?
+        return ""
     json_shard = $.parseJSON(shard)
     res = ""
     res += if json_shard[0] == "" then "&minus;&infin;" else json_shard[0]
@@ -193,12 +176,8 @@ bind_dev_tools = ->
                 console.log 'Made diff to simulation data.'
         return false
 
-    $('#random-machine-failure').click (e) ->
-        machine = random_model_from machines
-        events.add new Event
-            priority: 'medium'
-            message: "Machine #{machine.get('name')} was disconnected."
-            datetime: ISODateString new Date()
+    $('#visit_bad_route').click (e) ->
+        $.get('/fakeurl')
         return false
 
 ###

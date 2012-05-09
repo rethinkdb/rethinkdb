@@ -136,9 +136,6 @@ TEST(MergeIteratorsTest, merge_empty) {
     merged.add_mergee(c);
 
     ASSERT_FALSE(merged.next());
-    ASSERT_EQ(a->blocked_without_prefetch, 0);
-    ASSERT_EQ(b->blocked_without_prefetch, 0);
-    ASSERT_EQ(c->blocked_without_prefetch, 0);
 }
 
 TEST(MergeIteratorsTest, parse_data_blocks) {
@@ -178,9 +175,6 @@ TEST(MergeIteratorsTest, three_way_merge) {
     merged_expected.merge(c_db_flat);
 
     ASSERT_TRUE(std::equal(merged_expected.begin(), merged_expected.end(), merged.begin()));
-    ASSERT_EQ(a->blocked_without_prefetch, 0);
-    ASSERT_EQ(b->blocked_without_prefetch, 0);
-    ASSERT_EQ(c->blocked_without_prefetch, 0);
 }
 
 TEST(MergeIteratorsTest, iterators_get_deleted) {

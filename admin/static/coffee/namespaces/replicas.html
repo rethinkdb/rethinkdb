@@ -1,0 +1,117 @@
+<script id="namespace_view-replica-template" type="text/x-handlebars-template">
+  <table class="datacenters table">
+    <!-- Header row -->
+    <tr>
+      <th>Datacenter</th>
+      <th>Role</th>
+      <th>Replicas</th>
+      <th>Write acks</th>
+      <th>Status</th>
+      <th>&nbsp;</th>
+    </tr>
+    <!-- Primary datacenter -->
+    {{#with primary}}
+    <tr>
+      <td>{{name}}</td>
+      <td>Primary</td>
+      <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "machine" total_machines}})</td>
+      <td>{{acks}}</td>
+      <td>
+        {{#with status}}
+        <span class="master-status">{{nashards}} of {{nshards}} masters live</span>
+        {{#if nreplicas}}
+        <span class="replica-status">{{nareplicas}} of {{nreplicas}} replicas live</span>
+        {{/if}}
+        <span class="replication-status">{{> backfill_progress_summary}}</span>
+        {{/with}}
+      </td>
+      <td><a id="edit-primary" href="#">Edit replicas</a></td>
+    </tr>
+    {{/with}}
+    <!-- Secondary datacenters -->
+    {{#each secondaries}}
+    <tr>
+      <td>{{name}}</td>
+      <td>Secondary</td>
+      <td>{{replicas}} (of {{total_machines}} {{pluralize_noun "machine" total_machines}})</td>
+      <td>{{acks}}</td>
+      <td>
+        {{#with status}}
+        <span class="replica-status">{{nareplicas}} of {{nreplicas}} replicas live</span>
+        <span class="replication-status">{{> backfill_progress_summary}}</span>
+        {{/with}}
+      </td>
+      <td><a class="edit-secondary {{this.id}}" href="#">Edit replicas</a> | <a class="make-primary {{this.id}}" href="#">Make primary</a></td>
+    </tr>
+    {{/each}}
+    <!-- Rest of the datacenters (ones we're not replicating to) -->
+    {{#each nothings}}
+    <tr>
+      <td>{{name}}</td>
+      <td>None</td>
+      <td colspan="3">N/A</td>
+      <td><a class="edit-nothing {{this.id}}" href="#">Edit replicas</a></td>
+    </tr>
+    {{/each}}
+  </table>
+</script>
+
+<script id="changed_primary_dc-replica-template" type="text/x-handlebars-template">
+  <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You successfully changed the primary datacenter for namespace <a href="/#namespaces/{{namespace_uuid}}">{{namespace_name}}</a> from <a href="/#datacenters/{{old_datacenter_uuid}}">{{old_datacenter_name}}</a> to <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>.</p>
+  </div>
+</script>
+
+<script id="modify_replicas-modal-template" type="text/x-handlebars-template">
+  <form class="form">
+    <div class="replica-attributes">
+      {{#if error_msg}}
+      <p class="server-error alert alert-error"> {{error_msg}} </p>
+      {{/if}}
+      <div class="info">
+        <p>You can specify the <strong>number of replicas</strong> to use per shard for this datacenter.</p>
+        <p>The <strong>number of acks</strong> specifies how many replicas in this datacenter must acknowledge a write before an operation succeeds.</p>
+      </div>
+      <fieldset>
+        <input name="datacenter" type="hidden" value="{{datacenter.id}}" />
+        <div class="clearfix">
+          <label for="replicas">
+            <h4>Number of replicas:</h4>
+          </label>
+          <div class="input">
+            <input class="xlarge" name="num_replicas" type="text" value="{{num_replicas}}"/>
+            <p class="current">Current replicas: {{num_replicas}}</p>
+            <p class="max">Max replicas: {{total_machines}}</p>
+          </div>
+        </div>
+        <hr />
+        <div class="clearfix">
+          <label for="acks">
+            <h4>Number of acks:</h4>
+          </label>
+          <div class="input">
+            <input class="xlarge" name="num_acks" type="text" value="{{num_acks}}"/>
+            <p class="current">Current acks: {{num_acks}}</p>
+          </div>
+      </fieldset>
+      <div class="clearboth"></div>
+      </div>
+    </div>
+  </form>
+</script>
+
+<script id="modified_replica-alert-template" type="text/x-handlebars-template">
+  <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>
+      You successfully changed
+      {{#if modified_replicas}} the number of replicas from {{old_replicas}} to {{new_replicas}}
+      {{#if modified_acks}} and{{/if}}
+      {{/if}}
+      {{#if modified_acks}} the number of acks from {{old_acks}} to {{new_acks}}{{/if}}
+      for datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>.
+    </p>
+  </div>
+</script>
+

@@ -2,11 +2,8 @@
 
 #include "arch/io/network.hpp"
 
-tcp_conn_stream_t::tcp_conn_stream_t(const char *host, int port, int local_port)
-    : conn_(new tcp_conn_t(host, port, local_port)) { }
-
-tcp_conn_stream_t::tcp_conn_stream_t(const ip_address_t &host, int port, int local_port)
-    : conn_(new tcp_conn_t(host, port, local_port)) { }
+tcp_conn_stream_t::tcp_conn_stream_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port)
+    : conn_(new tcp_conn_t(host, port, interruptor, local_port)) { }
 
 tcp_conn_stream_t::tcp_conn_stream_t(tcp_conn_t *conn) : conn_(conn) {
     rassert(conn_ != NULL);

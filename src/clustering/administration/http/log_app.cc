@@ -1,15 +1,14 @@
 #include "clustering/administration/http/log_app.hpp"
 
-#include "errors.hpp"
-#include <boost/lexical_cast.hpp>
-
 #include "arch/timing.hpp"
 #include "clustering/administration/machine_id_to_peer_id.hpp"
+#include "utils.hpp"
 
 template <class ctx_t>
 cJSON *render_as_json(log_message_t *message, const ctx_t &) {
+    std::string timestamp_buffer = strprintf("%d.%09ld", int(message->timestamp.tv_sec), message->timestamp.tv_nsec);
     scoped_cJSON_t json(cJSON_CreateObject());
-    cJSON_AddItemToObject(json.get(), "timestamp", cJSON_CreateNumber(message->timestamp));
+    cJSON_AddItemToObject(json.get(), "timestamp", cJSON_CreateString(timestamp_buffer.c_str()));
     cJSON_AddItemToObject(json.get(), "uptime", cJSON_CreateNumber(message->uptime.tv_sec + message->uptime.tv_nsec / 1000000000.0));
     cJSON_AddItemToObject(json.get(), "level", cJSON_CreateString(format_log_level(message->level).c_str()));
     cJSON_AddItemToObject(json.get(), "message", cJSON_CreateString(message->message.c_str()));
@@ -24,6 +23,24 @@ log_http_app_t::log_http_app_t(
     log_mailbox_view(lmv),
     machine_id_translation_table(mitt)
     { }
+
+static bool scan_timespec(const char *string, struct timespec *out) {
+    char dummy;
+    int secs, nsecs;
+    int res = sscanf(string, "%d.%d%c", &secs, &nsecs, &dummy);
+    switch (res) {
+    case 1:
+        out->tv_sec = secs;
+        out->tv_nsec = 0;
+        return true;
+    case 2:
+        out->tv_sec = secs;
+        out->tv_nsec = nsecs;
+        return true;
+    default:
+        return false;
+    }
+}
 
 http_res_t log_http_app_t::handle(const http_req_t &req) {
     http_req_t::resource_t::iterator it = req.resource.begin();
@@ -61,19 +78,23 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
     }
 
     int max_length = 100;
-    time_t min_timestamp = 0, max_timestamp = time(NULL) + 100;
-    try {
-        if (boost::optional<std::string> max_length_string = req.find_query_param("max_length")) {
-            max_length = boost::lexical_cast<int>(max_length_string.get());
+    struct timespec min_timestamp = {0, 0}, max_timestamp = {time(NULL) + 1000, 0};
+    if (boost::optional<std::string> max_length_string = req.find_query_param("max_length")) {
+        char dummy;
+        int res = sscanf(max_length_string.get().c_str(), "%d%c", &max_length, &dummy);
+        if (res != 1) {
+            return http_res_t(400);
         }
-        if (boost::optional<std::string> min_timestamp_string = req.find_query_param("min_timestamp")) {
-            min_timestamp = boost::lexical_cast<int>(min_timestamp_string.get());
+    }
+    if (boost::optional<std::string> min_timestamp_string = req.find_query_param("min_timestamp")) {
+        if (!scan_timespec(min_timestamp_string.get().c_str(), &min_timestamp)) {
+            return http_res_t(400);
         }
-        if (boost::optional<std::string> max_timestamp_string = req.find_query_param("max_timestamp")) {
-            max_timestamp = boost::lexical_cast<int>(max_timestamp_string.get());
+    }
+    if (boost::optional<std::string> max_timestamp_string = req.find_query_param("max_timestamp")) {
+        if (!scan_timespec(max_timestamp_string.get().c_str(), &max_timestamp)) {
+            return http_res_t(400);
         }
-    } catch (boost::bad_lexical_cast) {
-        return http_res_t(400);
     }
 
     std::vector<peer_id_t> peer_ids;
@@ -102,7 +123,7 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
 
 void log_http_app_t::fetch_logs(int i,
         const std::vector<machine_id_t> &machines, const std::vector<peer_id_t> &peers,
-        int max_messages, time_t min_timestamp, time_t max_timestamp,
+        int max_messages, struct timespec min_timestamp, struct timespec max_timestamp,
         cJSON *map_to_fill,
         signal_t *interruptor) THROWS_NOTHING {
     std::map<peer_id_t, log_server_business_card_t> bcards = log_mailbox_view->get();

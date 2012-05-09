@@ -5,8 +5,6 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/registrant.hpp"
 #include "clustering/resource.hpp"
-#include "mock/dummy_protocol.hpp"
-#include "memcached/protocol.hpp"
 
 
 template <class protocol_t>
@@ -90,7 +88,10 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 	 * live streaming from. */
 
 	cond_t backfiller_is_up_to_date;
-	mailbox_t<void()> ack_mbox(mailbox_manager, boost::bind(&cond_t::pulse, &backfiller_is_up_to_date));
+	mailbox_t<void()> ack_mbox(
+	    mailbox_manager,
+	    boost::bind(&cond_t::pulse, &backfiller_is_up_to_date),
+	    mailbox_callback_mode_inline);
 
 	resource_access_t<replier_business_card_t<protocol_t> > replier_access(replier);
 	send(mailbox_manager, replier_access.access().synchronize_mailbox, streaming_begin_point, ack_mbox.get_address());
@@ -492,6 +493,8 @@ void listener_t<protocol_t>::advance_current_timestamp_and_pulse_waiters(transit
 }
 
 
+#include "mock/dummy_protocol.hpp"
+#include "memcached/protocol.hpp"
 
 template class listener_t<memcached_protocol_t>;
 template class listener_t<mock::dummy_protocol_t>;

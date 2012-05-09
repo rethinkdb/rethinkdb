@@ -12,7 +12,8 @@ using namespace std;
 /* Structure that represents a running client */
 struct client_t {
 
-    client_t(int _pipeline_limit = 0) : keep_running(false), total_freq(0), pipeline_limit(_pipeline_limit) { }
+    client_t(int _pipeline_limit = 0, int _ignore_protocol_errors = 0)
+        : keep_running(false), total_freq(0), pipeline_limit(_pipeline_limit), ignore_protocol_errors(_ignore_protocol_errors) { }
 
     void add_op(int freq, op_generator_t *op_gen) {
         ops.push_back(op_gen);
@@ -56,6 +57,7 @@ struct client_t {
     int total_freq;
 
     int pipeline_limit;
+    int ignore_protocol_errors;
 
 private:
     // This spinlock protects keep_running from race conditions
@@ -104,7 +106,12 @@ private:
 
             } catch (protocol_error_t &e) {
                 fprintf(stderr, "Protocol error: %s\n", e.c_str());
-                throw e;
+                if(!ignore_protocol_errors) {
+                    throw e;
+                }
+                else {
+                    fprintf(stderr, "ignoring...\n");
+                }
             }
 
             spinlock.lock();

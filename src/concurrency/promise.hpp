@@ -7,21 +7,25 @@
 is transmitted to the thing waiting on the condition variable. */
 
 template <class val_t>
-struct promise_t {
+struct promise_t : public home_thread_mixin_t {
 
     promise_t() : value(NULL) { }
     void pulse(const val_t &v) {
+        assert_thread();
+        rassert(value == NULL);
         value = new val_t(v);
         cond.pulse();
     }
     val_t wait() {
-        cond.wait();
+        assert_thread();
+        cond.wait_lazily_unordered();
         return *value;
     }
     signal_t *get_ready_signal() {
         return &cond;
     }
     val_t get_value() {
+        assert_thread();
         rassert(value);
         return *value;
     }

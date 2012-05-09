@@ -113,7 +113,7 @@ mock_buf_lock_t::mock_buf_lock_t() :
     acquired(false)
 { }
 
-mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line) :
+mock_buf_lock_t::mock_buf_lock_t(mock_transaction_t *txn, block_id_t block_id, access_t mode, UNUSED buffer_cache_order_mode_t order_mode, lock_in_line_callback_t *call_when_in_line) :
     internal_buf(txn->cache->bufs->get(block_id)),
     access(mode),
     dirty(false),
