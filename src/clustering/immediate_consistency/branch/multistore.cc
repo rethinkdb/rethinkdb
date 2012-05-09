@@ -28,6 +28,19 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store
 
     rassert(region_is_superset(compute_unmasked_multistore_joined_region(_store_views, num_store_views), _region_mask));
 
+    initialize(_store_views, _region_mask);
+}
+
+template <class protocol_t>
+multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inner, const typename protocol_t::region_t &_region_mask)
+    : store_views(inner->num_stores(), NULL), region_mask(_region_mask) {
+    rassert(region_is_superset(inner->region_mask, _region_mask));
+
+    initialize(inner->store_views.data(), _region_mask);
+}
+
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask) {
     for (int i = 0, e = store_views.size(); i < e; ++i) {
         rassert(store_views[i] == NULL);
 

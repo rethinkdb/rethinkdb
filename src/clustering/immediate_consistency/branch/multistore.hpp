@@ -21,9 +21,12 @@ public:
     // We don't get ownership of the store_view_t pointers themselves.
     multistore_ptr_t(store_view_t<protocol_t> **store_views, int num_store_views, const typename protocol_t::region_t &region_mask = protocol_t::region_t::universe());
 
+    // Creates a multistore_ptr_t that depends on the lifetime of the
+    // inner multistore_ptr_t.
+    multistore_ptr_t(multistore_ptr_t<protocol_t> *inner, const typename protocol_t::region_t &region_mask);
+
     // deletes the store_subview_t objects.
     ~multistore_ptr_t();
-
 
     typename protocol_t::region_t get_multistore_joined_region() const;
 
@@ -82,6 +85,9 @@ public:
 
 
 private:
+    // Used by the constructors.
+    void initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask);
+
     // We _own_ these pointers and must delete them at destruction.
     std::vector<store_view_t<protocol_t> *> store_views;
 
