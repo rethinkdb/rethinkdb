@@ -43,6 +43,8 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 	throw broadcaster_lost_exc_t();
     }
 
+    const int num_stores = svs->num_stores();
+
 #ifndef NDEBUG
     branch_birth_certificate_t<protocol_t> this_branch_history =
 	branch_history->get().branches[branch_id];
@@ -55,7 +57,6 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
        was initiated. */
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
 
-    const int num_stores = svs->num_stores();
     boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
 
 
@@ -175,9 +176,9 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
     branch_id = broadcaster->branch_id;
 
+#ifndef NDEBUG
     const int num_stores = svs->num_stores();
 
-#ifndef NDEBUG
     /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
 	broadcaster_metadata->get();

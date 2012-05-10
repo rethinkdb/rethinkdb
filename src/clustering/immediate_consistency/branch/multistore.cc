@@ -24,7 +24,8 @@ typename protocol_t::region_t compute_unmasked_multistore_joined_region(store_vi
 
 template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store_views, int num_store_views, const typename protocol_t::region_t &_region_mask)
-    : store_views(num_store_views, NULL), region_mask(_region_mask) {
+    : store_views(num_store_views, NULL)
+      DEBUG_ONLY(, region_mask(_region_mask)) {
 
     rassert(region_is_superset(compute_unmasked_multistore_joined_region(_store_views, num_store_views), _region_mask));
 
@@ -33,7 +34,8 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store
 
 template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inner, const typename protocol_t::region_t &_region_mask)
-    : store_views(inner->num_stores(), NULL), region_mask(_region_mask) {
+    : store_views(inner->num_stores(), NULL)
+      DEBUG_ONLY(, region_mask(_region_mask)) {
     rassert(region_is_superset(inner->region_mask, _region_mask));
 
     initialize(inner->store_views.data(), _region_mask);
