@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, random, time
+import sys, random, time, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import workload_common
 from vcoptparse import *

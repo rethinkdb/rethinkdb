@@ -18,20 +18,10 @@ log_serializer_t. This leads to bugs in a couple of ways:
 Later, rewrite this so that we have a special interface through which to order
 garbage collection. */
 
-perfmon_counter_t
-    pm_serializer_data_extents("serializer_data_extents"),
-    pm_serializer_data_extents_allocated("serializer_data_extents_allocated[dexts]"),
-    pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed[dexts]"),
-    pm_serializer_data_extents_gced("serializer_data_extents_gced[dexts]"),
-    pm_serializer_data_blocks_written("serializer_data_blocks_written"),
-    pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks"),
-    pm_serializer_old_total_blocks("serializer_old_total_blocks");
-
-data_block_manager_t::data_block_manager_t(const log_serializer_dynamic_config_t *_dynamic_config, extent_manager_t *em, log_serializer_t *_serializer, const log_serializer_on_disk_static_config_t *_static_config)
-    : shutdown_callback(NULL), state(state_unstarted),
-      dynamic_config(_dynamic_config), static_config(_static_config), extent_manager(em), serializer(_serializer),
-      next_active_extent(0),
-      gc_state(extent_manager->extent_size)
+data_block_manager_t::data_block_manager_t(const log_serializer_dynamic_config_t *_dynamic_config, extent_manager_t *em, log_serializer_t *_serializer, const log_serializer_on_disk_static_config_t *_static_config, log_serializer_stats_t *_stats)
+    : stats(_stats), shutdown_callback(NULL), state(state_unstarted), dynamic_config(_dynamic_config), 
+      static_config(_static_config), extent_manager(em), serializer(_serializer),
+      next_active_extent(0), gc_state(extent_manager->extent_size), gc_stats(stats)
 {
     rassert(dynamic_config);
     rassert(static_config);
@@ -252,7 +242,7 @@ off64_t data_block_manager_t::write(const void *buf_in, block_id_t block_id, boo
 
     off64_t offset = gimme_a_new_offset();
 
-    ++pm_serializer_data_blocks_written;
+    ++stats->pm_serializer_data_blocks_written;
 
     ls_buf_data_t *data = const_cast<ls_buf_data_t *>(reinterpret_cast<const ls_buf_data_t *>(buf_in) - 1);
     data->block_id = block_id;
@@ -301,7 +291,7 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id)
                 unreachable();
         }
 
-        ++pm_serializer_data_extents_reclaimed;
+        ++stats->pm_serializer_data_extents_reclaimed;
         entry->destroy();
         entries.set(extent_id, NULL);
 
@@ -514,7 +504,7 @@ void data_block_manager_t::run_gc() {
                     return;
                 }
 
-                ++pm_serializer_data_extents_gced;
+                ++stats->pm_serializer_data_extents_gced;
 
                 /* grab the entry */
                 gc_state.current_entry = gc_pq.pop();
@@ -705,7 +695,7 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
         active_extents[next_active_extent]->state = gc_entry::state_active;
         blocks_in_active_extent[next_active_extent] = 0;
 
-        ++pm_serializer_data_extents_allocated;
+        ++stats->pm_serializer_data_extents_allocated;
     }
 
     /* Put the block into the chosen extent */
@@ -790,7 +780,7 @@ gc_entry::gc_entry(data_block_manager_t *_parent)
     parent->entries.set(offset / parent->extent_manager->extent_size, this);
     g_array.set();
 
-    ++pm_serializer_data_extents;
+    ++parent->stats->pm_serializer_data_extents;
 }
 
 gc_entry::gc_entry(data_block_manager_t *_parent, off64_t _offset)
@@ -807,14 +797,14 @@ gc_entry::gc_entry(data_block_manager_t *_parent, off64_t _offset)
     parent->entries.set(offset / parent->extent_manager->extent_size, this);
     g_array.set();
 
-    ++pm_serializer_data_extents;
+    ++parent->stats->pm_serializer_data_extents;
 }
 
 gc_entry::~gc_entry() {
     rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
     parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
 
-    --pm_serializer_data_extents;
+    --parent->stats->pm_serializer_data_extents;
 }
 
 void gc_entry::destroy() {
@@ -911,5 +901,5 @@ void data_block_manager_t::gc_stat_t::operator-=(int64_t num) {
     *perfmon -= num;
 }
 
-data_block_manager_t::gc_stats_t::gc_stats_t()
-    : old_total_blocks(&pm_serializer_old_total_blocks), old_garbage_blocks(&pm_serializer_old_garbage_blocks) { }
+data_block_manager_t::gc_stats_t::gc_stats_t(log_serializer_stats_t *stats)
+    : old_total_blocks(&stats->pm_serializer_old_total_blocks), old_garbage_blocks(&stats->pm_serializer_old_garbage_blocks) { }

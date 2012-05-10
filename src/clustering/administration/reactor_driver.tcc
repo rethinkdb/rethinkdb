@@ -13,6 +13,7 @@
 #include "concurrency/watchable.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view/field.hpp"
+#include "clustering/administration/perfmon_collection_repo.hpp"
 
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
@@ -151,13 +152,15 @@ private:
     }
 
     void initialize_reactor() {
+        perfmon_collection_t *perfmon_collection = parent->perfmon_collection_repo->get_perfmon_collection_for_namespace(namespace_id);
+
         int res = access(get_file_name().c_str(), R_OK | W_OK);
         if (res == 0) {
             /* The file already exists thus we don't create it. */
-            store.reset(new typename protocol_t::store_t(get_file_name(), false));
+            store.reset(new typename protocol_t::store_t(get_file_name(), false, perfmon_collection));
         } else {
             /* The file does not exist, create it. */
-            store.reset(new typename protocol_t::store_t(get_file_name(), true));
+            store.reset(new typename protocol_t::store_t(get_file_name(), true, perfmon_collection));
 
             //Initialize the metadata in the underlying store
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
@@ -228,7 +231,8 @@ reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
                  boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
                  boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                  const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
-                 std::string _file_path)
+                 std::string _file_path,
+                 perfmon_collection_repo_t *_perfmon_collection_repo)
     : mbox_manager(_mbox_manager),
       directory_view(_directory_view),
       branch_history(metadata_field(&namespaces_semilattice_metadata_t<protocol_t>::branch_history, _namespaces_view)),
@@ -238,7 +242,8 @@ reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
       file_path(_file_path),
       watchable_variable(namespaces_directory_metadata_t<protocol_t>()),
       semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
-      translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this))
+      translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this)),
+      perfmon_collection_repo(_perfmon_collection_repo)
 {
     watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
     translation_table_subscription.reset(machine_id_translation_table, &freeze);

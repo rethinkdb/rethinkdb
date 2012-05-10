@@ -18,7 +18,7 @@ public:
         issue_json_t json;
         json.critical = true;
         json.description = "Machine " + uuid_to_str(machine_id) + " is inaccessible.";
-        json.type.issue_type = MACHINE_DOWN;
+        json.type = "MACHINE_DOWN";
         json.time = get_secs();
 
         cJSON *res = render_as_json(&json, 0);
@@ -49,7 +49,7 @@ public:
         issue_json_t json;
         json.critical = false;
         json.description = get_description();
-        json.type.issue_type = MACHINE_GHOST;
+        json.type = "MACHINE_GHOST";
         json.time = get_secs();
 
         cJSON *res = render_as_json(&json, 0);

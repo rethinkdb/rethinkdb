@@ -14,15 +14,14 @@
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+#include "perfmon_types.hpp"
 
 class signal_t;
 
 namespace mock {
 
 class dummy_protocol_t {
-
 public:
-
     class region_t {
     public:
         static region_t empty() THROWS_NOTHING;
@@ -100,8 +99,8 @@ public:
     public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
-        store_t();
-        store_t(const std::string& filename, bool create);
+        explicit store_t();
+        store_t(const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
         ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) THROWS_NOTHING;

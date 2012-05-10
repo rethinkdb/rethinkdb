@@ -5,6 +5,7 @@
 
 #include "memcached/protocol.hpp"
 #include "clustering/immediate_consistency/query/namespace_interface.hpp"
+#include "memcached/stats.hpp"
 
 /* `handle_memcache()` handles memcache queries from the given `memcached_interface_t`,
 sending the results to the same `memcached_interface_t`, until either SIGINT is sent to
@@ -35,6 +36,7 @@ struct memcached_interface_t {
 
 void handle_memcache(memcached_interface_t *interface,
                      namespace_interface_t<memcached_protocol_t> *nsi,
-                     int max_concurrent_queries_per_connection);
+                     int max_concurrent_queries_per_connection,
+                     memcached_stats_t *);
 
 #endif /* MEMCACHED_PARSER_HPP_ */

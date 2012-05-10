@@ -119,47 +119,48 @@ private:
 };
 
 /* perfmon_system_t is used to monitor system stats that do not need to be polled. */
-
-struct perfmon_system_t :
-    public perfmon_t
-{
+struct perfmon_system_t : public perfmon_t {
     bool have_reported_error;
-    perfmon_system_t() : perfmon_t(false), have_reported_error(false), start_time(time(NULL)) { }
+    explicit perfmon_system_t(perfmon_collection_t *parent = NULL) : perfmon_t(parent), have_reported_error(false) {
+        struct timespec now;
+        int res = clock_gettime(CLOCK_MONOTONIC, &now);
+        guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+        start_time = now.tv_sec;
+    }
 
     void *begin_stats() {
         return NULL;
     }
     void visit_stats(void *) {
     }
-    void end_stats(void *, perfmon_stats_t *dest) {
+    void end_stats(void *, perfmon_result_t *dest) {
         put_timestamp(dest);
-        (*dest)["version"] = std::string(RETHINKDB_VERSION);
-        (*dest)["pid"] = strprintf("%d", getpid());
+        dest->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
+        dest->insert("pid", new perfmon_result_t(strprintf("%d", getpid())));
 
         proc_pid_stat_t pid_stat;
         try {
             pid_stat = proc_pid_stat_t::for_pid(getpid());
         } catch (proc_pid_stat_exc_t e) {
             if (!have_reported_error) {
-                logWRN("Error in reporting system stats: %s (Further errors like this will "
-                    "be suppressed.)", e.what());
+                logWRN("Error in reporting system stats: %s (Further errors like this will be suppressed.)", e.what());
                 have_reported_error = true;
             }
             return;
         }
 
-        (*dest)["memory_virtual[bytes]"] = strprintf("%lu", pid_stat.vsize);
-        (*dest)["memory_real[bytes]"] = strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE));
+        dest->insert("memory_virtual", new perfmon_result_t(strprintf("%lu", pid_stat.vsize)));
+        dest->insert("memory_real", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
     }
-    void put_timestamp(perfmon_stats_t *dest) {
+    void put_timestamp(perfmon_result_t *dest) {
         struct timespec now;
-        int res = clock_gettime(CLOCK_REALTIME, &now);
-        guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-        (*dest)["uptime"] = strprintf("%d", int(difftime(start_time, now.tv_sec)));
-        (*dest)["timestamp"] = format_time(now);
+        int res = clock_gettime(CLOCK_MONOTONIC, &now);
+        guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+        dest->insert("uptime", new perfmon_result_t(strprintf("%ld", now.tv_sec - start_time)));
+        dest->insert("timestamp", new perfmon_result_t(format_time(now)));
     }
 
-    time_t start_time;
+    long start_time;
 } pm_system;
 
 /* Some of the stats need to be polled periodically. Call this function periodically on each
@@ -167,10 +168,10 @@ thread to ensure that stats are up to date. It takes a void* so that it can be c
 callback. */
 
 perfmon_sampler_t
-    pm_cpu_user("cpu_user", secs_to_ticks(5)),
-    pm_cpu_system("cpu_system", secs_to_ticks(5)),
-    pm_cpu_combined("cpu_combined", secs_to_ticks(5)),
-    pm_memory_faults("memory_faults", secs_to_ticks(5));
+    pm_cpu_user("cpu_user", secs_to_ticks(5), false, NULL),
+    pm_cpu_system("cpu_system", secs_to_ticks(5), false, NULL),
+    pm_cpu_combined("cpu_combined", secs_to_ticks(5), false, NULL),
+    pm_memory_faults("memory_faults", secs_to_ticks(5), false, NULL);
 
 
 TLS(proc_pid_stat_t, last_stats);

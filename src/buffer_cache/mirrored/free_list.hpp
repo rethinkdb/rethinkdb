@@ -10,12 +10,15 @@ class serializer_t;
 /* TODO We could implement a free list in the unused cells of the page map, saving a little bit
 of memory. */
 
+struct mc_cache_stats_t;
+
 class array_free_list_t : public home_thread_mixin_t {
 public:
-    explicit array_free_list_t(serializer_t *);
+    array_free_list_t(serializer_t *, mc_cache_stats_t *);
     ~array_free_list_t();
 
     int num_blocks_in_use;
+    mc_cache_stats_t *stats;
     void reserve_block_id(block_id_t id);
     block_id_t gen_block_id();
     void release_block_id(block_id_t);
