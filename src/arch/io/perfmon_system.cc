@@ -121,7 +121,12 @@ private:
 /* perfmon_system_t is used to monitor system stats that do not need to be polled. */
 struct perfmon_system_t : public perfmon_t {
     bool have_reported_error;
-    explicit perfmon_system_t(perfmon_collection_t *parent = NULL) : perfmon_t(parent), have_reported_error(false), start_time(time(NULL)) { }
+    explicit perfmon_system_t(perfmon_collection_t *parent = NULL) : perfmon_t(parent), have_reported_error(false) {
+        struct timespec now;
+        int res = clock_gettime(CLOCK_MONOTONIC, &now);
+        guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+        start_time = now.tv_sec;
+    }
 
     void *begin_stats() {
         return NULL;
@@ -149,13 +154,13 @@ struct perfmon_system_t : public perfmon_t {
     }
     void put_timestamp(perfmon_result_t *dest) {
         struct timespec now;
-        int res = clock_gettime(CLOCK_REALTIME, &now);
-        guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-        dest->insert("uptime", new perfmon_result_t(strprintf("%d", int(difftime(start_time, now.tv_sec)))));
+        int res = clock_gettime(CLOCK_MONOTONIC, &now);
+        guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+        dest->insert("uptime", new perfmon_result_t(strprintf("%ld", now.tv_sec - start_time)));
         dest->insert("timestamp", new perfmon_result_t(format_time(now)));
     }
 
-    time_t start_time;
+    long start_time;
 } pm_system;
 
 /* Some of the stats need to be polled periodically. Call this function periodically on each
