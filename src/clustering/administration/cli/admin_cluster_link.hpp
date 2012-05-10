@@ -53,7 +53,9 @@ public:
     void sync_from();
     void sync_to();
 
-    size_t machine_count();
+    size_t machine_count() const;
+    size_t available_machine_count();
+    size_t issue_count();
 
 private:
 
@@ -74,6 +76,7 @@ private:
     void do_admin_set_replicas_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_replicas);
 
     void list_issues(bool long_format);
+    void list_directory(bool long_format);
     void list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_datacenters(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_dummy_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);

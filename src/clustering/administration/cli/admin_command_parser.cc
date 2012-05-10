@@ -1,5 +1,8 @@
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/cli/admin_cluster_link.hpp"
+#include "arch/runtime/thread_pool.hpp"
+#include "arch/timing.hpp"
+#include "arch/runtime/runtime_utils.hpp"
 
 #include <cstdarg>
 #include <map>
@@ -11,10 +14,8 @@
 
 #include <boost/program_options.hpp>
 
-// TODO: make a useful prompt
-const char *prompt = " > ";
-
 admin_command_parser_t *admin_command_parser_t::instance = NULL;
+uint64_t admin_command_parser_t::cluster_join_timeout = 5000; // Give 5 seconds to connect to all machines in the cluster
 
 const char *admin_command_parser_t::list_command = "ls";
 const char *admin_command_parser_t::exit_command = "exit";
@@ -34,7 +35,7 @@ const char *admin_command_parser_t::join_command = "join";
 const char *admin_command_parser_t::complete_command = "complete";
 
 const char *admin_command_parser_t::exit_usage = "";
-const char *admin_command_parser_t::list_usage = "[ datacenters | namespaces [--protocol <protocol>] | machines | issues | <id> ] [--long]";
+const char *admin_command_parser_t::list_usage = "[ datacenters | namespaces [--protocol <protocol>] | machines | issues | directory | <id> ] [--long]";
 const char *admin_command_parser_t::help_usage = "[ ls | create | rm | set | rename | help ]";
 const char *admin_command_parser_t::split_shard_usage = "<namespace> <split-point>...";
 const char *admin_command_parser_t::merge_shard_usage = "<namespace> <split-point>...";
@@ -246,7 +247,8 @@ void admin_command_parser_t::do_split_usage(bool console) {
     do_usage_internal(helps, options, "split - split a shard in a namespace into more shards", console);
 }
 
-admin_command_parser_t::admin_command_parser_t(const std::set<peer_address_t>& joins, int client_port) :
+admin_command_parser_t::admin_command_parser_t(const std::string& peer_string, const std::set<peer_address_t>& joins, int client_port) :
+    join_peer(peer_string),
     joins_param(joins),
     client_port_param(client_port),
     cluster(NULL),
@@ -262,7 +264,18 @@ admin_command_parser_t::~admin_command_parser_t() {
     rassert(instance == this);
     instance = NULL;
 
+    destroy_command_descriptions(commands);
+
     delete cluster;
+}
+
+void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, command_info *>& cmd_map) {
+    for (std::map<std::string, command_info *>::iterator i = cmd_map.begin(); i != cmd_map.end(); ++i) {
+        if (!i->second->subcommands.empty())
+            destroy_command_descriptions(i->second->subcommands);
+        delete i->second;
+    }
+    cmd_map.clear();
 }
 
 admin_command_parser_t::command_info * admin_command_parser_t::add_command(std::map<std::string, command_info *>& cmd_map,
@@ -326,7 +339,7 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_flag("resolve", 0, false);
 
     info = add_command(commands, list_command, list_command, list_usage, false, &admin_cluster_link_t::do_admin_list);
-    info->add_positional("filter", 1, false)->add_options("issues", "machines", "namespaces", "datacenters", "!id", NULL); // TODO: how to handle --protocol: for now, just error if specified in the wrong situation
+    info->add_positional("filter", 1, false)->add_options("issues", "machines", "namespaces", "datacenters", "directory", "!id", NULL); // TODO: how to handle --protocol: for now, just error if specified in the wrong situation
     info->add_flag("protocol", 1, false)->add_options("memcached", "dummy", NULL);
     info->add_flag("long", 0, false);
 
@@ -355,9 +368,18 @@ admin_cluster_link_t * admin_command_parser_t::get_cluster() {
             throw admin_no_connection_exc_t("no join parameter specified");
         cluster = new admin_cluster_link_t(joins_param, client_port_param);
 
+        // Spin for some time, trying to connect to the whole cluster
+        for (uint64_t time_waited = 0; time_waited < cluster_join_timeout &&
+             (cluster->machine_count() > cluster->available_machine_count() ||
+              cluster->available_machine_count() == 0); time_waited += 100)
+            nap(100);
+
         if (console_mode) {
             cluster->sync_from();
             fprintf(stdout, "Connected to cluster with %ld machines, run 'help' for more information\n", cluster->machine_count());
+            size_t num_issues = cluster->issue_count();
+            if (num_issues > 0)
+                fprintf(stdout, "There are %ld outstanding issues, run 'ls issues' for more information\n", num_issues);
         }
     }
 
@@ -654,15 +676,42 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
     }
 }
 
+void admin_command_parser_t::update_prompt(char* str, size_t len) {
+    std::string join_peer_truncated(join_peer);
+
+    if (join_peer.length() > len - 15) {
+        join_peer_truncated = join_peer.substr(0, len - 18) + "...";
+    }
+
+    if (cluster == NULL) {
+        snprintf(str, len, "> ");
+    } else {
+        snprintf(str, len, "%s> ", join_peer_truncated.c_str());
+    }
+}
+
+class linenoiseCallable {
+public:
+    linenoiseCallable(const char* _prompt, char** _raw_line_ptr) : prompt(_prompt), raw_line_ptr(_raw_line_ptr) { }
+    const char* prompt;
+    char** raw_line_ptr;
+
+    void operator () () const { *raw_line_ptr = linenoise(prompt); }
+};
+
 void admin_command_parser_t::run_console() {
+    char prompt[64];
+    char* raw_line;
+    linenoiseCallable linenoise_blocker(prompt, &raw_line);
+    std::string line;
     console_mode = true;
 
     if (!joins_param.empty())
         get_cluster();
 
     linenoiseSetCompletionCallback(completion_generator_hook);
-    char *raw_line = linenoise(prompt);
-    std::string line;
+    update_prompt(prompt, 64);
+    thread_pool_t::run_in_blocker_pool(linenoise_blocker);
 
     while(raw_line != NULL) {
         line.assign(raw_line);
@@ -686,8 +735,9 @@ void admin_command_parser_t::run_console() {
             linenoiseHistoryAdd(raw_line);
         }
 
-        // TODO: update prompt, timeout?
-        raw_line = linenoise(prompt);
+        free(raw_line);
+        update_prompt(prompt, 64);
+        thread_pool_t::run_in_blocker_pool(linenoise_blocker);
     }
     console_mode = false;
 }
@@ -736,4 +786,5 @@ void admin_command_parser_t::do_admin_join(command_data& data) {
     // TODO: this probably doesn't work
     delete cluster;
     get_cluster();
+    join_peer.assign(host_port);
 }
