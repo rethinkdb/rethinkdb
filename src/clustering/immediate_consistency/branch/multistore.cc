@@ -233,12 +233,11 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
         return;
     }
 
-    store_view_t<protocol_t> *store = store_views[i];
     try {
-        responses->push_back(store->read(DEBUG_ONLY(expected_metainfo.mask(get_region(i)), )
-                                         read.shard(get_region(i)),
-                                         read_tokens[i],
-                                         interruptor));
+        responses->push_back(store_views[i]->read(DEBUG_ONLY(expected_metainfo.mask(get_region(i)), )
+                                                  read.shard(get_region(i)),
+                                                  read_tokens[i],
+                                                  interruptor));
     } catch (interrupted_exc_t& exc) {
         // do nothing
     }
@@ -269,18 +268,59 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const typename  protocol_t::store_
 }
 
 template <class protocol_t>
-typename protocol_t::write_response_t
-multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(UNUSED const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
-                                    UNUSED const typename protocol_t::store_t::metainfo_t& new_metainfo,
-                                    UNUSED const typename protocol_t::write_t &write,
-                                    UNUSED transition_timestamp_t timestamp,
-                                    UNUSED boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                    UNUSED int num_stores_assertion,
-                                    UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    // TODO: uh, implement
-    // TODO: no unused parameters.
+void multistore_ptr_t<protocol_t>::single_shard_write(int i,
+                                                      DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
+                                                      const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                                                      const typename protocol_t::write_t &write,
+                                                      transition_timestamp_t timestamp,
+                                                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                                      std::vector<typename protocol_t::write_response_t> *responses,
+                                                      signal_t *interruptor) THROWS_NOTHING {
+    if (!region_overlaps(get_region(i), write.get_region())) {
+        write_tokens[i].reset();
+        return;
+    }
 
-    return typename protocol_t::write_response_t();
+    // TODO: Have an assertion about the new_metainfo region?
+
+    try {
+        responses->push_back(store_views[i]->write(DEBUG_ONLY(expected_metainfo.mask(get_region(i)), )
+                                                   new_metainfo.mask(get_region(i)),
+                                                   write.shard(get_region(i)),
+                                                   timestamp,
+                                                   write_tokens[i],
+                                                   interruptor));
+    } catch (interrupted_exc_t& exc) {
+        // do nothing
+    }
+}
+
+template <class protocol_t>
+typename protocol_t::write_response_t
+multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
+                                    const typename protocol_t::store_t::metainfo_t& new_metainfo,
+                                    const typename protocol_t::write_t &write,
+                                    transition_timestamp_t timestamp,
+                                    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                    int num_stores_assertion,
+                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    guarantee(num_stores() == num_stores_assertion);
+    std::vector<typename protocol_t::write_response_t> responses;
+    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_write,
+                                   this, _1, DEBUG_ONLY(boost::ref(expected_metainfo), )
+                                   boost::ref(new_metainfo),
+                                   boost::ref(write),
+                                   timestamp,
+                                   write_tokens,
+                                   &responses,
+                                   interruptor));
+
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+
+    typename protocol_t::temporary_cache_t fake_cache;
+    return write.unshard(responses, &fake_cache);
 }
 
 template <class protocol_t>

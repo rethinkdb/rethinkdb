@@ -103,6 +103,15 @@ private:
                            std::vector<typename protocol_t::read_response_t> *responses,
                            signal_t *interruptor) THROWS_NOTHING;
 
+    void single_shard_write(int i,
+                            DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
+                            const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                            const typename protocol_t::write_t &write,
+                            transition_timestamp_t timestamp,
+                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                            std::vector<typename protocol_t::write_response_t> *responses,
+                            signal_t *interruptor) THROWS_NOTHING;
+
     // Used by the constructors.
     void initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask) THROWS_NOTHING;
 
