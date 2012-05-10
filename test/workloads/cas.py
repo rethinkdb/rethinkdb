@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from random import shuffle
-import sys
+import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import workload_common
 from vcoptparse import *
