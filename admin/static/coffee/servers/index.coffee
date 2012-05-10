@@ -147,7 +147,11 @@ module 'ServerView', ->
 
             if not @model.get('datacenter_uuid')?
                 json.unassigned_machine = true
+            # Stats, jiga
+            json = _.extend json,
+                cpu_combined_avg : Math.round(@model.get_stats().cpu_combined_avg * 100)
 
+            # Whooo
             @.$('.machine.summary').html @summary_template json
 
         rename_machine: (event) ->
