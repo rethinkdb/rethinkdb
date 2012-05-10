@@ -31,6 +31,9 @@ cJSON *render_as_json(issue_type_t *target, const ctx_t &) {
         case PINNINGS_SHARDS_MISMATCH:
             return cJSON_CreateString("PINNINGS_SHARDS_MISMATCH");
             break;
+        case UNSATISFIABLE_GOALS:
+            return cJSON_CreateString("UNSATISFIABLE_GOALS");
+            break;
         default:
             unreachable();
             break;

@@ -9,6 +9,7 @@
 #include "clustering/administration/issues/machine_down.hpp"
 #include "clustering/administration/issues/name_conflict.hpp"
 #include "clustering/administration/issues/pinnings_shards_mismatch.hpp"
+#include "clustering/administration/issues/unsatisfiable_goals.hpp"
 #include "clustering/administration/issues/vector_clock_conflict.hpp"
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/main/initial_join.hpp"
@@ -125,6 +126,10 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view())
         );
     global_issue_aggregator_t::source_t dummy_pinnings_shards_mismatch_issue_tracker_feed(&issue_aggregator, &dummy_pinnings_shards_mismatch_issue_tracker);
+
+    unsatisfiable_goals_issue_tracker_t unsatisfiable_goals_issue_tracker(
+        semilattice_manager_cluster.get_root_view());
+    global_issue_aggregator_t::source_t unsatisfiable_goals_issue_tracker_feed(&issue_aggregator, &unsatisfiable_goals_issue_tracker);
 
     last_seen_tracker_t last_seen_tracker(
         metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
