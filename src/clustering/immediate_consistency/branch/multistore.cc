@@ -175,14 +175,14 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
 
     // TODO: Blithely assing progress along might be broken.
 
-    store_view_t<protocol_t> *view = store_views[i];
+    store_view_t<protocol_t> *store = store_views[i];
     try {
-        view->send_backfill(start_point.mask(view->get_region()),
-                            boost::bind(&multistore_send_backfill_should_backfill_t<protocol_t>::should_backfill, helper, _1),
-                            chunk_fun,  // TODO: Do we need to wrap this?
-                            progress,
-                            read_tokens[i],
-                            interruptor);
+        store->send_backfill(start_point.mask(get_region(i)),
+                             boost::bind(&multistore_send_backfill_should_backfill_t<protocol_t>::should_backfill, helper, _1),
+                             chunk_fun,  // TODO: Do we need to wrap this?
+                             progress,
+                             read_tokens[i],
+                             interruptor);
     } catch (interrupted_exc_t& exc) {
         // do nothing
     }
@@ -208,36 +208,64 @@ bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<p
                                                             int num_stores_assertion,
                                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     guarantee(num_stores() == num_stores_assertion);
+    guarantee(region_is_superset(get_multistore_joined_region(), start_point.get_domain()));
 
     multistore_send_backfill_should_backfill_t<protocol_t> helper(num_stores(), get_multistore_joined_region(), should_backfill);
 
-    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_backfill, this, _1, &helper, start_point, chunk_fun, progress, read_tokens, interruptor));
+    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_backfill, this, _1, &helper, boost::ref(start_point), boost::ref(chunk_fun), progress, read_tokens, interruptor));
 
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
 
     return helper.get_result();
-
-    // TODO: All the parameters must be not marked UNUSED.  In particular, progress.
 }
 
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::single_shard_read(int i,
+                                                     DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
+                                                     const typename protocol_t::read_t &read,
+                                                     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                                                     std::vector<typename protocol_t::read_response_t> *responses,
+                                                     signal_t *interruptor) THROWS_NOTHING {
+    if (!region_overlaps(get_region(i), read.get_region())) {
+        read_tokens[i].reset();
+        return;
+    }
 
+    store_view_t<protocol_t> *store = store_views[i];
+    try {
+        responses->push_back(store->read(DEBUG_ONLY(expected_metainfo.mask(get_region(i)), )
+                                         read.shard(get_region(i)),
+                                         read_tokens[i],
+                                         interruptor));
+    } catch (interrupted_exc_t& exc) {
+        // do nothing
+    }
+}
 
 template <class protocol_t>
 typename protocol_t::read_response_t
-multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(UNUSED const typename  protocol_t::store_t::metainfo_t& expected_metainfo, )
-                                   UNUSED const typename protocol_t::read_t &read,
-                                   UNUSED boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                                   UNUSED int num_stores_assertion,
-                                   UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const typename  protocol_t::store_t::metainfo_t& expected_metainfo, )
+                                   const typename protocol_t::read_t &read,
+                                   boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                                   int num_stores_assertion,
+                                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    guarantee(num_stores() == num_stores_assertion);
+    std::vector<typename protocol_t::read_response_t> responses;
+    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_read,
+                                   this, _1, DEBUG_ONLY(boost::ref(expected_metainfo), )
+                                   boost::ref(read),
+                                   read_tokens,
+                                   &responses,
+                                   interruptor));
 
-    // TODO: uh, implement.
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
 
-    // TODO: no unused parameters.
-
-    return typename protocol_t::read_response_t();
-
+    typename protocol_t::temporary_cache_t fake_cache;
+    return read.unshard(responses, &fake_cache);
 }
 
 template <class protocol_t>
