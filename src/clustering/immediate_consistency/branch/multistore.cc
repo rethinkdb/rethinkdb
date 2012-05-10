@@ -166,21 +166,22 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
                                                          multistore_send_backfill_should_backfill_t<protocol_t> *helper,
                                                          const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                                          const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                                                         typename protocol_t::backfill_progress_t *progress,
                                                          boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                                          signal_t *interruptor) THROWS_NOTHING {
-    // TODO: Support progress.
-    typename protocol_t::backfill_progress_t bs_progress;
+    // TODO: This will be broken when things start being on multiple threads.
+
+    // TODO: Blithely assing progress along might be broken.
 
     store_view_t<protocol_t> *view = store_views[i];
     try {
         view->send_backfill(start_point.mask(view->get_region()),
                             boost::bind(&multistore_send_backfill_should_backfill_t<protocol_t>::should_backfill, helper, _1),
                             chunk_fun,  // TODO: Do we need to wrap this?
-                            &bs_progress,
+                            progress,
                             read_tokens[i],
                             interruptor);
     } catch (interrupted_exc_t& exc) {
-        (void)exc;
         // do nothing
     }
 }
@@ -200,7 +201,7 @@ template <class protocol_t>
 bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                                             const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,
                                                             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
-                                                            UNUSED typename protocol_t::backfill_progress_t *progress,
+                                                            typename protocol_t::backfill_progress_t *progress,
                                                             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                                             int num_stores_assertion,
                                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -208,7 +209,7 @@ bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<p
 
     multistore_send_backfill_should_backfill_t<protocol_t> helper(num_stores(), get_multistore_joined_region(), should_backfill);
 
-    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_backfill, this, _1, &helper, start_point, chunk_fun, read_tokens, interruptor));
+    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_backfill, this, _1, &helper, start_point, chunk_fun, progress, read_tokens, interruptor));
 
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();

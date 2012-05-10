@@ -92,6 +92,7 @@ private:
                                multistore_send_backfill_should_backfill_t<protocol_t> *helper,
                                const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                               typename protocol_t::backfill_progress_t *progress,
                                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                signal_t *interruptor) THROWS_NOTHING;
 
