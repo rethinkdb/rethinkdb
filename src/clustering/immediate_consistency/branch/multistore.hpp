@@ -15,6 +15,8 @@ class version_range_t;
 class binary_blob_t;
 namespace boost { template <class> class function; }
 
+template <class> class multistore_send_backfill_should_backfill_t;
+
 template <class protocol_t>
 class multistore_ptr_t {
 public:
@@ -52,7 +54,7 @@ public:
     void set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens, int num_write_tokens, signal_t *interruptor);
 
     bool send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                  const boost::function<bool(const typename protocol_t::store_t::metainfo_t&)> &should_backfill,
+                                  const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,
                                   const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
                                   typename protocol_t::backfill_progress_t *progress,
                                   boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
@@ -85,8 +87,16 @@ public:
 
 
 private:
+    // Used by send_multistore_backfill.
+    void single_shard_backfill(int i,
+                               multistore_send_backfill_should_backfill_t<protocol_t> *helper,
+                               const region_map_t<protocol_t, state_timestamp_t> &start_point,
+                               const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                               boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                               signal_t *interruptor) THROWS_NOTHING;
+
     // Used by the constructors.
-    void initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask);
+    void initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask) THROWS_NOTHING;
 
     // We _own_ these pointers and must delete them at destruction.
     std::vector<store_view_t<protocol_t> *> store_views;

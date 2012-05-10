@@ -29,6 +29,9 @@ struct promise_t : public home_thread_mixin_t {
         rassert(value);
         return *value;
     }
+    bool is_pulsed() {
+        return cond.is_pulsed();
+    }
     ~promise_t() {
         if (value) delete value;
     }

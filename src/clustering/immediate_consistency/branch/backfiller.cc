@@ -40,6 +40,10 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
 									 );
 
 #ifndef NDEBUG
+    // TODO: Should the rassert calls in this block of code be return
+    // false statements instead of assertions?  Tim doesn't know.
+    // Figure this out.
+
     /* Confirm that `start_point` is a point in our past */
     typedef region_map_t<protocol_t, version_range_t> version_map_t;
 

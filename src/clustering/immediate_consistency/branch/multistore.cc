@@ -40,7 +40,7 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inn
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask) {
+void multistore_ptr_t<protocol_t>::initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask) THROWS_NOTHING {
     for (int i = 0, e = store_views.size(); i < e; ++i) {
         rassert(store_views[i] == NULL);
 
@@ -124,6 +124,67 @@ void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol
     }
 }
 
+template <class protocol_t>
+class multistore_send_backfill_should_backfill_t {
+public:
+    multistore_send_backfill_should_backfill_t(int num_stores, const typename protocol_t::region_t &joined_region,
+                                               const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill_func)
+        : countdown_(num_stores), should_backfill_func_(should_backfill_func), combined_metainfo_(joined_region) { }
+
+    bool should_backfill(const typename protocol_t::store_t::metainfo_t &metainfo) {
+        combined_metainfo_.update(metainfo);
+
+        -- countdown_;
+        rassert(countdown_ >= 0);
+
+        if (countdown_ == 0) {
+            bool tmp = should_backfill(combined_metainfo_);
+            result_promise_.pulse(tmp);
+        }
+
+        bool res = result_promise_.wait();
+
+        return res;
+    }
+
+    bool get_result() {
+        guarantee(result_promise_.is_pulsed());
+        return result_promise_.wait();
+    }
+
+private:
+    int countdown_;
+    const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill_func_;
+    promise_t<bool> result_promise_;
+    typename protocol_t::store_t::metainfo_t combined_metainfo_;
+
+    DISABLE_COPYING(multistore_send_backfill_should_backfill_t);
+};
+
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
+                                                         multistore_send_backfill_should_backfill_t<protocol_t> *helper,
+                                                         const region_map_t<protocol_t, state_timestamp_t> &start_point,
+                                                         const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+                                                         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                                                         signal_t *interruptor) THROWS_NOTHING {
+    // TODO: Support progress.
+    typename protocol_t::backfill_progress_t bs_progress;
+
+    store_view_t<protocol_t> *view = store_views[i];
+    try {
+        view->send_backfill(start_point.mask(view->get_region()),
+                            boost::bind(&multistore_send_backfill_should_backfill_t<protocol_t>::should_backfill, helper, _1),
+                            chunk_fun,  // TODO: Do we need to wrap this?
+                            &bs_progress,
+                            read_tokens[i],
+                            interruptor);
+    } catch (interrupted_exc_t& exc) {
+        (void)exc;
+        // do nothing
+    }
+}
+
 /* This has to be compatible with the conditions given by
    send_backfill in protocol_api.hpp.  Here is a copy that might be
    out-of-date.
@@ -136,22 +197,26 @@ void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol
    [May block]
 */
 template <class protocol_t>
-bool multistore_ptr_t<protocol_t>::send_multistore_backfill(UNUSED const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                                            UNUSED const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,
-                                                            UNUSED const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
+bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
+                                                            const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,
+                                                            const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
                                                             UNUSED typename protocol_t::backfill_progress_t *progress,
-                                                            UNUSED boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                                                            UNUSED int num_stores_assertion,
-                                                            UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    // We need to acquire all the superblocks of all the stores.  Then
-    // we need to get and join all their metainfo.  Then we need to
-    // call should_backfill(metainfo).
+                                                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                                                            int num_stores_assertion,
+                                                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    guarantee(num_stores() == num_stores_assertion);
 
-    // TODO: All the parameters must be not marked UNUSED.
+    multistore_send_backfill_should_backfill_t<protocol_t> helper(num_stores(), get_multistore_joined_region(), should_backfill);
 
-    // TODO: uh, no.
-    return false;
+    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_backfill, this, _1, &helper, start_point, chunk_fun, read_tokens, interruptor));
 
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+
+    return helper.get_result();
+
+    // TODO: All the parameters must be not marked UNUSED.  In particular, progress.
 }
 
 
