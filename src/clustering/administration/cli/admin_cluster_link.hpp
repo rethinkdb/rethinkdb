@@ -1,16 +1,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 #define CLUSTERING_ADMINISTRATION_CLU_ADMIN_CLUSTER_LINK_HPP_
 
-#include "clustering/administration/metadata.hpp"
-#include "rpc/semilattice/view.hpp"
-#include "rpc/semilattice/semilattice_manager.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/directory/read_manager.hpp"
-#include "rpc/directory/write_manager.hpp"
-#include "clustering/administration/logger.hpp"
-#include "clustering/administration/suggester.hpp"
 #include <vector>
 #include <string>
+
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/cli/linenoise.hpp"
 #include "clustering/administration/issues/global.hpp"
@@ -18,7 +11,16 @@
 #include "clustering/administration/issues/machine_down.hpp"
 #include "clustering/administration/issues/name_conflict.hpp"
 #include "clustering/administration/issues/pinnings_shards_mismatch.hpp"
+#include "clustering/administration/issues/unsatisfiable_goals.hpp"
 #include "clustering/administration/issues/vector_clock_conflict.hpp"
+#include "clustering/administration/logger.hpp"
+#include "clustering/administration/metadata.hpp"
+#include "clustering/administration/suggester.hpp"
+#include "rpc/connectivity/multiplexer.hpp"
+#include "rpc/directory/read_manager.hpp"
+#include "rpc/directory/write_manager.hpp"
+#include "rpc/semilattice/semilattice_manager.hpp"
+#include "rpc/semilattice/view.hpp"
 
 struct admin_cluster_exc_t : public std::exception {
 public:
@@ -124,6 +126,8 @@ private:
     global_issue_aggregator_t::source_t mc_pinnings_shards_mismatch_issue_tracker_feed;
     pinnings_shards_mismatch_issue_tracker_t<mock::dummy_protocol_t> dummy_pinnings_shards_mismatch_issue_tracker;
     global_issue_aggregator_t::source_t dummy_pinnings_shards_mismatch_issue_tracker_feed;
+    unsatisfiable_goals_issue_tracker_t unsatisfiable_goals_issue_tracker;
+    global_issue_aggregator_t::source_t unsatisfiable_goals_issue_tracker_feed;
 
     std::map<std::string, std::vector<std::string> > uuid_to_path;
     std::multimap<std::string, std::vector<std::string> > name_to_path;

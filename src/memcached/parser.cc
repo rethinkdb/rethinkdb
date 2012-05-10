@@ -21,7 +21,6 @@
 #include "containers/buffer_group.hpp"
 #include "containers/iterators.hpp"
 #include "containers/printf_buffer.hpp"
-#include "stats/control.hpp"
 #include "logger.hpp"
 #include "arch/os_signal.hpp"
 #include "perfmon.hpp"
@@ -977,15 +976,6 @@ std::string memcached_stats(int argc, char **argv) {
     return res;
 }
 
-// Control for showing internal stats.
-struct memcached_stats_control_t : public control_t {
-    memcached_stats_control_t() :
-        control_t("stats", "Show all stats (including internal stats).", true) {}
-    std::string call(int argc, char **argv) {
-        return memcached_stats(argc, argv);
-    }
-} memcached_stats_control;
-
 #ifndef NDEBUG
 void do_quickset(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, std::vector<char*> args) {
     if (args.size() < 2 || args.size() % 2 == 0) {
@@ -1047,31 +1037,7 @@ bool parse_debug_command(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, st
         return false;
     }
 
-    // .h is an alias for "rdb hash"
-    if (!strcmp(args[0], ".h") && args.size() >= 2) {
-        pipeliner_acq_t pipeliner_acq(pipeliner);
-        pipeliner_acq.begin_operation();
-
-        // We can't use our reference to args after we've called
-        // done_argparsing().
-        std::vector<std::string> args_copy(args.begin(), args.end());
-
-        std::vector<char *> ctrl_args;
-        for (int i = 0, e = args_copy.size(); i < e; ++i) {
-            ctrl_args.push_back(const_cast<char *>(args_copy[i].c_str()));
-        }
-
-        static char hashstring[] = "hash";
-        ctrl_args[0] = hashstring;
-
-        pipeliner_acq.done_argparsing();
-        std::string control_result = control_t::exec(ctrl_args.size(), ctrl_args.data());
-
-        pipeliner_acq.begin_write();
-        rh->write(control_result);
-        pipeliner_acq.end_write();
-        return true;
-    } else if (!strcmp(args[0], ".s")) {
+    if (!strcmp(args[0], ".s")) {
         pipeliner_acq_t pipeliner_acq(pipeliner);
         pipeliner_acq.begin_operation();
         do_quickset(rh, &pipeliner_acq, args);
@@ -1181,27 +1147,6 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
             pipeliner_acq.done_argparsing();
             pipeliner_acq.begin_write();
             rh.write(the_stats); // Only shows "public" stats; to see all stats, use "rdb stats".
-            pipeliner_acq.end_write();
-        } else if (!strcmp(args[0], "help")) {
-            pipeliner_acq_t pipeliner_acq(&pipeliner);
-            pipeliner_acq.begin_operation();
-
-            // Slightly hacky -- just treat this as a control. This assumes that a control named "help" exists (which it does).
-            std::string help_text = control_t::exec(args.size(), args.data());
-
-            pipeliner_acq.done_argparsing();
-            pipeliner_acq.begin_write();
-            rh.write(help_text);
-            pipeliner_acq.end_write();
-        } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
-            pipeliner_acq_t pipeliner_acq(&pipeliner);
-            pipeliner_acq.begin_operation();
-
-            std::string control_text = control_t::exec(args.size() - 1, args.data() + 1);
-
-            pipeliner_acq.done_argparsing();
-            pipeliner_acq.begin_write();
-            rh.write(control_text);
             pipeliner_acq.end_write();
         } else if (!strcmp(args[0], "version")) {
             pipeliner_acq_t pipeliner_acq(&pipeliner);
