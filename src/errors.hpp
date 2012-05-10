@@ -35,6 +35,12 @@
  * every single time it gets included.
  */
 
+#ifndef NDEBUG
+#define DEBUG_ONLY_VAR
+#else
+#define DEBUG_ONLY_VAR __attribute__((unused))
+#endif
+
 #define UNUSED __attribute__((unused))
 
 // TODO: Abort probably is not the right thing to do here.

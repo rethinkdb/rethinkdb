@@ -120,9 +120,7 @@ void epoll_event_queue_t::run() {
 }
 
 epoll_event_queue_t::~epoll_event_queue_t() {
-    int res __attribute__ ((unused));
-    
-    res = close(epoll_fd);
+    DEBUG_ONLY_VAR int res = close(epoll_fd);
     rassert_err(res == 0, "Could not close epoll_fd");
 }
 
