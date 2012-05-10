@@ -324,14 +324,44 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const typename protocol_t::store_
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::reset_all_data(UNUSED typename protocol_t::region_t subregion,
-                                                  UNUSED const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                                                  UNUSED boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                                  UNUSED int num_stores_assertion,
-                                                  UNUSED signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    // todo: uh, implement
-    // TODO: no unused parameters.
+void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
+                                                               const typename protocol_t::region_t &subregion,
+                                                               const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                                                               boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                                               signal_t *interruptor) THROWS_NOTHING {
+    if (!region_overlaps(get_region(i), subregion)) {
+        write_tokens[i].reset();
+        return;
+    }
 
+    try {
+        store_views[i]->reset_data(region_intersection(subregion, get_region(i)),
+                                   new_metainfo.mask(get_region(i)),
+                                   write_tokens[i],
+                                   interruptor);
+    } catch (interrupted_exc_t& exc) {
+        // do nothing
+    }
+}
+
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::reset_all_data(const typename protocol_t::region_t &subregion,
+                                                  const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                                                  boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                                  int num_stores_assertion,
+                                                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+
+    guarantee(num_stores() == num_stores_assertion);
+    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_reset_all_data,
+                                   this, _1,
+                                   boost::ref(subregion),
+                                   boost::ref(new_metainfo),
+                                   write_tokens,
+                                   interruptor));
+
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
 }
 
 
