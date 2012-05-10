@@ -664,24 +664,11 @@ void linux_nascent_tcp_conn_t::ennervate(linux_tcp_conn_t **tcp_conn_out) {
     fd_ = -1;
 }
 
-
-
-/* Network listener object */
-
-linux_tcp_listener_t::linux_tcp_listener_t(
-        int port,
-        boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> cb) :
-    sock(socket(AF_INET, SOCK_STREAM, 0)),
-    event_watcher(sock.get(), this),
-    callback(cb),
-    log_next_error(true)
-{
-    int res;
-
-    guarantee_err(sock.get() != INVALID_FD, "Couldn't create socket");
+void bind_socket(fd_t sock_fd, int port) {
+    guarantee_err(sock_fd != INVALID_FD, "Couldn't create socket");
 
     int sockoptval = 1;
-    res = setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval));
+    int res = setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval));
     guarantee_err(res != -1, "Could not set REUSEADDR option");
 
     /* XXX Making our socket NODELAY prevents the problem where responses to
@@ -695,7 +682,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(
      * This might decrease our throughput, so perhaps we should add a
      * runtime option for it.
      */
-    res = setsockopt(sock.get(), IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
+    res = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
     guarantee_err(res != -1, "Could not set TCP_NODELAY option");
 
     // Bind the socket
@@ -704,14 +691,73 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    res = bind(sock.get(), reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
+    res = bind(sock_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
     if (res != 0) {
         if (errno == EADDRINUSE) {
-            throw address_in_use_exc_t("localhost", port);
+            throw linux_tcp_listener_t::address_in_use_exc_t("localhost", port);
         } else {
             crash("Could not bind socket at localhost:%i - %s\n", port, strerror(errno));
         }
     }
+}
+
+/* Bound socket object, used for constructing a listener in two stages */
+linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
+    sock_fd(socket(AF_INET, SOCK_STREAM, 0)),
+    port(_port)
+{
+    bind_socket(sock_fd, port);
+}
+
+linux_tcp_bound_socket_t::~linux_tcp_bound_socket_t()
+{
+    if (sock_fd != INVALID_FD)
+        close(sock_fd);
+}
+
+fd_t linux_tcp_bound_socket_t::get_fd() {
+    return sock_fd;
+}
+
+int linux_tcp_bound_socket_t::get_port()
+{
+    return port;
+}
+
+void linux_tcp_bound_socket_t::reset()
+{
+    sock_fd = INVALID_FD;
+}
+
+/* Network listener object */
+
+linux_tcp_listener_t::linux_tcp_listener_t(
+        int port,
+        boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> cb) :
+    sock(socket(AF_INET, SOCK_STREAM, 0)),
+    event_watcher(sock.get(), this),
+    callback(cb),
+    log_next_error(true)
+{
+    bind_socket(sock.get(), port);
+    initialize_internal();
+    logINF("Listening on port %d", port);
+}
+
+linux_tcp_listener_t::linux_tcp_listener_t(linux_tcp_bound_socket_t& bound_socket,
+                                           boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> cb) :
+    sock(bound_socket.get_fd()),
+    event_watcher(sock.get(), this),
+    callback(cb),
+    log_next_error(true)
+{
+    bound_socket.reset();
+    initialize_internal();
+    logINF("Listening on port %d", bound_socket.get_port());
+}
+
+void linux_tcp_listener_t::initialize_internal() {
+    int res;
 
     // Start listening to connections
     res = listen(sock.get(), 5);
@@ -719,8 +765,6 @@ linux_tcp_listener_t::linux_tcp_listener_t(
 
     res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make socket non-blocking");
-
-    logINF("Listening on port %d", port);
 
     // Start the accept loop
     accept_loop_drainer.reset(new auto_drainer_t);

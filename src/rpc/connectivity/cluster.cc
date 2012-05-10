@@ -19,6 +19,12 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int client_port) THROWS_NOTHING :
     parent(p), message_handler(mh),
 
+    /* The local port to use when connecting to the cluster port of peers */
+    cluster_client_port(client_port),
+
+    /* Create the socket to use when listening for connections from peers */
+    cluster_listener_socket(new tcp_bound_socket_t(port)),
+
     /* This sets `parent->current_run` to `this`. It's necessary to do it in the
     constructor of a subfield rather than in the body of the `run_t` constructor
     because `parent->current_run` needs to be set before `connection_to_ourself`
@@ -29,7 +35,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
 
     /* This constructor makes an entry for us in `routing_table`. The destructor
     will remove the entry. */
-    routing_table_entry_for_ourself(&routing_table, parent->me, peer_address_t(ip_address_t::us(), port)),
+    routing_table_entry_for_ourself(&routing_table, parent->me, peer_address_t(ip_address_t::us(), cluster_listener_socket->get_port())),
 
     /* The `connection_entry_t` constructor takes care of putting itself in the
     `connection_map` on each thread and notifying any listeners that we're now
@@ -37,19 +43,16 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     `connection_map` and again notify any listeners. */
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
 
-    /* The local port to use when connecting to the cluster port of peers */
-    cluster_client_port(client_port),
-
-    listener(port == 0 ? NULL : new tcp_listener_t(port, boost::bind(
-                                                   &connectivity_cluster_t::run_t::on_new_connection,
-                                                   this,
-                                                   _1,
-                                                   auto_drainer_t::lock_t(&drainer))))
+    listener(new tcp_listener_t(*cluster_listener_socket, boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
+                                                                      this,
+                                                                      _1,
+                                                                      auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
 
 connectivity_cluster_t::run_t::~run_t() {
+    delete cluster_listener_socket;
     delete listener;
 }
 
