@@ -10,6 +10,7 @@
 #include "clustering/administration/stat_manager.hpp"
 #include "http/json.hpp"
 #include "perfmon.hpp"
+#include "perfmon_archive.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 
 static const char * STAT_REQ_TIMEOUT_PARAM = "timeout";
@@ -19,10 +20,10 @@ static const uint64_t MAX_STAT_REQ_TIMEOUT_MS = 60*1000;
 class stats_request_record_t {
 public:
     explicit stats_request_record_t(mailbox_manager_t *mbox_manager)
-        : response_mailbox(mbox_manager, boost::bind(&promise_t<stat_manager_t::stats_t>::pulse, &stats, _1), mailbox_callback_mode_inline)
+        : response_mailbox(mbox_manager, boost::bind(&promise_t<perfmon_result_t>::pulse, &stats, _1), mailbox_callback_mode_inline)
     { }
-    promise_t<stat_manager_t::stats_t> stats;
-    mailbox_t<void(stat_manager_t::stats_t)> response_mailbox;
+    promise_t<perfmon_result_t> stats;
+    mailbox_t<void(perfmon_result_t)> response_mailbox;
 };
 
 typedef std::map<peer_id_t, cluster_directory_metadata_t> peers_to_metadata_t;
@@ -31,6 +32,25 @@ stat_http_app_t::stat_http_app_t(mailbox_manager_t *_mbox_manager,
                                  clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >& _directory)
     : mbox_manager(_mbox_manager), directory(_directory)
 { }
+
+template <class ctx_t>
+cJSON *render_as_json(perfmon_result_t *target, ctx_t ctx) {
+    if (target->is_map()) {
+        cJSON *res = cJSON_CreateObject();
+        
+        for (perfmon_result_t::iterator it  = target->begin();
+                                        it != target->end();
+                                        ++it) {
+            cJSON_AddItemToObject(res, it->first.c_str(), render_as_json(it->second, ctx));
+        }
+
+        return res;
+    } else if (target->is_string()) {
+        return render_as_json(target->get_string(), ctx);
+    } else {
+        crash("Unknown perfmon_result_type\n");
+    }
+}
 
 http_res_t stat_http_app_t::handle(const http_req_t &req) {
     scoped_cJSON_t body(cJSON_CreateObject());
@@ -74,7 +94,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
         waiter.wait();
 
         if (stats_ready->is_pulsed()) {
-            stat_manager_t::stats_t stats = it->second->stats.wait();
+            perfmon_result_t stats = it->second->stats.wait();
             cJSON_AddItemToObject(body.get(), uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
         }
     }

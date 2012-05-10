@@ -77,14 +77,12 @@ private:
     DISABLE_COPYING(gc_entry);
 };
 
-
-// Stats
-
 class data_block_manager_t {
     friend class gc_entry;
     friend class dbm_read_ahead_fsm_t;
 
 private:
+    log_serializer_stats_t *stats;
     struct gc_write_t {
         block_id_t block_id;
         const void *buf;
@@ -104,7 +102,7 @@ private:
     };
 
 public:
-    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config);
+    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_on_disk_static_config_t *static_config, log_serializer_stats_t *parent);
     ~data_block_manager_t();
 
     struct metablock_mixin_t {
@@ -319,7 +317,7 @@ private:
     struct gc_stats_t {
         gc_stat_t old_total_blocks;
         gc_stat_t old_garbage_blocks;
-        gc_stats_t();
+        explicit gc_stats_t(log_serializer_stats_t *);
     } gc_stats;
 
 public:

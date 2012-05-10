@@ -103,7 +103,7 @@
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
-#define MAX_THREADS                                  128
+#define MAX_THREADS                                 128
 
 // Maximum slices total
 #define MAX_SLICES_PER_DEVICE                     1024

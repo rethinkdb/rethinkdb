@@ -12,6 +12,26 @@
 #include "do_on_thread.hpp"
 #include "perfmon.hpp"
 
+log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 
+    : serializer_collection("serializer", parent, true, true),
+      pm_serializer_block_reads("serializer_block_reads", secs_to_ticks(1), &serializer_collection),
+      pm_serializer_index_reads("serializer_index_reads", &serializer_collection),
+      pm_serializer_block_writes("serializer_block_writes", &serializer_collection),
+      pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1), &serializer_collection),
+      pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1), false, &serializer_collection),
+      pm_extents_in_use("serializer_extents_in_use", &serializer_collection),
+      pm_bytes_in_use("serializer_bytes_in_use", &serializer_collection),
+      pm_serializer_lba_extents("serializer_lba_extents", &serializer_collection),
+      pm_serializer_data_extents("serializer_data_extents", &serializer_collection),
+      pm_serializer_data_extents_allocated("serializer_data_extents_allocated", &serializer_collection),
+      pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed", &serializer_collection),
+      pm_serializer_data_extents_gced("serializer_data_extents_gced", &serializer_collection),
+      pm_serializer_data_blocks_written("serializer_data_blocks_written", &serializer_collection),
+      pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks", &serializer_collection),
+      pm_serializer_old_total_blocks("serializer_old_total_blocks", &serializer_collection),
+      pm_serializer_lba_gcs("serializer_lba_gcs", &serializer_collection)
+{ }
+
 void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
 
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
@@ -84,12 +104,12 @@ struct ls_start_existing_fsm_t :
         }
 
         if (state == state_find_metablock) {
-            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config);
+            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config, &ser->stats);
             ser->extent_manager->reserve_extent(0);   /* For static header */
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_index_t(ser->extent_manager);
-            ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config);
+            ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, &ser->stats);
 
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;
@@ -180,7 +200,8 @@ struct ls_start_existing_fsm_t :
     log_serializer_t::metablock_t metablock_buffer;
 };
 
-log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_) :
+log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_, perfmon_collection_t *_perfmon_collection) :
+      stats(_perfmon_collection),
 #ifndef NDEBUG
       expecting_no_more_tokens(false),
 #endif
@@ -260,14 +281,6 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-perfmon_duration_sampler_t pm_serializer_block_reads("serializer_block_reads", secs_to_ticks(1));
-perfmon_counter_t pm_serializer_index_reads("serializer_index_reads");
-// TODO: Should be a duration sampler (see block_write() below)
-//perfmon_duration_sampler_t pm_serializer_block_writes("serializer_block_writes", secs_to_ticks(1));
-perfmon_counter_t pm_serializer_block_writes("serializer_block_writes");
-perfmon_duration_sampler_t pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1));
-perfmon_sampler_t pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1));
-
 void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
@@ -276,24 +289,24 @@ void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t
     cb.wait();
 }
 
-// TODO(sam): block_read can call the callback before it returns.  Is
-// this acceptable?
+// TODO(sam): block_read can call the callback before it returns. Is this acceptable?
 void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
     struct my_cb_t : public iocallback_t {
         void on_io_complete() {
-            pm_serializer_block_reads.end(&pm_time);
+            stats->pm_serializer_block_reads.end(&pm_time);
             if (cb) cb->on_io_complete();
             delete this;
         }
-        my_cb_t(iocallback_t *_cb, const intrusive_ptr_t<ls_block_token_pointee_t>& _tok) : cb(_cb), tok(_tok) {}
+        my_cb_t(iocallback_t *_cb, const intrusive_ptr_t<ls_block_token_pointee_t>& _tok, log_serializer_stats_t *_stats) : cb(_cb), tok(_tok), stats(_stats) {}
         iocallback_t *cb;
         intrusive_ptr_t<ls_block_token_pointee_t> tok; // needed to keep it alive for appropriate period of time
         ticks_t pm_time;
+        log_serializer_stats_t *stats;
     };
 
-    my_cb_t *readcb = new my_cb_t(cb, token);
+    my_cb_t *readcb = new my_cb_t(cb, token, &stats);
 
-    pm_serializer_block_reads.begin(&readcb->pm_time);
+    stats.pm_serializer_block_reads.begin(&readcb->pm_time);
 
     ls_block_token_pointee_t *ls_token = token.get();
     rassert(ls_token);
@@ -323,8 +336,8 @@ intrusive_ptr_t<ls_block_token_pointee_t> get_ls_block_token(const intrusive_ptr
 
 void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
     ticks_t pm_time;
-    pm_serializer_index_writes.begin(&pm_time);
-    pm_serializer_index_writes_size.record(write_ops.size());
+    stats.pm_serializer_index_writes.begin(&pm_time);
+    stats.pm_serializer_index_writes_size.record(write_ops.size());
 
     index_write_context_t context;
     index_write_prepare(context, io_account);
@@ -372,7 +385,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
     index_write_finish(context, io_account);
 
-    pm_serializer_index_writes.end(&pm_time);
+    stats.pm_serializer_index_writes.end(&pm_time);
 }
 
 void log_serializer_t::index_write_prepare(index_write_context_t &context, file_account_t *io_account) {
@@ -459,7 +472,7 @@ intrusive_ptr_t<ls_block_token_pointee_t> log_serializer_t::generate_block_token
 intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     // TODO: Implement a duration sampler perfmon for this
-    ++pm_serializer_block_writes;
+    ++stats.pm_serializer_block_writes;
 
     extent_manager_t::transaction_t *em_trx = extent_manager->begin_transaction();
     const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb);
@@ -591,7 +604,7 @@ block_id_t log_serializer_t::max_block_id() {
 }
 
 intrusive_ptr_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
-    ++pm_serializer_index_reads;
+    ++stats.pm_serializer_index_reads;
 
     assert_thread();
     rassert(state == state_ready);

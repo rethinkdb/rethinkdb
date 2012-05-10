@@ -66,6 +66,12 @@ class Namespace extends Backbone.Model
 class Datacenter extends Backbone.Model
 
 class Machine extends Backbone.Model
+    get_stats: =>
+        stats = @get('stats')
+        if stats?
+            return stats
+        else
+            return {}
 
 class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)

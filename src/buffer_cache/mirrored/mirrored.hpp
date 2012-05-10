@@ -18,10 +18,10 @@
 #include "containers/intrusive_list.hpp"
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/mirrored/config.hpp"
-#include "buffer_cache/stats.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
+#include "buffer_cache/mirrored/stats.hpp"
 
 #include "buffer_cache/mirrored/writeback.hpp"
 
@@ -296,8 +296,6 @@ private:
     DISABLE_COPYING(mc_transaction_t);
 };
 
-
-
 class mc_cache_account_t {
 public:
     ~mc_cache_account_t();
@@ -328,7 +326,7 @@ public:
     typedef mc_cache_account_t cache_account_t;
 
     static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
-    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config);
+    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *);
     ~mc_cache_t();
 
     block_size_t get_block_size();
@@ -388,6 +386,7 @@ private:
     // components it wasn't originally given.
 
     serializer_t *serializer;
+    mc_cache_stats_t stats;
 
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,

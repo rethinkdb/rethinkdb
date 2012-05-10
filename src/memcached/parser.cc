@@ -26,24 +26,7 @@
 #include "arch/os_signal.hpp"
 #include "perfmon.hpp"
 #include "stats/persist.hpp"
-
-perfmon_duration_sampler_t
-    pm_cmd_set("cmd_set", secs_to_ticks(1.0), false),
-    pm_cmd_get("cmd_get", secs_to_ticks(1.0), false),
-    pm_cmd_rget("cmd_rget", secs_to_ticks(1.0), false);
-
-perfmon_persistent_stddev_t
-    pm_get_key_size("cmd_get_key_size"),
-    pm_storage_key_size("cmd_set_key_size"),
-    pm_storage_value_size("cmd_set_val_size"),
-    pm_delete_key_size("cmd_delete_key_size");
-
-perfmon_duration_sampler_t
-    pm_conns_reading("conns_reading", secs_to_ticks(1), false),
-    pm_conns_writing("conns_writing", secs_to_ticks(1), false),
-    pm_conns_acting("conns_acting", secs_to_ticks(1), false);
-
-perfmon_duration_sampler_t rget_iteration_next("rget_iteration_next", secs_to_ticks(1));
+#include "memcached/stats.hpp"
 
 static const char *crlf = "\r\n";
 
@@ -53,8 +36,9 @@ do_storage(), and the like. */
 struct txt_memcached_handler_t : public home_thread_mixin_t {
     txt_memcached_handler_t(memcached_interface_t *_interface,
                             namespace_interface_t<memcached_protocol_t> *_nsi,
-                            int _max_concurrent_queries_per_connection)
-        : interface(_interface), nsi(_nsi), max_concurrent_queries_per_connection(_max_concurrent_queries_per_connection)
+                            int _max_concurrent_queries_per_connection,
+                            memcached_stats_t *_stats)
+        : interface(_interface), nsi(_nsi), max_concurrent_queries_per_connection(_max_concurrent_queries_per_connection), stats(_stats)
     { }
 
     memcached_interface_t *interface;
@@ -63,6 +47,8 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
 
     const int max_concurrent_queries_per_connection;
 
+    memcached_stats_t *stats;
+    
     cas_t generate_cas() {
         // TODO we have to do better than this. CASes need to be generated in a
         // way that is very fast but also gives a reasonably good guarantee of
@@ -234,7 +220,7 @@ public:
         rassert(state_ == has_begun_write);
         DEBUG_ONLY_CODE(state_ = has_ended_write);
 
-        block_pm_duration flush_timer(&pm_conns_writing);
+        block_pm_duration flush_timer(&pipeliner_->rh_->stats->pm_conns_writing);
         pipeliner_->rh_->flush_buffer();
         flush_timer.end();
 
@@ -304,7 +290,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
             pipeliner_acq.end_write();
             return;
         }
-        pm_get_key_size.record((float) gets.back().key.size);
+        rh->stats->pm_get_key_size.record((float) gets.back().key.size);
     }
     if (gets.size() == 0) {
         pipeliner_acq.done_argparsing();
@@ -316,7 +302,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
 
     pipeliner_acq.done_argparsing();
 
-    block_pm_duration get_timer(&pm_cmd_get);
+    block_pm_duration get_timer(&rh->stats->pm_cmd_get);
 
     /* Now that we're sure they're all valid, send off the requests */
     pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1, token));
@@ -430,7 +416,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
 
     pipeliner_acq.done_argparsing();
 
-    block_pm_duration rget_timer(&pm_cmd_rget);
+    block_pm_duration rget_timer(&rh->stats->pm_cmd_rget);
 
     rget_result_t results_iterator;
     std::string error_message;
@@ -456,8 +442,8 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
         boost::optional<key_with_data_buffer_t> pair;
         uint64_t count = 0;
         ticks_t next_time;
-        while (++count <= max_items && (rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
-            rget_iteration_next.end(&next_time);
+        while (++count <= max_items && (rh->stats->rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
+            rh->stats->rget_iteration_next.end(&next_time);
             const key_with_data_buffer_t& kv = pair.get();
 
             const std::string& key = kv.key;
@@ -505,7 +491,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                          order_token_t token) {
     boost::scoped_ptr<pipeliner_acq_t> pipeliner_acq(pipeliner_acq_raw);
 
-    block_pm_duration set_timer(&pm_cmd_set);
+    block_pm_duration set_timer(&rh->stats->pm_cmd_set);
 
     if (sc != append_command && sc != prepend_command) {
         add_policy_t add_policy;
@@ -661,7 +647,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         delete pipeliner_acq;
         return;
     }
-    pm_storage_key_size.record((float) key.size);
+    rh->stats->pm_storage_key_size.record((float) key.size);
 
     /* Next parse the flags */
     mcflags_t mcflags = strtou64_strict(argv[2], &invalid_char, 10);
@@ -714,7 +700,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         delete pipeliner_acq;
         return;
     }
-    pm_storage_value_size.record((float) value_size);
+    rh->stats->pm_storage_value_size.record((float) value_size);
 
     /* If a "cas", parse the cas_command unique */
     cas_t unique = NO_CAS_SUPPLIED;
@@ -772,7 +758,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 
 /* "incr" and "decr" commands */
 void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, store_key_t key, uint64_t amount, bool incr, bool noreply, order_token_t token) {
-    block_pm_duration set_timer(&pm_cmd_set);
+    block_pm_duration set_timer(&rh->stats->pm_cmd_set);
 
     incr_decr_result_t res;
     std::string error_message;
@@ -873,7 +859,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool i, i
 
 void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, store_key_t key, bool noreply, order_token_t token) {
 
-    block_pm_duration set_timer(&pm_cmd_set);
+    block_pm_duration set_timer(&rh->stats->pm_cmd_set);
 
     delete_result_t res;
     std::string error_message;
@@ -934,7 +920,7 @@ void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, ch
         pipeliner_acq.end_write();
         return;
     }
-    pm_delete_key_size.record((float) key.size);
+    rh->stats->pm_delete_key_size.record((float) key.size);
 
     /* Parse "noreply" */
     bool noreply;
@@ -968,22 +954,22 @@ void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, ch
 
 /* "stats" command */
 
-std::string memcached_stats(int argc, char **argv, bool include_internal) {
+std::string memcached_stats(int argc, char **argv) {
     std::string res;
-    perfmon_stats_t stats;
+    perfmon_result_t stats;
 
-    perfmon_get_stats(&stats, include_internal);
+    perfmon_get_stats(&stats);
 
     if (argc == 1) {
-        for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
-            res += strprintf("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str());
+        for (perfmon_result_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
+            res += strprintf("STAT %s %s\r\n", iter->first.c_str(), iter->second->get_string()->c_str());
         }
     } else {
         for (int i = 1; i < argc; i++) {
-            perfmon_stats_t::iterator iter = stats.find(argv[i]);
+            perfmon_result_t::iterator iter = stats.get_map()->find(argv[i]);
             res += strprintf("STAT %s %s\r\n", argv[i], iter == stats.end()
                                                         ? "NOT_FOUND"
-                                                        : iter->second.c_str());
+                                                        : iter->second->get_string()->c_str());
 
         }
     }
@@ -996,7 +982,7 @@ struct memcached_stats_control_t : public control_t {
     memcached_stats_control_t() :
         control_t("stats", "Show all stats (including internal stats).", true) {}
     std::string call(int argc, char **argv) {
-        return memcached_stats(argc, argv, true);
+        return memcached_stats(argc, argv);
     }
 } memcached_stats_control;
 
@@ -1097,12 +1083,12 @@ bool parse_debug_command(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, st
 #endif  // NDEBUG
 
 /* Handle memcached, takes a txt_memcached_handler_t and handles the memcached commands that come in on it */
-void handle_memcache(memcached_interface_t *interface, namespace_interface_t<memcached_protocol_t> *nsi, int max_concurrent_queries_per_connection) {
+void handle_memcache(memcached_interface_t *interface, namespace_interface_t<memcached_protocol_t> *nsi, int max_concurrent_queries_per_connection, memcached_stats_t *stats) {
     logDBG("Opened memcached stream: %p", coro_t::self());
 
     /* This object just exists to group everything together so we don't have to pass a lot of
     context around. */
-    txt_memcached_handler_t rh(interface, nsi, max_concurrent_queries_per_connection);
+    txt_memcached_handler_t rh(interface, nsi, max_concurrent_queries_per_connection, stats);
 
     /* The commands from each individual memcached handler must be performed in the order
     that the handler parses them. This `order_source_t` is used to guarantee that. */
@@ -1116,7 +1102,7 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
 
     while (pipeliner.lock_argparsing(), true) {
         /* Read a line off the socket */
-        block_pm_duration read_timer(&pm_conns_reading);
+        block_pm_duration read_timer(&rh.stats->pm_conns_reading);
         try {
             rh.read_line(&line);
         } catch (memcached_interface_t::no_more_data_exc_t) {
@@ -1124,7 +1110,7 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
         }
         read_timer.end();
 
-        block_pm_duration action_timer(&pm_conns_acting);
+        block_pm_duration action_timer(&rh.stats->pm_conns_acting);
 
         /* Tokenize the line */
         line.push_back('\0');   // Null terminator
@@ -1189,7 +1175,7 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
             pipeliner_acq_t pipeliner_acq(&pipeliner);
             pipeliner_acq.begin_operation();
 
-            std::string the_stats = memcached_stats(args.size(), args.data(), false);
+            std::string the_stats = memcached_stats(args.size(), args.data());
 
             // We block everybody before writing.  I don't think we care.
             pipeliner_acq.done_argparsing();

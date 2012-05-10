@@ -60,5 +60,5 @@ void import_memcache(const char *filename, namespace_interface_t<memcached_proto
 
     file_memcached_interface_t interface(filename, interrupt);
 
-    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUEURIES_ON_IMPORT);
+    handle_memcache(&interface, nsi, MAX_CONCURRENT_QUEURIES_ON_IMPORT, NULL);
 }

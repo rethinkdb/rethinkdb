@@ -7,15 +7,15 @@
 #ifndef PERFMON_HPP_
 #define PERFMON_HPP_
 
-#include <map>
 #include <limits>
 #include <string>
 
 #include "utils.hpp"
+#include <boost/ptr_container/ptr_map.hpp>
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
-#include "stats/control.hpp"
 #include "perfmon_types.hpp"
+#include "concurrency/rwi_lock.hpp"
 
 // Some arch/runtime declarations.
 int get_num_threads();
@@ -37,16 +37,103 @@ struct cache_line_padded_t {
 /* The perfmon (short for "PERFormance MONitor") is responsible for gathering data about
 various parts of the server. */
 
-/* A perfmon_stats_t is just a mapping from string keys to string values; it
-stores statistics about the server. */
+class perfmon_result_t {
+    typedef boost::ptr_map<std::string, perfmon_result_t> internal_map_t;
+public:
+    enum perfmon_result_type_t {
+        type_value,
+        type_map,
+    };
 
-typedef std::map<std::string, std::string> perfmon_stats_t;
+    perfmon_result_t();
+    explicit perfmon_result_t(const std::string &);
+    explicit perfmon_result_t(const internal_map_t &);
+
+    static perfmon_result_t make_string() {
+        return perfmon_result_t(std::string());
+    }
+
+    static perfmon_result_t * new_string() {
+        return new perfmon_result_t(std::string());
+    }
+
+    static perfmon_result_t make_map() {
+        return perfmon_result_t(internal_map_t());
+    }
+
+    static perfmon_result_t *new_map() {
+        return new perfmon_result_t(internal_map_t());
+    }
+
+    std::string *get_string() {
+        rassert(type == type_value);
+        return &_value;
+    }
+
+    const std::string *get_string() const {
+        rassert(type == type_value);
+        return &_value;
+    }
+
+    internal_map_t *get_map() {
+        rassert(type == type_map);
+        return &_map;
+    }
+
+    const internal_map_t *get_map() const {
+        rassert(type == type_map);
+        return &_map;
+    }
+
+    bool is_string() {
+        return type == type_value;
+    }
+
+    bool is_map() {
+        return type == type_map;
+    }
+
+    std::pair<internal_map_t::iterator, bool> insert(const std::string &k, perfmon_result_t *val) {
+        std::string s = k;
+        return get_map()->insert(s, val);
+    }
+
+    typedef internal_map_t::iterator iterator;
+    typedef internal_map_t::const_iterator const_iterator;
+    
+    iterator begin() {
+        return _map.begin();
+    }
+
+    iterator end() {
+        return _map.end();
+    }
+
+    const_iterator begin() const {
+        return _map.begin();
+    }
+
+    const_iterator end() const {
+        return _map.end();
+    }
+
+private:
+    // We need these two friends for serialization, but we don't want to include the
+    // serialization headers, neither we want to define the serializers here.
+    friend write_message_t &operator<<(write_message_t &msg, const perfmon_result_t &thing);
+    friend int deserialize(read_stream_t *s, perfmon_result_t *thing);
+
+    perfmon_result_type_t type;
+
+    std::string _value;
+    internal_map_t _map;
+};
 
 /* perfmon_get_stats() collects all the stats about the server and puts them
-into the given perfmon_stats_t object. It must be run in a coroutine and it blocks
+into the given perfmon_result_t object. It must be run in a coroutine and it blocks
 until it is done. */
 
-void perfmon_get_stats(perfmon_stats_t *dest, bool include_internal);
+void perfmon_get_stats(perfmon_result_t *dest);
 
 /* A perfmon_t represents a stat about the server.
 
@@ -54,13 +141,12 @@ To monitor something, declare a global variable that is an instance of a subclas
 perfmon_t and pass its name to the constructor. It is not safe to create a perfmon_t
 after the server starts up because the global list is not thread-safe. */
 
-class perfmon_t :
-    public intrusive_list_node_t<perfmon_t>
-{
+class perfmon_t : public intrusive_list_node_t<perfmon_t> {
 public:
-    bool internal;
+    perfmon_collection_t *parent;
+    bool insert;
 public:
-    explicit perfmon_t(bool internal = true);
+    explicit perfmon_t(perfmon_collection_t *parent, bool insert = true);
     virtual ~perfmon_t();
 
     /* To get a value from a given perfmon: Call begin_stats(). On each core, call the visit_stats()
@@ -70,7 +156,7 @@ public:
     You usually want to call perfmon_get_stats() instead of calling these methods directly. */
     virtual void *begin_stats() = 0;
     virtual void visit_stats(void *) = 0;
-    virtual void end_stats(void *, perfmon_stats_t *) = 0;
+    virtual void end_stats(void *, perfmon_result_t *) = 0;
 };
 
 /* When `global_full_perfmon` is true, some perfmons will perform more elaborate stat
@@ -81,10 +167,8 @@ extern bool global_full_perfmon;
 
 // Abstract perfmon subclass that implements perfmon tracking by combining per-thread values.
 template<typename thread_stat_t, typename combined_stat_t = thread_stat_t>
-struct perfmon_perthread_t
-    : public perfmon_t
-{
-    explicit perfmon_perthread_t(bool internal = true) : perfmon_t(internal) { }
+struct perfmon_perthread_t : public perfmon_t {
+    explicit perfmon_perthread_t(perfmon_collection_t *parent) : perfmon_t(parent) { }
 
     void *begin_stats() {
         return new thread_stat_t[get_num_threads()];
@@ -92,36 +176,36 @@ struct perfmon_perthread_t
     void visit_stats(void *data) {
         get_thread_stat(&(reinterpret_cast<thread_stat_t *>(data))[get_thread_id()]);
     }
-    void end_stats(void *data, perfmon_stats_t *dest) {
+    void end_stats(void *data, perfmon_result_t *dest) {
         combined_stat_t combined = combine_stats(reinterpret_cast<thread_stat_t *>(data));
         output_stat(combined, dest);
         delete[] reinterpret_cast<thread_stat_t *>(data);
     }
 
-  protected:
+protected:
     virtual void get_thread_stat(thread_stat_t *) = 0;
     virtual combined_stat_t combine_stats(thread_stat_t *) = 0;
-    virtual void output_stat(const combined_stat_t &, perfmon_stats_t *) = 0;
+    virtual void output_stat(const combined_stat_t &, perfmon_result_t *) = 0;
 };
 
 /* perfmon_counter_t is a perfmon_t that keeps a global counter that can be incremented
 and decremented. (Internally, it keeps many individual counters for thread-safety.) */
-class perfmon_counter_t :
-    // TODO (rntz) does having the values when collecting stats be cache-padded matter?
-    public perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t>
-{
+// TODO (rntz) does having the values when collecting stats be cache-padded matter?
+class perfmon_counter_t : public perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t> {
     friend class perfmon_counter_step_t;
-  protected:
+protected:
     typedef cache_line_padded_t<int64_t> padded_int64_t;
     std::string name;
-    padded_int64_t thread_data[MAX_THREADS];
+    boost::scoped_array<padded_int64_t> thread_data;
+
+    //padded_int64_t thread_data[MAX_THREADS];
     int64_t &get();
 
     void get_thread_stat(padded_int64_t *);
     int64_t combine_stats(padded_int64_t *);
-    void output_stat(const int64_t&, perfmon_stats_t *);
-  public:
-    explicit perfmon_counter_t(const std::string& name, bool internal = true);
+    void output_stat(const int64_t&, perfmon_result_t *);
+public:
+    explicit perfmon_counter_t(const std::string& name, perfmon_collection_t *parent);
     void operator++() { get()++; }
     void operator+=(int64_t num) { get() += num; }
     void operator--() { get()--; }
@@ -164,9 +248,7 @@ namespace perfmon_sampler {
     };
 }
 
-class perfmon_sampler_t
-    : public perfmon_perthread_t<perfmon_sampler::stats_t>
-{
+class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
     typedef perfmon_sampler::stats_t stats_t;
     struct thread_info_t {
         stats_t current_stats, last_stats;
@@ -175,15 +257,15 @@ class perfmon_sampler_t
 
     void get_thread_stat(stats_t *);
     stats_t combine_stats(stats_t *);
-    void output_stat(const stats_t&, perfmon_stats_t *);
+    void output_stat(const stats_t&, perfmon_result_t *);
 
     void update(ticks_t now);
 
     std::string name;
     ticks_t length;
     bool include_rate;
-  public:
-    perfmon_sampler_t(const std::string& name, ticks_t length, bool include_rate = false, bool internal = true);
+public:
+    perfmon_sampler_t(const std::string& name, ticks_t length, bool include_rate, perfmon_collection_t *parent);
     void record(double value);
 };
 
@@ -205,7 +287,7 @@ struct stddev_t {
     //stddev_t merge(const stddev_t &other);
     static stddev_t combine(size_t nelts, stddev_t *data);
 
-  private:
+private:
     // N is the number of datapoints, M is the current mean, Q/N is
     // the standard variance, and sqrt(Q/N) is the standard
     // deviation. Read the paper for why it works or use algebra.
@@ -216,20 +298,18 @@ struct stddev_t {
     float M, Q;
 };
 
-struct perfmon_stddev_t
-    : public perfmon_perthread_t<stddev_t>
-{
+struct perfmon_stddev_t : public perfmon_perthread_t<stddev_t> {
     // should be possible to make this a templated class if necessary
-    explicit perfmon_stddev_t(const std::string& name, bool internal = true);
+    explicit perfmon_stddev_t(const std::string& name, perfmon_collection_t *parent);
     void record(float value);
 
-  protected:
+protected:
     std::string name;
 
     void get_thread_stat(stddev_t *);
     stddev_t combine_stats(stddev_t *);
-    void output_stat(const stddev_t&, perfmon_stats_t *);
-  private:
+    void output_stat(const stddev_t&, perfmon_result_t *);
+private:
     stddev_t thread_data[MAX_THREADS]; // TODO (rntz) should this be cache-line padded?
 };
 
@@ -238,9 +318,7 @@ per second. It is different from `perfmon_sampler_t` in that it does not associa
 a number with each event, but you can record many events at once. For example, it
 would be good for recording how fast bytes are sent over the network. */
 
-class perfmon_rate_monitor_t
-    : public perfmon_perthread_t<double>
-{
+class perfmon_rate_monitor_t : public perfmon_perthread_t<double> {
 private:
     struct thread_info_t {
         double current_count, last_count;
@@ -252,9 +330,9 @@ private:
 
     void get_thread_stat(double *);
     double combine_stats(double *);
-    void output_stat(const double&, perfmon_stats_t *);
+    void output_stat(const double&, perfmon_result_t *);
 public:
-    perfmon_rate_monitor_t(const std::string& name, ticks_t length, bool internal = true);
+    perfmon_rate_monitor_t(const std::string& name, ticks_t length, perfmon_collection_t *parent);
     void record(double value = 1.0);
 };
 
@@ -271,20 +349,16 @@ public:
  * field on it, which when true makes it run regardless of --full-perfmon flag
  * this can also be enable and disabled at runtime. */
 
-struct perfmon_duration_sampler_t
-    : public control_t
-{
-
+struct perfmon_duration_sampler_t {
 private:
     perfmon_counter_t active;
     perfmon_counter_t total;
     perfmon_sampler_t recent;
     bool ignore_global_full_perfmon;
 public:
-    perfmon_duration_sampler_t(const std::string& name, ticks_t length, bool internal = true, bool _ignore_global_full_perfmon = false)
-        : control_t(std::string("pm_") + name + "_toggle", name + " toggle on and off", true),
-          active(name + "_active_count", internal), total(name + "_total", internal),
-          recent(name, length, true, internal), ignore_global_full_perfmon(_ignore_global_full_perfmon)
+    perfmon_duration_sampler_t(const std::string& name, ticks_t length, perfmon_collection_t *parent, bool _ignore_global_full_perfmon = false)
+        : active(name + "_active_count", parent), total(name + "_total", parent),
+          recent(name, length, true, parent), ignore_global_full_perfmon(_ignore_global_full_perfmon)
         { }
     void begin(ticks_t *v) {
         ++active;
@@ -319,13 +393,9 @@ not create such a perfmon at runtime; instead, declare it as a static variable a
 a perfmon_function_t::internal_function_t instance for it. This way things get called on the
 right cores and if there are multiple internal_function_t instances the perfmon_function_t can
 combine them by inserting commas. */
-struct perfmon_function_t :
-    public perfmon_t
-{
+struct perfmon_function_t : public perfmon_t {
 public:
-    class internal_function_t :
-        public intrusive_list_node_t<internal_function_t>
-    {
+    class internal_function_t : public intrusive_list_node_t<internal_function_t> {
     public:
         explicit internal_function_t(perfmon_function_t *p);
         virtual ~internal_function_t();
@@ -340,13 +410,73 @@ private:
     intrusive_list_t<internal_function_t> funs[MAX_THREADS];
 
 public:
-    explicit perfmon_function_t(std::string _name, bool internal = true)
-        : perfmon_t(internal), name(_name) {}
-    ~perfmon_function_t() {}
+    explicit perfmon_function_t(std::string _name, perfmon_collection_t *parent)
+        : perfmon_t(parent), name(_name) { }
+    ~perfmon_function_t() { }
 
     void *begin_stats();
     void visit_stats(void *data);
-    void end_stats(void *data, perfmon_stats_t *dest);
+    void end_stats(void *data, perfmon_result_t *dest);
+};
+
+/* A perfmon collection allows you to add hierarchy to stats. */
+class perfmon_collection_t : public perfmon_t {
+public:
+    explicit perfmon_collection_t(const std::string &_name, perfmon_collection_t *parent, bool insert, bool _create_submap)
+        : perfmon_t(parent, insert), name(_name), create_submap(_create_submap)
+    { }
+
+    /* Perfmon interface */
+    void *begin_stats() {
+        constituents_access.co_lock(rwi_read); // RSI: should that be scoped somehow, so that we unlock, should the results collection fail?
+        void **contexts = new void *[constituents.size()];
+        size_t i = 0;
+        for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
+            contexts[i] = p->begin_stats();
+        }
+        return contexts;
+    }
+
+    void visit_stats(void *_contexts) {
+        void **contexts = reinterpret_cast<void **>(_contexts);
+        size_t i = 0;
+        for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
+            p->visit_stats(contexts[i]);
+        }
+    }
+
+    void end_stats(void *_contexts, perfmon_result_t *result) {
+        void **contexts = reinterpret_cast<void **>(_contexts);
+        perfmon_result_t *map = create_submap ? perfmon_result_t::new_map() : result;
+
+        size_t i = 0;
+        for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
+            p->end_stats(contexts[i], map);
+        }
+
+        if (create_submap) {
+            result->get_map()->insert(name, map);
+        }
+        constituents_access.unlock();
+    }
+
+    /* Ways to add perfmons */
+    void add(perfmon_t *perfmon) {
+        rwi_lock_t::write_acq_t write_acq(&constituents_access);
+        constituents.push_back(perfmon);
+    }
+
+    void remove(perfmon_t *perfmon) {
+        rwi_lock_t::write_acq_t write_acq(&constituents_access);
+        constituents.remove(perfmon);
+    }
+
+private:
+    rwi_lock_t constituents_access;
+
+    std::string name;
+    bool create_submap;
+    intrusive_list_t<perfmon_t> constituents;
 };
 
 struct block_pm_duration {

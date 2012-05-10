@@ -109,6 +109,10 @@ set_log_entries = (log_data_from_server) ->
 
     recent_log_entries.reset(all_log_entries)
 
+set_stats = (stat_data) ->
+    for machine_id, data of stat_data
+        machines.get(machine_id).set('stats', data)
+
 collections_ready = ->
     # Data is now ready, let's get rockin'!
     render_body()
@@ -149,6 +153,7 @@ $ ->
         $.getJSON('/ajax/directory', set_directory)
         $.getJSON('/ajax/last_seen', set_last_seen)
         $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
+        $.getJSON('/ajax/stat', set_stats)
 
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync

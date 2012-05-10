@@ -27,7 +27,7 @@ private:
 
 class dummy_protocol_parser_t {
 public:
-    dummy_protocol_parser_t(int port, namespace_interface_t<dummy_protocol_t> *nif) :
+    dummy_protocol_parser_t(int port, namespace_interface_t<dummy_protocol_t> *nif, perfmon_collection_t *) :
         query_app(nif),
         server(port, &query_app)
         { }

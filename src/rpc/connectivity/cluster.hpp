@@ -9,8 +9,20 @@
 #include "concurrency/one_per_thread.hpp"
 #include "containers/archive/tcp_conn_stream.hpp"
 #include "containers/map_sentries.hpp"
+#include "perfmon.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
+#include "containers/uuid.hpp"
+
+struct connection_stats_t {
+    connection_stats_t(peer_id_t id, perfmon_collection_t *parent)
+        : peer_collection(uuid_to_str(id.get_uuid()), parent, true, true),
+          pm_bytes_sent("bytes_sent", secs_to_ticks(1), true, &peer_collection)
+    { }
+
+    perfmon_collection_t peer_collection;
+    perfmon_sampler_t pm_bytes_sent;
+};
 
 class connectivity_cluster_t :
     public connectivity_service_t,
@@ -68,6 +80,8 @@ public:
             this `connection_entry_t` acquire the drainer for their thread when
             they look us up in `thread_info_t::connection_map`. */
             boost::scoped_array<boost::scoped_ptr<auto_drainer_t> > drainers;
+        public:
+            connection_stats_t stats;
         };
 
         /* Sets a variable to a value in its constructor; sets it to NULL in its
@@ -145,6 +159,8 @@ public:
 
         /* This must be destroyed before `drainer` is. */
         tcp_listener_t *listener;
+
+        /* A place to put our stats */
     };
 
     connectivity_cluster_t() THROWS_NOTHING;
@@ -204,6 +220,8 @@ private:
 #endif
 
     run_t *current_run;
+
+    perfmon_collection_t connectivity_collection;
 
     DISABLE_COPYING(connectivity_cluster_t);
 };
