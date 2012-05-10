@@ -15,7 +15,7 @@ cJSON *unsatisfiable_goals_issue_t::get_json_description() {
     issue_json_t json;
     json.critical = true;
     json.description = get_description();
-    json.type.issue_type = UNSATISFIABLE_GOALS;
+    json.type = "UNSATISFIABLE_GOALS";
     json.time = get_secs();
 
     cJSON *res = render_as_json(&json, 0);
