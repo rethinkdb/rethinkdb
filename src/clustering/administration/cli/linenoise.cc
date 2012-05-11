@@ -459,8 +459,18 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
             free(history[history_len]);
             return (int)len;
         case 3:     /* ctrl-c */
-            errno = EAGAIN;
-            return -1;
+            if (len > 0) {
+                // Start a new line, forget about what was typed
+                buf[0] = '\0';
+                pos = len = 0;
+                if (write(fd, "\033D", 2) == -1) return -1;
+                refreshLine(fd,prompt,buf,len,pos,cols);
+            } else {
+                // Already empty line, exit
+                errno = EAGAIN;
+                return -1;
+            }
+            break;
         case 127:   /* backspace */
         case 8:     /* ctrl-h */
             if (pos > 0 && len > 0) {
