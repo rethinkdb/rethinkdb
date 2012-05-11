@@ -125,7 +125,7 @@ public:
         std::map<std::string, std::vector<std::string> > params;
     };
 
-    admin_command_parser_t(const std::set<peer_address_t>& joins, int client_port);
+    admin_command_parser_t(const std::string& peer_string, const std::set<peer_address_t>& joins, int client_port);
     ~admin_command_parser_t();
 
     void parse_and_run_command(const std::vector<std::string>& line);
@@ -158,6 +158,7 @@ private:
                                   bool console);
 
     void build_command_descriptions();
+    void destroy_command_descriptions(std::map<std::string, command_info *>& cmd_map);
     command_info * add_command(std::map<std::string, command_info *>& cmd_map,
                                const std::string& full_cmd,
                                const std::string& cmd,
@@ -165,6 +166,8 @@ private:
                                bool post_sync,
                                void (admin_cluster_link_t::* const fn)(command_data&));
     admin_cluster_link_t * get_cluster();
+
+    void update_prompt(char* str, size_t len);
 
     void do_admin_help(command_data& data);
     void do_admin_join(command_data& data);
@@ -186,8 +189,10 @@ private:
 
     // Static instance variable to hook in from a c-style library (linenoise), singleton enforced
     static admin_command_parser_t *instance;
+    static uint64_t cluster_join_timeout;
 
     // Variables to instantiate a link to the cluster
+    std::string join_peer;
     std::set<peer_address_t> joins_param;
     int client_port_param;
     admin_cluster_link_t *cluster;

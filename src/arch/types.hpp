@@ -28,6 +28,9 @@ typedef linux_nondirect_file_t nondirect_file_t;
 class linux_iocallback_t;
 typedef linux_iocallback_t iocallback_t;
 
+class linux_tcp_bound_socket_t;
+typedef linux_tcp_bound_socket_t tcp_bound_socket_t;
+
 class linux_tcp_listener_t;
 typedef linux_tcp_listener_t tcp_listener_t;
 

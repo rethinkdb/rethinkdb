@@ -146,6 +146,9 @@ public:
         redundant connections to the same peer. */
         mutex_t new_connection_mutex;
 
+        int cluster_client_port;
+        tcp_bound_socket_t* cluster_listener_socket;
+
         variable_setter_t register_us_with_parent;
 
         map_insertion_sentry_t<peer_id_t, peer_address_t> routing_table_entry_for_ourself;
@@ -154,7 +157,6 @@ public:
         /* For picking random threads */
         rng_t rng;
 
-        int cluster_client_port;
         auto_drainer_t drainer;
 
         /* This must be destroyed before `drainer` is. */
