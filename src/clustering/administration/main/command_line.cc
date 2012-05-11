@@ -68,6 +68,7 @@ std::set<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> na
 }
 
 void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool *result_out) {
+    os_signal_cond_t sigint_cond;
     *result_out = true;
     std::stringstream host_port;
 
@@ -76,11 +77,11 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
 
     try {
         if (command_args.empty())
-            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port).run_console();
+            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port, &sigint_cond).run_console();
         else if (command_args[0] == admin_command_parser_t::complete_command)
-            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port).run_completion(command_args);
+            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port, &sigint_cond).run_completion(command_args);
         else
-            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port).parse_and_run_command(command_args);
+            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port, &sigint_cond).parse_and_run_command(command_args);
     } catch (admin_no_connection_exc_t& ex) {
         fprintf(stderr, "%s\n", ex.what());
         fprintf(stderr, "valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
