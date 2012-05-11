@@ -10,7 +10,6 @@
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/suggester.hpp"
-#include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -50,7 +49,7 @@ void admin_cluster_link_t::fill_in_blueprints(cluster_semilattice_metadata_t *cl
 }
 
 // TODO: timeout connecting to cluster, throw admin_no_connection_exc_t if failed
-admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port) :
+admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port, signal_t *interruptor) :
     local_issue_tracker(),
     log_writer("./rethinkdb_log_file", &local_issue_tracker), // TODO: come up with something else for this file
     connectivity_cluster(),
@@ -91,14 +90,15 @@ admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins
     dummy_pinnings_shards_mismatch_issue_tracker(metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_metadata)),
     dummy_pinnings_shards_mismatch_issue_tracker_feed(&issue_aggregator, &dummy_pinnings_shards_mismatch_issue_tracker),
     unsatisfiable_goals_issue_tracker(semilattice_metadata),
-    unsatisfiable_goals_issue_tracker_feed(&issue_aggregator, &unsatisfiable_goals_issue_tracker)
+    unsatisfiable_goals_issue_tracker_feed(&issue_aggregator, &unsatisfiable_goals_issue_tracker),
+    initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000)
 {
-    boost::scoped_ptr<initial_joiner_t> initial_joiner;
-    if (!joins.empty()) {
-        initial_joiner.reset(new initial_joiner_t(&connectivity_cluster, &connectivity_cluster_run, joins));
-        initial_joiner->get_ready_signal()->wait_lazily_unordered();   /* TODO: Listen for `SIGINT`? */
-    }
+    wait_interruptible(initial_joiner.get_ready_signal(), interruptor);
+    if (!initial_joiner.get_success())
+            throw admin_cluster_exc_t("failed to join cluster");
 
+    // Pick a peer to do cluster operations through
+    // TODO: pick a peer more intelligently (latency? peer specified at command line?)
     std::set<peer_id_t> peers = connectivity_cluster.get_peers_list();
     for (std::set<peer_id_t>::iterator i = peers.begin(); i != peers.end(); ++i)
         if (*i != connectivity_cluster.get_me())
@@ -620,6 +620,10 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
 
     if (errored)
         throw admin_cluster_exc_t("not all removes were successful");
+}
+
+void admin_cluster_link_t::do_admin_resolve(admin_command_parser_t::command_data& data UNUSED) {
+    printf("NYI\n");
 }
 
 void admin_cluster_link_t::set_metadata_value(const std::vector<std::string>& path, const std::string& value)

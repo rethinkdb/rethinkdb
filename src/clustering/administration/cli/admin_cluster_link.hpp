@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 
+#include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/cli/linenoise.hpp"
 #include "clustering/administration/issues/global.hpp"
@@ -33,13 +34,14 @@ private:
 
 class admin_cluster_link_t {
 public:
-    admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port);
+    admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port, signal_t *interruptor);
 
     // A way for the parser to do completions and parsing verification
     std::vector<std::string> get_ids(const std::string& base);
 
     // Commands that may be run by the parser
     void do_admin_list(admin_command_parser_t::command_data& data);
+    void do_admin_resolve(admin_command_parser_t::command_data& data);
     void do_admin_split_shard(admin_command_parser_t::command_data& data);
     void do_admin_merge_shard(admin_command_parser_t::command_data& data);
     void do_admin_set_name(admin_command_parser_t::command_data& data);
@@ -131,6 +133,9 @@ private:
     global_issue_aggregator_t::source_t dummy_pinnings_shards_mismatch_issue_tracker_feed;
     unsatisfiable_goals_issue_tracker_t unsatisfiable_goals_issue_tracker;
     global_issue_aggregator_t::source_t unsatisfiable_goals_issue_tracker_feed;
+
+    // Initial join
+    initial_joiner_t initial_joiner;
 
     std::map<std::string, std::vector<std::string> > uuid_to_path;
     std::multimap<std::string, std::vector<std::string> > name_to_path;

@@ -17,10 +17,15 @@ public:
     initial_joiner_t(
             connectivity_cluster_t *cluster,
             connectivity_cluster_t::run_t *cluster_run,
-            const std::set<peer_address_t> &peers);
+            const std::set<peer_address_t> &peers,
+            int timeout = -1);
 
     signal_t *get_ready_signal() {
-        return &some_connection_made;
+        return &done_signal;
+    }
+
+    bool get_success() {
+        return successful_connection;
     }
 
 private:
@@ -29,10 +34,11 @@ private:
 
     connectivity_cluster_t *cluster;
     std::set<peer_address_t> peers_not_heard_from;
-    cond_t some_connection_made;
+    cond_t done_signal;
     boost::scoped_ptr<signal_timer_t> grace_period_timer;
     auto_drainer_t drainer;
     connectivity_service_t::peers_list_subscription_t subs;
+    bool successful_connection;
 
     DISABLE_COPYING(initial_joiner_t);
 };

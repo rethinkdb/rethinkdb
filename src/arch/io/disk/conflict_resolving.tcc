@@ -1,7 +1,8 @@
 #include "perfmon.hpp"
 
 template<class payload_t>
-conflict_resolving_diskmgr_t<payload_t>::conflict_resolving_diskmgr_t() { }
+conflict_resolving_diskmgr_t<payload_t>::conflict_resolving_diskmgr_t(perfmon_collection_t *stats) :
+    conflict_sampler("conflict", secs_to_ticks(1), true, stats) { }
 
 template<class payload_t>
 conflict_resolving_diskmgr_t<payload_t>::~conflict_resolving_diskmgr_t() {
@@ -9,9 +10,6 @@ conflict_resolving_diskmgr_t<payload_t>::~conflict_resolving_diskmgr_t() {
     /* Make sure there are no requests still out. */
     rassert(chunk_queues.empty());
 }
-
-// Must be defined in some specific .cc file!
-extern perfmon_sampler_t pm_io_disk_stack_conflicts;
 
 template<class payload_t>
 void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
@@ -131,7 +129,7 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
     } else {
         // TODO: Refine the perfmon such that it measures the actual time that ops spend
         // in a waiting state
-        pm_io_disk_stack_conflicts.record(1);
+        conflict_sampler.record(1);
     }
 }
 
