@@ -121,61 +121,6 @@ order_token_t order_source_t::check_in(const std::string& tag) {
 
 
 
-const int64_t REALTIME_COUNTER_INCREMENT = 0x100000000LL;
-
-backfill_receiver_order_source_t::backfill_receiver_order_source_t() :
-    backfill_active_(false)
-{
-    std::pair<int, int64_t> p = pigeoncoops[get_thread_id()].register_for_bucket();
-    bucket_ = order_bucket_t(get_thread_id(), p.first);
-    counter_ = p.second;
-}
-
-backfill_receiver_order_source_t::~backfill_receiver_order_source_t() {
-    pigeoncoops[get_thread_id()].unregister_bucket(
-        bucket_.number_,
-        /* We have to pass the pigeoncoop a number that's greater than or equal
-        to any number that we've given out before. If `backfill_active_` is true,
-        then we may have given out some tokens which had numbers of the form
-        `(counter_ + REALTIME_COUNTER_INCREMENT)`, so we need to take that into
-        account. */
-        counter_ + (backfill_active_ ? REALTIME_COUNTER_INCREMENT : 0));
-}
-
-void backfill_receiver_order_source_t::backfill_begun() {
-    assert_thread();
-    // TODO: We have no way of calling this function.
-    rassert(!backfill_active_);
-    backfill_active_ = true;
-}
-
-void backfill_receiver_order_source_t::backfill_done() {
-    assert_thread();
-    // TODO: We can't really assert backfill_active stuff here because
-    // we might not have received the backfilling messages.
-    backfill_active_ = true;
-
-    rassert(backfill_active_);
-    backfill_active_ = false;
-    counter_ += REALTIME_COUNTER_INCREMENT;
-}
-
-order_token_t backfill_receiver_order_source_t::check_in_backfill_operation(const std::string& tag) {
-    assert_thread();
-    backfill_active_ = true;
-    rassert(backfill_active_);
-    ++counter_;
-    return order_token_t(bucket_, counter_, false, "backfill+" + tag);
-}
-
-order_token_t backfill_receiver_order_source_t::check_in_realtime_operation(const std::string& tag) {
-    assert_thread();
-    ++counter_;
-    return order_token_t(bucket_, counter_ + (backfill_active_ ? REALTIME_COUNTER_INCREMENT : 0),
-                         false, "realtime+" + tag);
-}
-
-
 
 order_sink_t::order_sink_t() { }
 
