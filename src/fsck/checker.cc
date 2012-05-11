@@ -142,13 +142,13 @@ struct knowledge_t {
     knowledge_t(const std::vector<std::string>& filenames, const std::string &metadata_filename)
         : files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
         for (int i = 0, n = filenames.size(); i < n; ++i) {
-            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read);
+            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read, NULL);
             files[i] = file;
             file_knog[i] = new file_knowledge_t(filenames[i]);
         }
 
         if (!metadata_filename.empty()) {
-            metadata_file = new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read);
+            metadata_file = new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read, NULL);
             metadata_file_knog = new file_knowledge_t(metadata_filename);
         } else {
             metadata_file = NULL;

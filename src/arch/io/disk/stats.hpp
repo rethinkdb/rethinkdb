@@ -10,8 +10,9 @@ and passive producer. */
 
 template<class payload_t>
 struct stats_diskmgr_t {
-    stats_diskmgr_t(perfmon_duration_sampler_t *rs, perfmon_duration_sampler_t *ws) :
-        read_sampler(rs), write_sampler(ws) { }
+    stats_diskmgr_t(perfmon_collection_t *stats, const std::string &name) :
+        read_sampler(name + "_read", secs_to_ticks(1), stats),
+        write_sampler(name + "_write", secs_to_ticks(1), stats) { }
 
     struct action_t : public payload_t {
         ticks_t start_time;
@@ -19,9 +20,9 @@ struct stats_diskmgr_t {
 
     void submit(action_t *a) {
         if (a->get_is_read()) {
-            read_sampler->begin(&a->start_time);
+            read_sampler.begin(&a->start_time);
         } else {
-            write_sampler->begin(&a->start_time);
+            write_sampler.begin(&a->start_time);
         }
         submit_fun(a);
     }
@@ -33,15 +34,15 @@ struct stats_diskmgr_t {
     void done(payload_t *p) {
         action_t *a = static_cast<action_t *>(p);
         if (a->get_is_read()) {
-            read_sampler->end(&a->start_time);
+            read_sampler.end(&a->start_time);
         } else {
-            write_sampler->end(&a->start_time);
+            write_sampler.end(&a->start_time);
         }
         done_fun(a);
     }
 
 private:
-    perfmon_duration_sampler_t *read_sampler, *write_sampler;
+    perfmon_duration_sampler_t read_sampler, write_sampler;
 };
 
 template<class payload_t>
@@ -57,13 +58,13 @@ struct stats_diskmgr_2_t :
     `passive_producer_t<action_t *>`; it will get its operations from there. It
     will call `done_fun` on each one when it's done. */
     stats_diskmgr_2_t(
-            perfmon_duration_sampler_t *rs,
-            perfmon_duration_sampler_t *ws,
+            perfmon_collection_t *stats, const std::string &name,
             passive_producer_t<action_t *> *_source) :
         passive_producer_t<payload_t *>(_source->available),
         producer(this),
         source(_source),
-        read_sampler(rs), write_sampler(ws)
+        read_sampler(name + "_read", secs_to_ticks(1), stats),
+        write_sampler(name + "_write", secs_to_ticks(1), stats)
         { }
     boost::function<void (action_t *)> done_fun;
 
@@ -71,9 +72,9 @@ struct stats_diskmgr_2_t :
     void done(payload_t *p) {
         action_t *a = static_cast<action_t *>(p);
         if (a->get_is_read()) {
-            read_sampler->end(&a->start_time);
+            read_sampler.end(&a->start_time);
         } else {
-            write_sampler->end(&a->start_time);
+            write_sampler.end(&a->start_time);
         }
         done_fun(a);
     }
@@ -82,14 +83,14 @@ private:
     payload_t *produce_next_value() {
         action_t *a = source->pop();
         if (a->get_is_read()) {
-            read_sampler->begin(&a->start_time);
+            read_sampler.begin(&a->start_time);
         } else {
-            write_sampler->begin(&a->start_time);
+            write_sampler.begin(&a->start_time);
         }
         return a;
     }
     passive_producer_t<action_t *> *source;
-    perfmon_duration_sampler_t *read_sampler, *write_sampler;
+    perfmon_duration_sampler_t read_sampler, write_sampler;
 };
 
 #endif /* ARCH_IO_DISK_STATS_HPP_ */
