@@ -283,7 +283,6 @@ struct perfmon_system_t : public perfmon_t {
         global_sys_stat_t global_stat = global_sys_stat_t::read_global_stats();
         dest->insert("global_mem_total", new perfmon_result_t(strprintf("%ld", global_stat.mem_total)));
         dest->insert("global_mem_used", new perfmon_result_t(strprintf("%ld", global_stat.mem_total - global_stat.mem_free)));
-        dest->insert("global_disk_???", new perfmon_result_t(strprintf("???")));
     }
     void put_timestamp(perfmon_result_t *dest) {
         struct timespec now;
