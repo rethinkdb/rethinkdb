@@ -228,14 +228,16 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
                                                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                                      std::vector<typename protocol_t::read_response_t> *responses,
                                                      signal_t *interruptor) THROWS_NOTHING {
-    if (!region_overlaps(get_region(i), read.get_region())) {
+    typename protocol_t::region_t ith_intersection = region_intersection(get_region(i), read.get_region());
+
+    if (region_is_empty(ith_intersection)) {
         read_tokens[i].reset();
         return;
     }
 
     try {
-        responses->push_back(store_views[i]->read(DEBUG_ONLY(expected_metainfo.mask(get_region(i)), )
-                                                  read.shard(get_region(i)),
+        responses->push_back(store_views[i]->read(DEBUG_ONLY(expected_metainfo.mask(ith_intersection), )
+                                                  read.shard(ith_intersection),
                                                   read_tokens[i],
                                                   interruptor));
     } catch (interrupted_exc_t& exc) {
@@ -276,7 +278,8 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
                                                       boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                                                       std::vector<typename protocol_t::write_response_t> *responses,
                                                       signal_t *interruptor) THROWS_NOTHING {
-    if (!region_overlaps(get_region(i), write.get_region())) {
+    typename protocol_t::region_t ith_intersection = region_intersection(get_region(i), write.get_region());
+    if (region_is_empty(ith_intersection)) {
         write_tokens[i].reset();
         return;
     }
@@ -284,9 +287,9 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
     // TODO: Have an assertion about the new_metainfo region?
 
     try {
-        responses->push_back(store_views[i]->write(DEBUG_ONLY(expected_metainfo.mask(get_region(i)), )
-                                                   new_metainfo.mask(get_region(i)),
-                                                   write.shard(get_region(i)),
+        responses->push_back(store_views[i]->write(DEBUG_ONLY(expected_metainfo.mask(ith_intersection), )
+                                                   new_metainfo.mask(ith_intersection),
+                                                   write.shard(ith_intersection),
                                                    timestamp,
                                                    write_tokens[i],
                                                    interruptor));
