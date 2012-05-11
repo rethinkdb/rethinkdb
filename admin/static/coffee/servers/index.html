@@ -39,7 +39,7 @@
     {{#unless unassigned_machine}}
     <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Namespaces: {{namespace_count}}</p>
     {{/unless}}
-    <p class="contains">CPU: {{cpu_combined_avg}}%</p>
+    <p class="contains">CPU: {{global_cpu_util}}%, RAM: {{global_mem_used}} of {{global_mem_total}}GB used, Disk: ???, Network: {{global_net_sent}}Kb/s sent, {{global_net_recv}}Kb/s recv</p>
   </div>
 </script>
 
