@@ -118,6 +118,132 @@ private:
     }
 };
 
+struct global_sys_stat_exc_t : public std::exception {
+    explicit global_sys_stat_exc_t(const char *format, ...) __attribute__ ((format (printf, 2, 3))) {
+        va_list ap;
+        va_start(ap, format);
+        msg = vstrprintf(format, ap);
+        va_end(ap);
+    }
+    std::string msg;
+    const char *what() const throw () {
+        return msg.c_str();
+    }
+    ~global_sys_stat_exc_t() throw () { }
+};
+
+// This structure reads various global system stats such as total
+// memory consumption, network stats, etc.
+struct global_sys_stat_t {
+public:
+    long mem_total, mem_free;
+    long utime, ntime, stime, itime, wtime;
+    int ncpus;
+    long bytes_received, bytes_sent;
+    
+public:
+    static global_sys_stat_t read_global_stats() {
+        global_sys_stat_t stat;
+        stat.mem_total = stat.mem_free = stat.utime = stat.ntime = stat.stime = stat.itime = stat.wtime = 0;
+        stat.ncpus = 0;
+        stat.bytes_received = stat.bytes_sent = 0;
+        
+        // Grab memory info
+        {
+            const char *path = "/proc/meminfo";
+            scoped_fd_t stat_file(open(path, O_RDONLY));
+            if (stat_file.get() == INVALID_FD) {
+                throw global_sys_stat_exc_t("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
+            }
+        
+            char buffer[1000];
+            int res = ::read(stat_file.get(), buffer, sizeof(buffer));
+            if (res <= 0) {
+                throw global_sys_stat_exc_t("Could not read '%s': %s (errno = %d)", path, strerror(errno), errno);
+            }
+            buffer[res] = '\0';
+        
+            char *_memtotal = strcasestr(buffer, "MemTotal");
+            if(_memtotal) {
+                res = sscanf(_memtotal, "MemTotal:%*[ ]%ld kB", &stat.mem_total);
+            }
+            char *_memfree = strcasestr(buffer, "MemFree");
+            if(_memfree) {
+                res = sscanf(_memfree, "MemFree:%*[ ]%ld kB", &stat.mem_free);
+            }
+        }
+
+        // Grab CPU info
+        {
+            const char *path = "/proc/stat";
+            scoped_fd_t stat_file(open(path, O_RDONLY));
+            if (stat_file.get() == INVALID_FD) {
+                throw global_sys_stat_exc_t("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
+            }
+        
+            char buffer[1024 * 10];
+            int res = ::read(stat_file.get(), buffer, sizeof(buffer));
+            if (res <= 0) {
+                throw global_sys_stat_exc_t("Could not read '%s': %s (errno = %d)", path, strerror(errno), errno);
+            }
+            buffer[res] = '\0';
+        
+            res = sscanf(buffer, "cpu%*[ ]%ld %ld %ld %ld %ld",
+                         &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
+
+            // Compute the number of cores
+            char *core = buffer;
+            do {
+                core = strcasestr(core, "cpu");
+                if (core) {
+                    stat.ncpus++;
+                    core += 3;
+                }
+            } while(core);
+            stat.ncpus--; // the first line is an aggeragate
+        }
+        
+
+        // Grab network info
+        {
+            const char *path = "/proc/net/dev";
+            scoped_fd_t stat_file(open(path, O_RDONLY));
+            if (stat_file.get() == INVALID_FD) {
+                throw global_sys_stat_exc_t("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
+            }
+        
+            char buffer[1024 * 10];
+            int res = ::read(stat_file.get(), buffer, sizeof(buffer));
+            if (res <= 0) {
+                throw global_sys_stat_exc_t("Could not read '%s': %s (errno = %d)", path, strerror(errno), errno);
+            }
+            buffer[res] = '\0';
+        
+            // Scan for bytes received and sent on each interface
+            char *netinfo = buffer;
+            do {
+                netinfo = strstr(netinfo, ": ");
+                if(netinfo) {
+                    netinfo += 2;
+                    long recv, sent;
+                    res = sscanf(netinfo, "%ld%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%ld%*[ ]", &recv, &sent);
+                    if(res == 2) {
+                        stat.bytes_received += recv;
+                        stat.bytes_sent += sent;
+                    }
+                }
+            } while(netinfo);
+            res = sscanf(buffer, "cpu%*[ ]%ld %ld %ld %ld %ld",
+                         &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
+
+        }
+        
+
+        // Whoo, we're done.
+        return stat;
+    }
+};
+
 /* perfmon_system_t is used to monitor system stats that do not need to be polled. */
 struct perfmon_system_t : public perfmon_t {
     bool have_reported_error;
@@ -134,10 +260,12 @@ struct perfmon_system_t : public perfmon_t {
     void visit_stats(void *) {
     }
     void end_stats(void *, perfmon_result_t *dest) {
+        // Basic process stats (version, pid, uptime)
         put_timestamp(dest);
         dest->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
         dest->insert("pid", new perfmon_result_t(strprintf("%d", getpid())));
 
+        // PID specific stuff
         proc_pid_stat_t pid_stat;
         try {
             pid_stat = proc_pid_stat_t::for_pid(getpid());
@@ -148,9 +276,14 @@ struct perfmon_system_t : public perfmon_t {
             }
             return;
         }
-
         dest->insert("memory_virtual", new perfmon_result_t(strprintf("%lu", pid_stat.vsize)));
         dest->insert("memory_real", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
+
+        // Stats global to machine
+        global_sys_stat_t global_stat = global_sys_stat_t::read_global_stats();
+        dest->insert("global_mem_total", new perfmon_result_t(strprintf("%ld", global_stat.mem_total)));
+        dest->insert("global_mem_used", new perfmon_result_t(strprintf("%ld", global_stat.mem_total - global_stat.mem_free)));
+        dest->insert("global_disk_???", new perfmon_result_t(strprintf("???")));
     }
     void put_timestamp(perfmon_result_t *dest) {
         struct timespec now;
@@ -171,18 +304,24 @@ perfmon_sampler_t
     pm_cpu_user("cpu_user", secs_to_ticks(5), false, NULL),
     pm_cpu_system("cpu_system", secs_to_ticks(5), false, NULL),
     pm_cpu_combined("cpu_combined", secs_to_ticks(5), false, NULL),
-    pm_memory_faults("memory_faults", secs_to_ticks(5), false, NULL);
+    pm_memory_faults("memory_faults", secs_to_ticks(5), false, NULL),
+    pm_global_cpu_util("global_cpu_util", secs_to_ticks(5), false, NULL),
+    pm_global_net_sent("global_net_sent", secs_to_ticks(5), false, NULL),
+    pm_global_net_recv("global_net_recv", secs_to_ticks(5), false, NULL);
 
 
 TLS(proc_pid_stat_t, last_stats);
+TLS(global_sys_stat_t, last_global_stats);
 TLS_with_init(ticks_t, last_ticks, 0);
 TLS_with_init(bool, have_reported_stats_error, false);
 
 void poll_system_stats(void *) {
 
     proc_pid_stat_t current_stats;
+    global_sys_stat_t global_stats;
     try {
         current_stats = proc_pid_stat_t::for_pid_and_tid(getpid(), syscall(SYS_gettid));
+        global_stats = global_sys_stat_t::read_global_stats();
     } catch (proc_pid_stat_exc_t e) {
         if (!TLS_get_have_reported_stats_error()) {
             logWRN("Error in reporting per-thread stats: %s (Further errors like this will "
@@ -194,6 +333,7 @@ void poll_system_stats(void *) {
 
     if (TLS_get_last_ticks() == 0) {
         TLS_set_last_stats(current_stats);
+        TLS_set_last_global_stats(global_stats);
         TLS_set_last_ticks(current_ticks);
     } else if (current_ticks > TLS_get_last_ticks() + secs_to_ticks(1)) {
         double realtime_elapsed = ticks_to_secs(current_ticks - TLS_get_last_ticks()) * sysconf(_SC_CLK_TCK);
@@ -205,6 +345,15 @@ void poll_system_stats(void *) {
              realtime_elapsed);
         pm_memory_faults.record((current_stats.majflt - TLS_get_last_stats().majflt) / realtime_elapsed);
 
+        // Global stuff
+        pm_global_cpu_util.record(
+            (global_stats.utime - TLS_get_last_global_stats().utime +
+             global_stats.stime - TLS_get_last_global_stats().stime) /
+             realtime_elapsed / global_stats.ncpus);
+        pm_global_net_recv.record(global_stats.bytes_received - TLS_get_last_global_stats().bytes_received);
+        pm_global_net_sent.record(global_stats.bytes_sent - TLS_get_last_global_stats().bytes_sent);
+
+        TLS_set_last_global_stats(global_stats);
         TLS_set_last_stats(current_stats);
         TLS_set_last_ticks(current_ticks);
     }

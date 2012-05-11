@@ -149,8 +149,12 @@ module 'ServerView', ->
                 json.unassigned_machine = true
             # Stats, jiga
             json = _.extend json,
-                cpu_combined_avg : Math.round(@model.get_stats().cpu_combined_avg * 100)
-
+                # TODO: add a helper to upgrade/downgrade units dynamically depending on the values
+                global_cpu_util: Math.floor(@model.get_stats().global_cpu_util_avg * 100)
+                global_mem_total: (@model.get_stats().global_mem_total / 1024 / 1024).toFixed(1)
+                global_mem_used: (@model.get_stats().global_mem_used / 1024 / 1024).toFixed(1)
+                global_net_sent: (@model.get_stats().global_net_sent_avg / 1024).toFixed(1)
+                global_net_recv: (@model.get_stats().global_net_recv_avg / 1024).toFixed(1)
             # Whooo
             @.$('.machine.summary').html @summary_template json
 
