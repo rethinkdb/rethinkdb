@@ -36,7 +36,7 @@ void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_c
 
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
 
-    direct_file_t df(private_dynamic_config.db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, dynamic_config.io_backend, dynamic_config.io_batch_factor);
+    direct_file_t df(private_dynamic_config.db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, NULL, dynamic_config.io_backend, dynamic_config.io_batch_factor);
 
     co_static_header_write(&df, on_disk_config, sizeof(*on_disk_config));
 
@@ -75,7 +75,7 @@ struct ls_start_existing_fsm_t :
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
 
-        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->dynamic_config.io_backend, ser->dynamic_config.io_batch_factor);
+        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, &ser->disk_stats_collection, ser->dynamic_config.io_backend, ser->dynamic_config.io_batch_factor);
         if (!ser->dbfile->exists()) {
             crash("Database file \"%s\" does not exist.\n", ser->db_path);
         }
@@ -202,6 +202,7 @@ struct ls_start_existing_fsm_t :
 
 log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_, perfmon_collection_t *_perfmon_collection) :
       stats(_perfmon_collection),
+      disk_stats_collection("disk", _perfmon_collection, true, true),
 #ifndef NDEBUG
       expecting_no_more_tokens(false),
 #endif
@@ -235,7 +236,7 @@ log_serializer_t::~log_serializer_t() {
 }
 
 void ls_check_existing(const char *filename, log_serializer_t::check_callback_t *cb) {
-    direct_file_t df(filename, file_t::mode_read);
+    direct_file_t df(filename, file_t::mode_read, NULL);
     cb->on_serializer_check(static_header_check(&df));
 }
 

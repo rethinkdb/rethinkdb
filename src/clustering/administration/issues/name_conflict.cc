@@ -53,7 +53,7 @@ public:
 
     void report(const std::string &type,
             std::list<clone_ptr_t<global_issue_t> > *out) {
-        for (std::map<std::string, std::set<boost::uuids::uuid> >::iterator it =
+        for (std::map<std::string, std::set<boost::uuids::uuid>, case_insensitive_less_t>::iterator it =
                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
                 out->push_back(clone_ptr_t<global_issue_t>(
@@ -64,7 +64,14 @@ public:
     }
 
 private:
-    std::map<std::string, std::set<boost::uuids::uuid> > by_name;
+    class case_insensitive_less_t : public std::binary_function<std::string, std::string, bool> {
+    public:
+        bool operator()(const std::string &a, const std::string &b) {
+            return strcasecmp(a.c_str(), b.c_str()) < 0;
+        }
+    };
+
+    std::map<std::string, std::set<boost::uuids::uuid>, case_insensitive_less_t> by_name;
 };
 
 std::list<clone_ptr_t<global_issue_t> > name_conflict_issue_tracker_t::get_issues() {
