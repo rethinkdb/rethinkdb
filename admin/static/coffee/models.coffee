@@ -73,6 +73,16 @@ class Machine extends Backbone.Model
         else
             return {}
 
+    get_used_disk_space: =>
+        machine_disk_space = 0
+        for nid, value of @get_stats()
+            # Check if nid is actually a namespace id
+            if namespaces.get(nid)?
+                stats = value.cache
+                if stats?
+                    machine_disk_space += parseInt(stats.block_size) * parseInt(stats.blocks_total)
+        return machine_disk_space
+
 class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)
     get_formatted_message: =>
