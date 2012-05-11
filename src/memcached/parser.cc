@@ -47,7 +47,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     const int max_concurrent_queries_per_connection;
 
     memcached_stats_t *stats;
-    
+
     cas_t generate_cas() {
         // TODO we have to do better than this. CASes need to be generated in a
         // way that is very fast but also gives a reasonably good guarantee of
@@ -976,78 +976,6 @@ std::string memcached_stats(int argc, char **argv) {
     return res;
 }
 
-#ifndef NDEBUG
-void do_quickset(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, std::vector<char*> args) {
-    if (args.size() < 2 || args.size() % 2 == 0) {
-        // The connection will be closed if more than a megabyte or so is sent
-        // over without a newline, so we don't really need to worry about large
-        // values.
-        pipeliner_acq->done_argparsing();
-        pipeliner_acq->begin_write();
-        rh->write("CLIENT_ERROR Usage: .s k1 v1 [k2 v2...] (no whitespace in values)\r\n");
-        pipeliner_acq->end_write();
-        return;
-    }
-
-    std::vector<std::string> args_copy(args.begin(), args.end());
-
-    pipeliner_acq->done_argparsing();
-    pipeliner_acq->begin_write();
-    for (size_t i = 1; i < args.size(); i += 2) {
-        store_key_t key;
-        if (!str_to_key(args_copy[i].c_str(), &key)) {
-            rh->writef("CLIENT_ERROR Invalid key %s\r\n", args_copy[i].c_str());
-            pipeliner_acq->end_write();
-            return;
-        }
-        intrusive_ptr_t<data_buffer_t> value = data_buffer_t::create(args_copy[i + 1].size());
-        memcpy(value->buf(), args_copy[i + 1].data(), value->size());
-
-        set_result_t res;
-        std::string error_message;
-        bool ok;
-
-        try {
-            sarc_mutation_t sarc_mutation(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0);
-            memcached_protocol_t::write_t write(sarc_mutation, rh->generate_cas(), time(NULL));
-            cond_t non_interruptor;
-            memcached_protocol_t::write_response_t result = rh->nsi->write(write, order_token_t::ignore, &non_interruptor);
-            res = boost::get<set_result_t>(result.result);
-            ok = true;
-        } catch (cannot_perform_query_exc_t e) {
-            error_message = e.what();
-            ok = false;
-        }
-
-        if (ok) {
-            if (res == sr_stored) {
-                rh->writef("STORED key %s\r\n", args_copy[i].c_str());
-            } else {
-                rh->writef("MYSTERIOUS_ERROR key %s\r\n", args_copy[i].c_str());
-            }
-        } else {
-            rh->server_error("%s\r\n", error_message.c_str());
-        }
-    }
-    pipeliner_acq->end_write();
-}
-
-bool parse_debug_command(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, std::vector<char*> args) {
-    if (args.size() < 1) {
-        return false;
-    }
-
-    if (!strcmp(args[0], ".s")) {
-        pipeliner_acq_t pipeliner_acq(pipeliner);
-        pipeliner_acq.begin_operation();
-        do_quickset(rh, &pipeliner_acq, args);
-        return true;
-    } else {
-        return false;
-    }
-}
-#endif  // NDEBUG
-
 /* Handle memcached, takes a txt_memcached_handler_t and handles the memcached commands that come in on it */
 void handle_memcache(memcached_interface_t *interface, namespace_interface_t<memcached_protocol_t> *nsi, int max_concurrent_queries_per_connection, memcached_stats_t *stats) {
     logDBG("Opened memcached stream: %p", coro_t::self());
@@ -1160,11 +1088,7 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
                 rh.error();
             }
             pipeliner_acq.end_write();
-#ifndef NDEBUG
-        } else if (!parse_debug_command(&rh, &pipeliner, args)) {
-#else
         } else {
-#endif
             pipeliner_acq_t pipeliner_acq(&pipeliner);
             pipeliner_acq.begin_operation();
             pipeliner_acq.done_argparsing();

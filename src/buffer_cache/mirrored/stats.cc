@@ -1,5 +1,21 @@
 #include "buffer_cache/mirrored/stats.hpp"
 
+mc_cache_stats_t::perfmon_cache_custom_t::perfmon_cache_custom_t(perfmon_collection_t *parent)
+    : perfmon_t(parent), block_size(0)
+{
+}
+
+void *mc_cache_stats_t::perfmon_cache_custom_t::begin_stats() {
+    return NULL;
+}
+
+void mc_cache_stats_t::perfmon_cache_custom_t::visit_stats(void *) {
+}
+
+void mc_cache_stats_t::perfmon_cache_custom_t::end_stats(void *, perfmon_result_t *dest) {
+    dest->insert("block_size", new perfmon_result_t(strprintf("%ld", block_size)));
+}
+
 mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
     : cache_collection("cache", parent, true, true),
       pm_registered_snapshots("registered_snapshots", &cache_collection),
@@ -25,7 +41,8 @@ mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)
       pm_n_blocks_dirty("blocks_dirty", &cache_collection),
       pm_n_blocks_total("blocks_total", &cache_collection),
       pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), false, &cache_collection),
-      pm_n_blocks_evicted("blocks_evicted", &cache_collection)
+      pm_n_blocks_evicted("blocks_evicted", &cache_collection),
+      pm_block_size(&cache_collection)
 { }
 
 

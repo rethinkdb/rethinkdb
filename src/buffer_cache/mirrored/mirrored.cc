@@ -1352,6 +1352,9 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
     /* We may have made a lot of blocks dirty by initializing the patch log. We need to start
     a sync explicitly because it bypassed transaction_t. */
     writeback.sync(NULL);
+
+    /* Init the stat system with the block size */
+    stats.pm_block_size.block_size = get_block_size().ser_value();
 }
 
 mc_cache_t::~mc_cache_t() {

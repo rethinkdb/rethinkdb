@@ -55,6 +55,17 @@ struct mc_cache_stats_t {
     // used in buffer_cache/mirrored/page_repl_random.cc
     perfmon_counter_t pm_n_blocks_evicted;
 
+    /* This is for exposing the block size */
+    struct perfmon_cache_custom_t : public perfmon_t {
+    public:
+        explicit perfmon_cache_custom_t(perfmon_collection_t *parent = NULL);
+        void *begin_stats();
+        void visit_stats(void *);
+        void end_stats(void *, perfmon_result_t *dest);
+    public:
+        long block_size;
+    };
+    perfmon_cache_custom_t pm_block_size;
 };
 
 #endif // BUFFER_CACHE_MIRRORED_STATS_HPP_
