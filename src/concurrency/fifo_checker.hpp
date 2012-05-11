@@ -45,9 +45,7 @@ public:
     order_token_t() { }
     order_token_t with_read_mode() const { return order_token_t(); }
 
-    int bucket() const { return 0; }
     bool read_mode() const { return true; }
-    int64_t value() const { return 0; }
     std::string tag() const { return ""; }
 #endif  // ifndef NDEBUG
 

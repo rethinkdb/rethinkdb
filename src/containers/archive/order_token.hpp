@@ -11,7 +11,6 @@ inline MUST_USE int deserialize(UNUSED read_stream_t *s, order_token_t *tok) {
     return ARCHIVE_SUCCESS;
 }
 
-// Send no evil, receive no evil.
 inline write_message_t &operator<<(write_message_t &msg, UNUSED const order_token_t &tok) {
     return msg;
 }
