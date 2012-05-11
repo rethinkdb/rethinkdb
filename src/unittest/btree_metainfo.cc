@@ -57,7 +57,7 @@ void run_metainfo_test() {
 
     btree_slice_t::create(&cache);
 
-    btree_slice_t btree(&cache);
+    btree_slice_t btree(&cache, NULL);
 
     order_source_t order_source;
 

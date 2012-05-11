@@ -6,12 +6,11 @@ extern perfmon_counter_t
     slice_leaves_iterators;
 
 template <class Value>
-leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, leaf::live_iter_t _iter, buf_lock_t *_lock, const boost::shared_ptr< value_sizer_t<void> >& _sizer, transaction_t *_transaction) :
-    leaf(_leaf), iter(_iter), lock(_lock), sizer(_sizer), transaction(_transaction) {
+leaf_iterator_t<Value>::leaf_iterator_t(const leaf_node_t *_leaf, leaf::live_iter_t _iter, buf_lock_t *_lock, const boost::shared_ptr< value_sizer_t<void> >& _sizer, transaction_t *_transaction, btree_stats_t *_stats) :
+    leaf(_leaf), iter(_iter), lock(_lock), sizer(_sizer), transaction(_transaction), stats(_stats) {
 
     rassert(leaf != NULL);
     rassert(lock != NULL);
-    ++leaf_iterators;
 }
 
 template <class V>
@@ -24,6 +23,7 @@ boost::optional<key_value_pair_t<V> > leaf_iterator_t<V>::next() {
     } else {
         const V *value = static_cast<const V *>(iter.get_value(leaf));
         iter.step(leaf);
+        stats->pm_keys_read.record();
         return boost::make_optional(key_value_pair_t<V>(sizer.get(), key_to_str(k), value));
     }
 }
@@ -35,7 +35,6 @@ void leaf_iterator_t<Value>::prefetch() {
 
 template <class Value>
 leaf_iterator_t<Value>::~leaf_iterator_t() {
-    --leaf_iterators;
     done();
 }
 
@@ -50,12 +49,12 @@ void leaf_iterator_t<Value>::done() {
 
 template <class Value>
 slice_leaves_iterator_t<Value>::slice_leaves_iterator_t(const boost::shared_ptr< value_sizer_t<void> >& _sizer, transaction_t *_transaction, boost::scoped_ptr<superblock_t> &_superblock, int _slice_home_thread,
-    btree_bound_mode_t _left_mode, const btree_key_t *_left_key, btree_bound_mode_t _right_mode, const btree_key_t *_right_key) :
-    sizer(_sizer), transaction(_transaction), slice_home_thread(_slice_home_thread),
-    left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
-    traversal_state(), started(false), nevermore(false) {
+    btree_bound_mode_t _left_mode, const btree_key_t *_left_key, btree_bound_mode_t _right_mode, const btree_key_t *_right_key, btree_stats_t *_stats) 
+    : sizer(_sizer), transaction(_transaction), slice_home_thread(_slice_home_thread),
+      left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
+      traversal_state(), started(false), nevermore(false), stats(_stats)
+{
     superblock.swap(_superblock);
-    ++slice_leaves_iterators;
 }
 
 template <class Value>
@@ -76,7 +75,6 @@ void slice_leaves_iterator_t<Value>::prefetch() {
 
 template <class Value>
 slice_leaves_iterator_t<Value>::~slice_leaves_iterator_t() {
-    --slice_leaves_iterators;
     done();
 }
 
@@ -145,7 +143,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_fir
     leaf::live_iter_t iter = leaf::iter_for_inclusive_lower_bound(l_node, left_key);
 
     if (iter.get_key(l_node)) {
-        return boost::make_optional(new leaf_iterator_t<Value>(l_node, iter, buf_lock, sizer, transaction));
+        return boost::make_optional(new leaf_iterator_t<Value>(l_node, iter, buf_lock, sizer, transaction, stats));
     } else {
         // there's nothing more in this leaf, we might as well move to the next leaf
         delete buf_lock;
@@ -202,7 +200,7 @@ boost::optional<leaf_iterator_t<Value>*> slice_leaves_iterator_t<Value>::get_lef
     rassert(buf_lock != NULL);
 
     const leaf_node_t *l_node = reinterpret_cast<const leaf_node_t *>(node);
-    return boost::make_optional(new leaf_iterator_t<Value>(l_node, leaf::iter_for_whole_leaf(l_node), buf_lock, sizer, transaction));
+    return boost::make_optional(new leaf_iterator_t<Value>(l_node, leaf::iter_for_whole_leaf(l_node), buf_lock, sizer, transaction, stats));
 }
 
 template <class Value>
@@ -216,11 +214,12 @@ block_id_t slice_leaves_iterator_t<Value>::get_child_id(const internal_node_t *i
 
 template <class Value>
 slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr< value_sizer_t<void> >& _sizer, transaction_t *_transaction, boost::scoped_ptr<superblock_t> &_superblock, int _slice_home_thread,
-        btree_bound_mode_t _left_mode, const store_key_t &_left_key, btree_bound_mode_t _right_mode, const store_key_t &_right_key) :
+        btree_bound_mode_t _left_mode, const store_key_t &_left_key, btree_bound_mode_t _right_mode, const store_key_t &_right_key, btree_stats_t *_stats) :
     sizer(_sizer), transaction(_transaction), slice_home_thread(_slice_home_thread),
     left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
     left_str(key_to_str(_left_key)), right_str(key_to_str(_right_key)),
-    no_more_data(false), active_leaf(NULL), leaves_iterator(NULL) {
+    no_more_data(false), active_leaf(NULL), leaves_iterator(NULL), stats(_stats)
+{
     superblock.swap(_superblock);
 }
 
@@ -248,7 +247,7 @@ void slice_keys_iterator_t<Value>::prefetch() {
 template <class Value>
 boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::get_first_value() {
     rassert(superblock);
-    leaves_iterator = new slice_leaves_iterator_t<Value>(sizer, transaction, superblock, slice_home_thread, left_mode, left_key.key(), right_mode, right_key.key());
+    leaves_iterator = new slice_leaves_iterator_t<Value>(sizer, transaction, superblock, slice_home_thread, left_mode, left_key.key(), right_mode, right_key.key(), stats);
 
     // get the first leaf with our left key (or something greater)
     boost::optional<leaf_iterator_t<Value>*> first = leaves_iterator->next();
