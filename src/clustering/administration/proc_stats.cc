@@ -1,38 +1,23 @@
-/* This file exists to provide some stat monitors for process statistics and the like. */
-
 #define __STDC_FORMAT_MACROS
-#include <inttypes.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/syscall.h>
-#include <sys/stat.h>
+
+#include "clustering/administration/proc_stats.hpp"
+
 #include <fcntl.h>
-#include <stdarg.h>
+#include <inttypes.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
 
-#include <vector>
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
-#include "arch/io/io_utils.hpp"
-#include "containers/printf_buffer.hpp"
-#include "perfmon.hpp"
+#include "arch/io/io_utils.hpp"   /* for `scoped_fd_t` and `_gettid()` */
+#include "arch/timing.hpp"
 #include "logger.hpp"
-#include "utils.hpp"
-#include "thread_local.hpp"
+#include "containers/printf_buffer.hpp"
 
 /* Class to represent and parse the contents of /proc/[pid]/stat */
-
-struct proc_pid_stat_exc_t : public std::exception {
-    explicit proc_pid_stat_exc_t(const char *format, ...) __attribute__ ((format (printf, 2, 3))) {
-        va_list ap;
-        va_start(ap, format);
-        msg = vstrprintf(format, ap);
-        va_end(ap);
-    }
-    std::string msg;
-    const char *what() const throw () {
-        return msg.c_str();
-    }
-    ~proc_pid_stat_exc_t() throw () { }
-};
 
 struct proc_pid_stat_t {
     int pid;
@@ -71,13 +56,15 @@ private:
     void read_from_file(const char * path) {
         scoped_fd_t stat_file(open(path, O_RDONLY));
         if (stat_file.get() == INVALID_FD) {
-            throw proc_pid_stat_exc_t("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
+            throw std::runtime_error(strprintf("Could not open '%s': %s (errno "
+                "= %d)", path, strerror(errno), errno));
         }
 
         char buffer[1000];
         int res = ::read(stat_file.get(), buffer, sizeof(buffer));
         if (res <= 0) {
-            throw proc_pid_stat_exc_t("Could not read '%s': %s (errno = %d)", path, strerror(errno), errno);
+            throw std::runtime_error(strprintf("Could not read '%s': %s (errno "
+                "= %d)", path, strerror(errno), errno));
         }
 
         buffer[res] = '\0';
@@ -112,24 +99,11 @@ private:
                           &guest_time,
                           &cguest_time);
         if (res2 != items_to_parse) {
-            throw proc_pid_stat_exc_t("Could not parse '%s': expected to parse %d items, parsed "
-                "%d. Buffer contents: %s", path, items_to_parse, res2, buffer);
+            throw std::runtime_error(strprintf("Could not parse '%s': expected "
+                "to parse %d items, parsed %d. Buffer contents: %s", path,
+                items_to_parse, res2, buffer));
         }
     }
-};
-
-struct global_sys_stat_exc_t : public std::exception {
-    explicit global_sys_stat_exc_t(const char *format, ...) __attribute__ ((format (printf, 2, 3))) {
-        va_list ap;
-        va_start(ap, format);
-        msg = vstrprintf(format, ap);
-        va_end(ap);
-    }
-    std::string msg;
-    const char *what() const throw () {
-        return msg.c_str();
-    }
-    ~global_sys_stat_exc_t() throw () { }
 };
 
 // This structure reads various global system stats such as total
@@ -140,29 +114,31 @@ public:
     long utime, ntime, stime, itime, wtime;
     int ncpus;
     long bytes_received, bytes_sent;
-    
+
 public:
     static global_sys_stat_t read_global_stats() {
         global_sys_stat_t stat;
         stat.mem_total = stat.mem_free = stat.utime = stat.ntime = stat.stime = stat.itime = stat.wtime = 0;
         stat.ncpus = 0;
         stat.bytes_received = stat.bytes_sent = 0;
-        
+
         // Grab memory info
         {
             const char *path = "/proc/meminfo";
             scoped_fd_t stat_file(open(path, O_RDONLY));
             if (stat_file.get() == INVALID_FD) {
-                throw global_sys_stat_exc_t("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
+                throw std::runtime_error(strprintf("Could not open '%s': %s "
+                    "(errno = %d)", path, strerror(errno), errno));
             }
-        
+
             char buffer[1000];
             int res = ::read(stat_file.get(), buffer, sizeof(buffer));
             if (res <= 0) {
-                throw global_sys_stat_exc_t("Could not read '%s': %s (errno = %d)", path, strerror(errno), errno);
+                throw std::runtime_error(strprintf("Could not read '%s': %s "
+                    "(errno = %d)", path, strerror(errno), errno));
             }
             buffer[res] = '\0';
-        
+
             char *_memtotal = strcasestr(buffer, "MemTotal");
             if(_memtotal) {
                 res = sscanf(_memtotal, "MemTotal:%*[ ]%ld kB", &stat.mem_total);
@@ -178,16 +154,18 @@ public:
             const char *path = "/proc/stat";
             scoped_fd_t stat_file(open(path, O_RDONLY));
             if (stat_file.get() == INVALID_FD) {
-                throw global_sys_stat_exc_t("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
+                throw std::runtime_error(strprintf("Could not open '%s': %s "
+                    "(errno = %d)", path, strerror(errno), errno));
             }
-        
+
             char buffer[1024 * 10];
             int res = ::read(stat_file.get(), buffer, sizeof(buffer));
             if (res <= 0) {
-                throw global_sys_stat_exc_t("Could not read '%s': %s (errno = %d)", path, strerror(errno), errno);
+                throw std::runtime_error(strprintf("Could not read '%s': %s "
+                    "(errno = %d)", path, strerror(errno), errno));
             }
             buffer[res] = '\0';
-        
+
             res = sscanf(buffer, "cpu%*[ ]%ld %ld %ld %ld %ld",
                          &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
 
@@ -202,23 +180,24 @@ public:
             } while(core);
             stat.ncpus--; // the first line is an aggeragate
         }
-        
 
         // Grab network info
         {
             const char *path = "/proc/net/dev";
             scoped_fd_t stat_file(open(path, O_RDONLY));
             if (stat_file.get() == INVALID_FD) {
-                throw global_sys_stat_exc_t("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
+                throw std::runtime_error(strprintf("Could not open '%s': %s "
+                    "(errno = %d)", path, strerror(errno), errno));
             }
-        
+
             char buffer[1024 * 10];
             int res = ::read(stat_file.get(), buffer, sizeof(buffer));
             if (res <= 0) {
-                throw global_sys_stat_exc_t("Could not read '%s': %s (errno = %d)", path, strerror(errno), errno);
+                throw std::runtime_error(strprintf("Could not read '%s': %s "
+                    "(errno = %d)", path, strerror(errno), errno));
             }
             buffer[res] = '\0';
-        
+
             // Scan for bytes received and sent on each interface
             char *netinfo = buffer;
             do {
@@ -235,126 +214,123 @@ public:
             } while(netinfo);
             res = sscanf(buffer, "cpu%*[ ]%ld %ld %ld %ld %ld",
                          &stat.utime, &stat.ntime, &stat.stime, &stat.itime, &stat.wtime);
-
         }
-        
 
         // Whoo, we're done.
         return stat;
     }
 };
 
-/* perfmon_system_t is used to monitor system stats that do not need to be polled. */
-struct perfmon_system_t : public perfmon_t {
-    bool have_reported_error;
-    explicit perfmon_system_t(perfmon_collection_t *parent = NULL) : perfmon_t(parent), have_reported_error(false) {
-        struct timespec now;
-        int res = clock_gettime(CLOCK_MONOTONIC, &now);
-        guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
-        start_time = now.tv_sec;
-    }
+proc_stats_collector_t::proc_stats_collector_t(perfmon_collection_t *stats) :
+    instantaneous_stats_collector(stats),
+    cpu_thread_user("cpu_user", secs_to_ticks(5), false, stats),
+    cpu_thread_system("cpu_system", secs_to_ticks(5), false, stats),
+    cpu_thread_combined("cpu_combined", secs_to_ticks(5), false, stats),
+    cpu_global_combined("global_cpu_util", secs_to_ticks(5), false, stats),
+    net_global_received("global_net_recv_persec", secs_to_ticks(5), false, stats),
+    net_global_sent("global_net_sent_persec", secs_to_ticks(5), false, stats),
+    memory_faults("memory_faults_persec", secs_to_ticks(5), false, stats)
+{
+    coro_t::spawn_sometime(boost::bind(&proc_stats_collector_t::collect_periodically, this, auto_drainer_t::lock_t(&drainer)));
+}
 
-    void *begin_stats() {
-        return NULL;
-    }
-    void visit_stats(void *) {
-    }
-    void end_stats(void *, perfmon_result_t *dest) {
-        // Basic process stats (version, pid, uptime)
-        put_timestamp(dest);
-        dest->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
-        dest->insert("pid", new perfmon_result_t(strprintf("%d", getpid())));
+proc_stats_collector_t::instantaneous_stats_collector_t::instantaneous_stats_collector_t(perfmon_collection_t *stats) :
+    perfmon_t(stats, true),
+    start_time(time(NULL))
+    { }
 
-        // PID specific stuff
-        proc_pid_stat_t pid_stat;
-        try {
-            pid_stat = proc_pid_stat_t::for_pid(getpid());
-        } catch (proc_pid_stat_exc_t e) {
-            if (!have_reported_error) {
-                logWRN("Error in reporting system stats: %s (Further errors like this will be suppressed.)", e.what());
-                have_reported_error = true;
-            }
-            return;
-        }
+void *proc_stats_collector_t::instantaneous_stats_collector_t::begin_stats() {
+    return NULL;
+}
+
+void proc_stats_collector_t::instantaneous_stats_collector_t::visit_stats(void *) {
+    /* Do nothing; the things we need to get can be gotten on any thread */
+}
+
+void proc_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *, perfmon_result_t *dest) { 
+    // Basic process stats (version, pid, uptime)
+    struct timespec now;
+    int res = clock_gettime(CLOCK_MONOTONIC, &now);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    dest->insert("uptime", new perfmon_result_t(strprintf("%ld", now.tv_sec - start_time)));
+    dest->insert("timestamp", new perfmon_result_t(format_time(now)));
+
+    dest->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
+    dest->insert("pid", new perfmon_result_t(strprintf("%d", getpid())));
+
+    try {
+        proc_pid_stat_t pid_stat = proc_pid_stat_t::for_pid(getpid());
         dest->insert("memory_virtual", new perfmon_result_t(strprintf("%lu", pid_stat.vsize)));
         dest->insert("memory_real", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
 
-        // Stats global to machine
         global_sys_stat_t global_stat = global_sys_stat_t::read_global_stats();
         dest->insert("global_mem_total", new perfmon_result_t(strprintf("%ld", global_stat.mem_total)));
         dest->insert("global_mem_used", new perfmon_result_t(strprintf("%ld", global_stat.mem_total - global_stat.mem_free)));
-    }
-    void put_timestamp(perfmon_result_t *dest) {
-        struct timespec now;
-        int res = clock_gettime(CLOCK_MONOTONIC, &now);
-        guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
-        dest->insert("uptime", new perfmon_result_t(strprintf("%ld", now.tv_sec - start_time)));
-        dest->insert("timestamp", new perfmon_result_t(format_time(now)));
-    }
-
-    long start_time;
-} pm_system;
-
-/* Some of the stats need to be polled periodically. Call this function periodically on each
-thread to ensure that stats are up to date. It takes a void* so that it can be called as a timer
-callback. */
-
-perfmon_sampler_t
-    pm_cpu_user("cpu_user", secs_to_ticks(5), false, NULL),
-    pm_cpu_system("cpu_system", secs_to_ticks(5), false, NULL),
-    pm_cpu_combined("cpu_combined", secs_to_ticks(5), false, NULL),
-    pm_memory_faults("memory_faults", secs_to_ticks(5), false, NULL),
-    pm_global_cpu_util("global_cpu_util", secs_to_ticks(5), false, NULL),
-    pm_global_net_sent("global_net_sent", secs_to_ticks(5), false, NULL),
-    pm_global_net_recv("global_net_recv", secs_to_ticks(5), false, NULL);
-
-
-TLS(proc_pid_stat_t, last_stats);
-TLS(global_sys_stat_t, last_global_stats);
-TLS_with_init(ticks_t, last_ticks, 0);
-TLS_with_init(bool, have_reported_stats_error, false);
-
-void poll_system_stats(void *) {
-
-    proc_pid_stat_t current_stats;
-    global_sys_stat_t global_stats;
-    try {
-        current_stats = proc_pid_stat_t::for_pid_and_tid(getpid(), syscall(SYS_gettid));
-        global_stats = global_sys_stat_t::read_global_stats();
-    } catch (proc_pid_stat_exc_t e) {
-        if (!TLS_get_have_reported_stats_error()) {
-            logWRN("Error in reporting per-thread stats: %s (Further errors like this will "
-                "be suppressed.)", e.what());
-            TLS_set_have_reported_stats_error(true);
-        }
-    }
-    ticks_t current_ticks = get_ticks();
-
-    if (TLS_get_last_ticks() == 0) {
-        TLS_set_last_stats(current_stats);
-        TLS_set_last_global_stats(global_stats);
-        TLS_set_last_ticks(current_ticks);
-    } else if (current_ticks > TLS_get_last_ticks() + secs_to_ticks(1)) {
-        double realtime_elapsed = ticks_to_secs(current_ticks - TLS_get_last_ticks()) * sysconf(_SC_CLK_TCK);
-        pm_cpu_user.record((current_stats.utime - TLS_get_last_stats().utime) / realtime_elapsed);
-        pm_cpu_system.record((current_stats.stime - TLS_get_last_stats().stime) / realtime_elapsed);
-        pm_cpu_combined.record(
-            (current_stats.utime - TLS_get_last_stats().utime +
-             current_stats.stime - TLS_get_last_stats().stime) /
-             realtime_elapsed);
-        pm_memory_faults.record((current_stats.majflt - TLS_get_last_stats().majflt) / realtime_elapsed);
-
-        // Global stuff
-        pm_global_cpu_util.record(
-            (global_stats.utime - TLS_get_last_global_stats().utime +
-             global_stats.stime - TLS_get_last_global_stats().stime) /
-             realtime_elapsed / global_stats.ncpus);
-        pm_global_net_recv.record(global_stats.bytes_received - TLS_get_last_global_stats().bytes_received);
-        pm_global_net_sent.record(global_stats.bytes_sent - TLS_get_last_global_stats().bytes_sent);
-
-        TLS_set_last_global_stats(global_stats);
-        TLS_set_last_stats(current_stats);
-        TLS_set_last_ticks(current_ticks);
+    } catch (const std::runtime_error &e) {
+        logWRN("Error in collecting system stats (on demand): %s", e.what());
     }
 }
 
+static void fetch_tid(int thread, pid_t *out) {
+    on_thread_t thread_switcher(thread);
+    out[thread] = _gettid();
+}
+
+void proc_stats_collector_t::collect_periodically(auto_drainer_t::lock_t keepalive) {
+    try {
+        boost::scoped_array<pid_t> tids(new pid_t[get_num_threads()]);
+        pmap(get_num_threads(), boost::bind(&fetch_tid, _1, tids.get()));
+
+        ticks_t last_ticks = get_ticks();
+        boost::scoped_array<proc_pid_stat_t> last_per_thread(new proc_pid_stat_t[get_num_threads()]);
+        for (int i = 0; i < get_num_threads(); i++) {
+            last_per_thread[i] = proc_pid_stat_t::for_pid_and_tid(getpid(), tids[i]);
+        }
+        global_sys_stat_t last_global = global_sys_stat_t::read_global_stats();
+
+        try {
+            for (;;) {
+                signal_timer_t timer(1000);
+                wait_interruptible(&timer, keepalive.get_drain_signal());
+
+                ticks_t current_ticks = get_ticks();
+                boost::scoped_array<proc_pid_stat_t> current_per_thread(new proc_pid_stat_t[get_num_threads()]);
+                for (int i = 0; i < get_num_threads(); i++) {
+                    current_per_thread[i] = proc_pid_stat_t::for_pid_and_tid(getpid(), tids[i]);
+                }
+                global_sys_stat_t current_global = global_sys_stat_t::read_global_stats();
+
+                double elapsed_secs = ticks_to_secs(current_ticks - last_ticks);
+                double elapsed_sys_ticks = elapsed_secs * sysconf(_SC_CLK_TCK);
+                for (int i = 0; i < get_num_threads(); i++) {
+                    cpu_thread_user.record(
+                        (current_per_thread[i].utime - last_per_thread[i].utime) / elapsed_sys_ticks);
+                    cpu_thread_system.record(
+                        (current_per_thread[i].stime - last_per_thread[i].stime) / elapsed_sys_ticks);
+                    cpu_thread_combined.record(
+                        (current_per_thread[i].utime - last_per_thread[i].utime +
+                         current_per_thread[i].stime - last_per_thread[i].stime) /
+                         elapsed_sys_ticks);
+                    memory_faults.record(
+                        (current_per_thread[i].majflt - last_per_thread[i].majflt) / elapsed_secs);
+                }
+                cpu_global_combined.record(
+                    (current_global.utime - last_global.utime +
+                     current_global.stime - last_global.stime) /
+                     elapsed_sys_ticks / current_global.ncpus);
+                net_global_received.record(
+                    (current_global.bytes_received - last_global.bytes_received) / elapsed_secs);
+                net_global_sent.record(
+                    (current_global.bytes_sent - last_global.bytes_sent) / elapsed_secs);
+
+                last_ticks = current_ticks;
+                swap(last_per_thread, current_per_thread);
+                last_global = current_global;
+            }
+        } catch (interrupted_exc_t) {
+            /* we're shutting down */
+        }
+    } catch (std::runtime_error e) {
+        logWRN("Error in collecting system stats (on timer): %s", e.what());
+    }
+}

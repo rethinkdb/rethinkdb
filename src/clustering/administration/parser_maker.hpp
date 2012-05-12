@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 #define CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 
+#include "clustering/administration/perfmon_collection_repo.hpp"
+
 template<class protocol_t, class parser_t>
 class parser_maker_t {
 public:
