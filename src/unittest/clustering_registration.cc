@@ -32,11 +32,6 @@ public:
     std::string registrant_data;
 };
 
-/* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-    nap(1000);
-}
-
 boost::optional<boost::optional<registrar_business_card_t<std::string> > > wrap_in_optional(
         const boost::optional<registrar_business_card_t<std::string> > &inner) {
     return boost::optional<boost::optional<registrar_business_card_t<std::string> > >(inner);

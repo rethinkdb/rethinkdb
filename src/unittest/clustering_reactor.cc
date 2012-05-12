@@ -24,15 +24,6 @@ namespace unittest {
 
 namespace {
 
-/* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-#ifdef VALGRIND
-    nap(10000);
-#else
-    nap(1000);
-#endif
-}
-
 void generate_sample_region(int i, int n, dummy_protocol_t::region_t *out) {
     *out = dummy_protocol_t::region_t('a' + ((i * 26)/n), 'a' + (((i + 1) * 26)/n) - 1);
 }

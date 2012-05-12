@@ -81,11 +81,6 @@ void run_in_thread_pool_with_broadcaster(
     run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
 }
 
-/* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-    nap(100000);
-}
-
 }   /* anonymous namespace */
 
 /* `PartialBackfill` backfills only in a specific sub-region. */
@@ -164,7 +159,8 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     /* Stop the inserter, then let any lingering writes finish */
     inserter.stop();
     /* Let any lingering writes finish */
-    let_stuff_happen();
+    // TODO: 100 seconds?
+    nap(100000);
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {

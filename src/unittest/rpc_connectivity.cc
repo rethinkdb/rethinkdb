@@ -21,11 +21,6 @@ struct starter_t : public thread_message_t {
     }
 };
 
-/* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-    nap(1000);
-}
-
 /* `recording_test_application_t` sends and receives integers over a
 `message_service_t`. It keeps track of the integers it has received.
 */
