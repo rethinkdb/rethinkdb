@@ -10,11 +10,6 @@ namespace unittest {
 
 namespace {
 
-/* `let_stuff_happen()` delays for some time to let events occur */
-//void let_stuff_happen() {
-//    nap(1000);
-//}
-
 template<class metadata_t>
 class directory_echo_cluster_t {
 public:
