@@ -41,14 +41,9 @@ def generate_async_message_template(nargs):
     print "public:"
     print "    typedef mailbox_addr_t< void(" + csep("arg#_t") + ") > address_t;"
     print
-    print "    mailbox_t(mailbox_manager_t *manager, const boost::function< void(" + csep("arg#_t") + ") > &fun) :"
-    print "        mailbox(manager, boost::bind(&mailbox_t::on_message, _1, _2, fun))"
-    print "        {"
-    print "            rassert(fun);"
-    print "        }"
-    print
-    print "    ~mailbox_t() {"
-    print "    }"
+    print "    mailbox_t(mailbox_manager_t *manager, const boost::function< void(" + csep("arg#_t") + ") > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :"
+    print "        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))"
+    print "        { }"
     print
     print "    address_t get_address() {"
     print "        address_t a;"
@@ -69,17 +64,22 @@ def generate_async_message_template(nargs):
     print "        int res = send_write_message(stream, &msg);"
     print "        if (res) { throw fake_archive_exc_t(); }"
     print "    }"
-    print "    static void on_message(%sread_stream_t *stream, const boost::function<void()> &done, const boost::function< void(" % ("UNUSED " if nargs == 0 else "") + csep("arg#_t") + ") > &fun) {"
+    print "    void on_message(%sread_stream_t *stream) {" % ("" if nargs > 0 else "UNUSED ")
     for i in xrange(nargs):
         print "        arg%d_t arg%d;" % (i, i)
 
     for i in xrange(nargs):
         print "        %sres = deserialize(stream, &arg%d);" % ("int " if i == 0 else "", i)
         print "        if (res) { throw fake_archive_exc_t(); }"
-    print "        done();"
-    print "        fun(" + csep("arg#") + ");"
+    print "        if (callback_mode == mailbox_callback_mode_coroutine) {"
+    print "            coro_t::spawn_sometime(boost::bind(fun" + cpre("arg#") + "));"
+    print "        } else {"
+    print "            fun(" + csep("arg#") + ");"
+    print "        }"
     print "    }"
     print
+    print "    boost::function< void(" + csep("arg#_t") + ") > fun;"
+    print "    mailbox_callback_mode_t callback_mode;"
     print "    raw_mailbox_t mailbox;"
     print "};"
     print
@@ -106,6 +106,18 @@ if __name__ == "__main__":
     print "#include \"containers/archive/archive.hpp\""
     print "#include \"rpc/serialize_macros.hpp\""
     print "#include \"rpc/mailbox/mailbox.hpp\""
+    print
+
+    print "/* If you pass `mailbox_callback_mode_coroutine` to the `mailbox_t` "
+    print "constructor, it will spawn the callback in a new coroutine. If you "
+    print "`mailbox_callback_mode_inline`, it will call the callback inline "
+    print "and the callback must not block. The former is the default for "
+    print "historical reasons, but the latter is better. Eventually the former "
+    print "will go away. */"
+    print "enum mailbox_callback_mode_t {"
+    print "    mailbox_callback_mode_coroutine,"
+    print "    mailbox_callback_mode_inline"
+    print "};"
     print
 
     print "template<class invalid_proto_t> class mailbox_t {"

@@ -1,5 +1,11 @@
+# Helper stuff
+Handlebars.registerPartial 'shard_name_td', $('#shard_name_td-partial').html()
+
 # Namespace view
 module 'NamespaceView', ->
+    # Hardcoded!
+    MAX_SHARD_COUNT = 32
+
     # All of our rendering code needs a view of available shards
     compute_renderable_shards_array = (namespace_uuid, shards) ->
         ret = []
@@ -9,6 +15,8 @@ module 'NamespaceView', ->
             ret.push
                 name: human_readable_shard shards[i]
                 shard: shards[i]
+                shard_stats:
+                    rows_approx: namespaces.get(namespace_uuid).compute_shard_rows_approximation(shards[i])
                 notlast: i != shards.length - 1
                 index: i
                 primary:
@@ -43,14 +51,7 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#namespace_view-sharding-template').html()
 
         events: ->
-            'click .edit': 'modify_shards'
-
-        modify_shards: (e) ->
-            log_action 'modify shards clicked'
-
-            modal = new NamespaceView.ModifyShardsModal(@model, @model.get('shards'))
-            modal.render()
-            e.preventDefault()
+            'click .change-sharding-scheme': 'change_sharding_scheme'
 
         initialize: ->
             log_initial '(initializing) namespace view: shards'
@@ -59,6 +60,12 @@ module 'NamespaceView', ->
             super @model.get('computed_shards'), NamespaceView.Shard, 'table.shards tbody',
                 element_args:
                     namespace: @model
+        
+        change_sharding_scheme: (event) =>
+            event.preventDefault()
+            @.$('.sharding').hide()
+            view = new NamespaceView.ModifyShards @model.get('id')
+            @.$('.change-shards').html view.render().el 
 
     class @Shard extends Backbone.View
         tagName: 'tr'
@@ -105,9 +112,13 @@ module 'NamespaceView', ->
                     namespace: @options.args.namespace
                     datacenter: @model
 
-            window.testing = @machine_list
             @model.on 'change', @render_summary
             directory.on 'all', @render_summary
+
+            @options.args.namespace.on 'change:replica_affinities', =>
+                @machine_list.reset_element_views()
+                @machine_list.render()
+                @render()
 
         render: =>
             @.$el.html @template({})
@@ -221,21 +232,28 @@ module 'NamespaceView', ->
                 trigger: 'manual'
                 content: @change_machine_popover
                     available_machines: @get_available_machines_in_datacenter()
+
+            @.delegateEvents()
             return @
 
-    class @ModifyShardsModal extends UIComponents.AbstractModal
-        template: Handlebars.compile $('#modify_shards_modal-template').html()
+    # A view for modifying the sharding plan.
+    class @ModifyShards extends Backbone.View
+        template: Handlebars.compile $('#modify_shards-template').html()
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
         class: 'modify-shards'
-        events: ->
-            _.extend super,
-                'click #suggest_shards_btn': 'suggest_shards'
-                'click #cancel_shards_suggester_btn': 'cancel_shards_suggester_btn'
-                'click .btn-compute-shards-suggestion': 'compute_shards_suggestion'
+        events:
+            'click #suggest_shards_btn': 'suggest_shards'
+            'click #cancel_shards_suggester_btn': 'cancel_shards_suggester_btn'
+            'click .btn-compute-shards-suggestion': 'compute_shards_suggestion'
+            'click .btn-reset': 'reset_shards'
+            'click .btn-primary': 'on_submit'
+            'click .btn-cancel': 'cancel'
 
-        initialize: (namespace, shard_set) ->
-            log_initial '(initializing) modal dialog: ModifyShards'
-            @namespace = namespace
+        initialize: (namespace_id, shard_set) ->
+            log_initial '(initializing) view: ModifyShards'
+            @namespace_id = namespace_id
+            @namespace = namespaces.get(@namespace_id)
+            shard_set = @namespace.get('shards')
 
             # Keep an unmodified copy of the shard boundaries with which we compare against when reviewing the changes.
             @original_shard_set = _.map(shard_set, _.identity)
@@ -244,24 +262,31 @@ module 'NamespaceView', ->
             # Shard suggester business
             @suggest_shards_view = false
 
+            # We should rerender on key distro updates
+            @namespace.on 'all', @render
+
             super
 
-            @add_custom_button "Reset", "btn-reset", "Reset", (e) =>
-                e.preventDefault()
-                @shard_set = _.map(@original_shard_set, _.identity)
-                clear_modals()
-                @render()
+        cancel: (e) ->
+            e.preventDefault()
+            @.undelegateEvents()
+            @.remove()
+            $('.sharding').show()
+
+        reset_shards: (e) ->
+            e.preventDefault()
+            @shard_set = _.map(@original_shard_set, _.identity)
+            @render()
 
         reset_button_enable: ->
-            @find_custom_button('btn-reset').button('reset')
+            @.$('.btn-reset').button('reset')
 
         reset_button_disable: ->
-            @find_custom_button('btn-reset').button('loading')
+            @.$('.btn-reset').button('loading')
 
         suggest_shards: (e) =>
             e.preventDefault()
             @suggest_shards_view = true
-            clear_modals()
             @render()
 
         compute_shards_suggestion: (e) =>
@@ -269,53 +294,65 @@ module 'NamespaceView', ->
             e.preventDefault()
             @.$('.btn-compute-shards-suggestion').button('loading')
 
-            # grab the data ho, 'cause it's all about the data, it's
-            # all about the data, the data it's all about ho, yes it
-            # is.
-            $.ajax
-                processData: false
-                url: "/ajax/distribution?namespace=#{@namespace.id}&depth=2"
-                type: 'GET'
-                success: (data) =>
-                    # we got the data ho, we got the data. Put that
-                    # shit into the array 'cause who knows if maps
-                    # preserve order, god reset their souls.
-                    distr_keys = []
-                    total_rows = 0
-                    for key, count of data
-                        distr_keys.push(key)
-                        total_rows += count
-                    _.sortBy(distr_keys, _.identity)
+            # Make sure their input aint crazy
+            @desired_shards = parseInt(form_data_as_object($('form', @.el)).num_shards)
+            if isNaN(@desired_shards)
+                @error_msg = "The number of shards must be an integer."
+                @render()
+                return
+            if @desired_shards < 1 or @desired_shards > MAX_SHARD_COUNT
+                @error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
+                @render()
+                return
 
-                    # All right, now let's see roughly how many bitch
-                    # ass rows we want per bitch ass shard.
-                    formdata = form_data_as_object($('form', @.el))
-                    rows_per_shard = total_rows / formdata.num_shards
-                    # Phew. Go through the keys now and compute the bitch ass split points.
+            # grab the data
+            data = @namespace.get('key_distr')
+            distr_keys = @namespace.sorted_key_distr_keys(data)
+            total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
+            rows_per_shard = total_rows / @desired_shards
+
+            # Make sure there is enough data to actually suggest stuff
+            if distr_keys.length < 2
+                @error_msg = "There isn't enough data in the database to suggest shards."
+                @render()
+                return
+
+            # Phew. Go through the keys now and compute the bitch ass split points.
+            current_shard_count = 0
+            split_points = [""]
+            no_more_splits = false
+            for key in distr_keys
+                # Let's not overdo it :-D
+                if split_points.length >= @desired_shards
+                    no_more_splits = true
+                current_shard_count += data[key]
+                if current_shard_count >= rows_per_shard and not no_more_splits
+                    # Hellz yeah ho, we got our split point
+                    split_points.push(key)
                     current_shard_count = 0
-                    split_points = [""]
-                    for key in distr_keys
-                        current_shard_count += data[key]
-                        if current_shard_count >= rows_per_shard
-                            # Hellz yeah ho, we got our split point
-                            split_points.push(key)
-                            current_shard_count = 0
-                    split_points.push(null)
-                    # convert split points into whatever bitch ass format we're using here
-                    @shard_set = []
-                    for splitIndex in [0..(split_points.length - 2)]
-                        @shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
-                    # All right, we be done, boi. Put those
-                    # motherfuckers into the dialog, reset the buttons
-                    # or whateva, and hop on into the sunlight.
-                    @.$('.btn-compute-shards-suggestion').button('reset')
-                    clear_modals()
-                    @render()
+            split_points.push(null)
+
+            # convert split points into whatever bitch ass format we're using here
+            _shard_set = []
+            for splitIndex in [0..(split_points.length - 2)]
+                _shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
+
+            # See if we have enough shards
+            if _shard_set.length < @desired_shards
+                @error_msg = "There is only enough data to suggest " + _shard_set.length + " shards."
+                @render()
+                return
+            @shard_set = _shard_set
+
+            # All right, we be done, boi. Put those
+            # motherfuckers into the dialog, reset the buttons
+            # or whateva, and hop on into the sunlight.
+            @.$('.btn-compute-shards-suggestion').button('reset')
+            @render()
 
         cancel_shards_suggester_btn: (e) =>
             e.preventDefault()
             @suggest_shards_view = false
-            clear_modals()
             @render()
 
         insert_splitpoint: (index, splitpoint) =>
@@ -325,7 +362,6 @@ module 'NamespaceView', ->
                     throw "Error invalid splitpoint"
 
                 @shard_set.splice(index, 1, JSON.stringify([json_repr[0], splitpoint]), JSON.stringify([splitpoint, json_repr[1]]))
-                clear_modals()
                 @render()
             else
                 # TODO handle error
@@ -336,39 +372,44 @@ module 'NamespaceView', ->
 
             newshard = JSON.stringify([$.parseJSON(@shard_set[index])[0], $.parseJSON(@shard_set[index+1])[1]])
             @shard_set.splice(index, 2, newshard)
-            clear_modals()
             @render()
 
         render: =>
-            log_render '(rendering) ModifyShards dialog'
+            log_render '(rendering) ModifyShards'
 
-            # TODO render "touched" shards (that have been split or merged within this modal) a bit differently
+            # TODO render "touched" shards (that have been split or merged within this view) a bit differently
+            user_made_changes = JSON.stringify(@original_shard_set).replace(/\s/g, '') isnt JSON.stringify(@shard_set).replace(/\s/g, '')
             json =
                 namespace: @namespace.toJSON()
                 shards: compute_renderable_shards_array(@namespace.get('id'), @shard_set)
-                modal_title: 'Change sharding scheme'
-                btn_primary_text: 'Commit'
                 suggest_shards_view: @suggest_shards_view
                 current_shards_count: @original_shard_set.length
-                new_shard_count: @shard_set.length
+                max_shard_count: MAX_SHARD_COUNT
+                new_shard_count: if @desired_shards? then @desired_shards else @shard_set.length
+                unsaved_settings: user_made_changes
+                error_msg: @error_msg
+            @error_msg = null
+            @.$el.html(@template json)
 
-            super json
-
-            shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifyShardsModalShard @namespace, shard, @)
+            shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
             @.$('.shards tbody').append view.render().el for view in shard_views
 
             # Control the suggest button
             @.$('.btn-compute-shards-suggestion').button()
 
             # Control the reset button, boiii
-            if JSON.stringify(@original_shard_set).replace(/\s/g, '') is JSON.stringify(@shard_set).replace(/\s/g, '')
-                @reset_button_disable()
-            else
+            if user_made_changes
                 @reset_button_enable()
+            else
+                @reset_button_disable()
 
-        on_submit: ->
-            super
-            formdata = form_data_as_object($('form', @$modal))
+            return @
+
+        on_submit: (e) =>
+            e.preventDefault()
+            @.$('.btn-primary').button('loading')
+            formdata = form_data_as_object($('form', @el))
+
             empty_master_pin = {}
             empty_master_pin[JSON.stringify(["", null])] = null
             empty_replica_pins = {}
@@ -386,15 +427,16 @@ module 'NamespaceView', ->
                 data: JSON.stringify(json)
                 success: @on_success
 
-        on_success: (response) ->
-            super
+        on_success: (response) =>
+            @.$('.btn-primary').button('reset')
             namespaces.get(@namespace.id).set(response)
+            window.app.navigate('/#namespaces/' + @namespace.get('id'), {trigger: true})
             $('#user-alert-space').append(@alert_tmpl({}))
 
-    # A modal for modifying sharding plan
-    class @ModifyShardsModalShard extends Backbone.View
-        template: Handlebars.compile $('#modify_shards_modal-shard-template').html()
-        editable_tmpl: Handlebars.compile $('#modify_shards_modal-edit_shard-template').html()
+    # A view for modifying a specific shard
+    class @ModifySingleShard extends Backbone.View
+        template: Handlebars.compile $('#modify_shards-view_shard-template').html()
+        editable_tmpl: Handlebars.compile $('#modify_shards-edit_shard-template').html()
 
         tagName: 'tr'
         class: 'shard'

@@ -86,11 +86,6 @@ void run_in_thread_pool_with_broadcaster(
     run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
 }
 
-/* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-    nap(1000);
-}
-
 }   /* anonymous namespace */
 
 /* The `ReadWrite` test just sends some reads and writes via the broadcaster to a
@@ -106,6 +101,9 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
+
+    /* Give time for the broadcaster to see the replier */
+    let_stuff_happen();
 
     order_source_t order_source;
 

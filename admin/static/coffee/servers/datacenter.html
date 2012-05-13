@@ -10,9 +10,9 @@
     <div class="panel-right">
       <h3 class="title">Datacenter resources</h3>
       <div class="section system-resources">
-        <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
-        <p class="ram">RAM:</p>
-        <p class="disk">Disk:</p>
+        <p class="cpu">CPU: {{global_cpu_util}}%</p>
+        <p class="ram">RAM: {{global_mem_used}} of {{global_mem_total}}</p>
+        <p class="disk">Disk data: {{dc_disk_space}}</p>
       </div>
     </div>
     <div class="two-panel-clear"></div>
@@ -44,7 +44,7 @@
   </div>
   <h3 class="title">Performance</h3>
   <div class="section performance-graph"></div>
-  <h3 class="title">Recent log entries</h3>
+  <h3 class="title">Recent log entries for this datacenter</h3>
   <div class="section recent-log-entries"></div>
 </script>
 

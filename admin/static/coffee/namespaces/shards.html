@@ -1,9 +1,20 @@
+<script id="shard_name_td-partial" type="text/x-handlebars-template">
+  <td class="name">
+    <h4>{{name}}</h4>
+    About {{shard_stats.rows_approx}} {{pluralize_noun "key" shard_stats.rows_approx}}
+  </td>
+</script>
+
 <script id="namespace_view-sharding-template" type="text/x-handlebars-template">
-    <table class="shards table">
-        <tbody>
-        </tbody>
-    </table>
-    <p><a class="edit" href="#">Change sharding scheme</a></p>
+    <div class="sharding">
+        <h3 class="title">Sharding settings</h3>
+        <table class="shards table">
+            <tbody>
+            </tbody>
+        </table>
+        <p><a class="change-sharding-scheme" href="#">Change sharding scheme</a></p>
+    </div>
+    <div class="change-shards"></div>
 </script>
 
 <script id="namespace_view-shard-template" type="text/x-handlebars-template">
@@ -66,31 +77,44 @@
     </div>
 </script>
 
-<script id="modify_shards_modal-template" type="text/x-handlebars-template">
-    <form class="form">
-        <div class="sharding-scheme">
-            <h4>Sharding settings:</h4>
-            <table class="shards table">
-                <tbody>
-                </tbody>
-            </table>
-            {{#if suggest_shards_view}}
-            <div class="shard-suggester clearfix">
-                <h4>Suggest sharding scheme:</h4>
-                <div class="shard_suggest_elements">
-                    <label for="replicas">Number of shards:</label>
-                    <input name="num_shards" type="text" value="{{new_shard_count}}"/>
-                    <button class="btn btn-compute-shards-suggestion" data-loading-text="Calculating...">Suggest</button>
+<script id="modify_shards-template" type="text/x-handlebars-template">
+    <div class="modify-shards">
+        <h3 class="title">Change sharding settings for <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a>:</h3>
+        {{#if unsaved_settings}}
+        <div class="unsaved-settings-warning">You have unsaved changes. Please click "Commit settings" for them to take effect.</div>
+        {{/if}}
+        <form class="form">
+            <div class="sharding-scheme">
+                <table class="shards table">
+                    <tbody>
+                    </tbody>
+                </table>
+                {{#if suggest_shards_view}}
+                <div class="shard-suggester clearfix">
+                    <h4>Suggest sharding scheme:</h4>
+                    {{#if error_msg}}
+                    <p class="server-error alert alert-error">{{error_msg}}</p>
+                    {{/if}}
+                    <div class="shard_suggest_elements">
+                        <label for="replicas">Number of shards:</label>
+                        <input name="num_shards" type="text" value="{{new_shard_count}}"/>
+                        <button class="btn btn-compute-shards-suggestion" data-loading-text="Calculating...">Suggest</button>
+                    </div>
+                    <p class="current">Current shards: <strong>{{current_shards_count}}</strong>, Max shards: <strong>{{max_shard_count}}</strong></p>
+                    <a id="cancel_shards_suggester_btn" href="#">Cancel</a>
                 </div>
-                <p class="current">Current shards: {{current_shards_count}}</p>
-                <a id="cancel_shards_suggester_btn" href="#">Cancel</a>
+                {{else}}
+                <p class="suggest_shards_pathway"><a id="suggest_shards_btn" href="#">Suggest shards</a></p>
+                {{/if}}
             </div>
-            {{else}}
-            <p class="suggest_shards_pathway"><a id="suggest_shards_btn" href="#">Suggest shards</a></p>
-            {{/if}}
-        </div>
-        <div class="sharding-plan"></div>
-    </form>
+            <div class="sharding-plan"></div>
+            <div class="btn-footer">
+                <button class="btn btn-cancel" data-loading-text="Cancel">Cancel</button>
+                <button class="btn btn-reset" data-loading-text="Reset">Reset</button>
+                <button class="btn btn-primary" data-loading-text="Saving...">Commit settings</button>
+            </div>
+        </form>
+    </div>
 </script>
 
 <script id="modify_shards-alert-template" type="text/x-handlebars-template">
@@ -100,51 +124,42 @@
     </div>
 </script>
 
-<script id="modify_shards_modal-shard-template" type="text/x-handlebars-template">
-    {{#with shard}}
-    <td class="name"><h4>{{name}}</h4></td>
-    <td class="status">
-        <!-- TODO fake -->
-        <p>N rows in the shard</p>
-    </td>
-    <td class="actions">
-        <p>
-            (<a href="#" class="split" data-index="{{index}}">split</a>)
-            {{#if notlast}}
-            (<a href="#" class="merge" data-index="{{index}}">merge with next</a>)
-            {{/if}}
-        </p>
-    </td>
-    {{/with}}
+<script id="modify_shards-view_shard-template" type="text/x-handlebars-template">
+  {{#with shard}}
+  {{> shard_name_td}}
+  <td class="actions">
+    <p>
+      (<a href="#" class="split" data-index="{{index}}">split</a>)
+      {{#if notlast}}
+      (<a href="#" class="merge" data-index="{{index}}">merge with next</a>)
+      {{/if}}
+    </p>
+  </td>
+  {{/with}}
 </script>
 
-<script id="modify_shards_modal-edit_shard-template" type="text/x-handlebars-template">
-    <td class="name">
-        {{#with shard}}
-        <h4>{{name}} </h4>
-        {{/with}}
-    </td>
-    <td class="status" colspan="2">
-        <!-- TODO fake -->
-        <p>4 of 5 replicas live</p>
-        <p>50.3 GB of data in this shard</p>
-        <div class="action">
-            {{#if splitting}}
-            <label for="splitpoint">
-                <p>Split point:</p>
-            </label>
-            <input class="small" name="splitpoint" type="text" />
-            <a href="#" class="btn commit_split primary">Split</a>
-            <a href="#" class="btn cancel_split secondary">Cancel</a>
-            {{/if}}
-            {{#if merging}}
-            <p>
-                <a href="#" class="btn commit_merge primary">Yes</a>
-                <a href="#" class="btn cancel_merge secondary">No</a>
-                Are you sure you want to merge these shards?
-            </p>
-            {{/if}}
-        </div>
-    </td>
+<script id="modify_shards-edit_shard-template" type="text/x-handlebars-template">
+  {{#with shard}}
+  {{> shard_name_td}}
+  {{/with}}
+  <td class="status">
+    <div class="action">
+      {{#if splitting}}
+      <label for="splitpoint">
+        <p>Split point:</p>
+      </label>
+      <input class="small" name="splitpoint" type="text" />
+      <a href="#" class="btn commit_split primary">Split</a>
+      <a href="#" class="btn cancel_split secondary">Cancel</a>
+      {{/if}}
+      {{#if merging}}
+      <p>
+        Are you sure you want to merge these shards?
+        <a href="#" class="btn commit_merge primary">Yes</a>
+        <a href="#" class="btn cancel_merge secondary">No</a>
+      </p>
+      {{/if}}
+    </div>
+  </td>
 </script>
 

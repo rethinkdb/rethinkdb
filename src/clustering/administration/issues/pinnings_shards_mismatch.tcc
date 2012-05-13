@@ -37,7 +37,7 @@ cJSON *pinnings_shards_mismatch_issue_t<protocol_t>::get_json_description() {
     issue_json_t json;
     json.critical = false;
     json.description = get_description();
-    json.type.issue_type = PINNINGS_SHARDS_MISMATCH;
+    json.type = "PINNINGS_SHARDS_MISMATCH";
     json.time = get_secs();
     cJSON *res = render_as_json(&json, 0);
 

@@ -109,7 +109,18 @@ set_log_entries = (log_data_from_server) ->
 
     recent_log_entries.reset(all_log_entries)
 
+set_stats = (stat_data) ->
+    for machine_id, data of stat_data
+        machines.get(machine_id).set('stats', data)
+
+collections_ready = ->
+    # Data is now ready, let's get rockin'!
+    render_body()
+    cluster = new BackboneCluster
+    Backbone.history.start()
+
 $ ->
+    render_loading()
     bind_dev_tools()
 
     # Initializing the Backbone.js app
@@ -142,6 +153,7 @@ $ ->
         $.getJSON('/ajax/directory', set_directory)
         $.getJSON('/ajax/last_seen', set_last_seen)
         $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
+        $.getJSON('/ajax/stat', set_stats)
 
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync
@@ -167,22 +179,10 @@ $ ->
         else
             triggered[event]+=1
 
-    # Create the app
-    window.app = new BackboneCluster
-
-    # Signal that the router is ready to be bound to
-    app_events.trigger('router_ready')
-
-    # Now that we're all bound, start routing
-    Backbone.history.start()
-
+    # We need to reload data every updateInterval
     setInterval (-> Backbone.sync 'read', null), updateInterval
     declare_client_connected()
 
-    # Provide one optional callback that will indicate when collections are fully populated
-    collect_server_data( -> app_events.trigger('collections_ready'))
+    # Populate collection for the first time
+    collect_server_data(collections_ready)
 
-    # Set up common DOM behavior
-    $('.modal').modal
-        backdrop: true
-        keyboard: true

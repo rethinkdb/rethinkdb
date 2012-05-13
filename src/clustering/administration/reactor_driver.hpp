@@ -15,6 +15,8 @@
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
 
+class perfmon_collection_repo_t;
+
 template <class protocol_t>
 class watchable_and_reactor_t;
 
@@ -26,7 +28,8 @@ public:
                      boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
                      boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                      const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
-                     std::string _file_path);
+                     std::string _file_path,
+                     perfmon_collection_repo_t *);
 
     ~reactor_driver_t();
 
@@ -61,6 +64,8 @@ private:
     typename semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> >::subscription_t semilattice_subscription;
     watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t translation_table_subscription;
 
+    perfmon_collection_repo_t *perfmon_collection_repo;
+    //boost::ptr_vector<perfmon_collection_t> namespace_perfmon_collections;
     DISABLE_COPYING(reactor_driver_t);
 };
 

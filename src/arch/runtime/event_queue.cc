@@ -7,7 +7,7 @@
 #include "utils.hpp"
 #include "perfmon.hpp"
 
-perfmon_duration_sampler_t pm_eventloop("eventloop", secs_to_ticks(1.0));
+perfmon_duration_sampler_t pm_eventloop("eventloop", secs_to_ticks(1.0), NULL);
 
 std::string format_poll_event(int event) {
     std::string s;

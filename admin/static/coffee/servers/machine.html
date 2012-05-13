@@ -14,16 +14,17 @@
           (<a class="set-datacenter" href="#">change</a>)
         </p>
         <p>Status: {{humanize_machine_reachability status}}</p>
-        <p>IP address: {{ip}}</p>
+        <p>IP {{pluralize_noun "address" nips}}: {{#if ips}}{{#comma_separated ips}}{{this}}{{/comma_separated}}{{else}}N/A{{/if}}</p>
         <p class="uptime">Uptime: {{uptime}}</p>
       </div>
     </div>
     <div class="panel-right">
       <h3 class="title">Machine resources</h3>
       <div class="section system-resources">
-        <p class="cpu">CPU: <span class="cpu-graph" values="{{cpu}}, {{cpu}}"></span></p>
-        <p class="ram">RAM:</p>
-        <p class="disk">Disk:</p>
+        <p class="cpu">CPU: {{global_cpu_util}}%</p>
+        <p class="ram">RAM: {{global_mem_used}} of {{global_mem_total}}</p>
+        <p class="disk">Network: {{global_net_sent}}/s sent, {{global_net_recv}}/s recv</p>
+        <p class="disk">Disk data: {{machine_disk_space}}</p>
       </div>
     </div>
     <div class="two-panel-clear"></div>
@@ -46,7 +47,7 @@
   </div>
   <h3 class="title">Performance</h3>
   <div class="section performance-graph"></div>
-  <h3 class="title">Recent log entries</h3>
+  <h3 class="title">Recent log entries for this machine</h3>
   <div class="section recent-log-entries"></div>
 </script>
 

@@ -117,14 +117,14 @@ class Cluster(object):
         for proc in self.processes:
             proc.check()
 
-    def check_and_stop(self):
+    def check_and_close(self):
         """First checks that each process in the cluster is still running, then
         stops them by sending SIGINT. Throws an exception if any exit with a
         nonzero exit code. Also makes the cluster object invalid, like
         `close()`. """
         try:
             while self.processes:
-                iter(self.processes).next().check_and_stop()
+                iter(self.processes).next().check_and_close()
         finally:
             self.close()
 
@@ -248,7 +248,7 @@ class Process(object):
         if self.process.poll() is not None:
             raise RuntimeError("Process stopped unexpectedly with return code %d" % self.process.poll())
 
-    def check_and_stop(self):
+    def check_and_close(self):
         """Asserts that the process is still running, and then shuts it down by
         sending `SIGINT`. Throws an exception if the exit code is nonzero. Also
         invalidates the `Process` object like `close()`. """
@@ -298,5 +298,5 @@ if __name__ == "__main__":
         f = Files(mc)
         p = Process(c, f)
         time.sleep(3)
-        p.check_and_stop()
+        p.check_and_close()
 

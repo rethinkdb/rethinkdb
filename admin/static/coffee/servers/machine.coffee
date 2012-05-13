@@ -9,6 +9,8 @@ module 'MachineView', ->
             'click a.set-datacenter': 'set_datacenter'
             'click a.rename-machine': 'rename_machine'
 
+        max_log_entries_to_render: 3
+
         initialize: (id) =>
             log_initial '(initializing) machine view: container'
             @machine_uuid = id
@@ -50,10 +52,19 @@ module 'MachineView', ->
                 return @render_empty()
 
             datacenter_uuid = @model.get('datacenter_uuid')
+            ips = if directory.get(@model.get('id'))? then directory.get(@model.get('id')).get('ips') else null
             json =
                 name: @model.get('name')
-                ip: "192.168.1.#{Math.round(Math.random() * 255)}" # Fake IP, replace with real data TODO
+                ips: ips
+                nips: if ips then ips.length else 1
+                uptime: $.timeago(new Date(Date.now() - @model.get_stats().proc.uptime * 1000)).slice(0, -4)
                 datacenter_uuid: datacenter_uuid
+                global_cpu_util: Math.floor(@model.get_stats().proc.global_cpu_util_avg * 100)
+                global_mem_total: human_readable_units(@model.get_stats().proc.global_mem_total * 1024, units_space)
+                global_mem_used: human_readable_units(@model.get_stats().proc.global_mem_used * 1024, units_space)
+                global_net_sent: human_readable_units(@model.get_stats().proc.global_net_sent_persec_avg, units_space)
+                global_net_recv: human_readable_units(@model.get_stats().proc.global_net_recv_persec_avg, units_space)
+                machine_disk_space: human_readable_units(@model.get_used_disk_space(), units_space)
 
             # If the machine is assigned to a datacenter, add relevant json
             if datacenter_uuid?
@@ -90,10 +101,12 @@ module 'MachineView', ->
             @.$el.html @template json
 
             if @model.get('log_entries')?
+                entries_to_render = []
                 @model.get('log_entries').each (log_entry) =>
-                    view = new MachineView.RecentLogEntry
-                        model: log_entry
-                    @.$('.recent-log-entries').append view.render().el
+                    entries_to_render.push(new MachineView.RecentLogEntry
+                        model: log_entry)
+                entries_to_render = entries_to_render.slice(0, @max_log_entries_to_render)
+                @.$('.recent-log-entries').append entry.render().el for entry in entries_to_render
 
             return @
 

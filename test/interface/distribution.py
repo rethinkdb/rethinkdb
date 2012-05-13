@@ -2,8 +2,6 @@
 import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, http_admin
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'workloads')))
 from workload_common import MemcacheConnection
 
 
@@ -33,4 +31,4 @@ with driver.Metacluster() as metacluster:
 
     distribution = http.get_distribution(ns)
 
-    cluster.check_and_stop()
+    cluster.check_and_close()

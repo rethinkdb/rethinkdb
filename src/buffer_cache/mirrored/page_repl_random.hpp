@@ -41,9 +41,9 @@ public:
      * lower priority first. */
     eviction_priority_t eviction_priority;
 
-  protected:
+protected:
     mc_cache_t *cache;
-  private:
+private:
     unsigned int page_repl_index;
 };
 

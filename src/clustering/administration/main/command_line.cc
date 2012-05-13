@@ -68,24 +68,23 @@ std::set<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> na
 }
 
 void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool *result_out) {
+    os_signal_cond_t sigint_cond;
     *result_out = true;
+    std::stringstream host_port;
+
+    if (!joins.empty())
+        host_port << joins[0].host << ":" << joins[0].port;
 
     try {
-        if (command_args.empty()) {
-            admin_command_parser_t parser(look_up_peers_addresses(joins), client_port);
-            parser.run_console();
-        } else {
-            // Only one command, run it by itself
-            admin_command_parser_t parser(look_up_peers_addresses(joins), client_port);
-
-            // If we're doing a shell command completion, just print them and exit
-            if (command_args[0] == parser.complete_command) {
-                parser.run_complete(command_args);
-            } else {
-                admin_command_parser_t::command_data data(parser.parse_command(command_args));
-                parser.run_command(data);
-            }
-        }
+        if (command_args.empty())
+            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port, &sigint_cond).run_console();
+        else if (command_args[0] == admin_command_parser_t::complete_command)
+            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port, &sigint_cond).run_completion(command_args);
+        else
+            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port, &sigint_cond).parse_and_run_command(command_args);
+    } catch (admin_no_connection_exc_t& ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        fprintf(stderr, "valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
     } catch (std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
         *result_out = false;
@@ -345,41 +344,42 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 }
 
 int main_rethinkdb_admin(int argc, char *argv[]) {
+    bool result(false);
     po::variables_map vm;
     po::options_description options;
     options.add(get_rethinkdb_admin_options());
-    po::command_line_parser parser(argc - 1, &argv[1]);
-    parser.options(options);
-    parser.allow_unregistered();
-    po::parsed_options parsed = parser.run();
 
     try {
+        po::command_line_parser parser(argc - 1, &argv[1]);
+        parser.options(options);
+        parser.allow_unregistered();
+        po::parsed_options parsed = parser.run();
         po::store(parsed, vm);
         po::notify(vm);
-    } catch (std::exception& ex) {
-        printf("%s\n", ex.what());
-        return 1;
-    }
 
-    std::vector<host_and_port_t> joins;
-    if (vm.count("join") > 0) {
-        joins = vm["join"].as<std::vector<host_and_port_t> >();
-    }
+        std::vector<host_and_port_t> joins;
+        if (vm.count("join") > 0) {
+            joins = vm["join"].as<std::vector<host_and_port_t> >();
+        }
 #ifndef NDEBUG
-    int client_port = vm["client-port"].as<int>();
+        int client_port = vm["client-port"].as<int>();
 #else
-    int client_port = 0;
+        int client_port = 0;
 #endif
 
-    bool result;
-    std::vector<std::string> cmd_args = po::collect_unrecognized(parsed.options, po::include_positional); 
+        std::vector<std::string> cmd_args = po::collect_unrecognized(parsed.options, po::include_positional); 
 
-    // This is an ugly hack, but it seems boost will ignore an empty flag at the end, which is very useful for completions
-    std::string last_arg(argv[argc - 1]);
-    if (last_arg == "-" || last_arg == "--")
-        cmd_args.push_back(last_arg);
+        // This is an ugly hack, but it seems boost will ignore an empty flag at the end, which is very useful for completions
+        std::string last_arg(argv[argc - 1]);
+        if (last_arg == "-" || last_arg == "--")
+            cmd_args.push_back(last_arg);
 
-    run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, &result));
+        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, &result));
+
+    } catch (std::exception& ex) {
+        printf("%s\n", ex.what());
+        result = false;
+    }
 
     return result ? 0 : 1;
 }
@@ -434,18 +434,3 @@ void help_rethinkdb_serve() {
     printf("%s\n", sstream.str().c_str());
 }
 
-void help_rethinkdb_admin() {
-    printf("'rethinkdb admin' is used to access and modify cluster metadata\n");
-    std::stringstream sstream;
-    sstream << get_rethinkdb_admin_options();
-    sstream << "\nSubcommands:\n";
-    sstream << "  " << admin_command_parser_t::set_command << " " << admin_command_parser_t::set_usage << "\n";
-    sstream << "  " << admin_command_parser_t::list_command << " " << admin_command_parser_t::list_usage << "\n";
-    sstream << "  " << admin_command_parser_t::move_command << " " << admin_command_parser_t::move_usage << "\n";
-    sstream << "  " << admin_command_parser_t::make_command << " namespace " << admin_command_parser_t::make_namespace_usage << "\n";
-    sstream << "  " << admin_command_parser_t::make_command << " datacenter " << admin_command_parser_t::make_datacenter_usage << "\n";
-    sstream << "  " << admin_command_parser_t::rename_command << " " << admin_command_parser_t::rename_usage << "\n";
-    sstream << "  " << admin_command_parser_t::remove_command << " " << admin_command_parser_t::remove_usage << "\n";
-    sstream << "  " << admin_command_parser_t::help_command << " " << admin_command_parser_t::help_usage << "\n";
-    printf("%s\n", sstream.str().c_str());
-}

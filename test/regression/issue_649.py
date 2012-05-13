@@ -15,8 +15,7 @@ with driver.Metacluster() as metacluster:
             cluster,
             files[i],
             log_path = "serve-output-%d" % i,
-            executable_path = driver.find_rethinkdb_executable("debug-valgrind"),
-            command_prefix = ["valgrind", "--suppressions=%s/scripts/rethinkdb-valgrind-suppressions.supp" % rethinkdb_root])
+            executable_path = driver.find_rethinkdb_executable("debug"))
         for i in xrange(num_nodes)]
     time.sleep(10)
     print "Creating namespace..."
@@ -44,4 +43,4 @@ with driver.Metacluster() as metacluster:
     time.sleep(10)
     cluster.check()
 
-    cluster.check_and_stop()
+    cluster.check_and_close()

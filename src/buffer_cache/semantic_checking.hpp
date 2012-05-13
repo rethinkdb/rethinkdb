@@ -7,6 +7,7 @@
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/buf_patch.hpp"
+#include "perfmon_types.hpp"
 
 // TODO: Have the semantic checking cache make sure that the
 // repli_timestamp_ts are correct.
@@ -27,7 +28,10 @@ class serializer_t;
 template<class inner_cache_t>
 class scc_buf_lock_t {
 public:
-    scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line = 0);
+    scc_buf_lock_t(
+        scc_transaction_t<inner_cache_t> *txn, block_id_t block_id, access_t mode,
+        buffer_cache_order_mode_t order_mode = buffer_cache_order_mode_check,
+        lock_in_line_callback_t *call_when_in_line = 0);
     explicit scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn);
     scc_buf_lock_t();
     ~scc_buf_lock_t();
@@ -127,7 +131,8 @@ public:
         serializer_t *serializer,
         mirrored_cache_static_config_t *static_config);
     scc_cache_t(serializer_t *serializer,
-                mirrored_cache_config_t *dynamic_config);
+                mirrored_cache_config_t *dynamic_config,
+                perfmon_collection_t *parent);
 
     block_size_t get_block_size();
     boost::shared_ptr<cache_account_t> create_account(int priority);

@@ -241,7 +241,7 @@
             &.error {
                 background: url('/images/alert-icon_small.png') no-repeat center center;
             }
-            &.info {
+            &.info, &.debug {
                 background: url('/images/information-icon_small.png') no-repeat center center;
             }
         }
@@ -946,6 +946,16 @@
                     display: block-inline;
                     margin-right: 5px; 
                 }
+
+                .progress {
+                    margin-bottom: 2px;
+                    margin-top: 10px;
+                }
+
+                p.backfill-status {
+                    font-size: 11px;
+                    text-transform: uppercase;
+                }
             }
 
             /* Bootstrap override */
@@ -1125,9 +1135,9 @@
     -----------------------------------------------
 */
 
-.modal.modify-shards {
-    .modal-body {
-        padding-top: 10px;
+.modify-shards {
+    h1 {
+       margin-bottom: 10px;
     }
 
     form {
@@ -1144,12 +1154,10 @@
         p.suggest_shards_pathway {
             margin-top: 1em;
             margin-bottom: 0;
+            font-size: large;
         }
 
         .shard-suggester {
-            h4 {
-               margin-top: 1em;
-            }
             label {
                display: inline;
             }
@@ -1158,47 +1166,54 @@
                 width: 3em;
                 margin-bottom: 0;
             }
-            p.current {
+            p.current, p.max {
                 font-size: 12px;
                 line-height: 24px;
                 color: @gray;
-                margin-top: 0.5em;
             }
             .shard_suggest_elements {
                 margin-top: 0.5em;
             }
+
         }
     }
 
+    .sharding-scheme table.shards {
+        border-top: thin solid @grayLighter;
+    }
     .sharding-scheme table.shards, .sharding-plan table.datacenters {
         td {
             border-bottom: thin solid @grayLighter;
             padding: 15px 0 10px;
             &.name {
-                width: 15%;
                 h4 { line-height: 16px; }
             }
         }
     }
 
-    .sharding-scheme table.shards {
-        td .action {
-            .border-radius(4px);
-            background-color: #F0F2EB;
-            border: thin solid #B9D7D9;
-            padding: 10px 14px;
+    .shard-suggester {
+        margin-top: 1em;
+    }
+    .action, .shard-suggester, .unsaved-settings-warning {
+       margin-right: 1em;
+        .border-radius(4px);
+        background-color: #F0F2EB;
+        border: thin solid #B9D7D9;
+        padding: 5px 14px;
 
-            p { margin-bottom: 0; }
-            label {
-                width: auto;
-                p { line-height: 28px; }
-            }
-            input { margin-left: 15px; }
-            .btn {
-                float: right;
-                margin-left: 10px;
-            }
+        p { margin-bottom: 0; }
+        label {
+            width: auto;
+            p { line-height: 28px; }
         }
+        input { margin-left: 15px; }
+        .btn {
+            margin-left: 10px;
+        }
+    }
+    .unsaved-settings-warning {
+        margin-bottom: 1em;
+        margin-right: 0;
     }
 
     .sharding-plan table.datacenters {
@@ -1228,6 +1243,11 @@
                 p { margin-bottom: 0; }
             }
         }
+    }
+
+    .btn-footer {
+        margin-top: 1em;
+        text-align: right;
     }
 
     /* Override Bootstrap */

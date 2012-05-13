@@ -3,7 +3,58 @@ class Namespace extends Backbone.Model
     urlRoot: '/ajax/namespaces'
 
     initialize: ->
+        # Add a computed shards property for convenience and metadata
         @.set 'computed_shards', new DataUtils.Shards [],@
+
+    # Cache key distribution info.
+    load_key_distr: =>
+        $.ajax
+            processData: false
+            url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
+            type: 'GET'
+            success: (distr_data) =>
+                # Cache the data
+                @set('key_distr', distr_data)
+                # Sort the keys and cache that too
+                distr_keys = []
+                for key, count of distr_data
+                    distr_keys.push(key)
+                _.sortBy(distr_keys, _.identity)
+                @set('key_distr_sorted', distr_keys)
+                # TODO: magic number
+                window.setTimeout @load_key_distr, 5000
+
+    sorted_key_distr_keys: =>
+        keys = @get('key_distr_sorted')
+        if keys?
+            return keys
+        else
+            return []
+
+    # Some shard helpers
+    compute_shard_rows_approximation: (shard) =>
+        # first see if we can grab the distr data
+        shard = $.parseJSON(shard)
+        distr_data = @get('key_distr')
+        if not distr_data?
+            return null
+        # some basic initialization
+        start_key = shard[0]
+        end_key = shard[1]
+        distr_keys = @sorted_key_distr_keys()
+        # TODO: we should probably support interpolation here, but
+        # fuck it for now.
+
+        # find the first key greater than the beginning of our shard
+        # and keep summing until we get past our shard boundary.
+        count = 0
+        for key in distr_keys
+            if key >= start_key
+                count += distr_data[key]
+            if end_key? and key >= end_key
+                break
+
+        return count
 
     # Is x between the lower and upper splitpoints (the open interval) for the given index?
     splitpoint_between: (shard_index, sp) =>
@@ -13,8 +64,50 @@ class Namespace extends Backbone.Model
 
 
 class Datacenter extends Backbone.Model
+    get_stats: =>
+        # Look boo, here's what we gonna do, okay? We gonna collect
+        # stats we care about from the machines that belong to this
+        # datacenter and aggregate them, okay? I don't care that
+        # you're unhappy, I don't care that you don't like this, and I
+        # don't care about the irritation on your bikini line. This is
+        # how we're doing it, no ifs no ends no buts. The LT says we
+        # go, we go.
+        stats =
+            global_cpu_util_avg: 0
+            global_mem_total: 0
+            global_mem_used: 0
+            dc_disk_space: 0
+        nmachines = 0
+        for machine in machines.models
+            if machine.get('datacenter_uuid') is @get('id')
+                mstats = machine.get_stats().proc
+                if mstats?
+                    nmachines += 1
+                    stats.global_cpu_util_avg += parseInt(mstats.global_cpu_util_avg)
+                    stats.global_mem_total += parseInt(mstats.global_mem_total)
+                    stats.global_mem_used += parseInt(mstats.global_mem_used)
+                    stats.dc_disk_space += machine.get_used_disk_space()
+        stats.global_cpu_util_avg /= nmachines
+        return stats
 
 class Machine extends Backbone.Model
+    get_stats: =>
+        stats = @get('stats')
+        if not stats?
+            stats = {}
+        if not stats.proc?
+            stats.proc = {}
+        return stats
+
+    get_used_disk_space: =>
+        machine_disk_space = 0
+        for nid, value of @get_stats()
+            # Check if nid is actually a namespace id
+            if namespaces.get(nid)?
+                stats = value.cache
+                if stats?
+                    machine_disk_space += parseInt(stats.block_size) * parseInt(stats.blocks_total)
+        return machine_disk_space
 
 class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)
@@ -186,12 +279,8 @@ module 'DataUtils', ->
             namespace.on 'change:blueprint', =>
                 new_primary_uuid = @get_primary_uuid()
                 new_secondary_uuids = @get_secondary_uuids()
-                if @.get('primary_uuid') isnt new_primary_uuid
-                    @.set 'primary_uuid', new_primary_uuid 
-                    console.log 'primary_uuid updated'
-                if not _.isEqual @.get('secondary_uuids'), new_secondary_uuids
-                    @.set 'secondary_uuids', new_secondary_uuids 
-                    console.log 'secondary_uuid updated'
+                @.set 'primary_uuid', new_primary_uuid if @.get('primary_uuid') isnt new_primary_uuid
+                @.set 'secondary_uuids', new_secondary_uuids if not _.isEqual @.get('secondary_uuids'), new_secondary_uuids
             
     # The Shards collection maintains the computed shards for a given namespace.
     # It will observe for any changes in the sharding scheme (or if the

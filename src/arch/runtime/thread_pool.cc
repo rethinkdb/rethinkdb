@@ -12,11 +12,6 @@
 
 const int SEGV_STACK_SIZE = 8126;
 
-/* Defined in perfmon_system.cc */
-#ifndef LEGACY_LINUX
-void poll_system_stats(void *);
-#endif
-
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
 __thread int linux_thread_pool_t::thread_id;
 __thread linux_thread_t *linux_thread_pool_t::thread;
@@ -374,18 +369,9 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
 
     // Watch an eventfd for shutdown notifications
     queue.watch_resource(shutdown_notify_event.get_notify_fd(), poll_event_in, this);
-
-    // Start the stats timer
-
-#ifndef LEGACY_LINUX
-    perfmon_stats_timer = timer_handler.add_timer_internal(1000, poll_system_stats, NULL, false);
-#endif
 }
 
 linux_thread_t::~linux_thread_t() {
-#ifndef LEGACY_LINUX
-    timer_handler.cancel_timer(perfmon_stats_timer);
-#endif
 
 #ifndef NDEBUG
     // Save the coroutine counts before they're deleted, should be ready at shutdown

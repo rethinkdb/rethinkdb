@@ -6,6 +6,7 @@ module 'DatacenterView', ->
         template: Handlebars.compile $('#datacenter_view-container-template').html()
         events: ->
             'click a.rename-datacenter': 'rename_datacenter'
+        max_log_entries_to_render: 3
 
         initialize: (id) =>
             log_initial '(initializing) datacenter view: container'
@@ -89,7 +90,7 @@ module 'DatacenterView', ->
                         uuid: namespace.id
 
             # Generate json and render
-            @.$el.html @template
+            json =
                 name: @model.get('name')
                 machines: _.map(machines_in_datacenter, (machine) ->
                     name: machine.get('name')
@@ -99,16 +100,25 @@ module 'DatacenterView', ->
                 status: DataUtils.get_datacenter_reachability(@model.get('id'))
                 data:
                     namespaces: _namespaces
+            stats = @model.get_stats()
+            json = _.extend json,
+                global_cpu_util: Math.floor(stats.global_cpu_util_avg * 100)
+                global_mem_total: human_readable_units(stats.global_mem_total * 1024, units_space)
+                global_mem_used: human_readable_units(stats.global_mem_used * 1024, units_space)
+                dc_disk_space: human_readable_units(stats.dc_disk_space, units_space)
+            @.$el.html(@template(json))
 
             dc_log_entries = new LogEntries
             for machine in machines_in_datacenter
                 if machine.get('log_entries')?
                     dc_log_entries.add machine.get('log_entries').models
 
+            entries_to_render = []
             dc_log_entries.each (log_entry) =>
-                view = new DatacenterView.RecentLogEntry
-                    model: log_entry
-                @.$('.recent-log-entries').append view.render().el
+                entries_to_render.push(new DatacenterView.RecentLogEntry
+                    model: log_entry)
+            entries_to_render = entries_to_render.slice(0, @max_log_entries_to_render)
+            @.$('.recent-log-entries').append entry.render().el for entry in entries_to_render
 
             return @
 

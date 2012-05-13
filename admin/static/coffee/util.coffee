@@ -29,8 +29,10 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
     if num is 1
         result = noun
     else
-        if noun.substr(-1) is 'y'
+        if noun.substr(-1) is 'y' and (noun isnt 'key')
             result = noun.slice(0, noun.length - 1) + "ies"
+        else if noun.substr(-1) is 's'
+            result = noun + "es"
         else
             result = noun + "s"
     if capitalize is true
@@ -141,6 +143,27 @@ human_readable_shard = (shard) ->
     res += " to "
     res += if json_shard[1] == null then "+&infin;" else json_shard[1]
     return res
+
+# Utils to print units
+units_space = ["B", "KB", "MB", "GB", "TB", "PB"]
+human_readable_units = (num, units) ->
+    if not num?
+        return "N/A"
+    index = 0
+    loop
+        _tmp = num / 1024
+        if _tmp < 1
+            break
+        else
+            index += 1
+            num /= 1024
+        if index > units_space.length - 1
+            return "N/A"
+    num_str = num.toFixed(1)
+    if ("" + num_str)[num_str.length - 1] is '0'
+        num_str = num.toFixed(0)
+
+    return "" + num_str + units_space[index]
 
 # Binds actions to the dev tools (accessible through alt+d)
 bind_dev_tools = ->

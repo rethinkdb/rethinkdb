@@ -38,7 +38,9 @@ std::vector<log_message_t> fetch_log_file(
         signal_t *interruptor) THROWS_ONLY(resource_lost_exc_t, std::runtime_error, interrupted_exc_t) {
     promise_t<log_server_business_card_t::result_t> promise;
     log_server_business_card_t::result_mailbox_t reply_mailbox(
-        mm, boost::bind(&promise_t<log_server_business_card_t::result_t>::pulse, &promise, _1));
+        mm,
+        boost::bind(&promise_t<log_server_business_card_t::result_t>::pulse, &promise, _1),
+        mailbox_callback_mode_inline);
     disconnect_watcher_t dw(mm->get_connectivity_service(), bcard.address.get_peer());
     send(mm, bcard.address, max_lines, min_timestamp, max_timestamp, reply_mailbox.get_address());
     wait_any_t waiter(promise.get_ready_signal(), &dw);

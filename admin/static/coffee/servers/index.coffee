@@ -154,7 +154,17 @@ module 'ServerView', ->
 
             if not @model.get('datacenter_uuid')?
                 json.unassigned_machine = true
+            # Stats, jiga
+            json = _.extend json,
+                # TODO: add a helper to upgrade/downgrade units dynamically depending on the values
+                global_cpu_util: Math.floor(@model.get_stats().proc.global_cpu_util_avg * 100)
+                global_mem_total: human_readable_units(@model.get_stats().proc.global_mem_total * 1024, units_space)
+                global_mem_used: human_readable_units(@model.get_stats().proc.global_mem_used * 1024, units_space)
+                global_net_sent: human_readable_units(@model.get_stats().proc.global_net_sent_persec_avg, units_space)
+                global_net_recv: human_readable_units(@model.get_stats().proc.global_net_recv_persec_avg, units_space)
+                machine_disk_space: human_readable_units(@model.get_used_disk_space(), units_space)
 
+            # Whooo
             @.$('.machine.summary').html @summary_template json
 
         rename_machine: (event) ->
@@ -186,19 +196,22 @@ module 'ServerView', ->
 
             @model.on 'change', @render_summary
             directory.on 'all', @render_summary
-            @machine_list.on 'size_changed', =>
-                num_machines = @machine_list.element_views.length
+            @machine_list.on 'size_changed', @ml_size_changed
+            @ml_size_changed()
 
-                we_should_rerender = false
+        ml_size_changed: =>
+            num_machines = @machine_list.element_views.length
 
-                if @no_machines and num_machines > 0
-                    @no_machines = false
-                    we_should_rerender = true
-                else if not @no_machines and num_machines is 0
-                    @no_machines = true
-                    we_should_rerender = true
+            we_should_rerender = false
 
-                @render() if we_should_rerender
+            if @no_machines and num_machines > 0
+                @no_machines = false
+                we_should_rerender = true
+            else if not @no_machines and num_machines is 0
+                @no_machines = true
+                we_should_rerender = true
+
+            @render() if we_should_rerender
 
         render: =>
             @.$el.html @template
@@ -267,21 +280,24 @@ module 'ServerView', ->
             @no_machines = true
 
             machines.on 'add', (machine) => @render() if machine.get('datacenter_uuid') is null
-            @machine_list.on 'size_changed', =>
-                num_machines = @machine_list.element_views.length
-
-                we_should_rerender = false
-
-                if @no_machines and num_machines > 0
-                    @no_machines = false
-                    we_should_rerender = true
-                else if not @no_machines and num_machines is 0
-                    @no_machines = true
-                    we_should_rerender = true
-
-                @render() if we_should_rerender
+            @machine_list.on 'size_changed', @ml_size_changed
+            @ml_size_changed()
 
             @callbacks = []
+
+        ml_size_changed: =>
+            num_machines = @machine_list.element_views.length
+
+            we_should_rerender = false
+
+            if @no_machines and num_machines > 0
+                @no_machines = false
+                we_should_rerender = true
+            else if not @no_machines and num_machines is 0
+                @no_machines = true
+                we_should_rerender = true
+
+            @render() if we_should_rerender
 
         render: =>
             @.$el.html @template

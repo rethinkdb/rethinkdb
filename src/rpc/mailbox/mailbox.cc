@@ -26,7 +26,7 @@ std::string raw_mailbox_t::address_t::human_readable() const {
     return strprintf("%s:%d:%d", boost::uuids::to_string(peer.get_uuid()).c_str(), thread, mailbox_id);
 }
 
-raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, const boost::function<void(read_stream_t *, const boost::function<void()> &)> &fun) :
+raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, const boost::function<void(read_stream_t *)> &fun) :
     manager(m),
     mailbox_id(manager->mailbox_tables.get()->next_mailbox_id++),
     callback(fun)
@@ -121,10 +121,7 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *
 
     raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
     if (mbox) {
-        cond_t done_cond;
-        boost::function<void()> done_fun = boost::bind(&cond_t::pulse, &done_cond);
-        coro_t::spawn_sometime(boost::bind(mbox->callback, stream, done_fun));
-        done_cond.wait_lazily_unordered();
+        mbox->callback(stream);
     } else {
         /* Print a warning message */
         raw_mailbox_t::address_t dest_address;

@@ -6,6 +6,11 @@
 
 #include "serializer/types.hpp"
 
+enum buffer_cache_order_mode_t {
+    buffer_cache_order_mode_check,
+    buffer_cache_order_mode_ignore
+};
+
 struct eviction_priority_t {
     int priority;
 };

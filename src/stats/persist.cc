@@ -61,8 +61,8 @@ void persistent_stat_t::unpersist_all(metadata_store_t *store) {
 }
 
 // perfmon_persistent_counter_t
-perfmon_persistent_counter_t::perfmon_persistent_counter_t(const std::string& name, bool internal)
-    : perfmon_counter_t(name, internal)
+perfmon_persistent_counter_t::perfmon_persistent_counter_t(const std::string& name, perfmon_collection_t *parent)
+    : perfmon_counter_t(name, parent)
     , unpersisted_value(0) { }
 
 std::string perfmon_persistent_counter_t::persist_key() { return name; }
@@ -98,8 +98,8 @@ void perfmon_persistent_counter_t::unpersist(const std::string &value) {
 }
 
 // perfmon_persistent_stddev_t
-perfmon_persistent_stddev_t::perfmon_persistent_stddev_t(const std::string& name, bool internal)
-    : perfmon_stddev_t(name, internal) { }
+perfmon_persistent_stddev_t::perfmon_persistent_stddev_t(const std::string& name, perfmon_collection_t *parent)
+    : perfmon_stddev_t(name, parent) { }
 
 std::string perfmon_persistent_stddev_t::persist_key() { return name; }
 

@@ -9,27 +9,21 @@ namespace unittest {
 
 namespace {
 
-/* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-    nap(1000);
-}
-
 /* `dummy_mailbox_t` is a `raw_mailbox_t` that keeps track of messages it receives.
 You can send to a `dummy_mailbox_t` with `send()`. */
 
 struct dummy_mailbox_t {
 private:
     std::set<int> inbox;
-    void on_message(read_stream_t *stream, const boost::function<void()> &on_done) {
+    void on_message(read_stream_t *stream) {
         int i;
         int res = deserialize(stream, &i);
         if (res) { throw fake_archive_exc_t(); }
-        on_done();
         inbox.insert(i);
     }
 public:
     explicit dummy_mailbox_t(mailbox_manager_t *m) :
-        mailbox(m, boost::bind(&dummy_mailbox_t::on_message, this, _1, _2))
+        mailbox(m, boost::bind(&dummy_mailbox_t::on_message, this, _1))
         { }
     void expect(int message) {
         EXPECT_EQ(1, inbox.count(message));
@@ -164,7 +158,7 @@ void run_typed_mailbox_test() {
     connectivity_cluster_t::run_t r(&c, port, &m);
 
     std::vector<std::string> inbox;
-    mailbox_t<void(std::string)> mbox(&m, boost::bind(&std::vector<std::string>::push_back, &inbox, _1));
+    mailbox_t<void(std::string)> mbox(&m, boost::bind(&std::vector<std::string>::push_back, &inbox, _1), mailbox_callback_mode_inline);
 
     mailbox_addr_t<void(std::string)> addr = mbox.get_address();
 

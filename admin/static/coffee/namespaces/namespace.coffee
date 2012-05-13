@@ -7,10 +7,15 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#namespace_view-container-template').html()
         events: ->
             'click a.rename-namespace': 'rename_namespace'
+            'click #user-alert-space a.close': 'hide_user_alert'
 
         initialize: (id) =>
             log_initial '(initializing) namespace view: container'
             @namespace_uuid = id
+
+        hide_user_alert: (event) ->
+            event.preventDefault()
+            @.$('#user-alert-space .alert').remove()
 
         rename_namespace: (event) ->
             event.preventDefault()

@@ -1,17 +1,16 @@
-#!/usr/bin/python   
+#!/usr/bin/python
 import sys, os, time
-import workload_runner
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver
+import http_admin, driver, workload_runner
 from vcoptparse import *
-                
+
 op = OptParser()
 op["mode"] = IntFlag("--mode", "debug")
 op["workload1"] = PositionalArg()
 op["workload2"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
-        
+
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     print "Starting cluster..."
@@ -27,8 +26,8 @@ with driver.Metacluster() as metacluster:
     host, port = http.get_namespace_host(ns)
     workload_runner.run(opts["workload1"], host, port, opts["timeout"])
     print "Restarting server..."
-    process.check_and_stop()
+    process.check_and_close()
     process2 = driver.Process(cluster, files)
     time.sleep(10)
     workload_runner.run(opts["workload2"], host, port, opts["timeout"])
-    cluster.check_and_stop()
+    cluster.check_and_close()

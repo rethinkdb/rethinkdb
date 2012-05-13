@@ -18,10 +18,10 @@
 #include "containers/intrusive_list.hpp"
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/mirrored/config.hpp"
-#include "buffer_cache/stats.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
+#include "buffer_cache/mirrored/stats.hpp"
 
 #include "buffer_cache/mirrored/writeback.hpp"
 
@@ -146,7 +146,9 @@ struct i_am_writeback_t { };
 // release the mc_inner_buf_t, so don't worry!
 class mc_buf_lock_t : public home_thread_mixin_t {
 public:
-    mc_buf_lock_t(mc_transaction_t *txn, block_id_t block_id, access_t mode, lock_in_line_callback_t *call_when_in_line = 0);
+    mc_buf_lock_t(mc_transaction_t *txn, block_id_t block_id, access_t mode,
+            buffer_cache_order_mode_t order_mode = buffer_cache_order_mode_check,
+            lock_in_line_callback_t *call_when_in_line = 0);
     explicit mc_buf_lock_t(mc_transaction_t *txn); // Constructor used to allocate a new block
     mc_buf_lock_t();
     ~mc_buf_lock_t();
@@ -294,8 +296,6 @@ private:
     DISABLE_COPYING(mc_transaction_t);
 };
 
-
-
 class mc_cache_account_t {
 public:
     ~mc_cache_account_t();
@@ -326,7 +326,7 @@ public:
     typedef mc_cache_account_t cache_account_t;
 
     static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
-    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config);
+    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *);
     ~mc_cache_t();
 
     block_size_t get_block_size();
@@ -386,6 +386,7 @@ private:
     // components it wasn't originally given.
 
     serializer_t *serializer;
+    mc_cache_stats_t stats;
 
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,

@@ -2,6 +2,7 @@
 
 #include <stdarg.h>
 #include <math.h>
+#include <map>
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
@@ -9,15 +10,29 @@
 #include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
 
+perfmon_result_t::perfmon_result_t() {
+    type = type_value;
+}
+
+perfmon_result_t::perfmon_result_t(const std::string &s) { 
+    type = type_value;
+    _value = s;
+}
+
+perfmon_result_t::perfmon_result_t(const boost::ptr_map<std::string, perfmon_result_t> &m) {
+    type = type_map;
+    _map = m;
+}
+
 /* The var list keeps track of all of the perfmon_t objects. */
 
-intrusive_list_t<perfmon_t> &get_var_list() {
+perfmon_collection_t &get_global_collection() {
     /* Getter function so that we can be sure that var_list is initialized before it is needed,
     as advised by the C++ FAQ. Otherwise, a perfmon_t might be initialized before the var list
     was initialized. */
 
-    static intrusive_list_t<perfmon_t> var_list;
-    return var_list;
+    static perfmon_collection_t collection("Global", NULL, false, false);
+    return collection;
 }
 
 // TODO (rntz) remove lock, not necessary with perfmon static initialization restrictions
@@ -33,57 +48,58 @@ spinlock_t &get_var_lock() {
     return lock;
 }
 
-
 /* This is the function that actually gathers the stats. It is illegal to create or destroy
 perfmon_t objects while perfmon_get_stats is active. */
 
-void co_perfmon_visit(int thread, const std::vector<void*> &data, bool include_internal) {
+void co_perfmon_visit(int thread, void *data) {
     on_thread_t moving(thread);
-    int i = 0;
-    for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        if (!p->internal || include_internal)
-            p->visit_stats(data[i++]);
-    }
+    get_global_collection().visit_stats(data);
 }
 
-void perfmon_get_stats(perfmon_stats_t *dest, bool include_internal) {
-    std::vector<void*> data;
+void perfmon_get_stats(perfmon_result_t *dest) {
+    void *data;
 
-    data.reserve(get_var_list().size());
-    for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        if (!p->internal || include_internal)
-            data.push_back(p->begin_stats());
-    }
+    data = get_global_collection().begin_stats();
 
-    pmap(get_num_threads(), boost::bind(&co_perfmon_visit, _1, data, include_internal));
+    pmap(get_num_threads(), boost::bind(&co_perfmon_visit, _1, data));
 
-    int i = 0;
-    for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        if (!p->internal || include_internal)
-            p->end_stats(data[i++], dest);
-    }
+    get_global_collection().end_stats(data, dest);
 }
 
 /* Constructor and destructor register and deregister the perfmon. */
 
-perfmon_t::perfmon_t(bool _internal)
-    : internal(_internal)
+perfmon_t::perfmon_t(perfmon_collection_t *_parent, bool _insert)
+    : parent(_parent), insert(_insert)
 {
-    spinlock_acq_t acq(&get_var_lock());
-    get_var_list().push_back(this);
+    if (insert) {
+        //RSI maybe get rid of this spinlock, especially when parent isn't global
+        spinlock_acq_t acq(&get_var_lock());
+        if (!parent) {
+            get_global_collection().add(this);
+        } else {
+            parent->add(this);
+        }
+    }
 }
 
 perfmon_t::~perfmon_t() {
-    spinlock_acq_t acq(&get_var_lock());
-    get_var_list().remove(this);
+    if (insert) {
+        spinlock_acq_t acq(&get_var_lock());
+        if (!parent) {
+            get_global_collection().remove(this);
+        } else {
+            parent->remove(this);
+        }
+    }
 }
 
 bool global_full_perfmon = false;
 
 /* perfmon_counter_t */
 
-perfmon_counter_t::perfmon_counter_t(const std::string& _name, bool internal)
-    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t> (internal), name(_name)
+perfmon_counter_t::perfmon_counter_t(const std::string& _name, perfmon_collection_t *parent)
+    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t>(parent), name(_name),
+      thread_data(new padded_int64_t[MAX_THREADS])
 {
     for (int i = 0; i < MAX_THREADS; i++) thread_data[i].value = 0;
 }
@@ -103,14 +119,14 @@ int64_t perfmon_counter_t::combine_stats(padded_int64_t *data) {
     return value;
 }
 
-void perfmon_counter_t::output_stat(const int64_t &stat, perfmon_stats_t *dest) {
-    (*dest)[name] = strprintf("%ld", stat);
+void perfmon_counter_t::output_stat(const int64_t &stat, perfmon_result_t *dest) {
+    dest->insert(name, new perfmon_result_t(strprintf("%ld", stat)));
 }
 
 /* perfmon_sampler_t */
 
-perfmon_sampler_t::perfmon_sampler_t(const std::string& _name, ticks_t _length, bool _include_rate, bool internal)
-    : perfmon_perthread_t<stats_t>(internal), name(_name), length(_length), include_rate(_include_rate)
+perfmon_sampler_t::perfmon_sampler_t(const std::string& _name, ticks_t _length, bool _include_rate, perfmon_collection_t *parent)
+    : perfmon_perthread_t<stats_t>(parent), name(_name), length(_length), include_rate(_include_rate)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;
@@ -161,18 +177,18 @@ perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(stats_t *stats) {
     return aggregated;
 }
 
-void perfmon_sampler_t::output_stat(const stats_t &aggregated, perfmon_stats_t *dest) {
+void perfmon_sampler_t::output_stat(const stats_t &aggregated, perfmon_result_t *dest) {
     if (aggregated.count > 0) {
-        (*dest)[name + "_avg"] = strprintf("%.8f", aggregated.sum / aggregated.count);
-        (*dest)[name + "_min"] = strprintf("%.8f", aggregated.min);
-        (*dest)[name + "_max"] = strprintf("%.8f", aggregated.max);
+        dest->insert(name + "_avg", new perfmon_result_t(strprintf("%.8f", aggregated.sum / aggregated.count)));
+        dest->insert(name + "_min", new perfmon_result_t(strprintf("%.8f", aggregated.min)));
+        dest->insert(name + "_max", new perfmon_result_t(strprintf("%.8f", aggregated.max)));
     } else {
-        (*dest)[name + "_avg"] = "-";
-        (*dest)[name + "_min"] = "-";
-        (*dest)[name + "_max"] = "-";
+        dest->insert(name + "_avg", new perfmon_result_t("-"));
+        dest->insert(name + "_min", new perfmon_result_t("-"));
+        dest->insert(name + "_max", new perfmon_result_t("-"));
     }
     if (include_rate) {
-        (*dest)[name + "_persec"] = strprintf("%.8f", aggregated.count / ticks_to_secs(length));
+        dest->insert(name + "_persec", new perfmon_result_t(strprintf("%.8f", aggregated.count / ticks_to_secs(length))));
     }
 }
 
@@ -240,8 +256,8 @@ stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
 }
 
 
-perfmon_stddev_t::perfmon_stddev_t(const std::string& _name, bool internal)
-    : perfmon_perthread_t<stddev_t>(internal), name(_name) { }
+perfmon_stddev_t::perfmon_stddev_t(const std::string& _name, perfmon_collection_t *parent)
+    : perfmon_perthread_t<stddev_t>(parent), name(_name) { }
 
 void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
     rassert(get_thread_id() >= 0);
@@ -252,15 +268,15 @@ stddev_t perfmon_stddev_t::combine_stats(stddev_t *stats) {
     return stddev_t::combine(get_num_threads(), stats);
 }
 
-void perfmon_stddev_t::output_stat(const stddev_t &stat, perfmon_stats_t *dest) {
-    (*dest)[name + "_count"] = strprintf("%zu", stat.datapoints());
+void perfmon_stddev_t::output_stat(const stddev_t &stat, perfmon_result_t *dest) {
+    dest->insert(name + "_count", new perfmon_result_t(strprintf("%zu", stat.datapoints())));
     if (stat.datapoints()) {
-        (*dest)[name + "_mean"] = strprintf("%.8f", stat.mean());
-        (*dest)[name + "_stddev"] = strprintf("%.8f", stat.standard_deviation());
+        dest->insert(name + "_mean", new perfmon_result_t(strprintf("%.8f", stat.mean())));
+        dest->insert(name + "_stddev", new perfmon_result_t(strprintf("%.8f", stat.standard_deviation())));
     } else {
         // No stats
-        (*dest)[name + "_mean"] = "-";
-        (*dest)[name + "_stddev"] = "-";
+        dest->insert(name + "_mean", new perfmon_result_t("-"));
+        dest->insert(name + "_stddev", new perfmon_result_t("-"));
     }
 }
 
@@ -271,8 +287,8 @@ void perfmon_stddev_t::record(float value) {
 
 /* perfmon_rate_monitor_t */
 
-perfmon_rate_monitor_t::perfmon_rate_monitor_t(const std::string& _name, ticks_t _length, bool internal)
-    : perfmon_perthread_t<double>(internal), name(_name), length(_length)
+perfmon_rate_monitor_t::perfmon_rate_monitor_t(const std::string& _name, ticks_t _length, perfmon_collection_t *parent)
+    : perfmon_perthread_t<double>(parent), name(_name), length(_length)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;
@@ -321,8 +337,8 @@ double perfmon_rate_monitor_t::combine_stats(double *stats) {
     return total;
 }
 
-void perfmon_rate_monitor_t::output_stat(const double &stat, perfmon_stats_t *dest) {
-    (*dest)[name] = strprintf("%.8f", stat / ticks_to_secs(length));
+void perfmon_rate_monitor_t::output_stat(const double &stat, perfmon_result_t *dest) {
+    dest->insert(name, new perfmon_result_t(strprintf("%.8f", stat / ticks_to_secs(length))));
 }
 
 /* perfmon_function_t */
@@ -352,12 +368,12 @@ void perfmon_function_t::visit_stats(void *data) {
     }
 }
 
-void perfmon_function_t::end_stats(void *data, perfmon_stats_t *dest) {
+void perfmon_function_t::end_stats(void *data, perfmon_result_t *dest) {
     std::string *string = reinterpret_cast<std::string *>(data);
     if (!string->empty()) {
-        (*dest)[name] = *string;
+        dest->insert(name, new perfmon_result_t(*string));
     } else {
-        (*dest)[name] = "N/A";
+        dest->insert(name, new perfmon_result_t("N/A"));
     }
     delete string;
 }

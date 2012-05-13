@@ -1,5 +1,7 @@
 #!/usr/bin/python
-import sys, workload_common
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import workload_common
 
 op = workload_common.option_parser_for_memcache()
 opts = op.parse(sys.argv)

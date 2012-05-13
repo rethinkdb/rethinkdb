@@ -3,13 +3,11 @@
 #include "arch/arch.hpp"
 #include "logger.hpp"
 #include "perfmon.hpp"
+#include "serializer/log/log_serializer.hpp"
 
 #define EXTENT_UNRESERVED (off64_t(-2))
 #define EXTENT_IN_USE (off64_t(-3))
 #define EXTENT_FREE_LIST_END (off64_t(-4))
-
-static perfmon_counter_t pm_extents_in_use("serializer_extents_in_use");
-static perfmon_counter_t pm_bytes_in_use("serializer_bytes_in_use", false);
 
 struct extent_info_t {
 
@@ -122,8 +120,8 @@ public:
     }
 };
 
-extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_on_disk_static_config_t *_static_config, log_serializer_dynamic_config_t *_dynamic_config)
-    : static_config(_static_config), dynamic_config(_dynamic_config), extent_size(_static_config->extent_size()), dbfile(file), state(state_reserving_extents)
+extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_on_disk_static_config_t *_static_config, log_serializer_dynamic_config_t *_dynamic_config, log_serializer_stats_t *_stats)
+    : static_config(_static_config), dynamic_config(_dynamic_config), stats(_stats), extent_size(_static_config->extent_size()), dbfile(file), state(state_reserving_extents)
 {
     rassert(divides(DEVICE_BLOCK_SIZE, extent_size));
 
@@ -178,8 +176,8 @@ void extent_manager_t::reserve_extent(off64_t extent) {
     print_backtrace(stderr, false);
 #endif
     rassert(state == state_reserving_extents);
-    ++pm_extents_in_use;
-    pm_bytes_in_use += extent_size;
+    ++stats->pm_extents_in_use;
+    stats->pm_bytes_in_use += extent_size;
     zone_for_offset(extent)->reserve_extent(extent);
 }
 
@@ -248,8 +246,8 @@ extent_manager_t::transaction_t *extent_manager_t::begin_transaction() {
 off64_t extent_manager_t::gen_extent() {
     rassert(state == state_running);
     rassert(current_transaction);
-    ++pm_extents_in_use;
-    pm_bytes_in_use += extent_size;
+    ++stats->pm_extents_in_use;
+    stats->pm_bytes_in_use += extent_size;
 
     off64_t extent;
     int first_zone = next_zone;
@@ -283,8 +281,8 @@ void extent_manager_t::release_extent(off64_t extent) {
 #endif
     rassert(state == state_running);
     rassert(current_transaction);
-    --pm_extents_in_use;
-    pm_bytes_in_use -= extent_size;
+    --stats->pm_extents_in_use;
+    stats->pm_bytes_in_use -= extent_size;
     current_transaction->free_queue.push_back(extent);
 }
 

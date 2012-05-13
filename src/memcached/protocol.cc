@@ -278,7 +278,10 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     return responses[0];
 }
 
-memcached_protocol_t::store_t::store_t(const std::string& filename, bool create) : store_view_t<memcached_protocol_t>(key_range_t::universe()) {
+memcached_protocol_t::store_t::store_t(const std::string& filename, bool create, perfmon_collection_t *_perfmon_collection) 
+    : store_view_t<memcached_protocol_t>(key_range_t::universe()),
+      perfmon_collection(_perfmon_collection)
+{
     if (create) {
         standard_serializer_t::create(
             standard_serializer_t::dynamic_config_t(),
@@ -289,7 +292,8 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create)
 
     serializer.reset(new standard_serializer_t(
         standard_serializer_t::dynamic_config_t(),
-        standard_serializer_t::private_dynamic_config_t(filename)
+        standard_serializer_t::private_dynamic_config_t(filename),
+        perfmon_collection
         ));
 
     if (create) {
@@ -299,7 +303,7 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create)
 
     cache_dynamic_config.max_size = GIGABYTE;
     cache_dynamic_config.max_dirty_size = GIGABYTE / 2;
-    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config));
+    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, perfmon_collection));
 
     if (create) {
         btree_slice_t::create(cache.get());
@@ -375,7 +379,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
     local_token.swap(token);
     wait_interruptible(local_token.get(), interruptor);
 
-    order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_read");
+    order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_backfill");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
     get_btree_superblock_for_backfilling(btree.get(), order_token, &sb_out, txn_out);

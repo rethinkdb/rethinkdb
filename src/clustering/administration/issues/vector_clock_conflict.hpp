@@ -25,7 +25,7 @@ public:
         json.time = get_secs();
         json.description = "The " + object_type + " with UUID " + uuid_to_str(object_id) +
             " has a vector clock conflict in its field '" + field + "'.";
-        json.type.issue_type = VCLOCK_CONFLICT;
+        json.type = "VCLOCK_CONFLICT";
 
         cJSON *res = render_as_json(&json, 0);
 

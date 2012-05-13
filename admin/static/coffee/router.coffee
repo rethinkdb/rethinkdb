@@ -14,6 +14,8 @@ class BackboneCluster extends Backbone.Router
 
     initialize: ->
         log_initial '(initializing) router'
+        super
+        window.app = @
 
         @$container = $('#cluster')
 
