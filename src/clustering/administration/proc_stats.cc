@@ -235,9 +235,15 @@ proc_stats_collector_t::proc_stats_collector_t(perfmon_collection_t *stats) :
 }
 
 proc_stats_collector_t::instantaneous_stats_collector_t::instantaneous_stats_collector_t(perfmon_collection_t *stats) :
-    perfmon_t(stats, true),
-    start_time(time(NULL))
-    { }
+    perfmon_t(stats, true)
+{
+    // Whoever you are, please don't change this to start_time =
+    // time(NULL) it results in a negative uptime stat.
+    struct timespec now;
+    int res = clock_gettime(CLOCK_MONOTONIC, &now);
+    guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
+    start_time = now.tv_sec;
+}
 
 void *proc_stats_collector_t::instantaneous_stats_collector_t::begin_stats() {
     return NULL;

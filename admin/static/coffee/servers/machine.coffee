@@ -57,7 +57,7 @@ module 'MachineView', ->
                 name: @model.get('name')
                 ips: ips
                 nips: if ips then ips.length else 1
-                uptime: $.timeago(new Date(Date.now() - @model.get_stats().uptime * 1000)).slice(0, -4)
+                uptime: $.timeago(new Date(Date.now() - @model.get_stats().proc.uptime * 1000)).slice(0, -4)
                 datacenter_uuid: datacenter_uuid
                 global_cpu_util: Math.floor(@model.get_stats().proc.global_cpu_util_avg * 100)
                 global_mem_total: human_readable_units(@model.get_stats().proc.global_mem_total * 1024, units_space)
