@@ -59,11 +59,11 @@ module 'MachineView', ->
                 nips: if ips then ips.length else 1
                 uptime: $.timeago(new Date(Date.now() - @model.get_stats().uptime * 1000)).slice(0, -4)
                 datacenter_uuid: datacenter_uuid
-                global_cpu_util: Math.floor(@model.get_stats().global_cpu_util_avg * 100)
-                global_mem_total: human_readable_units(@model.get_stats().global_mem_total * 1024, units_space)
-                global_mem_used: human_readable_units(@model.get_stats().global_mem_used * 1024, units_space)
-                global_net_sent: human_readable_units(@model.get_stats().global_net_sent_avg, units_space)
-                global_net_recv: human_readable_units(@model.get_stats().global_net_recv_avg, units_space)
+                global_cpu_util: Math.floor(@model.get_stats().proc.global_cpu_util_avg * 100)
+                global_mem_total: human_readable_units(@model.get_stats().proc.global_mem_total * 1024, units_space)
+                global_mem_used: human_readable_units(@model.get_stats().proc.global_mem_used * 1024, units_space)
+                global_net_sent: human_readable_units(@model.get_stats().proc.global_net_sent_persec_avg, units_space)
+                global_net_recv: human_readable_units(@model.get_stats().proc.global_net_recv_persec_avg, units_space)
                 machine_disk_space: human_readable_units(@model.get_used_disk_space(), units_space)
 
             # If the machine is assigned to a datacenter, add relevant json
