@@ -1,8 +1,8 @@
 # Models for Backbone.js
 class Namespace extends Backbone.Model
-    urlRoot: '/ajax/namespaces'
-
     initialize: ->
+        @load_key_distr()
+
         # Add a computed shards property for convenience and metadata
         @.set 'computed_shards', new DataUtils.Shards [],@
 

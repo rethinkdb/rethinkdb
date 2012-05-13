@@ -1,5 +1,5 @@
 # Helper stuff
-Handlebars.registerPartial 'shard_name_td', $('#shard_name_td-partial').html()
+Handlebars.registerPartial 'shard_name', $('#shard_name-partial').html()
 
 # Namespace view
 module 'NamespaceView', ->
@@ -54,9 +54,6 @@ module 'NamespaceView', ->
             'click .change-sharding-scheme': 'change_sharding_scheme'
 
         initialize: ->
-            log_initial '(initializing) namespace view: shards'
-            #progress_list.on 'all', @render
-
             super @model.get('computed_shards'), NamespaceView.Shard, 'table.shards tbody',
                 element_args:
                     namespace: @model
@@ -70,8 +67,11 @@ module 'NamespaceView', ->
     class @Shard extends Backbone.View
         tagName: 'tr'
         template: Handlebars.compile $('#namespace_view-shard-template').html()
+        summary_template: Handlebars.compile $('#namespace_view-shard-summary-template').html()
 
         initialize: ->
+            @namespace = @options.args.namespace
+
             @datacenter_list = new NamespaceView.ShardDatacenterList datacenters, NamespaceView.ShardDatacenter, 'div.datacenters',
                 filter: (datacenter) =>
                     for datacenter_uuid of @model.get('secondary_uuids')
@@ -80,14 +80,23 @@ module 'NamespaceView', ->
                         return true if datacenter.get('id') is machines.get(@model.get('primary_uuid')).get('datacenter_uuid')
                 element_args:
                     shard: @model
-                    namespace: @options.args.namespace
+                    namespace: @namespace
+
+            @namespace.on 'change:key_distr_sorted', @render_summary
 
         render: =>
-            @.$el.html @template
-                name: human_readable_shard @model.get('shard_boundaries')
-
+            @.$el.html @template({})
+            @render_summary()
             @.$('.datacenter-list').html @datacenter_list.render().el
             return @
+
+        render_summary: =>
+            console.log @namespace.compute_shard_rows_approximation(@model.get('shard_boundaries'))
+
+            @.$('.shard.summary').html @summary_template
+                name: human_readable_shard @model.get('shard_boundaries')
+                shard_stats:
+                    rows_approx: @namespace.compute_shard_rows_approximation(@model.get('shard_boundaries'))
 
     class @ShardDatacenterList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_datacenter_list-template').html()

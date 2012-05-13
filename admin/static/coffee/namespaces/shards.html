@@ -1,8 +1,6 @@
-<script id="shard_name_td-partial" type="text/x-handlebars-template">
-  <td class="name">
+<script id="shard_name-partial" type="text/x-handlebars-template">
     <h4>{{name}}</h4>
     About {{shard_stats.rows_approx}} {{pluralize_noun "key" shard_stats.rows_approx}}
-  </td>
 </script>
 
 <script id="namespace_view-sharding-template" type="text/x-handlebars-template">
@@ -18,10 +16,14 @@
 </script>
 
 <script id="namespace_view-shard-template" type="text/x-handlebars-template">
-    <td class="name"><h4>{{name}}</h4></td>
+    <td class="shard summary"></td>
     <td class="status">
         <div class="datacenter-list"></div>
     </td>
+</script>
+
+<script id="namespace_view-shard-summary-template" type="text/x-handlebars-template">
+    {{> shard_name}}
 </script>
 
 <script id="namespace_view-shard_datacenter_list-template" type="text/x-handlebars-template">
@@ -126,21 +128,25 @@
 
 <script id="modify_shards-view_shard-template" type="text/x-handlebars-template">
   {{#with shard}}
-  {{> shard_name_td}}
-  <td class="actions">
-    <p>
-      (<a href="#" class="split" data-index="{{index}}">split</a>)
-      {{#if notlast}}
-      (<a href="#" class="merge" data-index="{{index}}">merge with next</a>)
-      {{/if}}
-    </p>
-  </td>
+    <td class="name">
+        {{> shard_name}}
+    </td>
+    <td class="actions">
+        <p>
+            (<a href="#" class="split" data-index="{{index}}">split</a>)
+            {{#if notlast}}
+                (<a href="#" class="merge" data-index="{{index}}">merge with next</a>)
+            {{/if}}
+        </p>
+    </td>
   {{/with}}
 </script>
 
 <script id="modify_shards-edit_shard-template" type="text/x-handlebars-template">
   {{#with shard}}
-  {{> shard_name_td}}
+    <td class="name">
+        {{> shard_name}}
+    </td>
   {{/with}}
   <td class="status">
     <div class="action">
