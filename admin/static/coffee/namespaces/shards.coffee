@@ -29,15 +29,15 @@ module 'NamespaceView', ->
                     )
         return ret
 
+
     # Shards view
     # The sharding view consists of several lists. Here's the hierarchy:
     #   @Sharding
-    #   |-- @ShardList
-    #   |   `-- @Shard
-    #   |      `-- @ShardDatacenterList: primary and secondary replicas organized by datacenter
-    #   |          `-- @ShardDatacenter
-    #   |              `-- @ShardMachineList: machines with primary and secondary replicas
-    #   |                  `-- @ShardMachine
+    #   |-- @Shard
+    #   |   `-- @ShardDatacenterList: primary and secondary replicas organized by datacenter
+    #   |       `-- @ShardDatacenter
+    #   |           `-- @ShardMachineList: machines with primary and secondary replicas
+    #   |               `-- @ShardMachine
     class @Sharding extends UIComponents.AbstractList
         className: 'namespace-shards'
         template: Handlebars.compile $('#namespace_view-sharding-template').html()
@@ -54,50 +54,11 @@ module 'NamespaceView', ->
 
         initialize: ->
             log_initial '(initializing) namespace view: shards'
-            #@model.on 'all', @render
-            #directory.on 'all', @render
             #progress_list.on 'all', @render
-            @shards = new Shards
-            for shard in @model.get('shards')
-                primary_uuid = DataUtils.get_shard_primary_uuid @model.get('id'), shard
-                secondary_uuids = DataUtils.get_shard_secondary_uuids @model.get('id'), shard
-                @shards.add new Shard
-                    name: human_readable_shard shard
-                    shard_boundaries: shard
-                    primary_uuid: primary_uuid
-                    secondary_uuids: secondary_uuids
 
-            super @shards, NamespaceView.Shard, 'table.shards tbody',
-            
-        bind_edit_machines: (shard) ->
-            # Master assignments
-            @.$('#assign_master_' + shard.index).click (e) =>
-                e.preventDefault()
-                modal = new NamespaceView.EditMasterMachineModal @model, shard.shard
-                modal.render()
-
-            # JS closure
-            bind_shard = (shard, secondary) =>
-                @.$('#assign_machines_' + shard.index + '_' + secondary.datacenter_uuid).click (e) =>
-                    e.preventDefault()
-                    modal = new NamespaceView.EditReplicaMachinesModal @model, _.extend secondary,
-                        name: shard.name
-                        shard: shard.shard
-                    modal.render()
-
-            for secondary in shard.secondaries
-                bind_shard shard, secondary
-
-        render: =>
-            log_render '(rendering) namespace view: shards'
-            super
-            #shards_array = compute_renderable_shards_array(@model.get('id'), @model.get('shards'))
-
-            # Bind events to 'assign machine' links
-            #for shard in shards_array
-            #    @bind_edit_machines(shard)
-
-            return @
+            super @model.get('computed_shards'), NamespaceView.Shard, 'table.shards tbody',
+                element_args:
+                    namespace: @model
 
     class @Shard extends Backbone.View
         tagName: 'tr'
@@ -112,9 +73,11 @@ module 'NamespaceView', ->
                         return true if datacenter.get('id') is machines.get(@model.get('primary_uuid')).get('datacenter_uuid')
                 element_args:
                     shard: @model
+                    namespace: @options.args.namespace
 
         render: =>
-            @.$el.html @template @model.toJSON()
+            @.$el.html @template
+                name: human_readable_shard @model.get('shard_boundaries')
 
             @.$('.datacenter-list').html @datacenter_list.render().el
             return @
@@ -134,11 +97,17 @@ module 'NamespaceView', ->
                     shard = @options.args.shard
                     return false if machine.get('datacenter_uuid') isnt @model.get('id')
                     for datacenter_uuid, machine_uuids of shard.get('secondary_uuids')
-                        for machine_uuid of machine_uuids
-                            return true if machine.get('id') is machine_uuid
+                        return true if machine.get('id') in machine_uuids
                     if shard.get('primary_uuid')
                         return true if machine.get('id') is shard.get('primary_uuid')
+                element_args:
+                    shard: @options.args.shard
+                    namespace: @options.args.namespace
+                    datacenter: @model
 
+            window.testing = @machine_list
+            @model.on 'change', @render_summary
+            directory.on 'all', @render_summary
 
         render: =>
             @.$el.html @template({})
@@ -152,25 +121,6 @@ module 'NamespaceView', ->
         render_summary: =>
             json = _.extend @model.toJSON(),
                 status: DataUtils.get_datacenter_reachability(@model.get('id'))
-                primary_count: 0
-                secondary_count: 0
-
-            # primary, secondary, and namespace counts
-            _namespaces = []
-            for namespace in namespaces.models
-                for machine_uuid, peer_role of namespace.get('blueprint').peers_roles
-                    if machines.get(machine_uuid).get('datacenter_uuid') is @model.get('id')
-                        machine_active_for_namespace = false
-                        for shard, role of peer_role
-                            if role is 'role_primary'
-                                machine_active_for_namespace = true
-                                json.primary_count += 1
-                            if role is 'role_secondary'
-                                machine_active_for_namespace = true
-                                json.secondary_count += 1
-                        if machine_active_for_namespace
-                            _namespaces[_namespaces.length] = namespace
-            json.namespace_count = _.uniq(_namespaces).length
 
             @.$('.datacenter.summary').html @summary_template json
 
@@ -179,12 +129,98 @@ module 'NamespaceView', ->
 
     class @ShardMachine extends Backbone.View
         template: Handlebars.compile $('#namespace_view-shard_machine-template').html()
+        change_machine_popover: Handlebars.compile $('#namespace_view-shard_machine-assign_machine_popover-template').html()
+        alert_tmpl: Handlebars.compile $('#edit_machines-alert-template').html()
         tagName: 'li'
+
+        events: ->
+            'click a[rel=popover]': 'show_popover'
+            'click .make-master': 'make_master'
+
+        initialize: ->
+            @shard = @options.args.shard
+            @namespace = @options.args.namespace
+            @datacenter = @options.args.datacenter
+
+            @shard.on 'change:primary_uuid', @render
+            @shard.on 'change:secondary_uuids', @render
+            @model.on 'change:name', @render
+            directory.on 'all', @render
+
+        show_popover: (event) =>
+            event.preventDefault()
+            popover_link = @.$(event.currentTarget).popover('show')
+            $popover = $('.popover')
+            $popover_button = $('.btn.change-machine', $popover)
+
+            $('.chosen-dropdown', $popover).chosen()
+            $popover.on 'clickoutside', (event) -> $(event.currentTarget).remove()
+            $popover_button.on 'click', (event) =>
+                event.preventDefault()
+    
+                post_data = {}
+                new_pinnings = _.without @get_currently_pinned(), @model.get('id')
+                new_pinnings.push $('select.chosen-dropdown', $popover).val()
+                post_data[@shard.get('shard_boundaries')] = new_pinnings
+
+                $.ajax
+                    processData: false
+                    url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.get('id')}/secondary_pinnings"
+                    type: 'POST'
+                    data: JSON.stringify(post_data)
+                    success: (response) =>
+                        $popover.remove()
+                        @namespace.set(response)
+                        $('#user-alert-space').append (@alert_tmpl {})
+                $popover_button.button('loading')
+
+        make_master: (event) =>
+            event.preventDefault()
+
+            # New primary pinning for this shard should be this machine
+            post_data = {}
+            post_data[@shard.get('shard_boundaries')] = @model.get('id')
+
+            # Present a confirmation dialog to make sure the user actually wants this
+            confirmation_modal = new UIComponents.ConfirmationDialogModal
+            confirmation_modal.render("Are you sure you want to make machine #{@model.get('name')} the master for this shard in datacenter #{@datacenter.get('name')}?",
+                "/ajax/memcached_namespaces/#{@namespace.get('id')}/primary_pinnings",
+                JSON.stringify(post_data),
+                (response) =>
+                    clear_modals()
+                    @namespace.set(response)
+                    $('#user-alert-space').append (@alert_tmpl {})
+            )
+
+        get_available_machines_in_datacenter: =>
+            machines_in_datacenter = DataUtils.get_datacenter_machines(@model.get('datacenter_uuid'))
+            # Machines that are unused (neither primary nor secondary replicas for this shard)
+            available_machines = _.filter machines_in_datacenter, (machine) =>
+                return false if machine.get('id') is @shard.get('primary_uuid')
+                for datacenter_uuid, machine_uuids of @shard.get('secondary_uuids')
+                    return false if machine.get('id') in machine_uuids
+                return true
+            return _.map available_machines, (machine) ->
+                name: machine.get('name')
+                id: machine.get('id')
+
+        get_currently_pinned: =>
+            # Grab pinned machines for this shard
+            for shard, pins of @namespace.get('secondary_pinnings')
+                return pins if JSON.stringify(@shard.get('shard_boundaries')) is JSON.stringify(shard)
 
         render: =>
             @.$el.html @template _.extend @model.toJSON(),
                 status: DataUtils.get_machine_reachability(@model.get('id'))
-            
+                is_master: @model.get('id') is @options.args.shard.get('primary_uuid')
+                backfill_progress: DataUtils.get_backfill_progress(@namespace.get('id'), @shard.get('shard_boundaries'), @model.get('id'))
+
+            # Popover to change the machine
+            @.$('a[rel=popover]').popover
+                html: true
+                trigger: 'manual'
+                content: @change_machine_popover
+                    available_machines: @get_available_machines_in_datacenter()
             return @
 
     class @ModifyShardsModal extends UIComponents.AbstractModal

@@ -1,5 +1,9 @@
 @import "bootstrap/bootstrap.less";
 
+/* Bootstrap variables override */
+@iconSpritePath: "/images/glyphicons-halflings.png";
+@iconWhiteSpritePath: "/images/glyphicons-halflings-white.png";
+
 /* Colors */
 @riak_color: #1693A5;
 @memcached_color: #44AA55;
@@ -694,10 +698,10 @@
         height: 16px;
         float: left;
         &.collapsed {
-            background: url('/images/mini_right-arrow.png') no-repeat center top;
+            background: url('/images/right-arrow_16x16.png') no-repeat center top;
         }
         &.expanded {
-            background: url('/images/mini_down-arrow.png') no-repeat center top;
+            background: url('/images/down-arrow_16x16.png') no-repeat center top;
             margin-top: 3px;
         }
     }
@@ -883,6 +887,74 @@
         }
     }
 
+    table.shards .datacenter-list {
+        .arrow {
+            width: 12px;
+            height: 12px;
+            float: left;
+            &.collapsed {
+                background: url('/images/right-arrow_12x12.png') no-repeat center top;
+            }
+            &.expanded {
+                background: url('/images/down-arrow_12x12.png') no-repeat center top;
+                margin-top: 3px;
+            }
+        }
+        h4.datacenter.name { 
+            line-height: 1em;
+            margin-left: 24px;
+        }
+
+        .label {
+            display: inline-block;
+            vertical-align: baseline;
+            font-size: 9px;
+            margin-right: 5px;
+            text-transform: uppercase;
+            &.secondary {
+                .opacity(50);
+            }
+        }
+
+        p.status {
+            float: right;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 0;
+        }
+
+        .divider {
+           margin-top: 20px;
+           margin-bottom: 20px;
+           border-bottom: 1px solid #DDD;
+        }
+
+        .machine-list {
+            margin: 10px 0;
+
+            li {
+                list-style-type: none;
+                padding: 7px 7px 9px;
+                background: #F9F9F9;
+                border-color: #DDD;
+                border-top: thin solid #DDD;
+                border-left: thin solid #DDD;
+                border-right: thin solid #DDD;
+                &:last-child { border-bottom: thin solid #DDD; }
+                .status { text-align: right; }
+                a.machine.name { 
+                    display: block-inline;
+                    margin-right: 5px; 
+                }
+            }
+
+            /* Bootstrap override */
+            ul { margin: 0; }
+            /* End Bootstrap override */
+        }
+    }
+    
+
     /* Override Bootstrap */
     table {
         border: none;
@@ -894,6 +966,13 @@
         }
     }
     /* End override */
+}
+
+.popover {
+    .popover-inner { overflow: visible; }
+    .namespace-shard-assign-machine {
+        .chzn-container { margin-bottom: 10px; }
+    }
 }
 
 /*
@@ -1032,7 +1111,7 @@
 
 /*
     -----------------------------------------------
-    ModifyShardsModal: replication for namespaces
+    RemoveNamespaceDialog
     -----------------------------------------------
 */
 

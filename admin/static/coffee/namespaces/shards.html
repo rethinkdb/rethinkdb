@@ -10,31 +10,6 @@
     <td class="name"><h4>{{name}}</h4></td>
     <td class="status">
         <div class="datacenter-list"></div>
-        <p>
-            <strong>Master:</strong> <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> {{humanize_machine_reachability primary.status}}{{#if primary.status.reachable}}{{> backfill_progress_summary primary}}{{/if}}</span>
-            {{! > backfill_progress_details primary}}
-            <a id="assign_master_{{index}}" href="#">Assign master</a>
-        </p>
-        {{#if secondaries}}
-        {{#each secondaries}}
-        <p><strong>Replicas in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>:</strong></p>
-        <ul>
-            {{#each machines}}
-            <li>
-                <p>
-                    <a href="/#machines/{{uuid}}">{{name}}</a>
-                    <span>{{humanize_machine_reachability status}}{{#if status.reachable}}{{! > backfill_progress_summary}}{{/if}}</span>
-                </p>
-                {{! > backfill_progress_details}}
-            </li>
-            {{/each}}
-        </ul>
-        <a id="assign_machines_{{../index}}_{{datacenter_uuid}}" href="#">Assign machines</a>
-        <hr />
-    {{/each}}
-    {{else}}
-        This shard has no replicas.
-    {{/if}}
     </td>
 </script>
 
@@ -48,14 +23,12 @@
         <div class="datacenter summary"></div>
     </div>
     <div class="machine-list"></div>
+    <div class="divider"></div>
 </script>
 
 <script id="namespace_view-shard_datacenter-summary-template" type="text/x-handlebars-template">
-    <h3 class="datacenter name"><span class="element-type label label-inverse">Datacenter</span><a href="#datacenters/{{id}}">{{name}}</a></h3>
-    <div class="datacenter details">
-        <p class="status">{{humanize_datacenter_reachability status}}</p>
-        <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Namespaces: {{namespace_count}}</p>
-    </div>
+    <p class="status">{{humanize_datacenter_reachability status}}</p>
+    <h4 class="datacenter name"><span class="element-type label label-inverse">Datacenter</span><a href="#datacenters/{{id}}">{{name}}</a></h4>
 </script>
 
 <script id="namespace_view-shard_machine_list-template" type="text/x-handlebars-template">
@@ -63,11 +36,34 @@
 </script>
 
 <script id="namespace_view-shard_machine-template" type="text/x-handlebars-template">
-    {{name}}
     {{#if is_master}}
-        (master)
+        <span class="master label label-info">Master machine</span>
+    {{else}}
+        <span class="secondary label label-info">Secondary machine</span>
     {{/if}}
-    <span>{{humanize_machine_reachability status}}{{#if status.reachable}}{{! > backfill_progress_summary}}{{/if}}</span>
+    <a class="machine name" href="#machines/{{id}}">{{name}}</a>
+    {{#unless is_master}}
+        <a class="change-machine" href="#" rel="popover" data-title="Change machine for this shard"><i class="icon-edit"></i></a>
+        <a class="make-master" href="#">make master</a>
+    {{/unless}}
+    <p class="status">
+        {{humanize_machine_reachability status}}{{#if status.reachable}}{{! > backfill_progress_summary}}{{/if}}
+        {{#if status.reachable}}
+            {{> backfill_progress_summary}}
+        {{/if}}
+    </p>
+    {{> backfill_progress_details}}
+</script>
+<script id="namespace_view-shard_machine-assign_machine_popover-template" type="text/x-handlebars-template">
+    <div class="namespace-shard-assign-machine">
+        <select class="chosen-dropdown" data-placeholder="Choose a different machine">
+            <option></option>
+            {{#each available_machines}}
+                <option value="{{id}}">{{name}}</option>
+            {{/each}}
+        </select>
+        <a class="btn btn-primary change-machine" data-loading-text="Loading..." href="#">Change machine</a>
+    </div>
 </script>
 
 <script id="modify_shards_modal-template" type="text/x-handlebars-template">

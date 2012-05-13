@@ -1,8 +1,9 @@
 # Models for Backbone.js
 class Namespace extends Backbone.Model
     urlRoot: '/ajax/namespaces'
+
     initialize: ->
-        log_initial '(initializing) namespace model'
+        @.set 'computed_shards', new DataUtils.Shards [],@
 
     # Is x between the lower and upper splitpoints (the open interval) for the given index?
     splitpoint_between: (shard_index, sp) =>
@@ -10,7 +11,6 @@ class Namespace extends Backbone.Model
         all_sps = @.get('splitpoints')
         return (shard_index == 0 || all_sps[shard_index - 1] < sp) && (shard_index == all_sps.length || sp < all_sps[shard_index])
 
-class Shard extends Backbone.Model
 
 class Datacenter extends Backbone.Model
 
@@ -56,9 +56,6 @@ class ColorMap extends Backbone.Model
 class Namespaces extends Backbone.Collection
     model: Namespace
     name: 'Namespaces'
-
-class Shards extends Backbone.Collection
-    model: Shard
 
 class Datacenters extends Backbone.Collection
     model: Datacenter
@@ -159,6 +156,61 @@ class DataStream extends Backbone.Model
 # This module contains utility functions that compute and massage
 # commonly used data.
 module 'DataUtils', ->
+    # The equivalent of a database view, but for our Backbone models.
+    # Our models and collections have direct representations on the server. For
+    # convenience, it's useful to pick data from several of these models: these
+    # are computed models (and computed collections).
+    class @ComputedModel extends Backbone.Model
+    class @ComputedCollection extends Backbone.Collection
+
+    # Computed shard for a particular namespace: computed for convenience and for extra metadata
+    # Arguments:
+    #   shard: element of the namespace shards list: Namespace.get('shards')
+    #   namespace: namespace that this shard belongs to
+    # Computed attributes of a shard:
+    #   shard_boundaries: JSON string representing the shard boundaries
+    #   primary_uuid: machine uuid that is the master for this shard
+    #   secondary_uuids: list of machine_uuids that are the secondaries for this shard
+    class @Shard extends @ComputedModel
+        get_primary_uuid: => DataUtils.get_shard_primary_uuid @namespace.get('id'), @shard
+        get_secondary_uuids: => DataUtils.get_shard_secondary_uuids @namespace.get('id'), @shard
+
+        initialize: (shard, namespace) ->
+            @shard = shard
+            @namespace = namespace
+
+            @.set 'shard_boundaries', @shard
+            @.set 'primary_uuid', @get_primary_uuid()
+            @.set 'secondary_uuids',  @get_secondary_uuids()
+
+            namespace.on 'change:blueprint', =>
+                new_primary_uuid = @get_primary_uuid()
+                new_secondary_uuids = @get_secondary_uuids()
+                if @.get('primary_uuid') isnt new_primary_uuid
+                    @.set 'primary_uuid', new_primary_uuid 
+                    console.log 'primary_uuid updated'
+                if not _.isEqual @.get('secondary_uuids'), new_secondary_uuids
+                    @.set 'secondary_uuids', new_secondary_uuids 
+                    console.log 'secondary_uuid updated'
+            
+    # The Shards collection maintains the computed shards for a given namespace.
+    # It will observe for any changes in the sharding scheme (or if the
+    # namespace has just been added) and maintains the list of computed shards,
+    # rebuilding if necessary.
+    class @Shards extends @ComputedCollection
+        model: DataUtils.Shard
+
+        initialize: (models, namespace) ->
+            @namespace = namespace
+            @namespace.on 'change:shards', => @compute_shards @namespace.get('shards')
+            @namespace.on 'add', => @compute_shards @namespace.get('shards')
+
+        compute_shards: (shards) =>
+            new_shards = []
+            for shard in shards
+                new_shards.push new DataUtils.Shard shard, @namespace
+            @.reset new_shards
+
     @get_machine_reachability = (machine_uuid) ->
         reachable = directory.get(machine_uuid)?
         if not reachable
