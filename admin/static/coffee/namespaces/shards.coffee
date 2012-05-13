@@ -91,8 +91,6 @@ module 'NamespaceView', ->
             return @
 
         render_summary: =>
-            console.log @namespace.compute_shard_rows_approximation(@model.get('shard_boundaries'))
-
             @.$('.shard.summary').html @summary_template
                 name: human_readable_shard @model.get('shard_boundaries')
                 shard_stats:
