@@ -16,9 +16,10 @@
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
-#include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/parser_maker.hpp"
+#include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist.hpp"
+#include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include <stdio.h>
 #include "memcached/tcp_conn.hpp"
@@ -137,6 +138,9 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         directory_read_manager.get_root_view()->subview(
             field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
         );
+
+    perfmon_collection_t proc_stats_collection("proc", NULL, true, true);
+    proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
 
     boost::scoped_ptr<initial_joiner_t> initial_joiner;
     if (!joins.empty()) {

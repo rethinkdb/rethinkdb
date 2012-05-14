@@ -89,11 +89,6 @@ void run_in_thread_pool_with_broadcaster(
     run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
 }
 
-/* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-    nap(1000);
-}
-
 }   /* anonymous namespace */
 
 /* The `ReadWrite` test just sends some reads and writes via the broadcaster to a

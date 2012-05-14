@@ -64,14 +64,40 @@ class Namespace extends Backbone.Model
 
 
 class Datacenter extends Backbone.Model
+    get_stats: =>
+        # Look boo, here's what we gonna do, okay? We gonna collect
+        # stats we care about from the machines that belong to this
+        # datacenter and aggregate them, okay? I don't care that
+        # you're unhappy, I don't care that you don't like this, and I
+        # don't care about the irritation on your bikini line. This is
+        # how we're doing it, no ifs no ends no buts. The LT says we
+        # go, we go.
+        stats =
+            global_cpu_util_avg: 0
+            global_mem_total: 0
+            global_mem_used: 0
+            dc_disk_space: 0
+        nmachines = 0
+        for machine in machines.models
+            if machine.get('datacenter_uuid') is @get('id')
+                mstats = machine.get_stats().proc
+                if mstats?
+                    nmachines += 1
+                    stats.global_cpu_util_avg += parseInt(mstats.global_cpu_util_avg)
+                    stats.global_mem_total += parseInt(mstats.global_mem_total)
+                    stats.global_mem_used += parseInt(mstats.global_mem_used)
+                    stats.dc_disk_space += machine.get_used_disk_space()
+        stats.global_cpu_util_avg /= nmachines
+        return stats
 
 class Machine extends Backbone.Model
     get_stats: =>
         stats = @get('stats')
-        if stats?
-            return stats
-        else
-            return {}
+        if not stats?
+            stats = {}
+        if not stats.proc?
+            stats.proc = {}
+        return stats
 
     get_used_disk_space: =>
         machine_disk_space = 0
