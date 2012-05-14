@@ -24,7 +24,6 @@
 #include "logger.hpp"
 #include "arch/os_signal.hpp"
 #include "perfmon.hpp"
-#include "stats/persist.hpp"
 #include "memcached/stats.hpp"
 
 static const char *crlf = "\r\n";
