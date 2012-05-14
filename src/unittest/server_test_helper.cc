@@ -43,7 +43,8 @@ void server_test_helper_t::setup_server_and_run_tests() {
             );
         standard_serializer_t log_serializer(
             standard_serializer_t::dynamic_config_t(),
-            standard_serializer_t::private_dynamic_config_t(db_file.name())
+            standard_serializer_t::private_dynamic_config_t(db_file.name()),
+            NULL
             );
 
         std::vector<standard_serializer_t *> serializers;
@@ -66,7 +67,7 @@ void server_test_helper_t::run_serializer_tests() {
     cache_cfg.flush_timer_ms = 1000000;
     cache_cfg.flush_dirty_size = 1000000000;
     cache_cfg.max_size = GIGABYTE;
-    cache_t cache(this->serializer, &cache_cfg);
+    cache_t cache(this->serializer, &cache_cfg, NULL);
 
     nap(200);   // to let patch_disk_storage do writeback.sync();
 

@@ -1,6 +1,8 @@
 #ifndef PERFMON_TYPES_HPP_
 #define PERFMON_TYPES_HPP_
 
+class perfmon_collection_t;
+class perfmon_result_t;
 class perfmon_counter_t;
 class perfmon_sampler_t;
 struct perfmon_stddev_t;

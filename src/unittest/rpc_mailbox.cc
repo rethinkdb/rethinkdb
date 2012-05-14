@@ -9,11 +9,6 @@ namespace unittest {
 
 namespace {
 
-/* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-    nap(1000);
-}
-
 /* `dummy_mailbox_t` is a `raw_mailbox_t` that keeps track of messages it receives.
 You can send to a `dummy_mailbox_t` with `send()`. */
 

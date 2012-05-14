@@ -19,6 +19,12 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int client_port) THROWS_NOTHING :
     parent(p), message_handler(mh),
 
+    /* The local port to use when connecting to the cluster port of peers */
+    cluster_client_port(client_port),
+
+    /* Create the socket to use when listening for connections from peers */
+    cluster_listener_socket(new tcp_bound_socket_t(port)),
+
     /* This sets `parent->current_run` to `this`. It's necessary to do it in the
     constructor of a subfield rather than in the body of the `run_t` constructor
     because `parent->current_run` needs to be set before `connection_to_ourself`
@@ -29,7 +35,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
 
     /* This constructor makes an entry for us in `routing_table`. The destructor
     will remove the entry. */
-    routing_table_entry_for_ourself(&routing_table, parent->me, peer_address_t(ip_address_t::us(), port)),
+    routing_table_entry_for_ourself(&routing_table, parent->me, peer_address_t(ip_address_t::us(), cluster_listener_socket->get_port())),
 
     /* The `connection_entry_t` constructor takes care of putting itself in the
     `connection_map` on each thread and notifying any listeners that we're now
@@ -37,19 +43,16 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     `connection_map` and again notify any listeners. */
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
 
-    /* The local port to use when connecting to the cluster port of peers */
-    cluster_client_port(client_port),
-
-    listener(port == 0 ? NULL : new tcp_listener_t(port, boost::bind(
-                                                   &connectivity_cluster_t::run_t::on_new_connection,
-                                                   this,
-                                                   _1,
-                                                   auto_drainer_t::lock_t(&drainer))))
+    listener(new tcp_listener_t(*cluster_listener_socket, boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
+                                                                      this,
+                                                                      _1,
+                                                                      auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
 
 connectivity_cluster_t::run_t::~run_t() {
+    delete cluster_listener_socket;
     delete listener;
 }
 
@@ -68,7 +71,8 @@ void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING 
 connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, peer_id_t id, tcp_conn_stream_t *c, peer_address_t a) THROWS_NOTHING :
     conn(c), address(a), session_id(generate_uuid()),
     parent(p), peer(id),
-    drainers(new boost::scoped_ptr<auto_drainer_t>[get_num_threads()])
+    drainers(new boost::scoped_ptr<auto_drainer_t>[get_num_threads()]),
+    stats(id, &p->parent->connectivity_collection)
 {
     /* This can be created and destroyed on any thread. */
     pmap(get_num_threads(),
@@ -475,7 +479,8 @@ void connectivity_cluster_t::run_t::handle(
 
 connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     me(peer_id_t(generate_uuid())),
-    current_run(NULL)
+    current_run(NULL),
+    connectivity_collection("connectivity", NULL, true, true)
     { }
 
 connectivity_cluster_t::~connectivity_cluster_t() THROWS_NOTHING {
@@ -568,6 +573,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
         // We could be on any thread here! Oh no!
         vector_read_stream_t buffer2(&buffer.vector());
         current_run->message_handler->on_message(me, &buffer2);
+        conn_structure->stats.pm_bytes_sent.record(buffer.vector().size());
 
     } else {
         rassert(dest != me);
@@ -582,6 +588,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
             std::string buffer_str(buffer.vector().begin(), buffer.vector().end());
             msg << buffer_str;
             int res = send_write_message(conn_structure->conn, &msg);
+            conn_structure->stats.pm_bytes_sent.record(buffer.vector().size());
             if (res) {
                 /* Close the other half of the connection to make sure that
                    `connectivity_cluster_t::run_t::handle()` notices that something is

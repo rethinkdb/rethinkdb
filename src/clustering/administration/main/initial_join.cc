@@ -6,12 +6,19 @@
 initial_joiner_t::initial_joiner_t(
         connectivity_cluster_t *cluster_,
         connectivity_cluster_t::run_t *cluster_run,
-        const std::set<peer_address_t> &peers) :
+        const std::set<peer_address_t> &peers,
+        int timeout_ms) :
     cluster(cluster_),
     peers_not_heard_from(peers),
-    subs(boost::bind(&initial_joiner_t::on_connect, this, _1), 0)
+    subs(boost::bind(&initial_joiner_t::on_connect, this, _1), 0),
+    successful_connection(false)
 {
     rassert(!peers.empty());
+
+    if (timeout_ms != -1) {
+        grace_period_timer.reset(new signal_timer_t(timeout_ms));
+    }
+
     coro_t::spawn_sometime(boost::bind(&initial_joiner_t::main_coro, this, cluster_run, auto_drainer_t::lock_t(&drainer)));
 
     connectivity_service_t::peers_list_freeze_t freeze(cluster);
@@ -53,14 +60,20 @@ void initial_joiner_t::main_coro(connectivity_cluster_t::run_t *cluster_run, aut
     } catch (interrupted_exc_t) {
         /* ignore */
     }
+
+    if (!done_signal.is_pulsed())
+        done_signal.pulse();
 }
 
 void initial_joiner_t::on_connect(peer_id_t peer) {
     if (peer != cluster->get_me()) {
+        successful_connection = true;
         peers_not_heard_from.erase(cluster->get_peer_address(peer));
-        if (!some_connection_made.is_pulsed()) {
-            some_connection_made.pulse();
-            grace_period_timer.reset(new signal_timer_t(grace_period_before_warn_ms));
+        if (!done_signal.is_pulsed()) {
+            done_signal.pulse();
+
+            if (grace_period_timer == NULL)
+                grace_period_timer.reset(new signal_timer_t(grace_period_before_warn_ms));
         }
     }
 }

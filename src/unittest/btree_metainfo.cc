@@ -45,18 +45,19 @@ void run_metainfo_test() {
 
     standard_serializer_t serializer(
         standard_serializer_t::dynamic_config_t(),
-        standard_serializer_t::private_dynamic_config_t(temp_file.name())
+        standard_serializer_t::private_dynamic_config_t(temp_file.name()),
+        NULL
         );
 
     mirrored_cache_static_config_t cache_static_config;
     cache_t::create(&serializer, &cache_static_config);
 
     mirrored_cache_config_t cache_dynamic_config;
-    cache_t cache(&serializer, &cache_dynamic_config);
+    cache_t cache(&serializer, &cache_dynamic_config, NULL);
 
     btree_slice_t::create(&cache);
 
-    btree_slice_t btree(&cache);
+    btree_slice_t btree(&cache, NULL);
 
     order_source_t order_source;
 

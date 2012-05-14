@@ -2,8 +2,6 @@
 import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, http_admin
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'workloads')))
 from workload_common import MemcacheConnection
 
 
@@ -38,4 +36,4 @@ with driver.Metacluster() as metacluster:
                     assert(progress_val[0] != "Timeout")
                     assert(progress_val[0] < progress_val[1])
 
-    cluster.check_and_stop()
+    cluster.check_and_close()

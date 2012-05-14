@@ -373,6 +373,13 @@ class ClusterAccess(object):
         assert isinstance(log, list)
         return log
 
+    def declare_machine_dead(self, machine):
+        machine = self.find_machine(machine)
+        del self.machines[machine.uuid]
+        self.do_query("DELETE", "/ajax/machines/" + machine.uuid)
+        self.wait_for_propagation()
+        self.update_cluster_data()
+
     def move_server_to_datacenter(self, serv, datacenter):
         serv = self.find_machine(serv)
         datacenter = self.find_datacenter(datacenter)
@@ -528,6 +535,9 @@ class ClusterAccess(object):
     def get_progress(self):
         return self.do_query("GET", "/ajax/progress")
 
+    def get_issues(self):
+        return self.do_query("GET", "/ajax/issues")
+
     def get_distribution(self, namespace, depth = 1):
         return self.do_query("GET", "/ajax/distribution?namespace=%s&depth=%d" % (namespace.uuid, depth))
 
@@ -548,6 +558,14 @@ class ClusterAccess(object):
             del actual[u"me"]
             if actual != expected:
                 raise BadClusterData(expected, actual)
+        def remove_nones(d):
+            for key in d.keys():
+                if d[key] is None:
+                    del d[key]
+        remove_nones(expected[u"machines"])
+        remove_nones(expected[u"datacenters"])
+        remove_nones(expected[u"dummy_namespaces"])
+        remove_nones(expected[u"memcached_namespaces"])
         return expected
 
     def _verify_cluster_data_chunk(self, local, remote):

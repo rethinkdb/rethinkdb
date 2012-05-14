@@ -1,12 +1,12 @@
 #include "buffer_cache/mirrored/free_list.hpp"
 
-#include "buffer_cache/stats.hpp"
 #include "perfmon.hpp"
 #include "serializer/serializer.hpp"
+#include "buffer_cache/mirrored/mirrored.hpp"
 
-array_free_list_t::array_free_list_t(serializer_t *_serializer)
-    : serializer(_serializer) {
-
+array_free_list_t::array_free_list_t(serializer_t *_serializer, mc_cache_stats_t *_stats)
+    : stats(_stats), serializer(_serializer)
+{
     on_thread_t switcher(serializer->home_thread());
     num_blocks_in_use = 0;
     next_new_block_id = serializer->max_block_id();
@@ -14,7 +14,7 @@ array_free_list_t::array_free_list_t(serializer_t *_serializer)
         if (serializer->get_delete_bit(i)) {
             free_ids.push_back(i);
         } else {
-            ++pm_n_blocks_total;
+            ++stats->pm_n_blocks_total;
             ++num_blocks_in_use;
         }
     }
@@ -51,7 +51,7 @@ block_id_t array_free_list_t::gen_block_id() {
         free_ids.pop_back();
     }
 
-    ++pm_n_blocks_total;
+    ++stats->pm_n_blocks_total;
     ++num_blocks_in_use;
 
     return id;
@@ -60,6 +60,6 @@ block_id_t array_free_list_t::gen_block_id() {
 void array_free_list_t::release_block_id(block_id_t id) {
     free_ids.push_back(id);
 
-    --pm_n_blocks_total;
+    --stats->pm_n_blocks_total;
     --num_blocks_in_use;
 }

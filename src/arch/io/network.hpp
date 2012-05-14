@@ -264,16 +264,28 @@ private:
     DISABLE_COPYING(linux_nascent_tcp_conn_t);
 };
 
+class linux_tcp_bound_socket_t {
+public:
+    linux_tcp_bound_socket_t(int _port);
+    ~linux_tcp_bound_socket_t();
+    int get_port();
+    fd_t get_fd();
+    void reset();
+private:
+    fd_t sock_fd;
+    int port;
+};
+
 /* The linux_tcp_listener_t is used to listen on a network port for incoming
 connections. Create a linux_tcp_listener_t with some port and then call set_callback();
 the provided callback will be called in a new coroutine every time something connects. */
 
 class linux_tcp_listener_t : public linux_event_callback_t {
 public:
-    linux_tcp_listener_t(
-        int port,
-        boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback
-        );
+    linux_tcp_listener_t(int port,
+                         boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
+    linux_tcp_listener_t(linux_tcp_bound_socket_t& bound_socket,
+                         boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
     ~linux_tcp_listener_t();
 
     // The constructor can throw this exception
@@ -292,6 +304,8 @@ public:
     };
 
 private:
+    void initialize_internal();
+
     // The socket to listen for connections on
     scoped_fd_t sock;
 

@@ -55,4 +55,4 @@ with driver.Metacluster() as metacluster:
     else:
         raise RuntimeError("Never detected a backfill happening")
 
-    cluster.check_and_stop()
+    cluster.check_and_close()

@@ -24,15 +24,6 @@ namespace unittest {
 
 namespace {
 
-/* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-#ifdef VALGRIND
-    nap(10000);
-#else
-    nap(1000);
-#endif
-}
-
 void generate_sample_region(int i, int n, dummy_protocol_t::region_t *out) {
     *out = dummy_protocol_t::region_t('a' + ((i * 26)/n), 'a' + (((i + 1) * 26)/n) - 1);
 }
@@ -200,7 +191,7 @@ public:
         int port = 10000 + randint(20000);
         for (int i = 0; i < n_machines; i++) {
             files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
-            stores.push_back(new typename protocol_t::store_t(files[i].name(), true));
+            stores.push_back(new typename protocol_t::store_t(files[i].name(), true, NULL));
             stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
 
             test_clusters.push_back(new reactor_test_cluster_t<protocol_t>(port + i));

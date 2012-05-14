@@ -4,8 +4,7 @@
 #include "serializer/log/lba/disk_format.hpp"
 #include "arch/arch.hpp"
 #include "perfmon.hpp"
-
-perfmon_counter_t pm_serializer_lba_gcs("serializer_lba_gcs");
+#include "serializer/log/stats.hpp"
 
 lba_list_t::lba_list_t(extent_manager_t *em)
     : shutdown_callback(NULL), gc_count(0), extent_manager(em),
@@ -178,7 +177,7 @@ public:
     int i;
 
     gc_fsm_t(lba_list_t *_owner, int _i, file_account_t *io_account) : owner(_owner), i(_i) {
-        ++pm_serializer_lba_gcs;
+        ++owner->extent_manager->stats->pm_serializer_lba_gcs; //This is kinda bad that we go through the extent manager... but whatever
         ++owner->gc_count;
         do_replace_disk_structure(io_account);
     }

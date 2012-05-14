@@ -9,6 +9,7 @@
 
 #include "config/args.hpp"
 #include "containers/bitset.hpp"
+#include "perfmon.hpp"
 
 /* The purpose of the conflict-resolving disk manager is to deal with the case
 where we have been sent a number of different reads or writes for overlapping
@@ -51,7 +52,7 @@ You should make a separate conflict_resolving_diskmgr_t for each file. */
 template<class payload_t>
 struct conflict_resolving_diskmgr_t {
 
-    conflict_resolving_diskmgr_t();
+    conflict_resolving_diskmgr_t(perfmon_collection_t *stats);
     ~conflict_resolving_diskmgr_t();
 
     struct action_t : public payload_t {
@@ -94,6 +95,8 @@ private:
     are not guaranteed by the C++ standard. */
 
     std::map<int, std::deque<action_t*> > chunk_queues;
+
+    perfmon_sampler_t conflict_sampler;
 };
 
 #include "arch/io/disk/conflict_resolving.tcc"

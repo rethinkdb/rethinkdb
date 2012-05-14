@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 #define CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 
+#include "clustering/administration/perfmon_collection_repo.hpp"
+
 template<class protocol_t, class parser_t>
 class parser_maker_t {
 public:
@@ -9,7 +11,8 @@ public:
 #ifndef NDEBUG
                    boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> >,
 #endif
-                   namespace_repo_t<protocol_t> *repo);
+                   namespace_repo_t<protocol_t> *repo,
+                   perfmon_collection_repo_t *_perfmon_collection_repo);
 
 private:
     class ns_record_t {
@@ -37,6 +40,7 @@ private:
 #ifndef NDEBUG
     semilattice_read_view_t<machine_semilattice_metadata_t>::subscription_t machine_subscription;
 #endif
+    perfmon_collection_repo_t *perfmon_collection_repo;
 };
 
 #include "clustering/administration/parser_maker.tcc"

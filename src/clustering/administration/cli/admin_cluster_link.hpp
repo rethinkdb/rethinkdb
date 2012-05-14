@@ -1,16 +1,10 @@
 #ifndef CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 #define CLUSTERING_ADMINISTRATION_CLU_ADMIN_CLUSTER_LINK_HPP_
 
-#include "clustering/administration/metadata.hpp"
-#include "rpc/semilattice/view.hpp"
-#include "rpc/semilattice/semilattice_manager.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/directory/read_manager.hpp"
-#include "rpc/directory/write_manager.hpp"
-#include "clustering/administration/logger.hpp"
-#include "clustering/administration/suggester.hpp"
 #include <vector>
 #include <string>
+
+#include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/cli/linenoise.hpp"
 #include "clustering/administration/issues/global.hpp"
@@ -18,7 +12,16 @@
 #include "clustering/administration/issues/machine_down.hpp"
 #include "clustering/administration/issues/name_conflict.hpp"
 #include "clustering/administration/issues/pinnings_shards_mismatch.hpp"
+#include "clustering/administration/issues/unsatisfiable_goals.hpp"
 #include "clustering/administration/issues/vector_clock_conflict.hpp"
+#include "clustering/administration/logger.hpp"
+#include "clustering/administration/metadata.hpp"
+#include "clustering/administration/suggester.hpp"
+#include "rpc/connectivity/multiplexer.hpp"
+#include "rpc/directory/read_manager.hpp"
+#include "rpc/directory/write_manager.hpp"
+#include "rpc/semilattice/semilattice_manager.hpp"
+#include "rpc/semilattice/view.hpp"
 
 struct admin_cluster_exc_t : public std::exception {
 public:
@@ -31,13 +34,14 @@ private:
 
 class admin_cluster_link_t {
 public:
-    admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port);
+    admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port, signal_t *interruptor);
 
     // A way for the parser to do completions and parsing verification
     std::vector<std::string> get_ids(const std::string& base);
 
     // Commands that may be run by the parser
     void do_admin_list(admin_command_parser_t::command_data& data);
+    void do_admin_resolve(admin_command_parser_t::command_data& data);
     void do_admin_split_shard(admin_command_parser_t::command_data& data);
     void do_admin_merge_shard(admin_command_parser_t::command_data& data);
     void do_admin_set_name(admin_command_parser_t::command_data& data);
@@ -51,7 +55,9 @@ public:
     void sync_from();
     void sync_to();
 
-    size_t machine_count();
+    size_t machine_count() const;
+    size_t available_machine_count();
+    size_t issue_count();
 
 private:
 
@@ -72,6 +78,7 @@ private:
     void do_admin_set_replicas_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_replicas);
 
     void list_issues(bool long_format);
+    void list_directory(bool long_format);
     void list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_datacenters(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_dummy_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
@@ -124,6 +131,11 @@ private:
     global_issue_aggregator_t::source_t mc_pinnings_shards_mismatch_issue_tracker_feed;
     pinnings_shards_mismatch_issue_tracker_t<mock::dummy_protocol_t> dummy_pinnings_shards_mismatch_issue_tracker;
     global_issue_aggregator_t::source_t dummy_pinnings_shards_mismatch_issue_tracker_feed;
+    unsatisfiable_goals_issue_tracker_t unsatisfiable_goals_issue_tracker;
+    global_issue_aggregator_t::source_t unsatisfiable_goals_issue_tracker_feed;
+
+    // Initial join
+    initial_joiner_t initial_joiner;
 
     std::map<std::string, std::vector<std::string> > uuid_to_path;
     std::multimap<std::string, std::vector<std::string> > name_to_path;

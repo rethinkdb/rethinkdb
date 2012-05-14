@@ -1,26 +1,25 @@
 #ifndef CLUSTERING_ADMINISTRATION_PARSER_MAKER_TCC_
 #define CLUSTERING_ADMINISTRATION_PARSER_MAKER_TCC_
 
-#include "clustering/administration/parser_maker.hpp"
-
 template<class protocol_t, class parser_t>
 parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox_manager,
                                boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_semilattice_metadata,
 #ifndef NDEBUG
                                boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> > _machine_semilattice_metadata,
 #endif
-                               namespace_repo_t<protocol_t> *_repo)
+                               namespace_repo_t<protocol_t> *_repo,
+                               perfmon_collection_repo_t *_perfmon_collection_repo)
     : mailbox_manager(_mailbox_manager),
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
 #ifndef NDEBUG
       machine_semilattice_metadata(_machine_semilattice_metadata),
 #endif
       repo(_repo),
-      namespaces_subscription(boost::bind(&parser_maker_t::on_change, this), namespaces_semilattice_metadata)
+      namespaces_subscription(boost::bind(&parser_maker_t::on_change, this), namespaces_semilattice_metadata),
 #ifndef NDEBUG
-        ,
-      machine_subscription(boost::bind(&parser_maker_t::on_change, this), machine_semilattice_metadata)
+      machine_subscription(boost::bind(&parser_maker_t::on_change, this), machine_semilattice_metadata),
 #endif
+      perfmon_collection_repo(_perfmon_collection_repo)
 {
     on_change();
 }
@@ -90,7 +89,7 @@ void parser_maker_t<protocol_t, parser_t>::serve_queries(namespace_id_t ns, int 
     try {
         wait_any_t interruptor(&namespaces_being_handled.find(ns)->second->stopper, keepalive.get_drain_signal());
         typename namespace_repo_t<protocol_t>::access_t access(repo, ns, &interruptor);
-        parser_t parser(port, access.get_namespace_if());
+        parser_t parser(port, access.get_namespace_if(), perfmon_collection_repo->get_perfmon_collection_for_namespace(ns));
         interruptor.wait_lazily_unordered();
     } catch (interrupted_exc_t) {
         /* pass */

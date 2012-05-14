@@ -4,6 +4,7 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
 
 #include "containers/archive/archive.hpp"
 
@@ -203,6 +204,48 @@ MUST_USE int deserialize(read_stream_t *s, boost::optional<T> *x) {
         x->reset();
         return ARCHIVE_SUCCESS;
     }
+}
+
+template <class K, class V>
+write_message_t &operator<<(write_message_t &msg, const boost::ptr_map<K,V> &x) {
+    msg << x.size();
+    for (typename boost::ptr_map<K,V>::const_iterator it  = x.begin();
+                                                      it != x.end();
+                                                      ++it) {
+        msg << it->first;
+        msg << *it->second;
+    }
+    return msg;
+}
+
+template <class K, class V>
+MUST_USE int deserialize(read_stream_t *s, boost::ptr_map<K,V> *x) {
+    x->clear();
+
+    typename boost::ptr_map<K,V>::size_type size;
+    int res = deserialize(s, &size);
+    if (res != ARCHIVE_SUCCESS) {
+        goto FAIL;
+    }
+
+    for (typename boost::ptr_map<K,V>::size_type i = 0; i < size; ++i) {
+        K k;
+        res = deserialize(s, &k);
+        if (res != ARCHIVE_SUCCESS) {
+            goto FAIL;
+        }
+
+        res = deserialize(s, &((*x)[k]));
+        if (res != ARCHIVE_SUCCESS) {
+            goto FAIL;
+        }
+    }
+
+    return ARCHIVE_SUCCESS;
+
+FAIL:
+    x->clear();
+    return res;
 }
 
 #endif  // CONTAINERS_ARCHIVE_BOOST_TYPES_HPP_

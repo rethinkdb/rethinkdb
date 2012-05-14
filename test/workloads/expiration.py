@@ -1,5 +1,7 @@
 #!/usr/bin/python
-import time, sys, workload_common
+import time, sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import workload_common
 
 def expect(b, msg):
     if (not b):

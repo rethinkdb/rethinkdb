@@ -16,6 +16,7 @@
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+#include "perfmon.hpp"
 
 class real_superblock_t;
 
@@ -163,7 +164,7 @@ public:
         fifo_enforcer_sink_t token_sink;
 
     public:
-        store_t(const std::string& filename, bool create);
+        store_t(const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
         ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
@@ -253,7 +254,10 @@ public:
             transaction_t *txn,
             real_superblock_t *superbloc) const
             THROWS_NOTHING;
+
         void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
+
+        perfmon_collection_t *perfmon_collection;
     };
 };
 

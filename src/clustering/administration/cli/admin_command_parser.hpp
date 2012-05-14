@@ -35,6 +35,7 @@ public:
     static const char *list_command;
     static const char *exit_command;
     static const char *help_command;
+    static const char *resolve_command;
     static const char *split_shard_command;
     static const char *merge_shard_command;
     static const char *set_name_command;
@@ -44,13 +45,13 @@ public:
     static const char *create_namespace_command;
     static const char *create_datacenter_command;
     static const char *remove_command;
-    static const char *join_command;
     static const char *complete_command;
 
     // Usage strings for various commands
     static const char *list_usage;
     static const char *exit_usage;
     static const char *help_usage;
+    static const char *resolve_usage;
     static const char *split_shard_usage;
     static const char *merge_shard_usage;
     static const char *set_name_usage;
@@ -60,12 +61,12 @@ public:
     static const char *create_namespace_usage;
     static const char *create_datacenter_usage;
     static const char *remove_usage;
-    static const char *join_usage;
 
     // Descriptive strings for various commands
     static const char *list_description;
     static const char *exit_description;
     static const char *help_description;
+    static const char *resolve_description;
     static const char *split_shard_description;
     static const char *merge_shard_description;
     static const char *set_name_description;
@@ -75,7 +76,6 @@ public:
     static const char *create_namespace_description;
     static const char *create_datacenter_description;
     static const char *remove_description;
-    static const char *join_description;
 
 private:
 
@@ -125,7 +125,7 @@ public:
         std::map<std::string, std::vector<std::string> > params;
     };
 
-    admin_command_parser_t(const std::set<peer_address_t>& joins, int client_port);
+    admin_command_parser_t(const std::string& peer_string, const std::set<peer_address_t>& joins, int client_port, signal_t *_interruptor);
     ~admin_command_parser_t();
 
     void parse_and_run_command(const std::vector<std::string>& line);
@@ -136,11 +136,11 @@ public:
     static void do_set_usage(bool console);
     static void do_list_usage(bool console);
     static void do_help_usage(bool console);
-    static void do_join_usage(bool console);
     static void do_split_usage(bool console);
     static void do_merge_usage(bool console);
     static void do_create_usage(bool console);
     static void do_remove_usage(bool console);
+    static void do_resolve_usage(bool console);
 
 private:
 
@@ -158,6 +158,7 @@ private:
                                   bool console);
 
     void build_command_descriptions();
+    void destroy_command_descriptions(std::map<std::string, command_info *>& cmd_map);
     command_info * add_command(std::map<std::string, command_info *>& cmd_map,
                                const std::string& full_cmd,
                                const std::string& cmd,
@@ -167,7 +168,6 @@ private:
     admin_cluster_link_t * get_cluster();
 
     void do_admin_help(command_data& data);
-    void do_admin_join(command_data& data);
 
     command_info * find_command(const std::map<std::string, command_info *>& cmd_map, const std::vector<std::string>& line, size_t& index);
     command_data parse_command(command_info *info, const std::vector<std::string>& command_args);
@@ -186,12 +186,15 @@ private:
 
     // Static instance variable to hook in from a c-style library (linenoise), singleton enforced
     static admin_command_parser_t *instance;
+    static uint64_t cluster_join_timeout;
 
     // Variables to instantiate a link to the cluster
+    std::string join_peer;
     std::set<peer_address_t> joins_param;
     int client_port_param;
     admin_cluster_link_t *cluster;
     bool console_mode;
+    signal_t *interruptor;
 
     DISABLE_COPYING(admin_command_parser_t);
 };
