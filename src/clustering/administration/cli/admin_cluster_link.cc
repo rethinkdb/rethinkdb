@@ -74,7 +74,7 @@ admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins
     remote_issue_tracker(
         directory_read_manager.get_root_view()->subview(
             field_getter_t<std::list<clone_ptr_t<local_issue_t> >, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
-        directory_read_manager.get_root_view()->subview( 
+        directory_read_manager.get_root_view()->subview(
             field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
         ),
     remote_issue_tracker_feed(&issue_aggregator, &remote_issue_tracker),
@@ -256,7 +256,6 @@ void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& d
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     std::string id = (data.params.count("filter") == 0 ? "" : data.params["filter"][0]);
     bool long_format = (data.params.count("long") == 1);
-    std::vector<std::string> obj_path;
 
     if (id != "namespaces" && data.params.count("protocol") != 0)
         throw admin_parse_exc_t("--protocol option only valid when listing namespaces");
@@ -285,7 +284,7 @@ void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& d
     } else if (!id.empty()) {
         // TODO: special formatting for each object type, instead of JSON
         namespace_metadata_ctx_t json_ctx(connectivity_cluster.get_me().get_uuid());
-        obj_path = get_path_from_id(id);
+        std::vector<std::string> obj_path(get_path_from_id(id));
         puts(cJSON_print_std_string(scoped_cJSON_t(traverse_directory(obj_path, json_ctx, cluster_metadata)->render(json_ctx)).get()).c_str());
     } else {
         list_machines(long_format, cluster_metadata);
@@ -308,8 +307,6 @@ void admin_cluster_link_t::list_directory(bool long_format UNUSED) {
 
 void admin_cluster_link_t::list_issues(bool long_format UNUSED) {
     std::list<clone_ptr_t<global_issue_t> > issues = issue_aggregator.get_issues();
-    puts("Issues: ");
-
     for (std::list<clone_ptr_t<global_issue_t> >::iterator i = issues.begin(); i != issues.end(); ++i) {
         puts((*i)->get_description().c_str());
     }
@@ -364,92 +361,209 @@ void admin_cluster_link_t::list_machines(bool long_format, cluster_semilattice_m
 }
 
 void admin_cluster_link_t::do_admin_create_datacenter(admin_command_parser_t::command_data& data) {
-    std::vector<std::string> obj_path;
-    obj_path.push_back("datacenters");
-    obj_path.push_back("new");
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    datacenter_id_t id = generate_uuid();
+    datacenter_semilattice_metadata_t& datacenter = cluster_metadata.datacenters.datacenters[id].get_mutable();
 
-    if (data.params.count("name") == 0)
-        set_metadata_value(obj_path, "{ }");
-    else
-        set_metadata_value(obj_path, "{ \"name\": \"" + data.params["name"][0] + "\" }");
+    if (data.params.count("name") == 1) {
+        datacenter.name.get_mutable() = data.params["name"][0];
+        datacenter.name.upgrade_version(sync_peer.get_uuid());
+    }
+
+    try {
+        fill_in_blueprints(&cluster_metadata);
+    } catch (missing_machine_exc_t &e) { }
+
+    semilattice_metadata->join(cluster_metadata);
 }
 
 
 void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::command_data& data) {
-    std::vector<std::string> obj_path;
-    std::string value;
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    std::string protocol(data.params["protocol"][0]);
+    std::string port_str(data.params["port"][0]);
+    datacenter_id_t primary;
+    std::string name;
+    int port;
 
-    // TODO: WTF?  Is this how we serialize things to json?  By
-    // copying a string and hoping there are no special characters?
-    value += "{ \"name\": \"" + (data.params.count("name") == 0 ? std::string() : data.params["name"][0]) + "\"";
+    if (data.params.count("name") == 1)
+        name.assign(data.params["name"][0]);
 
-    std::string protocol = data.params["protocol"][0];
+    // Make sure port is a number
+    for (size_t i = 0; i < port_str.length(); ++i)
+        if (port_str[i] < '0' || port_str[i] > '9')
+            throw admin_parse_exc_t("port is not a number");
+
+    port = atoi(port_str.c_str());
+    if (port > 65536)
+        throw admin_parse_exc_t("port is too large: " + port_str);
+
+    if (data.params.count("primary") == 1) {
+
+        std::vector<std::string> datacenter_path = get_path_from_id(data.params["primary"][0]);
+
+        if (datacenter_path[0] != "datacenters")
+            throw admin_parse_exc_t("namespace primary is not a datacenter: " + data.params["primary"][0]);
+
+        primary = str_to_uuid(datacenter_path[datacenter_path.size() - 1]);
+    }
+
     if (protocol == "memcached")
-        obj_path.push_back("memcached_namespaces");
+        do_admin_create_namespace_internal(cluster_metadata.memcached_namespaces, name, port, primary);
     else if (protocol == "dummy")
-        obj_path.push_back("dummy_namespaces");
+        do_admin_create_namespace_internal(cluster_metadata.dummy_namespaces, name, port, primary);
     else
         throw admin_parse_exc_t("unrecognized protocol: " + protocol);
 
-    value += ", \"port\": " + data.params["port"][0];
+    try {
+        fill_in_blueprints(&cluster_metadata);
+    } catch (missing_machine_exc_t &e) { }
 
-    if (data.params.count("primary") == 1) {
-        std::string primary = data.params["primary"][0];
+    semilattice_metadata->join(cluster_metadata);
+}
 
-        if (!is_uuid(primary)) {
-            // Convert name to uuid
-            std::map<std::string, std::vector<std::string> >::const_iterator i = name_to_path.find(primary);
-            if (i == name_to_path.end())
-                throw admin_parse_exc_t("unknown object: " + primary);
+template <class protocol_t>
+void admin_cluster_link_t::do_admin_create_namespace_internal(namespaces_semilattice_metadata_t<protocol_t>& ns,
+                                                              const std::string& name,
+                                                              int port,
+                                                              const datacenter_id_t& primary) {
+    namespace_id_t id = generate_uuid();
+    namespace_semilattice_metadata_t<protocol_t>& obj = ns.namespaces[id].get_mutable();
 
-            // uuid should be the last component of the path
-            primary = i->second[i->second.size() - 1];
-        }
-
-        value += ", \"primary_uuid\": \"" + primary + "\"";
+    if (!name.empty()) {
+        obj.name.get_mutable() = name;
+        obj.name.upgrade_version(sync_peer.get_uuid());
     }
 
-    obj_path.push_back("new");
-    value += " }";
+    if (!primary.is_nil()) {
+        obj.primary_datacenter.get_mutable() = primary;
+        obj.primary_datacenter.upgrade_version(sync_peer.get_uuid());
+    }
 
-    set_metadata_value(obj_path, value);
+    obj.port.get_mutable() = port;
+    obj.port.upgrade_version(sync_peer.get_uuid());
 }
 
 void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::command_data& data) {
-    std::vector<std::string> target_path(get_path_from_id(data.params["id"][0]));
-    std::string datacenter_id = data.params["datacenter"][0];
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    std::string obj_id(data.params["id"][0]);
+    std::vector<std::string> obj_path(get_path_from_id(obj_id));
+    std::string datacenter_id(data.params["datacenter"][0]);
     std::vector<std::string> datacenter_path(get_path_from_id(datacenter_id));
+    boost::uuids::uuid datacenter_uuid(str_to_uuid(datacenter_path[1]));
+    boost::uuids::uuid obj_uuid(str_to_uuid(obj_path[1]));
+    bool resolve(false);
 
-    // Make sure the path is as expected
-    if (!is_uuid(target_path[1]))
-        throw admin_cluster_exc_t("unexpected error when looking up destination: " + datacenter_id);
+    if (data.params.count("resolve") == 1)
+        resolve = true;
 
     // Target must be a datacenter in all existing use cases
     if (datacenter_path[0] != "datacenters")
         throw admin_parse_exc_t("destination is not a datacenter: " + datacenter_id);
 
-    if (target_path[0] == "memcached_namespaces" || target_path[0] == "dummy_namespaces")
-        target_path.push_back("primary_uuid");
-    else if (target_path[0] == "machines")
-        target_path.push_back("datacenter_uuid");
-    else
-        throw admin_parse_exc_t("target object is not a namespace or machine");
+    if (obj_path[0] == "memcached_namespaces") {
+        do_admin_set_datacenter_namespace(cluster_metadata.memcached_namespaces.namespaces, obj_uuid, datacenter_uuid, resolve);
+    } else if (obj_path[0] == "dummy_namespaces") {
+        do_admin_set_datacenter_namespace(cluster_metadata.dummy_namespaces.namespaces, obj_uuid, datacenter_uuid, resolve);
+    } else if (obj_path[0] == "machines") {
+        do_admin_set_datacenter_machine(cluster_metadata.machines.machines, obj_uuid, datacenter_uuid, resolve);
+    } else
+        throw admin_cluster_exc_t("target objects is not a namespace or machine");
 
-    if (data.params.count("resolve") == 1)
-        target_path.push_back("resolve");
+    try {
+        fill_in_blueprints(&cluster_metadata);
+    } catch (missing_machine_exc_t &e) { }
 
-    // Convert target name to uuid if necessary
-    set_metadata_value(target_path, "\"" + datacenter_path[1] + "\""); // TODO: adding quotes like this is kind of silly - better way to get past the json parsing?
+    semilattice_metadata->join(cluster_metadata);
 }
+
+template <class obj_map>
+void admin_cluster_link_t::do_admin_set_datacenter_namespace(obj_map& metadata,
+                                                             const boost::uuids::uuid obj_uuid,
+                                                             const datacenter_id_t dc,
+                                                             bool resolve) {
+    typename obj_map::iterator i = metadata.find(obj_uuid);
+    if (i == metadata.end())
+        throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(obj_uuid));
+
+    if (i->second.get_mutable().primary_datacenter.in_conflict()) {
+        if (!resolve)
+            throw admin_cluster_exc_t("namespace's primary datacenter is in conflict, run 'help resolve' for more information");
+        i->second.get_mutable().primary_datacenter = i->second.get_mutable().primary_datacenter.make_resolving_version(dc, sync_peer.get_uuid());
+    } else if (resolve)
+        throw admin_cluster_exc_t("namespace's primary datacenter is not in conflict, command ignored");
+
+    i->second.get_mutable().primary_datacenter = i->second.get_mutable().primary_datacenter.make_new_version(dc, sync_peer.get_uuid());
+}
+
+void admin_cluster_link_t::do_admin_set_datacenter_machine(machines_semilattice_metadata_t::machine_map_t& metadata,
+                                                           const boost::uuids::uuid obj_uuid,
+                                                           const datacenter_id_t dc,
+                                                           bool resolve) {
+    machines_semilattice_metadata_t::machine_map_t::iterator i = metadata.find(obj_uuid);
+    if (i == metadata.end())
+        throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(obj_uuid));
+
+    if (i->second.get_mutable().datacenter.in_conflict()) {
+        if (!resolve)
+            throw admin_cluster_exc_t("machine's datacenter is in conflict, run 'help resolve' for more information");
+        i->second.get_mutable().datacenter = i->second.get_mutable().datacenter.make_resolving_version(dc, sync_peer.get_uuid());
+    } else if (resolve)
+        throw admin_cluster_exc_t("machine's datacenter is not in conflict, command ignored");
+
+    i->second.get_mutable().datacenter = i->second.get_mutable().datacenter.make_new_version(dc, sync_peer.get_uuid());
+}
+
 void admin_cluster_link_t::do_admin_set_name(admin_command_parser_t::command_data& data) {
     // TODO: make sure names aren't silly things like uuids or reserved strings
-    std::vector<std::string> path(get_path_from_id(data.params["id"][0]));
-    path.push_back("name");
+    std::string new_name(data.params["new-name"][0]);
+    std::string id(data.params["id"][0]);
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    std::vector<std::string> path(get_path_from_id(id));
+    boost::uuids::uuid obj_uuid = str_to_uuid(path[1]);
+    bool resolve(false);
 
     if (data.params.count("resolve") == 1)
-        path.push_back("resolve");
+        resolve = true;
 
-    set_metadata_value(path, "\"" + data.params["new-name"][0] + "\""); // TODO: adding quotes like this is kind of silly - better way to get past the json parsing?
+    if (path[0] == "datacenters") {
+        do_admin_set_name_internal(cluster_metadata.datacenters.datacenters, obj_uuid, new_name, resolve);
+    } else if (path[0] == "machines") {
+        do_admin_set_name_internal(cluster_metadata.machines.machines, obj_uuid, new_name, resolve);
+    } else if (path[0] == "dummy_namespaces") {
+        do_admin_set_name_internal(cluster_metadata.dummy_namespaces.namespaces, obj_uuid, new_name, resolve);
+    } else if (path[0] == "memcached_namespaces") {
+        do_admin_set_name_internal(cluster_metadata.memcached_namespaces.namespaces, obj_uuid, new_name, resolve);
+    } else
+        throw admin_cluster_exc_t("specified object does not have a name");
+
+    try {
+        fill_in_blueprints(&cluster_metadata);
+    } catch (missing_machine_exc_t &e) { }
+
+    semilattice_metadata->join(cluster_metadata);
+}
+
+template <class obj_map>
+void admin_cluster_link_t::do_admin_set_name_internal(obj_map& metadata,
+                                                      const boost::uuids::uuid& uuid,
+                                                      const std::string& new_name,
+                                                      bool resolve) {
+    typename obj_map::iterator i = metadata.find(uuid);
+
+    if (i == metadata.end())
+        throw admin_cluster_exc_t("no object found with id: " + uuid_to_str(uuid));
+
+    if (i->second.get().name.in_conflict()) {
+        if (!resolve)
+            throw admin_cluster_exc_t("name is in conflict, use --resolve, or run 'help resolve' for more information");
+
+        // Resolve the conflict
+        i->second.get_mutable().name = i->second.get_mutable().name.make_resolving_version(new_name, sync_peer.get_uuid());
+    } else if (resolve)
+        throw admin_cluster_exc_t("name is not in conflict, command ignored");
+
+    i->second.get_mutable().name = i->second.get_mutable().name.make_new_version(new_name, sync_peer.get_uuid());
 }
 
 void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_data& data) {
@@ -467,7 +581,7 @@ void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_dat
 
     if (dc_path[0] != "datacenters")
         throw admin_parse_exc_t(data.params["datacenter"][0] + " is not a datacenter");
-    
+
     if (ns_path[0] == "dummy_namespaces") {
         namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(str_to_uuid(ns_path[1]));
         if (i == cluster_metadata.dummy_namespaces.namespaces.end())
@@ -539,7 +653,7 @@ void admin_cluster_link_t::do_admin_set_replicas(admin_command_parser_t::command
     datacenter_id_t datacenter(str_to_uuid(dc_path[1]));
     if (get_machine_count_in_datacenter(cluster_metadata, datacenter) < (size_t)num_replicas)
         throw admin_cluster_exc_t("the number of replicas cannot be more than the number of machines in the datacenter");
-    
+
     if (ns_path[0] == "dummy_namespaces") {
         namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(str_to_uuid(ns_path[1]));
         if (i == cluster_metadata.dummy_namespaces.namespaces.end())
@@ -665,7 +779,7 @@ size_t admin_cluster_link_t::get_machine_count_in_datacenter(const cluster_semil
          i != cluster_metadata.machines.machines.end(); ++i)
         if (!i->second.is_deleted() && i->second.get().datacenter.get() == datacenter)
             ++count;
-    
+
     return count;
 }
 

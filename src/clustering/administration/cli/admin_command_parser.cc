@@ -349,7 +349,7 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(commands, create_namespace_command, create_namespace_command, create_namespace_usage, true, &admin_cluster_link_t::do_admin_create_namespace);
     info->add_flag("name", 1, false);
     info->add_flag("protocol", 1, true)->add_options("memcached", "dummy", NULL);
-    info->add_flag("primary", 1, false)->add_option("!id");
+    info->add_flag("primary", 1, true)->add_option("!id");
     info->add_flag("port", 1, true);
 
     info = add_command(commands, create_datacenter_command, create_datacenter_command, create_datacenter_usage, true, &admin_cluster_link_t::do_admin_create_datacenter);
