@@ -57,12 +57,12 @@ module 'NamespaceView', ->
             super @model.get('computed_shards'), NamespaceView.Shard, 'table.shards tbody',
                 element_args:
                     namespace: @model
-        
+
         change_sharding_scheme: (event) =>
             event.preventDefault()
             @.$('.sharding').hide()
             view = new NamespaceView.ModifyShards @model.get('id')
-            @.$('.change-shards').html view.render().el 
+            @.$('.change-shards').html view.render().el
 
     class @Shard extends Backbone.View
         tagName: 'tr'
@@ -98,7 +98,7 @@ module 'NamespaceView', ->
 
     class @ShardDatacenterList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_datacenter_list-template').html()
-        
+
     class @ShardDatacenter extends UIComponents.CollapsibleListElement
         template: Handlebars.compile $('#namespace_view-shard_datacenter-template').html()
         summary_template: Handlebars.compile $('#namespace_view-shard_datacenter-summary-template').html()
@@ -175,7 +175,7 @@ module 'NamespaceView', ->
             $popover.on 'clickoutside', (event) -> $(event.currentTarget).remove()
             $popover_button.on 'click', (event) =>
                 event.preventDefault()
-    
+
                 post_data = {}
                 new_pinnings = _.without @get_currently_pinned(), @model.get('id')
                 new_pinnings.push $('select.chosen-dropdown', $popover).val()
@@ -231,6 +231,7 @@ module 'NamespaceView', ->
             @.$el.html @template _.extend @model.toJSON(),
                 status: DataUtils.get_machine_reachability(@model.get('id'))
                 is_master: @model.get('id') is @options.args.shard.get('primary_uuid')
+                cannot_be_master: @options.args.datacenter.get('id') isnt @options.args.namespace.get('primary_uuid')
                 backfill_progress: DataUtils.get_backfill_progress(@namespace.get('id'), @shard.get('shard_boundaries'), @model.get('id'))
 
             # Popover to change the machine
