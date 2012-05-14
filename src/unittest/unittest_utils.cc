@@ -24,4 +24,8 @@ temp_file_t::~temp_file_t() {
     delete [] filename;
 }
 
+void let_stuff_happen() {
+    nap(100);
+}
+
 }  // namespace unittest

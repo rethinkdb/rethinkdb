@@ -90,7 +90,7 @@ module 'DatacenterView', ->
                         uuid: namespace.id
 
             # Generate json and render
-            @.$el.html @template
+            json =
                 name: @model.get('name')
                 machines: _.map(machines_in_datacenter, (machine) ->
                     name: machine.get('name')
@@ -100,6 +100,13 @@ module 'DatacenterView', ->
                 status: DataUtils.get_datacenter_reachability(@model.get('id'))
                 data:
                     namespaces: _namespaces
+            stats = @model.get_stats()
+            json = _.extend json,
+                global_cpu_util: Math.floor(stats.global_cpu_util_avg * 100)
+                global_mem_total: human_readable_units(stats.global_mem_total * 1024, units_space)
+                global_mem_used: human_readable_units(stats.global_mem_used * 1024, units_space)
+                dc_disk_space: human_readable_units(stats.dc_disk_space, units_space)
+            @.$el.html(@template(json))
 
             dc_log_entries = new LogEntries
             for machine in machines_in_datacenter

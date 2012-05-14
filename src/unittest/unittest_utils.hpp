@@ -28,6 +28,8 @@ public:
     ~temp_file_t();
 };
 
+void let_stuff_happen();
+
 }  // namespace unittest
 
 #endif  // UNITTEST_UNITTEST_UTILS_HPP_

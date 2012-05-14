@@ -142,6 +142,8 @@ private:
     std::map<ls_block_token_pointee_t*, off64_t> token_offsets;
     std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
     log_serializer_stats_t stats;
+    perfmon_collection_t disk_stats_collection;
+
 #ifndef NDEBUG
     // Makes sure we get no tokens after we thought that
     bool expecting_no_more_tokens;

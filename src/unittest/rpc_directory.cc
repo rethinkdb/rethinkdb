@@ -8,15 +8,6 @@
 
 namespace unittest {
 
-namespace {
-
-/* `let_stuff_happen()` delays for some time to let events occur */
-void let_stuff_happen() {
-    nap(1000);
-}
-
-}   /* anonymous namespace */
-
 /* `OneNode` starts a single directory node, then shuts it down again. */
 
 void run_one_node_test() {
