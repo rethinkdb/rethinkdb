@@ -100,6 +100,9 @@ private:
                                             int port,
                                             const datacenter_id_t& primary);
 
+    template <class obj_map>
+    void do_admin_remove_internal(obj_map& metadata, const boost::uuids::uuid& obj_uuid);
+
     void list_issues(bool long_format);
     void list_directory(bool long_format);
     void list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);

@@ -122,7 +122,6 @@ void admin_cluster_link_t::add_subset_to_uuid_path_map(const std::string& base, 
 }
 
 void admin_cluster_link_t::init_uuid_to_path_map(const cluster_semilattice_metadata_t& cluster_metadata) {
-    namespace_metadata_ctx_t json_ctx(connectivity_cluster.get_me().get_uuid());
     uuid_to_path.clear();
     add_subset_to_uuid_path_map("machines", cluster_metadata.machines.machines);
     add_subset_to_uuid_path_map("datacenters", cluster_metadata.datacenters.datacenters);
@@ -709,16 +708,25 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(namespace_semilattice_
 
 void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    namespace_metadata_ctx_t json_ctx(connectivity_cluster.get_me().get_uuid());
     std::vector<std::string> ids = data.params["id"];
     bool errored = false;
 
     for (size_t i = 0; i < ids.size(); ++i) {
         try {
             std::vector<std::string> path(get_path_from_id(ids[i]));
-            boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(traverse_directory(path, json_ctx, cluster_metadata));
+            boost::uuids::uuid obj_uuid(str_to_uuid(path[1]));
 
-            json_adapter_head->erase(json_ctx);
+            if (path[0] == "datacenters") {
+                do_admin_remove_internal(cluster_metadata.datacenters.datacenters, obj_uuid);
+            } else if (path[0] == "dummy_namespaces") {
+                do_admin_remove_internal(cluster_metadata.dummy_namespaces.namespaces, obj_uuid);
+            } else if (path[0] == "memcached_namespaces") {
+                do_admin_remove_internal(cluster_metadata.memcached_namespaces.namespaces, obj_uuid);
+            } else if (path[0] == "machines") {
+                do_admin_remove_internal(cluster_metadata.machines.machines, obj_uuid);
+            } else
+                throw admin_cluster_exc_t("unexpected error when looking up object: " + ids[i]);
+
             // TODO: clean up any hanging references to this object's uuid
         } catch (std::exception& ex) {
             puts(ex.what());
@@ -736,29 +744,18 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
         throw admin_cluster_exc_t("not all removes were successful");
 }
 
-void admin_cluster_link_t::do_admin_resolve(admin_command_parser_t::command_data& data UNUSED) {
-    printf("NYI\n");
+template <class obj_map>
+void admin_cluster_link_t::do_admin_remove_internal(obj_map& metadata, const boost::uuids::uuid& obj_uuid) {
+    typename obj_map::iterator i = metadata.find(obj_uuid);
+
+    if (i == metadata.end())
+        throw admin_cluster_exc_t("object not found: " + uuid_to_str(obj_uuid));
+
+    i->second.mark_deleted();
 }
 
-void admin_cluster_link_t::set_metadata_value(const std::vector<std::string>& path, const std::string& value)
-{
-    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    namespace_metadata_ctx_t json_ctx(sync_peer.get_uuid()); // Use peer rather than ourselves - TODO: race condition on sync? need to lock metadata
-    boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(traverse_directory(path, json_ctx, cluster_metadata));
-
-    scoped_cJSON_t change(cJSON_Parse(value.c_str()));
-    if (!change.get())
-        throw admin_parse_exc_t("Json body failed to parse: " + value);
-
-    logINF("Applying data %s", value.c_str());
-    json_adapter_head->apply(change.get(), json_ctx);
-
-    /* Fill in the blueprints */
-    try {
-        fill_in_blueprints(&cluster_metadata);
-    } catch (missing_machine_exc_t &e) { }
-
-    semilattice_metadata->join(cluster_metadata);
+void admin_cluster_link_t::do_admin_resolve(admin_command_parser_t::command_data& data UNUSED) {
+    printf("NYI\n");
 }
 
 size_t admin_cluster_link_t::machine_count() const {
