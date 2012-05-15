@@ -5,18 +5,26 @@
 #include <map>
 #endif
 
+#include "rpc/serialize_macros.hpp"
+#include "containers/uuid.hpp"
 #include "utils.hpp"
 
 
+
 struct order_bucket_t {
-    order_bucket_t(int thread, int number) :
-        thread_(thread), number_(number)
-        { }
-    order_bucket_t() { }
-    int thread_;
-    int number_;
-    bool valid();
+    boost::uuids::uuid uuid_;
+
+    static order_bucket_t invalid() { return order_bucket_t(nil_uuid()); }
+    static order_bucket_t create() { return order_bucket_t(generate_uuid()); }
+
+    bool valid() const;
+private:
+    RDB_MAKE_ME_SERIALIZABLE_1(uuid_);
+
+    order_bucket_t(boost::uuids::uuid uuid) : uuid_(uuid) { }
 };
+
+
 
 bool operator==(const order_bucket_t& a, const order_bucket_t& b);
 bool operator!=(const order_bucket_t& a, const order_bucket_t& b);
@@ -52,17 +60,25 @@ public:
 private:
 #ifndef NDEBUG
     order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string& tag);
+
+    bool is_invalid() const;
+    bool is_ignore() const;
+
+    // TODO: Make these fields const.
     order_bucket_t bucket_;
     bool read_mode_;
     int64_t value_;
     // This tag would be inefficient on VC++ or some other non-GNU
     // std::string implementation, since we copy by value.
     std::string tag_;
+
+    RDB_MAKE_ME_SERIALIZABLE_4(bucket_, read_mode_, value_, tag_);
+#else  // ifndef NDEBUG
+    RDB_MAKE_ME_SERIALIZABLE_0();
 #endif  // ifndef NDEBUG
 
     friend class order_source_t;
     friend class order_sink_t;
-    friend class backfill_receiver_order_source_t;
     friend class plain_sink_t;
 };
 
@@ -92,7 +108,6 @@ private:
 
     DISABLE_COPYING(order_source_t);
 };
-
 
 struct tagged_seen_t {
     int64_t value;
