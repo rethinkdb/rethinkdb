@@ -27,6 +27,18 @@ public:
         virtual void coro_pool_callback(T) = 0;
     };
 
+    class boost_function_callback_t : public callback_t {
+    public:
+        boost_function_callback_t(boost::function<void(T)> _f)
+            : f(_f)
+        { }
+        void coro_pool_callback(T t) {
+            f(t);
+        }
+    private:
+        boost::function<void(T)> f;
+    };
+
     coro_pool_t(size_t _worker_count, passive_producer_t<T> *_source, callback_t *_callback)
         : max_worker_count(_worker_count),
           active_worker_count(0),

@@ -3,6 +3,8 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/death_runner.hpp"
+#include "concurrency/queue/unlimited_fifo.hpp"
+#include "concurrency/coro_pool.hpp"
 
 template<class protocol_t>
 void on_receive_backfill_chunk(
@@ -83,12 +85,27 @@ void backfillee(
         don't get any chunks after `drainer` is destroyed. */
         auto_drainer_t drainer;
 
+        /* A queue of the requests the backfill chunk mailbox receives, a coro
+         * pool services these requests and poops them off one at a time to
+         * perform them. */
+
+        typedef typename protocol_t::backfill_chunk_t backfill_chunk_t;
+        //TODO TODO XXX XXX RSI RSI make a way to wait on this being empty
+        unlimited_fifo_queue_t<backfill_chunk_t> chunk_queue;
+
+        /* A callback, this function will be called on backfill_chunk_ts as
+         * they are popped off the queue. */
+        typename coro_pool_t<backfill_chunk_t>::boost_function_callback_t 
+            chunk_callback(boost::bind(&on_receive_backfill_chunk<protocol_t>,
+                store, &dont_go_until, _1, interruptor, auto_drainer_t::lock_t(&drainer)
+                ));
+
+        coro_pool_t<backfill_chunk_t> backfill_workers(10, &chunk_queue, &chunk_callback);
+
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
         mailbox_t<void(typename protocol_t::backfill_chunk_t)> chunk_mailbox(
-            mailbox_manager, boost::bind(&on_receive_backfill_chunk<protocol_t>,
-                store, &dont_go_until, _1, interruptor, auto_drainer_t::lock_t(&drainer)
-                ));
+            mailbox_manager, boost::bind(&unlimited_fifo_queue_t<backfill_chunk_t>::push, &chunk_queue, _1));
 
         /* Send off the backfill request */
         send(mailbox_manager,
