@@ -463,7 +463,7 @@ static int linenoisePrompt(int fd, char *buf, size_t buflen, const char *prompt)
                 // Start a new line, forget about what was typed
                 buf[0] = '\0';
                 pos = len = 0;
-                if (write(fd, "\033D", 2) == -1) return -1;
+                if (write(fd, "\033D", 2) == -1) return -1; // line feed
                 refreshLine(fd,prompt,buf,len,pos,cols);
             } else {
                 // Already empty line, exit

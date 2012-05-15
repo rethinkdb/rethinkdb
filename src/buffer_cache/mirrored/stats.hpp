@@ -2,7 +2,6 @@
 #define BUFFER_CACHE_MIRRORED_STATS_HPP_
 
 #include "perfmon.hpp"
-#include "stats/persist.hpp"
 
 /* A class to hold all the stats we care about for this cache. */
 struct mc_cache_stats_t {
@@ -16,7 +15,7 @@ struct mc_cache_stats_t {
 
     perfmon_sampler_t pm_snapshots_per_transaction;
 
-    perfmon_persistent_counter_t 
+    perfmon_counter_t 
         pm_cache_hits,
         pm_cache_misses;
 

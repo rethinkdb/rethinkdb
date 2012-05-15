@@ -16,6 +16,7 @@
 #include "clustering/administration/issues/vector_clock_conflict.hpp"
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -76,6 +77,31 @@ private:
     void do_admin_set_acks_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_acks);
     template <class protocol_t>
     void do_admin_set_replicas_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_replicas);
+
+    template <class obj_map>
+    void do_admin_set_name_internal(obj_map& metadata,
+                                    const boost::uuids::uuid& uuid,
+                                    const std::string& new_name,
+                                    bool resolve);
+
+    template <class obj_map>
+    void do_admin_set_datacenter_namespace(obj_map& metadata,
+                                           const boost::uuids::uuid obj_uuid,
+                                           const datacenter_id_t dc,
+                                           bool resolve);
+
+    void do_admin_set_datacenter_machine(machines_semilattice_metadata_t::machine_map_t& metadata,
+                                         const boost::uuids::uuid obj_uuid,
+                                         const datacenter_id_t dc,
+                                         bool resolve);
+    template <class protocol_t>
+    void do_admin_create_namespace_internal(namespaces_semilattice_metadata_t<protocol_t>& ns,
+                                            const std::string& name,
+                                            int port,
+                                            const datacenter_id_t& primary);
+
+    template <class obj_map>
+    void do_admin_remove_internal(obj_map& metadata, const boost::uuids::uuid& obj_uuid);
 
     void list_issues(bool long_format);
     void list_directory(bool long_format);
