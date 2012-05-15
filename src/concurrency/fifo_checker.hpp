@@ -5,6 +5,7 @@
 #include <map>
 #endif
 
+#include "rpc/serialize_macros.hpp"
 #include "containers/uuid.hpp"
 #include "utils.hpp"
 
@@ -18,6 +19,8 @@ struct order_bucket_t {
 
     bool valid() const;
 private:
+    RDB_MAKE_ME_SERIALIZABLE_1(uuid_);
+
     order_bucket_t(boost::uuids::uuid uuid) : uuid_(uuid) { }
 };
 
@@ -68,6 +71,10 @@ private:
     // This tag would be inefficient on VC++ or some other non-GNU
     // std::string implementation, since we copy by value.
     std::string tag_;
+
+    RDB_MAKE_ME_SERIALIZABLE_4(bucket_, read_mode_, value_, tag_);
+#else  // ifndef NDEBUG
+    RDB_MAKE_ME_SERIALIZABLE_0();
 #endif  // ifndef NDEBUG
 
     friend class order_source_t;

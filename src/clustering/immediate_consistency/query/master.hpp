@@ -5,7 +5,6 @@
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
-#include "containers/archive/order_token.hpp"
 #include "containers/uuid.hpp"
 
 template<class protocol_t>
