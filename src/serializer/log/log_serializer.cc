@@ -104,12 +104,12 @@ struct ls_start_existing_fsm_t :
         }
 
         if (state == state_find_metablock) {
-            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config, &ser->stats);
+            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config, ser->stats);
             ser->extent_manager->reserve_extent(0);   /* For static header */
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_index_t(ser->extent_manager);
-            ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, &ser->stats);
+            ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats);
 
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;
@@ -200,8 +200,8 @@ struct ls_start_existing_fsm_t :
     log_serializer_t::metablock_t metablock_buffer;
 };
 
-log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_, perfmon_collection_t *_perfmon_collection) :
-      stats(_perfmon_collection),
+log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_, perfmon_collection_t *_perfmon_collection)
+    : stats(new log_serializer_stats_t(_perfmon_collection)),
       disk_stats_collection("disk", _perfmon_collection, true, true),
 #ifndef NDEBUG
       expecting_no_more_tokens(false),
@@ -233,6 +233,8 @@ log_serializer_t::~log_serializer_t() {
     rassert(state == state_unstarted || state == state_shut_down);
     rassert(last_write == NULL);
     rassert(active_write_count == 0);
+
+    delete stats;
 }
 
 void ls_check_existing(const char *filename, log_serializer_t::check_callback_t *cb) {
@@ -305,9 +307,9 @@ void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t
         log_serializer_stats_t *stats;
     };
 
-    my_cb_t *readcb = new my_cb_t(cb, token, &stats);
+    my_cb_t *readcb = new my_cb_t(cb, token, stats);
 
-    stats.pm_serializer_block_reads.begin(&readcb->pm_time);
+    stats->pm_serializer_block_reads.begin(&readcb->pm_time);
 
     ls_block_token_pointee_t *ls_token = token.get();
     rassert(ls_token);
@@ -337,8 +339,8 @@ intrusive_ptr_t<ls_block_token_pointee_t> get_ls_block_token(const intrusive_ptr
 
 void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
     ticks_t pm_time;
-    stats.pm_serializer_index_writes.begin(&pm_time);
-    stats.pm_serializer_index_writes_size.record(write_ops.size());
+    stats->pm_serializer_index_writes.begin(&pm_time);
+    stats->pm_serializer_index_writes_size.record(write_ops.size());
 
     index_write_context_t context;
     index_write_prepare(context, io_account);
@@ -386,7 +388,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
     index_write_finish(context, io_account);
 
-    stats.pm_serializer_index_writes.end(&pm_time);
+    stats->pm_serializer_index_writes.end(&pm_time);
 }
 
 void log_serializer_t::index_write_prepare(index_write_context_t &context, file_account_t *io_account) {
@@ -473,7 +475,7 @@ intrusive_ptr_t<ls_block_token_pointee_t> log_serializer_t::generate_block_token
 intrusive_ptr_t<ls_block_token_pointee_t>
 log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
     // TODO: Implement a duration sampler perfmon for this
-    ++stats.pm_serializer_block_writes;
+    ++stats->pm_serializer_block_writes;
 
     extent_manager_t::transaction_t *em_trx = extent_manager->begin_transaction();
     const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb);
@@ -605,7 +607,7 @@ block_id_t log_serializer_t::max_block_id() {
 }
 
 intrusive_ptr_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t block_id) {
-    ++stats.pm_serializer_index_reads;
+    ++stats->pm_serializer_index_reads;
 
     assert_thread();
     rassert(state == state_ready);
