@@ -104,12 +104,12 @@ struct ls_start_existing_fsm_t :
         }
 
         if (state == state_find_metablock) {
-            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config, ser->stats);
+            ser->extent_manager = new extent_manager_t(ser->dbfile, &ser->static_config, &ser->dynamic_config, ser->stats.get());
             ser->extent_manager->reserve_extent(0);   /* For static header */
 
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_index_t(ser->extent_manager);
-            ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats);
+            ser->data_block_manager = new data_block_manager_t(&ser->dynamic_config, ser->extent_manager, ser, &ser->static_config, ser->stats.get());
 
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;
@@ -233,8 +233,6 @@ log_serializer_t::~log_serializer_t() {
     rassert(state == state_unstarted || state == state_shut_down);
     rassert(last_write == NULL);
     rassert(active_write_count == 0);
-
-    delete stats;
 }
 
 void ls_check_existing(const char *filename, log_serializer_t::check_callback_t *cb) {
@@ -307,7 +305,7 @@ void log_serializer_t::block_read(const intrusive_ptr_t<ls_block_token_pointee_t
         log_serializer_stats_t *stats;
     };
 
-    my_cb_t *readcb = new my_cb_t(cb, token, stats);
+    my_cb_t *readcb = new my_cb_t(cb, token, stats.get());
 
     stats->pm_serializer_block_reads.begin(&readcb->pm_time);
 
