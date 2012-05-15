@@ -7,7 +7,7 @@ do_test(
 do_test(
     "$RETHINKDB/test/regression/issue_659.py",
     repeat = 3,
-    inputs = ["build/debug/rethinkdb", "test/regression", "test/common"]
+    inputs = ["build/debug/rethinkdb", "test/regression", "test/common", "bench/stress-client/stress"]
     )
 
 do_test(
