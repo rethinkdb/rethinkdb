@@ -1,6 +1,7 @@
 #!/usr/bin/python
-import os, sys, socket, random, time, workload_common
+import os, sys, socket, random, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, "common")))
+import workload_common
 from line import *
 
 key_padding = ''.zfill(20)

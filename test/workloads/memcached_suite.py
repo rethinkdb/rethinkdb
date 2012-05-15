@@ -1,5 +1,7 @@
 #!/usr/bin/python
-import os, sys, subprocess, workload_common
+import os, sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import subprocess, workload_common
 from vcoptparse import *
 
 op = workload_common.option_parser_for_socket()
