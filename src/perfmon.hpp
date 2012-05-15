@@ -205,7 +205,7 @@ protected:
     int64_t combine_stats(padded_int64_t *);
     void output_stat(const int64_t&, perfmon_result_t *);
 public:
-    explicit perfmon_counter_t(const std::string& name, perfmon_collection_t *parent);
+    perfmon_counter_t(const std::string& name, perfmon_collection_t *parent);
     void operator++() { get()++; }
     void operator+=(int64_t num) { get() += num; }
     void operator--() { get()--; }

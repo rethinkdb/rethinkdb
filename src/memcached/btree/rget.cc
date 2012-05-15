@@ -122,5 +122,5 @@ rget_result_t memcached_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_
                 boost::bind(pair_to_key_with_data_buffer, txn.get(), _1),
                 new filter_iterator_t<key_value_pair_t<memcached_value_t> >(
                     boost::bind(&is_not_expired, _1, effective_time),
-                    new slice_keys_iterator_t<memcached_value_t>(sizer, txn.get(), superblock, slice->home_thread(), convert_bound_mode(left_mode), left_key, convert_bound_mode(right_mode), right_key)))));
+                    new slice_keys_iterator_t<memcached_value_t>(sizer, txn.get(), superblock, slice->home_thread(), convert_bound_mode(left_mode), left_key, convert_bound_mode(right_mode), right_key, &slice->stats)))));
 }

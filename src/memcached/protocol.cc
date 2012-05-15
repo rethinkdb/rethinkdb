@@ -366,7 +366,7 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create,
         btree_slice_t::create(cache.get());
     }
 
-    btree.reset(new btree_slice_t(cache.get()));
+    btree.reset(new btree_slice_t(cache.get(), perfmon_collection));
 
     if (create) {
         // Initialize metainfo to an empty `binary_blob_t` because its domain is

@@ -9,6 +9,7 @@
 #include "clustering/registrant.hpp"
 #include "clustering/resource.hpp"
 
+#define OPERATION_CORO_POOL_SIZE 10
 
 template <class protocol_t>
 listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
@@ -23,13 +24,14 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     mailbox_manager(mm),
     branch_history(bh),
     svs(_svs),
+    coro_pool(OPERATION_CORO_POOL_SIZE, &fifo_queue, &coro_pool_callback),
 
     write_mailbox(mailbox_manager, boost::bind(&listener_t::on_write, this,
-					       auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+					       _1, _2, _3, _4), mailbox_callback_mode_inline),
     writeread_mailbox(mailbox_manager, boost::bind(&listener_t::on_writeread, this,
-						   auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+						   _1, _2, _3, _4), mailbox_callback_mode_inline),
     read_mailbox(mailbox_manager, boost::bind(&listener_t::on_read, this,
-					      auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4))
+					       _1, _2, _3, _4), mailbox_callback_mode_inline)
 {
     if (interruptor->is_pulsed()) {
 	throw interrupted_exc_t();
@@ -157,12 +159,14 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     mailbox_manager(mm),
     branch_history(bh),
 
+    coro_pool(10, &fifo_queue, &coro_pool_callback),
+
     write_mailbox(mailbox_manager, boost::bind(&listener_t::on_write, this,
-					       auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+					       _1, _2, _3, _4)),
     writeread_mailbox(mailbox_manager, boost::bind(&listener_t::on_writeread, this,
-						   auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4)),
+						   _1, _2, _3, _4)),
     read_mailbox(mailbox_manager, boost::bind(&listener_t::on_read, this,
-					      auto_drainer_t::lock_t(&drainer), _1, _2, _3, _4))
+					       _1, _2, _3, _4))
 {
     if (interruptor->is_pulsed()) {
 	throw interrupted_exc_t();
@@ -213,7 +217,9 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 }
 
 template <class protocol_t>
-listener_t<protocol_t>::~listener_t() { }
+listener_t<protocol_t>::~listener_t() { 
+    on_destruct.pulse();
+}
 
 template <class protocol_t>
 signal_t *listener_t<protocol_t>::get_broadcaster_lost_signal() {
@@ -299,8 +305,17 @@ void listener_t<protocol_t>::try_start_receiving_writes(
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::on_write(auto_drainer_t::lock_t keepalive,
-	typename protocol_t::write_t write,
+void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
+	transition_timestamp_t transition_timestamp,
+	fifo_enforcer_write_token_t fifo_token,
+	mailbox_addr_t<void()> ack_addr)
+	THROWS_NOTHING 
+{
+    fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_write, this, write, transition_timestamp, fifo_token, ack_addr));
+}
+
+template <class protocol_t>
+void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 	transition_timestamp_t transition_timestamp,
 	fifo_enforcer_write_token_t fifo_token,
 	mailbox_addr_t<void()> ack_addr)
@@ -311,8 +326,10 @@ void listener_t<protocol_t>::on_write(auto_drainer_t::lock_t keepalive,
 	{
 	    /* Enforce that we start our transaction in the same order as we
 	    entered the FIFO at the broadcaster. */
+        //RSI
 	    fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token);
-	    wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
+        fifo_exit.wait();
+	    wait_interruptible(&fifo_exit, &on_destruct);
 
 	    /* Validate write. */
 	    rassert(region_is_superset(branch_history->get().branches[branch_id].region, write.get_region()));
@@ -320,12 +337,12 @@ void listener_t<protocol_t>::on_write(auto_drainer_t::lock_t keepalive,
 
 	    /* Block until registration has completely succeeded or failed.
 	    (May throw `interrupted_exc_t`) */
-	    wait_interruptible(registration_done_cond.get_ready_signal(), keepalive.get_drain_signal());
+	    wait_interruptible(registration_done_cond.get_ready_signal(), &on_destruct);
 
 	    /* Block until the backfill succeeds or fails. If the backfill
 	    fails, then the constructor will throw an exception, so
-	    `keepalive.get_drain_signal()` will be pulsed. */
-	    wait_interruptible(backfill_done_cond.get_ready_signal(), keepalive.get_drain_signal());
+	    `&on_destruct` will be pulsed. */
+	    wait_interruptible(backfill_done_cond.get_ready_signal(), &on_destruct);
 
 	    if (transition_timestamp.timestamp_before() < backfill_done_cond.get_value()) {
 		/* `write` is a duplicate; we got it both as part of the
@@ -337,6 +354,7 @@ void listener_t<protocol_t>::on_write(auto_drainer_t::lock_t keepalive,
 
 	    svs->new_write_tokens(write_tokens.get(), num_stores);
 	    /* Now that we've gotten a write token, it's safe to allow the next write or read to proceed. */
+        fifo_queue.finish_write(fifo_token);
 	}
 
 	/* Mask out any parts of the operation that don't apply to us */
@@ -364,8 +382,17 @@ void listener_t<protocol_t>::on_write(auto_drainer_t::lock_t keepalive,
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::on_writeread(auto_drainer_t::lock_t keepalive,
-	typename protocol_t::write_t write,
+void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
+	transition_timestamp_t transition_timestamp,
+	fifo_enforcer_write_token_t fifo_token,
+	mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
+	THROWS_NOTHING
+{
+    fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_writeread, this, write, transition_timestamp, fifo_token, ack_addr));
+}
+
+template <class protocol_t>
+void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t write,
 	transition_timestamp_t transition_timestamp,
 	fifo_enforcer_write_token_t fifo_token,
 	mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
@@ -376,7 +403,7 @@ void listener_t<protocol_t>::on_writeread(auto_drainer_t::lock_t keepalive,
         boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
 	{
 	    fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token);
-	    wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
+	    wait_interruptible(&fifo_exit, &on_destruct);
 
 	    /* Validate write. */
 	    rassert(region_is_superset(branch_history->get().branches[branch_id].region, write.get_region()));
@@ -396,6 +423,7 @@ void listener_t<protocol_t>::on_writeread(auto_drainer_t::lock_t keepalive,
 
 	    svs->new_write_tokens(write_tokens.get(), num_stores);
 	    /* Now that we've gotten a write token, allow the next guy to proceed */
+        fifo_queue.finish_write(fifo_token);
 	}
 
 	// Make sure we can serve the entire operation without masking it.
@@ -423,8 +451,17 @@ void listener_t<protocol_t>::on_writeread(auto_drainer_t::lock_t keepalive,
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::on_read(auto_drainer_t::lock_t keepalive,
-	typename protocol_t::read_t read,
+void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
+	DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+	fifo_enforcer_read_token_t fifo_token,
+	mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
+	THROWS_NOTHING
+{
+    fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_read, this, read, expected_timestamp, fifo_token, ack_addr));
+}
+
+template <class protocol_t>
+void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
 	DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
 	fifo_enforcer_read_token_t fifo_token,
 	mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
@@ -435,7 +472,7 @@ void listener_t<protocol_t>::on_read(auto_drainer_t::lock_t keepalive,
         boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
 	{
 	    fifo_enforcer_sink_t::exit_read_t fifo_exit(&fifo_sink, fifo_token);
-	    wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
+	    wait_interruptible(&fifo_exit, &on_destruct);
 
 	    /* Validate read. */
 	    rassert(region_is_superset(branch_history->get().branches[branch_id].region, read.get_region()));
@@ -448,6 +485,7 @@ void listener_t<protocol_t>::on_read(auto_drainer_t::lock_t keepalive,
 
 	    /* Now that we have the superblock, allow the next guy to proceed */
 	    svs->new_read_tokens(read_tokens.get(), num_stores);
+            fifo_queue.finish_read(fifo_token);
 	}
 
 	/* Make sure we can serve the entire operation without masking it.
@@ -461,9 +499,10 @@ void listener_t<protocol_t>::on_read(auto_drainer_t::lock_t keepalive,
 		    binary_blob_t(version_range_t(version_t(branch_id, expected_timestamp)))),
 		)
 	    read,
-	    read_tokens.get(),
+
+            read_tokens.get(),
             num_stores,
-	    keepalive.get_drain_signal());
+	    &on_destruct);
 
 	send(mailbox_manager, ack_addr, response);
 

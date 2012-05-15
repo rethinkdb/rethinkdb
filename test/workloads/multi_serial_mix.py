@@ -1,5 +1,7 @@
 #!/usr/bin/python
-import multiprocessing, sys, workload_common, os, serial_mix, time
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import multiprocessing, workload_common, serial_mix, time
 from vcoptparse import *
 
 def child(opts, log_path):

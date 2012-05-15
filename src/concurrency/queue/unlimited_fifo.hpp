@@ -29,7 +29,8 @@ template<class value_t, class queue_t = std::list<value_t> >
 struct unlimited_fifo_queue_t : public passive_producer_t<value_t> {
 
     unlimited_fifo_queue_t() :
-        passive_producer_t<value_t>(&available_control) { }
+        passive_producer_t<value_t>(&available_control)
+    { }
 
     void push(const value_t& value) {
         queue.push_back(value);

@@ -200,7 +200,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_accou
     coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
 
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
-    ++_cache->stats.pm_n_blocks_in_memory;
+    ++_cache->stats->pm_n_blocks_in_memory;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
     _cache->page_repl.make_space();
@@ -228,7 +228,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
 
     array_map_t::constructing_inner_buf(this);
 
-    ++_cache->stats.pm_n_blocks_in_memory;
+    ++_cache->stats->pm_n_blocks_in_memory;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     _cache->page_repl.make_space();
     _cache->maybe_unregister_read_ahead_callback();
@@ -305,7 +305,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id
 
     array_map_t::constructing_inner_buf(this);
 
-    ++_cache->stats.pm_n_blocks_in_memory;
+    ++_cache->stats->pm_n_blocks_in_memory;
     ++refcount; // Make the refcount nonzero so this block won't be considered safe to unload.
 
     _cache->page_repl.make_space();
@@ -343,7 +343,7 @@ mc_inner_buf_t::~mc_inner_buf_t() {
         remove_from_page_repl();
     }
 
-    --cache->stats.pm_n_blocks_in_memory;
+    --cache->stats->pm_n_blocks_in_memory;
 }
 
 void mc_inner_buf_t::replay_patches() {
@@ -568,9 +568,9 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
     } else {
         ticks_t lock_start_time;
         // the top version is the right one for us; acquire a lock of the appropriate type first
-        inner_buf->cache->stats.pm_bufs_acquiring.begin(&lock_start_time);
+        inner_buf->cache->stats->pm_bufs_acquiring.begin(&lock_start_time);
         inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
-        inner_buf->cache->stats.pm_bufs_acquiring.end(&lock_start_time);
+        inner_buf->cache->stats->pm_bufs_acquiring.end(&lock_start_time);
 
         // It's possible that, now that we've acquired the lock, that
         // the inner buf's version id has changed, and that we should
@@ -588,7 +588,7 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
         }
     }
 
-    inner_buf->cache->stats.pm_bufs_held.begin(&start_time);
+    inner_buf->cache->stats->pm_bufs_held.begin(&start_time);
     acquired = true;
 }
 
@@ -966,11 +966,11 @@ void mc_buf_lock_t::release() {
     assert_thread();
     guarantee(acquired);
     inner_buf->cache->assert_thread();
-    inner_buf->cache->stats.pm_bufs_held.end(&start_time);
+    inner_buf->cache->stats->pm_bufs_held.end(&start_time);
 
     if (mode == rwi_write && !inner_buf->writeback_buf().needs_flush() && patches_serialized_size_at_start >= 0) {
         if (inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > patches_serialized_size_at_start) {
-            inner_buf->cache->stats.pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) - patches_serialized_size_at_start);
+            inner_buf->cache->stats->pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) - patches_serialized_size_at_start);
         }
     }
 
@@ -1054,7 +1054,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
       snapshot_version(mc_inner_buf_t::faux_version_id),
       snapshotted(false)
 {
-    block_pm_duration start_timer(&cache->stats.pm_transactions_starting);
+    block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
 
     // HISTORICAL COMMENTS:
 
@@ -1114,7 +1114,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
     cache->num_live_transactions++;
     cache->writeback.begin_transaction(this);
 
-    cache->stats.pm_transactions_active.begin(&start_time);
+    cache->stats->pm_transactions_active.begin(&start_time);
 }
 
 /* This version is only for read transactions from the writeback!  And some unit tests use it. */
@@ -1126,7 +1126,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED int
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false)
 {
-    block_pm_duration start_timer(&cache->stats.pm_transactions_starting);
+    block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
     // No write throttle acq.
@@ -1135,7 +1135,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED int
     rassert(dont_assert_about_shutting_down || !cache->shutting_down);
     cache->num_live_transactions++;
     cache->writeback.begin_transaction(this);
-    cache->stats.pm_transactions_active.begin(&start_time);
+    cache->stats->pm_transactions_active.begin(&start_time);
 }
 
 mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED i_am_writeback_t i_am_writeback) :
@@ -1146,19 +1146,19 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED i_a
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false)
 {
-    block_pm_duration start_timer(&cache->stats.pm_transactions_starting);
+    block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
     cache->assert_thread();
     cache->num_live_transactions++;
     cache->writeback.begin_transaction(this);
-    cache->stats.pm_transactions_active.begin(&start_time);
+    cache->stats->pm_transactions_active.begin(&start_time);
 }
 
 
 void mc_transaction_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap) {
     assert_thread();
-    ++cache->stats.pm_registered_snapshot_blocks;
+    ++cache->stats->pm_registered_snapshot_blocks;
     owned_buf_snapshots.push_back(std::make_pair(inner_buf, snap));
 }
 
@@ -1166,9 +1166,9 @@ mc_transaction_t::~mc_transaction_t() {
 
     assert_thread();
 
-    cache->stats.pm_transactions_active.end(&start_time);
+    cache->stats->pm_transactions_active.end(&start_time);
 
-    block_pm_duration commit_timer(&cache->stats.pm_transactions_committing);
+    block_pm_duration commit_timer(&cache->stats->pm_transactions_committing);
 
     if (snapshotted && snapshot_version != mc_inner_buf_t::faux_version_id) {
         cache->unregister_snapshot(this);
@@ -1196,8 +1196,8 @@ mc_transaction_t::~mc_transaction_t() {
 
     }
 
-    cache->stats.pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
-    cache->stats.pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
+    cache->stats->pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
+    cache->stats->pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
 
     cache_account_.reset();
 }
@@ -1303,7 +1303,7 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
                        perfmon_collection_t *perfmon_parent) :
     dynamic_config(*dynamic_config),
     serializer(_serializer),
-    stats(perfmon_parent),
+    stats(new mc_cache_stats_t(perfmon_parent)),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
         dynamic_config->max_size / _serializer->get_block_size().ser_value(),
@@ -1317,7 +1317,7 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
         dynamic_config->flush_waiting_threshold,
         dynamic_config->max_concurrent_flushes),
     /* Build list of free blocks (the free_list constructor blocks) */
-    free_list(_serializer, &stats),
+    free_list(_serializer, stats.get()),
     shutting_down(false),
     num_live_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),
@@ -1354,7 +1354,7 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
     writeback.sync(NULL);
 
     /* Init the stat system with the block size */
-    stats.pm_block_size.block_size = get_block_size().ser_value();
+    stats->pm_block_size.block_size = get_block_size().ser_value();
 }
 
 mc_cache_t::~mc_cache_t() {
@@ -1408,7 +1408,7 @@ block_size_t mc_cache_t::get_block_size() {
 }
 
 void mc_cache_t::register_snapshot(mc_transaction_t *txn) {
-    ++stats.pm_registered_snapshots;
+    ++stats->pm_registered_snapshots;
     rassert(txn->snapshot_version == mc_inner_buf_t::faux_version_id, "Snapshot has been already created for this transaction");
 
     txn->snapshot_version = next_snapshot_version++;
@@ -1422,7 +1422,7 @@ void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
     } else {
         unreachable("Tried to unregister a snapshot which doesn't exist");
     }
-    --stats.pm_registered_snapshots;
+    --stats->pm_registered_snapshots;
 }
 
 size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
@@ -1453,9 +1453,9 @@ size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf
 mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
     inner_buf_t *buf = page_map.find(block_id);
     if (buf) {
-        ++stats.pm_cache_hits;
+        ++stats->pm_cache_hits;
     } else {
-        ++stats.pm_cache_misses;
+        ++stats->pm_cache_misses;
     }
     return buf;
 }
