@@ -62,7 +62,6 @@ private:
 
     friend class order_source_t;
     friend class order_sink_t;
-    friend class backfill_receiver_order_source_t;
     friend class plain_sink_t;
 };
 
@@ -92,47 +91,6 @@ private:
 #endif  // ifndef NDEBUG
 
     DISABLE_COPYING(order_source_t);
-};
-
-
-/* A backfill receiver order source is a bit special, because when we
-   backfill, we want backfill operations to get in before "realtime"
-   operations.  So we play tricks with the counter depending on
-   whether we're currently backfilling and whether we're checking in a
-   backfill or a realtime operation.  (This assumes there will be no
-   more than 4 billion backfill operations, which is ok for
-   debugging purposes.)
- */
-class backfill_receiver_order_source_t : public home_thread_mixin_t {
-public:
-#ifndef NDEBUG
-    backfill_receiver_order_source_t();
-    ~backfill_receiver_order_source_t();
-
-    void backfill_begun();
-    void backfill_done();
-
-    order_token_t check_in_backfill_operation(const std::string& tag);
-    order_token_t check_in_realtime_operation(const std::string& tag);
-#else
-    backfill_receiver_order_source_t() { }
-
-    void backfill_begun() { }
-    void backfill_done() { }
-
-    order_token_t check_in_backfill_operation(const std::string&) { return order_token_t(); }
-    order_token_t check_in_realtime_operation(const std::string&) { return order_token_t(); }
-
-#endif  // ifndef NDEBUG
-
-private:
-#ifndef NDEBUG
-    order_bucket_t bucket_;
-    int64_t counter_;
-    bool backfill_active_;
-#endif  // ifndef NDEBUG
-
-    DISABLE_COPYING(backfill_receiver_order_source_t);
 };
 
 struct tagged_seen_t {
