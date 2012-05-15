@@ -32,6 +32,11 @@ void on_receive_backfill_chunk(
     }
 };
 
+template <class backfill_chunk_t>
+void push_with_drain_lock(unlimited_fifo_queue_t<std::pair<backfill_chunk_t, auto_drainer_t::lock_t> > *queue, backfill_chunk_t chunk, auto_drainer_t::lock_t lock) {
+    queue->push(std::make_pair(chunk, lock));
+}
+
 
 template<class protocol_t>
 void backfillee(
@@ -80,32 +85,45 @@ void backfillee(
         mailbox_callback_mode_inline);
 
     {
-        /* Use an `auto_drainer_t` to wait for all the bits of the backfill to
-        finish being applied. Construct it before `chunk_mailbox` so that we
-        don't get any chunks after `drainer` is destroyed. */
-        auto_drainer_t drainer;
-
         /* A queue of the requests the backfill chunk mailbox receives, a coro
          * pool services these requests and poops them off one at a time to
          * perform them. */
 
         typedef typename protocol_t::backfill_chunk_t backfill_chunk_t;
-        //TODO TODO XXX XXX RSI RSI make a way to wait on this being empty
-        unlimited_fifo_queue_t<backfill_chunk_t> chunk_queue;
+        unlimited_fifo_queue_t<std::pair<backfill_chunk_t, auto_drainer_t::lock_t> > chunk_queue;
 
+
+        struct chunk_callback_t : public coro_pool_t<std::pair<backfill_chunk_t, auto_drainer_t::lock_t> >::callback_t {
+            chunk_callback_t(store_view_t<protocol_t> *_store, signal_t *_dont_go_until, signal_t *_interruptor)
+                : store(_store), dont_go_until(_dont_go_until), interruptor(_interruptor)
+            { }
+            void coro_pool_callback(std::pair<backfill_chunk_t, auto_drainer_t::lock_t> chunk) {
+                on_receive_backfill_chunk(store, dont_go_until, chunk.first, interruptor, chunk.second);
+            }
+            store_view_t<protocol_t> *store;
+            signal_t *dont_go_until;
+            signal_t *interruptor;
+        };
+
+        chunk_callback_t chunk_callback(store, &dont_go_until, interruptor);
         /* A callback, this function will be called on backfill_chunk_ts as
          * they are popped off the queue. */
-        typename coro_pool_t<backfill_chunk_t>::boost_function_callback_t 
-            chunk_callback(boost::bind(&on_receive_backfill_chunk<protocol_t>,
-                store, &dont_go_until, _1, interruptor, auto_drainer_t::lock_t(&drainer)
-                ));
+        //typename coro_pool_t<std::pair<backfill_chunk_t, auto_drainer_t::lock_t> >::boost_function_callback_t 
+        //    chunk_callback(boost::bind(&on_receive_backfill_chunk<protocol_t>,
+        //        store, &dont_go_until, boost::bind(&std::pair::first, _1), interruptor, boost::bind(&std::pair::second, _1)
+        //        ));
 
-        coro_pool_t<backfill_chunk_t> backfill_workers(10, &chunk_queue, &chunk_callback);
+        coro_pool_t<std::pair<backfill_chunk_t, auto_drainer_t::lock_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
+
+        /* Use an `auto_drainer_t` to wait for all the bits of the backfill to
+        finish being applied. Construct it before `chunk_mailbox` so that we
+        don't get any chunks after `drainer` is destroyed. */
+        auto_drainer_t drainer;
 
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
-        mailbox_t<void(typename protocol_t::backfill_chunk_t)> chunk_mailbox(
-            mailbox_manager, boost::bind(&unlimited_fifo_queue_t<backfill_chunk_t>::push, &chunk_queue, _1));
+        mailbox_t<void(backfill_chunk_t)> chunk_mailbox(
+            mailbox_manager, boost::bind(&push_with_drain_lock<backfill_chunk_t>, &chunk_queue, _1, auto_drainer_t::lock_t(&drainer)));
 
         /* Send off the backfill request */
         send(mailbox_manager,
