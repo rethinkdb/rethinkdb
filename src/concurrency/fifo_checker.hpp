@@ -5,18 +5,23 @@
 #include <map>
 #endif
 
+#include "containers/uuid.hpp"
 #include "utils.hpp"
 
 
+
 struct order_bucket_t {
-    order_bucket_t(int thread, int number) :
-        thread_(thread), number_(number)
-        { }
-    order_bucket_t() { }
-    int thread_;
-    int number_;
-    bool valid();
+    boost::uuids::uuid uuid_;
+
+    static order_bucket_t invalid() { return order_bucket_t(nil_uuid()); }
+    static order_bucket_t create() { return order_bucket_t(generate_uuid()); }
+
+    bool valid() const;
+private:
+    order_bucket_t(boost::uuids::uuid uuid) : uuid_(uuid) { }
 };
+
+
 
 bool operator==(const order_bucket_t& a, const order_bucket_t& b);
 bool operator!=(const order_bucket_t& a, const order_bucket_t& b);
@@ -52,6 +57,11 @@ public:
 private:
 #ifndef NDEBUG
     order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string& tag);
+
+    bool is_invalid() const;
+    bool is_ignore() const;
+
+    // TODO: Make these fields const.
     order_bucket_t bucket_;
     bool read_mode_;
     int64_t value_;

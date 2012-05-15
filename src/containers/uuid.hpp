@@ -12,6 +12,9 @@
 Valgrind won't complain about it. */
 boost::uuids::uuid generate_uuid();
 
+// Returns boost::uuids::nil_generator()().
+boost::uuids::uuid nil_uuid();
+
 std::string uuid_to_str(boost::uuids::uuid id);
 
 boost::uuids::uuid str_to_uuid(const std::string&);

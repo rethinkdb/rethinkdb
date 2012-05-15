@@ -13,7 +13,7 @@
 #define ORDER_IGNORE (-1)
 #define ORDER_IGNORE (-1)
 
-const order_token_t order_token_t::ignore(order_bucket_t(ORDER_IGNORE, ORDER_IGNORE), ORDER_IGNORE, false, "order_token_t::ignore");
+const order_token_t order_token_t::ignore(order_bucket_t::invalid(), ORDER_IGNORE, false, "order_token_t::ignore");
 #else
 const order_token_t order_token_t::ignore;
 #endif  // ifndef NDEBUG
@@ -23,7 +23,7 @@ const order_token_t order_token_t::ignore;
 #ifndef NDEBUG
 
 bool operator==(const order_bucket_t& a, const order_bucket_t& b) {
-    return a.thread_ == b.thread_ && a.number_ == b.number_;
+    return a.uuid_ == b.uuid_;
 }
 
 bool operator!=(const order_bucket_t& a, const order_bucket_t& b) {
@@ -31,26 +31,16 @@ bool operator!=(const order_bucket_t& a, const order_bucket_t& b) {
 }
 
 bool operator<(const order_bucket_t& a, const order_bucket_t& b) {
-    if (a.thread_ < b.thread_) {
-        return true;
-    } else if (a.thread_ == b.thread_) {
-        if (a.number_ < b.number_) {
-            return true;
-        } else {
-            return false;
-        }
-    } else {
-        return false;
-    }
+    return a.uuid_ < b.uuid_;
 }
 
-bool order_bucket_t::valid() {
-    return (thread_ >= 0 && number_ >= 0);
+bool order_bucket_t::valid() const {
+    return !uuid_.is_nil();
 }
 
 
 
-order_token_t::order_token_t() : bucket_(ORDER_INVALID, ORDER_INVALID), value_(ORDER_INVALID) { }
+order_token_t::order_token_t() : bucket_(order_bucket_t::invalid()), value_(ORDER_INVALID) { }
 
 order_token_t::order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string& tag)
     : bucket_(bucket), read_mode_(read_mode), value_(x), tag_(tag) { }
@@ -62,56 +52,14 @@ order_token_t order_token_t::with_read_mode() const {
 bool order_token_t::read_mode() const { return read_mode_; }
 const std::string& order_token_t::tag() const { return tag_; }
 
+bool order_token_t::is_invalid() const { return !bucket_.valid() && value_ == ORDER_INVALID; }
+bool order_token_t::is_ignore() const { return !bucket_.valid() && value_ == ORDER_IGNORE; }
 
 
-/* `order_source_pigeoncoop_t` is used to assign unique bucket numbers to buckets. There
-is one per thread; they don't know about each other. */
 
-struct order_source_pigeoncoop_t {
+order_source_t::order_source_t() : bucket_(order_bucket_t::create()), counter_(0) { }
 
-    order_source_pigeoncoop_t() : least_unregistered_bucket_(0) { }
-
-    void unregister_bucket(int bucket, int64_t counter) {
-        ASSERT_NO_CORO_WAITING;
-        rassert(bucket < least_unregistered_bucket_);
-        free_buckets_.push_back(std::make_pair(bucket, counter));
-    }
-
-    std::pair<int, int64_t> register_for_bucket() {
-        ASSERT_NO_CORO_WAITING;
-        if (free_buckets_.empty()) {
-            int ret = least_unregistered_bucket_;
-            ++least_unregistered_bucket_;
-            return std::pair<int, int64_t>(ret, 0);
-        } else {
-            std::pair<int, int64_t> ret = free_buckets_.back();
-            rassert(ret.first < least_unregistered_bucket_);
-            rassert(ret.second >= 0);
-            free_buckets_.pop_back();
-            return ret;
-        }
-    }
-
-    // The bucket we should use next, if free_buckets_ is empty.
-    int least_unregistered_bucket_;
-
-    // The buckets less than least_unregistered_bucket_ that are free.
-    std::vector<std::pair<int, int64_t> > free_buckets_;
-
-    DISABLE_COPYING(order_source_pigeoncoop_t);
-};
-
-order_source_pigeoncoop_t pigeoncoops[MAX_THREADS];
-
-order_source_t::order_source_t() {
-    std::pair<int, int64_t> p = pigeoncoops[get_thread_id()].register_for_bucket();
-    bucket_ = order_bucket_t(get_thread_id(), p.first);
-    counter_ = p.second;
-}
-
-order_source_t::~order_source_t() {
-    pigeoncoops[get_thread_id()].unregister_bucket(bucket_.number_, counter_);
-}
+order_source_t::~order_source_t() { }
 
 order_token_t order_source_t::check_in(const std::string& tag) {
     assert_thread();
@@ -127,8 +75,8 @@ order_sink_t::order_sink_t() { }
 
 void order_sink_t::check_out(order_token_t token) {
     assert_thread();
-    if (token.bucket_ != order_token_t::ignore.bucket_) {
-        rassert(token.bucket_.valid());
+    if (!token.is_ignore()) {
+        rassert(!token.is_invalid());
         /* If we haven't seen this bucket before, then this will
         make a new entry in the map and fill it with a pair of (0, 0).
         Either way, `last_seen` will be a pointer to the `std::pair`
@@ -144,23 +92,23 @@ void order_sink_t::verify_token_value_and_update(order_token_t token, std::pair<
     // to ensure that multiple actions don't get interrupted.  And
     // resending the same action isn't normally a problem.
     if (token.read_mode_) {
-        rassert(token.value_ >= ls_pair->first.value, "read_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%d,%d)", token.value_, ls_pair->first.value, token.tag_.c_str(), ls_pair->first.tag.c_str(), token.bucket_.thread_, token.bucket_.number_);
+        rassert(token.value_ >= ls_pair->first.value, "read_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%s)", token.value_, ls_pair->first.value, token.tag_.c_str(), ls_pair->first.tag.c_str(), uuid_to_str(token.bucket_.uuid_).c_str());
         if (ls_pair->second.value < token.value_) {
             ls_pair->second = tagged_seen_t(token.value_, token.tag_);
         }
     } else {
-        rassert(token.value_ >= ls_pair->second.value, "write_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%d,%d)", token.value_, ls_pair->second.value, token.tag_.c_str(), ls_pair->second.tag.c_str(), token.bucket_.thread_, token.bucket_.number_);
+        rassert(token.value_ >= ls_pair->second.value, "write_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%s)", token.value_, ls_pair->second.value, token.tag_.c_str(), ls_pair->second.tag.c_str(), uuid_to_str(token.bucket_.uuid_).c_str());
         ls_pair->first = ls_pair->second = tagged_seen_t(token.value_, token.tag_);
     }
 }
 
 
-plain_sink_t::plain_sink_t() : ls_pair_(tagged_seen_t(0, "0"), tagged_seen_t(0, "0")), have_bucket_(false) { }
+plain_sink_t::plain_sink_t() : ls_pair_(tagged_seen_t(0, "0"), tagged_seen_t(0, "0")), have_bucket_(false), bucket_(order_bucket_t::invalid()) { }
 
 void plain_sink_t::check_out(order_token_t token) {
     assert_thread();
-    if (token.bucket_ != order_token_t::ignore.bucket_) {
-        rassert(token.bucket_.valid());
+    if (!token.is_ignore()) {
+        rassert(!token.is_invalid());
         if (!have_bucket_) {
             bucket_ = token.bucket_;
             have_bucket_ = true;
