@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-import sys, workload_common
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import workload_common
 
 # TODO: This readline function is copied and pasted from big_values.py.
 def readline(s):

@@ -2,6 +2,7 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/variant.hpp>
 
 #include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -110,4 +111,42 @@ TEST(FIFOEnforcer, DummyEntry) {
     run_in_thread_pool(&run_dummy_entry_destruction_test);
 }
 
+void run_queue_equivalence_test() {
+    fifo_enforcer_source_t source;
+    fifo_enforcer_sink_t sink;
+    fifo_enforcer_queue_t<boost::variant<fifo_enforcer_read_token_t, fifo_enforcer_write_token_t> > queue;
+
+    int total_inserted = 0;
+    for (int i = 0; i < 1000; i++) {
+        for (int j = 0; j < 50; j++) {
+            fifo_enforcer_read_token_t t = source.enter_read();
+            queue.push(t, t);
+            total_inserted++;
+        }
+        fifo_enforcer_write_token_t t = source.enter_write();
+        queue.push(t, t);
+        total_inserted++;
+    }
+    while  (queue.control.get()) {
+        boost::variant<fifo_enforcer_read_token_t, fifo_enforcer_write_token_t>  token = queue.produce_next_value();
+        if (fifo_enforcer_read_token_t *read_token = boost::get<fifo_enforcer_read_token_t>(&token)) {
+            fifo_enforcer_sink_t::exit_read_t er(&sink, *read_token);
+            EXPECT_TRUE(er.is_pulsed());
+            queue.finish_read(*read_token);
+        } else if (fifo_enforcer_write_token_t *write_token = boost::get<fifo_enforcer_write_token_t>(&token)) {
+            fifo_enforcer_sink_t::exit_write_t ew(&sink, *write_token);
+            EXPECT_TRUE(ew.is_pulsed());
+            queue.finish_write(*write_token);
+        }
+        total_inserted--;
+    }
+
+    EXPECT_EQ(total_inserted, 0);
+}
+
+TEST(FIFOEnforcer, QueueEquivalence) {
+    run_in_thread_pool(&run_queue_equivalence_test);
+}
+
 }   /* namespace unittest */
+

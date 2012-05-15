@@ -1,5 +1,7 @@
 #!/usr/bin/python
-import random, time, sys, workload_common
+import random, time, sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import workload_common
 from vcoptparse import *
 
 def random_key(opts):
