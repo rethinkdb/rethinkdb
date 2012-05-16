@@ -176,12 +176,7 @@ private:
 
     cond_t on_destruct;
 
-    class calling_callback_t : public coro_pool_t<boost::function<void()> >::callback_t {
-    public:
-        void coro_pool_callback(boost::function<void()> f) {
-            f();
-        }
-    } coro_pool_callback;
+    calling_callback_t coro_pool_callback;
 
     coro_pool_t<boost::function<void()> > coro_pool;
 
@@ -204,6 +199,11 @@ private:
      * this right now is the replier_t who needs to be able to tell backfillees
      * how up to date s/he is. */
     std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
+
+    perfmon_counter_t pm_listener_writes_active,
+                      pm_listener_writes_queued,
+                      pm_listener_writereads_active,
+                      pm_listener_writereads_queued;
 
     DISABLE_COPYING(listener_t);
 };

@@ -28,7 +28,11 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     writeread_mailbox(mailbox_manager, boost::bind(&listener_t::on_writeread, this,
 						   _1, _2, _3, _4), mailbox_callback_mode_inline),
     read_mailbox(mailbox_manager, boost::bind(&listener_t::on_read, this,
-					       _1, _2, _3, _4), mailbox_callback_mode_inline)
+					       _1, _2, _3, _4), mailbox_callback_mode_inline),
+    pm_listener_writes_active("listener_writes_active", NULL),
+    pm_listener_writes_queued("listener_writes_queued", NULL),
+    pm_listener_writereads_active("listener_writereads_active", NULL),
+    pm_listener_writereads_queued("listener_writereads_queued", NULL)
 {
     if (interruptor->is_pulsed()) {
 	throw interrupted_exc_t();
@@ -165,7 +169,11 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     writeread_mailbox(mailbox_manager, boost::bind(&listener_t::on_writeread, this,
 						   _1, _2, _3, _4)),
     read_mailbox(mailbox_manager, boost::bind(&listener_t::on_read, this,
-					       _1, _2, _3, _4))
+					       _1, _2, _3, _4)),
+    pm_listener_writes_active("listener_writes_active", NULL),
+    pm_listener_writes_queued("listener_writes_queued", NULL),
+    pm_listener_writereads_active("listener_writereads_active", NULL),
+    pm_listener_writereads_queued("listener_writereads_queued", NULL)
 {
     if (interruptor->is_pulsed()) {
 	throw interrupted_exc_t();
@@ -310,6 +318,7 @@ void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
 	mailbox_addr_t<void()> ack_addr)
 	THROWS_NOTHING 
 {
+    ++pm_listener_writes_queued;
     fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_write, this, write, transition_timestamp, fifo_token, ack_addr));
 }
 
@@ -319,6 +328,8 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 	fifo_enforcer_write_token_t fifo_token,
 	mailbox_addr_t<void()> ack_addr)
 	THROWS_NOTHING {
+    --pm_listener_writes_queued;
+    ++pm_listener_writes_active;
     try {
 	boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
 	{
@@ -374,8 +385,10 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 	send(mailbox_manager, ack_addr);
 
     } catch (interrupted_exc_t) {
+    --pm_listener_writes_active;
 	return;
     }
+    --pm_listener_writes_active;
 }
 
 template <class protocol_t>
@@ -385,6 +398,7 @@ void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
 	mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
 	THROWS_NOTHING
 {
+    ++pm_listener_writereads_queued;
     fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_writeread, this, write, transition_timestamp, fifo_token, ack_addr));
 }
 
@@ -395,6 +409,8 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 	mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
 	THROWS_NOTHING
 {
+    --pm_listener_writereads_queued;
+    ++pm_listener_writereads_active;
     try {
 	boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
 	{
@@ -442,8 +458,10 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 	send(mailbox_manager, ack_addr, response);
 
     } catch (interrupted_exc_t) {
+    --pm_listener_writereads_active;
 	return;
     }
+    --pm_listener_writereads_active;
 }
 
 template <class protocol_t>

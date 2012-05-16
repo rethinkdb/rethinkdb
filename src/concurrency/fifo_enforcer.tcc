@@ -81,11 +81,14 @@ T fifo_enforcer_queue_t<T>::produce_next_value() {
 template <class T>
 void fifo_enforcer_queue_t<T>::consider_changing_available() {
     if (std_contains(read_queue, state.timestamp)) {
+        debugf("Set true %p\n", this);
         control.set_available(true);
     } else if (std_contains(write_queue, transition_timestamp_t::starting_from(state.timestamp)) &&
             write_queue.find(transition_timestamp_t::starting_from(state.timestamp))->second.first == state.num_reads) {
+        debugf("Set true %p\n", this);
         control.set_available(true);
     } else {
+        debugf("Set false %p\n", this);
         control.set_available(false);
     }
 }
