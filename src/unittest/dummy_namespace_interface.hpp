@@ -27,7 +27,7 @@ public:
 
         region_map_t<protocol_t, binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(expected_timestamp));
 
-        return store->read(DEBUG_ONLY(expected_metainfo, ) read, read_token, interruptor);
+        return store->read(DEBUG_ONLY(expected_metainfo, ) read, order_token_t::ignore, read_token, interruptor);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, transition_timestamp_t transition_timestamp) THROWS_NOTHING {
@@ -41,6 +41,7 @@ public:
             DEBUG_ONLY(expected_metainfo, )
             region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
             write, transition_timestamp,
+            order_token_t::ignore,
             write_token, &non_interruptor
             );
     }

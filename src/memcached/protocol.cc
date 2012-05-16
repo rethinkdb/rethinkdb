@@ -554,6 +554,7 @@ private:
 memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(
         DEBUG_ONLY(const metainfo_t& expected_metainfo, )
         const memcached_protocol_t::read_t &read,
+        UNUSED order_token_t order_token,  // TODO
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -611,6 +612,7 @@ memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(
         const metainfo_t& new_metainfo,
         const memcached_protocol_t::write_t &write,
         transition_timestamp_t timestamp,
+        UNUSED order_token_t order_token,  // TODO
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {

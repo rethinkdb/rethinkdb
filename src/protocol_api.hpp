@@ -246,6 +246,7 @@ public:
     virtual typename protocol_t::read_response_t read(
             DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const typename protocol_t::read_t &read,
+            order_token_t order_token,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -260,6 +261,7 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
+            order_token_t order_token,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -387,12 +389,13 @@ public:
     typename protocol_t::read_response_t read(
             DEBUG_ONLY(const metainfo_t& expected_metainfo, )
             const typename protocol_t::read_t &read,
+            order_token_t order_token,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
 
-        return store_view->read(DEBUG_ONLY(expected_metainfo, ) read, token, interruptor);
+        return store_view->read(DEBUG_ONLY(expected_metainfo, ) read, order_token, token, interruptor);
     }
 
     typename protocol_t::write_response_t write(
@@ -400,13 +403,14 @@ public:
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
+            order_token_t order_token,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        return store_view->write(DEBUG_ONLY(expected_metainfo, ) new_metainfo, write, timestamp, token, interruptor);
+        return store_view->write(DEBUG_ONLY(expected_metainfo, ) new_metainfo, write, timestamp, order_token, token, interruptor);
     }
 
     bool send_backfill(

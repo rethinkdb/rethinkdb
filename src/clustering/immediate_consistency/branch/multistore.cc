@@ -225,6 +225,7 @@ template <class protocol_t>
 void multistore_ptr_t<protocol_t>::single_shard_read(int i,
                                                      DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
                                                      const typename protocol_t::read_t &read,
+                                                     order_token_t order_token,
                                                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                                      std::vector<typename protocol_t::read_response_t> *responses,
                                                      signal_t *interruptor) THROWS_NOTHING {
@@ -238,6 +239,7 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
     try {
         responses->push_back(store_views[i]->read(DEBUG_ONLY(expected_metainfo.mask(ith_intersection), )
                                                   read.shard(ith_intersection),
+                                                  order_token,
                                                   read_tokens[i],
                                                   interruptor));
     } catch (interrupted_exc_t& exc) {
@@ -249,6 +251,7 @@ template <class protocol_t>
 typename protocol_t::read_response_t
 multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const typename  protocol_t::store_t::metainfo_t& expected_metainfo, )
                                    const typename protocol_t::read_t &read,
+                                   order_token_t order_token,
                                    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                    int num_stores_assertion,
                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
@@ -257,6 +260,7 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const typename  protocol_t::store_
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_read,
                                    this, _1, DEBUG_ONLY(boost::ref(expected_metainfo), )
                                    boost::ref(read),
+                                   order_token,
                                    read_tokens,
                                    &responses,
                                    interruptor));
@@ -269,12 +273,22 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const typename  protocol_t::store_
     return read.unshard(responses, &fake_cache);
 }
 
+// Because boost::bind only takes 10 arguments.
+template <class protocol_t>
+struct new_and_expected_metainfo_t {
+    DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t &expected_metainfo;)
+    const typename protocol_t::store_t::metainfo_t &new_metainfo;
+    new_and_expected_metainfo_t(DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t &_expected_metainfo, )
+                                const typename protocol_t::store_t::metainfo_t &_new_metainfo)
+        : expected_metainfo(_expected_metainfo), new_metainfo(_new_metainfo) { }
+};
+
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::single_shard_write(int i,
-                                                      DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
-                                                      const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                                                      const new_and_expected_metainfo_t<protocol_t>& metainfo,
                                                       const typename protocol_t::write_t &write,
                                                       transition_timestamp_t timestamp,
+                                                      order_token_t order_token,
                                                       boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                                                       std::vector<typename protocol_t::write_response_t> *responses,
                                                       signal_t *interruptor) THROWS_NOTHING {
@@ -287,10 +301,11 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
     // TODO: Have an assertion about the new_metainfo region?
 
     try {
-        responses->push_back(store_views[i]->write(DEBUG_ONLY(expected_metainfo.mask(ith_intersection), )
-                                                   new_metainfo.mask(ith_intersection),
+        responses->push_back(store_views[i]->write(DEBUG_ONLY(metainfo.expected_metainfo.mask(ith_intersection), )
+                                                   metainfo.new_metainfo.mask(ith_intersection),
                                                    write.shard(ith_intersection),
                                                    timestamp,
+                                                   order_token,
                                                    write_tokens[i],
                                                    interruptor));
     } catch (interrupted_exc_t& exc) {
@@ -304,16 +319,18 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const typename protocol_t::store_
                                     const typename protocol_t::store_t::metainfo_t& new_metainfo,
                                     const typename protocol_t::write_t &write,
                                     transition_timestamp_t timestamp,
+                                    order_token_t order_token,
                                     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                                     int num_stores_assertion,
                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     guarantee(num_stores() == num_stores_assertion);
     std::vector<typename protocol_t::write_response_t> responses;
+    new_and_expected_metainfo_t<protocol_t> metainfo(DEBUG_ONLY(expected_metainfo, ) new_metainfo);
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_write,
-                                   this, _1, DEBUG_ONLY(boost::ref(expected_metainfo), )
-                                   boost::ref(new_metainfo),
+                                   this, _1, boost::ref(metainfo),
                                    boost::ref(write),
                                    timestamp,
+                                   order_token,
                                    write_tokens,
                                    &responses,
                                    interruptor));

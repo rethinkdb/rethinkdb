@@ -97,6 +97,7 @@ void run_backfill_test() {
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ),
                 w, ts,
+                order_token_t::ignore,
                 token,
                 &non_interruptor
             );

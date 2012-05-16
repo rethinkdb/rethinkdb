@@ -8,14 +8,15 @@
 
 #include "concurrency/fifo_enforcer.hpp"
 
+namespace boost { template <class> class function; }
+class binary_blob_t;
+template <class> class multistore_send_backfill_should_backfill_t;
+template <class, class> class region_map_t;
 template <class> class store_view_t;
 template <class> class store_subview_t;
-template <class, class> class region_map_t;
+class order_token_t;
 class version_range_t;
-class binary_blob_t;
-namespace boost { template <class> class function; }
-
-template <class> class multistore_send_backfill_should_backfill_t;
+template <class> struct new_and_expected_metainfo_t;
 
 template <class protocol_t>
 class multistore_ptr_t {
@@ -64,6 +65,7 @@ public:
 
     typename protocol_t::read_response_t read(DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
                                               const typename protocol_t::read_t &read,
+                                              order_token_t order_token,
                                               boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                               int num_stores_assertion,
                                               signal_t *interruptor)
@@ -73,6 +75,7 @@ public:
                                                 const typename protocol_t::store_t::metainfo_t& new_metainfo,
                                                 const typename protocol_t::write_t &write,
                                                 transition_timestamp_t timestamp,
+                                                order_token_t order_token,
                                                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                                                 int num_stores_assertion,
                                                 signal_t *interruptor)
@@ -99,15 +102,18 @@ private:
     void single_shard_read(int i,
                            DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
                            const typename protocol_t::read_t &read,
+                           order_token_t order_token,
                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                            std::vector<typename protocol_t::read_response_t> *responses,
                            signal_t *interruptor) THROWS_NOTHING;
 
+
+
     void single_shard_write(int i,
-                            DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
-                            const typename protocol_t::store_t::metainfo_t &new_metainfo,
+                            const new_and_expected_metainfo_t<protocol_t> &metainfo,
                             const typename protocol_t::write_t &write,
                             transition_timestamp_t timestamp,
+                            order_token_t order_token,
                             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                             std::vector<typename protocol_t::write_response_t> *responses,
                             signal_t *interruptor) THROWS_NOTHING;
