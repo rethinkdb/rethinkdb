@@ -481,7 +481,8 @@ broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener
     for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
             it != controller->incomplete_writes.end(); it++) {
         coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, controller,
-                                           this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), order_token_t::ignore, fifo_source.enter_write()));
+                                           this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it),
+                                           controller->order_checkpoint.checkpoint_raw_check_in(), fifo_source.enter_write()));
     }
 }
 

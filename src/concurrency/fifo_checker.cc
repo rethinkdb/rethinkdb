@@ -133,4 +133,8 @@ order_token_t order_checkpoint_t::check_through(order_token_t tok) {
     return tok2;
 }
 
+order_token_t order_checkpoint_t::checkpoint_raw_check_in() {
+    return source_.check_in("(nothing)" + tagappend_);
+}
+
 #endif  // ifndef NDEBUG
