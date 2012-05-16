@@ -20,6 +20,8 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
       branch_id(generate_uuid()),
       registrar(mailbox_manager, this) {
 
+    order_checkpoint.set_tagappend("broadcaster_t");
+
     /* Snapshot the starting point of the store; we'll need to record this
        and store it in the metadata. */
     const int num_stores = initial_svs->num_stores();
@@ -260,7 +262,8 @@ template<class protocol_t>
 void listener_write(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t &write_mailbox,
-        typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
+        typename protocol_t::write_t w, transition_timestamp_t ts,
+        order_token_t order_token, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -271,7 +274,7 @@ void listener_write(
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, write_mailbox,
-        w, ts, token, ack_mailbox.get_address());
+         w, ts, order_token, token, ack_mailbox.get_address());
 
     wait_interruptible(&ack_cond, interruptor);
 }
@@ -280,7 +283,8 @@ template<class protocol_t>
 typename protocol_t::write_response_t listener_writeread(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t &writeread_mailbox,
-        typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
+        typename protocol_t::write_t w, transition_timestamp_t ts,
+        order_token_t order_token, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -291,7 +295,7 @@ typename protocol_t::write_response_t listener_writeread(
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, writeread_mailbox,
-        w, ts, token, resp_mailbox.get_address());
+         w, ts, order_token, token, resp_mailbox.get_address());
 
     wait_interruptible(resp_cond.get_ready_signal(), interruptor);
 
@@ -302,7 +306,8 @@ template<class protocol_t>
 typename protocol_t::read_response_t listener_read(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
-        typename protocol_t::read_t r, state_timestamp_t ts, fifo_enforcer_read_token_t token,
+        typename protocol_t::read_t r, state_timestamp_t ts,
+        order_token_t order_token, fifo_enforcer_read_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -313,7 +318,7 @@ typename protocol_t::read_response_t listener_read(
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, read_mailbox,
-        r, ts, token, resp_mailbox.get_address());
+         r, ts, order_token, token, resp_mailbox.get_address());
 
     wait_interruptible(resp_cond.get_ready_signal(), interruptor);
 
@@ -338,7 +343,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 
         pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
         timestamp = current_timestamp;
-        order_sink.check_out(order_token);
+        order_token = order_checkpoint.check_through(order_token);
 
         /* This is safe even if `interruptor` gets pulsed because nothing
         checks `interruptor` until after we have sent the message. */
@@ -348,8 +353,8 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
     try {
         wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
         return listener_read<protocol_t>(mailbox_manager, reader->read_mailbox,
-            read, timestamp, enforcer_token,
-            &interruptor2);
+                                         read, timestamp, order_token, enforcer_token,
+                                         &interruptor2);
     } catch (interrupted_exc_t) {
         if (interruptor->is_pulsed()) {
             throw;
@@ -396,7 +401,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
             transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
             current_timestamp = timestamp.timestamp_after();
-            order_sink.check_out(order_token);
+            order_token = order_checkpoint.check_through(order_token);
 
             write_wrapper = boost::make_shared<incomplete_write_t>(
                 this, write, timestamp, cb);
@@ -435,7 +440,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
         /* Dispatch the write to all the dispatchees */
         for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = writers.begin(); it != writers.end(); it++) {
             coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, this,
-                (*it).first, (*it).second, write_ref, enforcer_tokens[(*it).first]));
+                                               (*it).first, (*it).second, write_ref, order_token, enforcer_tokens[(*it).first]));
         }
     }
 
@@ -476,7 +481,7 @@ broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener
     for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
             it != controller->incomplete_writes.end(); it++) {
         coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, controller,
-            this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), fifo_source.enter_write()));
+                                           this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), order_token_t::ignore, fifo_source.enter_write()));
     }
 }
 
@@ -549,18 +554,18 @@ void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispat
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, fifo_enforcer_write_token_t token) THROWS_NOTHING {
+void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
         if (mirror->is_readable) {
             typename protocol_t::write_response_t resp = listener_writeread<protocol_t>(mailbox_manager, mirror->writeread_mailbox,
-                    write_ref.get()->write, write_ref.get()->timestamp, token,
-                    mirror_lock.get_drain_signal());
+                                                                                        write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
+                                                                                        mirror_lock.get_drain_signal());
 
             write_ref.get()->notify_acked(mirror->get_peer(), resp);
         } else {
             listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
-                    write_ref.get()->write, write_ref.get()->timestamp, token,
-                    mirror_lock.get_drain_signal());
+                                       write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
+                                       mirror_lock.get_drain_signal());
             write_ref.get()->notify_acked(mirror->get_peer());
         }
     } catch (interrupted_exc_t) {

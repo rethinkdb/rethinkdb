@@ -27,12 +27,11 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     coro_pool(OPERATION_CORO_POOL_SIZE, &fifo_queue, &coro_pool_callback),
 
     write_mailbox(mailbox_manager, boost::bind(&listener_t::on_write, this,
-					       _1, _2, _3, _4), mailbox_callback_mode_inline),
+					       _1, _2, _3, _4, _5), mailbox_callback_mode_inline),
     writeread_mailbox(mailbox_manager, boost::bind(&listener_t::on_writeread, this,
-						   _1, _2, _3, _4), mailbox_callback_mode_inline),
+						   _1, _2, _3, _4, _5), mailbox_callback_mode_inline),
     read_mailbox(mailbox_manager, boost::bind(&listener_t::on_read, this,
-					       _1, _2, _3, _4), mailbox_callback_mode_inline)
-{
+                                              _1, _2, _3, _4, _5), mailbox_callback_mode_inline) {
     if (interruptor->is_pulsed()) {
 	throw interrupted_exc_t();
     }
@@ -162,11 +161,11 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     coro_pool(10, &fifo_queue, &coro_pool_callback),
 
     write_mailbox(mailbox_manager, boost::bind(&listener_t::on_write, this,
-					       _1, _2, _3, _4)),
+					       _1, _2, _3, _4, _5)),
     writeread_mailbox(mailbox_manager, boost::bind(&listener_t::on_writeread, this,
-						   _1, _2, _3, _4)),
+						   _1, _2, _3, _4, _5)),
     read_mailbox(mailbox_manager, boost::bind(&listener_t::on_read, this,
-					       _1, _2, _3, _4))
+                                              _1, _2, _3, _4, _5))
 {
     if (interruptor->is_pulsed()) {
 	throw interrupted_exc_t();
@@ -306,20 +305,19 @@ void listener_t<protocol_t>::try_start_receiving_writes(
 
 template <class protocol_t>
 void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
-	transition_timestamp_t transition_timestamp,
-	fifo_enforcer_write_token_t fifo_token,
-	mailbox_addr_t<void()> ack_addr)
-	THROWS_NOTHING 
-{
-    fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_write, this, write, transition_timestamp, fifo_token, ack_addr));
+                                      transition_timestamp_t transition_timestamp,
+                                      order_token_t order_token,
+                                      fifo_enforcer_write_token_t fifo_token,
+                                      mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
+    fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_write, this, write, transition_timestamp, order_token, fifo_token, ack_addr));
 }
 
 template <class protocol_t>
 void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
-	transition_timestamp_t transition_timestamp,
-	fifo_enforcer_write_token_t fifo_token,
-	mailbox_addr_t<void()> ack_addr)
-	THROWS_NOTHING {
+                                           transition_timestamp_t transition_timestamp,
+                                           UNUSED order_token_t order_token,  // TODO: use this
+                                           fifo_enforcer_write_token_t fifo_token,
+                                           mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
     try {
         const int num_stores = svs->num_stores();
         boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
@@ -381,21 +379,19 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 
 template <class protocol_t>
 void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
-	transition_timestamp_t transition_timestamp,
-	fifo_enforcer_write_token_t fifo_token,
-	mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
-	THROWS_NOTHING
-{
-    fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_writeread, this, write, transition_timestamp, fifo_token, ack_addr));
+                                          transition_timestamp_t transition_timestamp,
+                                          order_token_t order_token,
+                                          fifo_enforcer_write_token_t fifo_token,
+                                          mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr) THROWS_NOTHING {
+    fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_writeread, this, write, transition_timestamp, order_token, fifo_token, ack_addr));
 }
 
 template <class protocol_t>
 void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t write,
-	transition_timestamp_t transition_timestamp,
-	fifo_enforcer_write_token_t fifo_token,
-	mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
-	THROWS_NOTHING
-{
+                                               transition_timestamp_t transition_timestamp,
+                                               UNUSED order_token_t order_token,  // TODO: use this
+                                               fifo_enforcer_write_token_t fifo_token,
+                                               mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr) THROWS_NOTHING {
     try {
         const int num_stores = svs->num_stores();
         boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
@@ -450,21 +446,19 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 
 template <class protocol_t>
 void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
-	DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
-	fifo_enforcer_read_token_t fifo_token,
-	mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
-	THROWS_NOTHING
-{
-    fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_read, this, read, expected_timestamp, fifo_token, ack_addr));
+                                     DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+                                     order_token_t order_token,
+                                     fifo_enforcer_read_token_t fifo_token,
+                                     mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr) THROWS_NOTHING {
+    fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_read, this, read, expected_timestamp, order_token, fifo_token, ack_addr));
 }
 
 template <class protocol_t>
 void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
-	DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
-	fifo_enforcer_read_token_t fifo_token,
-	mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
-	THROWS_NOTHING
-{
+                                          DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+                                          UNUSED order_token_t order_token,  // TODO: use this
+                                          fifo_enforcer_read_token_t fifo_token,
+                                          mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr) THROWS_NOTHING {
     try {
         const int num_stores = svs->num_stores();
         boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);

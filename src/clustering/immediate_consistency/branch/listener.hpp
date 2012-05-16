@@ -106,42 +106,48 @@ private:
 	THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t);
 
     void on_write(typename protocol_t::write_t write,
-            transition_timestamp_t transition_timestamp,
-            fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void()> ack_addr)
+                  transition_timestamp_t transition_timestamp,
+                  order_token_t order_token,
+                  fifo_enforcer_write_token_t fifo_token,
+                  mailbox_addr_t<void()> ack_addr)
 	THROWS_NOTHING;
 
     void perform_write(typename protocol_t::write_t write,
-            transition_timestamp_t transition_timestamp,
-            fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void()> ack_addr)
+                       transition_timestamp_t transition_timestamp,
+                       order_token_t order_token,
+                       fifo_enforcer_write_token_t fifo_token,
+                       mailbox_addr_t<void()> ack_addr)
 	THROWS_NOTHING;
 
     /* See the note at the place where `writeread_mailbox` is declared for an
     explanation of why `on_writeread()` and `on_read()` are here. */
 
     void on_writeread(typename protocol_t::write_t write,
-            transition_timestamp_t transition_timestamp,
-            fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
+                      transition_timestamp_t transition_timestamp,
+                      order_token_t order_token,
+                      fifo_enforcer_write_token_t fifo_token,
+                      mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
 	THROWS_NOTHING;
 
     void perform_writeread(typename protocol_t::write_t write,
-            transition_timestamp_t transition_timestamp,
-            fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
+                           transition_timestamp_t transition_timestamp,
+                           order_token_t order_token,
+                           fifo_enforcer_write_token_t fifo_token,
+                           mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
 	THROWS_NOTHING;
 
     void on_read(typename protocol_t::read_t read,
-            DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
-            fifo_enforcer_read_token_t fifo_token,
-            mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
+                 DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+                 order_token_t order_token,
+                 fifo_enforcer_read_token_t fifo_token,
+                 mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
 	THROWS_NOTHING;
 
     void perform_read(typename protocol_t::read_t read,
-            DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
-            fifo_enforcer_read_token_t fifo_token,
-            mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
+                      DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+                      order_token_t order_token,
+                      fifo_enforcer_read_token_t fifo_token,
+                      mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
 	THROWS_NOTHING;
 
     void wait_for_version(state_timestamp_t timestamp, signal_t *interruptor);
