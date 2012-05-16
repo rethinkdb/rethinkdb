@@ -280,7 +280,7 @@ struct new_and_expected_metainfo_t {
     const typename protocol_t::store_t::metainfo_t &new_metainfo;
     new_and_expected_metainfo_t(DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t &_expected_metainfo, )
                                 const typename protocol_t::store_t::metainfo_t &_new_metainfo)
-        : expected_metainfo(_expected_metainfo), new_metainfo(_new_metainfo) { }
+        : DEBUG_ONLY(expected_metainfo(_expected_metainfo), ) new_metainfo(_new_metainfo) { }
 };
 
 template <class protocol_t>
