@@ -137,6 +137,7 @@ public:
 
         fifo_enforcer_source_t token_source;
         fifo_enforcer_sink_t token_sink;
+        order_sink_t order_sink;
 
         rng_t rng;
     };

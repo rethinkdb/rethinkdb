@@ -244,7 +244,7 @@ void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo, boo
 dummy_protocol_t::read_response_t
 dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
                                 const dummy_protocol_t::read_t &read,
-                                UNUSED order_token_t order_token,  // TODO
+                                order_token_t order_token,
                                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
@@ -256,6 +256,7 @@ dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo, 
         local_token.swap(token);
 
         wait_interruptible(local_token.get(), interruptor);
+        order_sink.check_out(order_token);
 
         // We allow expected_metainfo domain to be smaller than the metainfo domain
         rassert(expected_metainfo == metainfo.mask(expected_metainfo.get_domain()));
@@ -308,7 +309,7 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
                                  const metainfo_t& new_metainfo,
                                  const dummy_protocol_t::write_t &write,
                                  transition_timestamp_t timestamp,
-                                 UNUSED order_token_t order_token,  // TODO
+                                 order_token_t order_token,
                                  boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
@@ -321,6 +322,8 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
         local_token.swap(token);
 
         wait_interruptible(local_token.get(), interruptor);
+
+        order_sink.check_out(order_token);
 
         // We allow expected_metainfo domain to be smaller than the metainfo domain
         rassert(expected_metainfo.get_domain() == metainfo.mask(expected_metainfo.get_domain()).get_domain());
