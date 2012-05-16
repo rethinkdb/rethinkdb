@@ -326,9 +326,7 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 	{
 	    /* Enforce that we start our transaction in the same order as we
 	    entered the FIFO at the broadcaster. */
-        //RSI
 	    fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token);
-        fifo_exit.wait();
 	    wait_interruptible(&fifo_exit, &on_destruct);
 
 	    /* Validate write. */
