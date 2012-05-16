@@ -203,7 +203,8 @@ private:
     perfmon_counter_t pm_listener_writes_active,
                       pm_listener_writes_queued,
                       pm_listener_writereads_active,
-                      pm_listener_writereads_queued;
+                      pm_listener_writereads_queued,
+                      pm_step_1, pm_step_2, pm_step_3, pm_step_4;
 
     DISABLE_COPYING(listener_t);
 };

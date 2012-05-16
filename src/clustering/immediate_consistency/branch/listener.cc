@@ -32,7 +32,8 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     pm_listener_writes_active("listener_writes_active", NULL),
     pm_listener_writes_queued("listener_writes_queued", NULL),
     pm_listener_writereads_active("listener_writereads_active", NULL),
-    pm_listener_writereads_queued("listener_writereads_queued", NULL)
+    pm_listener_writereads_queued("listener_writereads_queued", NULL),
+    pm_step_1("step_1", NULL), pm_step_2("step_2", NULL), pm_step_3("step_3", NULL), pm_step_4("step_4", NULL)
 {
     if (interruptor->is_pulsed()) {
 	throw interrupted_exc_t();
@@ -173,7 +174,8 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     pm_listener_writes_active("listener_writes_active", NULL),
     pm_listener_writes_queued("listener_writes_queued", NULL),
     pm_listener_writereads_active("listener_writereads_active", NULL),
-    pm_listener_writereads_queued("listener_writereads_queued", NULL)
+    pm_listener_writereads_queued("listener_writereads_queued", NULL),
+    pm_step_1("step_1", NULL), pm_step_2("step_2", NULL), pm_step_3("step_3", NULL), pm_step_4("step_4", NULL)
 {
     if (interruptor->is_pulsed()) {
 	throw interrupted_exc_t();
@@ -335,10 +337,11 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 	{
 	    /* Enforce that we start our transaction in the same order as we
 	    entered the FIFO at the broadcaster. */
-        //RSI
 	    fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token);
         fifo_exit.wait();
+        ++pm_step_1;
 	    wait_interruptible(&fifo_exit, &on_destruct);
+        --pm_step_1;
 
 	    /* Validate write. */
 	    rassert(region_is_superset(branch_history->get().branches[branch_id].region, write.get_region()));
@@ -346,17 +349,23 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 
 	    /* Block until registration has completely succeeded or failed.
 	    (May throw `interrupted_exc_t`) */
+        ++pm_step_2;
 	    wait_interruptible(registration_done_cond.get_ready_signal(), &on_destruct);
+        --pm_step_2;
 
 	    /* Block until the backfill succeeds or fails. If the backfill
 	    fails, then the constructor will throw an exception, so
 	    `&on_destruct` will be pulsed. */
+        ++pm_step_3;
 	    wait_interruptible(backfill_done_cond.get_ready_signal(), &on_destruct);
+        --pm_step_3;
 
 	    if (transition_timestamp.timestamp_before() < backfill_done_cond.get_value()) {
-		/* `write` is a duplicate; we got it both as part of the
-		backfill, and from the broadcaster. Ignore this copy of it. */
-		return;
+            /* `write` is a duplicate; we got it both as part of the
+            backfill, and from the broadcaster. Ignore this copy of it. */
+            fifo_queue.finish_write(fifo_token);
+            --pm_listener_writes_queued;
+            return;
 	    }
 
 	    advance_current_timestamp_and_pulse_waiters(transition_timestamp);
