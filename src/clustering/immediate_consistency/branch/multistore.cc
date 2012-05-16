@@ -137,10 +137,10 @@ public:
         combined_metainfo_.update(metainfo);
 
         -- countdown_;
-        rassert(countdown_ >= 0);
+        rassert(countdown_ >= 0, "countdown_ is %d\n", countdown_);
 
         if (countdown_ == 0) {
-            bool tmp = should_backfill(combined_metainfo_);
+            bool tmp = should_backfill_func_(combined_metainfo_);
             result_promise_.pulse(tmp);
         }
 
