@@ -224,20 +224,18 @@ public:
     /* Gets the metainfo.
     [Postcondition] return_value.get_domain() == view->get_region()
     [May block] */
-    virtual metainfo_t get_metainfo(
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual metainfo_t get_metainfo(order_token_t order_token,
+                                    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Replaces the metainfo over the view's entire range with the given metainfo.
     [Precondition] region_is_superset(view->get_region(), new_metainfo.get_domain())
     [Postcondition] this->get_metainfo() == new_metainfo
     [May block] */
-    virtual void set_metainfo(
-            const metainfo_t &new_metainfo,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void set_metainfo(const metainfo_t &new_metainfo,
+                              order_token_t order_token,
+                              boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Performs a read.
     [Precondition] region_is_superset(view->get_region(), expected_metainfo.get_domain())
@@ -370,20 +368,18 @@ public:
         store_view->new_write_token(token_out);
     }
 
-    metainfo_t get_metainfo(
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) {
-        return store_view->get_metainfo(token, interruptor).mask(get_region());
+    metainfo_t get_metainfo(order_token_t order_token,
+                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        return store_view->get_metainfo(order_token, token, interruptor).mask(get_region());
     }
 
-    void set_metainfo(
-            const metainfo_t &new_metainfo,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t) {
+    void set_metainfo(const metainfo_t &new_metainfo,
+                      order_token_t order_token,
+                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
-        store_view->set_metainfo(new_metainfo, token, interruptor);
+        store_view->set_metainfo(new_metainfo, order_token, token, interruptor);
     }
 
     typename protocol_t::read_response_t read(

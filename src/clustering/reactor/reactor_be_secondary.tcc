@@ -159,8 +159,10 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                 boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
                 svs->new_read_tokens(read_tokens.get(), num_stores);
 
-                typename reactor_business_card_t<protocol_t>::secondary_without_primary_t activity(svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor),
-                                                                                                   backfiller.get_business_card());
+                typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
+                    activity(svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor),
+                             backfiller.get_business_card());
+
                 directory_entry.set(activity);
 
                 /* Wait until we can find a primary for our region. */

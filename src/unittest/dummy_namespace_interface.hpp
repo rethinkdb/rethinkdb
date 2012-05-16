@@ -61,7 +61,7 @@ public:
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
         next->store->new_read_token(read_token);
 
-        region_map_t<protocol_t, binary_blob_t> metainfo = next->store->get_metainfo(read_token, &interruptor);
+        region_map_t<protocol_t, binary_blob_t> metainfo = next->store->get_metainfo(order_token_t::ignore, read_token, &interruptor);
 
         for (typename region_map_t<protocol_t, binary_blob_t>::iterator it  = metainfo.begin();
                                                                         it != metainfo.end();
@@ -164,7 +164,7 @@ public:
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
                 stores[i]->new_read_token(read_token);
 
-                region_map_t<protocol_t, binary_blob_t> metadata = stores[i]->get_metainfo(read_token, &interruptor);
+                region_map_t<protocol_t, binary_blob_t> metadata = stores[i]->get_metainfo(order_token_t::ignore, read_token, &interruptor);
 
                 rassert(metadata.get_domain() == shards[i]);
                 for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it  = metadata.begin();
@@ -181,7 +181,9 @@ public:
                         region_map_t<protocol_t, state_timestamp_t>(shards[i], state_timestamp_t::zero()),
                         &binary_blob_t::make<state_timestamp_t>
                         ),
-                    write_token, &interruptor);
+                    order_token_t::ignore,
+                    write_token,
+                    &interruptor);
             }
 
             dummy_performer_t<protocol_t> *performer = new dummy_performer_t<protocol_t>(stores[i]);

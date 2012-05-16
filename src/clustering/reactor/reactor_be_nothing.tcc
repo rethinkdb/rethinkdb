@@ -69,8 +69,9 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, mul
              * offering backfilling until we do. */
             boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
             svs->new_read_tokens(read_tokens.get(), num_stores);
-            typename reactor_business_card_t<protocol_t>::nothing_when_safe_t activity(svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor),
-                                                                                       backfiller.get_business_card());
+            typename reactor_business_card_t<protocol_t>::nothing_when_safe_t
+                activity(svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor),
+                         backfiller.get_business_card());
             directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
 
             /* Make sure everyone sees that we're trying to erase our data,

@@ -44,7 +44,9 @@ public:
     // looks broken (and it looked broken when we were operating on a
     // single store.)
     region_map_t<protocol_t, version_range_t>
-    get_all_metainfos(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens, int num_read_tokens,
+    get_all_metainfos(order_token_t order_token,
+                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                      int num_read_tokens,
 		      signal_t *interruptor);
 
     typename protocol_t::region_t get_region(int i) const;
@@ -52,7 +54,11 @@ public:
 
     // TODO: Perhaps all uses of set_all_metainfos are completely fucking stupid, too.  See get_all_metainfos.
     // This is the opposite of get_all_metainfos but is a bit more scary.
-    void set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens, int num_write_tokens, signal_t *interruptor);
+    void set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
+                           order_token_t order_token,
+                           boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                           int num_write_tokens,
+                           signal_t *interruptor);
 
     bool send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                   const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,

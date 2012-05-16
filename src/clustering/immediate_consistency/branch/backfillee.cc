@@ -104,7 +104,7 @@ void backfillee(
     svs->new_read_tokens(read_tokens.get(), num_stores);
 
     region_map_t<protocol_t, version_range_t> start_point =
-	svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor);
+	svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
 
     start_point = start_point.mask(region);
 
@@ -251,6 +251,7 @@ void backfillee(
                 region_map_t<protocol_t, version_range_t>(span_parts.begin(), span_parts.end()),
                 &binary_blob_t::make<version_range_t>
                 ),
+            order_token_t::ignore,
             write_tokens.get(),
             num_stores,
             interruptor
@@ -287,6 +288,7 @@ void backfillee(
             end_point_cond.get_value(),
             &binary_blob_t::make<version_range_t>
             ),
+        order_token_t::ignore,
         write_tokens.get(),
         num_stores,
         interruptor

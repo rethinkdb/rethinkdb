@@ -178,16 +178,14 @@ public:
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
         void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);
 
-        metainfo_t get_metainfo(
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
+        metainfo_t get_metainfo(order_token_t order_token,
+                                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-        void set_metainfo(
-                const metainfo_t &new_metainfo,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
+        void set_metainfo(const metainfo_t &new_metainfo,
+                          order_token_t order_token,
+                          boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                          signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         memcached_protocol_t::read_response_t read(
                 DEBUG_ONLY(const metainfo_t& expected_metainfo, )

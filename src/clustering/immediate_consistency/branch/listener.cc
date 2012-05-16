@@ -63,7 +63,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
     svs->new_read_tokens(read_tokens.get(), num_stores);
 
-    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor);
+    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
 
 
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
@@ -122,7 +122,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens2(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
     svs->new_read_tokens(read_tokens2.get(), num_stores);
 
-    region_map_t<protocol_t, version_range_t> backfill_end_point = svs->get_all_metainfos(read_tokens2.get(), num_stores, interruptor);
+    region_map_t<protocol_t, version_range_t> backfill_end_point = svs->get_all_metainfos(order_token_t::ignore, read_tokens2.get(), num_stores, interruptor);
 
     /* Sanity checking. */
 
@@ -195,7 +195,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     /* Snapshot the metainfo before we start receiving writes */
     boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
     svs->new_read_tokens(read_tokens.get(), num_stores);
-    region_map_t<protocol_t, version_range_t> initial_metainfo = svs->get_all_metainfos(read_tokens.get(), num_stores, interruptor);
+    region_map_t<protocol_t, version_range_t> initial_metainfo = svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
 #endif
 
     /* Attempt to register for reads and writes */

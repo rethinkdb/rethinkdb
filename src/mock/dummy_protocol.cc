@@ -217,18 +217,28 @@ void dummy_protocol_t::store_t::new_write_token(boost::scoped_ptr<fifo_enforcer_
     token_out.reset(new fifo_enforcer_sink_t::exit_write_t(&token_sink, token));
 }
 
-dummy_protocol_t::store_t::metainfo_t dummy_protocol_t::store_t::get_metainfo(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+dummy_protocol_t::store_t::metainfo_t
+dummy_protocol_t::store_t::get_metainfo(order_token_t order_token,
+                                        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
     local_token.swap(token);
 
     wait_interruptible(local_token.get(), interruptor);
 
-    if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
+    order_sink.check_out(order_token);
+
+    if (rng.randint(2) == 0) {
+        nap(rng.randint(10), interruptor);
+    }
     metainfo_t res = metainfo.mask(get_region());
     return res;
 }
 
-void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
+                                             order_token_t order_token,
+                                             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
@@ -236,7 +246,11 @@ void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo, boo
 
     wait_interruptible(local_token.get(), interruptor);
 
-    if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
+    order_sink.check_out(order_token);
+
+    if (rng.randint(2) == 0) {
+        nap(rng.randint(10), interruptor);
+    }
 
     metainfo.update(new_metainfo);
 }

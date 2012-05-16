@@ -62,13 +62,11 @@ void run_backfill_test() {
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
         stores[i]->new_write_token(token);
         stores[i]->set_metainfo(
-            region_map_t<dummy_protocol_t, binary_blob_t>(
-                region,
-                binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
-                ),
-                token,
-                &non_interruptor
-            );
+            region_map_t<dummy_protocol_t, binary_blob_t>(region,
+                                                          binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))),
+            order_token_t::ignore,
+            token,
+            &non_interruptor);
     }
 
     // Insert 10 values into both stores, then another 10 into only `backfiller_store` and not `backfillee_store`
@@ -150,7 +148,7 @@ void run_backfill_test() {
 
     region_map_t<dummy_protocol_t, version_range_t> backfillee_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
-            backfillee_store.get_metainfo(token1, &interruptor),
+            backfillee_store.get_metainfo(order_token_t::ignore, token1, &interruptor),
             &binary_blob_t::get<version_range_t>
         );
 
@@ -159,7 +157,7 @@ void run_backfill_test() {
 
     region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
-            backfiller_store.get_metainfo(token2, &interruptor),
+            backfiller_store.get_metainfo(order_token_t::ignore, token2, &interruptor),
             &binary_blob_t::get<version_range_t>
         );
 

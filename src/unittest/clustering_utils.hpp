@@ -32,7 +32,7 @@ public:
                 store.get_region(),
                 binary_blob_t(version_range_t(version_t::zero()))
             );
-        store.set_metainfo(new_metainfo, token, &non_interruptor);
+        store.set_metainfo(new_metainfo, order_token_t::ignore, token, &non_interruptor);
     }
 
     temp_file_t temp_file;

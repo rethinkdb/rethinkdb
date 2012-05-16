@@ -463,11 +463,10 @@ void memcached_protocol_t::store_t::acquire_superblock_for_write(
     get_btree_superblock(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, &sb_out, txn_out);
 }
 
-memcached_protocol_t::store_t::metainfo_t memcached_protocol_t::store_t::get_metainfo(
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-
+memcached_protocol_t::store_t::metainfo_t
+memcached_protocol_t::store_t::get_metainfo(UNUSED order_token_t order_token,  // TODO
+                                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
     acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
@@ -500,12 +499,10 @@ region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t:
     return res;
 }
 
-void memcached_protocol_t::store_t::set_metainfo(
-        const metainfo_t &new_metainfo,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-
+void memcached_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
+                                                 UNUSED order_token_t order_token,  // TODO
+                                                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
     acquire_superblock_for_write(rwi_write, 1, token, txn, superblock, interruptor);

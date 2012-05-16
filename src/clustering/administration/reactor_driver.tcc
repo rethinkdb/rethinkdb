@@ -167,7 +167,11 @@ private:
             store->new_write_token(token);
 
             cond_t dummy_interruptor;
-            store->set_metainfo(region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(version_range_t(version_t::zero()))), token, &dummy_interruptor);
+            store->set_metainfo(region_map_t<protocol_t, binary_blob_t>(store->get_region(),
+                                                                        binary_blob_t(version_range_t(version_t::zero()))),
+                                order_token_t::ignore,  // TODO
+                                token,
+                                &dummy_interruptor);
         }
 
         // TODO: Support multiple stores.
