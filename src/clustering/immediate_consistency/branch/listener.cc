@@ -350,9 +350,9 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 
 	    advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
+            // Acquire 'n release some write tokens.
 	    svs->new_write_tokens(write_tokens.get(), num_stores);
-	    /* Now that we've gotten a write token, it's safe to allow the next write or read to proceed. */
-        fifo_queue.finish_write(fifo_token);
+            fifo_queue.finish_write(fifo_token);
 	}
 
 	/* Mask out any parts of the operation that don't apply to us */
