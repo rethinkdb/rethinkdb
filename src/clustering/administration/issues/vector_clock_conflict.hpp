@@ -55,6 +55,7 @@ public:
         semilattice_view(_semilattice_view) { }
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();
+    std::list<clone_ptr_t<vector_clock_conflict_issue_t> > get_vector_clock_issues();
 
 private:
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_view;
