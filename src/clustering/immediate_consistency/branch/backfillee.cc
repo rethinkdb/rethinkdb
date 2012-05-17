@@ -78,10 +78,10 @@ void backfillee(
 
     /* The backfiller will notify `done_mailbox` when the backfill is all over
     and the version described in `end_point_mailbox` has been achieved. */
-    cond_t done_cond;
-    mailbox_t<void()> done_mailbox(
+    promise_t<fifo_enforcer_write_token_t> done_cond;
+    mailbox_t<void(fifo_enforcer_write_token_t)> done_mailbox(
         mailbox_manager,
-        boost::bind(&cond_t::pulse, &done_cond),
+        boost::bind(&promise_t<fifo_enforcer_write_token_t>::pulse, &done_cond, _1),
         mailbox_callback_mode_inline);
 
     {
@@ -122,7 +122,7 @@ void backfillee(
 
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
-        mailbox_t<void(backfill_chunk_t)> chunk_mailbox(
+        mailbox_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_mailbox(
             mailbox_manager, boost::bind(&push_with_drain_lock<backfill_chunk_t>, &chunk_queue, _1, auto_drainer_t::lock_t(&drainer)));
 
         /* Send off the backfill request */
@@ -213,12 +213,12 @@ void backfillee(
 
         /* Now wait for the backfill to be over */
         {
-            wait_any_t waiter(&done_cond, backfiller.get_failed_signal());
+            wait_any_t waiter(done_cond.get_ready_signal(), backfiller.get_failed_signal());
             wait_interruptible(&waiter, interruptor);
 
             /* Throw an exception if backfiller died */
             backfiller.access();
-            rassert(done_cond.is_pulsed());
+            rassert(done_cond.get_ready_signal()->is_pulsed());
         }
 
         /* All went well, so don't send a cancel message to the backfiller */
