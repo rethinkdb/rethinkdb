@@ -37,12 +37,18 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
 }
 
 std::string format_log_message(const log_message_t &m) {
-#ifndef NDEBUG
+
     for (int i = 0; i < int(m.message.length()); i++) {
-        rassert(m.message[i] != '\n', "We can't have newlines in log messages "
-            "because then it would be impossible to parse the log file.");
-    }
+        if (m.message[i] == '\n') {
+#ifndef NDEBUG
+            crash("We can't have newlines in log messages because then it "
+                "would be impossible to parse the log file. Message: %s",
+                m.message.c_str());
+#else
+            m.message[i] = ' ';
 #endif
+        }
+    }
     return strprintf("%s %d.%06ds %s: %s\n",
         format_time(m.timestamp).c_str(),
         int(m.uptime.tv_sec),
