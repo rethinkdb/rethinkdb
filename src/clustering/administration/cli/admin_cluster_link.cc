@@ -423,34 +423,23 @@ void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& d
     } else if (id == "datacenters") {
         list_datacenters(long_format, cluster_metadata);
     } else if (id == "namespaces") {
-        if (data.params.count("protocol") == 0) {
-            list_dummy_namespaces(long_format, cluster_metadata);
-            list_memcached_namespaces(long_format, cluster_metadata);
-        } else {
-            std::string protocol = data.params["protocol"][0];
-            if (protocol == "memcached")
-                list_memcached_namespaces(long_format, cluster_metadata);
-            else if (protocol == "dummy")
-                list_dummy_namespaces(long_format, cluster_metadata);
-            else
-                throw admin_parse_exc_t("unrecognized protocol: " + protocol);
-        }
+        if (data.params.count("protocol") == 0)
+            list_namespaces("", long_format, cluster_metadata);
+        else
+            list_namespaces(data.params["protocol"][0], long_format, cluster_metadata);
     } else if (id == "issues") {
         list_issues(long_format);
     } else if (id == "directory") {
         list_directory(long_format);
     } else if (id == "stats") {
         list_stats(long_format);
-    } else if (!id.empty()) {
+    } else if (id.empty()) {
+        list_all(long_format, cluster_metadata);
+    } else {
         // TODO: special formatting for each object type, instead of JSON
         namespace_metadata_ctx_t json_ctx(connectivity_cluster.get_me().get_uuid());
         std::vector<std::string> obj_path(get_info_from_id(id)->path);
         puts(cJSON_print_std_string(scoped_cJSON_t(traverse_directory(obj_path, json_ctx, cluster_metadata)->render(json_ctx)).get()).c_str());
-    } else {
-        list_machines(long_format, cluster_metadata);
-        list_datacenters(long_format, cluster_metadata);
-        list_dummy_namespaces(long_format, cluster_metadata);
-        list_memcached_namespaces(long_format, cluster_metadata);
     }
 }
 
@@ -476,52 +465,229 @@ void admin_cluster_link_t::list_issues(bool long_format UNUSED) {
     }
 }
 
+void admin_print_table(const std::vector<std::vector<std::string> >& table) {
+    std::vector<int> column_widths;
+
+    if (table.size() == 0)
+        return;
+
+    for (size_t i = 1; i < table.size(); ++i)
+        if (table[i].size() != table[0].size())
+            throw admin_cluster_exc_t("unexpected error when printing table");
+
+    for (size_t i = 0; i < table[0].size(); ++i) {
+        int max = table[0][i].length();
+
+        for (size_t j = 1; j < table.size(); ++j)
+            if ((int)table[j][i].length() > max)
+                max = table[j][i].length();
+
+        column_widths.push_back(max);
+    }
+
+    for (size_t i = 0; i < table.size(); ++i) {
+        for (size_t j = 0; j < table[i].size(); ++j)
+            printf("%-*s", column_widths[j] + 2, table[i][j].c_str());
+        printf("\n");
+    }
+}
+
+template <class map_type>
+void admin_cluster_link_t::list_all_internal(const std::string& type, bool long_format, map_type& obj_map, std::vector<std::vector<std::string> >& table) {
+    std::vector<std::string> delta;
+    for (typename map_type::iterator i = obj_map.begin(); i != obj_map.end(); ++i) {
+        if (!i->second.is_deleted()) {
+            delta.clear();
+
+            delta.push_back(type);
+
+            if (long_format)
+                delta.push_back(uuid_to_str(i->first));
+            else
+                delta.push_back(uuid_to_str(i->first).substr(0, uuid_output_length));
+
+            if (i->second.get().name.in_conflict())
+                delta.push_back("<conflict>");
+            else
+                delta.push_back(i->second.get().name.get());
+
+            table.push_back(delta);
+        }
+    }
+}
+
+void admin_cluster_link_t::list_all(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
+    std::vector<std::vector<std::string> > table;
+    std::vector<std::string> delta;
+
+    delta.push_back("type");
+    delta.push_back("uuid");
+    delta.push_back("name");
+    table.push_back(delta);
+
+    list_all_internal("machine", long_format, cluster_metadata.machines.machines, table);
+    list_all_internal("datacenter", long_format, cluster_metadata.datacenters.datacenters, table);
+    // TODO: better differentiation between namespace types
+    list_all_internal("namespace (d)", long_format, cluster_metadata.dummy_namespaces.namespaces, table);
+    list_all_internal("namespace (m)", long_format, cluster_metadata.memcached_namespaces.namespaces, table);
+
+    if (table.size() > 1)
+        admin_print_table(table);
+}
+
 void admin_cluster_link_t::list_datacenters(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
-    puts("Datacenters:");
+    std::vector<std::vector<std::string> > table;
+    std::vector<std::string> delta;
+
+    delta.push_back("uuid");
+    delta.push_back("name");
+    if (long_format) {
+        delta.push_back("available");
+        delta.push_back("primaries");
+        delta.push_back("secondaries");
+        delta.push_back("namespaces");
+    }
+
+    table.push_back(delta);
+
     for (datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator i = cluster_metadata.datacenters.datacenters.begin(); i != cluster_metadata.datacenters.datacenters.end(); ++i) {
         if (!i->second.is_deleted()) {
-            printf(" %s", truncate_uuid(i->first).c_str());
+            delta.clear();
             if (long_format)
-                printf(" %s", i->second.get().name.get().c_str());
-            printf("\n");
+                delta.push_back(uuid_to_str(i->first));
+            else
+                delta.push_back(uuid_to_str(i->first).substr(0, uuid_output_length));
+            if (i->second.get().name.in_conflict())
+                delta.push_back("<conflict>");
+            else
+                delta.push_back(i->second.get().name.get());
+            if (long_format) {
+                delta.push_back("NYI");
+                delta.push_back("NYI");
+                delta.push_back("NYI");
+                delta.push_back("NYI");
+            }
+            table.push_back(delta);
         }
     }
+
+    if (table.size() > 1)
+        admin_print_table(table);
 }
 
-void admin_cluster_link_t::list_dummy_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
-    puts("Dummy Namespaces:");
-    for (namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::const_iterator i = cluster_metadata.dummy_namespaces.namespaces.begin(); i != cluster_metadata.dummy_namespaces.namespaces.end(); ++i) {
-        if (!i->second.is_deleted()) {
-            printf(" %s", truncate_uuid(i->first).c_str());
-            if (long_format)
-                printf(" %s", i->second.get().name.get().c_str());
-            printf("\n");
-        }
+void admin_cluster_link_t::list_namespaces(const std::string& type, bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
+    std::vector<std::vector<std::string> > table;
+    std::vector<std::string> header;
+
+    header.push_back("uuid");
+    header.push_back("name");
+    header.push_back("protocol");
+    if (long_format) {
+        header.push_back("shards");
+        header.push_back("replicas");
+        header.push_back("primary");
     }
+
+    table.push_back(header);
+
+    if (type.empty()) {
+        add_namespaces("dummy", long_format, cluster_metadata.dummy_namespaces.namespaces, table);
+        add_namespaces("memcached", long_format, cluster_metadata.memcached_namespaces.namespaces, table);
+    } else if (type == "dummy") {
+        add_namespaces(type, long_format, cluster_metadata.dummy_namespaces.namespaces, table);
+    } else if (type == "memcached") {
+        add_namespaces(type, long_format, cluster_metadata.memcached_namespaces.namespaces, table);
+    } else
+        throw admin_parse_exc_t("unrecognized namespace type: " + type);
+
+    if (table.size() > 1)
+        admin_print_table(table);
 }
 
-void admin_cluster_link_t::list_memcached_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
-    puts("Memcached Namespaces:");
-    for (namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::const_iterator i = cluster_metadata.memcached_namespaces.namespaces.begin(); i != cluster_metadata.memcached_namespaces.namespaces.end(); ++i) {
+template <class map_type>
+void admin_cluster_link_t::add_namespaces(const std::string& protocol, bool long_format, map_type& namespaces, std::vector<std::vector<std::string> >& table) {
+
+    std::vector<std::string> delta;
+    for (typename map_type::iterator i = namespaces.begin(); i != namespaces.end(); ++i) {
         if (!i->second.is_deleted()) {
-            printf(" %s", truncate_uuid(i->first).c_str());
+            delta.clear();
+
             if (long_format)
-                printf(" %s", i->second.get().name.get().c_str());
-            printf("\n");
+                delta.push_back(uuid_to_str(i->first));
+            else
+                delta.push_back(uuid_to_str(i->first).substr(0, uuid_output_length));
+
+            if (!i->second.get().name.in_conflict())
+                delta.push_back(i->second.get().name.get());
+            else
+                delta.push_back("<conflict>");
+
+            delta.push_back(protocol);
+
+            if (long_format) {
+                delta.push_back("NYI");
+                delta.push_back("NYI");
+                delta.push_back("NYI");
+            }
+
+            table.push_back(delta);
         }
     }
 }
 
 void admin_cluster_link_t::list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
-    puts("Machines:");
+    std::vector<std::vector<std::string> > table;
+    std::vector<std::string> delta;
+
+    delta.push_back("uuid");
+    delta.push_back("name");
+    delta.push_back("datacenter");
+    if (long_format) {
+        delta.push_back("status");
+        delta.push_back("primaries");
+        delta.push_back("secondaries");
+        delta.push_back("namespaces");
+    }
+
+    table.push_back(delta);
+
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin(); i != cluster_metadata.machines.machines.end(); ++i) {
         if (!i->second.is_deleted()) {
-            printf(" %s", truncate_uuid(i->first).c_str());
+            delta.clear();
+
             if (long_format)
-                printf(" %s", i->second.get().name.get().c_str());
-            printf("\n");
+                delta.push_back(uuid_to_str(i->first));
+            else
+                delta.push_back(uuid_to_str(i->first).substr(0, uuid_output_length));
+
+            if (!i->second.get().name.in_conflict())
+                delta.push_back(i->second.get().name.get());
+            else
+                delta.push_back("<conflict>");
+
+            if (!i->second.get().datacenter.in_conflict()) {
+                if (long_format)
+                    delta.push_back(uuid_to_str(i->second.get().datacenter.get()));
+                else
+                    delta.push_back(uuid_to_str(i->second.get().datacenter.get()).substr(0, uuid_output_length));
+            } else
+                delta.push_back("<conflict>");
+
+            if (long_format) {
+                delta.push_back("NYI");
+                delta.push_back("NYI");
+                delta.push_back("NYI");
+                delta.push_back("NYI");
+            }
+
+            table.push_back(delta);
         }
     }
+
+    // TODO: sort by datacenter and name
+
+    if (table.size() > 1)
+        admin_print_table(table);
 }
 
 void admin_cluster_link_t::do_admin_create_datacenter(admin_command_parser_t::command_data& data) {
