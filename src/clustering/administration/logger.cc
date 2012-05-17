@@ -39,13 +39,13 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
 std::string format_log_message(const log_message_t &m) {
 
     for (int i = 0; i < int(m.message.length()); i++) {
-        if (m.message[i] == '\n') {
+        if (m.message[i] < ' ' || m.message[i] > '~') {
 #ifndef NDEBUG
-            crash("We can't have newlines in log messages because then it "
-                "would be impossible to parse the log file. Message: %s",
-                m.message.c_str());
+            crash("We can't have newlines, tabs or special characters in log "
+                "messages because then it would be difficult to parse the log "
+                "file. Message: %s", m.message.c_str());
 #else
-            m.message[i] = ' ';
+            m.message[i] = '?';
 #endif
         }
     }
