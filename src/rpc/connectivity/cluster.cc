@@ -193,6 +193,11 @@ void connectivity_cluster_t::run_t::handle(
 {
     parent->assert_thread();
 
+    // Make sure that if we're ordered to shut down, any pending read
+    // or write gets interrupted.
+    cluster_conn_closing_subscription_t conn_closer_1(conn);
+    conn_closer_1.reset(drainer_lock.get_drain_signal());
+
     /* Send a heartbeat every ten seconds of inactivity; if heartbeat is not
     acked, try again every three seconds and declare connection dead after three
     tries. */
@@ -412,6 +417,11 @@ void connectivity_cluster_t::run_t::handle(
         }
     }
 
+    /* Now that we're about to switch threads, it's not safe to try to close
+    the connection from this thread anymore. This is safe because we won't do
+    anything that permanently blocks before setting up `conn_closer_2`. */
+    conn_closer_1.reset();
+
     // We could pick a better way to pick a better thread, our choice
     // now is hopefully a performance non-problem.
     int chosen_thread = rng.randint(get_num_threads());
@@ -424,8 +434,8 @@ void connectivity_cluster_t::run_t::handle(
 
     // Make sure that if we're ordered to shut down, any pending read
     // or write gets interrupted.
-    cluster_conn_closing_subscription_t conn_closer(conn);
-    conn_closer.reset(&connection_thread_drain_signal);
+    cluster_conn_closing_subscription_t conn_closer_2(conn);
+    conn_closer_2.reset(&connection_thread_drain_signal);
 
     {
         /* `connection_entry_t` is the public interface of this coroutine. Its
