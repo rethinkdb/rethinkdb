@@ -112,14 +112,6 @@ private:
 
     boost::ptr_map<dispatchee_t *, queue_and_pool_t> coro_pools;
 
-    //unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
-    //coro_pool_t<boost::function<void()> > background_write_workers;
-
-    perfmon_counter_t pm_active_writes,
-                      pm_enqueued_background_writes,
-                      pm_active_background_writes,
-                      pm_unacked_writes;
-
     DISABLE_COPYING(broadcaster_t);
 };
 
