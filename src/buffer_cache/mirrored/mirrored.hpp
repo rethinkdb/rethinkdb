@@ -386,7 +386,7 @@ private:
     // components it wasn't originally given.
 
     serializer_t *serializer;
-    mc_cache_stats_t stats;
+    boost::scoped_ptr<mc_cache_stats_t> stats;
 
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,

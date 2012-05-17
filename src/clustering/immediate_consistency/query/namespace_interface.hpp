@@ -12,7 +12,6 @@
 #include "clustering/registrant.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
-#include "containers/archive/order_token.hpp"
 #include "protocol_api.hpp"
 
 

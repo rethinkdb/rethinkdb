@@ -5,18 +5,26 @@
 #include <map>
 #endif
 
+#include "rpc/serialize_macros.hpp"
+#include "containers/uuid.hpp"
 #include "utils.hpp"
 
 
+
 struct order_bucket_t {
-    order_bucket_t(int thread, int number) :
-        thread_(thread), number_(number)
-        { }
-    order_bucket_t() { }
-    int thread_;
-    int number_;
-    bool valid();
+    boost::uuids::uuid uuid_;
+
+    static order_bucket_t invalid() { return order_bucket_t(nil_uuid()); }
+    static order_bucket_t create() { return order_bucket_t(generate_uuid()); }
+
+    bool valid() const;
+private:
+    RDB_MAKE_ME_SERIALIZABLE_1(uuid_);
+
+    order_bucket_t(boost::uuids::uuid uuid) : uuid_(uuid) { }
 };
+
+
 
 bool operator==(const order_bucket_t& a, const order_bucket_t& b);
 bool operator!=(const order_bucket_t& a, const order_bucket_t& b);
@@ -45,26 +53,32 @@ public:
     order_token_t() { }
     order_token_t with_read_mode() const { return order_token_t(); }
 
-    int bucket() const { return 0; }
     bool read_mode() const { return true; }
-    int64_t value() const { return 0; }
     std::string tag() const { return ""; }
 #endif  // ifndef NDEBUG
 
 private:
 #ifndef NDEBUG
     order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string& tag);
+
+    bool is_invalid() const;
+    bool is_ignore() const;
+
+    // TODO: Make these fields const.
     order_bucket_t bucket_;
     bool read_mode_;
     int64_t value_;
     // This tag would be inefficient on VC++ or some other non-GNU
     // std::string implementation, since we copy by value.
     std::string tag_;
+
+    RDB_MAKE_ME_SERIALIZABLE_4(bucket_, read_mode_, value_, tag_);
+#else  // ifndef NDEBUG
+    RDB_MAKE_ME_SERIALIZABLE_0();
 #endif  // ifndef NDEBUG
 
     friend class order_source_t;
     friend class order_sink_t;
-    friend class backfill_receiver_order_source_t;
     friend class plain_sink_t;
 };
 
@@ -94,47 +108,6 @@ private:
 #endif  // ifndef NDEBUG
 
     DISABLE_COPYING(order_source_t);
-};
-
-
-/* A backfill receiver order source is a bit special, because when we
-   backfill, we want backfill operations to get in before "realtime"
-   operations.  So we play tricks with the counter depending on
-   whether we're currently backfilling and whether we're checking in a
-   backfill or a realtime operation.  (This assumes there will be no
-   more than 4 billion backfill operations, which is ok for
-   debugging purposes.)
- */
-class backfill_receiver_order_source_t : public home_thread_mixin_t {
-public:
-#ifndef NDEBUG
-    backfill_receiver_order_source_t();
-    ~backfill_receiver_order_source_t();
-
-    void backfill_begun();
-    void backfill_done();
-
-    order_token_t check_in_backfill_operation(const std::string& tag);
-    order_token_t check_in_realtime_operation(const std::string& tag);
-#else
-    backfill_receiver_order_source_t() { }
-
-    void backfill_begun() { }
-    void backfill_done() { }
-
-    order_token_t check_in_backfill_operation(const std::string&) { return order_token_t(); }
-    order_token_t check_in_realtime_operation(const std::string&) { return order_token_t(); }
-
-#endif  // ifndef NDEBUG
-
-private:
-#ifndef NDEBUG
-    order_bucket_t bucket_;
-    int64_t counter_;
-    bool backfill_active_;
-#endif  // ifndef NDEBUG
-
-    DISABLE_COPYING(backfill_receiver_order_source_t);
 };
 
 struct tagged_seen_t {

@@ -33,16 +33,31 @@ private:
     std::string info;
 };
 
+struct admin_retry_exc_t : public std::exception {
+public:
+    explicit admin_retry_exc_t(const std::string& data) : info(data) { }
+    ~admin_retry_exc_t() throw () { }
+    const char *what() const throw () { return info.c_str(); }
+private:
+    std::string info;
+};
+
 class admin_cluster_link_t {
 public:
     admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port, signal_t *interruptor);
+    ~admin_cluster_link_t();
 
     // A way for the parser to do completions and parsing verification
     std::vector<std::string> get_ids(const std::string& base);
+    std::vector<std::string> get_machine_ids(const std::string& base);
+    std::vector<std::string> get_namespace_ids(const std::string& base);
+    std::vector<std::string> get_datacenter_ids(const std::string& base);
+    std::vector<std::string> get_conflicted_ids(const std::string& base);
 
     // Commands that may be run by the parser
     void do_admin_list(admin_command_parser_t::command_data& data);
     void do_admin_resolve(admin_command_parser_t::command_data& data);
+    void do_admin_pin_shard(admin_command_parser_t::command_data& data);
     void do_admin_split_shard(admin_command_parser_t::command_data& data);
     void do_admin_merge_shard(admin_command_parser_t::command_data& data);
     void do_admin_set_name(admin_command_parser_t::command_data& data);
@@ -67,9 +82,9 @@ private:
     static const size_t minimum_uuid_substring = 4;
     static const size_t uuid_output_length = 8;
 
-    void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata);
+    std::vector<std::string> get_ids_internal(const std::string& base, const std::string& path);
 
-    void set_metadata_value(const std::vector<std::string>& path, const std::string& value);
+    void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata);
 
     size_t get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter);
 
@@ -103,24 +118,23 @@ private:
     template <class obj_map>
     void do_admin_remove_internal(obj_map& metadata, const boost::uuids::uuid& obj_uuid);
 
+    template <class map_type>
+    void list_all_internal(const std::string& type, bool long_format, map_type& obj_map, std::vector<std::vector<std::string> >& table);
+
+    void list_stats(bool long_format);
     void list_issues(bool long_format);
     void list_directory(bool long_format);
+    void list_all(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_datacenters(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_dummy_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_memcached_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
 
+    void list_namespaces(const std::string& type, bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
+    template <class map_type>
+    void add_namespaces(const std::string& protocol, bool long_format, map_type& namespaces, std::vector<std::vector<std::string> >& table);
+
     boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > traverse_directory(const std::vector<std::string>& path, namespace_metadata_ctx_t& json_ctx, cluster_semilattice_metadata_t& cluster_metadata);
-
-    void init_uuid_to_path_map(const cluster_semilattice_metadata_t& cluster_metadata);
-    void init_name_to_path_map(const cluster_semilattice_metadata_t& cluster_metadata);
-
-    template <class T>
-    void add_subset_to_uuid_path_map(const std::string& base, T& data_map);
-    template <class T>
-    void add_subset_to_name_path_map(const std::string& base, T& data_map);
-
-    std::vector<std::string> get_path_from_id(const std::string& id);
 
     local_issue_tracker_t local_issue_tracker;
     log_writer_t log_writer;
@@ -163,8 +177,20 @@ private:
     // Initial join
     initial_joiner_t initial_joiner;
 
-    std::map<std::string, std::vector<std::string> > uuid_to_path;
-    std::multimap<std::string, std::vector<std::string> > name_to_path;
+    struct metadata_info {
+        std::string uuid;
+        std::string name;
+        std::vector<std::string> path;
+    };
+
+    std::map<std::string, metadata_info*> uuid_map;
+    std::multimap<std::string, metadata_info*> name_map;
+
+    void clear_metadata_maps();
+    void update_metadata_maps();
+    template <class T>
+    void add_subset_to_maps(const std::string& base, T& data_map);
+    metadata_info* get_info_from_id(const std::string& id);
 
     peer_id_t sync_peer;
 
