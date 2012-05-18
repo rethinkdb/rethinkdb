@@ -30,8 +30,10 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store
     : store_views(num_store_views, NULL)
       DEBUG_ONLY(, region_mask(_region_mask)) {
 
-    rassert(region_is_superset(compute_unmasked_multistore_joined_region(_store_views, num_store_views),
-                               _region_mask));
+#ifndef NDEBUG
+    const typename protocol_t::region_t &our_joined_region = compute_unmasked_multistore_joined_region(_store_views, num_store_views);
+    rassert(region_is_superset(our_joined_region, _region_mask));
+#endif
 
     initialize(_store_views, _region_mask);
 }
@@ -142,9 +144,9 @@ void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol
 template <class protocol_t>
 class multistore_send_backfill_should_backfill_t {
 public:
-    multistore_send_backfill_should_backfill_t(int num_stores, const typename protocol_t::region_t &joined_region,
+    multistore_send_backfill_should_backfill_t(int num_stores, const typename protocol_t::region_t &start_point_region,
                                                const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill_func)
-        : countdown_(num_stores), should_backfill_func_(should_backfill_func), combined_metainfo_(joined_region) { }
+        : countdown_(num_stores), should_backfill_func_(should_backfill_func), combined_metainfo_(start_point_region) { }
 
     bool should_backfill(const typename protocol_t::store_t::metainfo_t &metainfo) {
         combined_metainfo_.update(metainfo);
@@ -223,7 +225,7 @@ bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<p
     guarantee(num_stores() == num_stores_assertion);
     guarantee(region_is_superset(get_multistore_joined_region(), start_point.get_domain()));
 
-    multistore_send_backfill_should_backfill_t<protocol_t> helper(num_stores(), get_multistore_joined_region(), should_backfill);
+    multistore_send_backfill_should_backfill_t<protocol_t> helper(num_stores(), start_point.get_domain(), should_backfill);
 
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_backfill,
                                    this,

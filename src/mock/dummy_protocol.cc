@@ -286,6 +286,7 @@ dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo, 
     return resp;
 }
 
+
 dummy_protocol_t::write_response_t
 dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
                                  const metainfo_t& new_metainfo,
