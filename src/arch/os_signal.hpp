@@ -9,9 +9,8 @@ class os_signal_cond_t : public thread_message_t,
 {
 public:
     os_signal_cond_t();
-    void on_thread_switch() { pulse(); }
+    ~os_signal_cond_t();
+    void on_thread_switch();
 };
-
-void wait_for_sigint();
 
 #endif  // OS_SIGNAL_HPP_
