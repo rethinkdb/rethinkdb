@@ -15,8 +15,6 @@ initial_joiner_t::initial_joiner_t(
 {
     rassert(!peers.empty());
 
-    peer_address_t my_address = cluster->get_peer_address(cluster->get_me());
-
     if (timeout_ms != -1) {
         grace_period_timer.reset(new signal_timer_t(timeout_ms));
     }
