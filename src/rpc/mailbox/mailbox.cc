@@ -123,12 +123,7 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *
     if (mbox) {
         mbox->callback(stream);
     } else {
-        /* Print a warning message */
-        raw_mailbox_t::address_t dest_address;
-        dest_address.peer = message_service->get_connectivity_service()->get_me();
-        dest_address.thread = dest_thread;
-        dest_address.mailbox_id = dest_mailbox_id;
-
-        logDBG("Message dropped because mailbox %s no longer exists. (This doesn't necessarily indicate a bug.)", dest_address.human_readable().c_str());
+        /* Ignore it, because it's impossible to write code in such a way that
+        messages will never be received for dead mailboxes. */
     }
 }

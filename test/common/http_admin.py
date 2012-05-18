@@ -486,6 +486,19 @@ class ClusterAccess(object):
         self.wait_for_propagation()
         self.update_cluster_data()
 
+    def change_namespace_shards(self, namespace, adds=[], removes=[]):
+        type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
+        type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
+        assert type_namespaces[type(namespace)][namespace.uuid] is namespace
+        protocol = type_protocols[type(namespace)]
+        for split_point in adds:
+            namespace.add_shard(split_point)
+        for split_point in removes:
+            namespace.remove_shard(split_point)
+        info = self.do_query("POST", "/ajax/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
+        self.wait_for_propagation()
+        self.update_cluster_data()
+
     def compute_port(self, namespace, machine):
         namespace = self.find_namespace(namespace)
         machine = self.find_machine(machine)
@@ -537,6 +550,14 @@ class ClusterAccess(object):
 
     def get_issues(self):
         return self.do_query("GET", "/ajax/issues")
+
+    def check_no_issues(self):
+        issues = self.get_issues()
+        if issues:
+            message = ""
+            for issue in issues:
+                message += issue["description"] + "\n"
+            raise RuntimeError("Cluster has issues:\n" + message)
 
     def get_distribution(self, namespace, depth = 1):
         return self.do_query("GET", "/ajax/distribution?namespace=%s&depth=%d" % (namespace.uuid, depth))

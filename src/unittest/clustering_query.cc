@@ -84,8 +84,7 @@ static void run_read_write_test() {
         cluster.get_mailbox_manager(),
         master_directory.get_watchable()->subview(boost::bind(&wrap_in_peers_map, _1, cluster.get_connectivity_service()->get_me()))
         );
-
-    nap(100);
+    namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();
 
     /* Send some writes to the namespace */
     order_source_t order_source;
@@ -167,8 +166,7 @@ static void run_broadcaster_problem_test() {
         cluster.get_mailbox_manager(),
         master_directory.get_watchable()->subview(boost::bind(&wrap_in_peers_map, _1, cluster.get_connectivity_service()->get_me()))
         );
-
-    nap(100);
+    namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();
 
     order_source_t order_source;
 
@@ -202,8 +200,7 @@ static void run_missing_master_test() {
         cluster.get_mailbox_manager(),
         master_directory.get_watchable()->subview(boost::bind(&wrap_in_peers_map, _1, cluster.get_connectivity_service()->get_me()))
         );
-
-    nap(100);
+    namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();
 
     order_source_t order_source;
 

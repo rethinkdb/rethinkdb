@@ -110,7 +110,7 @@ void admin_command_parser_t::command_info::add_subcommand(command_info *info)
 }
 
 void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info_t>& helps,
-                                               const std::vector<const char *>& options,
+                                               const std::vector<std::string>& options,
                                                const char * header,
                                                bool console) {
     const char *prefix = console ? "" : "rethinkdb admin [OPTIONS] ";
@@ -150,7 +150,7 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
         help->pagef("\n"
                     "Options:\n");
         for (size_t i = 0; i < options.size(); ++i)
-            help->pagef("  %s\n", options[i]);
+            help->pagef("  %s\n", options[i].c_str());
     }
 
     delete help;
@@ -158,7 +158,7 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
 
 void admin_command_parser_t::do_usage(bool console) {
     std::vector<admin_help_info_t> helps;
-    std::vector<const char *> options;
+    std::vector<std::string> options;
     helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
     helps.push_back(admin_help_info_t(set_acks_command, set_acks_usage, set_acks_description));
     helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
@@ -181,7 +181,7 @@ void admin_command_parser_t::do_usage(bool console) {
 
 void admin_command_parser_t::do_set_usage(bool console) {
     std::vector<admin_help_info_t> helps;
-    std::vector<const char *> options;
+    std::vector<std::string> options;
     helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
     helps.push_back(admin_help_info_t(set_acks_command, set_acks_usage, set_acks_description));
     helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
@@ -192,7 +192,7 @@ void admin_command_parser_t::do_set_usage(bool console) {
 
 void admin_command_parser_t::do_create_usage(bool console) {
     std::vector<admin_help_info_t> helps;
-    std::vector<const char *> options;
+    std::vector<std::string> options;
     helps.push_back(admin_help_info_t(create_namespace_command, create_namespace_usage, create_namespace_description));
     helps.push_back(admin_help_info_t(create_datacenter_command, create_datacenter_usage, create_datacenter_description));
     // TODO: add option descriptions
@@ -201,7 +201,7 @@ void admin_command_parser_t::do_create_usage(bool console) {
 
 void admin_command_parser_t::do_remove_usage(bool console) {
     std::vector<admin_help_info_t> helps;
-    std::vector<const char *> options;
+    std::vector<std::string> options;
     helps.push_back(admin_help_info_t(remove_command, remove_usage, remove_description));
     // TODO: add option descriptions
     do_usage_internal(helps, options, "remove - delete an object from the cluster metadata", console);
@@ -209,7 +209,7 @@ void admin_command_parser_t::do_remove_usage(bool console) {
 
 void admin_command_parser_t::do_merge_usage(bool console) {
     std::vector<admin_help_info_t> helps;
-    std::vector<const char *> options;
+    std::vector<std::string> options;
     helps.push_back(admin_help_info_t(merge_shard_command, merge_shard_usage, merge_shard_description));
     // TODO: add option descriptions
     do_usage_internal(helps, options, "merge - merge two or more shards in a namespace", console);
@@ -217,7 +217,7 @@ void admin_command_parser_t::do_merge_usage(bool console) {
 
 void admin_command_parser_t::do_list_usage(bool console) {
     std::vector<admin_help_info_t> helps;
-    std::vector<const char *> options;
+    std::vector<std::string> options;
     helps.push_back(admin_help_info_t(list_command, list_usage, list_description));
     // TODO: add option descriptions
     do_usage_internal(helps, options, "list - display information from the cluster", console);
@@ -225,7 +225,7 @@ void admin_command_parser_t::do_list_usage(bool console) {
 
 void admin_command_parser_t::do_help_usage(bool console) {
     std::vector<admin_help_info_t> helps;
-    std::vector<const char *> options;
+    std::vector<std::string> options;
     helps.push_back(admin_help_info_t(help_command, help_usage, help_description));
     // TODO: add option descriptions
     do_usage_internal(helps, options, "help - provide information about a cluster administration command", console);
@@ -233,7 +233,7 @@ void admin_command_parser_t::do_help_usage(bool console) {
 
 void admin_command_parser_t::do_split_usage(bool console) {
     std::vector<admin_help_info_t> helps;
-    std::vector<const char *> options;
+    std::vector<std::string> options;
     helps.push_back(admin_help_info_t(split_shard_command, split_shard_usage, split_shard_description));
     // TODO: add option descriptions
     do_usage_internal(helps, options, "split - split a shard in a namespace into more shards", console);
@@ -241,7 +241,7 @@ void admin_command_parser_t::do_split_usage(bool console) {
 
 void admin_command_parser_t::do_resolve_usage(bool console) {
     std::vector<admin_help_info_t> helps;
-    std::vector<const char *> options;
+    std::vector<std::string> options;
     helps.push_back(admin_help_info_t(resolve_command, resolve_usage, resolve_description));
     // TODO: add option descriptions
     do_usage_internal(helps, options, "resolve - resolve a conflict on a cluster metadata value", console);
@@ -312,8 +312,8 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("shard", 1, true); // TODO: list possible shards
     info->add_positional("machine", 1, true)->add_option("!machine");
-    info->add_flag("primary", 1, false);
-    info->add_flag("secondary", -1, false); // TODO: not sure if -1 works here
+    info->add_flag("primary", 1, false)->add_option("!machine");
+    info->add_flag("secondary", -1, false)->add_option("!machine"); // TODO: not sure if -1 works here
 
     info = add_command(commands, split_shard_command, split_shard_command, split_shard_usage, true, &admin_cluster_link_t::do_admin_split_shard);
     info->add_positional("namespace", 1, true)->add_option("!namespace");

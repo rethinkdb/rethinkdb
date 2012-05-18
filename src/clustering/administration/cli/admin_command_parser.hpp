@@ -156,7 +156,7 @@ private:
     };
 
     static void do_usage_internal(const std::vector<admin_help_info_t>& helps,
-                                  const std::vector<const char *>& options,
+                                  const std::vector<std::string>& options,
                                   const char *header,
                                   bool console);
 

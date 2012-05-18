@@ -118,13 +118,21 @@ private:
     template <class obj_map>
     void do_admin_remove_internal(obj_map& metadata, const boost::uuids::uuid& obj_uuid);
 
+    template <class map_type>
+    void list_all_internal(const std::string& type, bool long_format, map_type& obj_map, std::vector<std::vector<std::string> >& table);
+
     void list_stats(bool long_format);
     void list_issues(bool long_format);
     void list_directory(bool long_format);
+    void list_all(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_datacenters(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_dummy_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_memcached_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
+
+    void list_namespaces(const std::string& type, bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
+    template <class map_type>
+    void add_namespaces(const std::string& protocol, bool long_format, map_type& namespaces, std::vector<std::vector<std::string> >& table);
 
     boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > traverse_directory(const std::vector<std::string>& path, namespace_metadata_ctx_t& json_ctx, cluster_semilattice_metadata_t& cluster_metadata);
 

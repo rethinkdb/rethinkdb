@@ -253,7 +253,9 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
     struct thread_info_t {
         stats_t current_stats, last_stats;
         int current_interval;
-    } thread_data[MAX_THREADS];
+    };
+
+    boost::scoped_array<thread_info_t> thread_data;
 
     void get_thread_stat(stats_t *);
     stats_t combine_stats(stats_t *);

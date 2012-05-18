@@ -89,15 +89,18 @@ def run_test(test_id, command):
         box_dir = os.path.join(test_dir, "box")
         with database_lock:
             database["%d.result" % test_id] = { "status": "running" }
+            database.sync()
         with file(os.path.join(test_dir, "output.txt"), "w") as output_file:
             proc = subprocess32.Popen(command, shell = True, stdout = output_file, stderr = output_file, cwd = box_dir, start_new_session = True)
             running_tasks[test_id]["proc"] = proc
             rc = proc.wait()
         with database_lock:
             database["%d.result" % test_id] = { "status": "done", "return_code": rc, "end_time": time.time() }
+            database.sync()
     except Exception, e:
         with database_lock:
             database["%d.result" % test_id] = { "status": "bug", "traceback": traceback.format_exc() }
+            database.sync()
     finally:
         del running_tasks[test_id]
 
@@ -119,11 +122,13 @@ def spawn():
             "command": command,
             "emailees": emailees
             }
+        database.sync()
     try:
         running_tasks[test_id] = { }
         try:
             with database_lock:
                 database["%d.result" % test_id] = { "status": "starting" }
+                database.sync()
             test_dir = os.path.join(root_dir, "test-%d" % test_id)
             os.mkdir(test_dir)
             box_dir = os.path.join(test_dir, "box")
@@ -154,6 +159,7 @@ def spawn():
     except Exception, e:
         with database_lock:
             database["%d.result" % test_id] = { "status": "bug", "traceback": traceback.format_exc() }
+            database.sync()
         raise
     return "%d\n" % test_id
 

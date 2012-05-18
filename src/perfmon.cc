@@ -126,7 +126,7 @@ void perfmon_counter_t::output_stat(const int64_t &stat, perfmon_result_t *dest)
 /* perfmon_sampler_t */
 
 perfmon_sampler_t::perfmon_sampler_t(const std::string& _name, ticks_t _length, bool _include_rate, perfmon_collection_t *parent)
-    : perfmon_perthread_t<stats_t>(parent), name(_name), length(_length), include_rate(_include_rate)
+    : perfmon_perthread_t<stats_t>(parent), thread_data(new thread_info_t[MAX_THREADS]), name(_name), length(_length), include_rate(_include_rate)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;
