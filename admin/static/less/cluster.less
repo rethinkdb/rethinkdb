@@ -1185,3 +1185,34 @@
         }
     }
 }
+
+/*
+    --------------------
+    Visualization styles
+    --------------------
+*/
+#ops_plot_container {
+    .chart {
+        border-bottom: solid 1px black;
+        overflow: hidden;
+        display: inline-block;
+    }
+
+    .chart canvas {
+        display: block;
+    }
+
+    .chart .title, .chart .value {
+        display: none;
+    }
+    
+    .axis {
+        font: 10px sans-serif;
+        margin-top: -9px;
+    }
+
+    .axis line {
+        stroke: #000;
+        shape-rendering: crispEdges;
+    }
+}

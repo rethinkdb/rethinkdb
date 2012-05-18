@@ -62,6 +62,22 @@ class Namespace extends Backbone.Model
         all_sps = @.get('splitpoints')
         return (shard_index == 0 || all_sps[shard_index - 1] < sp) && (shard_index == all_sps.length || sp < all_sps[shard_index])
 
+    # Computing btree stats based on machine stats
+    get_stats: =>
+        __s =
+            keys_read: 0
+            keys_set: 0
+        _.each DataUtils.get_namespace_machines(@get('id')), (mid) =>
+            _m = machines.get(mid)
+            _s = _m.get_stats()[@get('id')]
+            if _s?
+                keys_read = parseFloat(_s.btree.keys_read)
+                if not isNaN(keys_read)
+                    __s.keys_read += keys_read
+                keys_set = parseFloat(_s.btree.keys_set)
+                if not isNaN(keys_set)
+                    __s.keys_set += keys_set
+        return __s
 
 class Datacenter extends Backbone.Model
     get_stats: =>
@@ -138,12 +154,24 @@ class MachineAttributes extends Backbone.Model
 
 class ConnectionStatus extends Backbone.Model
 
-class DataPoint extends Backbone.Model
+# This is a computed model for the cluster (mainly for stats right
+# now)
+class ComputedCluster extends Backbone.Model
+    initialize: ->
+        log_initial '(initializing) computed cluster model'
+        super
 
-class DataPoints extends Backbone.Collection
-    model: DataPoint
-
-class ColorMap extends Backbone.Model
+    get_stats: =>
+        __s =
+            keys_read: 0
+            keys_set: 0
+        for namespace in namespaces.models
+            _s = namespace.get_stats()
+            if not _s?
+                continue
+            __s.keys_read += _s.keys_read
+            __s.keys_set += _s.keys_set
+        return __s
 
 # Collections for Backbone.js
 class Namespaces extends Backbone.Collection
@@ -191,60 +219,6 @@ class ProgressList extends Backbone.Collection
 class Directory extends Backbone.Collection
     model: MachineAttributes
     url: '/ajax/directory'
-
-class DataStream extends Backbone.Model
-    max_cached: 250
-    cache_ready: false
-
-    initialize: ->
-        @.set('cached_data': [])
-
-    update: (timestamp) => @.get('data').each (data_point) => @update_data_point data_point, timestamp
-
-    update_data_point: (data_point, timestamp) =>
-        # Attributes of the data point
-        uuid = data_point.get('id')
-        existing_val = data_point.get('value')
-
-        # Get a random number between -1 and 1, using a normal distribution
-        random = d3.random.normal(0,0.2)
-        delta = random()
-        delta = -1 if delta < -1
-        delta = 1 if delta > 1
-
-        # Multiply by a constant factor to get a delta for the next walk
-        delta = Math.floor(delta * 100)
-
-        # Pop the oldest data point off the cached data (if we've filled the cache)
-        cached_data = @.get('cached_data')
-        if not cached_data[uuid]?
-            cached_data[uuid] = []
-        if cached_data[uuid].length >= @num_cached
-            cached_data[uuid].shift()
-
-        # Cache the existing value (create a copy based on the existing object)
-        cached_data[uuid].push new DataPoint data_point.toJSON()
-
-        if not @cache_ready and cached_data[uuid].length >= 2
-            @cache_ready = true
-            @.trigger 'cache_ready'
-
-        # Logging (remove TODO)
-        ###
-        name = data_point.get('collection').get(uuid).get('name')
-        if name is 'usa_1' and @.get('name') is 'mem_usage_data'
-            console.log name, "in dataset #{@.get('name')} now includes the data", _.map cached_data["01f04592-e403-4abc-a845-83d43f6fd967"], (data_point) -> data_point.get('value')
-        ###
-
-        # Make sure the new value is non-negative
-        new_val = existing_val + delta
-        new_val = existing_val if new_val <= 0
-
-        # Set the new value
-        data_point.set
-            value: new_val
-            # Assumption: every datapoint across datastreams at the time of sampling will have the same datetime stamp
-            time: timestamp
 
 # This module contains utility functions that compute and massage
 # commonly used data.
@@ -335,7 +309,11 @@ module 'DataUtils', ->
     # Return a list of machines relevant to a namespace
     @get_namespace_machines = (namespace_uuid) ->
         mids = []
-        for mid, roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+        _n = namespaces.get(namespace_uuid)
+        if not _n
+            return []
+        _n = _n.get('blueprint').peers_roles
+        for mid, roles of _n
             mids.push(mid)
         return mids
 
