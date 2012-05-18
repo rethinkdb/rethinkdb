@@ -174,7 +174,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                     product_path = "rethinkdb/build/%s/rethinkdb" % config_name
                     builds[config_name] = {
                         "command_line": "cd rethinkdb/src; make -j12 " + " ".join(make_flags),
-                        "products": [product_path]
+                        "products": [product_path, product_path + "-unittest"]
                         }
             generate_configs(config_bits, [], "")
 
