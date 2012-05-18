@@ -8,7 +8,8 @@
 #include "rpc/semilattice/joins/vclock.hpp"
 
 template <class protocol_t>
-typename protocol_t::region_t compute_unmasked_multistore_joined_region(store_view_t<protocol_t> *const *store_views, int num_store_views) {
+typename protocol_t::region_t compute_unmasked_multistore_joined_region(store_view_t<protocol_t> *const *store_views,
+                                                                        int num_store_views) {
     std::vector<typename protocol_t::region_t> regions;
     for (int i = 0; i < num_store_views; ++i) {
         regions.push_back(store_views[i]->get_region());
@@ -23,17 +24,21 @@ typename protocol_t::region_t compute_unmasked_multistore_joined_region(store_vi
 }
 
 template <class protocol_t>
-multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store_views, int num_store_views, const typename protocol_t::region_t &_region_mask)
+multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store_views,
+                                               int num_store_views,
+                                               const typename protocol_t::region_t &_region_mask)
     : store_views(num_store_views, NULL)
       DEBUG_ONLY(, region_mask(_region_mask)) {
 
-    rassert(region_is_superset(compute_unmasked_multistore_joined_region(_store_views, num_store_views), _region_mask));
+    rassert(region_is_superset(compute_unmasked_multistore_joined_region(_store_views, num_store_views),
+                               _region_mask));
 
     initialize(_store_views, _region_mask);
 }
 
 template <class protocol_t>
-multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inner, const typename protocol_t::region_t &_region_mask)
+multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inner,
+                                               const typename protocol_t::region_t &_region_mask)
     : store_views(inner->num_stores(), NULL)
       DEBUG_ONLY(, region_mask(_region_mask)) {
     rassert(region_is_superset(inner->region_mask, _region_mask));
@@ -42,12 +47,14 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inn
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask) THROWS_NOTHING {
+void multistore_ptr_t<protocol_t>::initialize(store_view_t<protocol_t> **_store_views,
+                                              const typename protocol_t::region_t &_region_mask) THROWS_NOTHING {
     for (int i = 0, e = store_views.size(); i < e; ++i) {
         rassert(store_views[i] == NULL);
 
         // We do a region intersection because store_subview_t requires that the region mask be a subset of the store region.
-        store_views[i] = new store_subview_t<protocol_t>(_store_views[i], region_intersection(_region_mask, _store_views[i]->get_region()));
+        store_views[i] = new store_subview_t<protocol_t>(_store_views[i],
+                                                         region_intersection(_region_mask, _store_views[i]->get_region()));
     }
 }
 
@@ -218,7 +225,15 @@ bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<p
 
     multistore_send_backfill_should_backfill_t<protocol_t> helper(num_stores(), get_multistore_joined_region(), should_backfill);
 
-    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_backfill, this, _1, &helper, boost::ref(start_point), boost::ref(chunk_fun), progress, read_tokens, interruptor));
+    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_backfill,
+                                   this,
+                                   _1,
+                                   &helper,
+                                   boost::ref(start_point),
+                                   boost::ref(chunk_fun),
+                                   progress,
+                                   read_tokens,
+                                   interruptor));
 
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
