@@ -18,6 +18,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/suggester.hpp"
+#include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"

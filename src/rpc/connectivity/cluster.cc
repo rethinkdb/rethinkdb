@@ -71,9 +71,10 @@ void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING 
 
 connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, peer_id_t id, tcp_conn_stream_t *c, peer_address_t a) THROWS_NOTHING :
     conn(c), address(a), session_id(generate_uuid()),
+    pm_collection(uuid_to_str(id.get_uuid()), &p->parent->connectivity_collection, true, true),
+    pm_bytes_sent("bytes_sent", secs_to_ticks(1), true, &pm_collection),
     parent(p), peer(id),
-    drainers(new boost::scoped_ptr<auto_drainer_t>[get_num_threads()]),
-    stats(id, &p->parent->connectivity_collection)
+    drainers(new boost::scoped_ptr<auto_drainer_t>[get_num_threads()])
 {
     /* This can be created and destroyed on any thread. */
     pmap(get_num_threads(),
@@ -577,7 +578,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
         // We could be on any thread here! Oh no!
         vector_read_stream_t buffer2(&buffer.vector());
         current_run->message_handler->on_message(me, &buffer2);
-        conn_structure->stats.pm_bytes_sent.record(buffer.vector().size());
+        conn_structure->pm_bytes_sent.record(buffer.vector().size());
 
     } else {
         rassert(dest != me);
@@ -592,7 +593,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
             std::string buffer_str(buffer.vector().begin(), buffer.vector().end());
             msg << buffer_str;
             int res = send_write_message(conn_structure->conn, &msg);
-            conn_structure->stats.pm_bytes_sent.record(buffer.vector().size());
+            conn_structure->pm_bytes_sent.record(buffer.vector().size());
             if (res) {
                 /* Close the other half of the connection to make sure that
                    `connectivity_cluster_t::run_t::handle()` notices that something is
