@@ -11,6 +11,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
 #include "do_on_thread.hpp"
+#include "logger.hpp"
 #include "utils.hpp"
 
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
@@ -245,7 +246,7 @@ void connectivity_cluster_t::run_t::handle(
 
     /* Sanity checks */
     if (other_id == parent->me) {
-        crash("Help, I'm being impersonated!");
+        return;
     }
     if (other_id.is_nil()) {
         crash("Peer is nil");

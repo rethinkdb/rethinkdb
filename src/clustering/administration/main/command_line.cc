@@ -93,7 +93,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
 
 void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out, std::string web_assets) {
 
-    os_signal_cond_t c;
+    os_signal_cond_t sigint_cond;
 
     if (!metadata_persistence::check_existence(filepath)) {
         printf("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
@@ -112,7 +112,7 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
         return;
     }
 
-    *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata, web_assets);
+    *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata, web_assets, &sigint_cond);
 }
 
 #ifndef NDEBUG
@@ -121,7 +121,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
 void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out, std::string web_assets) {
 #endif
 
-    os_signal_cond_t c;
+    os_signal_cond_t sigint_cond;
 
     printf("Checking if directory '%s' already exists...\n", filepath.c_str());
     if (metadata_persistence::check_existence(filepath)) {
@@ -131,7 +131,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         cluster_semilattice_metadata_t persisted_semilattice_metadata;
         metadata_persistence::read(filepath, &persisted_machine_id, &persisted_semilattice_metadata);
 
-        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata, web_assets);
+        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata, web_assets, &sigint_cond);
 
     } else {
         printf("It does not already exist. Creating it...\n");
@@ -210,7 +210,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
 
         metadata_persistence::create(filepath, our_machine_id, semilattice_metadata);
 
-        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, our_machine_id, semilattice_metadata, web_assets);
+        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
     }
 }
 
