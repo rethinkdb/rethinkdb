@@ -278,7 +278,6 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const typename  protocol_t::store_
                                    int num_stores_assertion,
                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     guarantee(num_stores() == num_stores_assertion);
-    print_metainfo("multistore read expected metainfo: ", expected_metainfo);
     std::vector<typename protocol_t::read_response_t> responses;
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_read,
                                    this, _1, DEBUG_ONLY(boost::ref(expected_metainfo), )
@@ -349,8 +348,6 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const typename protocol_t::store_
                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     guarantee(num_stores() == num_stores_assertion);
     std::vector<typename protocol_t::write_response_t> responses;
-    print_metainfo("multistore write expected metainfo: ", expected_metainfo);
-    print_metainfo("multistore write new metainfo: ", new_metainfo);
     new_and_expected_metainfo_t<protocol_t> metainfo(DEBUG_ONLY(expected_metainfo, ) new_metainfo);
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_write,
                                    this, _1, boost::ref(metainfo),
@@ -419,14 +416,6 @@ void multistore_ptr_t<protocol_t>::reset_all_data(const typename protocol_t::reg
 
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
-
-namespace mock {
-void print_metainfo(const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m);
-}
-
-void print_metainfo(const char *msg, UNUSED const region_map_t<memcached_protocol_t, binary_blob_t> &m) {
-    printf("%s: blah\n", msg);
-}
 
 template class multistore_ptr_t<mock::dummy_protocol_t>;
 template class multistore_ptr_t<memcached_protocol_t>;
