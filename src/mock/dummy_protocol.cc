@@ -255,38 +255,6 @@ void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
     metainfo.update(new_metainfo);
 }
 
-dummy_protocol_t::read_response_t
-dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
-                                const dummy_protocol_t::read_t &read,
-                                order_token_t order_token,
-                                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
-    rassert(region_is_superset(get_region(), read.get_region()));
-
-    dummy_protocol_t::read_response_t resp;
-    {
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
-        local_token.swap(token);
-
-        wait_interruptible(local_token.get(), interruptor);
-        order_sink.check_out(order_token);
-
-        // We allow expected_metainfo domain to be smaller than the metainfo domain
-        rassert(expected_metainfo == metainfo.mask(expected_metainfo.get_domain()));
-
-        if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-        for (std::set<std::string>::iterator it = read.keys.keys.begin();
-                it != read.keys.keys.end(); it++) {
-            rassert(get_region().keys.count(*it) != 0);
-            resp.values[*it] = values[*it];
-        }
-    }
-    if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
-    return resp;
-}
-
-#ifdef METAINFO_VERSION_DEBUG
 void print_region(const dummy_protocol_t::region_t &region) {
     std::set<std::string>::const_iterator it = region.keys.begin(), e = region.keys.end();
     printf("{ ");
@@ -316,7 +284,40 @@ void print_metainfo(const char *msg, const region_map_t<dummy_protocol_t, binary
     }
     printf("\n");
 }
-#endif
+
+dummy_protocol_t::read_response_t
+dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+                                const dummy_protocol_t::read_t &read,
+                                order_token_t order_token,
+                                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
+    rassert(region_is_superset(get_region(), read.get_region()));
+
+    dummy_protocol_t::read_response_t resp;
+    {
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
+        local_token.swap(token);
+
+        wait_interruptible(local_token.get(), interruptor);
+        order_sink.check_out(order_token);
+
+        // We allow expected_metainfo domain to be smaller than the metainfo domain
+        rassert(expected_metainfo == metainfo.mask(expected_metainfo.get_domain()));
+        print_metainfo("expected metainfo: ", expected_metainfo);
+        print_metainfo("masked   metainfo: ", metainfo.mask(expected_metainfo.get_domain()));
+        print_metainfo("unmasked metainfo: ", metainfo);
+
+        if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
+        for (std::set<std::string>::iterator it = read.keys.keys.begin();
+                it != read.keys.keys.end(); it++) {
+            rassert(get_region().keys.count(*it) != 0);
+            resp.values[*it] = values[*it];
+        }
+    }
+    if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
+    return resp;
+}
 
 dummy_protocol_t::write_response_t
 dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
@@ -341,10 +342,11 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
 
         // We allow expected_metainfo domain to be smaller than the metainfo domain
         rassert(expected_metainfo.get_domain() == metainfo.mask(expected_metainfo.get_domain()).get_domain());
-#ifdef METAINFO_VERSION_DEBUG
+        printf("this dummy_protocol_t::store_t: %p\n", this);
         print_metainfo("expected metainfo: ", expected_metainfo);
         print_metainfo("masked   metainfo: ", metainfo.mask(expected_metainfo.get_domain()));
-#endif
+        print_metainfo("unmasked metainfo: ", metainfo);
+        print_metainfo("new      metainfo: ", new_metainfo);
 
         rassert(expected_metainfo == metainfo.mask(expected_metainfo.get_domain()));
 
@@ -357,6 +359,8 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
         }
 
         metainfo.update(new_metainfo);
+        print_metainfo("updated  metainfo: ", metainfo);
+        print_metainfo("up/mask  metainfo: ", metainfo.mask(expected_metainfo.get_domain()));
     }
     if (rng.randint(2) == 0) nap(rng.randint(10));
     return resp;

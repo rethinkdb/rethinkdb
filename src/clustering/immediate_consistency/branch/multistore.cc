@@ -250,6 +250,7 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
                                                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                                      std::vector<typename protocol_t::read_response_t> *responses,
                                                      signal_t *interruptor) THROWS_NOTHING {
+    const typename protocol_t::region_t ith_region = get_region(i);
     typename protocol_t::region_t ith_intersection = region_intersection(get_region(i), read.get_region());
 
     if (region_is_empty(ith_intersection)) {
@@ -258,7 +259,7 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
     }
 
     try {
-        responses->push_back(store_views[i]->read(DEBUG_ONLY(expected_metainfo.mask(ith_intersection), )
+        responses->push_back(store_views[i]->read(DEBUG_ONLY(expected_metainfo.mask(ith_region), )
                                                   read.shard(ith_intersection),
                                                   order_token,
                                                   read_tokens[i],
@@ -277,6 +278,7 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const typename  protocol_t::store_
                                    int num_stores_assertion,
                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     guarantee(num_stores() == num_stores_assertion);
+    print_metainfo("multistore read expected metainfo: ", expected_metainfo);
     std::vector<typename protocol_t::read_response_t> responses;
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_read,
                                    this, _1, DEBUG_ONLY(boost::ref(expected_metainfo), )
@@ -313,7 +315,8 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
                                                       boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                                                       std::vector<typename protocol_t::write_response_t> *responses,
                                                       signal_t *interruptor) THROWS_NOTHING {
-    typename protocol_t::region_t ith_intersection = region_intersection(get_region(i), write.get_region());
+    const typename protocol_t::region_t &ith_region = get_region(i);
+    typename protocol_t::region_t ith_intersection = region_intersection(ith_region, write.get_region());
     if (region_is_empty(ith_intersection)) {
         write_tokens[i].reset();
         return;
@@ -322,8 +325,8 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
     // TODO: Have an assertion about the new_metainfo region?
 
     try {
-        responses->push_back(store_views[i]->write(DEBUG_ONLY(metainfo.expected_metainfo.mask(ith_intersection), )
-                                                   metainfo.new_metainfo.mask(ith_intersection),
+        responses->push_back(store_views[i]->write(DEBUG_ONLY(metainfo.expected_metainfo.mask(ith_region), )
+                                                   metainfo.new_metainfo.mask(ith_region),
                                                    write.shard(ith_intersection),
                                                    timestamp,
                                                    order_token,
@@ -346,6 +349,8 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const typename protocol_t::store_
                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     guarantee(num_stores() == num_stores_assertion);
     std::vector<typename protocol_t::write_response_t> responses;
+    print_metainfo("multistore write expected metainfo: ", expected_metainfo);
+    print_metainfo("multistore write new metainfo: ", new_metainfo);
     new_and_expected_metainfo_t<protocol_t> metainfo(DEBUG_ONLY(expected_metainfo, ) new_metainfo);
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_write,
                                    this, _1, boost::ref(metainfo),
@@ -414,6 +419,14 @@ void multistore_ptr_t<protocol_t>::reset_all_data(const typename protocol_t::reg
 
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
+
+namespace mock {
+void print_metainfo(const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m);
+}
+
+void print_metainfo(const char *msg, UNUSED const region_map_t<memcached_protocol_t, binary_blob_t> &m) {
+    printf("%s: blah\n", msg);
+}
 
 template class multistore_ptr_t<mock::dummy_protocol_t>;
 template class multistore_ptr_t<memcached_protocol_t>;
