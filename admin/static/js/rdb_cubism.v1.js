@@ -928,22 +928,30 @@ cubism_contextPrototype.sensible = function() {
         // update the scale
         var primaryExtent = primary_.extent(),
             secondaryExtent = secondary_.extent(),
-            extent = extent_ == null ? primaryExtent : extent_;
+            maxExtentValue = Math.max(primaryExtent[1], secondaryExtent[1]),
+            extent = [0, maxExtentValue + maxExtentValue / 5];
         scale.domain(extent).range([height, 0]);
         ready = primaryExtent.concat(secondaryExtent).every(isFinite);
 
         // first graph
-        canvas.fillStyle = colors[0];
-        for (var i = 0, n = width; i < n; ++i) {
-          var y1 = scale(secondary_.valueAt(i));
-          canvas.fillRect(i, y1 - 2, 1, strokeWidth);
+        canvas.strokeStyle = colors[0];
+        canvas.lineWidth = 2;
+        for (var i = 1, n = width; i < n; ++i) {
+            var y1 = scale(secondary_.valueAt(i));
+            canvas.beginPath();
+            canvas.moveTo(i - 1, scale(secondary_.valueAt(i - 1)));
+            canvas.lineTo(i, y1);
+            canvas.stroke();
         }
 
         // second graph
-        canvas.fillStyle = colors[1];
+        canvas.strokeStyle = colors[1];
         for (i = 0; i < n; ++i) {
           var y0 = scale(primary_.valueAt(i));
-          canvas.fillRect(i, y0 - 2, 1, strokeWidth);
+          canvas.beginPath();
+          canvas.moveTo(i - 1, scale(primary_.valueAt(i - 1)));
+          canvas.lineTo(i, y0);
+          canvas.stroke();
         }
 
         canvas.restore();
@@ -1072,41 +1080,63 @@ var cubism_sensiblePrimaryFormat = d3.format(".2s"),
 cubism_sensibleChangeFormat = d3.format("+.0%");
 
      
-cubism_contextPrototype.axis = function() {
+cubism_contextPrototype.axis = function(_height, _metrics, _scale) {
   var context = this,
-      scale = context.scale,
+      scaleGiven = typeof _scale !== "undefined" && _scale !== null,
+      scale = scaleGiven ? _scale : context.scale,
       axis_ = d3.svg.axis().scale(scale),
-      format = context.step() < 6e4 ? cubism_axisFormatSeconds : cubism_axisFormatMinutes;
+      format = cubism_axisFormatSeconds,
+      height = _height,
+      metrics = _metrics;
 
   function axis(selection) {
     var id = ++cubism_id,
         tick;
+    var width, bar, translation;
+    var vertical = axis_.orient() === "left" || axis_.orient() === "right";
+    if(vertical) {
+        width = Math.max(35, -axis.tickSize());
+        height = height + 27;
+        translation = "translate(" + (axis_.orient() === "left" ? 34 : 4) + ", 0)";
+    } else {
+        width = context.size();
+        height = Math.max(28, -axis.tickSize());
+        translation = "translate(0," + (axis_.orient() === "top" ? 27 : 4) + ")";
+    }
 
     var g = selection.append("svg")
         .datum({id: id})
-        .attr("width", context.size())
-        .attr("height", Math.max(28, -axis.tickSize()))
+        .attr("width", width)
+        .attr("height", height)
       .append("g")
-        .attr("transform", "translate(0," + (axis_.orient() === "top" ? 27 : 4) + ")")
+        .attr("transform", translation)
         .call(axis_);
 
-    context.on("change.axis-" + id, function() {
-      g.call(axis_);
-      if (!tick) tick = cloneTick();
-    });
+    if(!vertical) {
+      context.on("change.axis-" + id, function() {
+        g.call(axis_);
+        if (!tick) tick = cloneTick();
+      });
 
-    context.on("focus.axis-" + id, function(i) {
-      if (tick) {
-        if (i == null) {
-          tick.style("display", "none");
-          g.selectAll("text").style("fill-opacity", null);
-        } else {
-          tick.style("display", null).attr("x", i).text(format(scale.invert(i)));
-          var dx = tick.node().getComputedTextLength() + 6;
-          g.selectAll("text").style("fill-opacity", function(d) { return Math.abs(scale(d) - i) < dx ? 0 : 1; });
+      context.on("focus.axis-" + id, function(i) {
+        if (tick) {
+          if (i == null) {
+            tick.style("display", "none");
+            g.selectAll("text").style("fill-opacity", null);
+          } else {
+            tick.style("display", null).attr("x", i).text(format(scale.invert(i)));
+            var dx = tick.node().getComputedTextLength() + 6;
+            g.selectAll("text").style("fill-opacity", function(d) { return Math.abs(scale(d) - i) < dx ? 0 : 1; });
+          }
         }
+      });
+    } else {
+      for(var i = 0; i < metrics.length; i++) {
+          metrics[i].on('change', function() {
+            g.call(axis_);
+          });
       }
-    });
+    }
 
     function cloneTick() {
       return g.select(function() { return this.appendChild(g.select("text").node().cloneNode(true)); })
@@ -1136,9 +1166,10 @@ cubism_contextPrototype.axis = function() {
       "tickFormat");
 };
 
-var cubism_axisFormatSeconds = d3.time.format("%I:%M:%S %p"),
+var cubism_axisFormatSeconds = d3.time.format("%I:%M:%S"),
     cubism_axisFormatMinutes = d3.time.format("%I:%M %p");
-cubism_contextPrototype.rule = function() {
+cubism_contextPrototype.rule = function(boundingElement) {
+  boundingElement = boundingElement[0];
   var context = this;
 
   function rule(selection) {
@@ -1157,7 +1188,9 @@ cubism_contextPrototype.rule = function() {
     context.on("focus.rule-" + id, function(i) {
       line
           .style("display", i == null ? "none" : null)
-          .style("left", function() { return this.parentNode.getBoundingClientRect().left + i + "px"; });
+          .style("left", function() { return this.parentNode.getBoundingClientRect().left + i + "px"; })
+          .style("top", function() { return boundingElement.getBoundingClientRect().top + "px"; })
+          .style("height", function() { return boundingElement.getBoundingClientRect().height + "px"; });
     });
   }
 

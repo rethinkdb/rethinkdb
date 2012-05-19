@@ -1196,23 +1196,47 @@
         border-bottom: solid 1px black;
         overflow: hidden;
         display: inline-block;
+        .title, {
+            display: none;
+        }
+        .value {
+            display: none;
+        }
+        canvas {
+            display: block;
+        }
+        border-top: solid 1px black;
+        border-left: solid 1px black;
+        border-right: solid 1px black;
     }
 
-    .chart canvas {
-        display: block;
+    .chart, .haxis, .line {
+        margin-left: 34px;
     }
 
-    .chart .title, .chart .value {
-        display: none;
+    .haxis, .vaxis {
+        font: 10px sans-serif;
+        line {
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
     }
     
-    .axis {
-        font: 10px sans-serif;
+    .haxis text, {
+        -webkit-transition: fill-opacity 250ms linear;
+    }
+    
+    .vaxis {
+        margin-top: -228px;
+    }
+
+    .haxis {
         margin-top: -9px;
     }
 
-    .axis line {
-        stroke: #000;
-        shape-rendering: crispEdges;
+    .line {
+       background: #000;
+       opacity: .2;
+       z-index: 2;
     }
 }
