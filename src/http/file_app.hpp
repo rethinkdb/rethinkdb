@@ -11,6 +11,7 @@ public:
 private:
     std::set<std::string> whitelist;
     std::string asset_dir;
+    void handle_blocking(std::string filename, http_res_t *res_out);
 };
 
 #endif
