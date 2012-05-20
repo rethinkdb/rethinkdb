@@ -100,6 +100,7 @@ module 'Vis', ->
             sensible_plot = @context.sensible()
                 .height(@HEIGHT_IN_PIXELS)
                 .colors(["#983434","#729E51"])
+                .extent([0, 20000])
             d3.select(@.$('#ops_plot_container')[0]).call (div) =>
                 div.data([[@read_stats, @write_stats]])
                 # Chart itself

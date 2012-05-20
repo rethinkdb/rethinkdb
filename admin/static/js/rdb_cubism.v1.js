@@ -930,6 +930,9 @@ cubism_contextPrototype.sensible = function() {
             secondaryExtent = secondary_.extent(),
             maxExtentValue = Math.max(primaryExtent[1], secondaryExtent[1]),
             extent = [0, maxExtentValue + maxExtentValue / 5];
+        if(extent[1] === 0) {
+            extent[1] = extent_[1];
+        }
         scale.domain(extent).range([height, 0]);
         ready = primaryExtent.concat(secondaryExtent).every(isFinite);
 
