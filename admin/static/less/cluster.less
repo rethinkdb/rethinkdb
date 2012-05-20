@@ -1192,6 +1192,7 @@
     --------------------
 */
 #ops_plot_container {
+    position: relative;
     .chart {
         border-bottom: solid 1px black;
         overflow: hidden;
@@ -1210,33 +1211,72 @@
         border-right: solid 1px black;
     }
 
-    .chart, .haxis, .line {
+    .chart, .haxis, .hgrid, .line {
         margin-left: 34px;
     }
 
-    .haxis, .vaxis {
+    .haxis, .vaxis, .hgrid, .vgrid {
         font: 10px sans-serif;
         line {
             stroke: #000;
             shape-rendering: crispEdges;
         }
     }
-    
     .haxis text, {
         -webkit-transition: fill-opacity 250ms linear;
     }
     
+    .haxis {
+        margin-top: -9px;
+    }
+
+    .hgrid {
+        height: 200px;
+        position: absolute;
+        top: -3px;
+        left: 0;
+        line {
+            opacity: .2;
+        }
+    }
+
     .vaxis {
         margin-top: -228px;
     }
 
-    .haxis {
-        margin-top: -9px;
+    .vgrid {
+        position: absolute;
+        top: 0;
+        left: 0px;
+        line {
+            opacity: .2;
+        }
     }
 
     .line {
        background: #000;
        opacity: .2;
        z-index: 2;
+    }
+
+    .legend {
+        position: absolute;
+        top: 5px;
+        left: 40px;
+        .color {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+        }
+        .reads .color { background-color: #729E51; }
+        .writes .color { background-color: #983434; }
+        background-color: white;
+        z-index: 10;
+        border: solid 1px grey;
+        padding-left: 2px;
+        padding-right: 2px;
+        text-transform: uppercase;
+        color: @gray;
+        font-size: 0.7em;
     }
 }

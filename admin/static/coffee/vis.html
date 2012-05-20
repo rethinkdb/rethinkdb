@@ -1,5 +1,10 @@
 
 <script id="ops_plot-template" type="text/x-handlebars-template">
-    <div id="ops_plot_container"></div>
+    <div id="ops_plot_container">
+        <div class="legend">
+            <div class="reads"><div class="color"></div> Reads/sec: {{read_count}}</div>
+            <div class="writes"><div class="color"></div> Writes/sec: {{write_count}}</div>
+        </div>
+    </div>
 </script>
 

@@ -1102,8 +1102,8 @@ cubism_contextPrototype.axis = function(_height, _metrics, _scale) {
         height = height + 27;
         translation = "translate(" + (axis_.orient() === "left" ? 34 : 4) + ", 0)";
     } else {
-        width = context.size();
-        height = Math.max(28, -axis.tickSize());
+        width = Math.max(context.size(), axis.tickSize());
+        height = Math.max(28, axis.tickSize());
         translation = "translate(0," + (axis_.orient() === "top" ? 27 : 4) + ")";
     }
 
@@ -1135,7 +1135,7 @@ cubism_contextPrototype.axis = function(_height, _metrics, _scale) {
       });
     } else {
       for(var i = 0; i < metrics.length; i++) {
-          metrics[i].on('change', function() {
+          metrics[i].on('change.axis-' + id, function() {
             g.call(axis_);
           });
       }

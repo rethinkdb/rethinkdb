@@ -82,11 +82,20 @@ module 'Vis', ->
 
         num_formatter: (i) ->
             if i / 1000000000 >= 1
-                res = '' + ((i / 1000000000).toFixed(1)) + 'B'
+                res = '' + ((i / 1000000000).toFixed(1))
+                if res.slice(-2) is '.0'
+                    res = res.slice(0, -2)
+                res += 'B'
             else if i / 1000000 >= 1
-                res = '' + ((i / 1000000).toFixed(1)) + 'M'
+                res = '' + ((i / 1000000).toFixed(1))
+                if res.slice(-2) is '.0'
+                    res = res.slice(0, -2)
+                res += 'M'
             else if i / 1000 >= 1
-                res = '' + ((i / 1000).toFixed(1)) + 'K'
+                res = '' + ((i / 1000).toFixed(1))
+                if res.slice(-2) is '.0'
+                    res = res.slice(0, -2)
+                res += 'K'
             else
                 res = '' + i
             return res
@@ -94,7 +103,9 @@ module 'Vis', ->
         render: ->
             log_render '(rendering) ops plot'
             # Render the plot container
-            @.$el.html @template({})
+            @.$el.html @template
+                read_count: @num_formatter(1901)
+                write_count: @num_formatter(1701)
 
             # Set up the plot
             sensible_plot = @context.sensible()
@@ -116,6 +127,14 @@ module 'Vis', ->
                         .tickSubdivide(@HAXIS_MINOR_SUBDIVISION_COUNT - 1)
                         .tickSize(6, 3, 0)
                         .tickFormat(d3.time.format('%I:%M:%S')))
+                # Horizontal axis grid
+                div.append('div')
+                    .attr('class', 'hgrid')
+                    .call(@context.axis()
+                        .orient('bottom')
+                        .ticks(d3.time.seconds, @HAXIS_TICK_INTERVAL_IN_SECS)
+                        .tickSize(204, 0, 0)
+                        .tickFormat(""))
                 # Vertical axis
                 div.append('div')
                     .attr('class', 'vaxis')
@@ -125,10 +144,14 @@ module 'Vis', ->
                         .tickSubdivide(@VAXIS_MINOR_SUBDIVISION_COUNT - 1)
                         .tickSize(6, 3, 0)
                         .tickFormat(@num_formatter))
-                # Rule
-                div.append('attr')
-                    .attr('class', 'rule')
-                    .call(@context.rule(@.$('canvas')))
+                # Vertical axis grid
+                div.append('div')
+                    .attr('class', 'vgrid')
+                    .call(@context.axis(@HEIGHT_IN_PIXELS, [@read_stats, @write_stats], sensible_plot.scale())
+                        .orient('left')
+                        .ticks(@VAXIS_TICK_SUBDIVISION_COUNT)
+                        .tickSize(-(@WIDTH_IN_PIXELS + 35), 0, 0)
+                        .tickFormat(""))
 
             return @
 
