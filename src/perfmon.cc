@@ -15,7 +15,11 @@ perfmon_result_t::perfmon_result_t() {
 }
 
 perfmon_result_t::perfmon_result_t(const perfmon_result_t &copyee)
-    : type(copyee.type), value_(copyee.value_), map_(copyee.map_) { }
+    : type(copyee.type), value_(copyee.value_), map_() {
+    for (internal_map_t::const_iterator it = copyee.map_.begin(); it != copyee.map_.end(); ++it) {
+        map_.insert(std::pair<std::string, perfmon_result_t *>(it->first, new perfmon_result_t(*it->second)));
+    }
+}
 
 perfmon_result_t::~perfmon_result_t() {
     for (internal_map_t::iterator it = map_.begin(); it != map_.end(); ++it) {
