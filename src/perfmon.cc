@@ -16,12 +16,12 @@ perfmon_result_t::perfmon_result_t() {
 
 perfmon_result_t::perfmon_result_t(const std::string &s) { 
     type = type_value;
-    _value = s;
+    value_ = s;
 }
 
 perfmon_result_t::perfmon_result_t(const boost::ptr_map<std::string, perfmon_result_t> &m) {
     type = type_map;
-    _map = m;
+    map_ = m;
 }
 
 /* The var list keeps track of all of the perfmon_t objects. */
