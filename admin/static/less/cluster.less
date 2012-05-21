@@ -454,138 +454,8 @@
     ----------------------------
 */
 .dashboard-view {
-
-    .section {
-        margin-top: 15px;
-        .title { margin-bottom: 15px; }
-
-        &.visualizations {
-            border: thin solid #DDD;
-            border-top: 0;
-            .border-radius(0 0 @border_radius @border_radius);
-
-            margin-top: 0px;
-            padding: 10px;
-            padding-top: 0;
-
-            hr { 
-                margin: 20px 0; 
-                &.first { margin-top: 0; }
-            }
-        }
-
-        hr {
-            border-bottom: thin solid @grayLighter;
-            margin: 15px 0;
-        }
-    }
-
-    .data-picker {
-        .nav {
-            margin-bottom: 0px;
-        }
-
-        .data-stream-filter {
-            @border: thin solid #DDD;
-            border-left: @border;
-            border-right: @border;
-            .border-radius(0 0 @border_radius @border_radius);
-            padding: 20px 10px;
-
-            .model {
-                display: inline;
-                padding: 5px 8px;
-                margin-right: 10px;
-                .border-radius(5px);
-                background: @grayLighter;
-
-                font-size: @baseFontSize * .9;
-                font-weight: bold;
-                color: @white;
-                text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.5);
-                line-height: @baseLineHeight * 1.5;
-
-                input { margin-right: 7px; }
-            }
-        }
-    }
-    .resource-pie-chart {
-        .no-data {
-            font-size: 1.4em;
-            color: @grayLight
-        }
-
-        g.center {
-            .total-label {
-                text-transform: uppercase;
-                fill: @gray;
-                font-weight: bold;
-            }
-
-            .total-value {
-                font-weight: bold;
-                font-size: 14px;
-            }
-
-            .total-units {
-                text-transform: lowercase;
-                fill: @gray;
-            }
-        }
-
-        g.arc {
-            line.tick { stroke: gray; }
-            text.label {
-                font-size: 11px;
-            }
-        }
-    }
-    .chart {
-        .stream-picker { 
-            .datastream {
-                display: inline;
-                padding: 5px 8px;
-                margin-right: 10px;
-                .border-radius(5px);
-                background: @gray;
-
-                font-size: @baseFontSize * .9;
-                font-weight: bold;
-                color: @white;
-                text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.5);
-                line-height: @baseLineHeight * 1.5;
-
-                input { margin-right: 7px; }
-            }
-        }
-        .no-data {
-            font-size: 1.4em;
-            color: @grayLight
-        }
-        path {
-            &.line, &.domain {
-                stroke-width: 2px;
-                fill: none;
-            }
-            &.domain {
-                stroke: steelblue;
-            }
-            &.area {
-                opacity: 0.7;
-            }
-        }
-
-        line {
-            stroke: black;
-        }
-
-        text {
-            font-size: 9pt;
-        }
-    }
-    /* Override Bootstrap */
-    .row::after {
-        content: none;
+    h1.title {
+        margin-bottom: 15px;
     }
 }
 
@@ -1285,5 +1155,18 @@
         td.writes {
             text-align: left;
         }
+    }
+}
+
+.performance_panel {
+    .panel-left {
+        float: left;
+        width: 50%;
+    }
+    .panel-right {
+        float: left;
+    }
+    .two-panel-clear {
+        clear: both;
     }
 }

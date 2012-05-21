@@ -5,12 +5,12 @@ class DashboardView extends Backbone.View
 
     initialize: ->
         log_initial '(initializing) dashboard view'
-        @perfgraph = new Vis.OpsPlot(computed_cluster.get_stats)
+        @perf_panel = new Vis.PerformancePanel(computed_cluster.get_stats)
 
     render: ->
         log_render '(rendering) dashboard view'
         @.$el.html @template({})
-        @.$el.append @perfgraph.render().$el
+        @.$('.cluster_performance_panel_placeholder').html @perf_panel.render().$el
 
         return @
 

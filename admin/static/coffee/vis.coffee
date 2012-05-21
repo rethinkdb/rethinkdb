@@ -1,4 +1,23 @@
 module 'Vis', ->
+    # Wraps the ops graph (left) and the stats panel (right)
+    class @PerformancePanel extends Backbone.View
+        className: 'performance_panel'
+        template: Handlebars.compile $('#performance_panel-template').html()
+
+        initialize: (_stats_fn) =>
+            log_initial '(initializing) performance panel'
+            @ops_plot = new Vis.OpsPlot(_stats_fn)
+            @stats_panel = new Vis.StatsPanel()
+
+        render: ->
+            log_render '(rendering) performance panel'
+            # Render the plot container
+            @.$el.html (@template {})
+            # Render our elements
+            @.$('.ops_plot_placeholder').html(@ops_plot.render().$el)
+            @.$('.stats_placeholder').html(@stats_panel.render().$el)
+            return @
+
     @num_formatter = (i) ->
         if i / 1000000000 >= 1
             res = '' + ((i / 1000000000).toFixed(1))
@@ -176,4 +195,17 @@ module 'Vis', ->
             @.$el.html @template
                 read_count: if @reads? then Vis.num_formatter(@reads) else 'N/A'
                 write_count: if @writes? then Vis.num_formatter(@writes) else 'N/A'
+            return @
+
+    class @StatsPanel extends Backbone.View
+        className: 'stats_panel'
+        template: Handlebars.compile $('#stats_panel-template').html()
+
+        initialize: () =>
+            log_initial '(initializing) stats panel'
+
+        render: ->
+            log_render '(rendering) stats panel'
+            # Render the plot container
+            @.$el.html (@template {})
             return @
