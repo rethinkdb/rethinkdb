@@ -40,9 +40,6 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
     if (res.code == 404) {
         logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + filename).c_str());
     }
-    if (res.code >= 400) {
-        return http_res_t(res.code);
-    }
 
     return res;
 }
