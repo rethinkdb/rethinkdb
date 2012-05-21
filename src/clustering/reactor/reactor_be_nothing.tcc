@@ -1,7 +1,6 @@
 #ifndef CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC_
 #define CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC_
 
-#include "clustering/reactor/reactor.hpp"
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 

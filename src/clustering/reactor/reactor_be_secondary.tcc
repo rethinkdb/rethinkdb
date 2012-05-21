@@ -1,8 +1,6 @@
 #ifndef CLUSTERING_REACTOR_REACTOR_BE_SECONDARY_TCC_
 #define CLUSTERING_REACTOR_REACTOR_BE_SECONDARY_TCC_
 
-#include "clustering/reactor/reactor.hpp"
-
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
 

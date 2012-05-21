@@ -1,12 +1,10 @@
 #ifndef __CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_RESPOSITORY_TCC__
 #define __CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_RESPOSITORY_TCC__
 
-#include "clustering/administration/namespace_interface_repository.tcc"
+#include "clustering/administration/namespace_interface_repository.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-
-#include "clustering/administration/namespace_interface_repository.hpp"
 
 template <class protocol_t>
 namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
