@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_TCC_
 #define CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_TCC_
 
+#include "clustering/administration/http/json_adapters.hpp"
+
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"

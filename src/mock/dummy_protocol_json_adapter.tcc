@@ -1,6 +1,8 @@
 #ifndef MOCK_DUMMY_PROTOCOL_JSON_ADAPTER_TCC_
 #define MOCK_DUMMY_PROTOCOL_JSON_ADAPTER_TCC_
 
+#include "mock/dummy_protocol_json_adapter.hpp"
+
 #include "http/json/json_adapter.hpp"
 
 namespace mock {
