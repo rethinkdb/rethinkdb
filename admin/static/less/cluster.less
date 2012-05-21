@@ -1259,10 +1259,10 @@
        z-index: 2;
     }
 
+    .ops_plot_legend {
+        width: 370px;
+    }
     .legend {
-        position: absolute;
-        top: 5px;
-        left: 40px;
         .color {
             display: inline-block;
             width: 10px;
@@ -1270,13 +1270,20 @@
         }
         .reads .color { background-color: #729E51; }
         .writes .color { background-color: #983434; }
-        background-color: white;
-        z-index: 10;
-        border: solid 1px grey;
-        padding-left: 2px;
-        padding-right: 2px;
         text-transform: uppercase;
         color: @gray;
         font-size: 0.7em;
+    }
+    .legend-table {
+        width: 370px;
+        td.reads {
+            width: 185px;
+        }
+        td.reads .color {
+            margin-left: 85px;
+        }
+        td.writes {
+            text-align: left;
+        }
     }
 }

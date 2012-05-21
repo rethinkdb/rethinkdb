@@ -1,4 +1,24 @@
 module 'Vis', ->
+    @num_formatter = (i) ->
+        if i / 1000000000 >= 1
+            res = '' + ((i / 1000000000).toFixed(1))
+            if res.slice(-2) is '.0'
+                res = res.slice(0, -2)
+            res += 'B'
+        else if i / 1000000 >= 1
+            res = '' + ((i / 1000000).toFixed(1))
+            if res.slice(-2) is '.0'
+                res = res.slice(0, -2)
+            res += 'M'
+        else if i / 1000 >= 1
+            res = '' + ((i / 1000).toFixed(1))
+            if res.slice(-2) is '.0'
+                res = res.slice(0, -2)
+            res += 'K'
+        else
+            res = '' + i.toFixed(0)
+        return res
+
     class @InterpolatingCache
         constructor: (num_data_points, num_interpolation_points, get_data_fn) ->
             @ndp = num_data_points
@@ -79,33 +99,12 @@ module 'Vis', ->
                 .size(@WIDTH_IN_PIXELS)
             @read_stats = @make_metric('keys_read')
             @write_stats = @make_metric('keys_set')
-
-        num_formatter: (i) ->
-            if i / 1000000000 >= 1
-                res = '' + ((i / 1000000000).toFixed(1))
-                if res.slice(-2) is '.0'
-                    res = res.slice(0, -2)
-                res += 'B'
-            else if i / 1000000 >= 1
-                res = '' + ((i / 1000000).toFixed(1))
-                if res.slice(-2) is '.0'
-                    res = res.slice(0, -2)
-                res += 'M'
-            else if i / 1000 >= 1
-                res = '' + ((i / 1000).toFixed(1))
-                if res.slice(-2) is '.0'
-                    res = res.slice(0, -2)
-                res += 'K'
-            else
-                res = '' + i
-            return res
+            @legend = new Vis.OpsPlotLegend(@read_stats, @write_stats, @context)
 
         render: ->
             log_render '(rendering) ops plot'
             # Render the plot container
-            @.$el.html @template
-                read_count: @num_formatter(1901)
-                write_count: @num_formatter(1701)
+            @.$el.html @template({})
 
             # Set up the plot
             sensible_plot = @context.sensible()
@@ -143,7 +142,7 @@ module 'Vis', ->
                         .ticks(@VAXIS_TICK_SUBDIVISION_COUNT)
                         .tickSubdivide(@VAXIS_MINOR_SUBDIVISION_COUNT - 1)
                         .tickSize(6, 3, 0)
-                        .tickFormat(@num_formatter))
+                        .tickFormat(Vis.num_formatter))
                 # Vertical axis grid
                 div.append('div')
                     .attr('class', 'vgrid')
@@ -152,6 +151,29 @@ module 'Vis', ->
                         .ticks(@VAXIS_TICK_SUBDIVISION_COUNT)
                         .tickSize(-(@WIDTH_IN_PIXELS + 35), 0, 0)
                         .tickFormat(""))
+                # Legend
+                @.$('#ops_plot_container').append(@legend.render().$el)
 
             return @
 
+    class @OpsPlotLegend extends Backbone.View
+        className: 'ops_plot_legend'
+        template: Handlebars.compile $('#ops_plot_legend-template').html()
+
+        initialize: (_read_metric, _write_metric, _context) =>
+            log_initial '(initializing) ops plot legend'
+            @context = _context
+            @reads = null
+            @writes = null
+            _read_metric.on 'change', =>
+                @reads = _read_metric.valueAt(@context.size() - 1)
+                @writes = _write_metric.valueAt(@context.size() - 1)
+                @render()
+
+        render: ->
+            log_render '(rendering) ops plot legend'
+            # Render the plot container
+            @.$el.html @template
+                read_count: if @reads? then Vis.num_formatter(@reads) else 'N/A'
+                write_count: if @writes? then Vis.num_formatter(@writes) else 'N/A'
+            return @
