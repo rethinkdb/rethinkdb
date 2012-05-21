@@ -1,3 +1,5 @@
+#include "arch/io/disk/conflict_resolving.hpp"
+
 #include "perfmon.hpp"
 
 template<class payload_t>

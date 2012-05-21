@@ -1,3 +1,5 @@
+#include "rpc/directory/read_manager.hpp"
+
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/archive.hpp"
 

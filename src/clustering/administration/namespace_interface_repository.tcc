@@ -1,6 +1,8 @@
 #ifndef __CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_RESPOSITORY_TCC__
 #define __CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_RESPOSITORY_TCC__
 
+#include "clustering/administration/namespace_interface_repository.hpp"
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 

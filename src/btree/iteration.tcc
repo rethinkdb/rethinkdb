@@ -1,3 +1,8 @@
+#ifndef BTREE_ITERATION_ITERATION_HPP_
+#define BTREE_ITERATION_ITERATION_HPP_
+
+#include "btree/iteration.hpp"
+
 #include "perfmon.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 
@@ -332,3 +337,6 @@ void slice_keys_iterator_t<Value>::done() {
     no_more_data = true;
 }
 
+
+
+#endif  // BTREE_ITERATION_ITERATION_HPP_

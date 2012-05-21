@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMTACH_TCC_
 #define CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMTACH_TCC_
 
+#include "clustering/administration/issues/pinnings_shards_mismatch.hpp"
+
 #include "clustering/administration/http/json_adapters.hpp"
 #include "http/json/json_adapter.hpp"
 #include "utils.hpp"

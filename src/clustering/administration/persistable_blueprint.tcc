@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_TCC_
 #define CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_TCC_
 
+#include "clustering/administration/persistable_blueprint.hpp"
+
 #include "errors.hpp"
 
 #include "http/json.hpp"
