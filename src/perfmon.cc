@@ -14,7 +14,7 @@ perfmon_result_t::perfmon_result_t() {
     type = type_value;
 }
 
-perfmon_result_t::perfmon_result_t(const std::string &s) { 
+perfmon_result_t::perfmon_result_t(const std::string &s) {
     type = type_value;
     value_ = s;
 }
