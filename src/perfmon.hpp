@@ -100,7 +100,7 @@ public:
 
     typedef internal_map_t::iterator iterator;
     typedef internal_map_t::const_iterator const_iterator;
-    
+
     iterator begin() {
         return map_.begin();
     }
