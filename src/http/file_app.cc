@@ -37,6 +37,13 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
 
     thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, &res));
 
+    if (res.code == 404) {
+        logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + filename).c_str());
+    }
+    if (res.code >= 400) {
+        return http_res_t(res.code);
+    }
+
     return res;
 }
 
@@ -45,8 +52,7 @@ void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out)
     std::ifstream f((asset_dir + filename).c_str());
 
     if (f.fail()) {
-        logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + filename).c_str());
-        *res_out = http_res_t(404);
+        res_out->code = 404;
         return;
     }
 
@@ -76,5 +82,5 @@ void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out)
     return;
 
 INTERNAL_ERROR:
-    *res_out = http_res_t(500);
+    res_out->code = 500;
 }
