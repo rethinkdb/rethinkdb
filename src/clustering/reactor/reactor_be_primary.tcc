@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_REACTOR_REACTOR_BE_PRIMARY_TCC_
 #define CLUSTERING_REACTOR_REACTOR_BE_PRIMARY_TCC_
 
+#include "clustering/reactor/reactor.hpp"
+
 #include <exception>
 #include <vector>
 

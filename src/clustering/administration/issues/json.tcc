@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_JSON_TCC_
 #define CLUSTERING_ADMINISTRATION_ISSUES_JSON_TCC_
 
+#include "clustering/administration/issues/json.hpp"
+
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 

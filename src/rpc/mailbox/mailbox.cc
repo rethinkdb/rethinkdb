@@ -121,6 +121,7 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *
 
     raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
     if (mbox) {
+        auto_drainer_t::lock_t lock(&mbox->drainer);
         mbox->callback(stream);
     } else {
         /* Ignore it, because it's impossible to write code in such a way that

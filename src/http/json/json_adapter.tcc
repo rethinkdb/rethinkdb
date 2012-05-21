@@ -1,6 +1,8 @@
 #ifndef HTTP_JSON_JSON_ADAPTER_TCC_
 #define HTTP_JSON_JSON_ADAPTER_TCC_
 
+#include "http/json/json_adapter.hpp"
+
 #include "containers/uuid.hpp"
 #include "utils.hpp"
 #include "logger.hpp"
@@ -776,4 +778,4 @@ void apply_as_directory(cJSON *change, T *target, const ctx_t &ctx) {
     }
 }
 
-#endif
+#endif  // HTTP_JSON_JSON_ADAPTER_TCC_

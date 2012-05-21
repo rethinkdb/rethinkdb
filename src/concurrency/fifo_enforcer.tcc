@@ -1,6 +1,8 @@
 #ifndef __CONCURRENCY_FIFO_ENFORCER_TCC__
 #define __CONCURRENCY_FIFO_ENFORCER_TCC__
 
+#include "concurrency/fifo_enforcer.hpp"
+
 template <class T>
 fifo_enforcer_queue_t<T>::fifo_enforcer_queue_t()
     : passive_producer_t<T>(&control), state(state_timestamp_t::zero(), 0)
