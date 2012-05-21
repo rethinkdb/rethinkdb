@@ -45,7 +45,7 @@ const char *admin_command_parser_t::set_name_usage = "<id> <new name> [--resolve
 const char *admin_command_parser_t::set_acks_usage = "<namespace> <datacenter> <num-acks>";
 const char *admin_command_parser_t::set_replicas_usage = "<namespace> <datacenter> <num-replicas>";
 const char *admin_command_parser_t::set_datacenter_usage = "( <namespace> | <machine> ) <datacenter> [--resolve]";
-const char *admin_command_parser_t::create_namespace_usage = "[--port <port>] [--protocol ( memcached | dummy ) ] [--primary <datacenter>] [--name <name>]";
+const char *admin_command_parser_t::create_namespace_usage = "--port <port> --protocol ( memcached | dummy ) --primary <datacenter> [--name <name>]";
 const char *admin_command_parser_t::create_datacenter_usage = "[--name <name>]";
 const char *admin_command_parser_t::remove_usage = "<id>...";
 
@@ -310,8 +310,7 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(commands, pin_shard_command, pin_shard_command, pin_shard_usage, true, &admin_cluster_link_t::do_admin_pin_shard);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
-    info->add_positional("shard", 1, true); // TODO: list possible shards
-    info->add_positional("machine", 1, true)->add_option("!machine");
+    info->add_positional("key", 1, true); // TODO: list possible shards
     info->add_flag("primary", 1, false)->add_option("!machine");
     info->add_flag("secondary", -1, false)->add_option("!machine"); // TODO: not sure if -1 works here
 

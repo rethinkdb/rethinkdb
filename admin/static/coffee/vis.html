@@ -1,39 +1,65 @@
-
-<script id="data_picker-template" type="text/x-handlebars-template">
-  <ul class="nav nav-tabs">
-    {{#each stream_filters}}
-    <li class="{{#if this.selected}}active{{/if}}" data-filter="{{this.name}}"><a href="#">{{this.name}}</a></li>
-    {{/each}}
-  </ul>
-  <div class="filter">
-  </div>
-</script>
-
-<script id="data_stream_filter-template" type="text/x-handlebars-template">
-  {{#each models}}
-  <div class="model" style="background:{{this.color}}" data-id="{{this.id}}">
-    <input {{#if this.selected}}checked="true"{{/if}} type="checkbox" />
-    {{this.name}}
-  </div>
-  {{/each}}
-</script>
-
-<script id="vis_no_data-template" type="text/x-handlebars-template">
-  <p class="no-data">No data selected.</p>
-</script>
-
-<script id="vis_loading-template" type="text/x-handlebars-template">
-  <div class="loading"><h4>Loading data...</h4><img src="/images/loading.gif" /></div>
-</script>
-
-<script id="vis-graph_stream_picker-template" type="text/x-handlebars-template">
-  <form class="stream-picker">
-    {{#each datastreams}}
-    <div class="datastream" data-id="{{this.id}}">
-      <input {{#if this.selected}}checked="true"{{/if}} type="radio" name="graph-data-stream"/>
-      {{this.name}}
+<script id="performance_panel-template" type="text/x-handlebars-template">
+  <div class="two-panel-section">
+    <div class="panel-left ops_plot_placeholder">
     </div>
-    {{/each}}
-  </form>
+    <div class="panel-right stats_placeholder">
+    </div>
+    <div class="two-panel-clear"></div>
+  </div>
+  </div>
 </script>
 
+<script id="ops_plot-template" type="text/x-handlebars-template">
+    <div id="ops_plot_container">
+    </div>
+</script>
+
+<script id="ops_plot_legend-template" type="text/x-handlebars-template">
+    <div class="legend">
+        <table class="legend-table">
+            <tr>
+                <td class="reads"><div class="color"></div> Reads/sec: {{read_count}}</td>
+                <td class="writes"><div class="color"></div> Writes/sec: {{write_count}}</td>
+            </tr>
+        </table>
+    </div>
+</script>
+
+<script id="stats_panel-template" type="text/x-handlebars-template">
+    <table>
+        <tr class="total_ops_sec">
+            <td class="title"><span>Total ops/sec:</span></td>
+            <td class="minichart"><span>Loading...</span></td>
+            <td class="value"><span>{{total_ops_sec}}</span></td>
+        </tr>
+        <tr class="total_cpu_util">
+            <td class="title"><span>CPU usage:</span></td>
+            <td class="minichart"><span>Loading...</span></td>
+            <td class="value"><span>{{total_cpu_util}}%</span></td>
+        </tr>
+        <tr class="total_ram_usage">
+            <td class="title"><span>RAM usage:</span></td>
+            <td class="minichart">
+                <div class="progress">
+                    <div class="bar" style="width: {{mem_used_percent}}%;"></div>
+                </div>
+            </td>
+            <td class="value"><span>{{mem_used}} of {{mem_total}} used</span></td>
+        </tr>
+        <tr class="total_disk_usage">
+            <td class="title"><span>Disk usage:</span></td>
+            <td class="minichart"><span>Loading...</span></td>
+            <td class="value"><span>{{disk_used}} used</span></td>
+        </tr>
+        <tr class="global_net_sent">
+            <td class="title"><span>Traffic sent:</span></td>
+            <td class="minichart"><span>Loading...</span></td>
+            <td class="value"><span>{{global_net_sent}}/sec</span></td>
+        </tr>
+        <tr class="global_net_recv">
+            <td class="title"><span>Traffic recv:</span></td>
+            <td class="minichart"><span>Loading...</span></td>
+            <td class="value"><span>{{global_net_recv}}/sec</span></td>
+        </tr>
+    </table>
+</script>

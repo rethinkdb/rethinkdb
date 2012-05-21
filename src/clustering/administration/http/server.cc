@@ -56,6 +56,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/bootstrap/bootstrap-tooltip.js");
     white_list.insert("/js/bootstrap/bootstrap-popover.js");
     white_list.insert("/js/d3.v2.min.js");
+    white_list.insert("/js/rdb_cubism.v1.js");
     white_list.insert("/js/date-en-US.js");
     white_list.insert("/js/flot/jquery.flot.js");
     white_list.insert("/js/flot/jquery.flot.resize.js");
