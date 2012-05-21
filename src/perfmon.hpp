@@ -53,16 +53,16 @@ public:
         return perfmon_result_t(std::string());
     }
 
-    static perfmon_result_t * new_string() {
-        return new perfmon_result_t(std::string());
+    static void alloc_string_result(perfmon_result_t **out) {
+        *out = new perfmon_result_t(std::string());
     }
 
     static perfmon_result_t make_map() {
         return perfmon_result_t(internal_map_t());
     }
 
-    static perfmon_result_t *new_map() {
-        return new perfmon_result_t(internal_map_t());
+    static void alloc_map_result(perfmon_result_t **out) {
+        *out = new perfmon_result_t(internal_map_t());
     }
 
     std::string *get_string() {
@@ -449,7 +449,14 @@ public:
 
     void end_stats(void *_contexts, perfmon_result_t *result) {
         void **contexts = reinterpret_cast<void **>(_contexts);
-        perfmon_result_t *map = create_submap ? perfmon_result_t::new_map() : result;
+
+        // TODO: This is completely fucked up shitty code.
+        perfmon_result_t *map;
+        if (create_submap) {
+            perfmon_result_t::alloc_map_result(&map);
+        } else {
+            map = result;
+        }
 
         size_t i = 0;
         for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
