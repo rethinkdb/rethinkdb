@@ -50,22 +50,13 @@ public:
     ~perfmon_result_t();
     explicit perfmon_result_t(perfmon_result_type_t type);
     explicit perfmon_result_t(const std::string &);
-    explicit perfmon_result_t(const internal_map_t &);
-
-    static perfmon_result_t make_string() {
-        return perfmon_result_t(std::string());
-    }
 
     static void alloc_string_result(perfmon_result_t **out) {
-        *out = new perfmon_result_t(std::string());
-    }
-
-    static perfmon_result_t make_map() {
-        return perfmon_result_t(internal_map_t());
+        *out = new perfmon_result_t(type_value);
     }
 
     static void alloc_map_result(perfmon_result_t **out) {
-        *out = new perfmon_result_t(internal_map_t());
+        *out = new perfmon_result_t(type_map);
     }
 
     std::string *get_string() {

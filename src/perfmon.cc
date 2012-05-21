@@ -30,11 +30,6 @@ perfmon_result_t::perfmon_result_t(const std::string &s) {
     value_ = s;
 }
 
-perfmon_result_t::perfmon_result_t(const std::map<std::string, perfmon_result_t *> &m) {
-    type = type_map;
-    map_ = m;
-}
-
 /* The var list keeps track of all of the perfmon_t objects. */
 
 perfmon_collection_t &get_global_collection() {
