@@ -99,9 +99,9 @@ class Datacenter extends Backbone.Model
                 mstats = machine.get_stats().proc
                 if mstats?
                     nmachines += 1
-                    stats.global_cpu_util_avg += parseInt(mstats.global_cpu_util_avg)
-                    stats.global_mem_total += parseInt(mstats.global_mem_total)
-                    stats.global_mem_used += parseInt(mstats.global_mem_used)
+                    stats.global_cpu_util_avg += parseFloat(mstats.global_cpu_util_avg)
+                    stats.global_mem_total += parseFloat(mstats.global_mem_total)
+                    stats.global_mem_used += parseFloat(mstats.global_mem_used)
                     stats.dc_disk_space += machine.get_used_disk_space()
         stats.global_cpu_util_avg /= nmachines
         return stats
@@ -162,15 +162,33 @@ class ComputedCluster extends Backbone.Model
         super
 
     get_stats: =>
+        # Ops/sec stats
         __s =
             keys_read: 0
             keys_set: 0
+            global_cpu_util_avg: 0
+            global_mem_total: 0
+            global_mem_used: 0
+            global_disk_space: 0
+            global_net_recv_persec_avg: 0
+            global_net_sent_persec_avg: 0
         for namespace in namespaces.models
             _s = namespace.get_stats()
             if not _s?
                 continue
             __s.keys_read += _s.keys_read
             __s.keys_set += _s.keys_set
+        # CPU, mem, disk
+        for m in machines.models
+            mstats = m.get_stats().proc
+            __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util_avg)
+            __s.global_mem_total += parseInt(mstats.global_mem_total)
+            __s.global_mem_used += parseInt(mstats.global_mem_used)
+            __s.global_disk_space += m.get_used_disk_space()
+            __s.global_net_recv_persec_avg += parseFloat(mstats.global_net_recv_persec_avg)
+            __s.global_net_sent_persec_avg += parseFloat(mstats.global_net_sent_persec_avg)
+        __s.global_cpu_util_avg /= machines.models.length
+
         return __s
 
 # Collections for Backbone.js
