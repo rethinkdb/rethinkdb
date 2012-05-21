@@ -9,6 +9,8 @@
 
 #include "containers/archive/archive.hpp"
 
+namespace std {
+
 // Implementations for pair, map, set, string, and vector.
 
 template <class T, class U>
@@ -198,6 +200,6 @@ MUST_USE int deserialize(read_stream_t *s, std::list<T> *v) {
     return ARCHIVE_SUCCESS;
 }
 
-
+}  /* namespace std */
 
 #endif  // CONTAINERS_ARCHIVE_STL_TYPES_HPP_

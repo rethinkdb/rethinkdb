@@ -411,21 +411,22 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
         pipeliner_acq.end_write();
         return;
     }
+    debugf("max_items = %d\n", int(max_items));
 
     pipeliner_acq.done_argparsing();
 
     block_pm_duration rget_timer(&rh->stats->pm_cmd_rget);
 
-    rget_result_t results_iterator;
+    rget_result_t results;
     std::string error_message;
     bool ok;
 
     try {
-        rget_query_t rget_query(left_mode, left_key, right_mode, right_key);
+        rget_query_t rget_query(left_mode, left_key, right_mode, right_key, max_items);
         memcached_protocol_t::read_t read(rget_query, time(NULL));
         cond_t non_interruptor;
         memcached_protocol_t::read_response_t response = rh->nsi->read(read, token, &non_interruptor);
-        results_iterator = boost::get<rget_result_t>(response.result);
+        results = boost::get<rget_result_t>(response.result);
         ok = true;
     } catch (cannot_perform_query_exc_t e) {
         /* We can't call `server_error()` directly from within here because it's
@@ -437,21 +438,13 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
     pipeliner_acq.begin_write();
 
     if (ok) {
-        boost::optional<key_with_data_buffer_t> pair;
-        uint64_t count = 0;
-        ticks_t next_time;
-        while (++count <= max_items && (rh->stats->rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
-            rh->stats->rget_iteration_next.end(&next_time);
-            const key_with_data_buffer_t& kv = pair.get();
-
-            const std::string& key = kv.key;
-            const intrusive_ptr_t<data_buffer_t>& dp = kv.value_provider;
-
-            rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->size());
-            rh->write_from_data_provider(dp.get());
+        debugf("Got rget result ok; length = %d\n", int(results.pairs.size()));
+        for (std::vector<key_with_data_buffer_t>::iterator it = results.pairs.begin(); it != results.pairs.end(); it++) {
+            debugf("Printing a pair\n");
+            rh->write_value_header(it->key.contents, it->key.size, it->mcflags, it->value_provider->size());
+            rh->write_from_data_provider(it->value_provider.get());
             rh->write_crlf();
         }
-
         rh->write_end();
     } else {
         rh->server_error("%s\r\n", error_message.c_str());
