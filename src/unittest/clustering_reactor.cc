@@ -271,6 +271,7 @@ public:
     }
 
     void run_queries() {
+        nap(200);
         for (unsigned i = 0; i < test_clusters.size(); i++) {
             cluster_namespace_interface_t<protocol_t> namespace_if(&test_clusters[i].mailbox_manager,
                 (&test_clusters[i])->directory_read_manager.get_root_view()
