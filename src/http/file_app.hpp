@@ -9,9 +9,10 @@ public:
 
     http_res_t handle(const http_req_t &);
 private:
+    void handle_blocking(std::string filename, http_res_t *res_out);
+
     std::set<std::string> whitelist;
     std::string asset_dir;
-    void handle_blocking(std::string filename, http_res_t *res_out);
 };
 
 #endif
