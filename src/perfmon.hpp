@@ -67,22 +67,22 @@ public:
 
     std::string *get_string() {
         rassert(type == type_value);
-        return &_value;
+        return &value_;
     }
 
     const std::string *get_string() const {
         rassert(type == type_value);
-        return &_value;
+        return &value_;
     }
 
     internal_map_t *get_map() {
         rassert(type == type_map);
-        return &_map;
+        return &map_;
     }
 
     const internal_map_t *get_map() const {
         rassert(type == type_map);
-        return &_map;
+        return &map_;
     }
 
     bool is_string() {
@@ -100,21 +100,21 @@ public:
 
     typedef internal_map_t::iterator iterator;
     typedef internal_map_t::const_iterator const_iterator;
-    
+
     iterator begin() {
-        return _map.begin();
+        return map_.begin();
     }
 
     iterator end() {
-        return _map.end();
+        return map_.end();
     }
 
     const_iterator begin() const {
-        return _map.begin();
+        return map_.begin();
     }
 
     const_iterator end() const {
-        return _map.end();
+        return map_.end();
     }
 
 private:
@@ -125,8 +125,8 @@ private:
 
     perfmon_result_type_t type;
 
-    std::string _value;
-    internal_map_t _map;
+    std::string value_;
+    internal_map_t map_;
 };
 
 /* perfmon_get_stats() collects all the stats about the server and puts them
