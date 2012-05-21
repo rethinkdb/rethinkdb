@@ -275,8 +275,7 @@ public:
             cluster_namespace_interface_t<protocol_t> namespace_if(&test_clusters[i].mailbox_manager,
                 (&test_clusters[i])->directory_read_manager.get_root_view()
                     ->subview(&test_cluster_group_t::extract_master_directory));
-
-            nap(50);
+            namespace_if.get_initial_ready_signal()->wait_lazily_unordered();
 
             order_source_t order_source;
 
