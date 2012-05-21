@@ -18,6 +18,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/suggester.hpp"
+#include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
@@ -133,6 +134,68 @@ private:
     void list_namespaces(const std::string& type, bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     template <class map_type>
     void add_namespaces(const std::string& protocol, bool long_format, map_type& namespaces, std::vector<std::vector<std::string> >& table);
+
+    struct shard_input_t {
+        struct {
+            bool inf;
+            std::string key;
+        } left, right;
+    };
+
+    template <class protocol_t>
+    void do_admin_pin_shard_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const shard_input_t& shard_in, const std::string& primary_str, const std::vector<std::string>& secondary_strs, cluster_semilattice_metadata_t& cluster_metadata);
+
+    template <class protocol_t>
+    void list_pinnings(namespace_semilattice_metadata_t<protocol_t>& ns, const shard_input_t& shard_in);
+
+    template <class map_type, class value_type>
+    void insert_pinning(map_type& region_map, const key_range_t& shard, value_type& value);
+
+    struct machine_info_t {
+        machine_info_t() : status(), primaries(0), secondaries(0), namespaces(0) { }
+
+        std::string status;
+        size_t primaries;
+        size_t secondaries;
+        size_t namespaces;
+    };
+
+    template <class bp_type>
+    void add_machine_info_from_blueprint(const bp_type& bp, std::map<machine_id_t, machine_info_t>& results);
+
+    template <class map_type>
+    void build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t>& results);
+
+    std::map<machine_id_t, machine_info_t> build_machine_info(cluster_semilattice_metadata_t& cluster_metadata);
+
+    struct namespace_info_t {
+        namespace_info_t() : shards(0), replicas(0), primary() { }
+
+        // These may be set to -1 in the case of a conflict
+        int shards;
+        int replicas;
+        std::string primary;
+    };
+
+    template <class ns_type>
+    namespace_info_t get_namespace_info(ns_type& ns);
+
+    template <class bp_type>
+    size_t get_replica_count_from_blueprint(const bp_type& bp);
+
+    struct datacenter_info_t {
+        datacenter_info_t() : machines(0), primaries(0), secondaries(0), namespaces(0) { }
+
+        size_t machines;
+        size_t primaries;
+        size_t secondaries;
+        size_t namespaces;
+    };
+
+    std::map<datacenter_id_t, datacenter_info_t> build_datacenter_info(cluster_semilattice_metadata_t& cluster_metadata);
+
+    template <class map_type>
+    void add_datacenter_info_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t>& results);
 
     boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > traverse_directory(const std::vector<std::string>& path, namespace_metadata_ctx_t& json_ctx, cluster_semilattice_metadata_t& cluster_metadata);
 

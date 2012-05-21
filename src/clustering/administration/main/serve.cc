@@ -36,7 +36,7 @@
 #include "rpc/semilattice/view/function.hpp"
 #include "rpc/semilattice/view/member.hpp"
 
-bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets) {
+bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
 
     local_issue_tracker_t local_issue_tracker;
 
@@ -145,7 +145,11 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
     boost::scoped_ptr<initial_joiner_t> initial_joiner;
     if (!joins.empty()) {
         initial_joiner.reset(new initial_joiner_t(&connectivity_cluster, &connectivity_cluster_run, joins));
-        initial_joiner->get_ready_signal()->wait_lazily_unordered();   /* TODO: Listen for `SIGINT`? */
+        try {
+            wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
+        } catch (interrupted_exc_t) {
+            return false;
+        }
     }
 
     perfmon_collection_repo_t perfmon_repo(NULL);
@@ -234,7 +238,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
         printf("Server started; send SIGINT to stop.\n");
 
-        wait_for_sigint();
+        stop_cond->wait_lazily_unordered();
 
         printf("Server got SIGINT; shutting down...\n");
     }

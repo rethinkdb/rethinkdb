@@ -121,6 +121,49 @@ TEST(RPCSemilatticeTest, MetadataExchange) {
     run_in_thread_pool(&run_metadata_exchange_test, 2);
 }
 
+void run_sync_from_test() {
+    int port = 10000 + randint(20000);
+    connectivity_cluster_t cluster1, cluster2;
+    semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
+    connectivity_cluster_t::run_t run1(&cluster1, port, &slm1), run2(&cluster2, port+1, &slm2);
+
+    EXPECT_EQ(1, slm1.get_root_view()->get().i);
+    EXPECT_EQ(2, slm2.get_root_view()->get().i);
+
+    cond_t non_interruptor;
+
+    EXPECT_THROW(slm1.get_root_view()->sync_from(cluster2.get_me(), &non_interruptor), sync_failed_exc_t);
+    EXPECT_THROW(slm1.get_root_view()->sync_to(cluster2.get_me(), &non_interruptor), sync_failed_exc_t);
+
+    run1.join(cluster2.get_peer_address(cluster2.get_me()));
+
+    /* Block until the connection is established */
+    {
+        cond_t connection_established;
+        connectivity_service_t::peers_list_subscription_t subs(
+            boost::bind(&cond_t::pulse, &connection_established),
+            NULL);
+        {
+            ASSERT_FINITE_CORO_WAITING;
+            connectivity_service_t::peers_list_freeze_t freeze(&cluster1);
+            if (!cluster1.get_peer_connected(cluster2.get_me())) {
+                subs.reset(&cluster1, &freeze);
+            } else {
+                connection_established.pulse();
+            }
+        }
+        connection_established.wait_lazily_unordered();
+    }
+
+    slm1.get_root_view()->sync_from(cluster2.get_me(), &non_interruptor);
+
+    EXPECT_EQ(3, slm1.get_root_view()->get().i);
+    EXPECT_EQ(3, slm2.get_root_view()->get().i);
+}
+TEST(RPCSemilatticeTest, SyncFrom) {
+    run_in_thread_pool(&run_sync_from_test, 2);
+}
+
 /* `Watcher` makes sure that metadata watchers get notified when metadata
 changes. */
 

@@ -5,7 +5,7 @@
 #include <string>
 #include <boost/program_options.hpp>
 #include "clustering/administration/cli/linenoise.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/cluster.hpp"
 
 class admin_cluster_link_t;
 

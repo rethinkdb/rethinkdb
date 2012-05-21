@@ -37,10 +37,9 @@ private:
     };
 
     /* Note that connection and initialization are different things. Connection
-    means that we can communicate with another peer at a low level.
-    Initialization means that we have received initial metadata from the peer.
-    Peers only show up on our own `connectivity_service_t` once initialization
-    has happened. */
+    means that we can send messages to the peer. Initialization means that we
+    have received initial metadata from the peer. Peers only show up in the
+    `watchable_t` once initialization is complete. */
 
     /* These will be called in a blocking fashion by the connectivity service
     (or message service, in the case of `on_message()`) */
@@ -65,8 +64,8 @@ private:
     a lock on one of these drainers. */
     one_per_thread_t<auto_drainer_t> per_thread_drainers;
 
-    /* Instances of `interrupt_updates_and_free_global_peer_info()` and hold a
-    lock on this drainer. */
+    /* Instances of `interrupt_updates_and_free_session()` and hold a lock on
+    this drainer. */
     auto_drainer_t global_drainer;
 
     connectivity_service_t::peers_list_subscription_t connectivity_subscription;
