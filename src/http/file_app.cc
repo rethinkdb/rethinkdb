@@ -69,7 +69,7 @@ void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out)
     }
 
     res_out->body.assign((std::istreambuf_iterator<char>(f)),
-                      std::istreambuf_iterator<char>());
+                          std::istreambuf_iterator<char>());
 
     res_out->code = 200;
 
