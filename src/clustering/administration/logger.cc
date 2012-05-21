@@ -38,14 +38,15 @@ log_level_t parse_log_level(const std::string &s) THROWS_ONLY(std::runtime_error
 
 std::string format_log_message(const log_message_t &m) {
 
-    for (int i = 0; i < int(m.message.length()); i++) {
-        if (m.message[i] < ' ' || m.message[i] > '~') {
+    std::string message = m.message;
+    for (int i = 0; i < int(message.length()); i++) {
+        if (message[i] < ' ' || message[i] > '~') {
 #ifndef NDEBUG
             crash("We can't have newlines, tabs or special characters in log "
                 "messages because then it would be difficult to parse the log "
-                "file. Message: %s", m.message.c_str());
+                "file. Message: %s", message.c_str());
 #else
-            m.message[i] = '?';
+            message[i] = '?';
 #endif
         }
     }
@@ -54,7 +55,7 @@ std::string format_log_message(const log_message_t &m) {
         int(m.uptime.tv_sec),
         int(m.uptime.tv_nsec / 1000),
         format_log_level(m.level).c_str(),
-        m.message.c_str()
+        message.c_str()
         );
 }
 
