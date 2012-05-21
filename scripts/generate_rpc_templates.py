@@ -89,7 +89,7 @@ def generate_async_message_template(nargs):
         print "template<" + csep("class arg#_t") + ">"
     print "void send(mailbox_manager_t *src, " + ("typename " if nargs > 0 else "") + "mailbox_t< void(" + csep("arg#_t") + ") >::address_t dest" + cpre("const arg#_t &arg#") + ") {"
     print "    send(src, dest.addr,"
-    print "        boost::bind(&mailbox_t< void(" + csep("arg#_t") + ") >::write, _1" + cpre("arg#") + "));"
+    print "        boost::bind(&mailbox_t< void(" + csep("arg#_t") + ") >::write, _1" + cpre("boost::ref(arg#)") + "));"
     print "}"
     print
 

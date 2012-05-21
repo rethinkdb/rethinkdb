@@ -9,13 +9,16 @@
 
 #include <limits>
 #include <string>
+#include <map>  // Sigh.
 
-#include "utils.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
+#include "errors.hpp"
+#include <boost/scoped_array.hpp>
+
+#include "concurrency/rwi_lock.hpp"
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 #include "perfmon_types.hpp"
-#include "concurrency/rwi_lock.hpp"
+#include "utils.hpp"
 
 // Some arch/runtime declarations.
 int get_num_threads();
@@ -38,7 +41,7 @@ struct cache_line_padded_t {
 various parts of the server. */
 
 class perfmon_result_t {
-    typedef boost::ptr_map<std::string, perfmon_result_t> internal_map_t;
+    typedef std::map<std::string, perfmon_result_t *> internal_map_t;
 public:
     enum perfmon_result_type_t {
         type_value,
@@ -46,6 +49,9 @@ public:
     };
 
     perfmon_result_t();
+    perfmon_result_t(const perfmon_result_t &);  // TODO: Get rid of deep-recursive copy constructor.
+    ~perfmon_result_t();
+    explicit perfmon_result_t(perfmon_result_type_t type);
     explicit perfmon_result_t(const std::string &);
     explicit perfmon_result_t(const internal_map_t &);
 
@@ -94,8 +100,7 @@ public:
     }
 
     std::pair<internal_map_t::iterator, bool> insert(const std::string &k, perfmon_result_t *val) {
-        std::string s = k;
-        return get_map()->insert(s, val);
+        return get_map()->insert(std::pair<std::string, perfmon_result_t *>(k, val));
     }
 
     typedef internal_map_t::iterator iterator;
@@ -127,6 +132,8 @@ private:
 
     std::string value_;
     internal_map_t map_;
+
+    void operator=(const perfmon_result_t&);  // No implementation
 };
 
 /* perfmon_get_stats() collects all the stats about the server and puts them
@@ -464,7 +471,7 @@ public:
         }
 
         if (create_submap) {
-            result->get_map()->insert(name, map);
+            result->get_map()->insert(std::pair<std::string, perfmon_result_t *>(name, map));
         }
         constituents_access.unlock();
     }
