@@ -3,9 +3,12 @@
 
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/ptr_container/ptr_map.hpp>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/registrar.hpp"
+#include "concurrency/coro_pool.hpp"
+#include "concurrency/queue/unlimited_fifo.hpp"
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
 
@@ -100,6 +103,17 @@ private:
     intrusive_list_t<dispatchee_t> readable_dispatchees;
 
     registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
+
+    struct queue_and_pool_t {
+        queue_and_pool_t()
+            : background_write_workers(5000, &background_write_queue, &cb)
+        { }
+        unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
+        calling_callback_t cb;
+        coro_pool_t<boost::function<void()> > background_write_workers;
+    };
+
+    boost::ptr_map<dispatchee_t *, queue_and_pool_t> coro_pools;
 
     DISABLE_COPYING(broadcaster_t);
 };

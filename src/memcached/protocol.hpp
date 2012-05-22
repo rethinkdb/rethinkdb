@@ -11,12 +11,13 @@
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "memcached/queries.hpp"
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
-#include "perfmon.hpp"
+#include "perfmon_types.hpp"
 
 class real_superblock_t;
 
@@ -30,6 +31,7 @@ RDB_DECLARE_SERIALIZABLE(rget_query_t);
 RDB_DECLARE_SERIALIZABLE(distribution_get_query_t);
 RDB_DECLARE_SERIALIZABLE(get_result_t);
 RDB_DECLARE_SERIALIZABLE(key_with_data_buffer_t);
+RDB_DECLARE_SERIALIZABLE(rget_result_t);
 RDB_DECLARE_SERIALIZABLE(distribution_result_t);
 RDB_DECLARE_SERIALIZABLE(get_cas_mutation_t);
 RDB_DECLARE_SERIALIZABLE(sarc_mutation_t);

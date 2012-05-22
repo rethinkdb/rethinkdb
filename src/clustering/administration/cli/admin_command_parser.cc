@@ -41,10 +41,10 @@ const char *admin_command_parser_t::resolve_usage = "<id> <field> [<resolution>]
 const char *admin_command_parser_t::pin_shard_usage = "<namespace> <shard> [--primary <machine>] [--secondary <machine>...]";
 const char *admin_command_parser_t::split_shard_usage = "<namespace> <split-point>...";
 const char *admin_command_parser_t::merge_shard_usage = "<namespace> <split-point>...";
-const char *admin_command_parser_t::set_name_usage = "<id> <new name> [--resolve]";
+const char *admin_command_parser_t::set_name_usage = "<id> <new name>";
 const char *admin_command_parser_t::set_acks_usage = "<namespace> <datacenter> <num-acks>";
 const char *admin_command_parser_t::set_replicas_usage = "<namespace> <datacenter> <num-replicas>";
-const char *admin_command_parser_t::set_datacenter_usage = "( <namespace> | <machine> ) <datacenter> [--resolve]";
+const char *admin_command_parser_t::set_datacenter_usage = "( <namespace> | <machine> ) <datacenter>";
 const char *admin_command_parser_t::create_namespace_usage = "--port <port> --protocol ( memcached | dummy ) --primary <datacenter> [--name <name>]";
 const char *admin_command_parser_t::create_datacenter_usage = "[--name <name>]";
 const char *admin_command_parser_t::remove_usage = "<id>...";
@@ -330,7 +330,6 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(commands, set_name_command, set_name_command, set_name_usage, true, &admin_cluster_link_t::do_admin_set_name);
     info->add_positional("id", 1, true)->add_option("!id");
     info->add_positional("new-name", 1, true);
-    info->add_flag("resolve", 0, false);
 
     info = add_command(commands, set_acks_command, set_acks_command, set_acks_usage, true, &admin_cluster_link_t::do_admin_set_acks);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
@@ -345,7 +344,6 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(commands, set_datacenter_command, set_datacenter_command, set_datacenter_usage, true, &admin_cluster_link_t::do_admin_set_datacenter);
     info->add_positional("id", 1, true)->add_options("!machine", "!namespace", NULL);
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
-    info->add_flag("resolve", 0, false);
 
     info = add_command(commands, list_command, list_command, list_usage, false, &admin_cluster_link_t::do_admin_list);
     info->add_positional("filter", 1, false)->add_options("issues", "machines", "namespaces", "datacenters", "directory", "stats", "!id", NULL);

@@ -97,13 +97,13 @@ endif
 
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lstdc++ -lm
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lstdc++ -lm -lcurl
 else
 ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lQtCore -lstdc++
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lQtCore -lstdc++ -lcurl
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lcurl
 endif
 endif
 

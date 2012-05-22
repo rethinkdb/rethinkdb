@@ -18,7 +18,8 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
-      registrar(mailbox_manager, this) {
+      registrar(mailbox_manager, this)
+{
 
     order_checkpoint.set_tagappend("broadcaster_t");
 
@@ -368,7 +369,6 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 
 template<class protocol_t>
 typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
-
     /* We'll fill `write_wrapper` with the write that we start; we hold it in a
     shared pointer so that it stays alive while we check its `done_promise`. */
     boost::shared_ptr<incomplete_write_t> write_wrapper;
@@ -432,17 +432,24 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             }
         }
 
-        sanity_check();
+        {
+            ASSERT_FINITE_CORO_WAITING;
+            sanity_check();
 
-        /* First check that someone is going to be able to give us a response */
-        if (readable_dispatchees.empty()) {
-            throw cannot_perform_query_exc_t("no mirrors readable. this is strange because the primary mirror should be always readable.");
-        }
+            /* First check that someone is going to be able to give us a response */
+            if (readable_dispatchees.empty()) {
+                throw cannot_perform_query_exc_t("no mirrors readable. this is strange because the primary mirror should be always readable.");
+            }
 
-        /* Dispatch the write to all the dispatchees */
-        for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = writers.begin(); it != writers.end(); it++) {
-            coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, this,
-                                               (*it).first, (*it).second, write_ref, order_token, enforcer_tokens[(*it).first]));
+            /* Dispatch the write to all the dispatchees */
+            for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = writers.begin(); it != writers.end(); it++) {
+                if (!std_contains(coro_pools, it->first)) {
+                    dispatchee_t *tmp = it->first;
+                    coro_pools.insert(tmp, new queue_and_pool_t);
+                }
+                coro_pools[it->first].background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
+                                                                              (*it).first, (*it).second, write_ref, order_token, enforcer_tokens[(*it).first]));
+            }
         }
     }
 

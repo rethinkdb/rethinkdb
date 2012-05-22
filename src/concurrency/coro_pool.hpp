@@ -91,5 +91,12 @@ private:
     auto_drainer_t coro_drain_semaphore;
 };
 
+class calling_callback_t : public coro_pool_t<boost::function<void()> >::callback_t {
+public:
+    void coro_pool_callback(boost::function<void()> f) {
+        f();
+    }
+};
+
 #endif /* CONCURRENCY_CORO_POOL_HPP_ */
 

@@ -92,6 +92,17 @@ void multistore_ptr_t<protocol_t>::new_write_tokens(boost::scoped_ptr<fifo_enfor
 }
 
 template <class protocol_t>
+void multistore_ptr_t<protocol_t>::new_particular_write_tokens(int *indices, int num_indices,
+                                                               boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens) {
+    guarantee(num_indices <= num_stores());
+    for (int j = 0; j < num_indices; ++j) {
+        int index = indices[j];
+        rassert(index >= 0 && index < num_stores());
+        store_views[index]->new_write_token(write_tokens[index]);
+    }
+}
+
+template <class protocol_t>
 region_map_t<protocol_t, version_range_t>  multistore_ptr_t<protocol_t>::
 get_all_metainfos(order_token_t order_token,
                   boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,

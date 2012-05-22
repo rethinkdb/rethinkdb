@@ -39,6 +39,8 @@ public:
 
     void new_write_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens_out, int num_stores_assertion);
 
+    void new_particular_write_tokens(int *indices, int num_indices, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens);
+
     // TODO: I'm pretty sure every time we call this function we are
     // doing something completely fucking stupid.  This whole design
     // looks broken (and it looked broken when we were operating on a

@@ -10,11 +10,12 @@
 #include "clustering/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/promise.hpp"
 #include "protocol_api.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/joins/map.hpp"
 #include "timestamps.hpp"
-#include "concurrency/promise.hpp"
 
 /* Every broadcaster generates a UUID when it's first created. This is the UUID
 of the branch that the broadcaster administers. */
@@ -137,8 +138,8 @@ struct backfiller_business_card_t {
         backfill_session_id_t,
         region_map_t<protocol_t, version_range_t>,
         mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>)>,
-        mailbox_addr_t<void(typename protocol_t::backfill_chunk_t)>,
-        mailbox_t<void()>::address_t
+        mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)>,
+        mailbox_t<void(fifo_enforcer_write_token_t)>::address_t
         )> backfill_mailbox_t;
 
     typedef mailbox_t<void(backfill_session_id_t)> cancel_backfill_mailbox_t;

@@ -29,7 +29,7 @@ boost::optional<key_value_pair_t<V> > leaf_iterator_t<V>::next() {
         const V *value = static_cast<const V *>(iter.get_value(leaf));
         iter.step(leaf);
         stats->pm_keys_read.record();
-        return boost::make_optional(key_value_pair_t<V>(sizer.get(), key_to_str(k), value));
+        return boost::make_optional(key_value_pair_t<V>(sizer.get(), store_key_t(k->size, k->contents), value));
     }
 }
 
@@ -221,8 +221,7 @@ template <class Value>
 slice_keys_iterator_t<Value>::slice_keys_iterator_t(const boost::shared_ptr< value_sizer_t<void> >& _sizer, transaction_t *_transaction, boost::scoped_ptr<superblock_t> &_superblock, int _slice_home_thread,
         btree_bound_mode_t _left_mode, const store_key_t &_left_key, btree_bound_mode_t _right_mode, const store_key_t &_right_key, btree_stats_t *_stats) :
     sizer(_sizer), transaction(_transaction), slice_home_thread(_slice_home_thread),
-    left_mode(_left_mode), left_key(_left_key), right_mode(_right_mode), right_key(_right_key),
-    left_str(key_to_str(_left_key)), right_str(key_to_str(_right_key)),
+    left_mode(_left_mode), left_key(_left_key), left_btree_key(_left_key), right_mode(_right_mode), right_key(_right_key), right_btree_key(_right_key),
     no_more_data(false), active_leaf(NULL), leaves_iterator(NULL), stats(_stats)
 {
     superblock.swap(_superblock);
@@ -252,7 +251,7 @@ void slice_keys_iterator_t<Value>::prefetch() {
 template <class Value>
 boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::get_first_value() {
     rassert(superblock);
-    leaves_iterator = new slice_leaves_iterator_t<Value>(sizer, transaction, superblock, slice_home_thread, left_mode, left_key.key(), right_mode, right_key.key(), stats);
+    leaves_iterator = new slice_leaves_iterator_t<Value>(sizer, transaction, superblock, slice_home_thread, left_mode, left_btree_key.key(), right_mode, right_btree_key.key(), stats);
 
     // get the first leaf with our left key (or something greater)
     boost::optional<leaf_iterator_t<Value>*> first = leaves_iterator->next();
@@ -271,7 +270,7 @@ boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::get_firs
     key_value_pair_t<Value> pair = first_pair.get();
 
     // skip the left key if left_mode == btree_bound_mode_open
-    int compare_result = pair.key.compare(left_str);
+    int compare_result = pair.key.compare(left_key);
     rassert(compare_result >= 0);
     if (left_mode == btree_bound_open && compare_result == 0) {
         return get_next_value();
@@ -311,7 +310,7 @@ boost::optional<key_value_pair_t<Value> > slice_keys_iterator_t<Value>::validate
     if (right_mode == btree_bound_none)
         return boost::make_optional(pair);
 
-    int compare_result = pair.key.compare(right_str);
+    int compare_result = pair.key.compare(right_key);
     if (compare_result < 0 || (right_mode == btree_bound_closed && compare_result == 0)) {
         return boost::make_optional(pair);
     } else {

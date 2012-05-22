@@ -15,10 +15,10 @@
 
 template <class Value>
 struct key_value_pair_t {
-    std::string key;
+    store_key_t key;
     boost::shared_array<char> value;
 
-    key_value_pair_t(value_sizer_t<void> *sizer, const std::string& _key, const void *_value) : key(_key) {
+    key_value_pair_t(value_sizer_t<void> *sizer, const store_key_t& _key, const void *_value) : key(_key) {
         int size = sizer->size(_value);
         value.reset(new char[size]);
         memcpy(value.get(), _value, size);
@@ -131,11 +131,11 @@ private:
     boost::scoped_ptr<superblock_t> superblock;
     int slice_home_thread;
     btree_bound_mode_t left_mode;
-    btree_key_buffer_t left_key;
+    store_key_t left_key;
+    btree_key_buffer_t left_btree_key;
     btree_bound_mode_t right_mode;
-    btree_key_buffer_t right_key;
-    std::string left_str;
-    std::string right_str;
+    store_key_t right_key;
+    btree_key_buffer_t right_btree_key;
 
     bool no_more_data;
     leaf_iterator_t<Value> *active_leaf;
