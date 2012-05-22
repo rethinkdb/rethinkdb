@@ -1,9 +1,10 @@
 #ifndef CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 #define CLUSTERING_ADMINISTRATION_CLU_ADMIN_CLUSTER_LINK_HPP_
 
+#include <curl/curl.h>
+
 #include <vector>
 #include <string>
-#include "curl/curl.h"
 
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
