@@ -39,5 +39,18 @@
     
   <h1 class="title performance">Cluster performance</h1>
   <div class="cluster_performance_panel_placeholder"></div>
+  
+  <h1 class="title sharding-replication-settings">Sharding and replication</h1>
+  <li class="dropdown" id="sharding-settings-dropdown">
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#sharding-settings-dropdown">
+          Configure sharding and replication
+          <b class="caret"></b>
+      </a>
+      <ul class="dropdown-menu">
+          {{#each namespaces}}
+          <li><a href="/#namespaces/{{this.id}}">{{this.name}}</a></li>
+          {{/each}}
+      </ul>
+  </li>
 </script>
 
