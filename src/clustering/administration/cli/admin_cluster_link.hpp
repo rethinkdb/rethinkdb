@@ -116,9 +116,9 @@ private:
                                          const datacenter_id_t dc,
                                          bool resolve);
     template <class protocol_t>
-    void do_admin_create_namespace_internal(const std::string& name,
+    void do_admin_create_namespace_internal(std::string& name,
                                             int port,
-                                            const datacenter_id_t& primary,
+                                            datacenter_id_t& primary,
                                             const std::string& path);
 
     template <class obj_map>
@@ -216,7 +216,8 @@ private:
 
     template <class T>
     void post_metadata(std::string path, T& metadata);
-    void delete_metadata(std::string path);
+    std::string create_metadata(const std::string& path);
+    void delete_metadata(const std::string& path);
     void post_internal(std::string path, std::string data);
 
     local_issue_tracker_t local_issue_tracker;
