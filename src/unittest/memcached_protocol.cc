@@ -105,8 +105,8 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
 
         cond_t interruptor;
         memcached_protocol_t::read_response_t result = nsi->read(read, osource.check_in("unittest"), &interruptor);
-
         if (rget_result_t *maybe_rget_result = boost::get<rget_result_t>(&result.result)) {
+            ASSERT_FALSE(maybe_rget_result->truncated);
             EXPECT_EQ(1, int(maybe_rget_result->pairs.size()));
             EXPECT_EQ(std::string("a"), key_to_str(maybe_rget_result->pairs[0].key));
             EXPECT_EQ('A', maybe_rget_result->pairs[0].value_provider->buf()[0]);

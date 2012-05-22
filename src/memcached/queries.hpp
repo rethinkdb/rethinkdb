@@ -81,6 +81,7 @@ struct key_with_data_buffer_t {
 
 struct rget_result_t {
     std::vector<key_with_data_buffer_t> pairs;
+    bool truncated;
 };
 
 /* `distribution_get` */
