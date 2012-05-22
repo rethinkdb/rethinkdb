@@ -457,6 +457,37 @@
     h1.title {
         margin-bottom: 15px;
     }
+    h1.performance {
+        margin-top: 1em;
+    }
+}
+
+.dashboard-view table.status {
+    width: 100%;
+    td {
+        width: 33%;
+        vertical-align: top;
+    }
+    td.redundancy, td.ram, td.persistence {
+        padding-top: 1em;
+    }
+    td.no-problems-detected h3 {
+        border-left: solid 5px green;
+        padding-left: 5px;
+    }
+    td.problems-detected h3 {
+        border-left: solid 5px red;
+        padding-left: 5px;
+    }
+    p {
+        padding: 0;
+        margin: 0;
+    }
+    p.message, p.details {
+        text-transform: uppercase;
+        color: @gray;
+        font-size: 0.75em;
+    }
 }
 
 
