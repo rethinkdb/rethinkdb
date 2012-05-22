@@ -287,6 +287,37 @@ dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo, 
 }
 
 
+void print_region(const dummy_protocol_t::region_t &region) {
+    std::set<std::string>::const_iterator it = region.keys.begin(), e = region.keys.end();
+    printf("{ ");
+    for (; it != e; ++it) {
+        printf("%s ", it->c_str());
+    }
+    printf("}");
+}
+
+void print_dummy_protocol_thing(const binary_blob_t &blob) {
+    const uint8_t *data = static_cast<const uint8_t *>(blob.data());
+    printf("'");
+    for (size_t i = 0, e = blob.size(); i < e; ++i) {
+        printf("%s%02x", i == 0 ? "" : " ", data[i]);
+    }
+    printf("'");
+}
+
+void print_metainfo(const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
+    typename region_map_t<dummy_protocol_t, binary_blob_t>::const_iterator it = m.begin(), e = m.end();
+    printf("%s: ", msg);
+    for (; it != e; ++it) {
+        print_region(it->first);
+        printf(" => ");
+        print_dummy_protocol_thing(it->second);
+        printf(", ");
+    }
+    printf("\n");
+}
+
+
 dummy_protocol_t::write_response_t
 dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
                                  const metainfo_t& new_metainfo,
@@ -312,6 +343,8 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
 
         // We allow expected_metainfo domain to be smaller than the metainfo domain
         rassert(expected_metainfo.get_domain() == metainfo.mask(expected_metainfo.get_domain()).get_domain());
+        print_metainfo("expected metainfo", expected_metainfo);
+        print_metainfo("masked   metainfo", metainfo.mask(expected_metainfo.get_domain()));
         rassert(expected_metainfo == metainfo.mask(expected_metainfo.get_domain()));
 
         if (rng.randint(2) == 0) nap(rng.randint(10));
@@ -323,6 +356,8 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
         }
 
         metainfo.update(new_metainfo);
+        print_metainfo("updated metainfo", metainfo);
+        print_metainfo("new metainfo", new_metainfo);
     }
     if (rng.randint(2) == 0) nap(rng.randint(10));
     return resp;

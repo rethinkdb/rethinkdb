@@ -60,15 +60,15 @@ public:
     test_inserter_t(boost::function<void(const std::string&, const std::string&, order_token_t, signal_t *)> _wfun,
                boost::function<std::string(const std::string&, order_token_t, signal_t *)> _rfun,
                boost::function<std::string()> _key_gen_fun,
-               order_source_t *_osource, state_t *state)
+                    order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun), osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-            this, osource, auto_drainer_t::lock_t(drainer.get())));
+                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template<class protocol_t>
-    test_inserter_t(namespace_interface_t<protocol_t> *namespace_if, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, state_t *state)
+    test_inserter_t(namespace_interface_t<protocol_t> *namespace_if, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t),
           wfun(boost::bind(&test_inserter_t::write_namespace_if<protocol_t>, namespace_if, _1, _2, _3, _4)),
@@ -77,7 +77,7 @@ public:
           osource(_osource)
     {
         coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
-            this, osource, auto_drainer_t::lock_t(drainer.get())));
+                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     void stop() {
@@ -102,8 +102,10 @@ private:
 
     void insert_forever(
             order_source_t *osource,
+            const std::string &msg,
             auto_drainer_t::lock_t keepalive) {
         try {
+            std::string tag = "insert_forever(" + msg + ")";
             for (int i = 0; ; i++) {
                 if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
@@ -112,7 +114,7 @@ private:
                 std::string value = (*values_inserted)[key] = strprintf("%d", i);
 
                 cond_t interruptor;
-                wfun(key, value, osource->check_in("unittest::test_inserter_t::insert_forever"), &interruptor);
+                wfun(key, value, osource->check_in(tag), &interruptor);
 
                 nap(10, keepalive.get_drain_signal());
             }

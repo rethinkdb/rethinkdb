@@ -93,6 +93,7 @@ static void run_read_write_test() {
         &namespace_interface,
         &dummy_key_gen,
         &order_source,
+        "run_read_write_test(clustering_query.cc)/inserter",
         &inserter_state);
     nap(100);
     inserter.stop();
