@@ -36,8 +36,10 @@ public:
         registrar(mm, this),
         read_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_read,
                                                   this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
+        read_allocation_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::allocate_reads, this, _1)),
         write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
                                                    this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
+        write_allocation_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::allocate_writes, this, _1)),
         master_directory(md), master_directory_lock(mdl),
         uuid(generate_uuid()) {
 
@@ -45,7 +47,8 @@ public:
 
         master_business_card_t<protocol_t> bcard(
             region,
-            read_mailbox.get_address(), write_mailbox.get_address(),
+            read_allocation_mailbox.get_address(), read_mailbox.get_address(), 
+            write_allocation_mailbox.get_address(), write_mailbox.get_address(),
             registrar.get_business_card());
         mutex_assertion_t::acq_t master_directory_lock_acq(master_directory_lock);
         std::map<master_id_t, master_business_card_t<protocol_t> > master_map = master_directory->get_watchable()->get();
@@ -81,7 +84,6 @@ private:
         DISABLE_COPYING(parser_lifetime_t);
     };
 
-
     void on_read(namespace_interface_id_t parser_id, typename protocol_t::read_t read, order_token_t otok, fifo_enforcer_read_token_t token,
             mailbox_addr_t<void(boost::variant<typename protocol_t::read_response_t, std::string>)> response_address,
             auto_drainer_t::lock_t keepalive)
@@ -111,6 +113,10 @@ private:
             was thrown is because the `master_t` is being destroyed, and the
             client will find out some other way. */
         }
+    }
+
+    void allocate_reads(mailbox_addr_t<void(int)> response_address) {
+        send(mailbox_manager, response_address, 100);
     }
 
     void on_write(namespace_interface_id_t parser_id, typename protocol_t::write_t write, order_token_t otok, fifo_enforcer_write_token_t token,
@@ -153,6 +159,11 @@ private:
         }
     }
 
+    void allocate_writes(mailbox_addr_t<void(int)> response_address) {
+        send(mailbox_manager, response_address, 100);
+    }
+
+
     mailbox_manager_t *mailbox_manager;
     ack_checker_t *ack_checker;
     broadcaster_t<protocol_t> *broadcaster;
@@ -162,7 +173,10 @@ private:
     registrar_t<namespace_interface_business_card_t, master_t *, parser_lifetime_t> registrar;
 
     typename master_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
+    typename master_business_card_t<protocol_t>::allocation_mailbox_t read_allocation_mailbox;
+
     typename master_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
+    typename master_business_card_t<protocol_t>::allocation_mailbox_t write_allocation_mailbox;
 
     watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > *master_directory;
     mutex_assertion_t *master_directory_lock;

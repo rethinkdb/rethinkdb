@@ -32,6 +32,8 @@ class master_business_card_t {
 
 public:
     /* Mailbox types for the master */
+    typedef mailbox_t<void(mailbox_addr_t<void(int)>)> allocation_mailbox_t;
+
     typedef mailbox_t< void(
         namespace_interface_id_t,
         typename protocol_t::read_t,
@@ -49,21 +51,24 @@ public:
 
     master_business_card_t() { }
     master_business_card_t(const typename protocol_t::region_t &r,
+                           const allocation_mailbox_t::address_t &ram,
                            const typename read_mailbox_t::address_t &rm,
+                           const allocation_mailbox_t::address_t &wam,
                            const typename write_mailbox_t::address_t &wm,
                            const registrar_business_card_t<namespace_interface_business_card_t> &nirbc)
-        : region(r), read_mailbox(rm), write_mailbox(wm), namespace_interface_registration_business_card(nirbc) { }
+        : region(r), read_allocation(ram), write_allocation(wam), read_mailbox(rm), write_mailbox(wm), namespace_interface_registration_business_card(nirbc) { }
 
     /* The region that this master covers */
     typename protocol_t::region_t region;
 
     /* Contact info for the master itself */
+    allocation_mailbox_t::address_t read_allocation, write_allocation;
     typename read_mailbox_t::address_t read_mailbox;
     typename write_mailbox_t::address_t write_mailbox;
 
     registrar_business_card_t<namespace_interface_business_card_t> namespace_interface_registration_business_card;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(region, read_mailbox, write_mailbox, namespace_interface_registration_business_card);
+    RDB_MAKE_ME_SERIALIZABLE_6(region, read_allocation, write_allocation, read_mailbox, write_mailbox, namespace_interface_registration_business_card);
 };
 
 

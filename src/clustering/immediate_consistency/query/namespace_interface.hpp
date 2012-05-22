@@ -83,13 +83,59 @@ private:
         master_connection_t(peer_id_t p,
                 const typename protocol_t::region_t &r,
                 const typename master_business_card_t<protocol_t>::read_mailbox_t::address_t &rm,
-                const typename master_business_card_t<protocol_t>::write_mailbox_t::address_t &wm) :
-            peer_id(p), region(r), read_mailbox(rm), write_mailbox(wm) { }
+                const typename master_business_card_t<protocol_t>::allocation_mailbox_t::address_t &ram,
+                const typename master_business_card_t<protocol_t>::write_mailbox_t::address_t &wm,
+                const typename master_business_card_t<protocol_t>::allocation_mailbox_t::address_t &wam,
+                mailbox_manager_t *_mbox_manager)
+            : peer_id(p), region(r), 
+              read_mailbox(rm), read_allocation_mailbox(ram), 
+              write_mailbox(wm), write_allocation_mailbox(wam),
+              allocated_reads(0), allocated_writes(0),
+              mbox_manager(_mbox_manager)
+        { }
+
+        /* Make sure that this master has alloted us some reads. */
+        void get_read_permission(signal_t *interruptor) {
+            if (allocated_reads == 0) {
+                promise_t<int> resp_promise;
+                mailbox_t<void(int)> resp_mailbox(mbox_manager, boost::bind(&promise_t<int>::pulse, &resp_promise, _1), mailbox_callback_mode_inline);
+                send(mbox_manager, read_allocation_mailbox, resp_mailbox.get_address());
+                wait_interruptible(resp_promise.get_ready_signal(), interruptor);
+                allocated_reads = resp_promise.get_value();
+            }
+            allocated_reads--;
+        }
+
+        /* Make sure that this master has alloted us some writes. */
+        void get_write_permission(signal_t *interruptor) {
+            if (allocated_writes == 0) {
+                promise_t<int> resp_promise;
+                mailbox_t<void(int)> resp_mailbox(mbox_manager, boost::bind(&promise_t<int>::pulse, &resp_promise, _1), mailbox_callback_mode_inline);
+                send(mbox_manager, write_allocation_mailbox, resp_mailbox.get_address());
+                wait_interruptible(resp_promise.get_ready_signal(), interruptor);
+                allocated_writes = resp_promise.get_value();
+            }
+            allocated_writes--;
+        }
+
+        void get_generic_permission(typename protocol_t::write_t, signal_t *interruptor) {
+            get_write_permission(interruptor);
+        }
+
+        void get_generic_permission(typename protocol_t::read_t, signal_t *interruptor) {
+            get_read_permission(interruptor);
+        }
+
         peer_id_t peer_id;
         fifo_enforcer_source_t fifo_enforcer_source;
         typename protocol_t::region_t region;
         typename master_business_card_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
+        typename master_business_card_t<protocol_t>::allocation_mailbox_t::address_t read_allocation_mailbox;
         typename master_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
+        typename master_business_card_t<protocol_t>::allocation_mailbox_t::address_t write_allocation_mailbox;
+
+        int allocated_reads, allocated_writes;
+        mailbox_manager_t *mbox_manager;
         auto_drainer_t drainer;
     };
 
@@ -178,10 +224,12 @@ private:
 
         fifo_enforcer_token_type enforcement_token = master_to_contact.enforcement_token;
 
-        send(mailbox_manager, query_address,
-             self_id, shard, order_token, enforcement_token, result_or_failure_mailbox.get_address());
-
         try {
+            master_to_contact.master->get_generic_permission(*operation, interruptor);
+
+            send(mailbox_manager, query_address,
+                    self_id, shard, order_token, enforcement_token, result_or_failure_mailbox.get_address());
+
             wait_any_t waiter(result_or_failure.get_ready_signal(), master_to_contact.keepalive.get_drain_signal());
             wait_interruptible(&waiter, interruptor);
 
@@ -317,7 +365,10 @@ private:
                 peer_id,
                 initial_bcard.region,
                 initial_bcard.read_mailbox,
-                initial_bcard.write_mailbox
+                initial_bcard.read_allocation,
+                initial_bcard.write_mailbox,
+                initial_bcard.write_allocation,
+                mailbox_manager
                 );
             map_insertion_sentry_t<master_id_t, master_connection_t *> map_insertion(
                 &open_connections, master_id, &connection);
