@@ -14,23 +14,12 @@ perfmon_result_t::perfmon_result_t() {
     type = type_value;
 }
 
-perfmon_result_t::perfmon_result_t(const perfmon_result_t &copyee)
-    : type(copyee.type), value_(copyee.value_), map_(copyee.map_) { }
-
-perfmon_result_t::~perfmon_result_t() {
-    for (internal_map_t::iterator it = map_.begin(); it != map_.end(); ++it) {
-        delete it->second;
-    }
-}
-
-perfmon_result_t::perfmon_result_t(perfmon_result_type_t _type) : type(_type) { }
-
 perfmon_result_t::perfmon_result_t(const std::string &s) {
     type = type_value;
     value_ = s;
 }
 
-perfmon_result_t::perfmon_result_t(const std::map<std::string, perfmon_result_t *> &m) {
+perfmon_result_t::perfmon_result_t(const boost::ptr_map<std::string, perfmon_result_t> &m) {
     type = type_map;
     map_ = m;
 }

@@ -145,7 +145,7 @@ private:
 template<class arg0_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t) >::address_t dest, const arg0_t &arg0) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t) >::write, _1, boost::ref(arg0)));
+        boost::bind(&mailbox_t< void(arg0_t) >::write, _1, arg0));
 }
 
 
@@ -211,7 +211,7 @@ private:
 template<class arg0_t, class arg1_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t) >::write, _1, boost::ref(arg0), boost::ref(arg1)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t) >::write, _1, arg0, arg1));
 }
 
 
@@ -281,7 +281,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t) >::write, _1, arg0, arg1, arg2));
 }
 
 
@@ -355,7 +355,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2), boost::ref(arg3)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) >::write, _1, arg0, arg1, arg2, arg3));
 }
 
 
@@ -433,7 +433,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2), boost::ref(arg3), boost::ref(arg4)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) >::write, _1, arg0, arg1, arg2, arg3, arg4));
 }
 
 
@@ -515,7 +515,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2), boost::ref(arg3), boost::ref(arg4), boost::ref(arg5)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5));
 }
 
 
@@ -601,7 +601,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2), boost::ref(arg3), boost::ref(arg4), boost::ref(arg5), boost::ref(arg6)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6));
 }
 
 
@@ -691,7 +691,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2), boost::ref(arg3), boost::ref(arg4), boost::ref(arg5), boost::ref(arg6), boost::ref(arg7)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
 }
 
 
@@ -785,7 +785,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2), boost::ref(arg3), boost::ref(arg4), boost::ref(arg5), boost::ref(arg6), boost::ref(arg7), boost::ref(arg8)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8));
 }
 
 
@@ -883,7 +883,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2), boost::ref(arg3), boost::ref(arg4), boost::ref(arg5), boost::ref(arg6), boost::ref(arg7), boost::ref(arg8), boost::ref(arg9)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9));
 }
 
 
@@ -985,7 +985,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2), boost::ref(arg3), boost::ref(arg4), boost::ref(arg5), boost::ref(arg6), boost::ref(arg7), boost::ref(arg8), boost::ref(arg9), boost::ref(arg10)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10));
 }
 
 
@@ -1091,7 +1091,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2), boost::ref(arg3), boost::ref(arg4), boost::ref(arg5), boost::ref(arg6), boost::ref(arg7), boost::ref(arg8), boost::ref(arg9), boost::ref(arg10), boost::ref(arg11)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11));
 }
 
 
@@ -1201,7 +1201,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2), boost::ref(arg3), boost::ref(arg4), boost::ref(arg5), boost::ref(arg6), boost::ref(arg7), boost::ref(arg8), boost::ref(arg9), boost::ref(arg10), boost::ref(arg11), boost::ref(arg12)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12));
 }
 
 
@@ -1315,7 +1315,7 @@ private:
 template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t, class arg9_t, class arg10_t, class arg11_t, class arg12_t, class arg13_t>
 void send(mailbox_manager_t *src, typename mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::address_t dest, const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8, const arg9_t &arg9, const arg10_t &arg10, const arg11_t &arg11, const arg12_t &arg12, const arg13_t &arg13) {
     send(src, dest.addr,
-        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::write, _1, boost::ref(arg0), boost::ref(arg1), boost::ref(arg2), boost::ref(arg3), boost::ref(arg4), boost::ref(arg5), boost::ref(arg6), boost::ref(arg7), boost::ref(arg8), boost::ref(arg9), boost::ref(arg10), boost::ref(arg11), boost::ref(arg12), boost::ref(arg13)));
+        boost::bind(&mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t, arg9_t, arg10_t, arg11_t, arg12_t, arg13_t) >::write, _1, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13));
 }
 
 #endif // RPC_MAILBOX_TYPED_HPP_

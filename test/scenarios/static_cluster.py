@@ -14,7 +14,7 @@ opts = op.parse(sys.argv)
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     print "Starting cluster..."
-    processes = [driver.Process(cluster, driver.Files(metacluster), executable_path = driver.find_rethinkdb_executable(opts["mode"]))
+    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i), executable_path = driver.find_rethinkdb_executable(opts["mode"]), log_path = "serve-output-%d" % i)
         for i in xrange(opts["num-nodes"])]
     time.sleep(3)
     print "Creating namespace..."
