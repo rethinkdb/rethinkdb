@@ -71,7 +71,7 @@ btree_bound_mode_t convert_bound_mode(rget_bound_mode_t m) {
     }
 }
 
-size_t estimate_rget_result_pair_size(const key_with_data_buffer_t &pair);
+size_t estimate_rget_result_pair_size(const key_with_data_buffer_t &pair) {
     static const size_t rget_approx_per_key_overhead = 8;
     return rget_approx_per_key_overhead + pair.key.size + pair.value_provider->size();
 }
