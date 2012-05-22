@@ -100,7 +100,7 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
     }
 
     {
-        rget_query_t rget(rget_bound_none, store_key_t(), rget_bound_open, store_key_t("z"), 1000);
+        rget_query_t rget(key_range_t::universe(), 1000);
         memcached_protocol_t::read_t read(rget, time(NULL));
 
         cond_t interruptor;
