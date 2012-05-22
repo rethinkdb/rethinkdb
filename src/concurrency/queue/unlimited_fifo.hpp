@@ -4,6 +4,7 @@
 #include <list>
 
 #include "concurrency/queue/passive_producer.hpp"
+#include "perfmon.hpp"
 
 /* `unlimited_fifo_queue_t` is one of the simplest possible implementations of
 `passive_producer_t`. It's a first-in, first-out queue. It's called "unlimited"
@@ -28,11 +29,21 @@ T *get_front_of_list(intrusive_list_t<T>& list) {
 template<class value_t, class queue_t = std::list<value_t> >
 struct unlimited_fifo_queue_t : public passive_producer_t<value_t> {
 
-    unlimited_fifo_queue_t() :
-        passive_producer_t<value_t>(&available_control)
+    unlimited_fifo_queue_t() 
+        : passive_producer_t<value_t>(&available_control),
+          counter(NULL)
+    { }
+
+    unlimited_fifo_queue_t(perfmon_counter_t *_counter)
+        : passive_producer_t<value_t>(&available_control),
+          counter(_counter)
     { }
 
     void push(const value_t& value) {
+        if (counter) {
+            ++(*counter);
+        }
+
         queue.push_back(value);
         available_control.set_available(!queue.empty());
     }
@@ -40,12 +51,17 @@ struct unlimited_fifo_queue_t : public passive_producer_t<value_t> {
 private:
     availability_control_t available_control;
     value_t produce_next_value() {
+        if (counter) {
+            --(*counter);
+        }
+
         value_t v = unlimited_fifo_queue::get_front_of_list(queue);
         queue.pop_front();
         available_control.set_available(!queue.empty());
         return v;
     }
     queue_t queue;
+    perfmon_counter_t *counter;
     DISABLE_COPYING(unlimited_fifo_queue_t);
 };
 

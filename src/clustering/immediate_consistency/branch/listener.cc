@@ -21,6 +21,9 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     mailbox_manager(mm),
     branch_history(bh),
     store(s),
+    pm_q_reads("listener_queue_reads", NULL),
+    pm_q_writes("listener_queue_writess", NULL),
+    fifo_queue(&pm_q_reads, &pm_q_writes),
     coro_pool(OPERATION_CORO_POOL_SIZE, &fifo_queue, &coro_pool_callback),
 
     write_mailbox(mailbox_manager, boost::bind(&listener_t::on_write, this,
@@ -157,9 +160,10 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
     mailbox_manager(mm),
     branch_history(bh),
-
+    pm_q_reads("listener_queue_reads", NULL),
+    pm_q_writes("listener_queue_writess", NULL),
+    fifo_queue(&pm_q_reads, &pm_q_writes),
     coro_pool(10, &fifo_queue, &coro_pool_callback),
-
     write_mailbox(mailbox_manager, boost::bind(&listener_t::on_write, this,
                                                _1, _2, _3, _4)),
     writeread_mailbox(mailbox_manager, boost::bind(&listener_t::on_writeread, this,

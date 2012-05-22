@@ -6,6 +6,7 @@
 #include "concurrency/coro_fifo.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
+#include "containers/uuid.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
@@ -17,7 +18,8 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
-      registrar(mailbox_manager, this)
+      registrar(mailbox_manager, this),
+      broadcaster_collection("broadcaster", NULL, true, true)
 {
 
     /* Snapshot the starting point of the store; we'll need to record this
@@ -440,9 +442,9 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = writers.begin(); it != writers.end(); it++) {
                 if (!std_contains(coro_pools, it->first)) {
                     dispatchee_t *tmp = it->first;
-                    coro_pools.insert(tmp, new queue_and_pool_t);
+                    coro_pools.insert(tmp, new queue_and_pool_t(uuid_to_str(tmp->get_peer().get_uuid()), &broadcaster_collection));
                 }
-                coro_pools[it->first].background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
+                coro_pools.find(it->first)->second->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
                     (*it).first, (*it).second, write_ref, enforcer_tokens[(*it).first]));
             }
         }

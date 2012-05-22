@@ -10,6 +10,7 @@
 #include "utils.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 #include "stl_utils.hpp"
+#include "perfmon.hpp"
 
 class cond_t;
 class signal_t;
@@ -191,6 +192,7 @@ template <class T>
 class fifo_enforcer_queue_t : public passive_producer_t<T>, public home_thread_mixin_t {
 public:
     explicit fifo_enforcer_queue_t();
+    fifo_enforcer_queue_t(perfmon_counter_t *_read_counter, perfmon_counter_t *_write_counter);
     ~fifo_enforcer_queue_t();
 
     void push(fifo_enforcer_read_token_t token, const T &t); 
@@ -208,6 +210,8 @@ private:
     mutex_assertion_t lock;
 
     fifo_enforcer_source_t::state_t state;
+
+    perfmon_counter_t *read_counter, *write_counter;
 
 private:
 friend void unittest::run_queue_equivalence_test();

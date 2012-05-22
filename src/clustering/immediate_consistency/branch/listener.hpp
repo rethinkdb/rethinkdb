@@ -172,6 +172,7 @@ private:
     state_timestamp_t current_timestamp;
 
     fifo_enforcer_sink_t fifo_sink;
+    perfmon_counter_t pm_q_reads, pm_q_writes;
     fifo_enforcer_queue_t<boost::function<void()> > fifo_queue;
 
     cond_t on_destruct;
