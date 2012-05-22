@@ -466,6 +466,7 @@ public:
         if (create_submap) {
             result->get_map()->insert(name, map);
         }
+        delete[] contexts;
         constituents_access.unlock();
     }
 
