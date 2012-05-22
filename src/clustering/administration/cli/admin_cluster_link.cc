@@ -1142,7 +1142,6 @@ void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::comma
     std::string datacenter_id(data.params["datacenter"][0]);
     std::vector<std::string> datacenter_path(get_info_from_id(datacenter_id)->path);
     boost::uuids::uuid datacenter_uuid(str_to_uuid(datacenter_path[1]));
-    boost::uuids::uuid obj_uuid(str_to_uuid(obj_path[1]));
 
     // Target must be a datacenter in all existing use cases
     if (datacenter_path[0] != "datacenters")
