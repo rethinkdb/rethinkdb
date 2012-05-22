@@ -106,16 +106,11 @@ private:
                                     const std::string& new_name,
                                     bool resolve);
 
-    template <class obj_map>
-    void do_admin_set_datacenter_namespace(obj_map& metadata,
-                                           const boost::uuids::uuid obj_uuid,
-                                           const datacenter_id_t dc,
-                                           bool resolve);
+    template <class protocol_t>
+    void remove_machine_pinnings(const machine_id_t& machine,
+                                 const std::string& post_path,
+                                 std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >& ns_map);
 
-    void do_admin_set_datacenter_machine(machines_semilattice_metadata_t::machine_map_t& metadata,
-                                         const boost::uuids::uuid obj_uuid,
-                                         const datacenter_id_t dc,
-                                         bool resolve);
     template <class protocol_t>
     void do_admin_create_namespace_internal(std::string& name,
                                             int port,
@@ -157,7 +152,18 @@ private:
                                      const std::string& post_path);
 
     template <class protocol_t>
-    void list_pinnings(namespace_semilattice_metadata_t<protocol_t>& ns, const shard_input_t& shard_in);
+    typename protocol_t::region_t find_shard_in_namespace(namespace_semilattice_metadata_t<protocol_t>& ns,
+                                                          const shard_input_t& shard_in);
+
+    template <class protocol_t>
+    void list_pinnings(namespace_semilattice_metadata_t<protocol_t>& ns,
+                       const shard_input_t& shard_in,
+                       cluster_semilattice_metadata_t& cluster_metadata);
+
+    template <class bp_type>
+    void list_pinnings_internal(const bp_type& bp,
+                                const key_range_t& shard,
+                                cluster_semilattice_metadata_t& cluster_metadata);
 
     template <class map_type, class value_type>
     void insert_pinning(map_type& region_map, const key_range_t& shard, value_type& value);
@@ -262,20 +268,20 @@ private:
     // Initial join
     initial_joiner_t initial_joiner;
 
-    struct metadata_info {
+    struct metadata_info_t {
         std::string uuid;
         std::string name;
         std::vector<std::string> path;
     };
 
-    std::map<std::string, metadata_info*> uuid_map;
-    std::multimap<std::string, metadata_info*> name_map;
+    std::map<std::string, metadata_info_t*> uuid_map;
+    std::multimap<std::string, metadata_info_t*> name_map;
 
     void clear_metadata_maps();
     void update_metadata_maps();
     template <class T>
     void add_subset_to_maps(const std::string& base, T& data_map);
-    metadata_info* get_info_from_id(const std::string& id);
+    metadata_info_t* get_info_from_id(const std::string& id);
 
     CURL *curl_handle;
     struct curl_slist *curl_header_list;

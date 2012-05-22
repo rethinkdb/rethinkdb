@@ -603,7 +603,7 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
         for (; index < line.size(); ++index) {
             if (line[index].find("--") == 0) { // This is a flag, skip any completed options
                 std::map<std::string, param_options *>::iterator opt_iter = cmd->flags.find(line[index].substr(2));
-                if (opt_iter != cmd->flags.end()) {
+                if (opt_iter != cmd->flags.end() && (index != line.size() - 1 || !partial)) {
                     if (line.size() <= index + opt_iter->second->count) { // Not enough params for this flag
                         if (!partial) // print valid_options
                             add_option_matches(opt_iter->second, std::string(), completions);
