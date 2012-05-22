@@ -3,12 +3,13 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include <curl/curl.h>
+
 #include <map>
 #include <stdexcept>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
-#include "curl/curl.h"
 
 #include "clustering/administration/suggester.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
