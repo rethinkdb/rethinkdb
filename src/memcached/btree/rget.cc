@@ -71,28 +71,36 @@ btree_bound_mode_t convert_bound_mode(rget_bound_mode_t m) {
     }
 }
 
+size_t estimate_rget_result_pair_size(const key_with_data_buffer_t &pair);
+    static const size_t rget_approx_per_key_overhead = 8;
+    return rget_approx_per_key_overhead + pair.key.size + pair.value_provider->size();
+}
+
 rget_result_t memcached_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key,
         int maximum, exptime_t effective_time, boost::scoped_ptr<transaction_t>& txn, boost::scoped_ptr<superblock_t> &superblock) {
 
     boost::shared_ptr<value_sizer_t<memcached_value_t> > sizer = boost::make_shared<memcached_value_sizer_t>(txn->get_cache()->get_block_size());
 
     rget_result_t result;
+    size_t cumulative_size = 0;
     slice_keys_iterator_t<memcached_value_t> iterator(sizer, txn.get(), superblock, slice->home_thread(), convert_bound_mode(left_mode), left_key, convert_bound_mode(right_mode), right_key, &slice->stats);
-    debugf("memcached_rget_slice(), maximum = %d\n", maximum);
-    while (int(result.pairs.size()) < maximum) {
+    while (int(result.pairs.size()) < maximum && cumulative_size < rget_max_chunk_size) {
         boost::optional<key_value_pair_t<memcached_value_t> > next = iterator.next();
         if (!next) {
-            debugf("!next\n");
             break;
         }
         const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(next->value.get());
         if (value->expired(effective_time)) {
-            debugf("expired\n");
             continue;
         }
         intrusive_ptr_t<data_buffer_t> data(value_to_data_buffer(value, txn.get()));
         result.pairs.push_back(key_with_data_buffer_t(next->key, value->mcflags(), data));
-        debugf("pushed, size now = %d\n", int(result.pairs.size()));
+        cumulative_size += estimate_rget_result_pair_size(result.pairs.back());
+    }
+    if (cumulative_size >= rget_max_chunk_size) {
+        result.truncated = true;
+    } else {
+        result.truncated = false;
     }
     return result;
 }

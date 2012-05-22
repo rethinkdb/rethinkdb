@@ -63,7 +63,7 @@ RDB_IMPL_SERIALIZABLE_5(rget_query_t, left_mode, left_key, right_mode, right_key
 RDB_IMPL_SERIALIZABLE_2(distribution_get_query_t, max_depth, range);
 RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
 RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
-RDB_IMPL_SERIALIZABLE_1(rget_result_t, pairs);
+RDB_IMPL_SERIALIZABLE_2(rget_result_t, pairs, truncated);
 RDB_IMPL_SERIALIZABLE_1(distribution_result_t, key_counts);
 RDB_IMPL_SERIALIZABLE_1(get_cas_mutation_t, key);
 RDB_IMPL_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
@@ -161,7 +161,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
         rassert(bits.size() == 1);
         return memcached_protocol_t::read_response_t(boost::get<get_result_t>(bits[0].result));
     }
-    memcached_protocol_t::read_response_t operator()(UNUSED rget_query_t rget) {
+    memcached_protocol_t::read_response_t operator()(rget_query_t rget) {
         std::map<store_key_t, rget_result_t *> sorted_bits;
         for (int i = 0; i < int(bits.size()); i++) {
             rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
@@ -175,14 +175,27 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
         store_key_t last;
 #endif
         rget_result_t result;
+        size_t cumulative_size = 0;
         for (std::map<store_key_t, rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); it++) {
+            if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
+                break;
+            }
             for (std::vector<key_with_data_buffer_t>::iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); jt++) {
+                if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
+                    break;
+                }
                 result.pairs.push_back(*jt);
+                cumulative_size += estimate_rget_result_pair_size(*jt);
 #ifndef NDEBUG
                 rassert(result.pairs.size() == 0 || jt->key > last);
                 last = jt->key;
 #endif
             }
+        }
+        if (cumulative_size >= rget_max_chunk_size) {
+            result.truncated = true;
+        } else {
+            result.truncated = false;
         }
         return memcached_protocol_t::read_response_t(result);
     }
