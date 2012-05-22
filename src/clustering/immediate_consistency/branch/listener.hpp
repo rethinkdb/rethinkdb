@@ -176,12 +176,7 @@ private:
 
     cond_t on_destruct;
 
-    class calling_callback_t : public coro_pool_t<boost::function<void()> >::callback_t {
-    public:
-        void coro_pool_callback(boost::function<void()> f) {
-            f();
-        }
-    } coro_pool_callback;
+    calling_callback_t coro_pool_callback;
 
     coro_pool_t<boost::function<void()> > coro_pool;
 
