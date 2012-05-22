@@ -9,9 +9,11 @@
 
 #include <limits>
 #include <string>
+#include <map>
 
 #include "utils.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
+#include <boost/scoped_array.hpp>
+
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 #include "perfmon_types.hpp"
@@ -38,7 +40,7 @@ struct cache_line_padded_t {
 various parts of the server. */
 
 class perfmon_result_t {
-    typedef boost::ptr_map<std::string, perfmon_result_t> internal_map_t;
+    typedef std::map<std::string, perfmon_result_t *> internal_map_t;
 public:
     enum perfmon_result_type_t {
         type_value,
@@ -46,8 +48,9 @@ public:
     };
 
     perfmon_result_t();
+    perfmon_result_t(const perfmon_result_t &);
     explicit perfmon_result_t(const std::string &);
-    explicit perfmon_result_t(const internal_map_t &);
+    ~perfmon_result_t();
 
     static perfmon_result_t make_string() {
         return perfmon_result_t(std::string());
@@ -95,7 +98,7 @@ public:
 
     std::pair<internal_map_t::iterator, bool> insert(const std::string &k, perfmon_result_t *val) {
         std::string s = k;
-        return get_map()->insert(s, val);
+        return get_map()->insert(std::pair<std::string, perfmon_result_t *>(s, val));
     }
 
     typedef internal_map_t::iterator iterator;
@@ -118,6 +121,8 @@ public:
     }
 
 private:
+    explicit perfmon_result_t(const internal_map_t &);
+
     // We need these two friends for serialization, but we don't want to include the
     // serialization headers, neither we want to define the serializers here.
     friend write_message_t &operator<<(write_message_t &msg, const perfmon_result_t &thing);
@@ -127,6 +132,8 @@ private:
 
     std::string value_;
     internal_map_t map_;
+
+    void operator=(const perfmon_result_t &);
 };
 
 /* perfmon_get_stats() collects all the stats about the server and puts them
@@ -464,7 +471,7 @@ public:
         }
 
         if (create_submap) {
-            result->get_map()->insert(name, map);
+            result->get_map()->insert(std::pair<std::string, perfmon_result_t *>(name, map));
         }
         delete[] contexts;
         constituents_access.unlock();
