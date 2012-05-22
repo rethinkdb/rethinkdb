@@ -315,18 +315,19 @@ void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
 
 template <class protocol_t>
 void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
-        transition_timestamp_t transition_timestamp,
-        fifo_enforcer_write_token_t fifo_token,
-        mailbox_addr_t<void()> ack_addr)
-        THROWS_NOTHING {
+	transition_timestamp_t transition_timestamp,
+	fifo_enforcer_write_token_t fifo_token,
+	mailbox_addr_t<void()> ack_addr)
+	THROWS_NOTHING 
+{
     try {
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
         {
+            death_runner_t finish_write(boost::bind(&fifo_enforcer_queue_t<boost::function<void()> >::finish_write, &fifo_queue, fifo_token));
             /* Enforce that we start our transaction in the same order as we
-            entered the FIFO at the broadcaster. */
-        //RSI
+               entered the FIFO at the broadcaster. */
             fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token);
-        fifo_exit.wait();
+            fifo_exit.wait();
             wait_interruptible(&fifo_exit, &on_destruct);
 
             /* Validate write. */
@@ -334,25 +335,25 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
             rassert(!region_is_empty(write.get_region()));
 
             /* Block until registration has completely succeeded or failed.
-            (May throw `interrupted_exc_t`) */
+               (May throw `interrupted_exc_t`) */
             wait_interruptible(registration_done_cond.get_ready_signal(), &on_destruct);
 
             /* Block until the backfill succeeds or fails. If the backfill
-            fails, then the constructor will throw an exception, so
-            `&on_destruct` will be pulsed. */
+               fails, then the constructor will throw an exception, so
+               `&on_destruct` will be pulsed. */
             wait_interruptible(backfill_done_cond.get_ready_signal(), &on_destruct);
 
             if (transition_timestamp.timestamp_before() < backfill_done_cond.get_value()) {
                 /* `write` is a duplicate; we got it both as part of the
-                backfill, and from the broadcaster. Ignore this copy of it. */
+                   backfill, and from the broadcaster. Ignore this copy of it. */
                 return;
             }
 
             advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
             store->new_write_token(token);
-            /* Now that we've gotten a write token, it's safe to allow the next write or read to proceed. */
-        fifo_queue.finish_write(fifo_token);
+            /* Now that we've gotten a write token, allow the next guy to
+             * proceed, death runner gets called here ending the write. */
         }
 
         /* Mask out any parts of the operation that don't apply to us */
@@ -360,19 +361,18 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 
         cond_t non_interruptor;
         store->write(
-            DEBUG_ONLY(
+                DEBUG_ONLY(
+                    region_map_t<protocol_t, binary_blob_t>(store->get_region(),
+                        binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
+                    )
                 region_map_t<protocol_t, binary_blob_t>(store->get_region(),
-                    binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
-                )
-            region_map_t<protocol_t, binary_blob_t>(store->get_region(),
-                binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))),
-            write,
-            transition_timestamp,
-            token,
-            &non_interruptor);
+                    binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))),
+                write,
+                transition_timestamp,
+                token,
+                &non_interruptor);
 
         send(mailbox_manager, ack_addr);
-
     } catch (interrupted_exc_t) {
         return;
     }
@@ -398,6 +398,8 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
     try {
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
         {
+            death_runner_t finish_write(boost::bind(&fifo_enforcer_queue_t<boost::function<void()> >::finish_write, &fifo_queue, fifo_token));
+
             fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token);
             wait_interruptible(&fifo_exit, &on_destruct);
 
@@ -406,20 +408,20 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
             rassert(!region_is_empty(write.get_region()));
 
             /* We can't possibly be receiving writereads unless we successfully
-            registered and completed a backfill */
+               registered and completed a backfill */
             rassert(registration_done_cond.get_ready_signal()->is_pulsed());
             rassert(backfill_done_cond.get_ready_signal()->is_pulsed());
 
             /* This mustn't be a duplicate operation because we can't register for
-            writereads until the backfill is over */
+               writereads until the backfill is over */
             rassert(transition_timestamp.timestamp_before() >=
-                backfill_done_cond.get_value());
+                    backfill_done_cond.get_value());
 
             advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
             store->new_write_token(token);
-            /* Now that we've gotten a write token, allow the next guy to proceed */
-        fifo_queue.finish_write(fifo_token);
+            /* Now that we've gotten a write token, allow the next guy to
+             * proceed, death runner gets called here ending the write. */
         }
 
         // Make sure we can serve the entire operation without masking it.
@@ -429,18 +431,17 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
         // Perform the operation
         cond_t non_interruptor;
         typename protocol_t::write_response_t response = store->write(DEBUG_ONLY(
+                    region_map_t<protocol_t, binary_blob_t>(store->get_region(),
+                        binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
+                    )
                 region_map_t<protocol_t, binary_blob_t>(store->get_region(),
-                    binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
-                )
-            region_map_t<protocol_t, binary_blob_t>(store->get_region(),
-                binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))),
-            write,
-            transition_timestamp,
-            token,
-            &non_interruptor);
+                    binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))),
+                write,
+                transition_timestamp,
+                token,
+                &non_interruptor);
 
         send(mailbox_manager, ack_addr, response);
-
     } catch (interrupted_exc_t) {
         return;
     }
@@ -464,24 +465,25 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
         THROWS_NOTHING
 {
     try {
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token;
-        {
-            fifo_enforcer_sink_t::exit_read_t fifo_exit(&fifo_sink, fifo_token);
-            wait_interruptible(&fifo_exit, &on_destruct);
+	boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token;
+	{
+        death_runner_t finish_read(boost::bind(&fifo_enforcer_queue_t<boost::function<void()> >::finish_read, &fifo_queue, fifo_token));
+	    fifo_enforcer_sink_t::exit_read_t fifo_exit(&fifo_sink, fifo_token);
+	    wait_interruptible(&fifo_exit, &on_destruct);
 
-            /* Validate read. */
-            rassert(region_is_superset(branch_history->get().branches[branch_id].region, read.get_region()));
-            rassert(!region_is_empty(read.get_region()));
+	    /* Validate read. */
+	    rassert(region_is_superset(branch_history->get().branches[branch_id].region, read.get_region()));
+	    rassert(!region_is_empty(read.get_region()));
 
-            /* We can't possibly be receiving reads unless we successfully
-            registered and completed a backfill */
-            rassert(registration_done_cond.get_ready_signal()->is_pulsed());
-            rassert(backfill_done_cond.get_ready_signal()->is_pulsed());
+	    /* We can't possibly be receiving reads unless we successfully
+	    registered and completed a backfill */
+	    rassert(registration_done_cond.get_ready_signal()->is_pulsed());
+	    rassert(backfill_done_cond.get_ready_signal()->is_pulsed());
 
-            /* Now that we have the superblock, allow the next guy to proceed */
-            store->new_read_token(token);
-        fifo_queue.finish_read(fifo_token);
-        }
+        /* Now that we have the superblock, allow the next guy to proceed,
+         * (death runner gets called here). */
+	    store->new_read_token(token);
+	}
 
         /* Make sure we can serve the entire operation without masking it.
         (We shouldn't have been signed up for reads if we couldn't.) */

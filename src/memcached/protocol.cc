@@ -58,67 +58,12 @@ int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf) {
     return ARCHIVE_SUCCESS;
 }
 
-template<typename T>
-class vector_backed_one_way_iterator_t : public one_way_iterator_t<T> {
-    typename std::vector<T> data;
-    size_t pos;
-public:
-    vector_backed_one_way_iterator_t() : pos(0) { }
-    void push_back(T &v) { data.push_back(v); }
-    typename boost::optional<T> next() {
-        if (pos < data.size()) {
-            return boost::optional<T>(data[pos++]);
-        } else {
-            return boost::optional<T>();
-        }
-    }
-    void prefetch() { }
-};
-
-
-write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter) {
-    while (boost::optional<key_with_data_buffer_t> pair = iter->next()) {
-        const key_with_data_buffer_t &kv = pair.get();
-
-        const std::string &key = kv.key;
-        const intrusive_ptr_t<data_buffer_t> &data = kv.value_provider;
-        bool next = true;
-        msg << next;
-        msg << key;
-        msg << data;
-    }
-    bool next = false;
-    msg << next;
-    return msg;
-}
-
-int deserialize(read_stream_t *s, rget_result_t *iter) {
-    *iter = rget_result_t(new vector_backed_one_way_iterator_t<key_with_data_buffer_t>());
-    bool next;
-    for (;;) {
-        int res = deserialize(s, &next);
-        if (res) { return res; }
-        if (!next) {
-            return ARCHIVE_SUCCESS;
-        }
-
-        // TODO: See the load function above.  I'm guessing this code is never used.
-        std::string key;
-        res = deserialize(s, &key);
-        if (res) { return res; }
-        intrusive_ptr_t<data_buffer_t> data;
-        res = deserialize(s, &data);
-        if (res) { return res; }
-
-        // You'll note that we haven't put the values in the vector-backed iterator.  Neither does the load function above...
-    }
-}
-
 RDB_IMPL_SERIALIZABLE_1(get_query_t, key);
-RDB_IMPL_SERIALIZABLE_4(rget_query_t, left_mode, left_key, right_mode, right_key);
+RDB_IMPL_SERIALIZABLE_5(rget_query_t, left_mode, left_key, right_mode, right_key, maximum);
 RDB_IMPL_SERIALIZABLE_2(distribution_get_query_t, max_depth, range);
 RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
 RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
+RDB_IMPL_SERIALIZABLE_2(rget_result_t, pairs, truncated);
 RDB_IMPL_SERIALIZABLE_1(distribution_result_t, key_counts);
 RDB_IMPL_SERIALIZABLE_1(get_cas_mutation_t, key);
 RDB_IMPL_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas);
@@ -192,6 +137,7 @@ struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t:
             sub_rget.right_mode = rget_bound_open;
             sub_rget.right_key = region.right.key;
         }
+        sub_rget.maximum = original_rget.maximum;
         return memcached_protocol_t::read_t(sub_rget, effective_time);
     }
     memcached_protocol_t::read_t operator()(distribution_get_query_t distribution_get) {
@@ -207,8 +153,6 @@ memcached_protocol_t::read_t memcached_protocol_t::read_t::shard(const key_range
 
 /* `memcached_protocol_t::read_t::unshard()` */
 
-typedef merge_ordered_data_iterator_t<key_with_data_buffer_t, key_with_data_buffer_t::less> merged_results_iterator_t;
-
 struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
     std::vector<memcached_protocol_t::read_response_t> &bits;
 
@@ -217,12 +161,43 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
         rassert(bits.size() == 1);
         return memcached_protocol_t::read_response_t(boost::get<get_result_t>(bits[0].result));
     }
-    memcached_protocol_t::read_response_t operator()(UNUSED rget_query_t rget) {
-        boost::shared_ptr<merged_results_iterator_t> merge_iterator(new merged_results_iterator_t());
-        for (int i = 0; i < (int)bits.size(); i++) {
-            merge_iterator->add_mergee(boost::get<rget_result_t>(bits[i].result));
+    memcached_protocol_t::read_response_t operator()(rget_query_t rget) {
+        std::map<store_key_t, rget_result_t *> sorted_bits;
+        for (int i = 0; i < int(bits.size()); i++) {
+            rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
+            if (!bit->pairs.empty()) {
+                const store_key_t &key = bit->pairs.front().key;
+                rassert(sorted_bits.count(key) == 0);
+                sorted_bits.insert(std::make_pair(key, bit));
+            }
         }
-        return memcached_protocol_t::read_response_t(rget_result_t(merge_iterator));
+#ifndef NDEBUG
+        store_key_t last;
+#endif
+        rget_result_t result;
+        size_t cumulative_size = 0;
+        for (std::map<store_key_t, rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); it++) {
+            if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
+                break;
+            }
+            for (std::vector<key_with_data_buffer_t>::iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); jt++) {
+                if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
+                    break;
+                }
+                result.pairs.push_back(*jt);
+                cumulative_size += estimate_rget_result_pair_size(*jt);
+#ifndef NDEBUG
+                rassert(result.pairs.size() == 0 || jt->key > last);
+                last = jt->key;
+#endif
+            }
+        }
+        if (cumulative_size >= rget_max_chunk_size) {
+            result.truncated = true;
+        } else {
+            result.truncated = false;
+        }
+        return memcached_protocol_t::read_response_t(result);
     }
     memcached_protocol_t::read_response_t operator()(distribution_get_query_t) {
         distribution_result_t res;
@@ -465,7 +440,7 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
     }
     memcached_protocol_t::read_response_t operator()(const rget_query_t& rget) {
         return memcached_protocol_t::read_response_t(
-            memcached_rget_slice(btree, rget.left_mode, rget.left_key, rget.right_mode, rget.right_key, effective_time, txn, superblock));
+            memcached_rget_slice(btree, rget.left_mode, rget.left_key, rget.right_mode, rget.right_key, rget.maximum, effective_time, txn, superblock));
     }
     memcached_protocol_t::read_response_t operator()(const distribution_get_query_t& dget) {
         distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock.get());

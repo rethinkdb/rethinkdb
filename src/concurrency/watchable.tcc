@@ -1,3 +1,5 @@
+#include "concurrency/watchable.hpp"
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 

@@ -14,15 +14,30 @@ perfmon_result_t::perfmon_result_t() {
     type = type_value;
 }
 
-perfmon_result_t::perfmon_result_t(const std::string &s) { 
-    type = type_value;
-    _value = s;
+perfmon_result_t::perfmon_result_t(const perfmon_result_t &copyee)
+    : type(copyee.type), value_(copyee.value_), map_() {
+    for (internal_map_t::const_iterator it = copyee.map_.begin(); it != copyee.map_.end(); ++it) {
+        perfmon_result_t *subcopy = new perfmon_result_t(*it->second);
+        map_.insert(std::pair<std::string, perfmon_result_t *>(it->first, subcopy));
+    }
 }
 
-perfmon_result_t::perfmon_result_t(const boost::ptr_map<std::string, perfmon_result_t> &m) {
-    type = type_map;
-    _map = m;
+perfmon_result_t::perfmon_result_t(const std::string &s) {
+    type = type_value;
+    value_ = s;
 }
+
+perfmon_result_t::perfmon_result_t(const std::map<std::string, perfmon_result_t *> &m) {
+    type = type_map;
+    map_ = m;
+}
+
+perfmon_result_t::~perfmon_result_t() {
+    for (internal_map_t::iterator it = map_.begin(); it != map_.end(); ++it) {
+        delete it->second;
+    }
+}
+
 
 /* The var list keeps track of all of the perfmon_t objects. */
 
@@ -104,6 +119,10 @@ perfmon_counter_t::perfmon_counter_t(const std::string& _name, perfmon_collectio
     for (int i = 0; i < MAX_THREADS; i++) thread_data[i].value = 0;
 }
 
+perfmon_counter_t::~perfmon_counter_t() {
+    delete[] thread_data;
+}
+
 int64_t &perfmon_counter_t::get() {
     rassert(get_thread_id() >= 0);
     return thread_data[get_thread_id()].value;
@@ -131,6 +150,10 @@ perfmon_sampler_t::perfmon_sampler_t(const std::string& _name, ticks_t _length, 
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;
     }
+}
+
+perfmon_sampler_t::~perfmon_sampler_t() {
+    delete[] thread_data;
 }
 
 void perfmon_sampler_t::update(ticks_t now) {

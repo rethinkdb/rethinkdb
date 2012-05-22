@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 #define CLUSTERING_ADMINISTRATION_CLU_ADMIN_CLUSTER_LINK_HPP_
 
+#include <curl/curl.h>
+
 #include <vector>
 #include <string>
 
@@ -85,14 +87,18 @@ private:
 
     std::vector<std::string> get_ids_internal(const std::string& base, const std::string& path);
 
-    void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata);
-
     size_t get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter);
 
     template <class protocol_t>
-    void do_admin_set_acks_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_acks);
+    void do_admin_set_acks_internal(namespace_semilattice_metadata_t<protocol_t>& ns,
+                                    const datacenter_id_t& datacenter,
+                                    int num_acks,
+                                    const std::string& post_path);
     template <class protocol_t>
-    void do_admin_set_replicas_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const datacenter_id_t& datacenter, int num_replicas);
+    void do_admin_set_replicas_internal(namespace_semilattice_metadata_t<protocol_t>& ns,
+                                        const datacenter_id_t& datacenter,
+                                        int num_replicas,
+                                        const std::string& post_path);
 
     template <class obj_map>
     void do_admin_set_name_internal(obj_map& metadata,
@@ -111,10 +117,10 @@ private:
                                          const datacenter_id_t dc,
                                          bool resolve);
     template <class protocol_t>
-    void do_admin_create_namespace_internal(namespaces_semilattice_metadata_t<protocol_t>& ns,
-                                            const std::string& name,
+    void do_admin_create_namespace_internal(std::string& name,
                                             int port,
-                                            const datacenter_id_t& primary);
+                                            datacenter_id_t& primary,
+                                            const std::string& path);
 
     template <class obj_map>
     void do_admin_remove_internal(obj_map& metadata, const boost::uuids::uuid& obj_uuid);
@@ -143,7 +149,12 @@ private:
     };
 
     template <class protocol_t>
-    void do_admin_pin_shard_internal(namespace_semilattice_metadata_t<protocol_t>& ns, const shard_input_t& shard_in, const std::string& primary_str, const std::vector<std::string>& secondary_strs, cluster_semilattice_metadata_t& cluster_metadata);
+    void do_admin_pin_shard_internal(namespace_semilattice_metadata_t<protocol_t>& ns,
+                                     const shard_input_t& shard_in,
+                                     const std::string& primary_str,
+                                     const std::vector<std::string>& secondary_strs,
+                                     cluster_semilattice_metadata_t& cluster_metadata,
+                                     const std::string& post_path);
 
     template <class protocol_t>
     void list_pinnings(namespace_semilattice_metadata_t<protocol_t>& ns, const shard_input_t& shard_in);
@@ -198,6 +209,17 @@ private:
     void add_datacenter_info_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t>& results);
 
     boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > traverse_directory(const std::vector<std::string>& path, namespace_metadata_ctx_t& json_ctx, cluster_semilattice_metadata_t& cluster_metadata);
+
+    std::string path_to_str(const std::vector<std::string>& path);
+
+    static size_t handle_post_result(char *ptr, size_t size, size_t nmemb, void *param);
+    std::string post_result;
+
+    template <class T>
+    void post_metadata(std::string path, T& metadata);
+    std::string create_metadata(const std::string& path);
+    void delete_metadata(const std::string& path);
+    void post_internal(std::string path, std::string data);
 
     local_issue_tracker_t local_issue_tracker;
     log_writer_t log_writer;
@@ -255,7 +277,9 @@ private:
     void add_subset_to_maps(const std::string& base, T& data_map);
     metadata_info* get_info_from_id(const std::string& id);
 
-    peer_id_t sync_peer;
+    CURL *curl_handle;
+    struct curl_slist *curl_header_list;
+    std::string sync_peer;
 
     DISABLE_COPYING(admin_cluster_link_t);
 };

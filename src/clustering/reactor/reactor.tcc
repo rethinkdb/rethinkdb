@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_REACTOR_REACTOR_TCC_
 #define CLUSTERING_REACTOR_REACTOR_TCC_
 
+#include "clustering/reactor/reactor.hpp"
+
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
@@ -222,4 +224,4 @@ clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reacto
     return reactor_directory->subview(boost::bind(&extract_activity_from_reactor_bcard<protocol_t, activity_t>, _1, p_id, ra_id));
 }
 
-#endif
+#endif  // CLUSTERING_REACTOR_REACTOR_TCC_

@@ -254,7 +254,9 @@ private:
                     // We have an unhandled master id.  Say it's handled NOW!  And handle it.
                     handled_master_ids.insert(id);  // We said it.
 
-                    start_count++;
+                    if (is_start) {
+                        start_count++;
+                    }
 
                     /* Now handle it. */
                     coro_t::spawn_sometime(boost::bind(

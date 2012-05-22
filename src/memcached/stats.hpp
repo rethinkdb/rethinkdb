@@ -16,7 +16,6 @@ struct memcached_stats_t {
           pm_conns_reading("conns_reading", secs_to_ticks(1), &parser_collection),
           pm_conns_writing("conns_writing", secs_to_ticks(1), &parser_collection),
           pm_conns_acting("conns_acting", secs_to_ticks(1), &parser_collection),
-          rget_iteration_next("rget_iteration_next", secs_to_ticks(1), &parser_collection),
           pm_conns("pm_conns", secs_to_ticks(1), &parser_collection)
     { }
 
@@ -37,8 +36,6 @@ struct memcached_stats_t {
         pm_conns_reading,
         pm_conns_writing,
         pm_conns_acting;
-
-    perfmon_duration_sampler_t rget_iteration_next;
 
     perfmon_duration_sampler_t pm_conns;
 };
