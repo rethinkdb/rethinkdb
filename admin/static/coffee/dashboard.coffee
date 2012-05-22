@@ -9,8 +9,13 @@ class DashboardView extends Backbone.View
 
     render: ->
         log_render '(rendering) dashboard view'
-        @.$el.html @template({})
+        json =
+            namespaces: _.map(namespaces.models, ((n)->
+                            id: n.get('id')
+                            name: n.get('name')))
+        @.$el.html @template json
         @.$('.cluster_performance_panel_placeholder').html @perf_panel.render().$el
+        @.$('.dropdown-toggle').dropdown()
 
         return @
 

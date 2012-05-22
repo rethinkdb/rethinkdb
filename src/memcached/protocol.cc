@@ -59,7 +59,7 @@ int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf) {
 }
 
 RDB_IMPL_SERIALIZABLE_1(get_query_t, key);
-RDB_IMPL_SERIALIZABLE_5(rget_query_t, left_mode, left_key, right_mode, right_key, maximum);
+RDB_IMPL_SERIALIZABLE_2(rget_query_t, range, maximum);
 RDB_IMPL_SERIALIZABLE_2(distribution_get_query_t, max_depth, range);
 RDB_IMPL_SERIALIZABLE_3(get_result_t, value, flags, cas);
 RDB_IMPL_SERIALIZABLE_3(key_with_data_buffer_t, key, mcflags, value_provider);
@@ -76,26 +76,12 @@ RDB_IMPL_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, ca
 
 /* `memcached_protocol_t::read_t::get_region()` */
 
-static key_range_t::bound_t convert_bound_mode(rget_bound_mode_t rbm) {
-    switch (rbm) {
-        case rget_bound_open: return key_range_t::open;
-        case rget_bound_closed: return key_range_t::closed;
-        case rget_bound_none: return key_range_t::none;
-        default: unreachable();
-    }
-}
-
 struct read_get_region_visitor_t : public boost::static_visitor<key_range_t> {
     key_range_t operator()(get_query_t get) {
         return key_range_t(key_range_t::closed, get.key, key_range_t::closed, get.key);
     }
     key_range_t operator()(rget_query_t rget) {
-        return key_range_t(
-            convert_bound_mode(rget.left_mode),
-            rget.left_key,
-            convert_bound_mode(rget.right_mode),
-            rget.right_key
-            );
+        return rget.range;
     }
     key_range_t operator()(distribution_get_query_t dst_get) {
         return dst_get.range;
@@ -118,29 +104,13 @@ struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t:
         rassert(region == key_range_t(key_range_t::closed, get.key, key_range_t::closed, get.key));
         return memcached_protocol_t::read_t(get, effective_time);
     }
-    memcached_protocol_t::read_t operator()(UNUSED rget_query_t original_rget) {
-        rassert(region_is_superset(
-            key_range_t(
-                convert_bound_mode(original_rget.left_mode),
-                original_rget.left_key,
-                convert_bound_mode(original_rget.right_mode),
-                original_rget.right_key
-                ),
-            region
-            ));
-        rget_query_t sub_rget;
-        sub_rget.left_mode = rget_bound_closed;
-        sub_rget.left_key = region.left;
-        if (region.right.unbounded) {
-            sub_rget.right_mode = rget_bound_none;
-        } else {
-            sub_rget.right_mode = rget_bound_open;
-            sub_rget.right_key = region.right.key;
-        }
-        sub_rget.maximum = original_rget.maximum;
-        return memcached_protocol_t::read_t(sub_rget, effective_time);
+    memcached_protocol_t::read_t operator()(UNUSED rget_query_t rget) {
+        rassert(region_is_superset(rget.range, region));
+        rget.range = region;
+        return memcached_protocol_t::read_t(rget, effective_time);
     }
     memcached_protocol_t::read_t operator()(distribution_get_query_t distribution_get) {
+        rassert(region_is_superset(distribution_get.range, region));
         distribution_get.range = region;
         return memcached_protocol_t::read_t(distribution_get, effective_time);
     }
@@ -494,7 +464,7 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
     }
     memcached_protocol_t::read_response_t operator()(const rget_query_t& rget) {
         return memcached_protocol_t::read_response_t(
-            memcached_rget_slice(btree, rget.left_mode, rget.left_key, rget.right_mode, rget.right_key, rget.maximum, effective_time, txn, superblock));
+            memcached_rget_slice(btree, rget.range, rget.maximum, effective_time, txn, superblock));
     }
     memcached_protocol_t::read_response_t operator()(const distribution_get_query_t& dget) {
         distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock.get());
