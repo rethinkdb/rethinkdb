@@ -154,7 +154,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
             /* Use `force_lock()` to prevent deadlocks; `co_lock()` could block. */
             gbuf->cache->writeback.dirty_block_semaphore.force_lock();
         }
-        ++gbuf->cache->stats.pm_n_blocks_dirty;
+        ++gbuf->cache->stats->pm_n_blocks_dirty;
     }
     if (dirty && !_dirty) {
         // We need to "unmark" the buf
@@ -163,7 +163,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
             gbuf->cache->writeback.dirty_bufs.remove(this);
             gbuf->cache->writeback.dirty_block_semaphore.unlock();
         }
-        --gbuf->cache->stats.pm_n_blocks_dirty;
+        --gbuf->cache->stats->pm_n_blocks_dirty;
     }
 }
 
@@ -208,7 +208,7 @@ void writeback_t::flush_timer_callback(void *ctx) {
 
     self->cache->assert_thread();
 
-    self->cache->stats.pm_patches_size_ratio.record(self->cache->get_max_patches_size_ratio());
+    self->cache->stats->pm_patches_size_ratio.record(self->cache->get_max_patches_size_ratio());
 
     /*
      * Update the max_patches_size_ratio. If we detect that the previous writeback
@@ -340,13 +340,13 @@ void writeback_t::start_concurrent_flush() {
 // TODO (rntz) break this up into smaller functions
 void writeback_t::do_concurrent_flush() {
     ticks_t start_time;
-    cache->stats.pm_flushes_locking.begin(&start_time);
+    cache->stats->pm_flushes_locking.begin(&start_time);
     cache->assert_thread();
 
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock,
     // we instead reclaim some space in the on-disk patch storage now.
     ticks_t start_time2;
-    cache->stats.pm_flushes_diff_flush.begin(&start_time2);
+    cache->stats->pm_flushes_diff_flush.begin(&start_time2);
     // TODO: What are these magic constants doing here?
     unsigned int blocks_to_flush = uint64_t(dirty_bufs.size()) * 100LL / cache->get_block_size().value() + 1;
     if (force_patch_storage_flush) {
@@ -354,7 +354,7 @@ void writeback_t::do_concurrent_flush() {
         force_patch_storage_flush = false;
     }
     cache->patch_disk_storage->clear_n_oldest_blocks(blocks_to_flush);
-    cache->stats.pm_flushes_diff_flush.end(&start_time2);
+    cache->stats->pm_flushes_diff_flush.end(&start_time2);
 
     /* Start a read transaction so we can request bufs. */
     transaction_t *transaction;
@@ -377,7 +377,7 @@ void writeback_t::do_concurrent_flush() {
         rwi_lock_t::write_acq_t flush_lock_acq(&flush_lock);
         rassert(writeback_in_progress);
 
-        cache->stats.pm_flushes_locking.end(&start_time);
+        cache->stats->pm_flushes_locking.end(&start_time);
 
         // Move callbacks to locals only after we got the lock.
         // That way callbacks coming in while waiting for the flush lock
@@ -389,7 +389,7 @@ void writeback_t::do_concurrent_flush() {
 
         // Go through the different flushing steps...
         flush_prepare_patches();
-        cache->stats.pm_flushes_writing.begin(&start_time);
+        cache->stats->pm_flushes_writing.begin(&start_time);
         flush_acquire_bufs(transaction, state);
     }
 
@@ -443,7 +443,7 @@ void writeback_t::do_concurrent_flush() {
         cb->on_sync();
     }
 
-    cache->stats.pm_flushes_writing.end(&start_time);
+    cache->stats->pm_flushes_writing.end(&start_time);
     --active_flushes;
 
     // Try again to start the next sync now.  If we didn't do this,
@@ -479,7 +479,7 @@ void writeback_t::flush_prepare_patches() {
     // The iteration below doesn't have a problem with that, but be careful if you
     // want to change it.
     ticks_t start_time2;
-    cache->stats.pm_flushes_diff_store.begin(&start_time2);
+    cache->stats->pm_flushes_diff_store.begin(&start_time2);
     bool patch_storage_failure = false;
     unsigned int patches_stored = 0;
     for (local_buf_t *lbuf = dirty_bufs.head(); lbuf; lbuf = dirty_bufs.next(lbuf)) {
@@ -557,19 +557,19 @@ void writeback_t::flush_prepare_patches() {
             lbuf->set_last_patch_materialized(0);
         }
     }
-    cache->stats.pm_flushes_diff_store.end(&start_time2);
+    cache->stats->pm_flushes_diff_store.end(&start_time2);
     if (patch_storage_failure)
         force_patch_storage_flush = true; // Make sure we resolve the storage space shortage before the next flush...
 
-    cache->stats.pm_flushes_diff_patches_stored.record(patches_stored);
+    cache->stats->pm_flushes_diff_patches_stored.record(patches_stored);
     if (patch_storage_failure)
-        cache->stats.pm_flushes_diff_storage_failures.record(patches_stored);
+        cache->stats->pm_flushes_diff_storage_failures.record(patches_stored);
 }
 
 void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &state) {
     /* Request read locks on all of the blocks we need to flush. */
     // Log the size of this flush
-    cache->stats.pm_flushes_blocks.record(dirty_bufs.size());
+    cache->stats->pm_flushes_blocks.record(dirty_bufs.size());
 
     // Request read locks on all of the blocks we need to flush.
     state.serializer_writes.reserve(deleted_blocks.size() + dirty_bufs.size());
@@ -624,5 +624,5 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
 
     }
 
-    cache->stats.pm_flushes_blocks_dirty.record(really_dirty);
+    cache->stats->pm_flushes_blocks_dirty.record(really_dirty);
 }

@@ -12,7 +12,6 @@
 #include "clustering/registrant.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
-#include "containers/archive/order_token.hpp"
 #include "protocol_api.hpp"
 
 
@@ -255,7 +254,9 @@ private:
                     // We have an unhandled master id.  Say it's handled NOW!  And handle it.
                     handled_master_ids.insert(id);  // We said it.
 
-                    start_count++;
+                    if (is_start) {
+                        start_count++;
+                    }
 
                     /* Now handle it. */
                     coro_t::spawn_sometime(boost::bind(

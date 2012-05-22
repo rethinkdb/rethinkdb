@@ -1,6 +1,8 @@
 #ifndef __CONCURRENCY_FIFO_ENFORCER_TCC__
 #define __CONCURRENCY_FIFO_ENFORCER_TCC__
 
+#include "concurrency/fifo_enforcer.hpp"
+
 template <class T>
 fifo_enforcer_queue_t<T>::fifo_enforcer_queue_t()
     : passive_producer_t<T>(&control), state(state_timestamp_t::zero(), 0)
@@ -19,7 +21,7 @@ void fifo_enforcer_queue_t<T>::push(fifo_enforcer_read_token_t token, const T &t
 }
 
 template <class T>
-void fifo_enforcer_queue_t<T>::finish_read(fifo_enforcer_read_token_t read_token) {
+void fifo_enforcer_queue_t<T>::finish_read(DEBUG_ONLY_VAR fifo_enforcer_read_token_t read_token) {
     assert_thread();
 
     rassert(state.timestamp == read_token.timestamp);

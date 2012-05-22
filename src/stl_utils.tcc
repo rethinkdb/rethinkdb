@@ -1,6 +1,8 @@
 #ifndef STL_UTILS_TCC_
 #define STL_UTILS_TCC_
 
+#include "stl_utils.hpp"
+
 #include <algorithm>
 
 #include <boost/optional.hpp>
@@ -112,4 +114,4 @@ cartesian_product_iterator_t<left_container_t, right_container_t>::operator++(in
     return *this = *this + 1;
 }
 
-#endif
+#endif  // STL_UTILS_TCC_

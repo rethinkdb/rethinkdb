@@ -1,8 +1,10 @@
 #ifndef CLUSTERING_REACTOR_REACTOR_BE_SECONDARY_TCC_
 #define CLUSTERING_REACTOR_REACTOR_BE_SECONDARY_TCC_
 
-#include <errors.hpp>
+#include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
+
+#include "clustering/immediate_consistency/branch/replier.hpp"
 
 template <class protocol_t>
 bool reactor_t<protocol_t>::find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,

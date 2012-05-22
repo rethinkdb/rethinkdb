@@ -170,19 +170,22 @@ class Files(object):
 
         self.id_number = metacluster.files_counter
         metacluster.files_counter += 1
+
         if db_path is None:
             self.db_path = os.path.join(metacluster.dbs_path, str(self.id_number))
         else:
             assert not os.path.exists(db_path)
             self.db_path = db_path
 
+        if name is None:
+            name = "node-%d" % self.id_number
+
         self.port_offset = self.id_number
 
         create_args = command_prefix + [executable_path, "create",
             "--directory=" + self.db_path,
-            "--port-offset=" + str(self.port_offset)]
-        if name is not None:
-            create_args.append("--name=" + name)
+            "--port-offset=" + str(self.port_offset),
+            "--name=" + name]
 
         if log_path is None:
             subprocess.check_call(create_args, stdout = sys.stdout, stderr = subprocess.STDOUT)

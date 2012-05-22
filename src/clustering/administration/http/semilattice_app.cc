@@ -84,7 +84,17 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
                 if (!change.get()) { //A null value indicates that parsing failed
-                    logINF("Json body failed to parse. Here's the data that failed: %s", req.body.c_str());
+                    std::string sanitized = req.body;
+                    /* We mustn't try to log tabs, newlines, or unprintable
+                    characters. */
+                    for (int i = 0; i < int(sanitized.length()); i++) {
+                        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
+                            sanitized[i] = ' ';
+                        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
+                            sanitized[i] = '?';
+                        }
+                    }
+                    logINF("Json body failed to parse. Here's the data that failed: %s", sanitized.c_str());
                     return http_res_t(400);
                 }
 

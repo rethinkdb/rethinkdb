@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_REACTOR_JSON_ADAPTERS_TCC_
 #define CLUSTERING_REACTOR_JSON_ADAPTERS_TCC_
 
+#include "clustering/reactor/json_adapters.hpp"
+
 #include "http/json.hpp"
 
 namespace reactor_business_card_details {

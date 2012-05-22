@@ -1,5 +1,7 @@
-#ifndef RPC_SEMILATTICE_JOIN_VCLOCK_TCC_
-#define RPC_SEMILATTICE_JOIN_VCLOCK_TCC_
+#ifndef RPC_SEMILATTICE_JOINS_VCLOCK_TCC_
+#define RPC_SEMILATTICE_JOINS_VCLOCK_TCC_
+
+#include "rpc/semilattice/joins/vclock.hpp"
 
 #include "stl_utils.hpp"
 
@@ -116,4 +118,4 @@ void semilattice_join(vclock_t<T> *a, const vclock_t<T> &b) {
     a->cull_old_values();
 }
 
-#endif
+#endif  // RPC_SEMILATTICE_JOINS_VCLOCK_TCC_

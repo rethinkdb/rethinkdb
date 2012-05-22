@@ -14,14 +14,25 @@
 #include "rpc/connectivity/messages.hpp"
 #include "containers/uuid.hpp"
 
-struct connection_stats_t {
-    connection_stats_t(peer_id_t id, perfmon_collection_t *parent)
-        : peer_collection(uuid_to_str(id.get_uuid()), parent, true, true),
-          pm_bytes_sent("bytes_sent", secs_to_ticks(1), true, &peer_collection)
-    { }
+class peer_address_t {
+public:
+    peer_address_t(ip_address_t i, int p) : ip(i), port(p) { }
+    peer_address_t() : ip(), port(0) { } // For deserialization
+    ip_address_t ip;
+    int port;
 
-    perfmon_collection_t peer_collection;
-    perfmon_sampler_t pm_bytes_sent;
+    bool operator==(const peer_address_t &a) const {
+        return ip == a.ip && port == a.port;
+    }
+    bool operator!=(const peer_address_t &a) const {
+        return ip != a.ip || port != a.port;
+    }
+    bool operator<(const peer_address_t &a) const {
+        return ip < a.ip || (ip == a.ip && port < a.port);
+    }
+
+private:
+    RDB_MAKE_ME_SERIALIZABLE_2(ip, port);
 };
 
 class connectivity_cluster_t :
@@ -67,6 +78,9 @@ public:
 
             boost::uuids::uuid session_id;
 
+            perfmon_collection_t pm_collection;
+            perfmon_sampler_t pm_bytes_sent;
+
         private:
             void install_this(int target_thread) THROWS_NOTHING;
             void uninstall_this(int target_thread) THROWS_NOTHING;
@@ -80,8 +94,6 @@ public:
             this `connection_entry_t` acquire the drainer for their thread when
             they look us up in `thread_info_t::connection_map`. */
             boost::scoped_array<boost::scoped_ptr<auto_drainer_t> > drainers;
-        public:
-            connection_stats_t stats;
         };
 
         /* Sets a variable to a value in its constructor; sets it to NULL in its

@@ -1,3 +1,5 @@
+#include "serializer/semantic_checking.hpp"
+
 #include "serializer/semantic_checking_internal.hpp"
 
 template<class inner_serializer_t>

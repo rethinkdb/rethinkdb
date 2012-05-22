@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_
 #define CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_
 
+#include "clustering/reactor/directory_echo.hpp"
+
 template<class internal_t>
 directory_echo_writer_t<internal_t>::our_value_change_t::our_value_change_t(directory_echo_writer_t *p) :
         parent(p), lock_acq(&parent->value_lock), buffer(parent->value_watchable.get_watchable()->get().internal) { }

@@ -19,6 +19,10 @@ boost::uuids::uuid generate_uuid() {
 #endif
 }
 
+boost::uuids::uuid nil_uuid() {
+    return boost::uuids::nil_generator()();
+}
+
 std::string uuid_to_str(boost::uuids::uuid id) {
     // Heh.
     return boost::uuids::to_string(id);
