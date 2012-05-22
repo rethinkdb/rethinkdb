@@ -1426,13 +1426,21 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
 
     for (size_t i = 0; i < ids.size(); ++i) {
         try {
-            std::vector<std::string> obj_path(get_info_from_id(ids[i])->path);
+            metadata_info_t *obj_info = get_info_from_id(ids[i]);
 
             // TODO: in case of machine, check if it's up and ask for confirmation if it is
 
-            delete_metadata(path_to_str(obj_path));
+            delete_metadata(path_to_str(obj_info->path));
 
-            // TODO: clean up any hanging references to this object's uuid?
+            // Clean up any hanging references
+            if (obj_info->path[0] == "machines") {
+                machine_id_t machine(str_to_uuid(obj_info->uuid));
+                remove_machine_pinnings(machine, "memcached_namespaces", cluster_metadata.memcached_namespaces.namespaces);
+                remove_machine_pinnings(machine, "dummy_namespaces", cluster_metadata.dummy_namespaces.namespaces);
+            } else if (obj_info->path[0] == "datacenters") {
+                datacenter_id_t datacenter(str_to_uuid(obj_info->uuid));
+                remove_datacenter_references(datacenter, cluster_metadata);
+            }
         } catch (std::exception& ex) {
             puts(ex.what());
             errored = true;
@@ -1441,6 +1449,49 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
 
     if (errored)
         throw admin_cluster_exc_t("not all removes were successful");
+}
+
+void admin_cluster_link_t::remove_datacenter_references(const datacenter_id_t& datacenter, cluster_semilattice_metadata_t& cluster_metadata) {
+    datacenter_id_t nil_id(nil_uuid());
+
+    // Go through machines
+    for (machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.begin();
+         i != cluster_metadata.machines.machines.end(); ++i) {
+        if (i->second.is_deleted())
+            continue;
+
+        std::string machine_post_path("machines/" + uuid_to_str(i->first));
+        if (!i->second.get().datacenter.in_conflict() && i->second.get().datacenter.get() == datacenter)
+            post_metadata(machine_post_path + "/datacenter_uuid", nil_id);
+    }
+
+    remove_datacenter_references_from_namespaces(datacenter, "memcached_namespaces", cluster_metadata.memcached_namespaces.namespaces);
+    remove_datacenter_references_from_namespaces(datacenter, "dummy_namespaces", cluster_metadata.dummy_namespaces.namespaces);
+}
+
+template <class protocol_t>
+void admin_cluster_link_t::remove_datacenter_references_from_namespaces(const datacenter_id_t& datacenter,
+                                                                        const std::string& post_path,
+                                                                        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >& ns_map) {
+    datacenter_id_t nil_id(nil_uuid());
+
+    for (typename std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >::iterator i = ns_map.begin();
+         i != ns_map.end(); ++i) {
+        if (i->second.is_deleted())
+            continue;
+
+        namespace_semilattice_metadata_t<protocol_t>& ns = i->second.get_mutable();
+        std::string ns_post_path(post_path + "/" + uuid_to_str(i->first));
+
+        if (!ns.primary_datacenter.in_conflict() && ns.primary_datacenter.get() == datacenter)
+            post_metadata(ns_post_path + "/primary_uuid", nil_id);
+
+        if (!ns.replica_affinities.in_conflict() && ns.replica_affinities.get_mutable().erase(datacenter) > 0)
+            post_metadata(ns_post_path + "/replica_affinities", ns.replica_affinities.get_mutable());
+
+        if (!ns.ack_expectations.in_conflict() && ns.ack_expectations.get_mutable().erase(datacenter) > 0)
+            post_metadata(ns_post_path + "/ack_expectations", ns.ack_expectations.get_mutable());
+    }
 }
 
 void admin_cluster_link_t::do_admin_resolve(admin_command_parser_t::command_data& data UNUSED) {
@@ -1540,9 +1591,6 @@ void admin_cluster_link_t::post_internal(std::string path, std::string data) {
     CURLcode ret = curl_easy_perform(curl_handle);
 
     if (ret != 0)
-        printf("error when posting data to sync peer: %d\n", ret);
-
-    // TODO: get results/error code and throw appropriate exception
-    // curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE)
+        throw admin_cluster_exc_t("error when posting data to sync peer");
 }
 
