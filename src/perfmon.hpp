@@ -9,13 +9,13 @@
 
 #include <limits>
 #include <string>
+#include <map>
 
-#include "utils.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 #include "perfmon_types.hpp"
 #include "concurrency/rwi_lock.hpp"
+#include "utils.hpp"
 
 // Some arch/runtime declarations.
 int get_num_threads();
@@ -38,7 +38,7 @@ struct cache_line_padded_t {
 various parts of the server. */
 
 class perfmon_result_t {
-    typedef boost::ptr_map<std::string, perfmon_result_t> internal_map_t;
+    typedef std::map<std::string, perfmon_result_t *> internal_map_t;
 public:
     enum perfmon_result_type_t {
         type_value,
@@ -46,8 +46,9 @@ public:
     };
 
     perfmon_result_t();
+    perfmon_result_t(const perfmon_result_t &);
     explicit perfmon_result_t(const std::string &);
-    explicit perfmon_result_t(const internal_map_t &);
+    ~perfmon_result_t();
 
     static perfmon_result_t make_string() {
         return perfmon_result_t(std::string());
@@ -95,7 +96,7 @@ public:
 
     std::pair<internal_map_t::iterator, bool> insert(const std::string &k, perfmon_result_t *val) {
         std::string s = k;
-        return get_map()->insert(s, val);
+        return get_map()->insert(std::pair<std::string, perfmon_result_t *>(s, val));
     }
 
     typedef internal_map_t::iterator iterator;
@@ -118,6 +119,8 @@ public:
     }
 
 private:
+    explicit perfmon_result_t(const internal_map_t &);
+
     // We need these two friends for serialization, but we don't want to include the
     // serialization headers, neither we want to define the serializers here.
     friend write_message_t &operator<<(write_message_t &msg, const perfmon_result_t &thing);
@@ -127,6 +130,8 @@ private:
 
     std::string value_;
     internal_map_t map_;
+
+    void operator=(const perfmon_result_t &);
 };
 
 /* perfmon_get_stats() collects all the stats about the server and puts them
@@ -196,7 +201,7 @@ class perfmon_counter_t : public perfmon_perthread_t<cache_line_padded_t<int64_t
 protected:
     typedef cache_line_padded_t<int64_t> padded_int64_t;
     std::string name;
-    boost::scoped_array<padded_int64_t> thread_data;
+    padded_int64_t *thread_data;
 
     //padded_int64_t thread_data[MAX_THREADS];
     int64_t &get();
@@ -206,6 +211,7 @@ protected:
     void output_stat(const int64_t&, perfmon_result_t *);
 public:
     perfmon_counter_t(const std::string& name, perfmon_collection_t *parent);
+    ~perfmon_counter_t();
     void operator++() { get()++; }
     void operator+=(int64_t num) { get() += num; }
     void operator--() { get()--; }
@@ -255,7 +261,7 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
         int current_interval;
     };
 
-    boost::scoped_array<thread_info_t> thread_data;
+    thread_info_t *thread_data;
 
     void get_thread_stat(stats_t *);
     stats_t combine_stats(stats_t *);
@@ -268,6 +274,7 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
     bool include_rate;
 public:
     perfmon_sampler_t(const std::string& name, ticks_t length, bool include_rate, perfmon_collection_t *parent);
+    ~perfmon_sampler_t();
     void record(double value);
 };
 
@@ -464,7 +471,7 @@ public:
         }
 
         if (create_submap) {
-            result->get_map()->insert(name, map);
+            result->get_map()->insert(std::pair<std::string, perfmon_result_t *>(name, map));
         }
         delete[] contexts;
         constituents_access.unlock();
