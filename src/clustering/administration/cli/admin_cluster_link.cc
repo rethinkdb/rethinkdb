@@ -74,6 +74,7 @@ admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins
             throw admin_cluster_exc_t("failed to join cluster");
 
     // TODO: if sync peer goes down, failover to another machine
+    // TODO: get the http port of the server through some more intelligent means (once it exists)
     std::stringstream sync_str;
     sync_str << "http://" << joins.begin()->ip.as_dotted_decimal() << ":" << (joins.begin()->port + 1000) << "/ajax/";
     sync_peer.assign(sync_str.str());
@@ -1068,13 +1069,12 @@ void admin_cluster_link_t::list_machines(bool long_format, cluster_semilattice_m
 }
 
 void admin_cluster_link_t::do_admin_create_datacenter(admin_command_parser_t::command_data& data) {
-    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    datacenter_semilattice_metadata_t datacenter;
+    std::string uuid = create_metadata("datacenters");
 
     if (data.params.count("name") == 1)
-        datacenter.name.get_mutable().assign(data.params["name"][0]);
+        post_metadata("datacenters/" + uuid + "/name", data.params["name"][0]);
 
-    post_metadata("datacenters/new", datacenter);
+    printf("uuid: %s\n", uuid.c_str());
 }
 
 
@@ -1117,23 +1117,19 @@ void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::com
 }
 
 template <class protocol_t>
-void admin_cluster_link_t::do_admin_create_namespace_internal(const std::string& name,
+void admin_cluster_link_t::do_admin_create_namespace_internal(std::string& name,
                                                               int port,
-                                                              const datacenter_id_t& primary,
+                                                              datacenter_id_t& primary,
                                                               const std::string& path) {
-    std::set<typename protocol_t::region_t> shards;
-    namespace_semilattice_metadata_t<protocol_t> obj;
+    std::string uuid = create_metadata(path);
+    std::string full_path(path + "/" + uuid);
 
     if (!name.empty())
-        obj.name.get_mutable().assign(name);
+        post_metadata(full_path + "/name", name);
+    post_metadata(full_path + "/primary_uuid", primary);
+    post_metadata(full_path + "/port", port);
 
-    obj.primary_datacenter.get_mutable() = primary;
-    obj.port.get_mutable() = port;
-
-    shards.insert(protocol_t::region_t::universe());
-    obj.shards.get_mutable() = shards;
-
-    post_metadata(path + "/new", obj);
+    printf("uuid: %s\n", uuid.c_str());
 }
 
 void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::command_data& data) {
@@ -1157,8 +1153,6 @@ void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::comma
         throw admin_cluster_exc_t("target object is not a namespace or machine");
 
     post_metadata(post_path, datacenter_uuid);
-
-    // TODO: check for conflict from post
 }
 
 void admin_cluster_link_t::do_admin_set_name(admin_command_parser_t::command_data& data) {
@@ -1225,7 +1219,6 @@ void admin_cluster_link_t::do_admin_set_acks_internal(namespace_semilattice_meta
     else if (num_acks > i->second + (is_primary ? 1 : 0))
         throw admin_cluster_exc_t("cannot assign more ack expectations than replicas in a datacenter");
 
-    // TODO: get a lock to avoid a race condition
     ns.ack_expectations.get_mutable()[datacenter] = num_acks;
 
     post_metadata(post_path, ns.ack_expectations.get_mutable());
@@ -1387,16 +1380,28 @@ size_t admin_cluster_link_t::handle_post_result(char *ptr, size_t size, size_t n
 template <class T>
 void admin_cluster_link_t::post_metadata(std::string path, T& metadata) {
     namespace_metadata_ctx_t json_ctx(connectivity_cluster.get_me().get_uuid());
-
-    curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, NULL);
-
     post_internal(path, cJSON_print_std_string(render_as_json(&metadata, json_ctx)));
 }
 
-void admin_cluster_link_t::delete_metadata(std::string path UNUSED) {
+void admin_cluster_link_t::delete_metadata(const std::string& path) {
     curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "DELETE");
-
     post_internal(path, "{ }");
+    curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, NULL);
+}
+
+std::string admin_cluster_link_t::create_metadata(const std::string& path) {
+    post_internal(path + "/new", "{ }");
+
+    scoped_cJSON_t result(cJSON_Parse(post_result.c_str()));
+
+    if (result.get() == NULL)
+        throw admin_cluster_exc_t("unexpected error, failed to parse result");
+
+    if (cJSON_GetArraySize(result.get()) != 1)
+        throw admin_cluster_exc_t("unexpected error, failed to parse result");
+
+    cJSON* new_item = cJSON_GetArrayItem(result.get(), 0);
+    return std::string(new_item->string);
 }
 
 void admin_cluster_link_t::post_internal(std::string path, std::string data) {
@@ -1404,7 +1409,10 @@ void admin_cluster_link_t::post_internal(std::string path, std::string data) {
     curl_easy_setopt(curl_handle, CURLOPT_URL, (sync_peer + path).c_str());
     curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, data.c_str());
     curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, data.length());
-    curl_easy_perform(curl_handle);
+    CURLcode ret = curl_easy_perform(curl_handle);
+
+    if (ret != 0)
+        printf("error when posting data to sync peer: %d\n", ret);
 
     // TODO: get results/error code and throw appropriate exception
     // curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE)
