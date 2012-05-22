@@ -126,7 +126,7 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
             }
         } ack_callback;
         cond_t non_interruptor;
-        (*broadcaster)->write(w, &exiter, &ack_callback, order_source.check_in("unittest"), &non_interruptor);
+        (*broadcaster)->write(w, &exiter, &ack_callback, order_source.check_in("unittest::run_read_write_test(write)"), &non_interruptor);
     }
 
     /* Now send some reads */
@@ -138,7 +138,7 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
         dummy_protocol_t::read_t r;
         r.keys.keys.insert((*it).first);
         cond_t non_interruptor;
-        dummy_protocol_t::read_response_t resp = (*broadcaster)->read(r, &exiter, order_source.check_in("unittest"), &non_interruptor);
+        dummy_protocol_t::read_response_t resp = (*broadcaster)->read(r, &exiter, order_source.check_in("unittest::run_read_write_test(read)"), &non_interruptor);
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }

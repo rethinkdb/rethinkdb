@@ -308,6 +308,8 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
 
         order_sink.check_out(order_token);
 
+        printf("dummy_protocol_t::store_t::write() from %s\n", order_token.tag().c_str());
+
         // We allow expected_metainfo domain to be smaller than the metainfo domain
         rassert(expected_metainfo.get_domain() == metainfo.mask(expected_metainfo.get_domain()).get_domain());
         rassert(expected_metainfo == metainfo.mask(expected_metainfo.get_domain()));

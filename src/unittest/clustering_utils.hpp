@@ -112,7 +112,7 @@ private:
                 std::string value = (*values_inserted)[key] = strprintf("%d", i);
 
                 cond_t interruptor;
-                wfun(key, value, osource->check_in("unittest"), &interruptor);
+                wfun(key, value, osource->check_in("unittest::test_inserter_t::insert_forever"), &interruptor);
 
                 nap(10, keepalive.get_drain_signal());
             }
@@ -127,7 +127,7 @@ public:
                                it != values_inserted->end();
                                it++) {
             cond_t interruptor;
-            std::string response = rfun((*it).first, osource->check_in("unittest"), &interruptor);
+            std::string response = rfun((*it).first, osource->check_in("unittest::test_inserter_t::validate"), &interruptor);
             EXPECT_EQ((*it).second, response);
         }
     }
