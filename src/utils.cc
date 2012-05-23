@@ -223,7 +223,9 @@ void debugf(const char *msg, ...) {
 
     // Writing a single buffer in one shot like this makes it less
     // likely that stderr debugfs and stdout printfs get mixed
-    // together, and probably makes it faster too.
+    // together, and probably makes it faster too.  (We can't simply
+    // flockfile both stderr and stdout because there's no established
+    // rule about which one should be locked first.)
     size_t nitems = fwrite(buf.data(), 1, buf.size(), stderr);
     guarantee_err(nitems == size_t(buf.size()), "trouble writing to stderr");
     res = fflush(stderr);
