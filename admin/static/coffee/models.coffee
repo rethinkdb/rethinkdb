@@ -70,7 +70,7 @@ class Namespace extends Backbone.Model
         _.each DataUtils.get_namespace_machines(@get('id')), (mid) =>
             _m = machines.get(mid)
             _s = _m.get_stats()[@get('id')]
-            if _s?
+            if _s? and _s.btree != undefined
                 keys_read = parseFloat(_s.btree.keys_read)
                 if not isNaN(keys_read)
                     __s.keys_read += keys_read
