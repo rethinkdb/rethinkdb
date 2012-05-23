@@ -2,6 +2,7 @@
 #define CLUSTERING_ADMINISTRATION_SUGGESTER_TCC_
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
+#include "clustering/administration/suggester.hpp"
 
 template<class protocol_t>
 persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
@@ -116,4 +117,4 @@ void fill_in_blueprints_for_protocol(
     }
 }
 
-#endif
+#endif  // CLUSTERING_ADMINISTRATION_SUGGESTER_TCC_

@@ -13,27 +13,6 @@
 #include "concurrency/signal.hpp"
 #include "rpc/serialize_macros.hpp"
 
-class peer_address_t {
-public:
-    peer_address_t(ip_address_t i, int p) : ip(i), port(p) { }
-    peer_address_t() : ip(), port(0) { } // For deserialization
-    ip_address_t ip;
-    int port;
-
-    bool operator==(const peer_address_t &a) const {
-        return ip == a.ip && port == a.port;
-    }
-    bool operator!=(const peer_address_t &a) const {
-        return ip != a.ip || port != a.port;
-    }
-    bool operator<(const peer_address_t &a) const {
-        return ip < a.ip || (ip == a.ip && port < a.port);
-    }
-
-private:
-    RDB_MAKE_ME_SERIALIZABLE_2(ip, port);
-};
-
 /* `peer_id_t` is a wrapper around a `boost::uuids::uuid`. Each newly
 created cluster node picks a UUID to be its peer-ID. */
 class peer_id_t {

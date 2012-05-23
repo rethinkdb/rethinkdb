@@ -3,6 +3,10 @@
 #include <fstream>
 #include <streambuf>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
 #include "http/file_app.hpp"
 #include "logger.hpp"
 #include "stl_utils.hpp"
@@ -31,12 +35,22 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
         filename = resource;
     }
 
+    thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, &res));
+
+    if (res.code == 404) {
+        logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + filename).c_str());
+    }
+
+    return res;
+}
+
+void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out) {
     // FIXME: make sure that we won't walk out of our sandbox! Check symbolic links, etc.
     std::ifstream f((asset_dir + filename).c_str());
 
     if (f.fail()) {
-        logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + resource).c_str());
-        return http_res_t(404);
+        res_out->code = 404;
+        return;
     }
 
     f.seekg(0, std::ios::end);
@@ -45,7 +59,7 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
         goto INTERNAL_ERROR;
     }
 
-    res.body.reserve(f.tellg());
+    res_out->body.reserve(f.tellg());
 
     if (f.fail()) {
         goto INTERNAL_ERROR;
@@ -57,14 +71,13 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
         goto INTERNAL_ERROR;
     }
 
-    res.body.assign((std::istreambuf_iterator<char>(f)),
-                     std::istreambuf_iterator<char>());
+    res_out->body.assign((std::istreambuf_iterator<char>(f)),
+                          std::istreambuf_iterator<char>());
 
-    res.code = 200;
+    res_out->code = 200;
 
-    return res;
+    return;
 
 INTERNAL_ERROR:
-    return http_res_t(500);
+    res_out->code = 500;
 }
-

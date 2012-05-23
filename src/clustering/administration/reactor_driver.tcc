@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 #define CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_TCC_
 
+#include "clustering/administration/reactor_driver.hpp"
+
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>

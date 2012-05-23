@@ -8,9 +8,15 @@
 #include "concurrency/signal.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
+#include "concurrency/queue/passive_producer.hpp"
+#include "stl_utils.hpp"
 
 class cond_t;
 class signal_t;
+
+namespace unittest {
+void run_queue_equivalence_test();
+}
 
 /* `fifo_enforcer.hpp` contains facilities for enforcing that objects pass
 through a checkpoint in the same order that they passed through a previous
@@ -38,6 +44,8 @@ public:
 private:
     friend class fifo_enforcer_source_t;
     friend class fifo_enforcer_sink_t;
+    template <class T>
+    friend class fifo_enforcer_queue_t;
     explicit fifo_enforcer_read_token_t(state_timestamp_t t) THROWS_NOTHING :
         timestamp(t) { }
     state_timestamp_t timestamp;
@@ -50,6 +58,8 @@ public:
 private:
     friend class fifo_enforcer_source_t;
     friend class fifo_enforcer_sink_t;
+    template <class T>
+    friend class fifo_enforcer_queue_t;
     fifo_enforcer_write_token_t(transition_timestamp_t t, int npr) THROWS_NOTHING :
         timestamp(t), num_preceding_reads(npr) { }
     transition_timestamp_t timestamp;
@@ -71,6 +81,8 @@ public:
     private:
         friend class fifo_enforcer_source_t;
         friend class fifo_enforcer_sink_t;
+        template <class T>
+        friend class fifo_enforcer_queue_t;
         state_t(state_timestamp_t ts, int64_t nr) THROWS_NOTHING : timestamp(ts), num_reads(nr) { }
         state_timestamp_t timestamp;
         int64_t num_reads;
@@ -173,5 +185,42 @@ private:
     writer_queue_t waiting_writers;
     DISABLE_COPYING(fifo_enforcer_sink_t);
 };
+
+//TODO no reason for this to be a template. Make it in to a boost::function
+template <class T>
+class fifo_enforcer_queue_t : public passive_producer_t<T>, public home_thread_mixin_t {
+public:
+    explicit fifo_enforcer_queue_t();
+    ~fifo_enforcer_queue_t();
+
+    void push(fifo_enforcer_read_token_t token, const T &t); 
+    void finish_read(fifo_enforcer_read_token_t read_token); 
+    void push(fifo_enforcer_write_token_t token, const T &t); 
+    void finish_write(fifo_enforcer_write_token_t write_token); 
+
+private:
+    typedef std::multimap<state_timestamp_t, T> read_queue_t;
+    read_queue_t read_queue;
+
+    typedef std::map<transition_timestamp_t, std::pair<int64_t, T> > write_queue_t;
+    write_queue_t write_queue;
+
+    mutex_assertion_t lock;
+
+    fifo_enforcer_source_t::state_t state;
+
+private:
+friend void unittest::run_queue_equivalence_test();
+    //passive produce api
+    T produce_next_value(); 
+
+    availability_control_t control;
+
+    void consider_changing_available(); 
+
+    DISABLE_COPYING(fifo_enforcer_queue_t);
+};
+
+#include "concurrency/fifo_enforcer.tcc"
 
 #endif /* CONCURRENCY_FIFO_ENFORCER_HPP_ */

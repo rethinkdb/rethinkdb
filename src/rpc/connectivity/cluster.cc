@@ -11,6 +11,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
 #include "do_on_thread.hpp"
+#include "logger.hpp"
 #include "utils.hpp"
 
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
@@ -70,9 +71,10 @@ void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING 
 
 connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, peer_id_t id, tcp_conn_stream_t *c, peer_address_t a) THROWS_NOTHING :
     conn(c), address(a), session_id(generate_uuid()),
+    pm_collection(uuid_to_str(id.get_uuid()), &p->parent->connectivity_collection, true, true),
+    pm_bytes_sent("bytes_sent", secs_to_ticks(1), true, &pm_collection),
     parent(p), peer(id),
-    drainers(new boost::scoped_ptr<auto_drainer_t>[get_num_threads()]),
-    stats(id, &p->parent->connectivity_collection)
+    drainers(new boost::scoped_ptr<auto_drainer_t>[get_num_threads()])
 {
     /* This can be created and destroyed on any thread. */
     pmap(get_num_threads(),
@@ -193,17 +195,15 @@ void connectivity_cluster_t::run_t::handle(
 {
     parent->assert_thread();
 
-    /* In release mode, send a heartbeat after 2 minutes of inactivity; if
-    is no reply, try 10 times at 30-second intervals. I don't know if those are
-    good production values; maybe they should be tunable. Anyway, they are too
-    long for testing; in debug mode, we should detect immediately when the
-    cluster goes down. In debug mode, we start sending probes after 3 seconds
-    and only try twice. */
-#ifdef NDEBUG
-    conn->get_underlying_conn()->set_keepalive(120, 30, 10);
-#else
-    conn->get_underlying_conn()->set_keepalive(3, 3, 2);
-#endif
+    // Make sure that if we're ordered to shut down, any pending read
+    // or write gets interrupted.
+    cluster_conn_closing_subscription_t conn_closer_1(conn);
+    conn_closer_1.reset(drainer_lock.get_drain_signal());
+
+    /* Send a heartbeat every ten seconds of inactivity; if heartbeat is not
+    acked, try again every three seconds and declare connection dead after three
+    tries. */
+    conn->get_underlying_conn()->set_keepalive(10, 3, 3);
 
     /* Each side sends their own ID and address, then receives the other side's.
     */
@@ -247,7 +247,7 @@ void connectivity_cluster_t::run_t::handle(
 
     /* Sanity checks */
     if (other_id == parent->me) {
-        crash("Help, I'm being impersonated!");
+        return;
     }
     if (other_id.is_nil()) {
         crash("Peer is nil");
@@ -419,6 +419,11 @@ void connectivity_cluster_t::run_t::handle(
         }
     }
 
+    /* Now that we're about to switch threads, it's not safe to try to close
+    the connection from this thread anymore. This is safe because we won't do
+    anything that permanently blocks before setting up `conn_closer_2`. */
+    conn_closer_1.reset();
+
     // We could pick a better way to pick a better thread, our choice
     // now is hopefully a performance non-problem.
     int chosen_thread = rng.randint(get_num_threads());
@@ -431,8 +436,8 @@ void connectivity_cluster_t::run_t::handle(
 
     // Make sure that if we're ordered to shut down, any pending read
     // or write gets interrupted.
-    cluster_conn_closing_subscription_t conn_closer(conn);
-    conn_closer.reset(&connection_thread_drain_signal);
+    cluster_conn_closing_subscription_t conn_closer_2(conn);
+    conn_closer_2.reset(&connection_thread_drain_signal);
 
     {
         /* `connection_entry_t` is the public interface of this coroutine. Its
@@ -573,7 +578,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
         // We could be on any thread here! Oh no!
         vector_read_stream_t buffer2(&buffer.vector());
         current_run->message_handler->on_message(me, &buffer2);
-        conn_structure->stats.pm_bytes_sent.record(buffer.vector().size());
+        conn_structure->pm_bytes_sent.record(buffer.vector().size());
 
     } else {
         rassert(dest != me);
@@ -588,7 +593,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, const boost::function<
             std::string buffer_str(buffer.vector().begin(), buffer.vector().end());
             msg << buffer_str;
             int res = send_write_message(conn_structure->conn, &msg);
-            conn_structure->stats.pm_bytes_sent.record(buffer.vector().size());
+            conn_structure->pm_bytes_sent.record(buffer.vector().size());
             if (res) {
                 /* Close the other half of the connection to make sure that
                    `connectivity_cluster_t::run_t::handle()` notices that something is

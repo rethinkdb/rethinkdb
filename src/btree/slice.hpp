@@ -7,11 +7,28 @@
 
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
+#include "perfmon.hpp"
 
 const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
 
 class backfill_callback_t;
 class key_tester_t;
+
+class btree_stats_t {
+public:
+    btree_stats_t(perfmon_collection_t *parent)
+        : btree_collection("btree", parent, true, true),
+          pm_keys_read("keys_read", secs_to_ticks(1), &btree_collection),
+          pm_keys_set("keys_set", secs_to_ticks(1), &btree_collection),
+          pm_keys_expired("keys_expired", secs_to_ticks(1), &btree_collection)
+    { }
+
+    perfmon_collection_t btree_collection;
+    perfmon_rate_monitor_t
+        pm_keys_read,
+        pm_keys_set,
+        pm_keys_expired;
+};
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
@@ -25,7 +42,7 @@ public:
     static void create(cache_t *cache);
 
     // Blocks
-    explicit btree_slice_t(cache_t *cache);
+    explicit btree_slice_t(cache_t *cache, perfmon_collection_t *parent);
 
     // Blocks
     ~btree_slice_t();
@@ -45,6 +62,8 @@ public:
     order_checkpoint_t post_begin_transaction_checkpoint_;
     // We put all `order_token_t`s through this.
     order_checkpoint_t order_checkpoint_;
+
+    btree_stats_t stats;
 
 private:
     cache_t *cache_;

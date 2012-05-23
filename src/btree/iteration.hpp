@@ -15,10 +15,10 @@
 
 template <class Value>
 struct key_value_pair_t {
-    std::string key;
+    store_key_t key;
     boost::shared_array<char> value;
 
-    key_value_pair_t(value_sizer_t<void> *sizer, const std::string& _key, const void *_value) : key(_key) {
+    key_value_pair_t(value_sizer_t<void> *sizer, const store_key_t& _key, const void *_value) : key(_key) {
         int size = sizer->size(_value);
         value.reset(new char[size]);
         memcpy(value.get(), _value, size);
@@ -32,7 +32,7 @@ struct key_value_pair_t {
  */
 template <class Value>
 struct leaf_iterator_t : public one_way_iterator_t<key_value_pair_t<Value> > {
-    leaf_iterator_t(const leaf_node_t *leaf, leaf::live_iter_t iter, buf_lock_t *lock, const boost::shared_ptr< value_sizer_t<void> >& sizer, transaction_t *transaction);
+    leaf_iterator_t(const leaf_node_t *leaf, leaf::live_iter_t iter, buf_lock_t *lock, const boost::shared_ptr< value_sizer_t<void> >& sizer, transaction_t *transaction, btree_stats_t *stats);
 
     boost::optional<key_value_pair_t<Value> > next();
     void prefetch();
@@ -45,6 +45,7 @@ private:
     buf_lock_t *lock;
     boost::shared_ptr< value_sizer_t<void> > sizer;
     transaction_t *transaction;
+    btree_stats_t *stats;
 };
 
 enum btree_bound_mode_t {
@@ -73,7 +74,7 @@ class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t<Value>
         buf_lock_t *lock;
     };
 public:
-    slice_leaves_iterator_t(const boost::shared_ptr< value_sizer_t<void> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, btree_bound_mode_t left_mode, const btree_key_t *left_key, btree_bound_mode_t right_mode, const btree_key_t *right_key);
+    slice_leaves_iterator_t(const boost::shared_ptr< value_sizer_t<void> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, const btree_key_t *left, btree_stats_t *_stats);
 
     boost::optional<leaf_iterator_t<Value>*> next();
     void prefetch();
@@ -90,14 +91,13 @@ private:
     transaction_t *transaction;
     boost::scoped_ptr<superblock_t> superblock;
     int slice_home_thread;
-    btree_bound_mode_t left_mode;
-    const btree_key_t *left_key;
-    btree_bound_mode_t right_mode;
-    const btree_key_t *right_key;
+    const btree_key_t *left;
 
     std::list<internal_node_state> traversal_state;
     bool started;
     bool nevermore;
+
+    btree_stats_t *stats;
 };
 
 /* slice_keys_iterator_t combines slice_leaves_iterator_t and leaf_iterator_t to allow you
@@ -109,8 +109,7 @@ private:
 template <class Value>
 class slice_keys_iterator_t : public one_way_iterator_t<key_value_pair_t<Value> > {
 public:
-    /* Cannot assume that 'start' and 'end' will remain valid after the constructor returns! */
-    slice_keys_iterator_t(const boost::shared_ptr< value_sizer_t<void> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, btree_bound_mode_t left_mode, const store_key_t &left_key, btree_bound_mode_t right_mode, const store_key_t &right_key);
+    slice_keys_iterator_t(const boost::shared_ptr< value_sizer_t<void> >& sizer, transaction_t *transaction, boost::scoped_ptr<superblock_t> &superblock, int slice_home_thread, const key_range_t &range, btree_stats_t *stats);
     virtual ~slice_keys_iterator_t();
 
     boost::optional<key_value_pair_t<Value> > next();
@@ -127,16 +126,14 @@ private:
     transaction_t *transaction;
     boost::scoped_ptr<superblock_t> superblock;
     int slice_home_thread;
-    btree_bound_mode_t left_mode;
-    btree_key_buffer_t left_key;
-    btree_bound_mode_t right_mode;
-    btree_key_buffer_t right_key;
-    std::string left_str;
-    std::string right_str;
+    key_range_t range;
+    btree_key_buffer_t left_buffer;
 
     bool no_more_data;
     leaf_iterator_t<Value> *active_leaf;
     slice_leaves_iterator_t<Value> *leaves_iterator;
+
+    btree_stats_t *stats;
 };
 
 #include "btree/iteration.tcc"

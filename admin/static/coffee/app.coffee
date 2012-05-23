@@ -10,6 +10,7 @@ clear_modals = ->
 register_modal = (modal) -> modal_registry.push(modal)
 
 updateInterval = 5000
+statUpdateInterval = 1000
 
 declare_client_connected = ->
     window.connection_status.set({client_disconnected: false})
@@ -132,6 +133,7 @@ $ ->
     window.directory = new Directory
     window.recent_log_entries = new LogEntries
     window.connection_status = new ConnectionStatus
+    window.computed_cluster = new ComputedCluster
 
     window.last_update_tstamp = 0
 
@@ -153,6 +155,7 @@ $ ->
         $.getJSON('/ajax/directory', set_directory)
         $.getJSON('/ajax/last_seen', set_last_seen)
         $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
+    collect_stat_data = (optional_callback) =>
         $.getJSON('/ajax/stat', set_stats)
 
     # Override the default Backbone.sync behavior to allow reading diffs
@@ -182,7 +185,9 @@ $ ->
     # We need to reload data every updateInterval
     setInterval (-> Backbone.sync 'read', null), updateInterval
     declare_client_connected()
+    # Stat update intervanl is different
+    setInterval collect_stat_data, statUpdateInterval
 
     # Populate collection for the first time
     collect_server_data(collections_ready)
-
+    collect_stat_data()

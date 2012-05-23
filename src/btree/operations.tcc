@@ -1,3 +1,5 @@
+#include "btree/operations.hpp"
+
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
@@ -17,13 +19,15 @@
 // relevant.
 
 template <class Value>
-void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority) {
+void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority, btree_stats_t *stats) {
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
 
     keyvalue_location_out->superblock = superblock;
 
     ensure_stat_block(txn, superblock, incr_priority(ZERO_EVICTION_PRIORITY));
     keyvalue_location_out->stat_block = keyvalue_location_out->superblock->get_stat_block_id();
+
+    keyvalue_location_out->stats = stats;
 
     buf_lock_t last_buf;
     buf_lock_t buf;
@@ -76,7 +80,8 @@ void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblo
 }
 
 template <class Value>
-void find_keyvalue_location_for_read(transaction_t *txn, superblock_t *superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t root_eviction_priority) {
+void find_keyvalue_location_for_read(transaction_t *txn, superblock_t *superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t root_eviction_priority, btree_stats_t *stats) {
+    stats->pm_keys_read.record();
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
 
     block_id_t node_id = superblock->get_root_block_id();
@@ -151,6 +156,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
         }
 
         leaf_patched_insert(&sizer, &kv_loc->buf, key, kv_loc->value.get(), tstamp, km_proof);
+        kv_loc->stats->pm_keys_set.record();
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
@@ -158,10 +164,12 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
                 rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
                 leaf_patched_remove(&kv_loc->buf, key, tstamp, km_proof);
                 population_change = -1;
+                kv_loc->stats->pm_keys_set.record();
             } else {
                 // Expirations do an erase, not a delete.
                 leaf_patched_erase_presence(&kv_loc->buf, key, km_proof);
                 population_change = 0;
+                kv_loc->stats->pm_keys_expired.record();
             }
         } else {
             population_change = 0;

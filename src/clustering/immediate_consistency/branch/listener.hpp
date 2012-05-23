@@ -7,6 +7,7 @@
 #include "concurrency/promise.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
+#include "concurrency/coro_pool.hpp"
 
 template <class T> class replier_t;
 template <class T> class intro_receiver_t;
@@ -103,8 +104,13 @@ private:
             signal_t *interruptor)
 	THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t);
 
-    void on_write(auto_drainer_t::lock_t keepalive,
-            typename protocol_t::write_t write,
+    void on_write(typename protocol_t::write_t write,
+            transition_timestamp_t transition_timestamp,
+            fifo_enforcer_write_token_t fifo_token,
+            mailbox_addr_t<void()> ack_addr)
+	THROWS_NOTHING;
+
+    void perform_write(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void()> ack_addr)
@@ -113,15 +119,25 @@ private:
     /* See the note at the place where `writeread_mailbox` is declared for an
     explanation of why `on_writeread()` and `on_read()` are here. */
 
-    void on_writeread(auto_drainer_t::lock_t keepalive,
-            typename protocol_t::write_t write,
+    void on_writeread(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
 	THROWS_NOTHING;
 
-    void on_read(auto_drainer_t::lock_t keepalive,
-            typename protocol_t::read_t read,
+    void perform_writeread(typename protocol_t::write_t write,
+            transition_timestamp_t transition_timestamp,
+            fifo_enforcer_write_token_t fifo_token,
+            mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
+	THROWS_NOTHING;
+
+    void on_read(typename protocol_t::read_t read,
+            DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+            fifo_enforcer_read_token_t fifo_token,
+            mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
+	THROWS_NOTHING;
+
+    void perform_read(typename protocol_t::read_t read,
             DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
             fifo_enforcer_read_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
@@ -156,8 +172,14 @@ private:
     state_timestamp_t current_timestamp;
 
     fifo_enforcer_sink_t fifo_sink;
+    fifo_enforcer_queue_t<boost::function<void()> > fifo_queue;
 
-    auto_drainer_t drainer;
+    cond_t on_destruct;
+
+    calling_callback_t coro_pool_callback;
+
+    coro_pool_t<boost::function<void()> > coro_pool;
+
 
     typename listener_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
 

@@ -1,0 +1,17 @@
+# Each workload is a pair of two command-line strings. The first one will be run
+# once; the next one will be run one or more times.
+workloads = [
+    ("$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d 10000q", "true"),
+    ]
+
+scenarios = [
+    "$RETHINKDB/test/scenarios/rebalance.py '%(workload1)s' '%(workload2)s'",
+    ]
+
+for scenario in scenarios:
+    for w1, w2 in workloads:
+        do_test(
+            scenario % {"workload1": w1, "workload2": w2},
+            repeat = 3,
+            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
+            )

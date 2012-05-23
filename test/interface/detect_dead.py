@@ -14,10 +14,10 @@ with driver.Metacluster() as metacluster:
     access1 = http_admin.ClusterAccess([("localhost", proc1.http_port)])
     access2 = http_admin.ClusterAccess([("localhost", proc2.http_port)])
     assert len(access1.get_directory()) == len(access2.get_directory()) == 2
-    print "Splitting cluster, then waiting 10s..."
+    print "Splitting cluster, then waiting 20s..."
     cluster2 = driver.Cluster(metacluster)
     metacluster.move_processes(cluster1, cluster2, [proc2])
-    time.sleep(10)
+    time.sleep(20)
     print "Checking that they detected the netsplit..."
     assert len(access1.get_directory()) == len(access2.get_directory()) == 1
     cluster1.check()

@@ -5,7 +5,7 @@
 #include <string>
 #include <boost/program_options.hpp>
 #include "clustering/administration/cli/linenoise.hpp"
-#include "rpc/connectivity/connectivity.hpp"
+#include "rpc/connectivity/cluster.hpp"
 
 class admin_cluster_link_t;
 
@@ -36,6 +36,7 @@ public:
     static const char *exit_command;
     static const char *help_command;
     static const char *resolve_command;
+    static const char *pin_shard_command;
     static const char *split_shard_command;
     static const char *merge_shard_command;
     static const char *set_name_command;
@@ -52,6 +53,7 @@ public:
     static const char *exit_usage;
     static const char *help_usage;
     static const char *resolve_usage;
+    static const char *pin_shard_usage;
     static const char *split_shard_usage;
     static const char *merge_shard_usage;
     static const char *set_name_usage;
@@ -67,6 +69,7 @@ public:
     static const char *exit_description;
     static const char *help_description;
     static const char *resolve_description;
+    static const char *pin_shard_description;
     static const char *split_shard_description;
     static const char *merge_shard_description;
     static const char *set_name_description;
@@ -153,7 +156,7 @@ private:
     };
 
     static void do_usage_internal(const std::vector<admin_help_info_t>& helps,
-                                  const std::vector<const char *>& options,
+                                  const std::vector<std::string>& options,
                                   const char *header,
                                   bool console);
 
@@ -162,7 +165,7 @@ private:
     command_info * add_command(std::map<std::string, command_info *>& cmd_map,
                                const std::string& full_cmd,
                                const std::string& cmd,
-                               const std::string& usage, 
+                               const std::string& usage,
                                bool post_sync,
                                void (admin_cluster_link_t::* const fn)(command_data&));
     admin_cluster_link_t * get_cluster();

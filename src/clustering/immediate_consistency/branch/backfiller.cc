@@ -1,6 +1,7 @@
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 
 #include "clustering/immediate_consistency/branch/history.hpp"
+#include "concurrency/fifo_enforcer.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
 
@@ -65,12 +66,20 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
 }
 
 template <class protocol_t>
+void send_chunk(mailbox_manager_t *mbox_manager, 
+                mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_addr,
+                const typename protocol_t::backfill_chunk_t &chunk,
+                fifo_enforcer_source_t *fifo_src) {
+    send(mbox_manager, chunk_addr, chunk, fifo_src->enter_write());
+}
+
+template <class protocol_t>
 void backfiller_t<protocol_t>::on_backfill(
 					   backfill_session_id_t session_id,
 					   region_map_t<protocol_t, version_range_t> start_point,
 					   mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>)> end_point_cont,
-					   mailbox_addr_t<void(typename protocol_t::backfill_chunk_t)> chunk_cont,
-					   mailbox_addr_t<void()> done_cont,
+					   mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
+					   mailbox_addr_t<void(fifo_enforcer_write_token_t)> done_cont,
 					   auto_drainer_t::lock_t keepalive) {
 
     assert_thread();
@@ -91,35 +100,26 @@ void backfiller_t<protocol_t>::on_backfill(
     wait_any_t interrupted(&local_interruptor, keepalive.get_drain_signal());
 
     try {
-	/* Calling `send_chunk()` will send a chunk to the backfillee. We
-	   need to cast `send()` to the correct type before calling
-	   `boost::bind()` so that C++ will find the correct overload. */
-	void (*send_cast_to_correct_type)(
-					  mailbox_manager_t *,
-					  mailbox_addr_t<void(typename protocol_t::backfill_chunk_t)>,
-					  const typename protocol_t::backfill_chunk_t &
-					  ) = &send;
-	boost::function<void(typename protocol_t::backfill_chunk_t)> send_fun =
-	    boost::bind(send_cast_to_correct_type, mailbox_manager, chunk_cont, _1);
+        fifo_enforcer_source_t fifo_src;
 
-	boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> send_backfill_token;
-	store->new_read_token(send_backfill_token);
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> send_backfill_token;
+        store->new_read_token(send_backfill_token);
 
-	/* Actually perform the backfill */
-	store->send_backfill(
-			     region_map_transform<protocol_t, version_range_t, state_timestamp_t>(
-												  start_point,
-												  &get_earliest_timestamp_of_version_range
-												  ),
-			     boost::bind(&backfiller_t<protocol_t>::confirm_and_send_metainfo, this, _1, start_point, end_point_cont),
-			     send_fun,
-			     local_backfill_progress[session_id],
-			     send_backfill_token,
-			     &interrupted
-			     );
+        /* Actually perform the backfill */
+        store->send_backfill(
+                     region_map_transform<protocol_t, version_range_t, state_timestamp_t>(
+                                                      start_point,
+                                                      &get_earliest_timestamp_of_version_range
+                                                      ),
+                     boost::bind(&backfiller_t<protocol_t>::confirm_and_send_metainfo, this, _1, start_point, end_point_cont),
+                     boost::bind(send_chunk<protocol_t>, mailbox_manager, chunk_cont, _1, &fifo_src),
+                     local_backfill_progress[session_id],
+                     send_backfill_token,
+                     &interrupted
+                     );
 
-	/* Send a confirmation */
-	send(mailbox_manager, done_cont);
+        /* Send a confirmation */
+        send(mailbox_manager, done_cont, fifo_src.enter_write());
 
     } catch (interrupted_exc_t) {
 	/* Ignore. If we were interrupted by the backfillee, then it already

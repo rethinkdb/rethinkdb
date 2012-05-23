@@ -1,24 +1,56 @@
 <script id="dashboard_view-template" type="text/x-handlebars-template">
-  <h1>Cluster dashboard</h1>
-  <div class="section">
-    <div class="machines"></div>
-    <div class="data-picker"></div>
-  </div>
-  <div class="visualizations section">
-    <hr class="first" />
-    <div class="row-fluid">
-      <div class="disk span6">
-        <h3 class="title">Disk usage</h3>
-        <div class="disk-usage"></div>
-      </div>
-      <div class="memory span6">
-        <h3 class="title">Memory usage</h3>
-        <div class="mem-usage"></div>
-      </div>
-    </div>
-    <hr />
-    <h3 class="title">Cluster performance</h3>
-    <div class="chart cluster-performance"></div>
-  </div>
+  <h1 class="title status">Cluster status</h1>
+  <table class="status">
+      <tr>
+          <td class="no-problems-detected availability">
+              <h3>Availability</h3>
+              <p class="message">No availability issues detected</p>
+              <p class="details">N of M masters are online</p>
+          </td>
+          <td class="problems-detected cpu_distro">
+              <h3>CPU distribution</h3>
+              <p class="message">No CPU problems detected</p>
+              <p class="details">N of M machines utilize less<br />than N% of CPU power</p>
+          </td>
+          <td class="no-problems-detected conflicts">
+              <h3>Conflicts</h3>
+              <p class="message">No conflicts detected</p>
+              <p class="details">N of M namespaces are operating correctly</p>
+          </td>
+      </tr>
+      <tr>
+          <td class="no-problems-detected redundancy">
+              <h3>Redundancy</h3>
+              <p class="message">No redundancy issues detected</p>
+              <p class="details">N of M replicas are online</p>
+          </td>
+          <td class="no-problems-detected ram">
+              <h3>RAM</h3>
+              <p class="message">No memory problems detected</p>
+              <p class="details">N of M machines utilize less<br />than N% of available RAM</p>
+          </td>
+          <td class="problems-detected persistence">
+              <h3>Persistence</h3>
+              <p class="message">No disk problems detected</p>
+              <p class="details">N of M machines have working disks</p>
+          </td>
+      </tr>
+  </table>
+    
+  <h1 class="title performance">Cluster performance</h1>
+  <div class="cluster_performance_panel_placeholder"></div>
+  
+  <h1 class="title sharding-replication-settings">Sharding and replication</h1>
+  <li class="dropdown" id="sharding-settings-dropdown">
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#sharding-settings-dropdown">
+          Configure sharding and replication
+          <b class="caret"></b>
+      </a>
+      <ul class="dropdown-menu">
+          {{#each namespaces}}
+          <li><a href="/#namespaces/{{this.id}}">{{this.name}}</a></li>
+          {{/each}}
+      </ul>
+  </li>
 </script>
 

@@ -1,6 +1,8 @@
 #ifndef RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_
 #define RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_
 
+#include "concurrency/cond_var.hpp"
+#include "concurrency/promise.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 
@@ -37,6 +39,8 @@ public:
     boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > get_root_view();
 
 private:
+    typedef uint64_t metadata_version_t, sync_from_query_id_t, sync_to_query_id_t;
+
     /* `get_root_view()` returns a pointer to this. It just exists to implement
     `semilattice_readwrite_view_t` for us. */
     class root_view_t : public semilattice_readwrite_view_t<metadata_t> {
@@ -50,9 +54,11 @@ private:
         publisher_t<boost::function<void()> > *get_publisher();
     };
 
-    static void write_metadata(write_stream_t *stream, metadata_t md);
-    static void write_ping(write_stream_t *stream, int ping_id);
-    static void write_ping_response(write_stream_t *stream, int ping_id);
+    static void write_metadata(write_stream_t *stream, metadata_t md, metadata_version_t current_version);
+    static void write_sync_from_query(write_stream_t *stream, sync_from_query_id_t query_id);
+    static void write_sync_from_reply(write_stream_t *stream, sync_from_query_id_t query_id, metadata_version_t current_version);
+    static void write_sync_to_query(write_stream_t *stream, sync_to_query_id_t query_id, metadata_version_t current_version);
+    static void write_sync_to_reply(write_stream_t *stream, sync_to_query_id_t query_id);
 
     /* These are called in a blocking fashion by the message service or by the
     `connectivity_service_t`. */
@@ -61,27 +67,38 @@ private:
     void on_disconnect(peer_id_t);
 
     /* These are spawned in new coroutines. */
-    void send_metadata_to_peer(peer_id_t, metadata_t, auto_drainer_t::lock_t);
-    void send_ping_response_to_peer(peer_id_t, int, auto_drainer_t::lock_t);
-    void join_metadata_locally_on_home_thread(metadata_t, auto_drainer_t::lock_t);
-    void release_ping_waiter_on_home_thread(int ping_id, auto_drainer_t::lock_t);
+    void send_metadata_to_peer(peer_id_t, metadata_t, metadata_version_t, auto_drainer_t::lock_t);
+    void deliver_metadata_on_home_thread(peer_id_t sender, metadata_t, metadata_version_t, auto_drainer_t::lock_t);
+    void deliver_sync_from_query_on_home_thread(peer_id_t sender, sync_from_query_id_t query_id, auto_drainer_t::lock_t);
+    void deliver_sync_from_reply_on_home_thread(peer_id_t sender, sync_from_query_id_t query_id, metadata_version_t version, auto_drainer_t::lock_t);
+    void deliver_sync_to_query_on_home_thread(peer_id_t sender, sync_to_query_id_t query_id, metadata_version_t version, auto_drainer_t::lock_t);
+    void deliver_sync_to_reply_on_home_thread(peer_id_t sender, sync_to_query_id_t query_id, auto_drainer_t::lock_t);
 
     static void call_function_with_no_args(const boost::function<void()> &);
     void join_metadata_locally(metadata_t);
+    void wait_for_version_from_peer(peer_id_t peer, metadata_version_t version, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t);
 
     message_service_t *const message_service;
     const boost::shared_ptr<root_view_t> root_view;
 
+    metadata_version_t metadata_version;
     metadata_t metadata;
     publisher_controller_t<boost::function<void()> > metadata_publisher;
     rwi_lock_assertion_t metadata_mutex;
 
-    connectivity_service_t::peers_list_subscription_t event_watcher;
+    std::map<peer_id_t, metadata_version_t> last_versions_seen;
+    std::multimap<std::pair<peer_id_t, metadata_version_t>, cond_t *> version_waiters;
+    mutex_assertion_t peer_version_mutex;
 
-    int ping_id_counter;
-    std::map<int, cond_t *> ping_waiters;
+    sync_from_query_id_t next_sync_from_query_id;
+    std::map<sync_from_query_id_t, promise_t<metadata_version_t> *> sync_from_waiters;
+
+    sync_to_query_id_t next_sync_to_query_id;
+    std::map<sync_to_query_id_t, cond_t *> sync_to_waiters;
 
     one_per_thread_t<auto_drainer_t> drainers;
+
+    connectivity_service_t::peers_list_subscription_t event_watcher;
 };
 
 #include "rpc/semilattice/semilattice_manager.tcc"

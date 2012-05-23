@@ -82,8 +82,7 @@ static void run_read_write_test() {
         cluster.get_mailbox_manager(),
         master_directory.get_watchable()->subview(boost::bind(&wrap_in_peers_map, _1, cluster.get_connectivity_service()->get_me()))
         );
-
-    nap(100);
+    namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();
 
     /* Send some writes to the namespace */
     order_source_t order_source;
@@ -92,6 +91,7 @@ static void run_read_write_test() {
         &namespace_interface,
         &dummy_key_gen,
         &order_source,
+        "run_read_write_test(clustering_query.cc)/inserter",
         &inserter_state);
     nap(100);
     inserter.stop();
@@ -102,7 +102,7 @@ static void run_read_write_test() {
         dummy_protocol_t::read_t r;
         r.keys.keys.insert((*it).first);
         cond_t interruptor;
-        dummy_protocol_t::read_response_t resp = namespace_interface.read(r, order_source.check_in("unittest"), &interruptor);
+        dummy_protocol_t::read_response_t resp = namespace_interface.read(r, order_source.check_in("unittest::run_read_write_test(clustering_query.cc)"), &interruptor);
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }
@@ -163,8 +163,7 @@ static void run_broadcaster_problem_test() {
         cluster.get_mailbox_manager(),
         master_directory.get_watchable()->subview(boost::bind(&wrap_in_peers_map, _1, cluster.get_connectivity_service()->get_me()))
         );
-
-    nap(100);
+    namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();
 
     order_source_t order_source;
 
@@ -173,7 +172,7 @@ static void run_broadcaster_problem_test() {
     w.values["a"] = "b";
     cond_t non_interruptor;
     try {
-        namespace_interface.write(w, order_source.check_in("unittest"), &non_interruptor);
+        namespace_interface.write(w, order_source.check_in("unittest::run_broadcaster_problem_test(clustering_query.cc)"), &non_interruptor);
         ADD_FAILURE() << "That was supposed to fail.";
     } catch (cannot_perform_query_exc_t e) {
         /* expected */
@@ -198,8 +197,7 @@ static void run_missing_master_test() {
         cluster.get_mailbox_manager(),
         master_directory.get_watchable()->subview(boost::bind(&wrap_in_peers_map, _1, cluster.get_connectivity_service()->get_me()))
         );
-
-    nap(100);
+    namespace_interface.get_initial_ready_signal()->wait_lazily_unordered();
 
     order_source_t order_source;
 
@@ -208,7 +206,7 @@ static void run_missing_master_test() {
     r.keys.keys.insert("a");
     cond_t non_interruptor;
     try {
-        namespace_interface.read(r, order_source.check_in("unittest"), &non_interruptor);
+        namespace_interface.read(r, order_source.check_in("unittest::run_missing_master_test(A)"), &non_interruptor);
         ADD_FAILURE() << "That wasn't supposed to work.";
     } catch (cannot_perform_query_exc_t e) {
         /* expected */
@@ -217,7 +215,7 @@ static void run_missing_master_test() {
     dummy_protocol_t::write_t w;
     w.values["a"] = "b";
     try {
-        namespace_interface.write(w, order_source.check_in("unittest"), &non_interruptor);
+        namespace_interface.write(w, order_source.check_in("unittest::run_missing_master_test(B)"), &non_interruptor);
         ADD_FAILURE() << "That was supposed to fail.";
     } catch (cannot_perform_query_exc_t e) {
         /* expected */

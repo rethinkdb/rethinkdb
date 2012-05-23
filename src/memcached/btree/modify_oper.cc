@@ -14,7 +14,7 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
     block_size_t block_size = slice->cache()->get_block_size();
 
     keyvalue_location_t<memcached_value_t> kv_location;
-    find_keyvalue_location_for_write(txn, superblock, key, &kv_location, &slice->root_eviction_priority);
+    find_keyvalue_location_for_write(txn, superblock, key, &kv_location, &slice->root_eviction_priority, &slice->stats);
     scoped_malloc<memcached_value_t> the_value;
     the_value.reinterpret_swap(kv_location.value);
 
