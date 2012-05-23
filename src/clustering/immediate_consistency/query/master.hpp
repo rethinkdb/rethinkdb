@@ -7,6 +7,14 @@
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "containers/uuid.hpp"
 
+/* The point at which we begin throttling. */
+#define THROTTLING_THRESHOLD 1000
+/* The minimum number of operations we will ever offer someone who asks for an
+ * allocation. */
+#define MINIMUM_ALLOCATION 5
+/* The number of operations we allocate when we're not doing any throttling. */
+#define BASE_ALLOCATION 100
+
 template<class protocol_t>
 class master_t {
 public:
@@ -36,10 +44,10 @@ public:
         registrar(mm, this),
         read_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_read,
                                                   this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
-        read_allocation_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::allocate_reads, this, _1)),
+        read_allocation_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::allocate_reads, this, _1), mailbox_callback_mode_inline),
         write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
                                                    this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
-        write_allocation_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::allocate_writes, this, _1)),
+        write_allocation_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::allocate_writes, this, _1), mailbox_callback_mode_inline),
         master_directory(md), master_directory_lock(mdl),
         uuid(generate_uuid()) {
 
@@ -124,6 +132,8 @@ private:
                   auto_drainer_t::lock_t keepalive)
         THROWS_NOTHING
     {
+        rassert(allocated_but_unsent_writes > 0, "Someone must have sent a write without first asking for an allocation.");
+        allocated_but_unsent_writes--;
         try {
             keepalive.assert_is_holding(&drainer);
             boost::variant<typename protocol_t::write_response_t, std::string> reply;
@@ -160,9 +170,16 @@ private:
     }
 
     void allocate_writes(mailbox_addr_t<void(int)> response_address) {
-        send(mailbox_manager, response_address, 100);
+        int longest_queue_size = broadcaster->longest_queue_size();
+        int writes_to_allocate;
+        if (longest_queue_size < THROTTLING_THRESHOLD) {
+            writes_to_allocate = BASE_ALLOCATION;
+        } else {
+            writes_to_allocate = int(float(BASE_ALLOCATION) / float(longest_queue_size - THROTTLING_THRESHOLD)) + MINIMUM_ALLOCATION;
+        }
+        allocated_but_unsent_writes += writes_to_allocate;
+        send(mailbox_manager, response_address, writes_to_allocate);
     }
-
 
     mailbox_manager_t *mailbox_manager;
     ack_checker_t *ack_checker;
@@ -181,6 +198,8 @@ private:
     watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > *master_directory;
     mutex_assertion_t *master_directory_lock;
     master_id_t uuid;
+
+    int allocated_but_unsent_writes;
 
     DISABLE_COPYING(master_t);
 };

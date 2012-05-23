@@ -46,6 +46,18 @@ public:
 
     broadcaster_business_card_t<protocol_t> get_business_card();
 
+    int longest_queue_size() {
+        int res = 0;
+        for (typename boost::ptr_map<dispatchee_t *, queue_and_pool_t>::iterator it  = coro_pools.begin();
+                                                                                 it != coro_pools.end();
+                                                                                 ++it) {
+            if (it->second->background_write_queue.size() > res) {
+                res = it->second->background_write_queue.size();
+            }
+        }
+        return res;
+    }
+
 private:
     friend class listener_t<protocol_t>;
 

@@ -28,7 +28,6 @@ T *get_front_of_list(intrusive_list_t<T>& list) {
 
 template<class value_t, class queue_t = std::list<value_t> >
 struct unlimited_fifo_queue_t : public passive_producer_t<value_t> {
-
     unlimited_fifo_queue_t() 
         : passive_producer_t<value_t>(&available_control),
           counter(NULL)
@@ -46,6 +45,10 @@ struct unlimited_fifo_queue_t : public passive_producer_t<value_t> {
 
         queue.push_back(value);
         available_control.set_available(!queue.empty());
+    }
+
+    int size() {
+        return queue.size();
     }
 
 private:
