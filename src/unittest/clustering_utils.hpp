@@ -105,7 +105,7 @@ private:
             const std::string &msg,
             auto_drainer_t::lock_t keepalive) {
         try {
-            std::string tag = "insert_forever(" + msg + ")";
+            std::string tag = strprintf("insert_forever(%p,%s)", this, msg.c_str());
             for (int i = 0; ; i++) {
                 if (keepalive.get_drain_signal()->is_pulsed()) throw interrupted_exc_t();
 
@@ -129,7 +129,7 @@ public:
                                it != values_inserted->end();
                                it++) {
             cond_t interruptor;
-            std::string response = rfun((*it).first, osource->check_in("unittest::test_inserter_t::validate"), &interruptor);
+            std::string response = rfun((*it).first, osource->check_in(strprintf("unittest::test_inserter_t::validate(%p)", this)), &interruptor);
             EXPECT_EQ((*it).second, response);
         }
     }
@@ -139,6 +139,8 @@ private:
     boost::function<std::string(const std::string&, order_token_t, signal_t *)> rfun;
     boost::function<std::string()> key_gen_fun;
     order_source_t *osource;
+
+    DISABLE_COPYING(test_inserter_t);
 };
 
 inline std::string dummy_key_gen() {

@@ -341,7 +341,7 @@ void admin_cluster_link_t::do_admin_pin_shard(admin_command_parser_t::command_da
 
     if (ns_path[0] == "memcached_namespaces") {
         namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(str_to_uuid(ns_path[1]));
-        if (i == cluster_metadata.memcached_namespaces.namespaces.end())
+        if (i == cluster_metadata.memcached_namespaces.namespaces.end() || i->second.is_deleted())
             throw admin_cluster_exc_t("unexpected error, could not find namespace: " + ns);
 
         // If no primaries or secondaries are given, we list the current machine assignments
@@ -398,7 +398,7 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
                                                        const std::vector<std::string>& secondary_strs,
                                                        cluster_semilattice_metadata_t& cluster_metadata,
                                                        const std::string& post_path) {
-    machine_id_t primary;
+    machine_id_t primary(nil_uuid());
     std::multimap<datacenter_id_t, machine_id_t> datacenter_use;
     std::multimap<datacenter_id_t, machine_id_t> old_datacenter_use;
     typename region_map_t<protocol_t, machine_id_t>::iterator primary_shard;
@@ -512,6 +512,7 @@ void admin_cluster_link_t::insert_pinning(map_type& region_map, const key_range_
     region_map = new_map;
 }
 
+// TODO: templatize on protocol
 void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     std::vector<std::string> ns_path(get_info_from_id(data.params["namespace"][0])->path);
@@ -523,7 +524,7 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
         namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator ns_it =
             cluster_metadata.memcached_namespaces.namespaces.find(ns_id);
 
-        if (ns_it == cluster_metadata.memcached_namespaces.namespaces.end())
+        if (ns_it == cluster_metadata.memcached_namespaces.namespaces.end() || ns_it->second.is_deleted())
             throw admin_cluster_exc_t("unexpected error when looking up namespace: " + ns_path[1]);
 
         namespace_semilattice_metadata_t<memcached_protocol_t>& ns = ns_it->second.get_mutable();
@@ -570,13 +571,18 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
         }
 
         // Any time shards are changed, we destroy existing pinnings
-        ns.primary_pinnings.get_mutable().set(memcached_protocol_t::region_t::universe(), machine_id_t());
-        ns.secondary_pinnings.get_mutable().set(memcached_protocol_t::region_t::universe(), std::set<machine_id_t>());
+        // Use 'resolve' because they should be cleared even if in conflict
+        // ID sent to the vector clock doesn't matter here since we're setting the metadata through HTTP (TODO: change this if that is no longer true)
+        region_map_t<memcached_protocol_t, machine_id_t> new_primaries(memcached_protocol_t::region_t::universe(), nil_uuid());
+        region_map_t<memcached_protocol_t, std::set<machine_id_t> > new_secondaries(memcached_protocol_t::region_t::universe(), std::set<machine_id_t>());
+
+        ns.primary_pinnings = ns.primary_pinnings.make_resolving_version(new_primaries, connectivity_cluster.get_me().get_uuid());
+        ns.secondary_pinnings = ns.secondary_pinnings.make_resolving_version(new_secondaries, connectivity_cluster.get_me().get_uuid());
 
         std::string post_path(path_to_str(ns_path));
         post_metadata(post_path + "/shards", ns.shards.get_mutable());
-        post_metadata(post_path + "/primary_pinnings", ns.primary_pinnings.get_mutable());
-        post_metadata(post_path + "/secondary_pinnings", ns.secondary_pinnings.get_mutable());
+        post_metadata(post_path + "/primary_pinnings/resolve", ns.primary_pinnings.get_mutable());
+        post_metadata(post_path + "/secondary_pinnings/resolve", ns.secondary_pinnings.get_mutable());
 
     } else if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("splitting not supported for dummy namespaces");
@@ -598,7 +604,7 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
         namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator ns_it =
             cluster_metadata.memcached_namespaces.namespaces.find(ns_id);
 
-        if (ns_it == cluster_metadata.memcached_namespaces.namespaces.end())
+        if (ns_it == cluster_metadata.memcached_namespaces.namespaces.end() || ns_it->second.is_deleted())
             throw admin_cluster_exc_t("unexpected error when looking up namespace: " + ns_path[1]);
 
         namespace_semilattice_metadata_t<memcached_protocol_t>& ns = ns_it->second.get_mutable();
@@ -642,13 +648,18 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
         }
 
         // Any time shards are changed, we destroy existing pinnings
-        ns.primary_pinnings.get_mutable().set(memcached_protocol_t::region_t::universe(), machine_id_t());
-        ns.secondary_pinnings.get_mutable().set(memcached_protocol_t::region_t::universe(), std::set<machine_id_t>());
+        // Use 'resolve' because they should be cleared even if in conflict
+        // ID sent to the vector clock doesn't matter here since we're setting the metadata through HTTP (TODO: change this if that is no longer true)
+        region_map_t<memcached_protocol_t, machine_id_t> new_primaries(memcached_protocol_t::region_t::universe(), nil_uuid());
+        region_map_t<memcached_protocol_t, std::set<machine_id_t> > new_secondaries(memcached_protocol_t::region_t::universe(), std::set<machine_id_t>());
+
+        ns.primary_pinnings = ns.primary_pinnings.make_resolving_version(new_primaries, connectivity_cluster.get_me().get_uuid());
+        ns.secondary_pinnings = ns.secondary_pinnings.make_resolving_version(new_secondaries, connectivity_cluster.get_me().get_uuid());
 
         std::string post_path(path_to_str(ns_path));
         post_metadata(post_path + "/shards", ns.shards.get_mutable());
-        post_metadata(post_path + "/primary_pinnings", ns.primary_pinnings.get_mutable());
-        post_metadata(post_path + "/secondary_pinnings", ns.secondary_pinnings.get_mutable());
+        post_metadata(post_path + "/primary_pinnings/resolve", ns.primary_pinnings.get_mutable());
+        post_metadata(post_path + "/secondary_pinnings/resolve", ns.secondary_pinnings.get_mutable());
 
     } else if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("merging not supported for dummy namespaces");
@@ -1157,9 +1168,11 @@ void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::com
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     std::string protocol(data.params["protocol"][0]);
     std::string port_str(data.params["port"][0]);
-    datacenter_id_t primary;
+    int port = atoi(port_str.c_str());
+    std::string datacenter_id(data.params["primary"][0]);
+    metadata_info_t *datacenter_info(get_info_from_id(datacenter_id));
+    datacenter_id_t primary(str_to_uuid(datacenter_info->path[1]));
     std::string name;
-    int port;
 
     if (data.params.count("name") == 1)
         name.assign(data.params["name"][0]);
@@ -1169,19 +1182,11 @@ void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::com
         if (port_str[i] < '0' || port_str[i] > '9')
             throw admin_parse_exc_t("port is not a number");
 
-    port = atoi(port_str.c_str());
     if (port > 65536)
         throw admin_parse_exc_t("port is too large: " + port_str);
 
-    if (data.params.count("primary") == 1) {
-
-        std::vector<std::string> datacenter_path(get_info_from_id(data.params["primary"][0])->path);
-
-        if (datacenter_path[0] != "datacenters")
-            throw admin_parse_exc_t("namespace primary is not a datacenter: " + data.params["primary"][0]);
-
-        primary = str_to_uuid(datacenter_path[datacenter_path.size() - 1]);
-    }
+    if (datacenter_info->path[0] != "datacenters")
+        throw admin_parse_exc_t("namespace primary is not a datacenter: " + datacenter_id);
 
     if (protocol == "memcached")
         do_admin_create_namespace_internal<memcached_protocol_t>(name, port, primary, "memcached_namespaces");
@@ -1264,7 +1269,7 @@ void admin_cluster_link_t::remove_machine_pinnings(const machine_id_t& machine,
                  j != ns.primary_pinnings.get_mutable().end(); ++j) {
                 if (j->second == machine) {
                     changed = true;
-                    j->second = machine_id_t();
+                    j->second = nil_uuid();
                 }
             }
 
@@ -1514,7 +1519,9 @@ size_t admin_cluster_link_t::get_machine_count_in_datacenter(const cluster_semil
 
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin();
          i != cluster_metadata.machines.machines.end(); ++i)
-        if (!i->second.is_deleted() && i->second.get().datacenter.get() == datacenter)
+        if (!i->second.is_deleted() &&
+            !i->second.get().datacenter.in_conflict() &&
+            i->second.get().datacenter.get() == datacenter)
             ++count;
 
     return count;
