@@ -117,8 +117,12 @@ private:
                                             datacenter_id_t& primary,
                                             const std::string& path);
 
-    template <class obj_map>
-    void do_admin_remove_internal(obj_map& metadata, const boost::uuids::uuid& obj_uuid);
+    void remove_datacenter_references(const datacenter_id_t& datacenter, cluster_semilattice_metadata_t& cluster_metadata);
+
+    template <class protocol_t>
+    void remove_datacenter_references_from_namespaces(const datacenter_id_t& datacenter,
+                                                      const std::string& post_path,
+                                                      std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >& ns_map);
 
     template <class map_type>
     void list_all_internal(const std::string& type, bool long_format, map_type& obj_map, std::vector<std::vector<std::string> >& table);

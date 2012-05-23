@@ -739,7 +739,9 @@ void admin_command_parser_t::run_console() {
                 if (!split_line.empty())
                     parse_and_run_command(split_line);
             } catch (admin_no_connection_exc_t& ex) {
-                fprintf(stderr, "not connected to a cluster, run 'help join' for more information\n");
+                fprintf(stderr, "fatal error: connection to cluster failed\n");
+                free(raw_line);
+                break;
             } catch (...) {
                 fprintf(stderr, "could not parse line\n");
             }
