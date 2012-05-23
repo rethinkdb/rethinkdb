@@ -99,11 +99,11 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
-void format_time(struct timespec time, char* buf, size_t max_chars) {
+void format_time(struct timespec time, append_only_printf_buffer_t *buf) {
     struct tm t;
     struct tm *res1 = localtime_r(&time.tv_sec, &t);
     guarantee_err(res1 == &t, "gmtime_r() failed.");
-    int res2 = snprintf(buf, max_chars,
+    buf->append(
         "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
         t.tm_year+1900,
         t.tm_mon+1,
@@ -112,14 +112,12 @@ void format_time(struct timespec time, char* buf, size_t max_chars) {
         t.tm_min,
         t.tm_sec,
         time.tv_nsec);
-    (void) res2;
-    rassert(0 <= res2);
 }
 
 std::string format_time(struct timespec time) {
-    char buf[formatted_time_length+1];
-    format_time(time, buf, sizeof(buf));
-    return std::string(buf);
+    printf_buffer_t<formatted_time_length + 1> buf;
+    format_time(time, &buf);
+    return std::string(buf.c_str());
 }
 
 struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
@@ -206,19 +204,32 @@ void *malloc_aligned(size_t size, size_t alignment) {
 
 #ifndef NDEBUG
 void debugf(const char *msg, ...) {
-    flockfile(stderr);
-    char formatted_time[formatted_time_length+1];
     struct timespec t;
+
     int res = clock_gettime(CLOCK_REALTIME, &t);
     guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-    format_time(t, formatted_time, sizeof(formatted_time));
-    fprintf(stderr, "%s Thread %d: ", formatted_time, get_thread_id());
 
-    va_list args;
-    va_start(args, msg);
-    vfprintf(stderr, msg, args);
-    va_end(args);
-    funlockfile(stderr);
+    printf_buffer_t<1000> buf;
+    format_time(t, &buf);
+
+    buf.append(" Thread %d: ", get_thread_id());
+
+    va_list ap;
+    va_start(ap, msg);
+
+    buf.vappend(msg, ap);
+
+    va_end(ap);
+
+    // Writing a single buffer in one shot like this makes it less
+    // likely that stderr debugfs and stdout printfs get mixed
+    // together, and probably makes it faster too.  (We can't simply
+    // flockfile both stderr and stdout because there's no established
+    // rule about which one should be locked first.)
+    size_t nitems = fwrite(buf.data(), 1, buf.size(), stderr);
+    guarantee_err(nitems == size_t(buf.size()), "trouble writing to stderr");
+    res = fflush(stderr);
+    guarantee_err(res == 0, "fflush(stderr) failed");
 }
 #endif
 

@@ -6,29 +6,40 @@
 
 #include "errors.hpp"
 
+// A base class for printf_buffer_t, so that things which _use_ a
+// printf buffer don't need to be templatized or know its size.
+class append_only_printf_buffer_t {
+public:
+    virtual void append(const char *format, ...) = 0;
+    virtual void vappend(const char *format, va_list ap) = 0;
+protected:
+    append_only_printf_buffer_t() { }
+    virtual ~append_only_printf_buffer_t() { }
+private:
+    DISABLE_COPYING(append_only_printf_buffer_t);
+};
 
+// A static buffer for printing format strings, but it has a failsafe
+// in case the buffer grows too large.
 template <int N>
-class printf_buffer_t {
+class printf_buffer_t : public append_only_printf_buffer_t {
 public:
     printf_buffer_t();
     explicit printf_buffer_t(const char *format, ...) __attribute__((format (printf, 2, 3)));
     printf_buffer_t(va_list ap, const char *format);
     ~printf_buffer_t();
 
-    void init(const char *format, ...);
-    void vinit(const char *format, va_list ap);
-
+    // append and vappend become slow if the total size grows to N or greater.
+    void append(const char *format, ...);
+    void vappend(const char *format, va_list ap);
 
     char *data() const {
-        rassert(ptr_);
         return ptr_;
     }
     const char *c_str() const {
-        rassert(ptr_);
         return ptr_;
     }
     int size() const {
-        rassert(ptr_);
         return length_;
     }
 
@@ -43,26 +54,27 @@ private:
 };
 
 template <int N>
-printf_buffer_t<N>::printf_buffer_t() : length_(0), ptr_(0) {
+printf_buffer_t<N>::printf_buffer_t() : length_(0), ptr_(data_) {
     data_[0] = 0;
 }
 
 template <int N>
-printf_buffer_t<N>::printf_buffer_t(const char *format, ...) : length_(0), ptr_(0) {
+printf_buffer_t<N>::printf_buffer_t(const char *format, ...) : length_(0), ptr_(data_) {
     data_[0] = 0;
 
     va_list ap;
     va_start(ap, format);
 
-    vinit(format, ap);
+    vappend(format, ap);
 
     va_end(ap);
 }
 
 template <int N>
-printf_buffer_t<N>::printf_buffer_t(va_list ap, const char *format) : length_(0), ptr_(0) {
+printf_buffer_t<N>::printf_buffer_t(va_list ap, const char *format) : length_(0), ptr_(data_) {
     data_[0] = 0;
-    vinit(format, ap);
+
+    vappend(format, ap);
 }
 
 template <int N>
@@ -73,41 +85,64 @@ printf_buffer_t<N>::~printf_buffer_t() {
 }
 
 template <int N>
-void printf_buffer_t<N>::init(const char *format, ...) {
+void printf_buffer_t<N>::append(const char *format, ...) {
     va_list ap;
     va_start(ap, format);
 
-    vinit(format, ap);
+    vappend(format, ap);
 
     va_end(ap);
 }
 
 template <int N>
-void printf_buffer_t<N>::vinit(const char *format, va_list ap) {
-    rassert(!ptr_);
-
+void printf_buffer_t<N>::vappend(const char *format, va_list ap) {
     va_list aq;
     va_copy(aq, ap);
 
-    // the snprintfs return the number of characters they _would_
-    // have written, not including the '\0'.
-    int size = vsnprintf(data_, N, format, ap);
+    if (ptr_ == data_) {
+        rassert(length_ < N);
 
-    rassert(size >= 0, "vsnprintf failed, bad format string?");
+        // the snprintfs return the number of characters they _would_
+        // have written, not including the '\0'.
+        int size = vsnprintf(data_ + length_, N - length_, format, ap);
+        rassert(size >= 0, "vsnprintf failed, bad format string?");
 
-    if (size < N) {
-        ptr_ = data_;
-        length_ = size;
-        return;
+        if (size < N - length_) {
+            length_ += size;
+        } else {
+            char *new_ptr = new char[length_ + size + 1];
+            memcpy(new_ptr, data_, length_);
+
+            // TODO: Use valgrind to mark data_ memory undefined.
+            data_[0] = '\0';
+
+            int size2 = vsnprintf(ptr_ + length_, size + 1, format, aq);
+            rassert(size == size2);
+
+            ptr_ = new_ptr;
+            length_ += size;
+        }
+
+    } else {
+        rassert(length_ >= N);
+
+        char tmp[1];
+
+        int size = vsnprintf(tmp, 1, format, ap);
+        rassert(size >= 0, "vsnprintf failed, bad format string?");
+
+        char *new_ptr = new char[length_ + size + 1];
+        memcpy(new_ptr, ptr_, length_);
+
+        int size2 = vsnprintf(new_ptr + length_, size + 1, format, aq);
+        rassert(size == size2);
+
+        ptr_ = new_ptr;
+        length_ += size;
     }
-
-    ptr_ = new char[size + 1];
-    length_ = vsnprintf(ptr_, size + 1, format, aq);
-    rassert(length_ == size);
 
     va_end(aq);
 }
-
 
 
 
