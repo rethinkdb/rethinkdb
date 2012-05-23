@@ -11,6 +11,8 @@
 
 #include "errors.hpp"
 
+class append_only_printf_buffer_t;
+
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
 
@@ -154,7 +156,7 @@ std::string demangle_cpp_name(const char *mangled_name);
 // yyyy-mm-ddThh:mm:ss.nnnnnnnnn   (29 characters)
 const size_t formatted_time_length = 29;    // not including null
 
-void format_time(struct timespec time, char* buf, size_t max_chars);
+void format_time(struct timespec time, append_only_printf_buffer_t *buf);
 std::string format_time(struct timespec time);
 
 struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error);

@@ -6,10 +6,23 @@
 
 #include "errors.hpp"
 
+// A base class for printf_buffer_t, so that things which _use_ a
+// printf buffer don't need to be templatized or know its size.
+class append_only_printf_buffer_t {
+public:
+    virtual void append(const char *format, ...) = 0;
+    virtual void vappend(const char *format, va_list ap) = 0;
+protected:
+    append_only_printf_buffer_t() { }
+    virtual ~append_only_printf_buffer_t() { }
+private:
+    DISABLE_COPYING(append_only_printf_buffer_t);
+};
+
 // A static buffer for printing format strings, but it has a failsafe
 // in case the buffer grows too large.
 template <int N>
-class printf_buffer_t {
+class printf_buffer_t : public append_only_printf_buffer_t {
 public:
     printf_buffer_t();
     explicit printf_buffer_t(const char *format, ...) __attribute__((format (printf, 2, 3)));
