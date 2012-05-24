@@ -2,7 +2,6 @@
 #define __MEMCACHED_STATS_HPP__
 
 #include "perfmon.hpp"
-#include "stats/persist.hpp"
 
 struct memcached_stats_t {
     memcached_stats_t(perfmon_collection_t *parent)
@@ -17,7 +16,6 @@ struct memcached_stats_t {
           pm_conns_reading("conns_reading", secs_to_ticks(1), &parser_collection),
           pm_conns_writing("conns_writing", secs_to_ticks(1), &parser_collection),
           pm_conns_acting("conns_acting", secs_to_ticks(1), &parser_collection),
-          rget_iteration_next("rget_iteration_next", secs_to_ticks(1), &parser_collection),
           pm_conns("pm_conns", secs_to_ticks(1), &parser_collection)
     { }
 
@@ -28,7 +26,7 @@ struct memcached_stats_t {
         pm_cmd_get,
         pm_cmd_rget;
 
-    perfmon_persistent_stddev_t
+    perfmon_stddev_t
         pm_delete_key_size,
         pm_get_key_size,
         pm_storage_key_size,
@@ -38,8 +36,6 @@ struct memcached_stats_t {
         pm_conns_reading,
         pm_conns_writing,
         pm_conns_acting;
-
-    perfmon_duration_sampler_t rget_iteration_next;
 
     perfmon_duration_sampler_t pm_conns;
 };

@@ -1,3 +1,5 @@
+#include "rpc/semilattice/view/member.hpp"
+
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 

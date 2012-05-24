@@ -1,6 +1,8 @@
 #ifndef RPC_SEMILATTICE_VIEW_FUNCTION_TCC_
 #define RPC_SEMILATTICE_VIEW_FUNCTION_TCC_
 
+#include "rpc/semilattice/view/function.hpp"
+
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 #include <boost/function.hpp>

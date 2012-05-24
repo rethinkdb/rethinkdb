@@ -458,138 +458,39 @@
     ----------------------------
 */
 .dashboard-view {
-
-    .section {
-        margin-top: 15px;
-        .title { margin-bottom: 15px; }
-
-        &.visualizations {
-            border: thin solid #DDD;
-            border-top: 0;
-            .border-radius(0 0 @border_radius @border_radius);
-
-            margin-top: 0px;
-            padding: 10px;
-            padding-top: 0;
-
-            hr { 
-                margin: 20px 0; 
-                &.first { margin-top: 0; }
-            }
-        }
-
-        hr {
-            border-bottom: thin solid @grayLighter;
-            margin: 15px 0;
-        }
+    h1.title {
+        margin-bottom: 15px;
     }
-
-    .data-picker {
-        .nav {
-            margin-bottom: 0px;
-        }
-
-        .data-stream-filter {
-            @border: thin solid #DDD;
-            border-left: @border;
-            border-right: @border;
-            .border-radius(0 0 @border_radius @border_radius);
-            padding: 20px 10px;
-
-            .model {
-                display: inline;
-                padding: 5px 8px;
-                margin-right: 10px;
-                .border-radius(5px);
-                background: @grayLighter;
-
-                font-size: @baseFontSize * .9;
-                font-weight: bold;
-                color: @white;
-                text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.5);
-                line-height: @baseLineHeight * 1.5;
-
-                input { margin-right: 7px; }
-            }
-        }
+    h1.performance, h1.sharding-replication-settings {
+        margin-top: 1em;
     }
-    .resource-pie-chart {
-        .no-data {
-            font-size: 1.4em;
-            color: @grayLight
-        }
+}
 
-        g.center {
-            .total-label {
-                text-transform: uppercase;
-                fill: @gray;
-                font-weight: bold;
-            }
-
-            .total-value {
-                font-weight: bold;
-                font-size: 14px;
-            }
-
-            .total-units {
-                text-transform: lowercase;
-                fill: @gray;
-            }
-        }
-
-        g.arc {
-            line.tick { stroke: gray; }
-            text.label {
-                font-size: 11px;
-            }
-        }
+.dashboard-view table.status {
+    width: 100%;
+    td {
+        width: 33%;
+        vertical-align: top;
     }
-    .chart {
-        .stream-picker { 
-            .datastream {
-                display: inline;
-                padding: 5px 8px;
-                margin-right: 10px;
-                .border-radius(5px);
-                background: @gray;
-
-                font-size: @baseFontSize * .9;
-                font-weight: bold;
-                color: @white;
-                text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.5);
-                line-height: @baseLineHeight * 1.5;
-
-                input { margin-right: 7px; }
-            }
-        }
-        .no-data {
-            font-size: 1.4em;
-            color: @grayLight
-        }
-        path {
-            &.line, &.domain {
-                stroke-width: 2px;
-                fill: none;
-            }
-            &.domain {
-                stroke: steelblue;
-            }
-            &.area {
-                opacity: 0.7;
-            }
-        }
-
-        line {
-            stroke: black;
-        }
-
-        text {
-            font-size: 9pt;
-        }
+    td.redundancy, td.ram, td.persistence {
+        padding-top: 1em;
     }
-    /* Override Bootstrap */
-    .row::after {
-        content: none;
+    td.no-problems-detected h3 {
+        border-left: solid 5px green;
+        padding-left: 5px;
+    }
+    td.problems-detected h3 {
+        border-left: solid 5px red;
+        padding-left: 5px;
+    }
+    p {
+        padding: 0;
+        margin: 0;
+    }
+    p.message, p.details {
+        text-transform: uppercase;
+        color: @gray;
+        font-size: 0.75em;
     }
 }
 
@@ -1275,5 +1176,133 @@
         td.dummy {
             border: none;
         }
+    }
+}
+
+/*
+    --------------------
+    Visualization styles
+    --------------------
+*/
+#ops_plot_container {
+    position: relative;
+    .chart {
+        border-bottom: solid 1px black;
+        overflow: hidden;
+        display: inline-block;
+        .title, {
+            display: none;
+        }
+        .value {
+            display: none;
+        }
+        canvas {
+            display: block;
+        }
+        border-top: solid 1px black;
+        border-left: solid 1px black;
+        border-right: solid 1px black;
+    }
+
+    .chart, .haxis, .hgrid, .line {
+        margin-left: 34px;
+    }
+
+    .haxis, .vaxis, .hgrid, .vgrid {
+        font: 10px sans-serif;
+        line {
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+    }
+    .haxis text, {
+        -webkit-transition: fill-opacity 250ms linear;
+    }
+    
+    .haxis {
+        margin-top: -9px;
+    }
+
+    .hgrid {
+        height: 200px;
+        position: absolute;
+        top: -3px;
+        left: 0;
+        line {
+            opacity: .2;
+        }
+    }
+
+    .vaxis {
+        margin-top: -228px;
+    }
+
+    .vgrid {
+        position: absolute;
+        top: 0;
+        left: 0px;
+        line {
+            opacity: .2;
+        }
+    }
+
+    .line {
+       background: #000;
+       opacity: .2;
+       z-index: 2;
+    }
+
+    .ops_plot_legend {
+        width: 370px;
+    }
+    .legend {
+        .color {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+        }
+        .reads .color { background-color: #729E51; }
+        .writes .color { background-color: #983434; }
+        text-transform: uppercase;
+        color: @gray;
+        font-size: 0.7em;
+    }
+    .legend-table {
+        width: 370px;
+        td.reads {
+            width: 185px;
+        }
+        td.reads .color {
+            margin-left: 85px;
+        }
+        td.writes {
+            text-align: left;
+        }
+    }
+}
+
+.performance_panel {
+    .panel-left {
+        float: left;
+        width: 50%;
+    }
+    .panel-right {
+        float: left;
+    }
+    .two-panel-clear {
+        clear: both;
+    }
+}
+
+.stats_panel {
+    margin-left: 1em;
+    text-transform: uppercase;
+    color: @gray;
+    font-size: 0.85em;
+    line-height: 2em;
+    td.minichart {
+        width: 75px;
+        padding-left: 5px;
+        padding-right: 5px;
     }
 }

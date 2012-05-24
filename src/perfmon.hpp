@@ -9,13 +9,13 @@
 
 #include <limits>
 #include <string>
+#include <map>
 
-#include "utils.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 #include "perfmon_types.hpp"
 #include "concurrency/rwi_lock.hpp"
+#include "utils.hpp"
 
 // Some arch/runtime declarations.
 int get_num_threads();
@@ -38,7 +38,7 @@ struct cache_line_padded_t {
 various parts of the server. */
 
 class perfmon_result_t {
-    typedef boost::ptr_map<std::string, perfmon_result_t> internal_map_t;
+    typedef std::map<std::string, perfmon_result_t *> internal_map_t;
 public:
     enum perfmon_result_type_t {
         type_value,
@@ -46,43 +46,44 @@ public:
     };
 
     perfmon_result_t();
+    perfmon_result_t(const perfmon_result_t &);
     explicit perfmon_result_t(const std::string &);
-    explicit perfmon_result_t(const internal_map_t &);
+    ~perfmon_result_t();
 
     static perfmon_result_t make_string() {
         return perfmon_result_t(std::string());
     }
 
-    static perfmon_result_t * new_string() {
-        return new perfmon_result_t(std::string());
+    static void alloc_string_result(perfmon_result_t **out) {
+        *out = new perfmon_result_t(std::string());
     }
 
     static perfmon_result_t make_map() {
         return perfmon_result_t(internal_map_t());
     }
 
-    static perfmon_result_t *new_map() {
-        return new perfmon_result_t(internal_map_t());
+    static void alloc_map_result(perfmon_result_t **out) {
+        *out = new perfmon_result_t(internal_map_t());
     }
 
     std::string *get_string() {
         rassert(type == type_value);
-        return &_value;
+        return &value_;
     }
 
     const std::string *get_string() const {
         rassert(type == type_value);
-        return &_value;
+        return &value_;
     }
 
     internal_map_t *get_map() {
         rassert(type == type_map);
-        return &_map;
+        return &map_;
     }
 
     const internal_map_t *get_map() const {
         rassert(type == type_map);
-        return &_map;
+        return &map_;
     }
 
     bool is_string() {
@@ -95,29 +96,31 @@ public:
 
     std::pair<internal_map_t::iterator, bool> insert(const std::string &k, perfmon_result_t *val) {
         std::string s = k;
-        return get_map()->insert(s, val);
+        return get_map()->insert(std::pair<std::string, perfmon_result_t *>(s, val));
     }
 
     typedef internal_map_t::iterator iterator;
     typedef internal_map_t::const_iterator const_iterator;
-    
+
     iterator begin() {
-        return _map.begin();
+        return map_.begin();
     }
 
     iterator end() {
-        return _map.end();
+        return map_.end();
     }
 
     const_iterator begin() const {
-        return _map.begin();
+        return map_.begin();
     }
 
     const_iterator end() const {
-        return _map.end();
+        return map_.end();
     }
 
 private:
+    explicit perfmon_result_t(const internal_map_t &);
+
     // We need these two friends for serialization, but we don't want to include the
     // serialization headers, neither we want to define the serializers here.
     friend write_message_t &operator<<(write_message_t &msg, const perfmon_result_t &thing);
@@ -125,8 +128,10 @@ private:
 
     perfmon_result_type_t type;
 
-    std::string _value;
-    internal_map_t _map;
+    std::string value_;
+    internal_map_t map_;
+
+    void operator=(const perfmon_result_t &);
 };
 
 /* perfmon_get_stats() collects all the stats about the server and puts them
@@ -196,7 +201,7 @@ class perfmon_counter_t : public perfmon_perthread_t<cache_line_padded_t<int64_t
 protected:
     typedef cache_line_padded_t<int64_t> padded_int64_t;
     std::string name;
-    boost::scoped_array<padded_int64_t> thread_data;
+    padded_int64_t *thread_data;
 
     //padded_int64_t thread_data[MAX_THREADS];
     int64_t &get();
@@ -205,7 +210,8 @@ protected:
     int64_t combine_stats(padded_int64_t *);
     void output_stat(const int64_t&, perfmon_result_t *);
 public:
-    explicit perfmon_counter_t(const std::string& name, perfmon_collection_t *parent);
+    perfmon_counter_t(const std::string& name, perfmon_collection_t *parent);
+    ~perfmon_counter_t();
     void operator++() { get()++; }
     void operator+=(int64_t num) { get() += num; }
     void operator--() { get()--; }
@@ -253,7 +259,9 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
     struct thread_info_t {
         stats_t current_stats, last_stats;
         int current_interval;
-    } thread_data[MAX_THREADS];
+    };
+
+    thread_info_t *thread_data;
 
     void get_thread_stat(stats_t *);
     stats_t combine_stats(stats_t *);
@@ -266,6 +274,7 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
     bool include_rate;
 public:
     perfmon_sampler_t(const std::string& name, ticks_t length, bool include_rate, perfmon_collection_t *parent);
+    ~perfmon_sampler_t();
     void record(double value);
 };
 
@@ -428,7 +437,7 @@ public:
 
     /* Perfmon interface */
     void *begin_stats() {
-        constituents_access.co_lock(rwi_read); // RSI: should that be scoped somehow, so that we unlock, should the results collection fail?
+        constituents_access.co_lock(rwi_read); // FIXME that should be scoped somehow, so that we unlock in case the results collection fail
         void **contexts = new void *[constituents.size()];
         size_t i = 0;
         for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
@@ -447,7 +456,14 @@ public:
 
     void end_stats(void *_contexts, perfmon_result_t *result) {
         void **contexts = reinterpret_cast<void **>(_contexts);
-        perfmon_result_t *map = create_submap ? perfmon_result_t::new_map() : result;
+
+        // TODO: This is completely fucked up shitty code.
+        perfmon_result_t *map;
+        if (create_submap) {
+            perfmon_result_t::alloc_map_result(&map);
+        } else {
+            map = result;
+        }
 
         size_t i = 0;
         for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
@@ -455,8 +471,9 @@ public:
         }
 
         if (create_submap) {
-            result->get_map()->insert(name, map);
+            result->get_map()->insert(std::pair<std::string, perfmon_result_t *>(name, map));
         }
+        delete[] contexts;
         constituents_access.unlock();
     }
 

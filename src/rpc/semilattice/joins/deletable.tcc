@@ -1,5 +1,7 @@
-#ifndef RPC_SEMILATTICE_JOINS_DELETABLE_WRAPPER_TCC_
-#define RPC_SEMILATTICE_JOINS_DELETABLE_WRAPPER_TCC_
+#ifndef RPC_SEMILATTICE_JOINS_DELETABLE_TCC_
+#define RPC_SEMILATTICE_JOINS_DELETABLE_TCC_
+
+#include "rpc/semilattice/joins/deletable.hpp"
 
 //semilattice concept for deletable_t
 template <class T>
@@ -23,4 +25,4 @@ T &deletable_getter(deletable_t<T> &target) {
     return target.get_mutable();
 }
 
-#endif
+#endif  // RPC_SEMILATTICE_JOINS_DELETABLE_TCC_

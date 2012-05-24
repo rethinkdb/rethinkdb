@@ -1,3 +1,5 @@
+#include "containers/clone_ptr.hpp"
+
 template<class T>
 clone_ptr_t<T>::clone_ptr_t() THROWS_NOTHING : object(NULL) { }
 

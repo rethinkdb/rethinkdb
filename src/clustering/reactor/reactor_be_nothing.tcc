@@ -1,6 +1,10 @@
 #ifndef CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC_
 #define CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC_
 
+#include "clustering/immediate_consistency/branch/backfiller.hpp"
+#include "clustering/immediate_consistency/branch/replier.hpp"
+
+
 /* Returns true if every peer listed as a primary for this shard in the
  * blueprint has activity primary_t and every peer listed as a secondary has
  * activity secondary_up_to_date_t. */

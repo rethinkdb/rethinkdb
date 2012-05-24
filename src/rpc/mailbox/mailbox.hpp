@@ -23,6 +23,8 @@ private:
 
     boost::function<void(read_stream_t *)> callback;
 
+    auto_drainer_t drainer;
+
     DISABLE_COPYING(raw_mailbox_t);
 
 public:

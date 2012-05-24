@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_SUGGESTER_SUGGESTER_TCC_
 #define CLUSTERING_SUGGESTER_SUGGESTER_TCC_
 
+#include "clustering/suggester/suggester.hpp"
+
 #include "stl_utils.hpp"
 #include "containers/priority_queue.hpp"
 

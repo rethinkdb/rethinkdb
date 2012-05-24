@@ -33,6 +33,9 @@ int get_port(const namespace_semilattice_metadata_t<protocol_t> &ns
 #endif
     ) {
 #ifndef NDEBUG
+    if (ns.port.get() == 0)
+        return 0;
+
     return ns.port.get() + us.port_offset.get();
 #else
     return ns.port.get();

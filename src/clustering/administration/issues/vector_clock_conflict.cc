@@ -5,10 +5,10 @@ namespace {
 template<class type_t>
 void check(const std::string &object_type, const boost::uuids::uuid &object_id,
         const std::string &field, const vclock_t<type_t> &vector_clock,
-        std::list<clone_ptr_t<global_issue_t> > *out) {
+        std::list<clone_ptr_t<vector_clock_conflict_issue_t> > *out) {
 
     if (vector_clock.in_conflict()) {
-        out->push_back(clone_ptr_t<global_issue_t>(
+        out->push_back(clone_ptr_t<vector_clock_conflict_issue_t>(
             new vector_clock_conflict_issue_t(object_type, object_id, field)
             ));
     }
@@ -17,7 +17,7 @@ void check(const std::string &object_type, const boost::uuids::uuid &object_id,
 template<class protocol_t>
 void check_namespaces_for_protocol(
         const namespaces_semilattice_metadata_t<protocol_t> &namespaces,
-        std::list<clone_ptr_t<global_issue_t> > *out) {
+        std::list<clone_ptr_t<vector_clock_conflict_issue_t> > *out) {
 
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
             namespaces.namespaces.begin(); it != namespaces.namespaces.end(); it++) {
@@ -37,10 +37,10 @@ void check_namespaces_for_protocol(
 
 }   /* anonymous namespace */
 
-std::list<clone_ptr_t<global_issue_t> > vector_clock_conflict_issue_tracker_t::get_issues() {
+std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_issue_tracker_t::get_vector_clock_issues() {
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
 
-    std::list<clone_ptr_t<global_issue_t> > issues;
+    std::list<clone_ptr_t<vector_clock_conflict_issue_t> > issues;
 
     check_namespaces_for_protocol(metadata.memcached_namespaces, &issues);
     check_namespaces_for_protocol(metadata.dummy_namespaces, &issues);
@@ -62,4 +62,15 @@ std::list<clone_ptr_t<global_issue_t> > vector_clock_conflict_issue_tracker_t::g
     }
 
     return issues;
+}
+
+std::list<clone_ptr_t<global_issue_t> > vector_clock_conflict_issue_tracker_t::get_issues() {
+    std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_issues = get_vector_clock_issues();
+    std::list<clone_ptr_t<global_issue_t> > global_issues;
+
+    for (std::list<clone_ptr_t<vector_clock_conflict_issue_t> >::iterator i = vector_clock_issues.begin();
+         i != vector_clock_issues.end(); ++i)
+        global_issues.push_back(clone_ptr_t<global_issue_t>(i->get()));
+
+    return global_issues;
 }

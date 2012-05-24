@@ -47,42 +47,29 @@ struct get_result_t {
 
 /* `rget` */
 
-enum rget_bound_mode_t {
-    rget_bound_open,   // Don't include boundary key
-    rget_bound_closed,   // Include boundary key
-    rget_bound_none   // Ignore boundary key and go all the way to the left/right side of the tree
-};
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(rget_bound_mode_t, int8_t, rget_bound_open, rget_bound_none);
-
 struct rget_query_t {
-    rget_bound_mode_t left_mode;
-    store_key_t left_key;
-    rget_bound_mode_t right_mode;
-    store_key_t right_key;
+    key_range_t range;
+    int maximum;
 
     rget_query_t() { }
-    rget_query_t(const rget_bound_mode_t& left_mode_, const store_key_t left_key_,
-                 const rget_bound_mode_t& right_mode_, const store_key_t right_key_)
-        : left_mode(left_mode_), left_key(left_key_), right_mode(right_mode_), right_key(right_key_) { }
+    rget_query_t(key_range_t range_, int maximum_)
+        : range(range_), maximum(maximum_) { }
 };
 
 struct key_with_data_buffer_t {
-    std::string key;
+    store_key_t key;
     mcflags_t mcflags;
     intrusive_ptr_t<data_buffer_t> value_provider;
 
-    key_with_data_buffer_t(const std::string& _key, mcflags_t _mcflags, const intrusive_ptr_t<data_buffer_t>& _value_provider)
+    key_with_data_buffer_t() { }
+    key_with_data_buffer_t(const store_key_t& _key, mcflags_t _mcflags, const intrusive_ptr_t<data_buffer_t>& _value_provider)
         : key(_key), mcflags(_mcflags), value_provider(_value_provider) { }
-
-    struct less {
-        bool operator()(const key_with_data_buffer_t& pair1, const key_with_data_buffer_t& pair2) {
-            return pair1.key < pair2.key;
-        }
-    };
 };
 
-typedef boost::shared_ptr<one_way_iterator_t<key_with_data_buffer_t> > rget_result_t;
+struct rget_result_t {
+    std::vector<key_with_data_buffer_t> pairs;
+    bool truncated;
+};
 
 /* `distribution_get` */
 struct distribution_get_query_t { 

@@ -1,3 +1,8 @@
+#ifndef SERIALIZER_LOG_METABLOCK_MANAGER_TCC_
+#define SERIALIZER_LOG_METABLOCK_MANAGER_TCC_
+
+#include "serializer/log/metablock_manager.hpp"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -259,3 +264,4 @@ void metablock_manager_t<metablock_t>::shutdown() {
     state = state_shut_down;
 }
 
+#endif  // SERIALIZER_LOG_METABLOCK_MANAGER_TCC_

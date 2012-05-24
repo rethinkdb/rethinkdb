@@ -1,5 +1,7 @@
-#ifndef RPC_SEMILATTICE_JOIN_VCLOCK_TCC_
-#define RPC_SEMILATTICE_JOIN_VCLOCK_TCC_
+#ifndef RPC_SEMILATTICE_JOINS_VCLOCK_TCC_
+#define RPC_SEMILATTICE_JOINS_VCLOCK_TCC_
+
+#include "rpc/semilattice/joins/vclock.hpp"
 
 #include "stl_utils.hpp"
 
@@ -58,7 +60,7 @@ void vclock_t<T>::throw_if_conflict() const {
 }
 
 template <class T>
-vclock_t<T> vclock_t<T>::make_new_version(T t, const boost::uuids::uuid &us) {
+vclock_t<T> vclock_t<T>::make_new_version(const T& t, const boost::uuids::uuid &us) {
     throw_if_conflict();
     stamped_value_t tmp = *values.begin();
     get_with_default(tmp.first, us, 0)++;
@@ -67,7 +69,7 @@ vclock_t<T> vclock_t<T>::make_new_version(T t, const boost::uuids::uuid &us) {
 }
 
 template <class T>
-vclock_t<T> vclock_t<T>::make_resolving_version(T t, const boost::uuids::uuid &us) {
+vclock_t<T> vclock_t<T>::make_resolving_version(const T& t, const boost::uuids::uuid &us) {
     vclock_details::version_map_t vmap; //construct a vmap that dominates all the others
 
     for (typename value_map_t::iterator it  = values.begin();
@@ -116,4 +118,4 @@ void semilattice_join(vclock_t<T> *a, const vclock_t<T> &b) {
     a->cull_old_values();
 }
 
-#endif
+#endif  // RPC_SEMILATTICE_JOINS_VCLOCK_TCC_
