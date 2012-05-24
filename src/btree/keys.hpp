@@ -1,8 +1,10 @@
 #ifndef BTREE_KEYS_HPP_
 #define BTREE_KEYS_HPP_
 
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+
 #include <string>
 #include <vector>
 
@@ -10,32 +12,61 @@
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
-struct store_key_t {
+// Note: Changing this struct changes the format of the data stored on disk.
+// If you change this struct, previous stored data will be misinterpreted.
+struct btree_key_t {
     uint8_t size;
-    char contents[MAX_KEY_SIZE];
+    char contents[];
+    uint16_t full_size() const {
+        return size + offsetof(btree_key_t, contents);
+    }
+    bool fits(int space) const {
+        return space > 0 && space > size;
+    }
+    void print() const {
+        debugf("%*.*s\n", size, size, contents);
+    }
+};
 
-    store_key_t() : size(0) { }
+struct store_key_t {
+public:
+    store_key_t() {
+        set_size(0);
+    }
 
     store_key_t(int sz, const char *buf) {
         assign(sz, buf);
     }
 
     store_key_t(const store_key_t& key_) {
-        assign(key_.size, key_.contents);
+        assign(key_.size(), key_.contents());
+    }
+
+    explicit store_key_t(const btree_key_t *key) {
+        assign(key->size, key->contents);
     }
 
     explicit store_key_t(const std::string& s) {
         assign(s.size(), s.data());
     }
 
+    btree_key_t *btree_key() { return reinterpret_cast<btree_key_t *>(buffer); }
+    const btree_key_t *btree_key() const { return reinterpret_cast<const btree_key_t *>(buffer); }
+    void set_size(int s) {
+        rassert(s <= MAX_KEY_SIZE);
+        btree_key()->size = s;
+    }
+    int size() const { return btree_key()->size; }
+    char *contents() { return btree_key()->contents; }
+    const char *contents() const { return btree_key()->contents; }
+
     void assign(int sz, const char *buf) {
-        rassert(sz <= MAX_KEY_SIZE);
-        size = sz;
-        memcpy(contents, buf, sz);
+        set_size(sz);
+        memcpy(contents(), buf, sz);
     }
 
     void print() const {
-        printf("%*.*s", size, size, contents);
+        printf("%*.*s", size(), size(), contents());
     }
 
     static store_key_t min() {
@@ -51,44 +82,44 @@ struct store_key_t {
     }
 
     bool increment() {
-        if (size < MAX_KEY_SIZE) {
-            contents[size] = 0;
-            size++;
+        if (size() < MAX_KEY_SIZE) {
+            contents()[size()] = 0;
+            set_size(size() + 1);
             return true;
         }
-        while (size > 0 && (reinterpret_cast<uint8_t *>(contents))[size-1] == 255) {
-            size--;
+        while (size() > 0 && (reinterpret_cast<uint8_t *>(contents()))[size()-1] == 255) {
+            set_size(size() - 1);
         }
-        if (size == 0) {
+        if (size() == 0) {
             /* We were the largest possible key. Oops. Restore our previous
             state and return `false`. */
             *this = store_key_t::max();
             return false;
         }
-        (reinterpret_cast<uint8_t *>(contents))[size-1]++;
+        (reinterpret_cast<uint8_t *>(contents()))[size()-1]++;
         return true;
     }
 
     bool decrement() {
-        if (size == 0) {
+        if (size() == 0) {
             return false;
         }
-        if ((reinterpret_cast<uint8_t *>(contents))[size-1] > 0) {
-            (reinterpret_cast<uint8_t *>(contents))[size-1]--;
+        if ((reinterpret_cast<uint8_t *>(contents()))[size()-1] > 0) {
+            (reinterpret_cast<uint8_t *>(contents()))[size()-1]--;
             return true;
         }
-        size--;
+        set_size(size() - 1);
         return true;
     }
 
     int compare(const store_key_t& k) const {
-        return sized_strcmp(contents, size, k.contents, k.size);
+        return sized_strcmp(contents(), size(), k.contents(), k.size());
     }
 
     void rdb_serialize(write_message_t &msg) const {
-        uint8_t sz = size;
+        uint8_t sz = size();
         msg << sz;
-        msg.append(contents, sz);
+        msg.append(contents(), sz);
     }
 
     template <class T> friend int deserialize(read_stream_t *, T *);
@@ -96,7 +127,7 @@ struct store_key_t {
         uint8_t sz;
         int res = deserialize(s, &sz);
         if (res) { return res; }
-        int64_t num_read = force_read(s, contents, sz);
+        int64_t num_read = force_read(s, contents(), sz);
         if (num_read == -1) {
             return -1;
         }
@@ -104,13 +135,16 @@ struct store_key_t {
             return -2;
         }
         rassert(num_read == sz);
-        size = sz;
+        set_size(sz);
         return 0;
     }
+
+private:
+    char buffer[sizeof(btree_key_t) + MAX_KEY_SIZE];
 };
 
 inline bool operator==(const store_key_t &k1, const store_key_t &k2) {
-    return k1.size == k2.size && memcmp(k1.contents, k2.contents, k1.size) == 0;
+    return k1.size() == k2.size() && memcmp(k1.contents(), k2.contents(), k1.size()) == 0;
 }
 
 inline bool operator!=(const store_key_t &k1, const store_key_t &k2) {
@@ -136,8 +170,8 @@ inline bool operator>=(const store_key_t &k1, const store_key_t &k2) {
 inline bool str_to_key(const char *str, store_key_t *buf) {
     int len = strlen(str);
     if (len <= MAX_KEY_SIZE) {
-        memcpy(buf->contents, str, len);
-        buf->size = (uint8_t) len;
+        memcpy(buf->contents(), str, len);
+        buf->set_size(uint8_t(len));
         return true;
     } else {
         return false;
@@ -145,7 +179,7 @@ inline bool str_to_key(const char *str, store_key_t *buf) {
 }
 
 inline std::string key_to_str(const store_key_t &key) {
-    return std::string(key.contents, key.size);
+    return std::string(key.contents(), key.size());
 }
 
 /* `key_range_t` represents a contiguous set of keys. */
@@ -179,8 +213,8 @@ struct key_range_t {
     }
 
     bool contains_key(const char *key, uint8_t size) const {
-        bool left_ok = sized_strcmp(left.contents, left.size, key, size) <= 0;
-        bool right_ok = right.unbounded || sized_strcmp(key, size, right.key.contents, right.key.size) < 0;
+        bool left_ok = sized_strcmp(left.contents(), left.size(), key, size) <= 0;
+        bool right_ok = right.unbounded || sized_strcmp(key, size, right.key.contents(), right.key.size()) < 0;
         return left_ok && right_ok;
     }
 
@@ -200,9 +234,5 @@ struct key_range_t {
 
     RDB_MAKE_ME_SERIALIZABLE_2(left, right);
 };
-
-inline std::string key_range_to_str(const key_range_t &kr) {
-    return key_to_str(kr.left) + ", " + key_to_str(kr.right.key);
-}
 
 #endif // BTREE_KEYS_HPP_

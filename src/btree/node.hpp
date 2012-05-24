@@ -1,7 +1,6 @@
 #ifndef BTREE_NODE_HPP_
 #define BTREE_NODE_HPP_
 
-#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -69,23 +68,6 @@ struct internal_node_t {
     static const block_magic_t expected_magic;
 };
 
-
-// Note: Changing this struct changes the format of the data stored on disk.
-// If you change this struct, previous stored data will be misinterpreted.
-struct btree_key_t {
-    uint8_t size;
-    char contents[];
-    uint16_t full_size() const {
-        return size + offsetof(btree_key_t, contents);
-    }
-    bool fits(int space) const {
-        return space > 0 && space > size;
-    }
-    void print() const {
-        debugf("%*.*s\n", size, size, contents);
-    }
-};
-
 /* A btree_key_t can't safely be allocated because it has a zero-length 'contents' buffer. This is
 to represent the fact that its size may vary on disk. A btree_key_buffer_t is a much easier-to-work-
 with type. */
@@ -96,8 +78,8 @@ struct btree_key_buffer_t {
     }
     explicit btree_key_buffer_t(const store_key_t &store_key) {
         btree_key_t *k = key();
-        k->size = store_key.size;
-        memcpy(k->contents, store_key.contents, store_key.size);
+        k->size = store_key.size();
+        memcpy(k->contents, store_key.contents(), store_key.size());
     }
 
     explicit btree_key_buffer_t(std::string &key_string) {

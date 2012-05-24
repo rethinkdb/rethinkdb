@@ -410,7 +410,7 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
     }
     memcached_protocol_t::read_response_t operator()(const rget_query_t& rget) {
         return memcached_protocol_t::read_response_t(
-            memcached_rget_slice(btree, rget.range, rget.maximum, effective_time, txn, superblock));
+            memcached_rget_slice(btree, rget.range, rget.maximum, effective_time, txn.get(), superblock.get()));
     }
     memcached_protocol_t::read_response_t operator()(const distribution_get_query_t& dget) {
         distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock.get());
@@ -631,7 +631,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
     void operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t& delete_range) const {
         const key_range_t& range = delete_range.range;
         range_key_tester_t tester(range);
-        bool left_supplied = range.left.size > 0;
+        bool left_supplied = range.left != store_key_t::min();
         bool right_supplied = !range.right.unbounded;
         memcached_erase_range(btree, &tester,
               left_supplied, range.left,
