@@ -22,7 +22,7 @@ class BackboneCluster extends Backbone.Router
 
         @namespace_list = new NamespaceView.NamespaceList
         @server_list = new ServerView.DatacenterList
-        @dashboard = new DashboardView
+        @dashboard = new DashboardView.Container
         @navbar = new NavBarView
 
         # Add and render the sidebar (visible across all views)
