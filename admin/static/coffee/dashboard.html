@@ -70,18 +70,20 @@
               <h3>Persistence</h3>
               <p class="message">Disk problems detected</p>
 
-              {{#if machines_with_disk_problems_plural}}
-              <p class="details">{{num_machines_with_disk_problems}} of {{num_machines}} <a href="#" class="json" rel="dashboard_details" data-content="<pre>{{persistence_details}}</pre>" data-title="Persistence problems">machines</a> have disk problems</p> 
-              {{else}}
-              <p class="details">{{num_machines_with_disk_problems}} of {{num_machines}} <a href="#" class="json" rel="dashboard_details" data-content="<pre>{{persistence_details}}</pre>" data-title="Persistence problems">machines</a> has disk problems</p> 
-              {{/if}}
+              <p class="details">
+                {{num_machines_with_disk_problems}} of {{num_machines}} 
+                <a href="#" class="json" rel="dashboard_details" data-content="<pre>The following {{pluralize_noun "machine" num_machines_with_disk_problems}} {{pluralize_verb_to_have num_machines_with_disk_problems}} problems: {{links_to_machines machines_with_disk_problems}}</pre>" data-title="Persistence problems">
+                  {{pluralize_noun "machine" num_machines}}
+                </a>
+                have disk problems
+              </p> 
 
               <p class="details"><a href="#resolve_issues">Resolve issues</a></p>
           {{else}}
           <td class="no-problems-detected persistence">
               <h3>Persistence</h3>
               <p class="message">No disk problems detected</p>
-              <p class="details">{{num_machines}} of {{num_machines}} machines have working disks</p>
+              <p class="details">{{num_machines}} of {{num_machines}} {{pluralize_noun "machine" num_machines}} {{pluralize_verb_to_have num_machines}} working disks</p>
           </td>
           {{/if}}
       </tr>

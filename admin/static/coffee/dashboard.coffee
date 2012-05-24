@@ -18,7 +18,8 @@ module 'DashboardView', ->
             @cluster_status = new DashboardView.ClusterStatus()
             @cluster_performance = new DashboardView.ClusterPerformance()
 
-            return ''
+            @.$('#cluster_status_container').html @cluster_status.render().el
+            @.$('#cluster_performance_panel_placeholder').html @cluster_performance.render()
 
 
     class @ClusterStatus extends Backbone.View
@@ -45,35 +46,37 @@ module 'DashboardView', ->
                 has_persistence_problems: false
                 num_machines: machines.length
                 num_namespaces: namespaces.length
-                persistence_details: ""
 
             if issues.length != 0
                 status.num_machines_with_disk_problems = 0
+                status.machines_with_disk_problems = []
                 for issue in issues.models
                     switch issue.get("type")
                         when "PERSISTENCE_ISSUE"
-                            status.has_persistence_problems = true
-                            if status.num_machines_with_disk_problems isnt 0
-                                status<persistence_details += ', '
-                            status.persistence_details += '<a href="/#machines/'+issue.get('location')+'">'+machines.get(issue.get('location')).get('name')+'</a></p>'
-                            status.num_machines_with_disk_problems++
+                            new_machine = 
+                                uid: issue.get('location')
+                                name: machines.get(issue.get('location')).get('name')
+                            status.machines_with_disk_problems.push(new_machine)
                         when "MACHINE_DOWN"
                             status.has_availability_problems = true
 
-            if status.num_machines_with_disk_problems is 1
-                status.persistence_details = '<p>This machine has disk problems: ' + status.persistence_details + '</p>'
-            else if status.num_machines_with_disk_problems > 1
-                status.persistence_details = '<p>These machines have disk problems: '+ status.persistence_details + '</p>'
-                status.machines_with_disk_problems_plural = true
+                if status.machines_with_disk_problems.length > 0
+                    status.num_machines_with_disk_problems = status.machines_with_disk_problems.length
+                    status.has_persistence_problems = true
 
             status
 
         render: =>
             log_render '(rendering) cluster status view'
-            $('#cluster_status_container').html @.$el.html @template(@compute_status())
+            
+            #$('#cluster_status_container').html @.$el.html @template(@compute_status())
+            @.$el.html @template(@compute_status())
+
 
             @.$('a[rel=dashboard_details]').popover
                 html: true
+
+            return @
 
     class @ClusterPerformance extends Backbone.View
         className: 'dashboard-view'
@@ -88,8 +91,7 @@ module 'DashboardView', ->
 
         render: =>
             log_render '(rendering) cluster_performance view'
-            $('#cluster_performance_panel_placeholder').html @perf_panel.render().$el
-
+            return @perf_panel.render().$el
 
 
 
