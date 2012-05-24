@@ -72,7 +72,6 @@ public:
     void do_admin_remove(admin_command_parser_t::command_data& data);
 
     void sync_from();
-    void sync_to();
 
     size_t machine_count() const;
     size_t available_machine_count();
@@ -216,7 +215,45 @@ private:
     std::map<datacenter_id_t, datacenter_info_t> build_datacenter_info(cluster_semilattice_metadata_t& cluster_metadata);
 
     template <class map_type>
-    void add_datacenter_info_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t>& results);
+    void add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t>& results);
+
+    void list_single_datacenter(const datacenter_id_t& dc_id,
+                                datacenter_semilattice_metadata_t& dc,
+                                cluster_semilattice_metadata_t& cluster_metadata);
+
+    void list_single_machine(const machine_id_t& machine_id,
+                             machine_semilattice_metadata_t& machine,
+                             cluster_semilattice_metadata_t& cluster_metadata);
+
+    template <class protocol_t>
+    void list_single_namespace(const namespace_id_t& ns_id,
+                               namespace_semilattice_metadata_t<protocol_t>& ns,
+                               cluster_semilattice_metadata_t& cluster_metadata,
+                               const std::string& protocol);
+
+    template <class map_type>
+    void add_single_datacenter_affinities(const datacenter_id_t& dc_id,
+                                          map_type& ns_map,
+                                          std::vector<std::vector<std::string> >& table,
+                                          const std::string& protocol);
+
+    template <class map_type>
+    size_t add_single_machine_replicas(const machine_id_t& machine_id,
+                                       map_type& ns_map,
+                                       std::vector<std::vector<std::string> >& table);
+
+    template <class protocol_t>
+    bool add_single_machine_blueprint(const machine_id_t& machine_id,
+                                      persistable_blueprint_t<protocol_t>& blueprint,
+                                      std::vector<std::vector<std::string> >& table,
+                                      const std::string& ns_uuid,
+                                      const std::string& ns_name);
+
+    template <class protocol_t>
+    void add_single_namespace_replicas(std::set<typename protocol_t::region_t>& shards,
+                                       persistable_blueprint_t<protocol_t>& blueprint,
+                                       machines_semilattice_metadata_t::machine_map_t& machine_map,
+                                       std::vector<std::vector<std::string> >& table);
 
     boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > traverse_directory(const std::vector<std::string>& path, namespace_metadata_ctx_t& json_ctx, cluster_semilattice_metadata_t& cluster_metadata);
 
@@ -290,6 +327,7 @@ private:
     CURL *curl_handle;
     struct curl_slist *curl_header_list;
     std::string sync_peer;
+    peer_id_t sync_peer_id;
 
     DISABLE_COPYING(admin_cluster_link_t);
 };

@@ -17,6 +17,8 @@ friend void semilattice_join(deletable_t<TT> *, const deletable_t<TT> &);
     bool deleted;
 
 public:
+    typedef T value_t;
+
     bool is_deleted() const {
         return deleted;
     }
