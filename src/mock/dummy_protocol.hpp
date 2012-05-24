@@ -175,6 +175,8 @@ std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protoco
 bool operator==(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 
+void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::write_t& write);
+
 } // namespace mock
 
 #endif /* MOCK_DUMMY_PROTOCOL_HPP_ */

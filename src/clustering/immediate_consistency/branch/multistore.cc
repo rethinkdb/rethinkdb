@@ -329,6 +329,8 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
                                                       signal_t *interruptor) THROWS_NOTHING {
     debugf("svs %p single_shard_write timestamp before %lu\n", this, timestamp.numeric_representation());
 
+    debug_print("s_s_write", write);
+
     const typename protocol_t::region_t &ith_region = get_region(i);
     typename protocol_t::region_t ith_intersection = region_intersection(ith_region, write.get_region());
     if (region_is_empty(ith_intersection)) {
@@ -364,6 +366,7 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const typename protocol_t::store_
                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     debugf("svs %p write timestamp before %lu\n", this, timestamp.numeric_representation());
+    debug_print("m_s write", write);
 
     guarantee(num_stores() == num_stores_assertion);
     std::vector<typename protocol_t::write_response_t> responses;

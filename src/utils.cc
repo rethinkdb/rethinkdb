@@ -206,6 +206,41 @@ void *malloc_aligned(size_t size, size_t alignment) {
     return ptr;
 }
 
+void debug_print_quoted_string(append_only_printf_buffer_t *buf, const char *s, size_t n) {
+    buf->appendf("\"");
+    for (size_t i = 0; i < n; ++i) {
+        uint8_t ch = s[i];
+
+        switch (ch) {
+        case '\"':
+            buf->appendf("\\\"");
+            break;
+        case '\\':
+            buf->appendf("\\\\");
+            break;
+        case '\n':
+            buf->appendf("\\n");
+            break;
+        case '\t':
+            buf->appendf("\\t");
+            break;
+        case '\r':
+            buf->appendf("\\r");
+            break;
+        default:
+            if (ch <= '~' && ch >= ' ') {
+                // ASCII dependency here
+                buf->appendf("%c", ch);
+            } else {
+                const char *table = "0123456789ABCDEF";
+                buf->appendf("\\x%c%c", table[ch / 16], table[ch % 16]);
+            }
+            break;
+        }
+    }
+    buf->appendf("\"");
+}
+
 #ifndef NDEBUG
 // Adds the time/thread id prefix to buf.
 void debugf_prefix_buf(printf_buffer_t<1000> *buf) {

@@ -853,41 +853,6 @@ void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::w
     buf->appendf("}");
 }
 
-void debug_print_quoted_string(append_only_printf_buffer_t *buf, const char *s, size_t n) {
-    buf->appendf("\"");
-    for (size_t i = 0; i < n; ++i) {
-        uint8_t ch = s[i];
-
-        switch (ch) {
-        case '\"':
-            buf->appendf("\\\"");
-            break;
-        case '\\':
-            buf->appendf("\\\\");
-            break;
-        case '\n':
-            buf->appendf("\\n");
-            break;
-        case '\t':
-            buf->appendf("\\t");
-            break;
-        case '\r':
-            buf->appendf("\\r");
-            break;
-        default:
-            if (ch <= '~' && ch >= ' ') {
-                // ASCII dependency here
-                buf->appendf("%c", ch);
-            } else {
-                const char *table = "0123456789ABCDEF";
-                buf->appendf("\\x%c%c", table[ch / 16], table[ch % 16]);
-            }
-            break;
-        }
-    }
-    buf->appendf("\"");
-}
-
 void debug_print(append_only_printf_buffer_t *buf, const store_key_t& k) {
     debug_print_quoted_string(buf, k.contents(), k.size());
 }

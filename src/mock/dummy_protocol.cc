@@ -475,4 +475,22 @@ std::string to_string(dummy_protocol_t::region_t r) {
     return ret;
 }
 
+void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::write_t& write) {
+    buf->appendf("dummy_write{");
+    bool first = true;
+    for (std::map<std::string, std::string>::const_iterator it = write.values.begin(); it != write.values.end(); ++it) {
+        if (!first) {
+            buf->appendf(", ");
+        }
+        first = false;
+        debug_print_quoted_string(buf, it->first.data(), it->first.size());
+        buf->appendf(" => ");
+        debug_print_quoted_string(buf, it->second.data(), it->second.size());
+    }
+    buf->appendf("}");
+}
+
+
+
+
 }   /* namespace mock */

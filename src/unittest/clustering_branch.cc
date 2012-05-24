@@ -263,10 +263,9 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
 
     /* Set up a second mirror */
     test_store_t<dummy_protocol_t> store2;
+    store_view_t<dummy_protocol_t> *store2_ptr = &store2.store;
     dummy_protocol_t::region_t subregion('a', 'm');
-    store_subview_t<dummy_protocol_t> substore(&store2.store, subregion);
-    store_view_t<dummy_protocol_t> *substore_ptr = &substore;
-    multistore_ptr_t<dummy_protocol_t> store_ptr(&substore_ptr, 1, subregion);
+    multistore_ptr_t<dummy_protocol_t> store_ptr(&store2_ptr, 1, subregion);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         cluster->get_mailbox_manager(),
