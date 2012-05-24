@@ -97,6 +97,8 @@ inline bool divides(int64_t x, int64_t y) {
 
 int gcd(int x, int y);
 
+int64_t round_up_to_power_of_two(int64_t x);
+
 typedef uint64_t ticks_t;
 ticks_t secs_to_ticks(float secs);
 ticks_t get_ticks();
