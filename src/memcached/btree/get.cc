@@ -9,11 +9,8 @@
 
 get_result_t memcached_get(const store_key_t &store_key, btree_slice_t *slice, exptime_t effective_time, transaction_t *txn, superblock_t *superblock) {
 
-    btree_key_buffer_t kbuffer(store_key);
-    btree_key_t *key = kbuffer.key();
-
     keyvalue_location_t<memcached_value_t> kv_location;
-    find_keyvalue_location_for_read(txn, superblock, key, &kv_location, slice->root_eviction_priority, &slice->stats);
+    find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
 
     if (!kv_location.value) {
         return get_result_t();

@@ -83,10 +83,10 @@ public:
 
     bool Insert(const std::string& key, const std::string& value) {
         // printf("\n\nInserting %s\n\n", key.c_str());
-        btree_key_buffer_t k(key.begin(), key.end());
+        store_key_t k(key);
         short_value_buffer_t v(value);
 
-        if (leaf::is_full(&sizer_, node_, k.key(), v.data())) {
+        if (leaf::is_full(&sizer_, node_, k.btree_key(), v.data())) {
             Print();
 
             Verify();
@@ -94,7 +94,7 @@ public:
         }
 
         repli_timestamp_t tstamp = NextTimestamp();
-        leaf::insert(&sizer_, node_, k.key(), v.data(), tstamp, key_modification_proof_t::real_proof());
+        leaf::insert(&sizer_, node_, k.btree_key(), v.data(), tstamp, key_modification_proof_t::real_proof());
 
         kv_[key] = value;
 
@@ -106,14 +106,14 @@ public:
 
     void Remove(const std::string& key) {
         // printf("\n\nRemoving %s\n\n", key.c_str());
-        btree_key_buffer_t k(key.begin(), key.end());
+        store_key_t k(key);
 
         ASSERT_TRUE(ShouldHave(key));
 
         kv_.erase(key);
 
         repli_timestamp_t tstamp = NextTimestamp();
-        leaf::remove(&sizer_, node_, k.key(), tstamp, key_modification_proof_t::real_proof());
+        leaf::remove(&sizer_, node_, k.btree_key(), tstamp, key_modification_proof_t::real_proof());
 
         Verify();
 
@@ -152,15 +152,15 @@ public:
         *could_level_out = false;
         ASSERT_EQ(bs_.ser_value(), sibling.bs_.ser_value());
 
-        btree_key_buffer_t replacement;
-        bool can_level = leaf::level(&sizer_, nodecmp_value, node_, sibling.node_, replacement.key());
+        store_key_t replacement;
+        bool can_level = leaf::level(&sizer_, nodecmp_value, node_, sibling.node_, replacement.btree_key());
 
         if (can_level) {
             ASSERT_TRUE(!sibling.kv_.empty());
             if (nodecmp_value < 0) {
                 // Copy keys from front of sibling until and including replacement key.
 
-                std::string replacement_str(replacement.key()->contents, replacement.key()->size);
+                std::string replacement_str = key_to_str(replacement);
                 std::map<std::string, std::string>::iterator p = sibling.kv_.begin();
                 while (p != sibling.kv_.end() && p->first < replacement_str) {
                     kv_[p->first] = p->second;
@@ -175,7 +175,7 @@ public:
             } else {
                 // Copy keys from end of sibling until but not including replacement key.
 
-                std::string replacement_str(replacement.key()->contents, replacement.key()->size);
+                std::string replacement_str = key_to_str(replacement);
 
                 std::map<std::string, std::string>::iterator p = sibling.kv_.end();
                 --p;
@@ -201,10 +201,10 @@ public:
 
         ASSERT_TRUE(leaf::is_empty(right.node_));
 
-        btree_key_buffer_t median;
-        leaf::split(&sizer_, node_, right.node_, median.key());
+        store_key_t median;
+        leaf::split(&sizer_, node_, right.node_, median.btree_key());
 
-        std::string median_str(median.key()->contents, median.key()->size);
+        std::string median_str = key_to_str(median);
 
         std::map<std::string, std::string>::iterator p = kv_.end();
         --p;
@@ -219,9 +219,9 @@ public:
     }
 
     bool IsFull(const std::string& key, const std::string& value) {
-        btree_key_buffer_t key_buf(key.begin(), key.end());
+        store_key_t key_buf(key);
         short_value_buffer_t value_buf(value);
-        return leaf::is_full(&sizer_, node_, key_buf.key(), value_buf.data());
+        return leaf::is_full(&sizer_, node_, key_buf.btree_key(), value_buf.data());
     }
 
     bool ShouldHave(const std::string& key) {

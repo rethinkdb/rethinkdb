@@ -256,7 +256,7 @@ bool level(block_size_t block_size, buf_lock_t *node_buf, buf_lock_t *sibling_bu
     return true;
 }
 
-int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id, btree_key_buffer_t *key_in_middle_out) {
+int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id, store_key_t *key_in_middle_out) {
     int index = get_offset_index(node, key);
     const btree_internal_pair *sib_pair;
     int cmp;

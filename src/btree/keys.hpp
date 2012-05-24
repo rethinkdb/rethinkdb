@@ -65,6 +65,10 @@ public:
         memcpy(contents(), buf, sz);
     }
 
+    void assign(const btree_key_t *key) {
+        assign(key->size, key->contents);
+    }
+
     void print() const {
         printf("%*.*s", size(), size(), contents());
     }

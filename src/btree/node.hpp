@@ -68,48 +68,6 @@ struct internal_node_t {
     static const block_magic_t expected_magic;
 };
 
-/* A btree_key_t can't safely be allocated because it has a zero-length 'contents' buffer. This is
-to represent the fact that its size may vary on disk. A btree_key_buffer_t is a much easier-to-work-
-with type. */
-struct btree_key_buffer_t {
-    btree_key_buffer_t() { }
-    explicit btree_key_buffer_t(const btree_key_t *k) {
-        assign(k);
-    }
-    explicit btree_key_buffer_t(const store_key_t &store_key) {
-        btree_key_t *k = key();
-        k->size = store_key.size();
-        memcpy(k->contents, store_key.contents(), store_key.size());
-    }
-
-    explicit btree_key_buffer_t(std::string &key_string) {
-        btree_key_t *k = key();
-        k->size = key_string.size();
-        memcpy(k->contents, &key_string.at(0), k->size);
-    }
-
-    template <class iterator_type>
-    btree_key_buffer_t(iterator_type beg, iterator_type end) {
-        assign<iterator_type>(beg, end);
-    }
-    void assign(const btree_key_t *new_key) {
-        btree_key_t *k = key();
-        k->size = new_key->size;
-        memcpy(k->contents, new_key->contents, new_key->size);
-    }
-    template <class iterator_type>
-    void assign(iterator_type beg, iterator_type end) {
-        btree_key_t *k = key();
-        rassert(end - beg <= MAX_KEY_SIZE);
-        k->size = end - beg;
-        std::copy(beg, end, &k->contents[0]);
-    }
-
-    inline btree_key_t *key() { return reinterpret_cast<btree_key_t*>(&buffer[0]); }
-private:
-    char buffer[sizeof(btree_key_t) + MAX_KEY_SIZE];
-};
-
 inline std::string key_to_str(const btree_key_t* key) {
     return std::string(key->contents, key->size);
 }

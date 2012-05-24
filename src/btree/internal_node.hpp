@@ -33,7 +33,7 @@ bool remove(block_size_t block_size, buf_lock_t *node_buf, const btree_key_t *ke
 void split(block_size_t block_size, buf_lock_t *node_buf, internal_node_t *rnode, btree_key_t *median);
 void merge(block_size_t block_size, const internal_node_t *node, buf_lock_t *rnode_buf, const internal_node_t *parent);
 bool level(block_size_t block_size, buf_lock_t *node_buf, buf_lock_t *rnode_buf, btree_key_t *replacement_key, const internal_node_t *parent);
-int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id, btree_key_buffer_t *key_in_middle_out);
+int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id, store_key_t *key_in_middle_out);
 void update_key(buf_lock_t *node_buf, const btree_key_t *key_to_replace, const btree_key_t *replacement_key);
 int nodecmp(const internal_node_t *node1, const internal_node_t *node2);
 bool is_full(const internal_node_t *node);
