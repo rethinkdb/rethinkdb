@@ -37,7 +37,7 @@ const char *admin_command_parser_t::complete_command = "complete";
 const char *admin_command_parser_t::exit_usage = "";
 const char *admin_command_parser_t::list_usage = "[ datacenters | namespaces [--protocol <protocol>] | machines | issues | directory | <id> ] [--long]";
 const char *admin_command_parser_t::help_usage = "[ ls | create | rm | set | split | merge | resolve | help ]";
-const char *admin_command_parser_t::resolve_usage = "<id> <field> [<resolution>]";
+const char *admin_command_parser_t::resolve_usage = "<id> <field>";
 const char *admin_command_parser_t::pin_shard_usage = "<namespace> <shard> [--primary <machine>] [--secondary <machine>...]";
 const char *admin_command_parser_t::split_shard_usage = "<namespace> <split-point>...";
 const char *admin_command_parser_t::merge_shard_usage = "<namespace> <split-point>...";
@@ -325,7 +325,6 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(commands, resolve_command, resolve_command, resolve_usage, true, &admin_cluster_link_t::do_admin_resolve);
     info->add_positional("id", 1, true)->add_option("!conflict");
     info->add_positional("field", 1, true); // TODO: list the conflicted fields in the previous id
-    info->add_positional("resolution", 1, false);
 
     info = add_command(commands, set_name_command, set_name_command, set_name_usage, true, &admin_cluster_link_t::do_admin_set_name);
     info->add_positional("id", 1, true)->add_option("!id");
