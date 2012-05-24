@@ -10,8 +10,8 @@
 // printf buffer don't need to be templatized or know its size.
 class append_only_printf_buffer_t {
 public:
-    virtual void append(const char *format, ...) = 0;
-    virtual void vappend(const char *format, va_list ap) = 0;
+    virtual void appendf(const char *format, ...) = 0;
+    virtual void vappendf(const char *format, va_list ap) = 0;
 protected:
     append_only_printf_buffer_t() { }
     virtual ~append_only_printf_buffer_t() { }
@@ -29,9 +29,11 @@ public:
     printf_buffer_t(va_list ap, const char *format);
     ~printf_buffer_t();
 
-    // append and vappend become slow if the total size grows to N or greater.
-    void append(const char *format, ...);
-    void vappend(const char *format, va_list ap);
+    // append and vappend become slow if the total size grows to N or
+    // greater.  We still have std::vector-style amortized constant
+    // time growth, though.
+    void appendf(const char *format, ...);
+    void vappendf(const char *format, va_list ap);
 
     char *data() const {
         return ptr_;
@@ -44,9 +46,16 @@ public:
     }
 
 private:
+    // The number of bytes that have been appended.
+    int64_t length_;
 
-    int length_;
+    // Either a pointer to data_, or, if length_ >= N, a pointer to an
+    // array on the heap whose size is a power of two that is at least
+    // length_ + 1.  Also, ptr_[length_] == 0, because we store a nul
+    // terminator.
     char *ptr_;
+
+    // A data buffer for avoiding allocation in the common case.
     char data_[N];
 
 
@@ -65,7 +74,7 @@ printf_buffer_t<N>::printf_buffer_t(const char *format, ...) : length_(0), ptr_(
     va_list ap;
     va_start(ap, format);
 
-    vappend(format, ap);
+    vappendf(format, ap);
 
     va_end(ap);
 }
@@ -74,7 +83,7 @@ template <int N>
 printf_buffer_t<N>::printf_buffer_t(va_list ap, const char *format) : length_(0), ptr_(data_) {
     data_[0] = 0;
 
-    vappend(format, ap);
+    vappendf(format, ap);
 }
 
 template <int N>
@@ -85,17 +94,27 @@ printf_buffer_t<N>::~printf_buffer_t() {
 }
 
 template <int N>
-void printf_buffer_t<N>::append(const char *format, ...) {
+void printf_buffer_t<N>::appendf(const char *format, ...) {
     va_list ap;
     va_start(ap, format);
 
-    vappend(format, ap);
+    vappendf(format, ap);
 
     va_end(ap);
 }
 
+inline void alloc_copy_and_format(const char *buf, int64_t length, int append_size, int64_t alloc_limit, const char *fmt, va_list ap, char **buf_out) {
+    char *new_ptr = new char[alloc_limit];
+    memcpy(new_ptr, buf, length);
+
+    int size = vsnprintf(new_ptr + length, size_t(append_size) + 1, fmt, ap);
+    rassert(size == append_size);
+
+    *buf_out = new_ptr;
+}
+
 template <int N>
-void printf_buffer_t<N>::vappend(const char *format, va_list ap) {
+void printf_buffer_t<N>::vappendf(const char *format, va_list ap) {
     va_list aq;
     va_copy(aq, ap);
 
@@ -110,15 +129,10 @@ void printf_buffer_t<N>::vappend(const char *format, va_list ap) {
         if (size < N - length_) {
             length_ += size;
         } else {
-            char *new_ptr = new char[length_ + size + 1];
-            memcpy(new_ptr, data_, length_);
+            char *new_ptr;
+            alloc_copy_and_format(data_, length_, size, round_up_to_power_of_two(length_ + size + 1), format, aq, &new_ptr);
 
-            // TODO: Use valgrind to mark data_ memory undefined.
-            data_[0] = '\0';
-
-            int size2 = vsnprintf(ptr_ + length_, size + 1, format, aq);
-            rassert(size == size2);
-
+            // TODO: Have valgrind mark data_ memory undefined.
             ptr_ = new_ptr;
             length_ += size;
         }
@@ -131,14 +145,20 @@ void printf_buffer_t<N>::vappend(const char *format, va_list ap) {
         int size = vsnprintf(tmp, 1, format, ap);
         rassert(size >= 0, "vsnprintf failed, bad format string?");
 
-        char *new_ptr = new char[length_ + size + 1];
-        memcpy(new_ptr, ptr_, length_);
+        int64_t alloc_limit = round_up_to_power_of_two(length_ + 1);
+        if (length_ + size + 1 <= alloc_limit) {
+            int size2 = vsnprintf(ptr_ + length_, size + 1, format, aq);
+            rassert(size == size2);
+            length_ += size;
+        } else {
 
-        int size2 = vsnprintf(new_ptr + length_, size + 1, format, aq);
-        rassert(size == size2);
+            char *new_ptr;
+            alloc_copy_and_format(data_, length_, size, alloc_limit, format, aq, &new_ptr);
 
-        ptr_ = new_ptr;
-        length_ += size;
+            delete[] ptr_;
+            ptr_ = new_ptr;
+            length_ += size;
+        }
     }
 
     va_end(aq);

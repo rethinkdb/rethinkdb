@@ -1,4 +1,7 @@
+#define __STDC_LIMIT_MACROS
+
 #include "utils.hpp"
+
 #include <boost/tokenizer.hpp>
 
 #include <cxxabi.h>
@@ -6,6 +9,7 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -103,7 +107,7 @@ void format_time(struct timespec time, append_only_printf_buffer_t *buf) {
     struct tm t;
     struct tm *res1 = localtime_r(&time.tv_sec, &t);
     guarantee_err(res1 == &t, "gmtime_r() failed.");
-    buf->append(
+    buf->appendf(
         "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
         t.tm_year+1900,
         t.tm_mon+1,
@@ -212,12 +216,12 @@ void debugf(const char *msg, ...) {
     printf_buffer_t<1000> buf;
     format_time(t, &buf);
 
-    buf.append(" Thread %d: ", get_thread_id());
+    buf.appendf(" Thread %d: ", get_thread_id());
 
     va_list ap;
     va_start(ap, msg);
 
-    buf.vappend(msg, ap);
+    buf.vappendf(msg, ap);
 
     va_end(ap);
 
@@ -357,6 +361,22 @@ int gcd(int x, int y) {
 
     return x;
 }
+
+int64_t round_up_to_power_of_two(int64_t x) {
+    rassert(x >= 0);
+
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x |= x >> 32;
+
+    rassert(x < INT64_MAX);
+
+    return x + 1;
+}
+
 
 ticks_t secs_to_ticks(float secs) {
     // The timespec struct used in clock_gettime has a tv_nsec field.
