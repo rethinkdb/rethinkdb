@@ -9,9 +9,9 @@
 #include <string>
 #include <vector>
 
+#include "containers/printf_buffer.hpp"
 #include "errors.hpp"
 
-class append_only_printf_buffer_t;
 
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
@@ -110,9 +110,20 @@ double ticks_to_secs(ticks_t ticks);
 // debug.hpp (and debug.cc).
 /* Debugging printing API (prints current thread in addition to message) */
 #ifndef NDEBUG
+void debugf_prefix_buf(printf_buffer_t<1000> *buf);
+void debugf_dump_buf(printf_buffer_t<1000> *buf);
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
+template <class T>
+void debug_print(const T& obj) {
+    printf_buffer_t<1000> buf;
+    debugf_prefix_buf(&buf);
+    debug_print(&buf, obj);
+    buf.appendf("\n");
+    debugf_dump_buf(&buf);
+}
 #else
 #define debugf(...) ((void)0)
+#define debug_print(...) ((void)0)
 #endif
 
 class rng_t {

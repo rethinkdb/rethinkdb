@@ -807,3 +807,119 @@ void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metain
     }
 }
 
+class memcached_write_debug_print_visitor_t : public boost::static_visitor<void> {
+public:
+    memcached_write_debug_print_visitor_t(append_only_printf_buffer_t *buf) : buf_(buf) { }
+
+    void operator()(const get_cas_mutation_t& mut) {
+        debug_print(buf_, mut);
+    }
+
+    void operator()(const sarc_mutation_t& mut) {
+        debug_print(buf_, mut);
+    }
+
+    void operator()(const delete_mutation_t& mut) {
+        debug_print(buf_, mut);
+    }
+
+    void operator()(const incr_decr_mutation_t& mut) {
+        debug_print(buf_, mut);
+    }
+
+    void operator()(const append_prepend_mutation_t& mut) {
+        debug_print(buf_, mut);
+    }
+
+private:
+    append_only_printf_buffer_t *buf_;
+    DISABLE_COPYING(memcached_write_debug_print_visitor_t);
+};
+
+
+
+// Debug printing impls
+void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::write_t& write) {
+    buf->appendf("mcwrite{");
+    memcached_write_debug_print_visitor_t v(buf);
+    boost::apply_visitor(v, write.mutation);
+    if (write.proposed_cas) {
+        buf->appendf(", cas=%lu", write.proposed_cas);
+    }
+    if (write.effective_time) {
+        buf->appendf(", efftime=%lu", write.effective_time);
+    }
+
+    buf->appendf("}");
+}
+
+void debug_print_quoted_string(append_only_printf_buffer_t *buf, const char *s, size_t n) {
+    buf->appendf("\"");
+    for (size_t i = 0; i < n; ++i) {
+        uint8_t ch = s[i];
+
+        switch (ch) {
+        case '\"':
+            buf->appendf("\\\"");
+            break;
+        case '\\':
+            buf->appendf("\\\\");
+            break;
+        case '\n':
+            buf->appendf("\\n");
+            break;
+        case '\t':
+            buf->appendf("\\t");
+            break;
+        case '\r':
+            buf->appendf("\\r");
+            break;
+        default:
+            if (ch <= '~' && ch >= ' ') {
+                // ASCII dependency here
+                buf->appendf("%c", ch);
+            } else {
+                const char *table = "0123456789ABCDEF";
+                buf->appendf("\\x%c%c", table[ch / 16], table[ch % 16]);
+            }
+            break;
+        }
+    }
+    buf->appendf("\"");
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const store_key_t& k) {
+    debug_print_quoted_string(buf, k.contents(), k.size());
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const get_cas_mutation_t& mut) {
+    buf->appendf("get_cas{");
+    debug_print(buf, mut.key);
+    buf->appendf("}");
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const sarc_mutation_t& mut) {
+    buf->appendf("sarc{");
+    debug_print(buf, mut.key);
+    // We don't print everything in the sarc yet.
+    buf->appendf(", ...}");
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const delete_mutation_t& mut) {
+    buf->appendf("delete{");
+    debug_print(buf, mut.key);
+    buf->appendf(", dpidq=%s}", mut.dont_put_in_delete_queue ? "true" : "false");
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const incr_decr_mutation_t& mut) {
+    buf->appendf("incr_decr{%s, %lu, ", mut.kind == incr_decr_INCR ? "INCR" : mut.kind == incr_decr_DECR ? "DECR" : "???", mut.amount);
+    debug_print(buf, mut.key);
+    buf->appendf("}");
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const append_prepend_mutation_t& mut) {
+    buf->appendf("append_prepend{%s, ", mut.kind == append_prepend_APPEND ? "APPEND" : mut.kind == append_prepend_PREPEND ? "PREPEND" : "???");
+    debug_print(buf, mut.key);
+    // We don't print the data yet.
+    buf->appendf(", ...}");
+}

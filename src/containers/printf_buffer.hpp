@@ -3,8 +3,14 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
+// Cannot include utils.hpp, we are included by utils.hpp.
 #include "errors.hpp"
+
+int64_t round_up_to_power_of_two(int64_t x);
+
+
 
 // A base class for printf_buffer_t, so that things which _use_ a
 // printf buffer don't need to be templatized or know its size.

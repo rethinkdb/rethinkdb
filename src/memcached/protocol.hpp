@@ -271,4 +271,6 @@ public:
     };
 };
 
+void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::write_t& write);
+
 #endif /* MEMCACHED_PROTOCOL_HPP_ */

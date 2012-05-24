@@ -350,7 +350,7 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
 
         order_sink.check_out(order_token);
 
-        debugf("dummy_protocol_t::store_t(%p)::write() from %s\n", this, order_token.tag().c_str());
+        debugf("dummy_protocol_t::store_t(%p)::write() from %s (with before: %lu)\n", this, order_token.tag().c_str(), timestamp.numeric_representation());
 
         // We allow expected_metainfo domain to be smaller than the metainfo domain
         rassert(expected_metainfo.get_domain() == metainfo.mask(expected_metainfo.get_domain()).get_domain());

@@ -207,16 +207,33 @@ void *malloc_aligned(size_t size, size_t alignment) {
 }
 
 #ifndef NDEBUG
-void debugf(const char *msg, ...) {
+// Adds the time/thread id prefix to buf.
+void debugf_prefix_buf(printf_buffer_t<1000> *buf) {
     struct timespec t;
 
     int res = clock_gettime(CLOCK_REALTIME, &t);
     guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
 
-    printf_buffer_t<1000> buf;
-    format_time(t, &buf);
+    format_time(t, buf);
 
-    buf.appendf(" Thread %d: ", get_thread_id());
+    buf->appendf(" Thread %d: ", get_thread_id());
+}
+
+void debugf_dump_buf(printf_buffer_t<1000> *buf) {
+   // Writing a single buffer in one shot like this makes it less
+    // likely that stderr debugfs and stdout printfs get mixed
+    // together, and probably makes it faster too.  (We can't simply
+    // flockfile both stderr and stdout because there's no established
+    // rule about which one should be locked first.)
+    size_t nitems = fwrite(buf->data(), 1, buf->size(), stderr);
+    guarantee_err(nitems == size_t(buf->size()), "trouble writing to stderr");
+    int res = fflush(stderr);
+    guarantee_err(res == 0, "fflush(stderr) failed");
+}
+
+void debugf(const char *msg, ...) {
+    printf_buffer_t<1000> buf;
+    debugf_prefix_buf(&buf);
 
     va_list ap;
     va_start(ap, msg);
@@ -225,15 +242,7 @@ void debugf(const char *msg, ...) {
 
     va_end(ap);
 
-    // Writing a single buffer in one shot like this makes it less
-    // likely that stderr debugfs and stdout printfs get mixed
-    // together, and probably makes it faster too.  (We can't simply
-    // flockfile both stderr and stdout because there's no established
-    // rule about which one should be locked first.)
-    size_t nitems = fwrite(buf.data(), 1, buf.size(), stderr);
-    guarantee_err(nitems == size_t(buf.size()), "trouble writing to stderr");
-    res = fflush(stderr);
-    guarantee_err(res == 0, "fflush(stderr) failed");
+    debugf_dump_buf(&buf);
 }
 #endif
 
