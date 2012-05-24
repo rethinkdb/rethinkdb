@@ -17,6 +17,7 @@
 #include "rpc/semilattice/view.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
+#include "do_on_thread.hpp"
 
 void admin_print_table(const std::vector<std::vector<std::string> >& table) {
     std::vector<int> column_widths;
@@ -98,17 +99,21 @@ admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins
     unsatisfiable_goals_issue_tracker_feed(&issue_aggregator, &unsatisfiable_goals_issue_tracker),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000),
     curl_handle(curl_easy_init()),
-    curl_header_list(curl_slist_append(NULL, "Content-Type:application/json"))
+    curl_header_list(curl_slist_append(NULL, "Content-Type:application/json")),
+    sync_peer_id(nil_uuid())
 {
     wait_interruptible(initial_joiner.get_ready_signal(), interruptor);
     if (!initial_joiner.get_success())
             throw admin_cluster_exc_t("failed to join cluster");
 
-    // TODO: if sync peer goes down, failover to another machine
+    std::set<peer_id_t> peer_set = connectivity_cluster.get_peers_list();
+    for (std::set<peer_id_t>::iterator i = peer_set.begin(); i != peer_set.end(); ++i)
+        if (*i != connectivity_cluster.get_me())
+            sync_peer_id = *i;
+
     // TODO: get the http port of the server through some more intelligent means (once it exists)
-    std::stringstream sync_str;
-    sync_str << "http://" << joins.begin()->ip.as_dotted_decimal() << ":" << (joins.begin()->port + 1000) << "/ajax/";
-    sync_peer.assign(sync_str.str());
+    peer_address_t sync_peer_address = connectivity_cluster.get_peer_address(sync_peer_id);
+    sync_peer.assign(strprintf("http://%s:%i/ajax/", sync_peer_address.ip.as_dotted_decimal().c_str(), sync_peer_address.port + 1000));
 
     curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
     curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, curl_header_list);
@@ -164,20 +169,14 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, T& data_m
 }
 
 void admin_cluster_link_t::sync_from() {
-    // cond_t interruptor;
-    // semilattice_metadata->sync_from(sync_peer, &interruptor);
+    cond_t interruptor;
+    semilattice_metadata->sync_from(sync_peer_id, &interruptor);
     semilattice_metadata = semilattice_manager_cluster.get_root_view();
     update_metadata_maps();
 }
 
-void admin_cluster_link_t::sync_to() {
-    // cond_t interruptor;
-    // semilattice_metadata->sync_to(sync_peer, &interruptor);
-}
-
 std::vector<std::string> admin_cluster_link_t::get_ids_internal(const std::string& base, const std::string& path) {
     std::vector<std::string> results;
-    sync_from();
 
     // TODO: check for uuid collisions, give longer completions
     // Build completion values
@@ -214,7 +213,6 @@ std::vector<std::string> admin_cluster_link_t::get_datacenter_ids(const std::str
 std::vector<std::string> admin_cluster_link_t::get_conflicted_ids(const std::string& base UNUSED) {
     std::set<std::string> unique_set;
     std::vector<std::string> results;
-    sync_from();
 
     std::list<clone_ptr_t<vector_clock_conflict_issue_t> > conflicts = vector_clock_conflict_issue_tracker.get_vector_clock_issues();
 
@@ -1964,6 +1962,6 @@ void admin_cluster_link_t::post_internal(std::string path, std::string data) {
     CURLcode ret = curl_easy_perform(curl_handle);
 
     if (ret != 0)
-        throw admin_cluster_exc_t("error when posting data to sync peer");
+        throw admin_no_connection_exc_t("error when posting data to sync peer");
 }
 

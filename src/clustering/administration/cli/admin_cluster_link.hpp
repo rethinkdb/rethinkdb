@@ -72,7 +72,6 @@ public:
     void do_admin_remove(admin_command_parser_t::command_data& data);
 
     void sync_from();
-    void sync_to();
 
     size_t machine_count() const;
     size_t available_machine_count();
@@ -327,6 +326,7 @@ private:
     CURL *curl_handle;
     struct curl_slist *curl_header_list;
     std::string sync_peer;
+    peer_id_t sync_peer_id;
 
     DISABLE_COPYING(admin_cluster_link_t);
 };

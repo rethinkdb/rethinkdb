@@ -45,8 +45,8 @@ const char *admin_command_parser_t::set_name_usage = "<id> <new name>";
 const char *admin_command_parser_t::set_acks_usage = "<namespace> <datacenter> <num-acks>";
 const char *admin_command_parser_t::set_replicas_usage = "<namespace> <datacenter> <num-replicas>";
 const char *admin_command_parser_t::set_datacenter_usage = "( <namespace> | <machine> ) <datacenter>";
-const char *admin_command_parser_t::create_namespace_usage = "--port <port> --protocol ( memcached | dummy ) --primary <datacenter> --name <name>";
-const char *admin_command_parser_t::create_datacenter_usage = "--name <name>";
+const char *admin_command_parser_t::create_namespace_usage = "<name> --port <port> --protocol ( memcached | dummy ) --primary <datacenter>";
+const char *admin_command_parser_t::create_datacenter_usage = "<name>";
 const char *admin_command_parser_t::remove_usage = "<id>...";
 
 const char *admin_command_parser_t::list_description = "Print a list of objects in the cluster.  If a type of object is specified, only objects of that type are listed.  An individual object can be selected by name or uuid.";
@@ -351,13 +351,13 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_flag("long", 0, false);
 
     info = add_command(commands, create_namespace_command, create_namespace_command, create_namespace_usage, true, &admin_cluster_link_t::do_admin_create_namespace);
-    info->add_flag("name", 1, true);
+    info->add_positional("name", 1, true);
     info->add_flag("protocol", 1, true)->add_options("memcached", "dummy", NULL);
     info->add_flag("primary", 1, true)->add_option("!datacenter");
     info->add_flag("port", 1, true);
 
     info = add_command(commands, create_datacenter_command, create_datacenter_command, create_datacenter_usage, true, &admin_cluster_link_t::do_admin_create_datacenter);
-    info->add_flag("name", 1, true);
+    info->add_positional("name", 1, true);
 
     info = add_command(commands, remove_command, remove_command, remove_usage, true, &admin_cluster_link_t::do_admin_remove);
     info->add_positional("id", -1, true)->add_option("!id");
@@ -484,7 +484,7 @@ void admin_command_parser_t::run_command(command_data& data) {
         }
 
         if (data.info->post_sync)
-            get_cluster()->sync_to();
+            get_cluster()->sync_from();
     }
 }
 
