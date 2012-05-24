@@ -87,7 +87,9 @@ perfmon_t::perfmon_t(perfmon_collection_t *_parent, bool _insert)
     : parent(_parent), insert(_insert)
 {
     if (insert) {
-        //RSI maybe get rid of this spinlock, especially when parent isn't global
+        // FIXME maybe get rid of this spinlock, especially when parent isn't global
+        // According to jdoliner, you can't just remove this, because that breaks some unit-tests.
+        // This should be investigated.
         spinlock_acq_t acq(&get_var_lock());
         if (!parent) {
             get_global_collection().add(this);

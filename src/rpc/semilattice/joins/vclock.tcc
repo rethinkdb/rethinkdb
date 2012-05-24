@@ -118,4 +118,12 @@ void semilattice_join(vclock_t<T> *a, const vclock_t<T> &b) {
     a->cull_old_values();
 }
 
+template <class T>
+std::vector<T> vclock_t<T>::get_all_values() const {
+    std::vector<T> result;
+    for (typename value_map_t::const_iterator i = values.begin(); i != values.end(); ++i)
+        result.push_back(i->second);
+    return result;
+}
+
 #endif  // RPC_SEMILATTICE_JOINS_VCLOCK_TCC_

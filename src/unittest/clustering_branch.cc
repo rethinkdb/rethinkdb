@@ -123,7 +123,7 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
             }
         } ack_callback;
         cond_t non_interruptor;
-        (*broadcaster)->write(w, &exiter, &ack_callback, order_source.check_in("unittest"), &non_interruptor);
+        (*broadcaster)->write(w, &exiter, &ack_callback, order_source.check_in("unittest::run_read_write_test(write)"), &non_interruptor);
     }
 
     /* Now send some reads */
@@ -135,7 +135,7 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
         dummy_protocol_t::read_t r;
         r.keys.keys.insert((*it).first);
         cond_t non_interruptor;
-        dummy_protocol_t::read_response_t resp = (*broadcaster)->read(r, &exiter, order_source.check_in("unittest"), &non_interruptor);
+        dummy_protocol_t::read_response_t resp = (*broadcaster)->read(r, &exiter, order_source.check_in("unittest::run_read_write_test(read)"), &non_interruptor);
         EXPECT_EQ((*it).second, resp.values[(*it).first]);
     }
 }
@@ -186,6 +186,7 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
         NULL,
         &dummy_key_gen,
         &order_source,
+        "run_backfill_test/inserter",
         &inserter_state);
     nap(100);
 
@@ -240,6 +241,8 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
 
     order_source_t order_source;
 
+    printf("Starting sending operations to the broadcaster.\n");
+
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
@@ -247,8 +250,11 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
         NULL,
         &dummy_key_gen,
         &order_source,
+        "run_partial_backfill_test/inserter",
         &inserter_state);
     nap(100);
+
+    printf("Setting up a second mirror.\n");
 
     /* Set up a second mirror */
     test_store_t<dummy_protocol_t> store2;
@@ -264,15 +270,25 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
         generate_uuid(),
         &interruptor);
 
+    printf("Expecting some things to be false.\n");
+
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());
 
+    printf("About to nap.\n");
     nap(100);
+
+    printf("Napped.\n");
 
     /* Stop the inserter, then let any lingering writes finish */
     inserter.stop();
+
+    printf("Stopped inserting.\n");
+
     /* Let any lingering writes finish */
     let_stuff_happen();
+
+    printf("Allowed lingering writes to happen...\n");
 
     /* Confirm that both mirrors have all of the writes */
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
