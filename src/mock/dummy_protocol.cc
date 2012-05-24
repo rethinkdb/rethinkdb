@@ -8,6 +8,7 @@
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/file_stream.hpp"
+#include "containers/printf_buffer.hpp"
 
 namespace mock {
 
@@ -287,34 +288,40 @@ dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo, 
 }
 
 
-void print_region(const dummy_protocol_t::region_t &region) {
+void print_region(append_only_printf_buffer_t *buf, const dummy_protocol_t::region_t &region) {
     std::set<std::string>::const_iterator it = region.keys.begin(), e = region.keys.end();
-    printf("{ ");
+    buf->appendf("{ ");
     for (; it != e; ++it) {
-        printf("%s ", it->c_str());
+        buf->appendf("%s ", it->c_str());
     }
-    printf("}");
+    buf->appendf("}");
 }
 
-void print_dummy_protocol_thing(const binary_blob_t &blob) {
+void print_dummy_protocol_thing(append_only_printf_buffer_t *buf, const binary_blob_t &blob) {
     const uint8_t *data = static_cast<const uint8_t *>(blob.data());
-    printf("'");
+    buf->appendf("'");
     for (size_t i = 0, e = blob.size(); i < e; ++i) {
-        printf("%s%02x", i == 0 ? "" : " ", data[i]);
+        buf->appendf("%s%02x", i == 0 ? "" : " ", data[i]);
     }
-    printf("'");
+    buf->appendf("'");
 }
 
-void print_metainfo(const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
+void print_metainfo(append_only_printf_buffer_t *buf, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
     typename region_map_t<dummy_protocol_t, binary_blob_t>::const_iterator it = m.begin(), e = m.end();
-    printf("%s: ", msg);
+    buf->appendf("region_map_t(");
     for (; it != e; ++it) {
-        print_region(it->first);
-        printf(" => ");
-        print_dummy_protocol_thing(it->second);
-        printf(", ");
+        print_region(buf, it->first);
+        buf->appendf(" => ");
+        print_dummy_protocol_thing(buf, it->second);
+        buf->appendf(", ");
     }
-    printf("\n");
+    buf->appendf(")");
+}
+
+void debugf_metainfo(const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
+    printf_buffer_t<2048> buf;
+    print_metainfo(&buf, m);
+    debugf("%s: %s\n", msg, buf.c_str());
 }
 
 
@@ -326,6 +333,10 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
                                  order_token_t order_token,
                                  boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+
+    debugf("dummy store %p write() from %s with before: %lu\n", this, order_token.tag().c_str(), timestamp.numeric_representation());
+    debugf_metainfo("... with expected metainfo", expected_metainfo);
+
     rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
     rassert(region_is_superset(get_region(), write.get_region()));
@@ -339,12 +350,12 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
 
         order_sink.check_out(order_token);
 
-        printf("dummy_protocol_t::store_t(%p)::write() from %s\n", this, order_token.tag().c_str());
+        debugf("dummy_protocol_t::store_t(%p)::write() from %s\n", this, order_token.tag().c_str());
 
         // We allow expected_metainfo domain to be smaller than the metainfo domain
         rassert(expected_metainfo.get_domain() == metainfo.mask(expected_metainfo.get_domain()).get_domain());
-        print_metainfo("expected metainfo", expected_metainfo);
-        print_metainfo("masked   metainfo", metainfo.mask(expected_metainfo.get_domain()));
+        debugf_metainfo("expected metainfo", expected_metainfo);
+        debugf_metainfo("masked   metainfo", metainfo.mask(expected_metainfo.get_domain()));
         rassert(expected_metainfo == metainfo.mask(expected_metainfo.get_domain()));
 
         if (rng.randint(2) == 0) nap(rng.randint(10));
@@ -356,8 +367,8 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
         }
 
         metainfo.update(new_metainfo);
-        print_metainfo("updated metainfo", metainfo);
-        print_metainfo("new metainfo", new_metainfo);
+        debugf_metainfo("updated metainfo", metainfo);
+        debugf_metainfo("new metainfo", new_metainfo);
     }
     if (rng.randint(2) == 0) nap(rng.randint(10));
     return resp;

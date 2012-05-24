@@ -308,6 +308,9 @@ void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
                                       order_token_t order_token,
                                       fifo_enforcer_write_token_t fifo_token,
                                       mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
+
+    debugf("listener %p on_write transition timestamp before: %lu\n", this, transition_timestamp.numeric_representation());
+
     fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_write, this, write, transition_timestamp, order_token, fifo_token, ack_addr));
 }
 
@@ -317,6 +320,9 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
                                            order_token_t order_token,
                                            fifo_enforcer_write_token_t fifo_token,
                                            mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
+
+    debugf("listener %p (svs %p) perform_write transition timestamp before: %lu\n", this, svs, transition_timestamp.numeric_representation());
+
     try {
         const int num_stores = svs->num_stores();
         boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
@@ -325,7 +331,9 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
             /* Enforce that we start our transaction in the same order as we
             entered the FIFO at the broadcaster. */
             fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token);
+            debugf("listener %p pre-fifo_exit wait: %lu\n", this, transition_timestamp.numeric_representation());
             wait_interruptible(&fifo_exit, &on_destruct);
+            debugf("listener %p post-fifo_exit wait: %lu\n", this, transition_timestamp.numeric_representation());
 
             /* Validate write. */
             rassert(region_is_superset(branch_history->get().branches[branch_id].region, write.get_region()));
@@ -334,11 +342,13 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
             /* Block until registration has completely succeeded or failed.
                (May throw `interrupted_exc_t`) */
             wait_interruptible(registration_done_cond.get_ready_signal(), &on_destruct);
+            debugf("listener %p post-registration_done_cond wait: %lu\n", this, transition_timestamp.numeric_representation());
 
             /* Block until the backfill succeeds or fails. If the backfill
                fails, then the constructor will throw an exception, so
                `&on_destruct` will be pulsed. */
             wait_interruptible(backfill_done_cond.get_ready_signal(), &on_destruct);
+            debugf("listener %p post-backfill_done_cond wait: %lu\n", this, transition_timestamp.numeric_representation());
 
             if (transition_timestamp.timestamp_before() < backfill_done_cond.get_value()) {
                 /* `write` is a duplicate; we got it both as part of the
@@ -356,6 +366,8 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 
         /* Mask out any parts of the operation that don't apply to us */
         write = write.shard(region_intersection(write.get_region(), svs->get_multistore_joined_region()));
+
+        debugf("listener %p perform_write (ii) about to svs->write with: %lu\n", this, transition_timestamp.numeric_representation());
 
         cond_t non_interruptor;
         svs->write(
