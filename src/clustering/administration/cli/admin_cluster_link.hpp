@@ -228,7 +228,8 @@ private:
     template <class protocol_t>
     void list_single_namespace(const namespace_id_t& ns_id,
                                namespace_semilattice_metadata_t<protocol_t>& ns,
-                               cluster_semilattice_metadata_t& cluster_metadata);
+                               cluster_semilattice_metadata_t& cluster_metadata,
+                               const std::string& protocol);
 
     template <class map_type>
     void add_single_datacenter_affinities(const datacenter_id_t& dc_id,

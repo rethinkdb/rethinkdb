@@ -169,8 +169,13 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, T& data_m
 }
 
 void admin_cluster_link_t::sync_from() {
-    cond_t interruptor;
-    semilattice_metadata->sync_from(sync_peer_id, &interruptor);
+    try {
+        cond_t interruptor;
+        semilattice_metadata->sync_from(sync_peer_id, &interruptor);
+    } catch (sync_failed_exc_t& ex) {
+        throw admin_no_connection_exc_t("connection lost to cluster");
+    }
+
     semilattice_metadata = semilattice_manager_cluster.get_root_view();
     update_metadata_maps();
 }
@@ -706,12 +711,12 @@ void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& d
             namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(obj_id);
             if (i == cluster_metadata.dummy_namespaces.namespaces.end() || i->second.is_deleted())
                 throw admin_cluster_exc_t("object not found: " + id);
-            list_single_namespace(obj_id, i->second.get_mutable(), cluster_metadata);
+            list_single_namespace(obj_id, i->second.get_mutable(), cluster_metadata, "dummy");
         } else if (info->path[0] == "memcached_namespaces") {
             namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(obj_id);
             if (i == cluster_metadata.memcached_namespaces.namespaces.end() || i->second.is_deleted())
                 throw admin_cluster_exc_t("object not found: " + id);
-            list_single_namespace(obj_id, i->second.get_mutable(), cluster_metadata);
+            list_single_namespace(obj_id, i->second.get_mutable(), cluster_metadata, "memcached");
         } else if (info->path[0] == "machines") {
             machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.find(obj_id);
             if (i == cluster_metadata.machines.machines.end() || i->second.is_deleted())
@@ -1515,7 +1520,8 @@ void admin_cluster_link_t::remove_datacenter_references_from_namespaces(const da
 template <class protocol_t>
 void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
                                                  namespace_semilattice_metadata_t<protocol_t>& ns,
-                                                 cluster_semilattice_metadata_t& cluster_metadata UNUSED) {
+                                                 cluster_semilattice_metadata_t& cluster_metadata,
+                                                 const std::string& protocol) {
     if (ns.name.in_conflict() || ns.name.get_mutable().empty())
         printf("namespace %s\n", uuid_to_str(ns_id).c_str());
     else
@@ -1536,9 +1542,9 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
 
     // Print port
     if (ns.port.in_conflict())
-        printf("port <conflict>\n");
+        printf("running %s protocol on port <conflict>\n", protocol.c_str());
     else
-        printf("port %i\n", ns.port.get());
+        printf("running %s protocol on port %i\n", protocol.c_str(), ns.port.get());
     printf("\n");
 
     std::vector<std::vector<std::string> > table;
@@ -1559,7 +1565,14 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             delta.push_back(uuid_to_str(i->first));
             delta.push_back(i->second.get_mutable().name.in_conflict() ? "<conflict>" : i->second.get_mutable().name.get());
 
-            if (ns.replica_affinities.get_mutable().count(i->first) == 1) {
+            if (!ns.primary_datacenter.in_conflict() && ns.primary_datacenter.get() == i->first) {
+                if (ns.replica_affinities.get_mutable().count(i->first) == 1)
+                    delta.push_back(strprintf("%i", ns.replica_affinities.get_mutable()[i->first] + 1));
+                else
+                    delta.push_back("1");
+
+                affinity = true;
+            } else if (ns.replica_affinities.get_mutable().count(i->first) == 1) {
                 delta.push_back(strprintf("%i", ns.replica_affinities.get_mutable()[i->first]));
                 affinity = true;
             } else
