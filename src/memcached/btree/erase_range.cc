@@ -20,20 +20,10 @@ void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
         }
     } deleter;
 
-    // TODO: Sigh, stupid wasteful copies.
-    btree_key_buffer_t left, right;
-    btree_key_t *lk = NULL, *rk = NULL;
-    if (left_key_supplied) {
-        left.assign(left_key_exclusive.contents, left_key_exclusive.contents + left_key_exclusive.size);
-        lk = left.key();
-    }
-    if (right_key_supplied) {
-        const char *p = right_key_inclusive.contents;
-        right.assign(p, p + right_key_inclusive.size);
-        rk = right.key();
-    }
-
-    btree_erase_range_generic(sizer, slice, tester, &deleter, lk, rk, txn, superblock);
+    btree_erase_range_generic(sizer, slice, tester, &deleter,
+        left_key_supplied ? left_key_exclusive.btree_key() : NULL,
+        right_key_supplied ? right_key_inclusive.btree_key() : NULL,
+        txn, superblock);
 }
 
 void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,

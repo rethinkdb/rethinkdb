@@ -72,7 +72,6 @@ public:
     void do_admin_remove(admin_command_parser_t::command_data& data);
 
     void sync_from();
-    void sync_to();
 
     size_t machine_count() const;
     size_t available_machine_count();
@@ -229,7 +228,8 @@ private:
     template <class protocol_t>
     void list_single_namespace(const namespace_id_t& ns_id,
                                namespace_semilattice_metadata_t<protocol_t>& ns,
-                               cluster_semilattice_metadata_t& cluster_metadata);
+                               cluster_semilattice_metadata_t& cluster_metadata,
+                               const std::string& protocol);
 
     template <class map_type>
     void add_single_datacenter_affinities(const datacenter_id_t& dc_id,
@@ -254,6 +254,24 @@ private:
                                        persistable_blueprint_t<protocol_t>& blueprint,
                                        machines_semilattice_metadata_t::machine_map_t& machine_map,
                                        std::vector<std::vector<std::string> >& table);
+
+    template <class T>
+    void resolve_value(const vclock_t<T>& field,
+                       const std::string& field_name,
+                       const std::string& post_path);
+
+    void resolve_machine_value(machine_semilattice_metadata_t& machine,
+                               const std::string& field,
+                               const std::string& post_path);
+
+    void resolve_datacenter_value(datacenter_semilattice_metadata_t& dc,
+                                  const std::string& field,
+                                  const std::string& post_path);
+
+    template <class protocol_t>
+    void resolve_namespace_value(namespace_semilattice_metadata_t<protocol_t>& ns,
+                                 const std::string& field,
+                                 const std::string& post_path);
 
     boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > traverse_directory(const std::vector<std::string>& path, namespace_metadata_ctx_t& json_ctx, cluster_semilattice_metadata_t& cluster_metadata);
 
@@ -327,6 +345,7 @@ private:
     CURL *curl_handle;
     struct curl_slist *curl_header_list;
     std::string sync_peer;
+    peer_id_t sync_peer_id;
 
     DISABLE_COPYING(admin_cluster_link_t);
 };

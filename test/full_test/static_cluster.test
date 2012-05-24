@@ -24,8 +24,9 @@ workloads = [
     "$RETHINKDB/test/workloads/memcached_suite.py noreply.t --host $HOST --port $PORT",
     "$RETHINKDB/test/workloads/multi_serial_mix.py --host $HOST --port $PORT",
     "$RETHINKDB/test/workloads/pipeline.py --host $HOST --port $PORT",
-    "$RETHINKDB/test/workloads/rget_no_blocking.py --host $HOST --port $PORT",
     "$RETHINKDB/test/workloads/rget.py --host $HOST --port $PORT",
+    "$RETHINKDB/test/workloads/rget_huge.py --host $HOST --port $PORT",
+    "$RETHINKDB/test/workloads/rget_no_blocking.py --host $HOST --port $PORT",
     "$RETHINKDB/test/workloads/serial_mix.py --host $HOST --port $PORT",
     "$RETHINKDB/test/workloads/unappend_unprepend.py --host $HOST --port $PORT"
     ]

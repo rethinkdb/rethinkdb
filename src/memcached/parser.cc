@@ -288,7 +288,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
             pipeliner_acq.end_write();
             return;
         }
-        rh->stats->pm_get_key_size.record((float) gets.back().key.size);
+        rh->stats->pm_get_key_size.record((float) gets.back().key.size());
     }
     if (gets.size() == 0) {
         pipeliner_acq.done_argparsing();
@@ -330,10 +330,10 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
 
                 /* Write the "VALUE ..." header */
                 if (with_cas) {
-                    rh->write_value_header(key.contents, key.size, res.flags, res.value->size(), res.cas);
+                    rh->write_value_header(key.contents(), key.size(), res.flags, res.value->size(), res.cas);
                 } else {
                     rassert(res.cas == 0);
-                    rh->write_value_header(key.contents, key.size, res.flags, res.value->size());
+                    rh->write_value_header(key.contents(), key.size(), res.flags, res.value->size());
                 }
 
                 rh->write_from_data_provider(res.value.get());
@@ -366,7 +366,7 @@ static bool rget_parse_bound(char *flag, char *key, key_range_t::bound_t *mode_o
     case -1:
         if (strcasecmp(rget_null_key, key) == 0) {
             *mode_out = key_range_t::none;
-            key_out->size = 0;   // Key is irrelevant
+            // key is irrelevant
             return true;
         }
         // Fall through
@@ -443,7 +443,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
         }
 
         for (std::vector<key_with_data_buffer_t>::iterator it = results.pairs.begin(); it != results.pairs.end(); it++) {
-            rh->write_value_header(it->key.contents, it->key.size, it->mcflags, it->value_provider->size());
+            rh->write_value_header(it->key.contents(), it->key.size(), it->mcflags, it->value_provider->size());
             rh->write_from_data_provider(it->value_provider.get());
             rh->write_crlf();
         }
@@ -458,7 +458,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
         max_items -= results.pairs.size();
 
         left_mode = key_range_t::open;
-        left_key = results.pairs.front().key;
+        left_key = results.pairs.back().key;
     }
     rh->write_end();
 
@@ -492,6 +492,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                          storage_metadata_t metadata,
                          bool noreply,
                          order_token_t token) {
+
     boost::scoped_ptr<pipeliner_acq_t> pipeliner_acq(pipeliner_acq_raw);
 
     block_pm_duration set_timer(&rh->stats->pm_cmd_set);
@@ -650,7 +651,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         delete pipeliner_acq;
         return;
     }
-    rh->stats->pm_storage_key_size.record((float) key.size);
+    rh->stats->pm_storage_key_size.record((float) key.size());
 
     /* Next parse the flags */
     mcflags_t mcflags = strtou64_strict(argv[2], &invalid_char, 10);
@@ -923,7 +924,7 @@ void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, ch
         pipeliner_acq.end_write();
         return;
     }
-    rh->stats->pm_delete_key_size.record((float) key.size);
+    rh->stats->pm_delete_key_size.record((float) key.size());
 
     /* Parse "noreply" */
     bool noreply;

@@ -73,6 +73,8 @@ public:
     T get() const;
 
     T &get_mutable();
+
+    std::vector<T> get_all_values() const;
 };
 
 //semilattice concept for vclock_t

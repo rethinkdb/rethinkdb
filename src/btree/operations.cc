@@ -360,8 +360,8 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
     // Allocate a new node to split into, and some temporary memory to keep
     // track of the median key in the split; then actually split.
     buf_lock_t rbuf(txn);
-    btree_key_buffer_t median_buffer;
-    btree_key_t *median = median_buffer.key();
+    store_key_t median_buffer;
+    btree_key_t *median = median_buffer.btree_key();
 
     node::split(sizer, &buf, reinterpret_cast<node_t *>(rbuf.get_data_major_write()), median);
     rbuf.set_eviction_priority(buf.get_eviction_priority());
@@ -404,7 +404,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
         const internal_node_t *parent_node = reinterpret_cast<const internal_node_t *>(last_buf.get_data_read());
 
         // Acquire a sibling to merge or level with.
-        btree_key_buffer_t key_in_middle;
+        store_key_t key_in_middle;
         block_id_t sib_node_id;
         int nodecmp_node_with_sib = internal_node::sibling(parent_node, key, &sib_node_id, &key_in_middle);
 
@@ -430,7 +430,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
             sib_buf.release();
 
             if (!internal_node::is_singleton(parent_node)) {
-                internal_node::remove(sizer->block_size(), &last_buf, key_in_middle.key());
+                internal_node::remove(sizer->block_size(), &last_buf, key_in_middle.btree_key());
             } else {
                 // The parent has only 1 key after the merge (which means that
                 // it's the root and our node is its only child). Insert our
@@ -439,13 +439,13 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
                 insert_root(buf.get_block_id(), sb);
             }
         } else { // Level
-            btree_key_buffer_t replacement_key_buffer;
-            btree_key_t *replacement_key = replacement_key_buffer.key();
+            store_key_t replacement_key_buffer;
+            btree_key_t *replacement_key = replacement_key_buffer.btree_key();
 
             bool leveled = node::level(sizer, nodecmp_node_with_sib, &buf, &sib_buf, replacement_key, parent_node);
 
             if (leveled) {
-                internal_node::update_key(&last_buf, key_in_middle.key(), replacement_key);
+                internal_node::update_key(&last_buf, key_in_middle.btree_key(), replacement_key);
             }
         }
     }
