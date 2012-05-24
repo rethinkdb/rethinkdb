@@ -45,8 +45,8 @@ const char *admin_command_parser_t::set_name_usage = "<id> <new name>";
 const char *admin_command_parser_t::set_acks_usage = "<namespace> <datacenter> <num-acks>";
 const char *admin_command_parser_t::set_replicas_usage = "<namespace> <datacenter> <num-replicas>";
 const char *admin_command_parser_t::set_datacenter_usage = "( <namespace> | <machine> ) <datacenter>";
-const char *admin_command_parser_t::create_namespace_usage = "--port <port> --protocol ( memcached | dummy ) --primary <datacenter> [--name <name>]";
-const char *admin_command_parser_t::create_datacenter_usage = "[--name <name>]";
+const char *admin_command_parser_t::create_namespace_usage = "<name> --port <port> --protocol ( memcached | dummy ) --primary <datacenter>";
+const char *admin_command_parser_t::create_datacenter_usage = "<name>";
 const char *admin_command_parser_t::remove_usage = "<id>...";
 
 const char *admin_command_parser_t::list_description = "Print a list of objects in the cluster.  If a type of object is specified, only objects of that type are listed.  An individual object can be selected by name or uuid.";
@@ -351,13 +351,13 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_flag("long", 0, false);
 
     info = add_command(commands, create_namespace_command, create_namespace_command, create_namespace_usage, true, &admin_cluster_link_t::do_admin_create_namespace);
-    info->add_flag("name", 1, false);
+    info->add_positional("name", 1, true);
     info->add_flag("protocol", 1, true)->add_options("memcached", "dummy", NULL);
     info->add_flag("primary", 1, true)->add_option("!datacenter");
     info->add_flag("port", 1, true);
 
     info = add_command(commands, create_datacenter_command, create_datacenter_command, create_datacenter_usage, true, &admin_cluster_link_t::do_admin_create_datacenter);
-    info->add_flag("name", 1, false);
+    info->add_positional("name", 1, true);
 
     info = add_command(commands, remove_command, remove_command, remove_usage, true, &admin_cluster_link_t::do_admin_remove);
     info->add_positional("id", -1, true)->add_option("!id");
@@ -484,7 +484,7 @@ void admin_command_parser_t::run_command(command_data& data) {
         }
 
         if (data.info->post_sync)
-            get_cluster()->sync_to();
+            get_cluster()->sync_from();
     }
 }
 
@@ -603,7 +603,7 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
         for (; index < line.size(); ++index) {
             if (line[index].find("--") == 0) { // This is a flag, skip any completed options
                 std::map<std::string, param_options *>::iterator opt_iter = cmd->flags.find(line[index].substr(2));
-                if (opt_iter != cmd->flags.end()) {
+                if (opt_iter != cmd->flags.end() && (index != line.size() - 1 || !partial)) {
                     if (line.size() <= index + opt_iter->second->count) { // Not enough params for this flag
                         if (!partial) // print valid_options
                             add_option_matches(opt_iter->second, std::string(), completions);
@@ -739,7 +739,9 @@ void admin_command_parser_t::run_console() {
                 if (!split_line.empty())
                     parse_and_run_command(split_line);
             } catch (admin_no_connection_exc_t& ex) {
-                fprintf(stderr, "not connected to a cluster, run 'help join' for more information\n");
+                fprintf(stderr, "fatal error: connection to cluster failed\n");
+                free(raw_line);
+                break;
             } catch (...) {
                 fprintf(stderr, "could not parse line\n");
             }

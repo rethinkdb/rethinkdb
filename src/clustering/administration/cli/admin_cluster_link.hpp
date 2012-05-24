@@ -1,9 +1,10 @@
 #ifndef CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 #define CLUSTERING_ADMINISTRATION_CLU_ADMIN_CLUSTER_LINK_HPP_
 
+#include <curl/curl.h>
+
 #include <vector>
 #include <string>
-#include "curl/curl.h"
 
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
@@ -71,7 +72,6 @@ public:
     void do_admin_remove(admin_command_parser_t::command_data& data);
 
     void sync_from();
-    void sync_to();
 
     size_t machine_count() const;
     size_t available_machine_count();
@@ -105,24 +105,23 @@ private:
                                     const std::string& new_name,
                                     bool resolve);
 
-    template <class obj_map>
-    void do_admin_set_datacenter_namespace(obj_map& metadata,
-                                           const boost::uuids::uuid obj_uuid,
-                                           const datacenter_id_t dc,
-                                           bool resolve);
-
-    void do_admin_set_datacenter_machine(machines_semilattice_metadata_t::machine_map_t& metadata,
-                                         const boost::uuids::uuid obj_uuid,
-                                         const datacenter_id_t dc,
-                                         bool resolve);
     template <class protocol_t>
-    void do_admin_create_namespace_internal(const std::string& name,
+    void remove_machine_pinnings(const machine_id_t& machine,
+                                 const std::string& post_path,
+                                 std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >& ns_map);
+
+    template <class protocol_t>
+    void do_admin_create_namespace_internal(std::string& name,
                                             int port,
-                                            const datacenter_id_t& primary,
+                                            datacenter_id_t& primary,
                                             const std::string& path);
 
-    template <class obj_map>
-    void do_admin_remove_internal(obj_map& metadata, const boost::uuids::uuid& obj_uuid);
+    void remove_datacenter_references(const datacenter_id_t& datacenter, cluster_semilattice_metadata_t& cluster_metadata);
+
+    template <class protocol_t>
+    void remove_datacenter_references_from_namespaces(const datacenter_id_t& datacenter,
+                                                      const std::string& post_path,
+                                                      std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >& ns_map);
 
     template <class map_type>
     void list_all_internal(const std::string& type, bool long_format, map_type& obj_map, std::vector<std::vector<std::string> >& table);
@@ -156,7 +155,18 @@ private:
                                      const std::string& post_path);
 
     template <class protocol_t>
-    void list_pinnings(namespace_semilattice_metadata_t<protocol_t>& ns, const shard_input_t& shard_in);
+    typename protocol_t::region_t find_shard_in_namespace(namespace_semilattice_metadata_t<protocol_t>& ns,
+                                                          const shard_input_t& shard_in);
+
+    template <class protocol_t>
+    void list_pinnings(namespace_semilattice_metadata_t<protocol_t>& ns,
+                       const shard_input_t& shard_in,
+                       cluster_semilattice_metadata_t& cluster_metadata);
+
+    template <class bp_type>
+    void list_pinnings_internal(const bp_type& bp,
+                                const key_range_t& shard,
+                                cluster_semilattice_metadata_t& cluster_metadata);
 
     template <class map_type, class value_type>
     void insert_pinning(map_type& region_map, const key_range_t& shard, value_type& value);
@@ -205,7 +215,45 @@ private:
     std::map<datacenter_id_t, datacenter_info_t> build_datacenter_info(cluster_semilattice_metadata_t& cluster_metadata);
 
     template <class map_type>
-    void add_datacenter_info_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t>& results);
+    void add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t>& results);
+
+    void list_single_datacenter(const datacenter_id_t& dc_id,
+                                datacenter_semilattice_metadata_t& dc,
+                                cluster_semilattice_metadata_t& cluster_metadata);
+
+    void list_single_machine(const machine_id_t& machine_id,
+                             machine_semilattice_metadata_t& machine,
+                             cluster_semilattice_metadata_t& cluster_metadata);
+
+    template <class protocol_t>
+    void list_single_namespace(const namespace_id_t& ns_id,
+                               namespace_semilattice_metadata_t<protocol_t>& ns,
+                               cluster_semilattice_metadata_t& cluster_metadata,
+                               const std::string& protocol);
+
+    template <class map_type>
+    void add_single_datacenter_affinities(const datacenter_id_t& dc_id,
+                                          map_type& ns_map,
+                                          std::vector<std::vector<std::string> >& table,
+                                          const std::string& protocol);
+
+    template <class map_type>
+    size_t add_single_machine_replicas(const machine_id_t& machine_id,
+                                       map_type& ns_map,
+                                       std::vector<std::vector<std::string> >& table);
+
+    template <class protocol_t>
+    bool add_single_machine_blueprint(const machine_id_t& machine_id,
+                                      persistable_blueprint_t<protocol_t>& blueprint,
+                                      std::vector<std::vector<std::string> >& table,
+                                      const std::string& ns_uuid,
+                                      const std::string& ns_name);
+
+    template <class protocol_t>
+    void add_single_namespace_replicas(std::set<typename protocol_t::region_t>& shards,
+                                       persistable_blueprint_t<protocol_t>& blueprint,
+                                       machines_semilattice_metadata_t::machine_map_t& machine_map,
+                                       std::vector<std::vector<std::string> >& table);
 
     boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > traverse_directory(const std::vector<std::string>& path, namespace_metadata_ctx_t& json_ctx, cluster_semilattice_metadata_t& cluster_metadata);
 
@@ -216,7 +264,8 @@ private:
 
     template <class T>
     void post_metadata(std::string path, T& metadata);
-    void delete_metadata(std::string path);
+    std::string create_metadata(const std::string& path);
+    void delete_metadata(const std::string& path);
     void post_internal(std::string path, std::string data);
 
     local_issue_tracker_t local_issue_tracker;
@@ -260,24 +309,25 @@ private:
     // Initial join
     initial_joiner_t initial_joiner;
 
-    struct metadata_info {
+    struct metadata_info_t {
         std::string uuid;
         std::string name;
         std::vector<std::string> path;
     };
 
-    std::map<std::string, metadata_info*> uuid_map;
-    std::multimap<std::string, metadata_info*> name_map;
+    std::map<std::string, metadata_info_t*> uuid_map;
+    std::multimap<std::string, metadata_info_t*> name_map;
 
     void clear_metadata_maps();
     void update_metadata_maps();
     template <class T>
     void add_subset_to_maps(const std::string& base, T& data_map);
-    metadata_info* get_info_from_id(const std::string& id);
+    metadata_info_t* get_info_from_id(const std::string& id);
 
     CURL *curl_handle;
     struct curl_slist *curl_header_list;
     std::string sync_peer;
+    peer_id_t sync_peer_id;
 
     DISABLE_COPYING(admin_cluster_link_t);
 };

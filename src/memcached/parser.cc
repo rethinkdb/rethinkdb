@@ -349,7 +349,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
 
 static const char *rget_null_key = "null";
 
-static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out, store_key_t *key_out) {
+static bool rget_parse_bound(char *flag, char *key, key_range_t::bound_t *mode_out, store_key_t *key_out) {
     if (!str_to_key(key, key_out)) return false;
 
     const char *invalid_char;
@@ -358,14 +358,14 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
 
     switch (open_flag) {
     case 0:
-        *mode_out = rget_bound_closed;
+        *mode_out = key_range_t::closed;
         return true;
     case 1:
-        *mode_out = rget_bound_open;
+        *mode_out = key_range_t::open;
         return true;
     case -1:
         if (strcasecmp(rget_null_key, key) == 0) {
-            *mode_out = rget_bound_none;
+            *mode_out = key_range_t::none;
             key_out->size = 0;   // Key is irrelevant
             return true;
         }
@@ -375,7 +375,7 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
     }
 }
 
-void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char **argv, order_token_t token) {
+void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char **argv) {
     // We should already be spawned within a coroutine.
     pipeliner_acq_t pipeliner_acq(pipeliner);
     pipeliner_acq.begin_operation();
@@ -389,7 +389,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
     }
 
     /* Parse left/right boundary keys and flags */
-    rget_bound_mode_t left_mode, right_mode;
+    key_range_t::bound_t left_mode, right_mode;
     store_key_t left_key, right_key;
 
     if (!rget_parse_bound(argv[3], argv[1], &left_mode, &left_key) ||
@@ -411,44 +411,56 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
         pipeliner_acq.end_write();
         return;
     }
-    debugf("max_items = %d\n", int(max_items));
 
     pipeliner_acq.done_argparsing();
 
     block_pm_duration rget_timer(&rh->stats->pm_cmd_rget);
 
-    rget_result_t results;
-    std::string error_message;
-    bool ok;
-
-    try {
-        rget_query_t rget_query(left_mode, left_key, right_mode, right_key, max_items);
-        memcached_protocol_t::read_t read(rget_query, time(NULL));
-        cond_t non_interruptor;
-        memcached_protocol_t::read_response_t response = rh->nsi->read(read, token, &non_interruptor);
-        results = boost::get<rget_result_t>(response.result);
-        ok = true;
-    } catch (cannot_perform_query_exc_t e) {
-        /* We can't call `server_error()` directly from within here because it's
-        not safe to call `coro_t::wait()` from inside a `catch`-block. */
-        error_message = e.what();
-        ok = false;
-    }
-
     pipeliner_acq.begin_write();
 
-    if (ok) {
-        debugf("Got rget result ok; length = %d\n", int(results.pairs.size()));
+    while (max_items > 0) {
+        rget_result_t results;
+        std::string error_message;
+        bool ok;
+
+        try {
+            rget_query_t rget_query(key_range_t(left_mode, left_key, right_mode, right_key), max_items);
+            memcached_protocol_t::read_t read(rget_query, time(NULL));
+            cond_t non_interruptor;
+            memcached_protocol_t::read_response_t response = rh->nsi->read(read, order_token_t::ignore, &non_interruptor);
+            results = boost::get<rget_result_t>(response.result);
+            ok = true;
+        } catch (cannot_perform_query_exc_t e) {
+            /* We can't call `server_error()` directly from within here because it's
+            not safe to call `coro_t::wait()` from inside a `catch`-block. */
+            error_message = e.what();
+            ok = false;
+        }
+
+        if (!ok) {
+            rh->server_error("%s\r\n", error_message.c_str());
+            break;
+        }
+
         for (std::vector<key_with_data_buffer_t>::iterator it = results.pairs.begin(); it != results.pairs.end(); it++) {
-            debugf("Printing a pair\n");
             rh->write_value_header(it->key.contents, it->key.size, it->mcflags, it->value_provider->size());
             rh->write_from_data_provider(it->value_provider.get());
             rh->write_crlf();
         }
-        rh->write_end();
-    } else {
-        rh->server_error("%s\r\n", error_message.c_str());
+
+        if (!results.truncated) {
+            break;
+        }
+
+        rassert(!results.pairs.empty());
+
+        rassert(max_items >= results.pairs.size());
+        max_items -= results.pairs.size();
+
+        left_mode = key_range_t::open;
+        left_key = results.pairs.front().key;
     }
+    rh->write_end();
 
     pipeliner_acq.end_write();
 }
@@ -1024,7 +1036,7 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
         } else if (!strcmp(args[0], "gets")) {
             coro_t::spawn_now(boost::bind(do_get, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "rget")) {
-            coro_t::spawn_now(boost::bind(do_rget, &rh, &pipeliner, args.size(), args.data(), token.with_read_mode()));
+            coro_t::spawn_now(boost::bind(do_rget, &rh, &pipeliner, args.size(), args.data()));
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
             do_storage(&rh, &pipeliner, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {

@@ -9,7 +9,9 @@ namespace unittest {
 
 struct test_iterator : one_way_iterator_t<int> {
     typedef std::list<std::list<int> > data_blocks_t;
-    explicit test_iterator(data_blocks_t& _data_blocks) : prefetches_count(0), blocked_without_prefetch(0), data_blocks(_data_blocks) {
+    test_iterator(data_blocks_t& _data_blocks, size_t& _blocked_without_prefetch) : prefetches_count(0), blocked_without_prefetch(_blocked_without_prefetch), data_blocks(_data_blocks) {
+        blocked_without_prefetch = 0;
+
         // remove empty blocks
         data_blocks.remove_if(std::mem_fun_ref(&data_blocks_t::value_type::empty));
         // add first empty block (so that we could check prefetch of the first block
@@ -38,14 +40,14 @@ struct test_iterator : one_way_iterator_t<int> {
     }
 
     size_t prefetches_count;
-    size_t blocked_without_prefetch;
+    size_t& blocked_without_prefetch;
 
 private:
     data_blocks_t data_blocks;
 };
 
 struct delete_check_iterator : test_iterator {
-    delete_check_iterator(data_blocks_t& data_blocks, bool *_deleted) : test_iterator(data_blocks), deleted(_deleted) { *deleted = false; }
+    delete_check_iterator(data_blocks_t& data_blocks, size_t& blocked_without_prefetch, bool *_deleted) : test_iterator(data_blocks, blocked_without_prefetch), deleted(_deleted) { *deleted = false; }
     virtual ~delete_check_iterator() {
         *deleted = true;
     }
@@ -126,9 +128,10 @@ std::list<int> data_blocks_to_list_of_ints(test_iterator::data_blocks_t& db) {
 
 TEST(MergeIteratorsTest, merge_empty) {
     test_iterator::data_blocks_t empty_blocks;
-    test_iterator *a = new test_iterator(empty_blocks);
-    test_iterator *b = new test_iterator(empty_blocks);
-    test_iterator *c = new test_iterator(empty_blocks);
+    size_t blocked_without_prefetch_a, blocked_without_prefetch_b, blocked_without_prefetch_c;
+    test_iterator *a = new test_iterator(empty_blocks, blocked_without_prefetch_a);
+    test_iterator *b = new test_iterator(empty_blocks, blocked_without_prefetch_b);
+    test_iterator *c = new test_iterator(empty_blocks, blocked_without_prefetch_c);
 
     merge_ordered_data_iterator_t<int> merged;
     merged.add_mergee(a);
@@ -136,6 +139,9 @@ TEST(MergeIteratorsTest, merge_empty) {
     merged.add_mergee(c);
 
     ASSERT_FALSE(merged.next());
+    ASSERT_EQ(blocked_without_prefetch_a, 0);
+    ASSERT_EQ(blocked_without_prefetch_b, 0);
+    ASSERT_EQ(blocked_without_prefetch_c, 0);
 }
 
 TEST(MergeIteratorsTest, parse_data_blocks) {
@@ -150,9 +156,10 @@ TEST(MergeIteratorsTest, three_way_merge) {
     test_iterator::data_blocks_t b_db = parse_data_blocks("4 | 6 8 9 | 11 13 16");
     test_iterator::data_blocks_t c_db = parse_data_blocks("5 8 | 9 | 12 15 16");
 
-    test_iterator *a = new test_iterator(a_db);
-    test_iterator *b = new test_iterator(b_db);
-    test_iterator *c = new test_iterator(c_db);
+    size_t blocked_without_prefetch_a, blocked_without_prefetch_b, blocked_without_prefetch_c;
+    test_iterator *a = new test_iterator(a_db, blocked_without_prefetch_a);
+    test_iterator *b = new test_iterator(b_db, blocked_without_prefetch_b);
+    test_iterator *c = new test_iterator(c_db, blocked_without_prefetch_c);
 
     merge_ordered_data_iterator_t<int> merge_iterator;
     merge_iterator.add_mergee(a);
@@ -175,6 +182,9 @@ TEST(MergeIteratorsTest, three_way_merge) {
     merged_expected.merge(c_db_flat);
 
     ASSERT_TRUE(std::equal(merged_expected.begin(), merged_expected.end(), merged.begin()));
+    ASSERT_EQ(blocked_without_prefetch_a, 0);
+    ASSERT_EQ(blocked_without_prefetch_b, 0);
+    ASSERT_EQ(blocked_without_prefetch_c, 0);
 }
 
 TEST(MergeIteratorsTest, iterators_get_deleted) {
@@ -183,11 +193,12 @@ TEST(MergeIteratorsTest, iterators_get_deleted) {
     test_iterator::data_blocks_t c_db = parse_data_blocks("5 8 | 9 | 12 15 16");
     test_iterator::data_blocks_t d_db = parse_data_blocks("");
 
+    size_t blocked_without_prefetch_a, blocked_without_prefetch_b, blocked_without_prefetch_c, blocked_without_prefetch_d;
     bool a_deleted = false, b_deleted = false, c_deleted = false, d_deleted = false;
-    test_iterator *a = new delete_check_iterator(a_db, &a_deleted);
-    test_iterator *b = new delete_check_iterator(b_db, &b_deleted);
-    test_iterator *c = new delete_check_iterator(c_db, &c_deleted);
-    test_iterator *d = new delete_check_iterator(d_db, &d_deleted);
+    test_iterator *a = new delete_check_iterator(a_db, blocked_without_prefetch_a, &a_deleted);
+    test_iterator *b = new delete_check_iterator(b_db, blocked_without_prefetch_b, &b_deleted);
+    test_iterator *c = new delete_check_iterator(c_db, blocked_without_prefetch_c, &c_deleted);
+    test_iterator *d = new delete_check_iterator(d_db, blocked_without_prefetch_d, &d_deleted);
 
     merge_ordered_data_iterator_t<int> merge_iterator;
     merge_iterator.add_mergee(a);
@@ -214,11 +225,16 @@ TEST(MergeIteratorsTest, iterators_get_deleted) {
     EXPECT_TRUE(a_deleted) << "merge_ordered_data_iterator_t should have deleted the 'a' iterator long ago";
     EXPECT_TRUE(b_deleted && c_deleted) << "merge_ordered_data_iterator_t should delete the iterator after it has exhausted";
 
+    ASSERT_EQ(blocked_without_prefetch_a, 0);
+    ASSERT_EQ(blocked_without_prefetch_b, 0);
+    ASSERT_EQ(blocked_without_prefetch_c, 0);
+    ASSERT_EQ(blocked_without_prefetch_d, 0);
+
     a_deleted = false;
     b_deleted = false;
     {
-        test_iterator *a = new delete_check_iterator(a_db, &a_deleted);
-        test_iterator *b = new delete_check_iterator(b_db, &b_deleted);
+        test_iterator *a = new delete_check_iterator(a_db, blocked_without_prefetch_a, &a_deleted);
+        test_iterator *b = new delete_check_iterator(b_db, blocked_without_prefetch_b, &b_deleted);
 
         merge_ordered_data_iterator_t<int> merge_iterator;
         merge_iterator.add_mergee(a);
@@ -230,6 +246,8 @@ TEST(MergeIteratorsTest, iterators_get_deleted) {
         (void) merge_iterator.next();
     }
     EXPECT_TRUE(a_deleted && b_deleted) << "merge_ordered_data_iterator_t should delete the iterators on destruction, even when they have not been exhausted";
+    ASSERT_EQ(blocked_without_prefetch_a, 0);
+    ASSERT_EQ(blocked_without_prefetch_b, 0);
 }
 
 }  // namespace unittest

@@ -3,12 +3,13 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include <curl/curl.h>
+
 #include <map>
 #include <stdexcept>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
-#include "curl/curl.h"
 
 #include "clustering/administration/suggester.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
@@ -16,10 +17,42 @@
 #include "rpc/semilattice/view.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
+#include "do_on_thread.hpp"
+
+void admin_print_table(const std::vector<std::vector<std::string> >& table) {
+    std::vector<int> column_widths;
+
+    if (table.size() == 0)
+        return;
+
+    for (size_t i = 1; i < table.size(); ++i)
+        if (table[i].size() != table[0].size())
+            throw admin_cluster_exc_t("unexpected error when printing table");
+
+    for (size_t i = 0; i < table[0].size(); ++i) {
+        int max = table[0][i].length();
+
+        for (size_t j = 1; j < table.size(); ++j)
+            if ((int)table[j][i].length() > max)
+                max = table[j][i].length();
+
+        column_widths.push_back(max);
+    }
+
+    for (size_t i = 0; i < table.size(); ++i) {
+        for (size_t j = 0; j < table[i].size(); ++j)
+            printf("%-*s", column_widths[j] + 2, table[i][j].c_str());
+        printf("\n");
+    }
+}
+
 
 // Truncate a uuid for easier user-interface
 std::string admin_cluster_link_t::truncate_uuid(const boost::uuids::uuid& uuid) {
-    return uuid_to_str(uuid).substr(0, uuid_output_length);
+    if (uuid.is_nil())
+        return std::string("none");
+    else
+        return uuid_to_str(uuid).substr(0, uuid_output_length);
 }
 
 admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins, int client_port, signal_t *interruptor) :
@@ -66,16 +99,21 @@ admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins
     unsatisfiable_goals_issue_tracker_feed(&issue_aggregator, &unsatisfiable_goals_issue_tracker),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000),
     curl_handle(curl_easy_init()),
-    curl_header_list(curl_slist_append(NULL, "Content-Type:application/json"))
+    curl_header_list(curl_slist_append(NULL, "Content-Type:application/json")),
+    sync_peer_id(nil_uuid())
 {
     wait_interruptible(initial_joiner.get_ready_signal(), interruptor);
     if (!initial_joiner.get_success())
             throw admin_cluster_exc_t("failed to join cluster");
 
-    // TODO: if sync peer goes down, failover to another machine
-    std::stringstream sync_str;
-    sync_str << "http://" << joins.begin()->ip.as_dotted_decimal() << ":" << (joins.begin()->port + 1000) << "/ajax/";
-    sync_peer.assign(sync_str.str());
+    std::set<peer_id_t> peer_set = connectivity_cluster.get_peers_list();
+    for (std::set<peer_id_t>::iterator i = peer_set.begin(); i != peer_set.end(); ++i)
+        if (*i != connectivity_cluster.get_me())
+            sync_peer_id = *i;
+
+    // TODO: get the http port of the server through some more intelligent means (once it exists)
+    peer_address_t sync_peer_address = connectivity_cluster.get_peer_address(sync_peer_id);
+    sync_peer.assign(strprintf("http://%s:%i/ajax/", sync_peer_address.ip.as_dotted_decimal().c_str(), sync_peer_address.port + 1000));
 
     curl_easy_setopt(curl_handle, CURLOPT_POST, 1);
     curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, curl_header_list);
@@ -104,7 +142,7 @@ void admin_cluster_link_t::update_metadata_maps() {
 
 void admin_cluster_link_t::clear_metadata_maps() {
     // All metadata infos will be in the name_map and uuid_map exactly one each
-    for (std::map<std::string, metadata_info*>::iterator i = uuid_map.begin(); i != uuid_map.end(); ++i)
+    for (std::map<std::string, metadata_info_t*>::iterator i = uuid_map.begin(); i != uuid_map.end(); ++i)
         delete i->second;
 
     name_map.clear();
@@ -117,42 +155,41 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, T& data_m
         if (i->second.is_deleted())
             continue;
 
-        metadata_info* info = new metadata_info;
+        metadata_info_t* info = new metadata_info_t;
         info->uuid = uuid_to_str(i->first);
         info->path.push_back(base);
         info->path.push_back(info->uuid);
 
         if (!i->second.get().name.in_conflict()) {
             info->name = i->second.get().name.get();
-            name_map.insert(std::make_pair<std::string, metadata_info*>(info->name, info));
+            name_map.insert(std::make_pair<std::string, metadata_info_t*>(info->name, info));
         }
-        uuid_map.insert(std::make_pair<std::string, metadata_info*>(info->uuid, info));
+        uuid_map.insert(std::make_pair<std::string, metadata_info_t*>(info->uuid, info));
     }
 }
 
 void admin_cluster_link_t::sync_from() {
-    // cond_t interruptor;
-    // semilattice_metadata->sync_from(sync_peer, &interruptor);
+    try {
+        cond_t interruptor;
+        semilattice_metadata->sync_from(sync_peer_id, &interruptor);
+    } catch (sync_failed_exc_t& ex) {
+        throw admin_no_connection_exc_t("connection lost to cluster");
+    }
+
     semilattice_metadata = semilattice_manager_cluster.get_root_view();
     update_metadata_maps();
 }
 
-void admin_cluster_link_t::sync_to() {
-    // cond_t interruptor;
-    // semilattice_metadata->sync_to(sync_peer, &interruptor);
-}
-
 std::vector<std::string> admin_cluster_link_t::get_ids_internal(const std::string& base, const std::string& path) {
     std::vector<std::string> results;
-    sync_from();
 
     // TODO: check for uuid collisions, give longer completions
     // Build completion values
-    for (std::map<std::string, metadata_info*>::iterator i = uuid_map.lower_bound(base); i != uuid_map.end() && i->first.find(base) == 0; ++i)
+    for (std::map<std::string, metadata_info_t*>::iterator i = uuid_map.lower_bound(base); i != uuid_map.end() && i->first.find(base) == 0; ++i)
         if (path.empty() || i->second->path[0] == path)
             results.push_back(i->first.substr(0, uuid_output_length));
 
-    for (std::map<std::string, metadata_info*>::iterator i = name_map.lower_bound(base); i != name_map.end() && i->first.find(base) == 0; ++i)
+    for (std::map<std::string, metadata_info_t*>::iterator i = name_map.lower_bound(base); i != name_map.end() && i->first.find(base) == 0; ++i)
         if (path.empty() || i->second->path[0] == path)
             results.push_back(i->first);
 
@@ -181,7 +218,6 @@ std::vector<std::string> admin_cluster_link_t::get_datacenter_ids(const std::str
 std::vector<std::string> admin_cluster_link_t::get_conflicted_ids(const std::string& base UNUSED) {
     std::set<std::string> unique_set;
     std::vector<std::string> results;
-    sync_from();
 
     std::list<clone_ptr_t<vector_clock_conflict_issue_t> > conflicts = vector_clock_conflict_issue_tracker.get_vector_clock_issues();
 
@@ -193,7 +229,7 @@ std::vector<std::string> admin_cluster_link_t::get_conflicted_ids(const std::str
             results.push_back(i->substr(0, uuid_output_length));
 
     for (std::set<std::string>::iterator i = unique_set.begin(); i != unique_set.end(); ++i) {
-        std::map<std::string, metadata_info*>::iterator info = uuid_map.find(*i);
+        std::map<std::string, metadata_info_t*>::iterator info = uuid_map.find(*i);
         if (info != uuid_map.end() && info->second->name.find(base) == 0)
             results.push_back(info->second->name);
     }
@@ -221,10 +257,10 @@ boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > admin_cluster_li
     return json_adapter_head;
 }
 
-admin_cluster_link_t::metadata_info* admin_cluster_link_t::get_info_from_id(const std::string& id) {
+admin_cluster_link_t::metadata_info_t* admin_cluster_link_t::get_info_from_id(const std::string& id) {
     // Names must be an exact match, but uuids can be prefix substrings
     if (name_map.count(id) == 0) {
-        std::map<std::string, metadata_info*>::iterator item = uuid_map.lower_bound(id);
+        std::map<std::string, metadata_info_t*>::iterator item = uuid_map.lower_bound(id);
 
         if (id.length() < minimum_uuid_substring)
             throw admin_parse_exc_t("identifier not found, too short to specify a uuid: " + id);
@@ -239,7 +275,21 @@ admin_cluster_link_t::metadata_info* admin_cluster_link_t::get_info_from_id(cons
 
         return uuid_map.lower_bound(id)->second;
     } else if (name_map.count(id) != 1) {
-        throw admin_cluster_exc_t("name not unique: " + id);
+        std::stringstream exception_info;
+        exception_info << "'" << id << "' not unique, possible objects:";
+        for (std::map<std::string, metadata_info_t*>::iterator item = name_map.lower_bound(id); item != name_map.end() && item->first == id; ++item) {
+            if (item->second->path[0] == "datacenters")
+                exception_info << std::endl << "datacenter    " << item->second->uuid.substr(0, uuid_output_length);
+            else if (item->second->path[0] == "dummy_namespaces")
+                exception_info << std::endl << "namespace (d) " << item->second->uuid.substr(0, uuid_output_length);
+            else if (item->second->path[0] == "memcached_namespaces")
+                exception_info << std::endl << "namespace (m) " << item->second->uuid.substr(0, uuid_output_length);
+            else if (item->second->path[0] == "machines")
+                exception_info << std::endl << "machine       " << item->second->uuid.substr(0, uuid_output_length);
+            else
+                exception_info << std::endl << "unknown       " << item->second->uuid.substr(0, uuid_output_length);
+        }
+        throw admin_cluster_exc_t(exception_info.str());
     }
 
     return name_map.find(id)->second;
@@ -292,16 +342,14 @@ void admin_cluster_link_t::do_admin_pin_shard(admin_command_parser_t::command_da
     shard_in.right.key = shard_str.substr(split + 1);
     shard_in.right.inf = shard_in.right.key == "%inf";
 
-    printf("key: %s\n", shard_str.c_str());
-
     if (ns_path[0] == "memcached_namespaces") {
         namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(str_to_uuid(ns_path[1]));
-        if (i == cluster_metadata.memcached_namespaces.namespaces.end())
+        if (i == cluster_metadata.memcached_namespaces.namespaces.end() || i->second.is_deleted())
             throw admin_cluster_exc_t("unexpected error, could not find namespace: " + ns);
 
         // If no primaries or secondaries are given, we list the current machine assignments
         if (primary.empty() && secondaries.empty())
-            list_pinnings(i->second.get_mutable(), shard_in);
+            list_pinnings(i->second.get_mutable(), shard_in, cluster_metadata);
         else
             do_admin_pin_shard_internal(i->second.get_mutable(), shard_in, primary, secondaries, cluster_metadata, post_path);
     } else
@@ -309,32 +357,8 @@ void admin_cluster_link_t::do_admin_pin_shard(admin_command_parser_t::command_da
 }
 
 template <class protocol_t>
-void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_metadata_t<protocol_t>& ns,
-                                                       const shard_input_t& shard_in UNUSED,
-                                                       const std::string& primary_str,
-                                                       const std::vector<std::string>& secondary_strs,
-                                                       cluster_semilattice_metadata_t& cluster_metadata,
-                                                       const std::string& post_path) {
-    machine_id_t primary;
-    std::multimap<datacenter_id_t, machine_id_t> datacenter_use;
-    std::multimap<datacenter_id_t, machine_id_t> old_datacenter_use;
-    typename region_map_t<protocol_t, machine_id_t>::iterator primary_shard;
-    typename region_map_t<protocol_t, std::set<machine_id_t> >::iterator secondaries_shard;
-    std::set<machine_id_t> secondaries;
-
-    // Check that none of the required fields are in conflict
-    if (ns.shards.in_conflict())
-        throw admin_cluster_exc_t("namespace shards are in conflict, run 'help resolve' for more information");
-    if (ns.primary_pinnings.in_conflict())
-        throw admin_cluster_exc_t("namespace primary pinnings are in conflict, run 'help resolve' for more information");
-    if (ns.secondary_pinnings.in_conflict())
-        throw admin_cluster_exc_t("namespace secondary pinnings are in conflict, run 'help resolve' for more information");
-    if (ns.replica_affinities.in_conflict())
-        throw admin_cluster_exc_t("namespace replica affinities are in conflict, run 'help resolve' for more information");
-    if (ns.primary_datacenter.in_conflict())
-        throw admin_cluster_exc_t("namespace primary datacenter is in conflict, run 'help resolve' for more information");
-
-    // Verify that the selected shard exists, and convert it into a region_t
+typename protocol_t::region_t admin_cluster_link_t::find_shard_in_namespace(namespace_semilattice_metadata_t<protocol_t>& ns,
+                                                                            const shard_input_t& shard_in) {
     typename protocol_t::region_t shard;
     typename std::set<typename protocol_t::region_t>::iterator s = ns.shards.get_mutable().begin();
     while (s != ns.shards.get_mutable().end()) {
@@ -366,6 +390,38 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
 
     if (s == ns.shards.get_mutable().end())
         throw admin_cluster_exc_t("could not find specified shard");
+
+    return shard;
+}
+
+template <class protocol_t>
+void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_metadata_t<protocol_t>& ns,
+                                                       const shard_input_t& shard_in,
+                                                       const std::string& primary_str,
+                                                       const std::vector<std::string>& secondary_strs,
+                                                       cluster_semilattice_metadata_t& cluster_metadata,
+                                                       const std::string& post_path) {
+    machine_id_t primary(nil_uuid());
+    std::multimap<datacenter_id_t, machine_id_t> datacenter_use;
+    std::multimap<datacenter_id_t, machine_id_t> old_datacenter_use;
+    typename region_map_t<protocol_t, machine_id_t>::iterator primary_shard;
+    typename region_map_t<protocol_t, std::set<machine_id_t> >::iterator secondaries_shard;
+    std::set<machine_id_t> secondaries;
+
+    // Check that none of the required fields are in conflict
+    if (ns.shards.in_conflict())
+        throw admin_cluster_exc_t("namespace shards are in conflict, run 'help resolve' for more information");
+    if (ns.primary_pinnings.in_conflict())
+        throw admin_cluster_exc_t("namespace primary pinnings are in conflict, run 'help resolve' for more information");
+    if (ns.secondary_pinnings.in_conflict())
+        throw admin_cluster_exc_t("namespace secondary pinnings are in conflict, run 'help resolve' for more information");
+    if (ns.replica_affinities.in_conflict())
+        throw admin_cluster_exc_t("namespace replica affinities are in conflict, run 'help resolve' for more information");
+    if (ns.primary_datacenter.in_conflict())
+        throw admin_cluster_exc_t("namespace primary datacenter is in conflict, run 'help resolve' for more information");
+
+    // Verify that the selected shard exists, and convert it into a region_t
+    typename protocol_t::region_t shard = find_shard_in_namespace(ns, shard_in);
 
     // Verify primary is a valid machine and matches the primary datacenter
     if (!primary_str.empty()) {
@@ -459,6 +515,7 @@ void admin_cluster_link_t::insert_pinning(map_type& region_map, const key_range_
     region_map = new_map;
 }
 
+// TODO: templatize on protocol
 void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     std::vector<std::string> ns_path(get_info_from_id(data.params["namespace"][0])->path);
@@ -470,7 +527,7 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
         namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator ns_it =
             cluster_metadata.memcached_namespaces.namespaces.find(ns_id);
 
-        if (ns_it == cluster_metadata.memcached_namespaces.namespaces.end())
+        if (ns_it == cluster_metadata.memcached_namespaces.namespaces.end() || ns_it->second.is_deleted())
             throw admin_cluster_exc_t("unexpected error when looking up namespace: " + ns_path[1]);
 
         namespace_semilattice_metadata_t<memcached_protocol_t>& ns = ns_it->second.get_mutable();
@@ -517,13 +574,18 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
         }
 
         // Any time shards are changed, we destroy existing pinnings
-        ns.primary_pinnings.get_mutable().set(memcached_protocol_t::region_t::universe(), machine_id_t());
-        ns.secondary_pinnings.get_mutable().set(memcached_protocol_t::region_t::universe(), std::set<machine_id_t>());
+        // Use 'resolve' because they should be cleared even if in conflict
+        // ID sent to the vector clock doesn't matter here since we're setting the metadata through HTTP (TODO: change this if that is no longer true)
+        region_map_t<memcached_protocol_t, machine_id_t> new_primaries(memcached_protocol_t::region_t::universe(), nil_uuid());
+        region_map_t<memcached_protocol_t, std::set<machine_id_t> > new_secondaries(memcached_protocol_t::region_t::universe(), std::set<machine_id_t>());
+
+        ns.primary_pinnings = ns.primary_pinnings.make_resolving_version(new_primaries, connectivity_cluster.get_me().get_uuid());
+        ns.secondary_pinnings = ns.secondary_pinnings.make_resolving_version(new_secondaries, connectivity_cluster.get_me().get_uuid());
 
         std::string post_path(path_to_str(ns_path));
         post_metadata(post_path + "/shards", ns.shards.get_mutable());
-        post_metadata(post_path + "/primary_pinnings", ns.primary_pinnings.get_mutable());
-        post_metadata(post_path + "/secondary_pinnings", ns.secondary_pinnings.get_mutable());
+        post_metadata(post_path + "/primary_pinnings/resolve", ns.primary_pinnings.get_mutable());
+        post_metadata(post_path + "/secondary_pinnings/resolve", ns.secondary_pinnings.get_mutable());
 
     } else if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("splitting not supported for dummy namespaces");
@@ -545,7 +607,7 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
         namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator ns_it =
             cluster_metadata.memcached_namespaces.namespaces.find(ns_id);
 
-        if (ns_it == cluster_metadata.memcached_namespaces.namespaces.end())
+        if (ns_it == cluster_metadata.memcached_namespaces.namespaces.end() || ns_it->second.is_deleted())
             throw admin_cluster_exc_t("unexpected error when looking up namespace: " + ns_path[1]);
 
         namespace_semilattice_metadata_t<memcached_protocol_t>& ns = ns_it->second.get_mutable();
@@ -589,13 +651,18 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
         }
 
         // Any time shards are changed, we destroy existing pinnings
-        ns.primary_pinnings.get_mutable().set(memcached_protocol_t::region_t::universe(), machine_id_t());
-        ns.secondary_pinnings.get_mutable().set(memcached_protocol_t::region_t::universe(), std::set<machine_id_t>());
+        // Use 'resolve' because they should be cleared even if in conflict
+        // ID sent to the vector clock doesn't matter here since we're setting the metadata through HTTP (TODO: change this if that is no longer true)
+        region_map_t<memcached_protocol_t, machine_id_t> new_primaries(memcached_protocol_t::region_t::universe(), nil_uuid());
+        region_map_t<memcached_protocol_t, std::set<machine_id_t> > new_secondaries(memcached_protocol_t::region_t::universe(), std::set<machine_id_t>());
+
+        ns.primary_pinnings = ns.primary_pinnings.make_resolving_version(new_primaries, connectivity_cluster.get_me().get_uuid());
+        ns.secondary_pinnings = ns.secondary_pinnings.make_resolving_version(new_secondaries, connectivity_cluster.get_me().get_uuid());
 
         std::string post_path(path_to_str(ns_path));
         post_metadata(post_path + "/shards", ns.shards.get_mutable());
-        post_metadata(post_path + "/primary_pinnings", ns.primary_pinnings.get_mutable());
-        post_metadata(post_path + "/secondary_pinnings", ns.secondary_pinnings.get_mutable());
+        post_metadata(post_path + "/primary_pinnings/resolve", ns.primary_pinnings.get_mutable());
+        post_metadata(post_path + "/secondary_pinnings/resolve", ns.secondary_pinnings.get_mutable());
 
     } else if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("merging not supported for dummy namespaces");
@@ -633,15 +700,87 @@ void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& d
         list_all(long_format, cluster_metadata);
     } else {
         // TODO: special formatting for each object type, instead of JSON
-        namespace_metadata_ctx_t json_ctx(connectivity_cluster.get_me().get_uuid());
-        std::vector<std::string> obj_path(get_info_from_id(id)->path);
-        puts(cJSON_print_std_string(scoped_cJSON_t(traverse_directory(obj_path, json_ctx, cluster_metadata)->render(json_ctx)).get()).c_str());
+        metadata_info_t *info = get_info_from_id(id);
+        boost::uuids::uuid obj_id = str_to_uuid(info->uuid);
+        if (info->path[0] == "datacenters") {
+            datacenters_semilattice_metadata_t::datacenter_map_t::iterator i = cluster_metadata.datacenters.datacenters.find(obj_id);
+            if (i == cluster_metadata.datacenters.datacenters.end() || i->second.is_deleted())
+                throw admin_cluster_exc_t("object not found: " + id);
+            list_single_datacenter(obj_id, i->second.get_mutable(), cluster_metadata);
+        } else if (info->path[0] == "dummy_namespaces") {
+            namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(obj_id);
+            if (i == cluster_metadata.dummy_namespaces.namespaces.end() || i->second.is_deleted())
+                throw admin_cluster_exc_t("object not found: " + id);
+            list_single_namespace(obj_id, i->second.get_mutable(), cluster_metadata, "dummy");
+        } else if (info->path[0] == "memcached_namespaces") {
+            namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(obj_id);
+            if (i == cluster_metadata.memcached_namespaces.namespaces.end() || i->second.is_deleted())
+                throw admin_cluster_exc_t("object not found: " + id);
+            list_single_namespace(obj_id, i->second.get_mutable(), cluster_metadata, "memcached");
+        } else if (info->path[0] == "machines") {
+            machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.find(obj_id);
+            if (i == cluster_metadata.machines.machines.end() || i->second.is_deleted())
+                throw admin_cluster_exc_t("object not found: " + id);
+            list_single_machine(obj_id, i->second.get_mutable(), cluster_metadata);
+        } else
+            throw admin_cluster_exc_t("unexpected error, object found, but type not recognized");
     }
 }
 
 template <class protocol_t>
-void admin_cluster_link_t::list_pinnings(namespace_semilattice_metadata_t<protocol_t>& ns UNUSED, const shard_input_t& shard_in UNUSED) {
-    printf("NYI\n");
+void admin_cluster_link_t::list_pinnings(namespace_semilattice_metadata_t<protocol_t>& ns, const shard_input_t& shard_in, cluster_semilattice_metadata_t& cluster_metadata) {
+    if (ns.blueprint.in_conflict())
+        throw admin_cluster_exc_t("namespace blueprint is in conflict");
+    if (ns.shards.in_conflict())
+        throw admin_cluster_exc_t("namespace shards are in conflict");
+
+    // Search through for the shard
+    typename protocol_t::region_t shard = find_shard_in_namespace(ns, shard_in);
+
+    list_pinnings_internal(ns.blueprint.get(), shard, cluster_metadata);
+}
+
+template <class bp_type>
+void admin_cluster_link_t::list_pinnings_internal(const bp_type& bp,
+                                                  const key_range_t& shard,
+                                                  cluster_semilattice_metadata_t& cluster_metadata) {
+    std::vector<std::vector<std::string> > table;
+    std::vector<std::string> delta;
+
+    delta.push_back("type");
+    delta.push_back("machine");
+    delta.push_back("datacenter");
+    table.push_back(delta);
+
+    for (typename bp_type::role_map_t::const_iterator i = bp.machines_roles.begin(); i != bp.machines_roles.end(); ++i) {
+        typename bp_type::region_to_role_map_t::const_iterator j = i->second.find(shard);
+        if (j != i->second.end() && j->second != blueprint_details::role_nothing) {
+            delta.clear();
+
+            if (j->second == blueprint_details::role_primary)
+                delta.push_back("primary");
+            else if (j->second == blueprint_details::role_secondary)
+                delta.push_back("secondary");
+            else
+                throw admin_cluster_exc_t("unexpected error, unrecognized role type encountered");
+
+            delta.push_back(truncate_uuid(i->first));
+
+            // Find the machine to get the datacenter
+            machines_semilattice_metadata_t::machine_map_t::iterator m = cluster_metadata.machines.machines.find(i->first);
+            if (m == cluster_metadata.machines.machines.end() || m->second.is_deleted())
+                throw admin_cluster_exc_t("unexpected error, blueprint invalid");
+            else if (m->second.get().datacenter.in_conflict())
+                delta.push_back("<conflict>");
+            else
+                delta.push_back(truncate_uuid(m->second.get().datacenter.get()));
+
+            table.push_back(delta);
+        }
+    }
+
+    if (table.size() > 1)
+        admin_print_table(table);
 }
 
 void admin_cluster_link_t::list_stats(bool long_format UNUSED) {
@@ -666,33 +805,6 @@ void admin_cluster_link_t::list_issues(bool long_format UNUSED) {
     }
 }
 
-void admin_print_table(const std::vector<std::vector<std::string> >& table) {
-    std::vector<int> column_widths;
-
-    if (table.size() == 0)
-        return;
-
-    for (size_t i = 1; i < table.size(); ++i)
-        if (table[i].size() != table[0].size())
-            throw admin_cluster_exc_t("unexpected error when printing table");
-
-    for (size_t i = 0; i < table[0].size(); ++i) {
-        int max = table[0][i].length();
-
-        for (size_t j = 1; j < table.size(); ++j)
-            if ((int)table[j][i].length() > max)
-                max = table[j][i].length();
-
-        column_widths.push_back(max);
-    }
-
-    for (size_t i = 0; i < table.size(); ++i) {
-        for (size_t j = 0; j < table[i].size(); ++j)
-            printf("%-*s", column_widths[j] + 2, table[i][j].c_str());
-        printf("\n");
-    }
-}
-
 template <class map_type>
 void admin_cluster_link_t::list_all_internal(const std::string& type, bool long_format, map_type& obj_map, std::vector<std::vector<std::string> >& table) {
     std::vector<std::string> delta;
@@ -705,7 +817,7 @@ void admin_cluster_link_t::list_all_internal(const std::string& type, bool long_
             if (long_format)
                 delta.push_back(uuid_to_str(i->first));
             else
-                delta.push_back(uuid_to_str(i->first).substr(0, uuid_output_length));
+                delta.push_back(truncate_uuid(i->first));
 
             if (i->second.get().name.in_conflict())
                 delta.push_back("<conflict>");
@@ -754,14 +866,15 @@ std::map<datacenter_id_t, admin_cluster_link_t::datacenter_info_t> admin_cluster
         }
     }
 
-    add_datacenter_info_affinities(cluster_metadata.dummy_namespaces.namespaces, results);
-    add_datacenter_info_affinities(cluster_metadata.memcached_namespaces.namespaces, results);
+    // TODO: this will list affinities, but not actual state (in case of impossible requirements)
+    add_datacenter_affinities(cluster_metadata.dummy_namespaces.namespaces, results);
+    add_datacenter_affinities(cluster_metadata.memcached_namespaces.namespaces, results);
 
     return results;
 }
 
 template <class map_type>
-void admin_cluster_link_t::add_datacenter_info_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t>& results) {
+void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t>& results) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i)
         if (!i->second.is_deleted()) {
             if (!i->second.get().primary_datacenter.in_conflict())
@@ -801,7 +914,7 @@ void admin_cluster_link_t::list_datacenters(bool long_format, cluster_semilattic
             if (long_format)
                 delta.push_back(uuid_to_str(i->first));
             else
-                delta.push_back(uuid_to_str(i->first).substr(0, uuid_output_length));
+                delta.push_back(truncate_uuid(i->first));
             if (i->second.get().name.in_conflict())
                 delta.push_back("<conflict>");
             else
@@ -906,7 +1019,7 @@ void admin_cluster_link_t::add_namespaces(const std::string& protocol, bool long
             if (long_format)
                 delta.push_back(uuid_to_str(i->first));
             else
-                delta.push_back(uuid_to_str(i->first).substr(0, uuid_output_length));
+                delta.push_back(truncate_uuid(i->first));
 
             if (!i->second.get().name.in_conflict())
                 delta.push_back(i->second.get().name.get());
@@ -1027,7 +1140,7 @@ void admin_cluster_link_t::list_machines(bool long_format, cluster_semilattice_m
             if (long_format)
                 delta.push_back(uuid_to_str(i->first));
             else
-                delta.push_back(uuid_to_str(i->first).substr(0, uuid_output_length));
+                delta.push_back(truncate_uuid(i->first));
 
             if (!i->second.get().name.in_conflict())
                 delta.push_back(i->second.get().name.get());
@@ -1040,7 +1153,7 @@ void admin_cluster_link_t::list_machines(bool long_format, cluster_semilattice_m
                 else if (long_format)
                     delta.push_back(uuid_to_str(i->second.get().datacenter.get()));
                 else
-                    delta.push_back(uuid_to_str(i->second.get().datacenter.get()).substr(0, uuid_output_length));
+                    delta.push_back(truncate_uuid(i->second.get().datacenter.get()));
             } else
                 delta.push_back("<conflict>");
 
@@ -1067,13 +1180,9 @@ void admin_cluster_link_t::list_machines(bool long_format, cluster_semilattice_m
 }
 
 void admin_cluster_link_t::do_admin_create_datacenter(admin_command_parser_t::command_data& data) {
-    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    datacenter_semilattice_metadata_t datacenter;
-
-    if (data.params.count("name") == 1)
-        datacenter.name.get_mutable().assign(data.params["name"][0]);
-
-    post_metadata("datacenters/new", datacenter);
+    std::string uuid = create_metadata("datacenters");
+    post_metadata("datacenters/" + uuid + "/name", data.params["name"][0]);
+    printf("uuid: %s\n", uuid.c_str());
 }
 
 
@@ -1081,31 +1190,22 @@ void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::com
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     std::string protocol(data.params["protocol"][0]);
     std::string port_str(data.params["port"][0]);
-    datacenter_id_t primary;
-    std::string name;
-    int port;
-
-    if (data.params.count("name") == 1)
-        name.assign(data.params["name"][0]);
+    std::string name(data.params["name"][0]);
+    int port = atoi(port_str.c_str());
+    std::string datacenter_id(data.params["primary"][0]);
+    metadata_info_t *datacenter_info(get_info_from_id(datacenter_id));
+    datacenter_id_t primary(str_to_uuid(datacenter_info->path[1]));
 
     // Make sure port is a number
     for (size_t i = 0; i < port_str.length(); ++i)
         if (port_str[i] < '0' || port_str[i] > '9')
             throw admin_parse_exc_t("port is not a number");
 
-    port = atoi(port_str.c_str());
     if (port > 65536)
         throw admin_parse_exc_t("port is too large: " + port_str);
 
-    if (data.params.count("primary") == 1) {
-
-        std::vector<std::string> datacenter_path(get_info_from_id(data.params["primary"][0])->path);
-
-        if (datacenter_path[0] != "datacenters")
-            throw admin_parse_exc_t("namespace primary is not a datacenter: " + data.params["primary"][0]);
-
-        primary = str_to_uuid(datacenter_path[datacenter_path.size() - 1]);
-    }
+    if (datacenter_info->path[0] != "datacenters")
+        throw admin_parse_exc_t("namespace primary is not a datacenter: " + datacenter_id);
 
     if (protocol == "memcached")
         do_admin_create_namespace_internal<memcached_protocol_t>(name, port, primary, "memcached_namespaces");
@@ -1116,48 +1216,94 @@ void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::com
 }
 
 template <class protocol_t>
-void admin_cluster_link_t::do_admin_create_namespace_internal(const std::string& name,
+void admin_cluster_link_t::do_admin_create_namespace_internal(std::string& name,
                                                               int port,
-                                                              const datacenter_id_t& primary,
+                                                              datacenter_id_t& primary,
                                                               const std::string& path) {
-    std::set<typename protocol_t::region_t> shards;
-    namespace_semilattice_metadata_t<protocol_t> obj;
+    std::string uuid = create_metadata(path);
+    std::string full_path(path + "/" + uuid);
 
-    if (!name.empty())
-        obj.name.get_mutable().assign(name);
+    post_metadata(full_path + "/name", name);
+    post_metadata(full_path + "/primary_uuid", primary);
+    post_metadata(full_path + "/port", port);
 
-    obj.primary_datacenter.get_mutable() = primary;
-    obj.port.get_mutable() = port;
-
-    shards.insert(protocol_t::region_t::universe());
-    obj.shards.get_mutable() = shards;
-
-    post_metadata(path + "/new", obj);
+    printf("uuid: %s\n", uuid.c_str());
 }
 
 void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     std::string obj_id(data.params["id"][0]);
-    std::vector<std::string> obj_path(get_info_from_id(obj_id)->path);
+    metadata_info_t *obj_info(get_info_from_id(obj_id));
     std::string datacenter_id(data.params["datacenter"][0]);
-    std::vector<std::string> datacenter_path(get_info_from_id(datacenter_id)->path);
-    boost::uuids::uuid datacenter_uuid(str_to_uuid(datacenter_path[1]));
+    metadata_info_t *datacenter_info(get_info_from_id(datacenter_id));
+    datacenter_id_t datacenter_uuid(str_to_uuid(datacenter_info->uuid));
 
     // Target must be a datacenter in all existing use cases
-    if (datacenter_path[0] != "datacenters")
+    if (datacenter_info->path[0] != "datacenters")
         throw admin_parse_exc_t("destination is not a datacenter: " + datacenter_id);
 
-    std::string post_path(path_to_str(obj_path));
-    if (obj_path[0] == "memcached_namespaces" || obj_path[0] == "dummy_namespaces")
+    std::string post_path(path_to_str(obj_info->path));
+    if (obj_info->path[0] == "memcached_namespaces" || obj_info->path[0] == "dummy_namespaces")
         post_path += "/primary_uuid";
-    else if (obj_path[0] == "machines")
+    else if (obj_info->path[0] == "machines") {
         post_path += "/datacenter_uuid";
-    else
+        // Any pinnings involving this machine must be culled
+        datacenter_id_t old_datacenter(datacenter_uuid);
+        machine_id_t machine(str_to_uuid(obj_info->uuid));
+
+        machines_semilattice_metadata_t::machine_map_t::iterator m = cluster_metadata.machines.machines.find(machine);
+        if (m != cluster_metadata.machines.machines.end() && !m->second.is_deleted() && !m->second.get().datacenter.in_conflict())
+            old_datacenter = m->second.get().datacenter.get();
+
+        // If the datacenter has changed (or we couldn't determine the old datacenter uuid), clear pinnings
+        if (old_datacenter != datacenter_uuid) {
+            remove_machine_pinnings(machine, "memcached_namespaces", cluster_metadata.memcached_namespaces.namespaces);
+            remove_machine_pinnings(machine, "dummy_namespaces", cluster_metadata.dummy_namespaces.namespaces);
+        }
+    } else
         throw admin_cluster_exc_t("target object is not a namespace or machine");
 
     post_metadata(post_path, datacenter_uuid);
+}
 
-    // TODO: check for conflict from post
+template <class protocol_t>
+void admin_cluster_link_t::remove_machine_pinnings(const machine_id_t& machine,
+                                                   const std::string& post_path,
+                                                   std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >& ns_map) {
+    // TODO: what if a pinning is in conflict with this machine specified, but is resolved later?
+    // perhaps when a resolve is issued, check to make sure it is still valid
+
+    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+        if (i->second.is_deleted())
+            continue;
+
+        namespace_semilattice_metadata_t<protocol_t>& ns = i->second.get_mutable();
+        std::string ns_post_path = post_path + "/" + uuid_to_str(i->first);
+        bool changed = false;
+
+        // Check for and remove the machine in primary pinnings
+        if (!ns.primary_pinnings.in_conflict())
+            for (typename region_map_t<protocol_t, machine_id_t>::iterator j = ns.primary_pinnings.get_mutable().begin();
+                 j != ns.primary_pinnings.get_mutable().end(); ++j) {
+                if (j->second == machine) {
+                    changed = true;
+                    j->second = nil_uuid();
+                }
+            }
+
+        if (changed)
+            post_metadata(ns_post_path + "/primary_pinnings", ns.primary_pinnings.get_mutable());
+
+        changed = false;
+        // Check for and remove the machine in secondary pinnings
+        if (!ns.secondary_pinnings.in_conflict())
+            for (typename region_map_t<protocol_t, std::set<machine_id_t> >::iterator j = ns.secondary_pinnings.get_mutable().begin();
+                 j != ns.secondary_pinnings.get_mutable().end(); ++j)
+                changed |= (j->second.erase(machine) > 0);
+
+        if (changed)
+            post_metadata(ns_post_path + "/secondary_pinnings", ns.secondary_pinnings.get_mutable());
+    }
 }
 
 void admin_cluster_link_t::do_admin_set_name(admin_command_parser_t::command_data& data) {
@@ -1224,7 +1370,6 @@ void admin_cluster_link_t::do_admin_set_acks_internal(namespace_semilattice_meta
     else if (num_acks > i->second + (is_primary ? 1 : 0))
         throw admin_cluster_exc_t("cannot assign more ack expectations than replicas in a datacenter");
 
-    // TODO: get a lock to avoid a race condition
     ns.ack_expectations.get_mutable()[datacenter] = num_acks;
 
     post_metadata(post_path, ns.ack_expectations.get_mutable());
@@ -1304,13 +1449,21 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
 
     for (size_t i = 0; i < ids.size(); ++i) {
         try {
-            std::vector<std::string> obj_path(get_info_from_id(ids[i])->path);
+            metadata_info_t *obj_info = get_info_from_id(ids[i]);
 
             // TODO: in case of machine, check if it's up and ask for confirmation if it is
 
-            delete_metadata(path_to_str(obj_path));
+            delete_metadata(path_to_str(obj_info->path));
 
-            // TODO: clean up any hanging references to this object's uuid?
+            // Clean up any hanging references
+            if (obj_info->path[0] == "machines") {
+                machine_id_t machine(str_to_uuid(obj_info->uuid));
+                remove_machine_pinnings(machine, "memcached_namespaces", cluster_metadata.memcached_namespaces.namespaces);
+                remove_machine_pinnings(machine, "dummy_namespaces", cluster_metadata.dummy_namespaces.namespaces);
+            } else if (obj_info->path[0] == "datacenters") {
+                datacenter_id_t datacenter(str_to_uuid(obj_info->uuid));
+                remove_datacenter_references(datacenter, cluster_metadata);
+            }
         } catch (std::exception& ex) {
             puts(ex.what());
             errored = true;
@@ -1319,6 +1472,408 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
 
     if (errored)
         throw admin_cluster_exc_t("not all removes were successful");
+}
+
+void admin_cluster_link_t::remove_datacenter_references(const datacenter_id_t& datacenter, cluster_semilattice_metadata_t& cluster_metadata) {
+    datacenter_id_t nil_id(nil_uuid());
+
+    // Go through machines
+    for (machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.begin();
+         i != cluster_metadata.machines.machines.end(); ++i) {
+        if (i->second.is_deleted())
+            continue;
+
+        std::string machine_post_path("machines/" + uuid_to_str(i->first));
+        if (!i->second.get().datacenter.in_conflict() && i->second.get().datacenter.get() == datacenter)
+            post_metadata(machine_post_path + "/datacenter_uuid", nil_id);
+    }
+
+    remove_datacenter_references_from_namespaces(datacenter, "memcached_namespaces", cluster_metadata.memcached_namespaces.namespaces);
+    remove_datacenter_references_from_namespaces(datacenter, "dummy_namespaces", cluster_metadata.dummy_namespaces.namespaces);
+}
+
+template <class protocol_t>
+void admin_cluster_link_t::remove_datacenter_references_from_namespaces(const datacenter_id_t& datacenter,
+                                                                        const std::string& post_path,
+                                                                        std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >& ns_map) {
+    datacenter_id_t nil_id(nil_uuid());
+
+    for (typename std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >::iterator i = ns_map.begin();
+         i != ns_map.end(); ++i) {
+        if (i->second.is_deleted())
+            continue;
+
+        namespace_semilattice_metadata_t<protocol_t>& ns = i->second.get_mutable();
+        std::string ns_post_path(post_path + "/" + uuid_to_str(i->first));
+
+        if (!ns.primary_datacenter.in_conflict() && ns.primary_datacenter.get() == datacenter)
+            post_metadata(ns_post_path + "/primary_uuid", nil_id);
+
+        if (!ns.replica_affinities.in_conflict() && ns.replica_affinities.get_mutable().erase(datacenter) > 0)
+            post_metadata(ns_post_path + "/replica_affinities", ns.replica_affinities.get_mutable());
+
+        if (!ns.ack_expectations.in_conflict() && ns.ack_expectations.get_mutable().erase(datacenter) > 0)
+            post_metadata(ns_post_path + "/ack_expectations", ns.ack_expectations.get_mutable());
+    }
+}
+
+template <class protocol_t>
+void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
+                                                 namespace_semilattice_metadata_t<protocol_t>& ns,
+                                                 cluster_semilattice_metadata_t& cluster_metadata,
+                                                 const std::string& protocol) {
+    if (ns.name.in_conflict() || ns.name.get_mutable().empty())
+        printf("namespace %s\n", uuid_to_str(ns_id).c_str());
+    else
+        printf("namespace '%s' %s\n", ns.name.get_mutable().c_str(), uuid_to_str(ns_id).c_str());
+
+    // Print primary datacenter
+    if (!ns.primary_datacenter.in_conflict()) {
+        datacenters_semilattice_metadata_t::datacenter_map_t::iterator dc = cluster_metadata.datacenters.datacenters.find(ns.primary_datacenter.get());
+        if (dc == cluster_metadata.datacenters.datacenters.end() ||
+            dc->second.is_deleted() ||
+            dc->second.get_mutable().name.in_conflict() ||
+            dc->second.get_mutable().name.get().empty())
+            printf("primary datacenter %s\n", uuid_to_str(ns.primary_datacenter.get()).c_str());
+        else
+            printf("primary datacenter '%s' %s\n", dc->second.get_mutable().name.get().c_str(), uuid_to_str(ns.primary_datacenter.get()).c_str());
+    } else
+        printf("primary datacenter <conflict>\n");
+
+    // Print port
+    if (ns.port.in_conflict())
+        printf("running %s protocol on port <conflict>\n", protocol.c_str());
+    else
+        printf("running %s protocol on port %i\n", protocol.c_str(), ns.port.get());
+    printf("\n");
+
+    std::vector<std::vector<std::string> > table;
+    std::vector<std::string> delta;
+
+    // Print configured affinities and ack expectations
+    delta.push_back("uuid");
+    delta.push_back("name");
+    delta.push_back("replicas");
+    delta.push_back("acks");
+    table.push_back(delta);
+
+    for (datacenters_semilattice_metadata_t::datacenter_map_t::iterator i = cluster_metadata.datacenters.datacenters.begin();
+         i != cluster_metadata.datacenters.datacenters.end(); ++i) {
+        if (!i->second.is_deleted()) {
+            bool affinity = false;
+            delta.clear();
+            delta.push_back(uuid_to_str(i->first));
+            delta.push_back(i->second.get_mutable().name.in_conflict() ? "<conflict>" : i->second.get_mutable().name.get());
+
+            if (!ns.primary_datacenter.in_conflict() && ns.primary_datacenter.get() == i->first) {
+                if (ns.replica_affinities.get_mutable().count(i->first) == 1)
+                    delta.push_back(strprintf("%i", ns.replica_affinities.get_mutable()[i->first] + 1));
+                else
+                    delta.push_back("1");
+
+                affinity = true;
+            } else if (ns.replica_affinities.get_mutable().count(i->first) == 1) {
+                delta.push_back(strprintf("%i", ns.replica_affinities.get_mutable()[i->first]));
+                affinity = true;
+            } else
+                delta.push_back("0");
+
+            if (ns.ack_expectations.get_mutable().count(i->first) == 1) {
+                delta.push_back(strprintf("%i", ns.ack_expectations.get_mutable()[i->first]));
+                affinity = true;
+            } else
+                delta.push_back("0");
+
+            if (affinity)
+                table.push_back(delta);
+        }
+    }
+
+    printf("affinity with %ld datacenter%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
+    if (table.size() > 1)
+        admin_print_table(table);
+    printf("\n");
+
+    if (ns.shards.in_conflict()) {
+        printf("shards in conflict\n");
+    } else if (ns.blueprint.in_conflict()) {
+        printf("cluster blueprint in conflict\n");
+    } else {
+        // Print shard hosting
+        table.clear();
+        delta.clear();
+        delta.push_back("shard");
+        delta.push_back("machine uuid");
+        delta.push_back("name");
+        delta.push_back("primary");
+        table.push_back(delta);
+
+        add_single_namespace_replicas(ns.shards.get_mutable(),
+                                      ns.blueprint.get_mutable(),
+                                      cluster_metadata.machines.machines,
+                                      table);
+
+        printf("%ld replica%s for %ld shard%s\n",
+               table.size() - 1, table.size() == 2 ? "" : "s",
+               ns.shards.get_mutable().size(), ns.shards.get_mutable().size() == 1 ? "" : "s");
+        if (table.size() > 1)
+            admin_print_table(table);
+    }
+}
+
+template <class protocol_t>
+void admin_cluster_link_t::add_single_namespace_replicas(std::set<typename protocol_t::region_t>& shards,
+                                                         persistable_blueprint_t<protocol_t>& blueprint,
+                                                         machines_semilattice_metadata_t::machine_map_t& machine_map,
+                                                         std::vector<std::vector<std::string> >& table) {
+    std::vector<std::string> delta;
+
+    for (typename std::set<typename protocol_t::region_t>::iterator s = shards.begin(); s != shards.end(); ++s) {
+        std::string shard_str(region_to_str(*s));
+
+        // First add the primary host
+        for (typename persistable_blueprint_t<protocol_t>::role_map_t::iterator i = blueprint.machines_roles.begin();
+             i != blueprint.machines_roles.end(); ++i) {
+            typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::iterator j = i->second.find(*s);
+            if (j != i->second.end() && j->second == blueprint_details::role_primary) {
+                delta.clear();
+                delta.push_back(shard_str);
+                delta.push_back(uuid_to_str(i->first));
+
+                machines_semilattice_metadata_t::machine_map_t::iterator m = machine_map.find(i->first);
+                if (m == machine_map.end() || m->second.is_deleted()) // This shouldn't really happen, but oh well
+                    delta.push_back(std::string());
+                else if (m->second.get_mutable().name.in_conflict())
+                    delta.push_back("<conflict>");
+                else
+                    delta.push_back(m->second.get_mutable().name.get());
+
+                delta.push_back("yes");
+                table.push_back(delta);
+            }
+        }
+
+        // Then add all the secondaries
+        for (typename persistable_blueprint_t<protocol_t>::role_map_t::iterator i = blueprint.machines_roles.begin();
+             i != blueprint.machines_roles.end(); ++i) {
+            typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::iterator j = i->second.find(*s);
+            if (j != i->second.end() && j->second == blueprint_details::role_secondary) {
+                delta.clear();
+                delta.push_back(shard_str);
+                delta.push_back(uuid_to_str(i->first));
+
+                machines_semilattice_metadata_t::machine_map_t::iterator m = machine_map.find(i->first);
+                if (m == machine_map.end() || m->second.is_deleted()) // This shouldn't really happen, but oh well
+                    delta.push_back(std::string());
+                else if (m->second.get_mutable().name.in_conflict())
+                    delta.push_back("<conflict>");
+                else
+                    delta.push_back(m->second.get_mutable().name.get());
+
+                delta.push_back("no");
+                table.push_back(delta);
+            }
+        }
+    }
+}
+
+void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
+                                                  datacenter_semilattice_metadata_t& dc,
+                                                  cluster_semilattice_metadata_t& cluster_metadata) {
+    std::vector<std::vector<std::string> > table;
+    std::vector<std::string> delta;
+    if (dc.name.in_conflict() || dc.name.get_mutable().empty())
+        printf("datacenter %s\n", uuid_to_str(dc_id).c_str());
+    else
+        printf("datacenter '%s' %s\n", dc.name.get_mutable().c_str(), uuid_to_str(dc_id).c_str());
+    printf("\n");
+
+    // Get a list of machines in the datacenter
+    delta.push_back("uuid");
+    delta.push_back("name");
+    table.push_back(delta);
+
+    for (machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.begin();
+         i != cluster_metadata.machines.machines.end(); ++i) {
+        if (!i->second.is_deleted() &&
+            !i->second.get_mutable().datacenter.in_conflict() &&
+            i->second.get_mutable().datacenter.get() == dc_id) {
+            delta.clear();
+            delta.push_back(uuid_to_str(i->first));
+            delta.push_back(i->second.get_mutable().name.in_conflict() ? "<conflict>" : i->second.get_mutable().name.get());
+            table.push_back(delta);
+        }
+    }
+
+    printf("%ld machine%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
+    if (table.size() > 1)
+        admin_print_table(table);
+    printf("\n");
+
+    // Get a list of namespaces hosted by the datacenter
+    table.clear();
+    delta.clear();
+    delta.push_back("uuid");
+    delta.push_back("name");
+    delta.push_back("protocol");
+    delta.push_back("primary");
+    delta.push_back("replicas");
+    table.push_back(delta);
+
+    add_single_datacenter_affinities(dc_id, cluster_metadata.dummy_namespaces.namespaces, table, "dummy");
+    add_single_datacenter_affinities(dc_id, cluster_metadata.memcached_namespaces.namespaces, table, "memcached");
+
+    printf("%ld namespace%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
+    if (table.size() > 1)
+        admin_print_table(table);
+}
+
+template <class map_type>
+void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_t& dc_id, map_type& ns_map, std::vector<std::vector<std::string> >& table, const std::string& protocol) {
+    std::vector<std::string> delta;
+
+    for (typename map_type::iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+        if (!i->second.is_deleted()) {
+            typename map_type::mapped_type::value_t& ns = i->second.get_mutable();
+            size_t replicas(0);
+
+            delta.clear();
+            delta.push_back(uuid_to_str(i->first));
+            delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get());
+            delta.push_back(protocol);
+
+            // TODO: this will only list the replicas required by the user, not the actual replicas (in case of impossible requirements)
+            if (!ns.primary_datacenter.in_conflict() &&
+                ns.primary_datacenter.get() == dc_id) {
+                delta.push_back("yes");
+                ++replicas;
+            } else
+                delta.push_back("no");
+
+            if (!ns.replica_affinities.in_conflict() &&
+                ns.replica_affinities.get_mutable().count(dc_id) == 1)
+                replicas += ns.replica_affinities.get_mutable()[dc_id];
+
+            delta.push_back(strprintf("%ld", replicas));
+
+            if (replicas > 0)
+                table.push_back(delta);
+        }
+    }
+}
+
+void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
+                                               machine_semilattice_metadata_t& machine,
+                                               cluster_semilattice_metadata_t& cluster_metadata UNUSED) {
+    if (machine.name.in_conflict() || machine.name.get_mutable().empty())
+        printf("machine %s\n", uuid_to_str(machine_id).c_str());
+    else
+        printf("machine '%s' %s\n", machine.name.get_mutable().c_str(), uuid_to_str(machine_id).c_str());
+
+    // Print datacenter
+    if (!machine.datacenter.in_conflict()) {
+        datacenters_semilattice_metadata_t::datacenter_map_t::iterator dc = cluster_metadata.datacenters.datacenters.find(machine.datacenter.get());
+        if (dc == cluster_metadata.datacenters.datacenters.end() ||
+            dc->second.is_deleted() ||
+            dc->second.get_mutable().name.in_conflict() ||
+            dc->second.get_mutable().name.get().empty())
+            printf("in datacenter %s\n", uuid_to_str(machine.datacenter.get()).c_str());
+        else
+            printf("in datacenter '%s' %s\n", dc->second.get_mutable().name.get().c_str(), uuid_to_str(machine.datacenter.get()).c_str());
+    } else
+        printf("in datacenter <conflict>\n");
+    printf("\n");
+
+    // Print hosted replicas
+    std::vector<std::vector<std::string> > table;
+    std::vector<std::string> header;
+
+    header.push_back("namespace");
+    header.push_back("name");
+    header.push_back("shard");
+    header.push_back("primary");
+    table.push_back(header);
+
+    size_t namespace_count = 0;
+    namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.dummy_namespaces.namespaces, table);
+    namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.memcached_namespaces.namespaces, table);
+
+    printf("hosting %ld replica%s from %ld namespace%s\n", table.size() - 1, table.size() == 2 ? "" : "s", namespace_count, namespace_count == 1 ? "" : "s");
+    if (table.size() > 1)
+        admin_print_table(table);
+}
+
+template <class map_type>
+size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& machine_id,
+                                                         map_type& ns_map,
+                                                         std::vector<std::vector<std::string> >& table) {
+    size_t matches(0);
+
+    for (typename map_type::iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+        // TODO: if there is a blueprint conflict, the values won't be accurate
+        if (!i->second.is_deleted() && !i->second.get_mutable().blueprint.in_conflict()) {
+            typename map_type::mapped_type::value_t& ns = i->second.get_mutable();
+            std::string uuid(uuid_to_str(i->first));
+            std::string name(ns.name.in_conflict() ? "<conflict>" : ns.name.get_mutable());
+            matches += add_single_machine_blueprint(machine_id, ns.blueprint.get_mutable(), table, uuid, name);
+        }
+    }
+
+    return matches;
+}
+
+std::string region_to_str(const memcached_protocol_t::region_t& region) {
+    std::string shard_str;
+    if (region.left == store_key_t())
+        shard_str += "inf-";
+    else
+        shard_str += "\"" + key_to_str(region.left) + "\"-";
+    if (region.right.unbounded)
+        shard_str += "inf";
+    else
+        shard_str += "\"" + key_to_str(region.right.key) + "\"";
+    return shard_str;
+}
+
+std::string region_to_str(const mock::dummy_protocol_t::region_t& region) {
+    return mock::to_string(region);
+}
+
+template <class protocol_t>
+bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& machine_id,
+                                                        persistable_blueprint_t<protocol_t>& blueprint,
+                                                        std::vector<std::vector<std::string> >& table,
+                                                        const std::string& ns_uuid,
+                                                        const std::string& ns_name) {
+    std::vector<std::string> delta;
+    bool match(false);
+
+    typename persistable_blueprint_t<protocol_t>::role_map_t::iterator machine_entry = blueprint.machines_roles.find(machine_id);
+    if (machine_entry == blueprint.machines_roles.end())
+        return false;
+
+    for (typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::iterator i = machine_entry->second.begin();
+         i != machine_entry->second.end(); ++i) {
+        if (i->second == blueprint_details::role_primary || i->second == blueprint_details::role_secondary) {
+            delta.push_back(ns_uuid);
+            delta.push_back(ns_name);
+
+            // Build a string for the shard
+            delta.push_back(region_to_str(i->first));
+
+            if (i->second == blueprint_details::role_primary)
+                delta.push_back("yes");
+            else
+                delta.push_back("no");
+
+            table.push_back(delta);
+            match = true;
+        } else
+            continue;
+    }
+
+
+    return match;
 }
 
 void admin_cluster_link_t::do_admin_resolve(admin_command_parser_t::command_data& data UNUSED) {
@@ -1341,7 +1896,9 @@ size_t admin_cluster_link_t::get_machine_count_in_datacenter(const cluster_semil
 
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin();
          i != cluster_metadata.machines.machines.end(); ++i)
-        if (!i->second.is_deleted() && i->second.get().datacenter.get() == datacenter)
+        if (!i->second.is_deleted() &&
+            !i->second.get().datacenter.in_conflict() &&
+            i->second.get().datacenter.get() == datacenter)
             ++count;
 
     return count;
@@ -1386,16 +1943,28 @@ size_t admin_cluster_link_t::handle_post_result(char *ptr, size_t size, size_t n
 template <class T>
 void admin_cluster_link_t::post_metadata(std::string path, T& metadata) {
     namespace_metadata_ctx_t json_ctx(connectivity_cluster.get_me().get_uuid());
-
-    curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, NULL);
-
     post_internal(path, cJSON_print_std_string(render_as_json(&metadata, json_ctx)));
 }
 
-void admin_cluster_link_t::delete_metadata(std::string path UNUSED) {
+void admin_cluster_link_t::delete_metadata(const std::string& path) {
     curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "DELETE");
-
     post_internal(path, "{ }");
+    curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, NULL);
+}
+
+std::string admin_cluster_link_t::create_metadata(const std::string& path) {
+    post_internal(path + "/new", "{ }");
+
+    scoped_cJSON_t result(cJSON_Parse(post_result.c_str()));
+
+    if (result.get() == NULL)
+        throw admin_cluster_exc_t("unexpected error, failed to parse result");
+
+    if (cJSON_GetArraySize(result.get()) != 1)
+        throw admin_cluster_exc_t("unexpected error, failed to parse result");
+
+    cJSON* new_item = cJSON_GetArrayItem(result.get(), 0);
+    return std::string(new_item->string);
 }
 
 void admin_cluster_link_t::post_internal(std::string path, std::string data) {
@@ -1403,9 +1972,9 @@ void admin_cluster_link_t::post_internal(std::string path, std::string data) {
     curl_easy_setopt(curl_handle, CURLOPT_URL, (sync_peer + path).c_str());
     curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, data.c_str());
     curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, data.length());
-    curl_easy_perform(curl_handle);
+    CURLcode ret = curl_easy_perform(curl_handle);
 
-    // TODO: get results/error code and throw appropriate exception
-    // curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE)
+    if (ret != 0)
+        throw admin_no_connection_exc_t("error when posting data to sync peer");
 }
 
