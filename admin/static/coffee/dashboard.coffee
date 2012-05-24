@@ -46,10 +46,24 @@ module 'DashboardView', ->
                 has_persistence_problems: false
                 num_machines: machines.length
                 num_namespaces: namespaces.length
+                num_masters: 0
 
+            masters = {}
+            namespaces.each (namespace) ->
+                for machine_uuid, role_summary of namespace.get('blueprint').peers_roles
+                    for shard, role of role_summary
+                        if role is 'role_primary'
+                            masters[machine_uuid] = 
+                                name: namespace.get('name')
+                                id: namespace.get('id')
+                            status.num_masters++
+    
             if issues.length != 0
                 status.num_machines_with_disk_problems = 0
                 status.machines_with_disk_problems = []
+
+                status.num_masters_offline = 0
+                status.masters_offline = []
                 for issue in issues.models
                     switch issue.get("type")
                         when "PERSISTENCE_ISSUE"
@@ -58,20 +72,25 @@ module 'DashboardView', ->
                                 name: machines.get(issue.get('location')).get('name')
                             status.machines_with_disk_problems.push(new_machine)
                         when "MACHINE_DOWN"
-                            status.has_availability_problems = true
+                            if issue.get('victim') of masters
+                                status.masters_offline.push 
+                                    machine_id: issue.get('victim')
+                                    machine_name: machines.get(issue.get('victim')).get('name')
+                                    namespace_name: masters[issue.get('victim')].name
+                                    namespace_id: masters[issue.get('victim')].id
 
                 if status.machines_with_disk_problems.length > 0
                     status.num_machines_with_disk_problems = status.machines_with_disk_problems.length
                     status.has_persistence_problems = true
-
+                if status.masters_offline.length > 0
+                    status.num_masters_offline = status.masters_offline.length
+                    status.has_availability_problems = true
             status
 
         render: =>
             log_render '(rendering) cluster status view'
             
-            #$('#cluster_status_container').html @.$el.html @template(@compute_status())
             @.$el.html @template(@compute_status())
-
 
             @.$('a[rel=dashboard_details]').popover
                 html: true

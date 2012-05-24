@@ -18,11 +18,19 @@ Handlebars.registerHelper 'comma_separated', (context, block) ->
     return out
 
 
-# Returns a comma-separated list of links
+# Returns a list to links to machine
 Handlebars.registerHelper 'links_to_machines', (machines) ->
     out = ""
     for i in [0...machines.length]
         out += '<a href="#machines/'+machines[i].uid+'">'+machines[i].name+'</a>'
+        out += ", " if i isnt machines.length-1
+    return out
+
+#Returns a list of links to machines and namespaces
+Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
+    out = ""
+    for i in [0...machines.length]
+        out += '<p><a href="#namespaces/'+machines[i].namespace_uuid+'">'+machines[i].namespace_name+'</a> (<a href="#machines/'+machines[i].machine_id+'">'+machines[i].machine_name+'</a>)</p>'
         out += ", " if i isnt machines.length-1
     return out
 

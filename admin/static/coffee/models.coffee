@@ -23,7 +23,6 @@ class Namespace extends Backbone.Model
                 @set('key_distr_sorted', distr_keys)
                 # TODO: magic number
                 window.setTimeout @load_key_distr, 5000
-
     sorted_key_distr_keys: =>
         keys = @get('key_distr_sorted')
         if keys?

@@ -11,14 +11,22 @@
           {{#if has_availability_problems}}
           <td class="problems-detected availability">
               <h3>Availability</h3>
-              <p class="message">Availability issues detected</p>
-              <p class="details">{{num_masters_online}} of {{num_masters}} masters are online</p>
+              <p class="message">
+               <a href="#" class="json" rel="dashboard_details" data-content="<pre>{{pluralize_noun "namespace" num_master_offline}} not available: {{links_to_masters_and_namespaces masters_offline}}</pre>" data-title="Availability problems">
+                Availability issues
+              </a>             
+              detected
+              </p>
+              <p class="details">{{num_masters_offline}} of {{num_masters}} {{pluralize_noun "master" num_masters_online}} {{pluralize_verb_to_be num_masters_online}} not available</p>
+
+
+
           </td>
           {{else}}
           <td class="no-problems-detected availability">
               <h3>Availability</h3>
               <p class="message">No availability issues detected</p>
-              <p class="details">{{num_masters_online}} of {{num_masters}} masters are online</p>
+              <p class="details">{{num_masters}} of {{num_masters}} {{pluralize_noun "master" num_masters}} are online</p>
           </td>
           {{/if}}
 
