@@ -126,7 +126,7 @@ private:
     template <class map_type>
     void list_all_internal(const std::string& type, bool long_format, map_type& obj_map, std::vector<std::vector<std::string> >& table);
 
-    void list_stats(bool long_format);
+    void list_stats(admin_command_parser_t::command_data& data);
     void list_issues(bool long_format);
     void list_directory(bool long_format);
     void list_all(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
