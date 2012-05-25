@@ -237,6 +237,8 @@ class IssuesRedundancy extends Backbone.Collection
         directory.on 'all', @compute_redundancy_errors
         namespaces.on 'all', @compute_redundancy_errors
 
+
+
     convert_activity:
         'role_secondary': 'secondary_up_to_date'
         'role_nothing': 'nothing'

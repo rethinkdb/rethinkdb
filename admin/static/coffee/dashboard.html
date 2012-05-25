@@ -29,14 +29,21 @@
 
           {{#if has_cpu_problems}}
           <td class="problems-detected cpu_distro">
+              <h3>CPU distribution</h3>
+              <p class="details">
+                {{num_machines_with_cpu_problems}} of {{num_machines}} 
+                <a href="#" class="json" rel="dashboard_details" data-content="<pre>The following {{pluralize_noun "machine" num_machines_with_disk_problems}} {{pluralize_verb_to_have num_machines_with_disk_problems}} use too much cpu: {{links_to_machines machines_with_cpu_problems}}</pre>" data-title="CPU problems">
+                  {{pluralize_noun "machine" num_machines}}
+                </a>
+                use more than {{threshold_cpu}}% of CPU power
+              </p> 
           {{else}}
           <td class="no-problems-detected cpu_distro">
-          {{/if}}  
               <h3>CPU distribution</h3>
               <p class="message">No CPU problems detected</p>
-              <p class="details">N of {{num_machines}} machines utilize less<br />than N% of CPU power</p>
+              <p class="details">{{num_machines}} of {{num_machines}} machines utilize less than {{threshold_cpu}}% of their CPU</p>
           </td>
-
+          {{/if}}
 
           {{#if has_conflicts_problems}}
           <td class="problems-detected conflicts">
@@ -69,13 +76,21 @@
 
           {{#if has_ram_problems}}
           <td class="problems-detected ram">
+              <h3>RAM</h3>
+              <p class="details">
+                {{num_machines_with_ram_problems}} of {{num_machines}} 
+                <a href="#" class="json" rel="dashboard_details" data-content="<pre>The following {{pluralize_noun "machine" num_machines_with_disk_problems}} {{pluralize_verb_to_have num_machines_with_disk_problems}} use too much memory: {{links_to_machines machines_with_ram_problems}}</pre>" data-title="RAM problems">
+                  {{pluralize_noun "machine" num_machines}}
+                </a>
+                use more than {{threshold_ram}}% of their memory
+              </p> 
           {{else}}
           <td class="no-problems-detected ram">
-          {{/if}}
               <h3>RAM</h3>
               <p class="message">No memory problems detected</p>
-              <p class="details">N of {{num_machines}} machines utilize less<br />than N% of available RAM</p>
+              <p class="details">{{num_machines}} of {{num_machines}} machines utilize less than {{threshold_ram}}% of their memory</p>
           </td>
+          {{/if}}
 
 
           {{#if has_persistence_problems}}

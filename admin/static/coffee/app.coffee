@@ -117,7 +117,7 @@ set_stats = (stat_data) ->
         ### #what if machines are not loaded yet we should try again?
         else
         ###
-
+    machines.trigger('stats_updated')
 
 collections_ready = ->
     # Data is now ready, let's get rockin'!

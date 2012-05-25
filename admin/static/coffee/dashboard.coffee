@@ -31,10 +31,17 @@ module 'DashboardView', ->
         initialize: ->
             log_initial '(initializing) dashboard view'
             issues.on 'all', @render
-            issues_redundancy.on 'reset', @render
+            issues_redundancy.on 'reset', @render # when issues_redundancy is reset
+            machines.on 'stats_updated', @render # when the stats of the machines are updated
             @render()
 
+        do_something: ->
+            alert "youhou"
         do_nothing: (event) -> event.preventDefault()
+
+    
+        threshold_cpu: 0.90
+        threshold_ram: 0.90
 
         compute_status: ->
             status = 
@@ -93,6 +100,38 @@ module 'DashboardView', ->
                 status.num_replicas_offline = issues_redundancy.length
                 status.replicas_offline = issues_redundancy.models
             
+
+            # checking for CPU prolems 
+            status.machines_with_cpu_problems = []
+            status.machines_with_ram_problems = []
+
+            for machine in machines.models
+                if machine.get('stats')?
+                    cpu_used = machine.get('stats').proc.cpu_combined_avg
+                    if cpu_used > @threshold_cpu
+                        new_machine = 
+                            uid: machine.get('id')
+                            name: machine.get('name')
+                        status.machines_with_cpu_problems.push new_machine
+                    ram_used = machine.get('stats').proc.global_mem_used / machine.get('stats').proc.global_mem_total
+                    if ram_used > @threshold_ram
+                        console.log ram_used
+                        new_machine = 
+                            uid: machine.get('id')
+                            name: machine.get('name')
+                        status.machines_with_ram_problems.push new_machine
+                   
+
+            if status.machines_with_cpu_problems.length > 0
+                status.has_cpu_problems = true
+                status.num_machines_with_cpu_problems = status.machines_with_cpu_problems.length
+            status.threshold_cpu = Math.floor(@threshold_cpu*100)
+
+            if status.machines_with_ram_problems.length > 0
+                status.has_ram_problems = true
+                status.num_machines_with_ram_problems = status.machines_with_ram_problems.length
+            status.threshold_ram = Math.floor(@threshold_ram*100)
+
             status
 
         isnt_empty: (data) ->
@@ -104,7 +143,6 @@ module 'DashboardView', ->
             log_render '(rendering) cluster status view'
             
             @.$el.html @template(@compute_status())
-            $(".popover").remove()  
             @.$('a[rel=dashboard_details]').popover
                 html: true
 
