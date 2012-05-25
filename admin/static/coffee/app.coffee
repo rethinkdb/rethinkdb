@@ -112,7 +112,12 @@ set_log_entries = (log_data_from_server) ->
 
 set_stats = (stat_data) ->
     for machine_id, data of stat_data
-        machines.get(machine_id).set('stats', data)
+        if machines.get(machine_id)?
+            machines.get(machine_id).set('stats', data)
+        ### #what if machines are not loaded yet we should try again?
+        else
+        ###
+
 
 collections_ready = ->
     # Data is now ready, let's get rockin'!
@@ -132,6 +137,7 @@ $ ->
     window.progress_list = new ProgressList
     window.directory = new Directory
     window.recent_log_entries = new LogEntries
+    window.issues_redundancy = new IssuesRedundancy
     window.connection_status = new ConnectionStatus
     window.computed_cluster = new ComputedCluster
 

@@ -146,6 +146,8 @@ class LogEntry extends Backbone.Model
 
 class Issue extends Backbone.Model
 
+class IssueRedundancy extends Backbone.Model
+
 class Progress extends Backbone.Model
 
 # this is a hook into the directory
@@ -227,6 +229,67 @@ class LogEntries extends Backbone.Collection
 class Issues extends Backbone.Collection
     model: Issue
     url: '/ajax/issues'
+
+class IssuesRedundancy extends Backbone.Collection
+    model: IssueRedundancy
+    num_replicas : 0
+    initialize: ->
+        directory.on 'all', @compute_redundancy_errors
+        namespaces.on 'all', @compute_redundancy_errors
+
+    compute_redundancy_errors_nothing: ->
+        return @
+
+
+
+    convert_activity:
+        'role_secondary': 'secondary_up_to_date'
+        'role_nothing': 'nothing'
+        'role_primary': 'primary'
+
+    compute_redundancy_errors: =>
+        issues_redundancy = []
+        @num_replicas = 0
+
+
+        directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
+        console.log namespaces
+        for namespace in namespaces.models
+            namespace_id = namespace.get('id')
+            blueprint = namespace.get('blueprint').peers_roles
+            for machine_id of blueprint
+                for key of blueprint[machine_id]
+                    value = blueprint[machine_id][key]
+                    if value is "role_primary" or value is "role_secondary"
+                        @num_replicas++
+
+                        if !(directory_by_namespaces?) or !(directory_by_namespaces[namespace_id]?) or !(directory_by_namespaces[namespace_id][machine_id]?)
+                            issue_redundancy_param = 
+                                machine_id: machine_id
+                                machine_name: machines.get(machine_id).get('name')
+                                namespace_uuid: namespace_id
+                                namespace_name: namespace.get('name')
+                            issue_redundancy = new IssueRedundancy issue_redundancy_param
+                            issues_redundancy.push issue_redundancy
+                        else if directory_by_namespaces[namespace_id][machine_id][0] != key
+                            issue_redundancy_param = 
+                                machine_id: machine_id
+                                machine_name: machines.get(machine_id).get('name')
+                                namespace_uuid: namespace_id
+                                namespace_name: namespace.get('name')
+                            issues_redundancy.push new IssueRedundancy issue_redundancy_param
+                        else if directory_by_namespaces[namespace_id][machine_id][1].type != @convert_activity[value]
+                            issue_redundancy_param = 
+                                machine_id: machine_id
+                                machine_name: machines.get(machine_id).get('name')
+                                namespace_uuid: namespace_id
+                                namespace_name: namespace.get('name')
+                            issues_redundancy.push new IssueRedundancy issue_redundancy_param
+ 
+        if issues_redundancy.length > 0 or issues_redundancy.length isnt @.length
+            @.reset(issues_redundancy)
+        
+        
 
 class ProgressList extends Backbone.Collection
     model: Progress
