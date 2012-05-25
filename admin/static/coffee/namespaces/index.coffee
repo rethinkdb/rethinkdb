@@ -11,7 +11,8 @@ module 'NamespaceView', ->
         events: ->
             'click a.btn.add-namespace': 'add_namespace'
             'click a.btn.remove-namespace': 'remove_namespace'
-
+            'click .close': 'remove_parent_alert'
+            
         initialize: ->
             log_initial '(initializing) namespace list view'
 
@@ -24,6 +25,11 @@ module 'NamespaceView', ->
             super
             @update_toolbar_buttons()
             return @
+
+        remove_parent_alert: (event) ->
+            event.preventDefault()
+            element = $(event.target).parent()
+            element.slideUp 'fast', -> element.remove()
 
         # Extend the AbstractList.add_element method to bind a callback to each namespace added to the list
         add_element: (element) =>
