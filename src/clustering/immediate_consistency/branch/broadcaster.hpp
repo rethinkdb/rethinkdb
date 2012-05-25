@@ -40,22 +40,14 @@ public:
         virtual ~ack_callback_t() { }
     };
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
+    typename protocol_t::write_response_t write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t tok, signal_t *interruptor, boost::function<void()> write_complete_cb) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
     branch_id_t get_branch_id();
 
     broadcaster_business_card_t<protocol_t> get_business_card();
 
-    int longest_queue_size() {
-        int res = 0;
-        for (typename boost::ptr_map<dispatchee_t *, queue_and_pool_t>::iterator it  = coro_pools.begin();
-                                                                                 it != coro_pools.end();
-                                                                                 ++it) {
-            if (it->second->background_write_queue.size() > res) {
-                res = it->second->background_write_queue.size();
-            }
-        }
-        return res;
+    int num_incomplete_writes() {
+        return incomplete_writes.size();
     }
 
 private:

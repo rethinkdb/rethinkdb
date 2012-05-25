@@ -98,10 +98,12 @@ class broadcaster_t<protocol_t>::incomplete_write_t : public home_thread_mixin_t
 public:
     incomplete_write_t(broadcaster_t *p,
                        typename protocol_t::write_t w, transition_timestamp_t ts,
-                       ack_callback_t *cb) :
+                       ack_callback_t *cb,
+                       boost::function<void()> _completion_cb) :
         write(w), timestamp(ts),
         parent(p), incomplete_count(0),
-        ack_callback(cb)
+        ack_callback(cb),
+        completion_cb(_completion_cb)
     {
         rassert(ack_callback);
     }
@@ -157,6 +159,8 @@ private:
     int incomplete_count;
     ack_callback_t *ack_callback;
     boost::optional<typename protocol_t::write_response_t> resp;
+public:
+    boost::function<void()> completion_cb;
 
     DISABLE_COPYING(incomplete_write_t);
 };
@@ -365,7 +369,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token, signal_t *interruptor, boost::function<void()> completion_cb) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
     /* We'll fill `write_wrapper` with the write that we start; we hold it in a
     shared pointer so that it stays alive while we check its `done_promise`. */
     boost::shared_ptr<incomplete_write_t> write_wrapper;
@@ -403,7 +407,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             order_sink.check_out(order_token);
 
             write_wrapper = boost::make_shared<incomplete_write_t>(
-                this, write, timestamp, cb);
+                this, write, timestamp, cb, completion_cb);
             incomplete_writes.push_back(write_wrapper);
 
             /* If there's an exception, this will make sure that the
@@ -600,6 +604,9 @@ void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> 
     any given call. */
     while (newest_complete_timestamp < write->timestamp.timestamp_after()) {
         boost::shared_ptr<incomplete_write_t> removed_write = incomplete_writes.front();
+        if (incomplete_writes.front()->completion_cb) {
+            incomplete_writes.front()->completion_cb();
+        }
         incomplete_writes.pop_front();
         rassert(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
         newest_complete_timestamp = removed_write->timestamp.timestamp_after();

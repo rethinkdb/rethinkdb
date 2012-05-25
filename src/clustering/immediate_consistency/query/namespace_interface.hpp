@@ -1,18 +1,24 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_NAMESPACE_INTERFACE_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_NAMESPACE_INTERFACE_HPP_
 
+#include <math.h>
+#include <algorithm>
+
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
-#include "concurrency/fifo_enforcer.hpp"
-#include "concurrency/pmap.hpp"
+#include "arch/timing.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/registrant.hpp"
+#include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "protocol_api.hpp"
+
+#define THROTTLE_THRESHOLD 200
 
 
 template <class fifo_enforcer_token_type> fifo_enforcer_token_type get_fifo_enforcer_token(fifo_enforcer_source_t *source);
@@ -83,58 +89,28 @@ private:
         master_connection_t(peer_id_t p,
                 const typename protocol_t::region_t &r,
                 const typename master_business_card_t<protocol_t>::read_mailbox_t::address_t &rm,
-                const typename master_business_card_t<protocol_t>::allocation_mailbox_t::address_t &ram,
                 const typename master_business_card_t<protocol_t>::write_mailbox_t::address_t &wm,
-                const typename master_business_card_t<protocol_t>::allocation_mailbox_t::address_t &wam,
                 mailbox_manager_t *_mbox_manager)
             : peer_id(p), region(r), 
-              read_mailbox(rm), read_allocation_mailbox(ram), 
-              write_mailbox(wm), write_allocation_mailbox(wam),
-              allocated_reads(0), allocated_writes(0),
+              read_mailbox(rm), write_mailbox(wm),
+              allocation_mailbox(_mbox_manager, boost::bind(&master_connection_t::recv_allocation, this, _1), mailbox_callback_mode_inline),
+              allocated_writes(0),
               mbox_manager(_mbox_manager)
         { }
 
-        /* Make sure that this master has alloted us some reads. */
-        void get_read_permission(signal_t *interruptor) {
-            if (allocated_reads == 0) {
-                promise_t<int> resp_promise;
-                mailbox_t<void(int)> resp_mailbox(mbox_manager, boost::bind(&promise_t<int>::pulse, &resp_promise, _1), mailbox_callback_mode_inline);
-                send(mbox_manager, read_allocation_mailbox, resp_mailbox.get_address());
-                wait_interruptible(resp_promise.get_ready_signal(), interruptor);
-                allocated_reads = resp_promise.get_value();
-            }
-            allocated_reads--;
+        void recv_allocation(int amount) {
+            allocated_writes += amount;
         }
 
-        /* Make sure that this master has alloted us some writes. */
-        void get_write_permission(signal_t *interruptor) {
-            if (allocated_writes == 0) {
-                promise_t<int> resp_promise;
-                mailbox_t<void(int)> resp_mailbox(mbox_manager, boost::bind(&promise_t<int>::pulse, &resp_promise, _1), mailbox_callback_mode_inline);
-                send(mbox_manager, write_allocation_mailbox, resp_mailbox.get_address());
-                wait_interruptible(resp_promise.get_ready_signal(), interruptor);
-                allocated_writes = resp_promise.get_value();
-            }
-            allocated_writes--;
-        }
-
-        void get_generic_permission(typename protocol_t::write_t, signal_t *interruptor) {
-            get_write_permission(interruptor);
-        }
-
-        void get_generic_permission(typename protocol_t::read_t, signal_t *interruptor) {
-            get_read_permission(interruptor);
-        }
 
         peer_id_t peer_id;
         fifo_enforcer_source_t fifo_enforcer_source;
         typename protocol_t::region_t region;
         typename master_business_card_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
-        typename master_business_card_t<protocol_t>::allocation_mailbox_t::address_t read_allocation_mailbox;
         typename master_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
-        typename master_business_card_t<protocol_t>::allocation_mailbox_t::address_t write_allocation_mailbox;
+        mailbox_t<void(int)> allocation_mailbox;
 
-        int allocated_reads, allocated_writes;
+        int allocated_writes;
         mailbox_manager_t *mbox_manager;
         auto_drainer_t drainer;
     };
@@ -224,9 +200,10 @@ private:
 
         fifo_enforcer_token_type enforcement_token = master_to_contact.enforcement_token;
 
-        try {
-            master_to_contact.master->get_generic_permission(*operation, interruptor);
+        get_throttled(shard, master_to_contact.master->allocated_writes);
 
+        try {
+            master_to_contact.master->allocated_writes--;
             send(mailbox_manager, query_address,
                     self_id, shard, order_token, enforcement_token, result_or_failure_mailbox.get_address());
 
@@ -244,6 +221,16 @@ private:
             /* Ignore `interrupted_exc_t` and just return immediately.
             `generic_dispatch()` will notice the interruptor has been pulsed and
             won't try to access our result. */
+        }
+    }
+
+    void get_throttled(typename protocol_t::read_t, int) { }
+
+    void get_throttled(typename protocol_t::write_t, int allocated_writes) {
+        debugf("Allocated writes: %d\n", allocated_writes);
+        if (allocated_writes < THROTTLE_THRESHOLD) {
+            debugf("Throttling by %f\n", (float)pow(2, -allocated_writes));
+            nap(std::min(100.0, pow(2, -allocated_writes)));
         }
     }
 
@@ -332,6 +319,13 @@ private:
 
     void registrant_coroutine(peer_id_t peer_id, master_id_t master_id, master_business_card_t<protocol_t> initial_bcard, bool is_start, auto_drainer_t::lock_t lock) {
         // this function is responsible for removing master_id from handled_master_ids before it returns.
+        master_connection_t connection(
+            peer_id,
+            initial_bcard.region,
+            initial_bcard.read_mailbox,
+            initial_bcard.write_mailbox,
+            mailbox_manager
+            );
 
         cond_t ack_signal;
         namespace_interface_business_card_t::ack_mailbox_type ack_mailbox(
@@ -342,7 +336,7 @@ private:
         registrant_t<namespace_interface_business_card_t>
             registrant(mailbox_manager,
                        masters_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_registrar_business_card, _1, peer_id, master_id)),
-                       namespace_interface_business_card_t(self_id, ack_mailbox.get_address()));
+                       namespace_interface_business_card_t(self_id, ack_mailbox.get_address(), connection.allocation_mailbox.get_address()));
 
         signal_t *drain_signal = lock.get_drain_signal();
         signal_t *failed_signal = registrant.get_failed_signal();
@@ -361,15 +355,6 @@ private:
         }
 
         if (ack_signal.is_pulsed()) {
-            master_connection_t connection(
-                peer_id,
-                initial_bcard.region,
-                initial_bcard.read_mailbox,
-                initial_bcard.read_allocation,
-                initial_bcard.write_mailbox,
-                initial_bcard.write_allocation,
-                mailbox_manager
-                );
             map_insertion_sentry_t<master_id_t, master_connection_t *> map_insertion(
                 &open_connections, master_id, &connection);
 

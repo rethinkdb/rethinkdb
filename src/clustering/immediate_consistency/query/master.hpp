@@ -7,13 +7,9 @@
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "containers/uuid.hpp"
 
-/* The point at which we begin throttling. */
-#define THROTTLING_THRESHOLD 1000
-/* The minimum number of operations we will ever offer someone who asks for an
- * allocation. */
-#define MINIMUM_ALLOCATION 5
-/* The number of operations we allocate when we're not doing any throttling. */
-#define BASE_ALLOCATION 100
+#define ALLOCATION_CHUNK 50
+#define TARGET_OPERATION_QUEUE_LENGTH 5000
+#define MAX_ALLOCATION 1000
 
 template<class protocol_t>
 class master_t {
@@ -44,19 +40,19 @@ public:
         registrar(mm, this),
         read_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_read,
                                                   this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
-        read_allocation_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::allocate_reads, this, _1), mailbox_callback_mode_inline),
         write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
                                                    this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
-        write_allocation_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::allocate_writes, this, _1), mailbox_callback_mode_inline),
         master_directory(md), master_directory_lock(mdl),
-        uuid(generate_uuid()) {
+        uuid(generate_uuid()),
+        enqueued_writes(0)
+    {
 
         rassert(ack_checker);
 
         master_business_card_t<protocol_t> bcard(
             region,
-            read_allocation_mailbox.get_address(), read_mailbox.get_address(), 
-            write_allocation_mailbox.get_address(), write_mailbox.get_address(),
+            read_mailbox.get_address(), 
+            write_mailbox.get_address(),
             registrar.get_business_card());
         mutex_assertion_t::acq_t master_directory_lock_acq(master_directory_lock);
         std::map<master_id_t, master_business_card_t<protocol_t> > master_map = master_directory->get_watchable()->get();
@@ -73,16 +69,21 @@ public:
 
 private:
     struct parser_lifetime_t {
-        parser_lifetime_t(master_t *m, namespace_interface_business_card_t bc) : m_(m), namespace_interface_id_(bc.namespace_interface_id) {
+        parser_lifetime_t(master_t *m, namespace_interface_business_card_t bc) 
+            : allocate_mailbox(bc.allocation_address), allocated_ops(0),
+              m_(m), namespace_interface_id_(bc.namespace_interface_id)
+        {
             m->sink_map.insert(std::pair<namespace_interface_id_t, parser_lifetime_t *>(bc.namespace_interface_id, this));
             send(m->mailbox_manager, bc.ack_address);
         }
         ~parser_lifetime_t() {
             m_->sink_map.erase(namespace_interface_id_);
-        }
+       }
 
         auto_drainer_t *drainer() { return &drainer_; }
         fifo_enforcer_sink_t *sink() { return &sink_; }
+        mailbox_addr_t<void(int)> allocate_mailbox;
+        int allocated_ops;
     private:
         master_t *m_;
         namespace_interface_id_t namespace_interface_id_;
@@ -123,17 +124,12 @@ private:
         }
     }
 
-    void allocate_reads(mailbox_addr_t<void(int)> response_address) {
-        send(mailbox_manager, response_address, 100);
-    }
-
     void on_write(namespace_interface_id_t parser_id, typename protocol_t::write_t write, order_token_t otok, fifo_enforcer_write_token_t token,
                   mailbox_addr_t<void(boost::variant<typename protocol_t::write_response_t, std::string>)> response_address,
                   auto_drainer_t::lock_t keepalive)
         THROWS_NOTHING
     {
-        rassert(allocated_but_unsent_writes > 0, "Someone must have sent a write without first asking for an allocation.");
-        allocated_but_unsent_writes--;
+        enqueued_writes++;
         try {
             keepalive.assert_is_holding(&drainer);
             boost::variant<typename protocol_t::write_response_t, std::string> reply;
@@ -145,6 +141,7 @@ private:
                     raced ahead of the query. Ignore it. */
                     return;
                 }
+                it->second->allocated_ops--;
 
                 class ac_t : public broadcaster_t<protocol_t>::ack_callback_t {
                 public:
@@ -159,7 +156,7 @@ private:
 
                 auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
                 fifo_enforcer_sink_t::exit_write_t exiter(it->second->sink(), token);
-                reply = broadcaster->write(write, &exiter, &ack_checker, otok, auto_drainer_lock.get_drain_signal());
+                reply = broadcaster->write(write, &exiter, &ack_checker, otok, auto_drainer_lock.get_drain_signal(), boost::bind(&master_t<protocol_t>::write_completion_cb, this));
             } catch (cannot_perform_query_exc_t e) {
                 reply = e.what();
             }
@@ -169,16 +166,30 @@ private:
         }
     }
 
-    void allocate_writes(mailbox_addr_t<void(int)> response_address) {
-        int longest_queue_size = broadcaster->longest_queue_size();
-        int writes_to_allocate;
-        if (longest_queue_size < THROTTLING_THRESHOLD) {
-            writes_to_allocate = BASE_ALLOCATION;
-        } else {
-            writes_to_allocate = int(float(BASE_ALLOCATION) / float(longest_queue_size - THROTTLING_THRESHOLD)) + MINIMUM_ALLOCATION;
+    void write_completion_cb() {
+        enqueued_writes--;
+        consider_allocating_more_writes();
+    }
+
+    void consider_allocating_more_writes() {
+        debugf("Enqueued writes: %d\n", enqueued_writes);
+        if (enqueued_writes  + ALLOCATION_CHUNK < TARGET_OPERATION_QUEUE_LENGTH) {
+            parser_lifetime_t *most_depleted_parser = NULL;
+            for (typename std::map<namespace_interface_id_t, parser_lifetime_t *>::iterator it  = sink_map.begin();
+                                                                                   it != sink_map.end();
+                                                                                   ++it) {
+                if (most_depleted_parser == NULL || most_depleted_parser->allocated_ops > it->second->allocated_ops) {
+                    most_depleted_parser = it->second;
+                }
+            }
+            if (most_depleted_parser && most_depleted_parser->allocated_ops < MAX_ALLOCATION) {
+                coro_t::spawn_sometime(boost::bind(&master_t<protocol_t>::allocate_more_writes, this, most_depleted_parser->allocate_mailbox));
+                most_depleted_parser->allocated_ops += ALLOCATION_CHUNK;
+            }
         }
-        allocated_but_unsent_writes += writes_to_allocate;
-        send(mailbox_manager, response_address, writes_to_allocate);
+    }
+    void allocate_more_writes(mailbox_addr_t<void(int)> addr) {
+        send(mailbox_manager, addr, ALLOCATION_CHUNK);
     }
 
     mailbox_manager_t *mailbox_manager;
@@ -190,16 +201,14 @@ private:
     registrar_t<namespace_interface_business_card_t, master_t *, parser_lifetime_t> registrar;
 
     typename master_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
-    typename master_business_card_t<protocol_t>::allocation_mailbox_t read_allocation_mailbox;
 
     typename master_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
-    typename master_business_card_t<protocol_t>::allocation_mailbox_t write_allocation_mailbox;
 
     watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > *master_directory;
     mutex_assertion_t *master_directory_lock;
     master_id_t uuid;
 
-    int allocated_but_unsent_writes;
+    int enqueued_writes;
 
     DISABLE_COPYING(master_t);
 };
