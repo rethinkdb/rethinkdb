@@ -59,6 +59,12 @@ public:
 
     // Commands that may be run by the parser
     void do_admin_list(admin_command_parser_t::command_data& data);
+    void do_admin_list_stats(admin_command_parser_t::command_data& data);
+    void do_admin_list_issues(admin_command_parser_t::command_data& data);
+    void do_admin_list_machines(admin_command_parser_t::command_data& data);
+    void do_admin_list_directory(admin_command_parser_t::command_data& data);
+    void do_admin_list_namespaces(admin_command_parser_t::command_data& data);
+    void do_admin_list_datacenters(admin_command_parser_t::command_data& data);
     void do_admin_resolve(admin_command_parser_t::command_data& data);
     void do_admin_pin_shard(admin_command_parser_t::command_data& data);
     void do_admin_split_shard(admin_command_parser_t::command_data& data);
@@ -126,16 +132,10 @@ private:
     template <class map_type>
     void list_all_internal(const std::string& type, bool long_format, map_type& obj_map, std::vector<std::vector<std::string> >& table);
 
-    void list_stats(admin_command_parser_t::command_data& data);
-    void list_issues(bool long_format);
-    void list_directory(bool long_format);
     void list_all(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
-    void list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
-    void list_datacenters(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_dummy_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_memcached_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
 
-    void list_namespaces(const std::string& type, bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     template <class map_type>
     void add_namespaces(const std::string& protocol, bool long_format, map_type& namespaces, std::vector<std::vector<std::string> >& table);
 

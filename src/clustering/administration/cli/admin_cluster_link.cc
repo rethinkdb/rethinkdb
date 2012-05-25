@@ -781,55 +781,36 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
 
 void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    std::string id = (data.params.count("filter") == 0 ? "" : data.params["filter"][0]);
+    std::string obj_str = (data.params.count("object") == 0 ? "" : data.params["object"][0]);
     bool long_format = (data.params.count("long") == 1);
 
-    if (id != "namespaces" && data.params.count("protocol") != 0)
-        throw admin_parse_exc_t("--protocol option only valid when listing namespaces");
-
-    if (id == "machines") {
-        list_machines(long_format, cluster_metadata);
-    } else if (id == "datacenters") {
-        list_datacenters(long_format, cluster_metadata);
-    } else if (id == "namespaces") {
-        if (data.params.count("protocol") == 0)
-            list_namespaces("", long_format, cluster_metadata);
-        else
-            list_namespaces(data.params["protocol"][0], long_format, cluster_metadata);
-    } else if (id == "issues") {
-        list_issues(long_format);
-    } else if (id == "directory") {
-        list_directory(long_format);
-    } else if (id == "stats") {
-        list_stats(data);
-    } else if (id.empty()) {
+    if (obj_str.empty()) {
         list_all(long_format, cluster_metadata);
     } else {
-        // TODO: special formatting for each object type, instead of JSON
-        metadata_info_t *info = get_info_from_id(id);
+        metadata_info_t *info = get_info_from_id(obj_str);
         boost::uuids::uuid obj_id = str_to_uuid(info->uuid);
         if (info->path[0] == "datacenters") {
             datacenters_semilattice_metadata_t::datacenter_map_t::iterator i = cluster_metadata.datacenters.datacenters.find(obj_id);
             if (i == cluster_metadata.datacenters.datacenters.end() || i->second.is_deleted())
-                throw admin_cluster_exc_t("object not found: " + id);
+                throw admin_cluster_exc_t("object not found: " + obj_str);
             list_single_datacenter(obj_id, i->second.get_mutable(), cluster_metadata);
         } else if (info->path[0] == "dummy_namespaces") {
             namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(obj_id);
             if (i == cluster_metadata.dummy_namespaces.namespaces.end() || i->second.is_deleted())
-                throw admin_cluster_exc_t("object not found: " + id);
+                throw admin_cluster_exc_t("object not found: " + obj_str);
             list_single_namespace(obj_id, i->second.get_mutable(), cluster_metadata, "dummy");
         } else if (info->path[0] == "memcached_namespaces") {
             namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(obj_id);
             if (i == cluster_metadata.memcached_namespaces.namespaces.end() || i->second.is_deleted())
-                throw admin_cluster_exc_t("object not found: " + id);
+                throw admin_cluster_exc_t("object not found: " + obj_str);
             list_single_namespace(obj_id, i->second.get_mutable(), cluster_metadata, "memcached");
         } else if (info->path[0] == "machines") {
             machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.find(obj_id);
             if (i == cluster_metadata.machines.machines.end() || i->second.is_deleted())
-                throw admin_cluster_exc_t("object not found: " + id);
+                throw admin_cluster_exc_t("object not found: " + obj_str);
             list_single_machine(obj_id, i->second.get_mutable(), cluster_metadata);
         } else
-            throw admin_cluster_exc_t("unexpected error, object found, but type not recognized");
+            throw admin_cluster_exc_t("unexpected error, object found, but type not recognized: " + info->path[0]);
     }
 }
 
@@ -898,7 +879,7 @@ struct admin_stats_request_t {
     mailbox_t<void(perfmon_result_t)> response_mailbox;
 };
 
-void admin_cluster_link_t::list_stats(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_stats(admin_command_parser_t::command_data& data) {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     boost::ptr_map<machine_id_t, admin_stats_request_t> request_map;
@@ -956,7 +937,7 @@ void admin_cluster_link_t::list_stats(admin_command_parser_t::command_data& data
     }
 }
 
-void admin_cluster_link_t::list_directory(bool long_format UNUSED) {
+void admin_cluster_link_t::do_admin_list_directory(admin_command_parser_t::command_data& data UNUSED) {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
 
     for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.begin(); i != directory.end(); i++) {
@@ -967,7 +948,7 @@ void admin_cluster_link_t::list_directory(bool long_format UNUSED) {
     }
 }
 
-void admin_cluster_link_t::list_issues(bool long_format UNUSED) {
+void admin_cluster_link_t::do_admin_list_issues(admin_command_parser_t::command_data& data UNUSED) {
     std::list<clone_ptr_t<global_issue_t> > issues = issue_aggregator.get_issues();
     for (std::list<clone_ptr_t<global_issue_t> >::iterator i = issues.begin(); i != issues.end(); ++i) {
         puts((*i)->get_description().c_str());
@@ -1058,7 +1039,10 @@ void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std
         }
 }
 
-void admin_cluster_link_t::list_datacenters(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
+void admin_cluster_link_t::do_admin_list_datacenters(admin_command_parser_t::command_data& data) {
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    bool long_format = (data.params.count("long") == 1);
+
     std::vector<std::vector<std::string> > table;
     std::vector<std::string> delta;
     std::map<datacenter_id_t, datacenter_info_t> long_info;
@@ -1148,7 +1132,11 @@ size_t admin_cluster_link_t::get_replica_count_from_blueprint(const bp_type& bp)
     return count;
 }
 
-void admin_cluster_link_t::list_namespaces(const std::string& type, bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
+void admin_cluster_link_t::do_admin_list_namespaces(admin_command_parser_t::command_data& data) {
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    std::string type = (data.params.count("protocol") == 0 ? "" : data.params["protocol"][0]);
+    bool long_format = (data.params.count("long") == 1);
+
     std::vector<std::vector<std::string> > table;
     std::vector<std::string> header;
 
@@ -1282,7 +1270,10 @@ void admin_cluster_link_t::add_machine_info_from_blueprint(const bp_type& bp, st
     }
 }
 
-void admin_cluster_link_t::list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
+void admin_cluster_link_t::do_admin_list_machines(admin_command_parser_t::command_data& data) {
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    bool long_format = (data.params.count("long") == 1);
+
     std::map<machine_id_t, machine_info_t> long_info;
     std::vector<std::vector<std::string> > table;
     std::vector<std::string> delta;
@@ -2007,6 +1998,7 @@ bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& mach
     for (typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::iterator i = machine_entry->second.begin();
          i != machine_entry->second.end(); ++i) {
         if (i->second == blueprint_details::role_primary || i->second == blueprint_details::role_secondary) {
+            delta.clear();
             delta.push_back(ns_uuid);
             delta.push_back(ns_name);
 
