@@ -3,6 +3,8 @@
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
 
+// TODO: Move version_range_t out of clustering/immediate_consistency/branch/metadata.hpp.
+#include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "arch/timing.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
@@ -257,12 +259,12 @@ void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
 }
 
 dummy_protocol_t::read_response_t
-dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
                                 const dummy_protocol_t::read_t &read,
                                 order_token_t order_token,
                                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
+    rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
 
     dummy_protocol_t::read_response_t resp;
@@ -273,8 +275,10 @@ dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo, 
         wait_interruptible(local_token.get(), interruptor);
         order_sink.check_out(order_token);
 
-        // We allow expected_metainfo domain to be smaller than the metainfo domain
-        rassert(expected_metainfo == metainfo.mask(expected_metainfo.get_domain()));
+        // We allow upper_metainfo domain to be smaller than the metainfo domain
+#ifndef NDEBUG
+        metainfo_checker.check_metainfo(metainfo.mask(metainfo_checker.get_domain()));
+#endif
 
         if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
         for (std::set<std::string>::iterator it = read.keys.keys.begin();
@@ -286,7 +290,6 @@ dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_t& expected_metainfo, 
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
     return resp;
 }
-
 
 void print_region(append_only_printf_buffer_t *buf, const dummy_protocol_t::region_t &region) {
     std::set<std::string>::const_iterator it = region.keys.begin(), e = region.keys.end();
@@ -326,7 +329,7 @@ void debugf_metainfo(const char *msg, const region_map_t<dummy_protocol_t, binar
 
 
 dummy_protocol_t::write_response_t
-dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
                                  const metainfo_t& new_metainfo,
                                  const dummy_protocol_t::write_t &write,
                                  transition_timestamp_t timestamp,
@@ -335,9 +338,8 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
                                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     debugf("dummy store %p write() from %s with before: %lu\n", this, order_token.tag().c_str(), timestamp.numeric_representation());
-    debugf_metainfo("... with expected metainfo", expected_metainfo);
 
-    rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
+    rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
     rassert(region_is_superset(get_region(), write.get_region()));
 
@@ -352,11 +354,12 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_t& expected_metainfo,
 
         debugf("dummy_protocol_t::store_t(%p)::write() from %s (with before: %lu)\n", this, order_token.tag().c_str(), timestamp.numeric_representation());
 
-        // We allow expected_metainfo domain to be smaller than the metainfo domain
-        rassert(expected_metainfo.get_domain() == metainfo.mask(expected_metainfo.get_domain()).get_domain());
-        debugf_metainfo("expected metainfo", expected_metainfo);
-        debugf_metainfo("masked   metainfo", metainfo.mask(expected_metainfo.get_domain()));
-        rassert(expected_metainfo == metainfo.mask(expected_metainfo.get_domain()));
+        // We allow upper_metainfo domain to be smaller than the metainfo domain
+        rassert(metainfo_checker.get_domain() == metainfo.mask(metainfo_checker.get_domain()).get_domain());
+        debugf_metainfo("masked metainfo", metainfo.mask(metainfo_checker.get_domain()));
+#ifndef NDEBUG
+        metainfo_checker.check_metainfo(metainfo.mask(metainfo_checker.get_domain()));
+#endif
 
         if (rng.randint(2) == 0) nap(rng.randint(10));
         for (std::map<std::string, std::string>::const_iterator it = write.values.begin();

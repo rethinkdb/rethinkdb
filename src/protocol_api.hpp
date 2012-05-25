@@ -202,6 +202,44 @@ region_map_t<protocol_t, new_t> region_map_transform(const region_map_t<protocol
     return region_map_t<protocol_t, new_t>(new_pairs.begin(), new_pairs.end());
 }
 
+#ifndef NDEBUG
+// Checks that the metainfo has a certain value, or certain kind of value.
+template <class protocol_t>
+class metainfo_checker_callback_t {
+public:
+    virtual void check_metainfo(const region_map_t<protocol_t, binary_blob_t>& metainfo,
+                                const typename protocol_t::region_t& domain) const = 0;
+protected:
+    metainfo_checker_callback_t() { }
+    virtual ~metainfo_checker_callback_t() { }
+private:
+    DISABLE_COPYING(metainfo_checker_callback_t);
+};
+
+template <class protocol_t>
+class metainfo_checker_t {
+public:
+    metainfo_checker_t(const metainfo_checker_callback_t<protocol_t> *callback,
+                       const typename protocol_t::region_t& region) : callback_(callback), region_(region) { }
+
+    void check_metainfo(const region_map_t<protocol_t, binary_blob_t>& metainfo) const {
+        callback_->check_metainfo(metainfo, region_);
+    }
+    const typename protocol_t::region_t& get_domain() const { return region_; }
+    const metainfo_checker_t mask(const typename protocol_t::region_t& region) const {
+        return metainfo_checker_t(callback_, region_intersection(region, region_));
+    }
+
+private:
+    const metainfo_checker_callback_t<protocol_t> *const callback_;
+    const typename protocol_t::region_t region_;
+
+    // This _is_ copyable because of mask, but all copies' lifetimes
+    // are limited by that of callback_.
+};
+
+#endif  // NDEBUG
+
 /* `store_view_t` is an abstract class that represents a region of a key-value
 store for some protocol. It's templatized on the protocol (`protocol_t`). It
 covers some `protocol_t::region_t`, which is returned by `get_region()`.
@@ -246,7 +284,7 @@ public:
     [Precondition] region_is_superset(expected_metainfo.get_domain(), read.get_region())
     [May block] */
     virtual typename protocol_t::read_response_t read(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+            DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_expecter, )
             const typename protocol_t::read_t &read,
             order_token_t order_token,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
@@ -259,7 +297,7 @@ public:
     [Precondition] region_is_superset(expected_metainfo.get_domain(), write.get_region())
     [May block] */
     virtual typename protocol_t::write_response_t write(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+            DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_expecter, )
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
@@ -387,19 +425,19 @@ public:
     }
 
     typename protocol_t::read_response_t read(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+            DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const typename protocol_t::read_t &read,
             order_token_t order_token,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
-        rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
+        rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
 
-        return store_view->read(DEBUG_ONLY(expected_metainfo, ) read, order_token, token, interruptor);
+        return store_view->read(DEBUG_ONLY(metainfo_checker, ) read, order_token, token, interruptor);
     }
 
     typename protocol_t::write_response_t write(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+            DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const metainfo_t& new_metainfo,
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
@@ -407,10 +445,10 @@ public:
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
-        rassert(region_is_superset(get_region(), expected_metainfo.get_domain()));
+        rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        return store_view->write(DEBUG_ONLY(expected_metainfo, ) new_metainfo, write, timestamp, order_token, token, interruptor);
+        return store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, timestamp, order_token, token, interruptor);
     }
 
     bool send_backfill(

@@ -83,13 +83,14 @@ void run_backfill_test() {
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
             backfiller_store.new_write_token(token);
 
+#ifndef NDEBUG
+            equality_metainfo_checker_callback_t<dummy_protocol_t>
+                metainfo_checker_callback(binary_blob_t(version_range_t(version_t(dummy_branch_id, ts.timestamp_before()))));
+            metainfo_checker_t<dummy_protocol_t> metainfo_checker(&metainfo_checker_callback, region);
+#endif
+
             backfiller_store.write(
-                DEBUG_ONLY(
-                    region_map_t<dummy_protocol_t, binary_blob_t>(
-                        region,
-                        binary_blob_t(version_range_t(version_t(dummy_branch_id, ts.timestamp_before())))
-                    ),
-                )
+                DEBUG_ONLY(metainfo_checker, )
                 region_map_t<dummy_protocol_t, binary_blob_t>(
                     region,
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))

@@ -10,13 +10,15 @@
 
 namespace boost { template <class> class function; }
 class binary_blob_t;
+template <class> class metainfo_checker_t;
 template <class> class multistore_send_backfill_should_backfill_t;
 template <class, class> class region_map_t;
 template <class> class store_view_t;
 template <class> class store_subview_t;
 class order_token_t;
 class version_range_t;
-template <class> struct new_and_expected_metainfo_t;
+
+template <class> struct new_and_metainfo_checker_t;
 
 template <class protocol_t>
 class multistore_ptr_t {
@@ -71,7 +73,7 @@ public:
                                   signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    typename protocol_t::read_response_t read(DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
+    typename protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                                               const typename protocol_t::read_t &read,
                                               order_token_t order_token,
                                               boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
@@ -79,7 +81,7 @@ public:
                                               signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    typename protocol_t::write_response_t write(DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
+    typename protocol_t::write_response_t write(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                                                 const typename protocol_t::store_t::metainfo_t& new_metainfo,
                                                 const typename protocol_t::write_t &write,
                                                 transition_timestamp_t timestamp,
@@ -108,7 +110,7 @@ private:
                                signal_t *interruptor) THROWS_NOTHING;
 
     void single_shard_read(int i,
-                           DEBUG_ONLY(const typename protocol_t::store_t::metainfo_t& expected_metainfo, )
+                           DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                            const typename protocol_t::read_t &read,
                            order_token_t order_token,
                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
@@ -118,7 +120,7 @@ private:
 
 
     void single_shard_write(int i,
-                            const new_and_expected_metainfo_t<protocol_t> &metainfo,
+                            const new_and_metainfo_checker_t<protocol_t> &metainfo,
                             const typename protocol_t::write_t &write,
                             transition_timestamp_t timestamp,
                             order_token_t order_token,

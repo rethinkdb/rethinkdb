@@ -12,6 +12,27 @@
 #define OPERATION_CORO_POOL_SIZE 10
 
 template <class protocol_t>
+struct version_leq_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
+public:
+    version_leq_metainfo_checker_callback_t(const state_timestamp_t& tstamp) : tstamp_(tstamp) { }
+
+    void check_metainfo(const region_map_t<protocol_t, binary_blob_t>& metainfo, const typename protocol_t::region_t& region) const {
+        region_map_t<protocol_t, binary_blob_t> masked = metainfo.mask(region);
+
+        for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it = masked.begin(); it != masked.end(); ++it) {
+            version_range_t range = binary_blob_t::get<version_range_t>(it->second);
+            rassert(range.earliest.timestamp == range.latest.timestamp);
+            rassert(range.latest.timestamp <= tstamp_);
+        }
+    }
+
+private:
+    state_timestamp_t tstamp_;
+
+    DISABLE_COPYING(version_leq_metainfo_checker_callback_t);
+};
+
+template <class protocol_t>
 listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
                                    boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
@@ -369,12 +390,14 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 
         debugf("listener %p perform_write (ii) about to svs->write with: %lu\n", this, transition_timestamp.numeric_representation());
 
+#ifndef NDEBUG
+        version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(transition_timestamp.timestamp_before());
+        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs->get_multistore_joined_region());
+#endif
+
         cond_t non_interruptor;
         svs->write(
-            DEBUG_ONLY(
-                region_map_t<protocol_t, binary_blob_t>(svs->get_multistore_joined_region(),
-                    binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
-                )
+            DEBUG_ONLY(metainfo_checker, )
             region_map_t<protocol_t, binary_blob_t>(svs->get_multistore_joined_region(),
                 binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))),
             write,
@@ -439,12 +462,17 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
         // (We shouldn't have been signed up for writereads if we couldn't.)
         rassert(region_is_superset(svs->get_multistore_joined_region(), write.get_region()));
 
+
+#ifndef NDEBUG
+        version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(transition_timestamp.timestamp_before());
+        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs->get_multistore_joined_region());
+#endif
+
+
         // Perform the operation
         cond_t non_interruptor;
         typename protocol_t::write_response_t response
-            = svs->write(DEBUG_ONLY(region_map_t<protocol_t, binary_blob_t>(svs->get_multistore_joined_region(),
-                                                                            binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
-                                    )
+            = svs->write(DEBUG_ONLY(metainfo_checker, )
                          region_map_t<protocol_t, binary_blob_t>(svs->get_multistore_joined_region(),
                                                                  binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))),
                          write,
@@ -503,12 +531,15 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
         (We shouldn't have been signed up for reads if we couldn't.) */
         rassert(region_is_superset(svs->get_multistore_joined_region(), read.get_region()));
 
+
+#ifndef NDEBUG
+        version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(expected_timestamp);
+        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs->get_multistore_joined_region());
+#endif
+
         /* Perform the operation */
         typename protocol_t::read_response_t response = svs->read(
-            DEBUG_ONLY(
-                region_map_t<protocol_t, binary_blob_t>(svs->get_multistore_joined_region(),
-                    binary_blob_t(version_range_t(version_t(branch_id, expected_timestamp)))),
-                )
+            DEBUG_ONLY(metainfo_checker, )
             read,
             order_token,
             read_tokens.get(),
