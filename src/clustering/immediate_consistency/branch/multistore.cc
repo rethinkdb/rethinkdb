@@ -327,15 +327,10 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
                                                       boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                                                       std::vector<typename protocol_t::write_response_t> *responses,
                                                       signal_t *interruptor) THROWS_NOTHING {
-    debugf("svs %p single_shard_write timestamp before %lu\n", this, timestamp.numeric_representation());
-
-    debug_print("s_s_write", write);
-
     const typename protocol_t::region_t &ith_region = get_region(i);
     typename protocol_t::region_t ith_intersection = region_intersection(ith_region, write.get_region());
     if (region_is_empty(ith_intersection)) {
         write_tokens[i].reset();
-        debugf("svs %p single_shard_write intersection empty with timestamp %lu\n", this, timestamp.numeric_representation());
         return;
     }
 
@@ -364,9 +359,6 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
                                     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                                     int num_stores_assertion,
                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-
-    debugf("svs %p write timestamp before %lu\n", this, timestamp.numeric_representation());
-    debug_print("m_s write", write);
 
     guarantee(num_stores() == num_stores_assertion);
     std::vector<typename protocol_t::write_response_t> responses;

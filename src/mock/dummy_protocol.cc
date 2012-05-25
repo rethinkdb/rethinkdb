@@ -337,8 +337,6 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
                                  boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
-    debugf("dummy store %p write() from %s with before: %lu\n", this, order_token.tag().c_str(), timestamp.numeric_representation());
-
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
     rassert(region_is_superset(get_region(), write.get_region()));
@@ -352,11 +350,8 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
 
         order_sink.check_out(order_token);
 
-        debugf("dummy_protocol_t::store_t(%p)::write() from %s (with before: %lu)\n", this, order_token.tag().c_str(), timestamp.numeric_representation());
-
         // We allow upper_metainfo domain to be smaller than the metainfo domain
         rassert(metainfo_checker.get_domain() == metainfo.mask(metainfo_checker.get_domain()).get_domain());
-        debugf_metainfo("masked metainfo", metainfo.mask(metainfo_checker.get_domain()));
 #ifndef NDEBUG
         metainfo_checker.check_metainfo(metainfo.mask(metainfo_checker.get_domain()));
 #endif
@@ -370,8 +365,6 @@ dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_proto
         }
 
         metainfo.update(new_metainfo);
-        debugf_metainfo("updated metainfo", metainfo);
-        debugf_metainfo("new metainfo", new_metainfo);
     }
     if (rng.randint(2) == 0) nap(rng.randint(10));
     return resp;
