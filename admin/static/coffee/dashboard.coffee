@@ -14,7 +14,6 @@ module 'DashboardView', ->
 
         render: =>
             @.$el.html @template({})
-            
             @cluster_status = new DashboardView.ClusterStatus()
             @cluster_performance = new DashboardView.ClusterPerformance()
 
@@ -32,9 +31,15 @@ module 'DashboardView', ->
         initialize: ->
             log_initial '(initializing) dashboard view'
             issues.on 'all', @render
+            directory.on 'all', @render
             @render()
 
         do_nothing: (event) -> event.preventDefault()
+
+        convert_activity:
+            'role_secondary': 'secondary_up_to_date'
+            'role_nothing': 'nothing'
+            'role_primary': 'primary'
 
         compute_status: ->
             status = 
@@ -85,13 +90,58 @@ module 'DashboardView', ->
                 if status.masters_offline.length > 0
                     status.num_masters_offline = status.masters_offline.length
                     status.has_availability_problems = true
+
+            # checking for redundancy
+            status.num_replicas = 0
+            status.num_replicas_offline = 0
+            status.replicas_offline = []
+            directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
+            for namespace in namespaces.models
+                namespace_id = namespace.get('id')
+                blueprint = namespace.get('blueprint').peers_roles
+                for machine_id of blueprint
+                    for key of blueprint[machine_id]
+                        value = blueprint[machine_id][key]
+                        if value is "role_primary" or value is "role_secondary"
+                            status.num_replicas++
+
+                            if !(directory_by_namespaces?) or !(directory_by_namespaces[namespace_id]?) or !(directory_by_namespaces[namespace_id][machine_id]?)
+                                status.replicas_offline.push
+                                    machine_id: machine_id
+                                    machine_name: machines.get(machine_id).get('name')
+                                    namespace_uuid: namespace_id
+                                    namespace_name: namespace.get('name')
+                            else if directory_by_namespaces[namespace_id][machine_id][0] != key
+                                 status.replicas_offline.push
+                                    machine_id: machine_id
+                                    machine_name: machines.get(machine_id).get('name')
+                                    namespace_uuid: namespace_id
+                                    namespace_name: namespace.get('name')
+                            else if directory_by_namespaces[namespace_id][machine_id][1].type != @convert_activity[value]
+                                status.replicas_offline.push
+                                    machine_id: machine_id
+                                    machine_name: machines.get(machine_id).get('name')
+                                    namespace_uuid: namespace_id
+                                    namespace_name: namespace.get('name')
+ 
+
+            if status.replicas_offline.length > 0
+                status.has_redundancy_problems = true
+                status.num_replicas_offline = status.replicas_offline.length
+            
+            
             status
+
+        isnt_empty: (data) ->
+            for i of data
+                return true
+            return false
 
         render: =>
             log_render '(rendering) cluster status view'
             
             @.$el.html @template(@compute_status())
-
+            $(".popover").remove()  
             @.$('a[rel=dashboard_details]').popover
                 html: true
 

@@ -348,6 +348,19 @@ module 'DataUtils', ->
                         namespace_id: namespace_id
         return activities
 
+    @get_directory_activities_by_namespaces = ->
+        activities = {}
+        for machine in directory.models
+            bcards = machine.get('memcached_namespaces')['reactor_bcards']
+            for namespace_id, activity_map of bcards
+                activity_map = activity_map['activity_map']
+                for activity_id, activity of activity_map
+                    if !(namespace_id of activities)
+                        activities[namespace_id] = {}
+                    activities[namespace_id][machine.get('id')] = activity
+
+        return activities
+
     # Computes backfill progress for a given (namespace, shard,
     # machine) tripple. All arguments correspond to the objects that
     # are *receiving* data.
