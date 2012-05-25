@@ -154,6 +154,10 @@ public:
         update(region_map_t(r, v));
     }
 
+    size_t size() const {
+        return regions_and_values.size();
+    }
+
 private:
     internal_vec_t regions_and_values;
     RDB_MAKE_ME_SERIALIZABLE_1(regions_and_values);
