@@ -237,11 +237,6 @@ class IssuesRedundancy extends Backbone.Collection
         directory.on 'all', @compute_redundancy_errors
         namespaces.on 'all', @compute_redundancy_errors
 
-    compute_redundancy_errors_nothing: ->
-        return @
-
-
-
     convert_activity:
         'role_secondary': 'secondary_up_to_date'
         'role_nothing': 'nothing'
@@ -253,7 +248,6 @@ class IssuesRedundancy extends Backbone.Collection
 
 
         directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
-        console.log namespaces
         for namespace in namespaces.models
             namespace_id = namespace.get('id')
             blueprint = namespace.get('blueprint').peers_roles
