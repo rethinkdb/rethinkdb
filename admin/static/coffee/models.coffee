@@ -254,30 +254,35 @@ class IssuesRedundancy extends Backbone.Collection
             namespace_id = namespace.get('id')
             blueprint = namespace.get('blueprint').peers_roles
             for machine_id of blueprint
+                if machines.get(machine_id)? and machines.get(machine_id).get('name')?
+                    machine_name = machines.get(machine_id).get('name')
+                else # can happen if machines is not loaded yet
+                    machine_name = machine_id
+
                 for key of blueprint[machine_id]
                     value = blueprint[machine_id][key]
                     if value is "role_primary" or value is "role_secondary"
                         @num_replicas++
 
                         if !(directory_by_namespaces?) or !(directory_by_namespaces[namespace_id]?) or !(directory_by_namespaces[namespace_id][machine_id]?)
-                            issue_redundancy_param = 
+                            issue_redundancy_param =
                                 machine_id: machine_id
-                                machine_name: machines.get(machine_id).get('name')
+                                machine_name: machine_name
                                 namespace_uuid: namespace_id
                                 namespace_name: namespace.get('name')
                             issue_redundancy = new IssueRedundancy issue_redundancy_param
                             issues_redundancy.push issue_redundancy
                         else if directory_by_namespaces[namespace_id][machine_id][0] != key
-                            issue_redundancy_param = 
+                            issue_redundancy_param =
                                 machine_id: machine_id
-                                machine_name: machines.get(machine_id).get('name')
+                                machine_name: machine_name
                                 namespace_uuid: namespace_id
                                 namespace_name: namespace.get('name')
                             issues_redundancy.push new IssueRedundancy issue_redundancy_param
                         else if directory_by_namespaces[namespace_id][machine_id][1].type != @convert_activity[value]
-                            issue_redundancy_param = 
+                            issue_redundancy_param =
                                 machine_id: machine_id
-                                machine_name: machines.get(machine_id).get('name')
+                                machine_name: machine_name
                                 namespace_uuid: namespace_id
                                 namespace_name: namespace.get('name')
                             issues_redundancy.push new IssueRedundancy issue_redundancy_param

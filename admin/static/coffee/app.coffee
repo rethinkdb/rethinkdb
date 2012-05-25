@@ -28,6 +28,9 @@ apply_to_collection = (collection, collection_data) ->
         else
             if collection.get(id)
                 collection.remove(id)
+    if collection['stats_waiting']?
+        set_stats(collection['stats_waiting'])
+
 
 add_protocol_tag = (data, tag) ->
     f = (unused,id) ->
@@ -111,12 +114,15 @@ set_log_entries = (log_data_from_server) ->
     recent_log_entries.reset(all_log_entries)
 
 set_stats = (stat_data) ->
+    delete_data = true
     for machine_id, data of stat_data
         if machines.get(machine_id)?
             machines.get(machine_id).set('stats', data)
-        ### #what if machines are not loaded yet we should try again?
         else
-        ###
+            machines['stats_waiting'] = stat_data
+            delete_data = false
+    if delete_data
+        delete machines['stats_waiting']
     machines.trigger('stats_updated')
 
 collections_ready = ->
