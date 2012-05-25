@@ -91,7 +91,7 @@ module 'DashboardView', ->
             if issues_redundancy.length > 0
                 status.has_redundancy_problems = true
                 status.num_replicas_offline = issues_redundancy.length
-            
+                status.replicas_offline = issues_redundancy.models
             
             status
 
