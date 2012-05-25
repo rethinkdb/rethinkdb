@@ -227,10 +227,8 @@ private:
     void get_throttled(typename protocol_t::read_t, int) { }
 
     void get_throttled(typename protocol_t::write_t, int allocated_writes) {
-        debugf("Allocated writes: %d\n", allocated_writes);
         if (allocated_writes < THROTTLE_THRESHOLD) {
-            debugf("Throttling by %f\n", (float)pow(2, -allocated_writes));
-            nap(std::min(100.0, pow(2, -allocated_writes)));
+            nap(std::min(1000.0, pow(2, -(float(allocated_writes)/100.0))));
         }
     }
 

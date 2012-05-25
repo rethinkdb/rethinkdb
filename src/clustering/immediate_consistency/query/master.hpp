@@ -156,7 +156,7 @@ private:
 
                 auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
                 fifo_enforcer_sink_t::exit_write_t exiter(it->second->sink(), token);
-                reply = broadcaster->write(write, &exiter, &ack_checker, otok, auto_drainer_lock.get_drain_signal(), boost::bind(&master_t<protocol_t>::write_completion_cb, this));
+                reply = broadcaster->write(write, &exiter, &ack_checker, otok, auto_drainer_lock.get_drain_signal(), boost::bind(&master_t<protocol_t>::write_completion_cb, this, keepalive));
             } catch (cannot_perform_query_exc_t e) {
                 reply = e.what();
             }
@@ -166,13 +166,12 @@ private:
         }
     }
 
-    void write_completion_cb() {
+    void write_completion_cb(UNUSED auto_drainer_t::lock_t l) {
         enqueued_writes--;
         consider_allocating_more_writes();
     }
 
     void consider_allocating_more_writes() {
-        debugf("Enqueued writes: %d\n", enqueued_writes);
         if (enqueued_writes  + ALLOCATION_CHUNK < TARGET_OPERATION_QUEUE_LENGTH) {
             parser_lifetime_t *most_depleted_parser = NULL;
             for (typename std::map<namespace_interface_id_t, parser_lifetime_t *>::iterator it  = sink_map.begin();
