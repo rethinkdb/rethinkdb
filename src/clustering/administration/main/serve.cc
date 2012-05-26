@@ -1,4 +1,3 @@
-
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
 #include "clustering/administration/auto_reconnect.hpp"
@@ -222,7 +221,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         &memcached_namespace_repo,
         &perfmon_repo);
 
-    metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
+    metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view());
 
     {
         int http_port = port + 1000;

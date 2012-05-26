@@ -5,6 +5,12 @@
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "clustering/administration/issues/json.hpp"
+#include "buffer_cache/blob.hpp"
+#include "buffer_cache/mirrored/mirrored.hpp"
+#include "buffer_cache/mirrored/config.hpp"
+#include "buffer_cache/types.hpp"
+#include "serializer/log/log_serializer.hpp"
+#include "buffer_cache/semantic_checking.hpp"
 
 namespace metadata_persistence {
 
@@ -19,11 +25,12 @@ private:
     std::string m;
 };
 
+std::string errno_to_string(int err);
 bool check_existence(const std::string& file_path) THROWS_ONLY(file_exc_t);
 
-void create(const std::string& file_path, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice) THROWS_ONLY(file_exc_t);
-void update(const std::string& file_path, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice) THROWS_ONLY(file_exc_t);
-void read(const std::string& file_path, machine_id_t *machine_id_out, cluster_semilattice_metadata_t *semilattice_out) THROWS_ONLY(file_exc_t);
+void create(const std::string& file_path, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &semilattice);
+void update(const std::string& file_path, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &semilattice);
+void read(const std::string& file_path, machine_id_t *machine_id_out, cluster_semilattice_metadata_t *semilattice_out);
 
 class persistence_issue_t : public local_issue_t {
 public:
@@ -61,13 +68,24 @@ private:
     DISABLE_COPYING(persistence_issue_t);
 };
 
+class persistent_file_t {
+public:
+    persistent_file_t(const std::string& filename, bool create=false);
+
+    void update(const machine_id_t &machine_id, const cluster_semilattice_metadata_t &semilattice, bool create=false);
+    void read(machine_id_t *machine_id_out, cluster_semilattice_metadata_t *semilattice_out);
+private:
+    boost::scoped_ptr<standard_serializer_t> serializer;
+    boost::scoped_ptr<cache_t> cache;
+    mirrored_cache_config_t cache_dynamic_config;
+};
+
 class semilattice_watching_persister_t {
 public:
     semilattice_watching_persister_t(
             const std::string &file_path,
             machine_id_t machine_id,
-            boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > view,
-            local_issue_tracker_t *issue_tracker);
+            boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > view);
 
     /* `stop_and_flush()` finishes flushing the current value to disk but stops
     responding to future changes. It's usually called right before the
@@ -81,14 +99,12 @@ public:
 private:
     void dump_loop(auto_drainer_t::lock_t lock);
     void on_change();
-    std::string file_path;
+
+    persistent_file_t persistent_file;
     machine_id_t machine_id;
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > view;
 
     boost::scoped_ptr<cond_t> flush_again;
-
-    local_issue_tracker_t *issue_tracker;
-    boost::scoped_ptr<local_issue_tracker_t::entry_t> persistence_issue;
 
     cond_t stop, stopped;
     auto_drainer_t drainer;
@@ -96,6 +112,20 @@ private:
     semilattice_read_view_t<cluster_semilattice_metadata_t>::subscription_t subs;
 
     DISABLE_COPYING(semilattice_watching_persister_t);
+};
+
+
+struct blob_superblock_t {
+    block_magic_t magic;
+
+    // We are unnecessarily generous with the amount of space
+    // allocated here, but there's nothing else to push out of the
+    // way.
+    static const int METADATA_BLOB_MAXREFLEN = 1500;
+
+    char metainfo_blob[METADATA_BLOB_MAXREFLEN];
+
+    static const block_magic_t expected_magic;
 };
 
 }   /* namespace metadata_persistence */

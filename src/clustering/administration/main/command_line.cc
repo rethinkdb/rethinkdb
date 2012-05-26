@@ -23,6 +23,7 @@ public:
     int port;
 };
 
+
 #ifndef NDEBUG
 void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, int port_offset, bool *result_out) {
 #else
@@ -51,6 +52,12 @@ void run_rethinkdb_create(const std::string &filepath, std::string &machine_name
         our_machine_id,
         machine_semilattice_metadata
         ));
+
+    int res = mkdir(filepath.c_str(), 0755);
+    if (res != 0) {
+        printf("Could not create directory: %s\n", metadata_persistence::errno_to_string(errno).c_str());
+        return;
+    }
 
     metadata_persistence::create(filepath, our_machine_id, metadata);
 
