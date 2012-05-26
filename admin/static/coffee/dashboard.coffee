@@ -71,6 +71,9 @@ module 'DashboardView', ->
 
                 status.num_masters_offline = 0
                 status.masters_offline = []
+
+                status.num_conflicts = 0
+
                 for issue in issues.models
                     switch issue.get("type")
                         when "PERSISTENCE_ISSUE"
@@ -85,6 +88,10 @@ module 'DashboardView', ->
                                     machine_name: machines.get(issue.get('victim')).get('name')
                                     namespace_name: masters[issue.get('victim')].name
                                     namespace_id: masters[issue.get('victim')].id
+                        when "NAME_CONFLICT_ISSUE"
+                            status.num_conflicts++
+                        when "VCLOCK_CONFLICT"
+                            status.num_conflicts++
 
                 if status.machines_with_disk_problems.length > 0
                     status.num_machines_with_disk_problems = status.machines_with_disk_problems.length
@@ -92,6 +99,9 @@ module 'DashboardView', ->
                 if status.masters_offline.length > 0
                     status.num_masters_offline = status.masters_offline.length
                     status.has_availability_problems = true
+                if status.num_conflicts > 0
+                    status.has_conflicts_problems = true
+
 
             # checking for redundancy
             status.num_replicas = issues_redundancy.num_replicas
@@ -115,7 +125,6 @@ module 'DashboardView', ->
                         status.machines_with_cpu_problems.push new_machine
                     ram_used = machine.get('stats').proc.global_mem_used / machine.get('stats').proc.global_mem_total
                     if ram_used > @threshold_ram
-                        console.log ram_used
                         new_machine = 
                             uid: machine.get('id')
                             name: machine.get('name')
@@ -131,6 +140,7 @@ module 'DashboardView', ->
                 status.has_ram_problems = true
                 status.num_machines_with_ram_problems = status.machines_with_ram_problems.length
             status.threshold_ram = Math.floor(@threshold_ram*100)
+
 
             status
 
