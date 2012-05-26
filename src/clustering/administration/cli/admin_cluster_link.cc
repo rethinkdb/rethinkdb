@@ -12,6 +12,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "clustering/administration/cli/key_parsing.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
@@ -21,16 +22,7 @@
 #include "do_on_thread.hpp"
 
 std::string region_to_str(const memcached_protocol_t::region_t& region) {
-    std::string shard_str;
-    if (region.left == store_key_t())
-        shard_str += "inf-";
-    else
-        shard_str += "\"" + key_to_str(region.left) + "\"-";
-    if (region.right.unbounded)
-        shard_str += "inf";
-    else
-        shard_str += "\"" + key_to_str(region.right.key) + "\"";
-    return shard_str;
+    return key_range_to_cli_str(region);
 }
 
 std::string region_to_str(const mock::dummy_protocol_t::region_t& region) {

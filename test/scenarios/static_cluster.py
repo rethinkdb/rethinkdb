@@ -6,6 +6,7 @@ from vcoptparse import *
 
 op = OptParser()
 op["num-nodes"] = IntFlag("--num-nodes", 3)
+op["num-shards"] = IntFlag("--num-shards", 2)
 op["mode"] = IntFlag("--mode", "debug")
 op["workload"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
@@ -23,6 +24,8 @@ with driver.Metacluster() as metacluster:
     for machine_id in http.machines:
         http.move_server_to_datacenter(machine_id, dc)
     ns = http.add_namespace(protocol = "memcached", primary = dc)
+    for i in xrange(opts["num-shards"] - 1):
+        http.add_namespace_shard(ns, chr(ord('a') + 26 * i // opts["num-shards"]))
     time.sleep(10)
     host, port = http.get_namespace_host(ns)
     workload_runner.run(opts["workload"], host, port, opts["timeout"])
