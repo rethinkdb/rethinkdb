@@ -33,6 +33,12 @@ public:
 
     // Command strings for various commands
     static const char *list_command;
+    static const char *list_stats_command;
+    static const char *list_issues_command;
+    static const char *list_machines_command;
+    static const char *list_directory_command;
+    static const char *list_namespaces_command;
+    static const char *list_datacenters_command;
     static const char *exit_command;
     static const char *help_command;
     static const char *resolve_command;
@@ -50,6 +56,12 @@ public:
 
     // Usage strings for various commands
     static const char *list_usage;
+    static const char *list_stats_usage;
+    static const char *list_issues_usage;
+    static const char *list_machines_usage;
+    static const char *list_directory_usage;
+    static const char *list_namespaces_usage;
+    static const char *list_datacenters_usage;
     static const char *exit_usage;
     static const char *help_usage;
     static const char *resolve_usage;
@@ -66,6 +78,12 @@ public:
 
     // Descriptive strings for various commands
     static const char *list_description;
+    static const char *list_stats_description;
+    static const char *list_issues_description;
+    static const char *list_machines_description;
+    static const char *list_directory_description;
+    static const char *list_namespaces_description;
+    static const char *list_datacenters_description;
     static const char *exit_description;
     static const char *help_description;
     static const char *resolve_description;
@@ -107,15 +125,14 @@ private:
 
         param_options * add_flag(const std::string& name, int count, bool required);
         param_options * add_positional(const std::string& name, int count, bool required);
-        void add_subcommand(command_info *info);
 
         std::string full_command;
         std::string command;
         std::string usage;
-        const bool post_sync;
-        void (admin_cluster_link_t::* const do_function)(command_data&);
+        bool post_sync;
+        void (admin_cluster_link_t::* do_function)(command_data&);
 
-        std::vector<param_options *> positionals; // TODO: it is an error to have both positionals and subcommands
+        std::vector<param_options *> positionals;
         std::map<std::string, param_options *> flags;
         std::map<std::string, command_info *> subcommands;
     };

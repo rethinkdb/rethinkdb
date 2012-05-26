@@ -86,11 +86,11 @@ public:
         return &map_;
     }
 
-    bool is_string() {
+    bool is_string() const {
         return type == type_value;
     }
 
-    bool is_map() {
+    bool is_map() const {
         return type == type_map;
     }
 
