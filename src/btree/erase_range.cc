@@ -26,7 +26,7 @@ public:
         rassert(*population_change_out == 0);
         leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_major_write());
 
-        std::vector<btree_key_buffer_t> keys_to_delete;
+        std::vector<store_key_t> keys_to_delete;
 
         for (leaf::live_iter_t iter = leaf::iter_for_whole_leaf(node); /* no test */; iter.step(node)) {
             const btree_key_t *k = iter.get_key(node);
@@ -39,18 +39,18 @@ public:
             assert_key_in_range(k, l_excl, r_incl);
 
             if (key_in_range(k, left_exclusive_or_null_, right_inclusive_or_null_) && tester_->key_should_be_erased(k)) {
-                keys_to_delete.push_back(btree_key_buffer_t(k));
+                keys_to_delete.push_back(store_key_t(k));
             }
         }
 
         scoped_malloc<char> value(sizer_->max_possible_size());
 
         for (int i = 0, e = keys_to_delete.size(); i < e; ++i) {
-            if (leaf::lookup(sizer_, node, keys_to_delete[i].key(), value.get())) {
+            if (leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get())) {
                 deleter_->delete_value(txn, value.get());
                 (*population_change_out)--;
             }
-            leaf::erase_presence(sizer_, node, keys_to_delete[i].key(), key_modification_proof_t::fake_proof());
+            leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(), key_modification_proof_t::fake_proof());
         }
     }
 

@@ -121,7 +121,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         // the case where x_left + 1 == y_right.  Then we don't have
         // overlap.  Our keys are like integers.
 
-        if (!(x_right == NULL || sized_strcmp(y_left.contents, y_left.size, x_right->contents, x_right->size) <= 0)) {
+        if (!(x_right == NULL || sized_strcmp(y_left.contents(), y_left.size(), x_right->contents, x_right->size) <= 0)) {
             return false;
         }
 
@@ -134,7 +134,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             }
 
             // Now it's [x_left_copy, x_right] intersecting [y_left, y_right).
-            return sized_strcmp(x_left_copy.contents, x_left_copy.size, y_right.key.contents, y_right.key.size) < 0;
+            return sized_strcmp(x_left_copy.contents(), x_left_copy.size(), y_right.key.contents(), y_right.key.size()) < 0;
         }
     }
 

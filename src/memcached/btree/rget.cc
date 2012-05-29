@@ -5,7 +5,7 @@
 #include <boost/make_shared.hpp>
 
 #include "arch/runtime/runtime.hpp"
-#include "btree/iteration.hpp"
+#include "btree/depth_first_traversal.hpp"
 #include "containers/iterators.hpp"
 #include "memcached/btree/btree_data_provider.hpp"
 #include "memcached/btree/node.hpp"
@@ -57,42 +57,44 @@
  * Currently the DFS design is implemented, since it's the simplest solution, also it is a good
  * fit for small rgets (the most popular use-case).
  *
- *
- * Most of the implementation now resides in btree/iteration.{hpp,cc}.
- * Actual merging of the slice iterators is done in server/key_value_store.cc.
+ * Most of the implementation now resides in btree/depth_first_search.{hpp,cc}.
  */
 
-btree_bound_mode_t convert_bound_mode(rget_bound_mode_t m) {
-    switch (m) {
-        case rget_bound_open: return btree_bound_open;
-        case rget_bound_closed: return btree_bound_closed;
-        case rget_bound_none: return btree_bound_none;
-        default: unreachable();
-    }
+size_t estimate_rget_result_pair_size(const key_with_data_buffer_t &pair) {
+    static const size_t rget_approx_per_key_overhead = 8;
+    return rget_approx_per_key_overhead + pair.key.size() + pair.value_provider->size();
 }
 
-rget_result_t memcached_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key,
-        int maximum, exptime_t effective_time, boost::scoped_ptr<transaction_t>& txn, boost::scoped_ptr<superblock_t> &superblock) {
-
-    boost::shared_ptr<value_sizer_t<memcached_value_t> > sizer = boost::make_shared<memcached_value_sizer_t>(txn->get_cache()->get_block_size());
-
-    rget_result_t result;
-    slice_keys_iterator_t<memcached_value_t> iterator(sizer, txn.get(), superblock, slice->home_thread(), convert_bound_mode(left_mode), left_key, convert_bound_mode(right_mode), right_key, &slice->stats);
-    debugf("memcached_rget_slice(), maximum = %d\n", maximum);
-    while (int(result.pairs.size()) < maximum) {
-        boost::optional<key_value_pair_t<memcached_value_t> > next = iterator.next();
-        if (!next) {
-            debugf("!next\n");
-            break;
+class rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
+public:
+    rget_depth_first_traversal_callback_t(transaction_t *txn, int max, exptime_t et) :
+        transaction(txn), maximum(max), effective_time(et), cumulative_size(0) { }
+    bool handle_pair(const btree_key_t *key, const void *value) {
+        const memcached_value_t *mc_value = reinterpret_cast<const memcached_value_t *>(value);
+        if (mc_value->expired(effective_time)) {
+            return true;
         }
-        const memcached_value_t *value = reinterpret_cast<const memcached_value_t *>(next->value.get());
-        if (value->expired(effective_time)) {
-            debugf("expired\n");
-            continue;
-        }
-        intrusive_ptr_t<data_buffer_t> data(value_to_data_buffer(value, txn.get()));
-        result.pairs.push_back(key_with_data_buffer_t(next->key, value->mcflags(), data));
-        debugf("pushed, size now = %d\n", int(result.pairs.size()));
+        intrusive_ptr_t<data_buffer_t> data(value_to_data_buffer(mc_value, transaction));
+        result.pairs.push_back(key_with_data_buffer_t(store_key_t(key), mc_value->mcflags(), data));
+        cumulative_size += estimate_rget_result_pair_size(result.pairs.back());
+        return int(result.pairs.size()) < maximum && cumulative_size < rget_max_chunk_size;
     }
-    return result;
+    transaction_t *transaction;
+    int maximum;
+    exptime_t effective_time;
+    rget_result_t result;
+    size_t cumulative_size;
+};
+
+rget_result_t memcached_rget_slice(btree_slice_t *slice, const key_range_t &range,
+        int maximum, exptime_t effective_time, transaction_t *txn, superblock_t *superblock) {
+
+    rget_depth_first_traversal_callback_t callback(txn, maximum, effective_time);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+    if (callback.cumulative_size >= rget_max_chunk_size) {
+        callback.result.truncated = true;
+    } else {
+        callback.result.truncated = false;
+    }
+    return callback.result;
 }

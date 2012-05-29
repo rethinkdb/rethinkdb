@@ -86,11 +86,11 @@ public:
         return &map_;
     }
 
-    bool is_string() {
+    bool is_string() const {
         return type == type_value;
     }
 
-    bool is_map() {
+    bool is_map() const {
         return type == type_map;
     }
 
@@ -437,7 +437,7 @@ public:
 
     /* Perfmon interface */
     void *begin_stats() {
-        constituents_access.co_lock(rwi_read); // RSI: should that be scoped somehow, so that we unlock, should the results collection fail?
+        constituents_access.co_lock(rwi_read); // FIXME that should be scoped somehow, so that we unlock in case the results collection fail
         void **contexts = new void *[constituents.size()];
         size_t i = 0;
         for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
