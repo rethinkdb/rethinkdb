@@ -145,7 +145,7 @@ $ ->
     # routes. TODO: somebody fix this in the server for heaven's
     # sakes!!!
     #   - an optional callback can be provided. Currently this callback will only be called after the /ajax route (metadata) is collected
-    collect_server_data = (optional_callback) =>
+    window.collect_server_data = (optional_callback) =>
         $.getJSON('/ajax', (updates) ->
             apply_diffs(updates)
             optional_callback() if optional_callback

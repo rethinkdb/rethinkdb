@@ -98,6 +98,7 @@ module 'NamespaceView', ->
 
     class @ShardDatacenterList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_datacenter_list-template').html()
+            
 
     class @ShardDatacenter extends UIComponents.CollapsibleListElement
         template: Handlebars.compile $('#namespace_view-shard_datacenter-template').html()
@@ -105,6 +106,8 @@ module 'NamespaceView', ->
 
         initialize: ->
             super
+
+            @namespace = @options.args.namespace
 
             @machine_list = new NamespaceView.ShardMachineList machines, NamespaceView.ShardMachine, 'ul.machines',
                 filter: (machine) =>
@@ -121,11 +124,13 @@ module 'NamespaceView', ->
 
             @model.on 'change', @render_summary
             directory.on 'all', @render_summary
+            @namespace.on 'change:replica_affinities', @reset_list
+            @namespace.on 'change:secondary_pinnings', @reset_list
 
-            @options.args.namespace.on 'change:replica_affinities', =>
-                @machine_list.reset_element_views()
-                @machine_list.render()
-                @render()
+        reset_list: =>
+            @machine_list.reset_element_views()
+            @machine_list.render()
+            @render()
 
         render: =>
             @.$el.html @template({})
@@ -164,6 +169,7 @@ module 'NamespaceView', ->
             @shard.on 'change:secondary_uuids', @render
             @model.on 'change:name', @render
             directory.on 'all', @render
+            @namespace.on 'change:primary_pinnings', @render
 
         show_popover: (event) =>
             event.preventDefault()
@@ -187,9 +193,10 @@ module 'NamespaceView', ->
                     type: 'POST'
                     data: JSON.stringify(post_data)
                     success: (response) =>
-                        $popover.remove()
-                        @namespace.set(response)
-                        $('#user-alert-space').append (@alert_tmpl {})
+                        # Trigger a manual refresh of the data
+                        collect_server_data =>
+                            $popover.remove()
+                            $('#user-alert-space').append (@alert_tmpl {})
                 $popover_button.button('loading')
 
         make_master: (event) =>
@@ -205,9 +212,15 @@ module 'NamespaceView', ->
                 "/ajax/memcached_namespaces/#{@namespace.get('id')}/primary_pinnings",
                 JSON.stringify(post_data),
                 (response) =>
+                    # Set the link's text to a loading state
+                    $link = @.$('a.make-master')
+                    $link.text $link.data('loading-text')
+
                     clear_modals()
-                    @namespace.set(response)
                     $('#user-alert-space').append (@alert_tmpl {})
+                    
+                    # Trigger a manual refresh of the data
+                    collect_server_data()
             )
 
         get_available_machines_in_datacenter: =>
