@@ -4,7 +4,11 @@ workloads = [
     ("$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d 10000q",
      "true"),
     ("$RETHINKDB/test/workloads/many_keys.py $HOST:$PORT --phase w",
-     "$RETHINKDB/test/workloads/many_keys.py $HOST:$PORT --phase r")
+     "$RETHINKDB/test/workloads/many_keys.py $HOST:$PORT --phase r"),
+    ("$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT --save values",
+     "$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT --load values"),
+    ("$RETHINKDB/test/workloads/multi_serial_mix.py $HOST:$PORT --save values",
+     "$RETHINKDB/test/workloads/multi_serial_mix.py $HOST:$PORT --load values"),
     ]
 
 scenarios = [
