@@ -74,7 +74,8 @@ foo_count = 100
 fop_count = 1000
 max_results = foo_count+fop_count
 
-with workload_common.MemcacheConnection(opts["host"], opts["port"]) as mc:
+host, port = opts["address"]
+with workload_common.MemcacheConnection(host, port) as mc:
     print "Creating test data"
     mc.set('z1', 'bar', time=1) # we expect it to expire before we check it later
     for i in range(0,foo_count):
