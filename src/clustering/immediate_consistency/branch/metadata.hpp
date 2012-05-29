@@ -143,7 +143,8 @@ struct backfiller_business_card_t {
         region_map_t<protocol_t, version_range_t>,
         mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>)>,
         mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)>,
-        mailbox_t<void(fifo_enforcer_write_token_t)>::address_t
+        mailbox_t<void(fifo_enforcer_write_token_t)>::address_t,
+        mailbox_t<void(mailbox_addr_t<void(int)>)>::address_t
         )> backfill_mailbox_t;
 
     typedef mailbox_t<void(backfill_session_id_t)> cancel_backfill_mailbox_t;

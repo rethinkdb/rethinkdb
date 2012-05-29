@@ -8,6 +8,8 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/death_runner.hpp"
 
+#define ALLOCATION_CHUNK 50
+
 template<class protocol_t>
 void on_receive_backfill_chunk(
         store_view_t<protocol_t> *store,
@@ -104,40 +106,6 @@ void backfillee(
             boost::bind(&push_finish_on_queue<backfill_chunk_t>, &chunk_queue, _1),
             mailbox_callback_mode_inline);
 
-
-
-        struct chunk_callback_t : public coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> >::callback_t {
-            chunk_callback_t(store_view_t<protocol_t> *_store, signal_t *_dont_go_until, 
-                             signal_t *_interruptor, chunk_queue_t *_chunk_queue,
-                             cond_t *_done_cond)
-                : store(_store), dont_go_until(_dont_go_until), interruptor(_interruptor), 
-                  chunk_queue(_chunk_queue), done_cond(_done_cond)
-            { }
-            void coro_pool_callback(std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> chunk) {
-                if (chunk.first.first) {
-                    on_receive_backfill_chunk(store, dont_go_until, chunk.first.second, interruptor, chunk.second, chunk_queue);
-                } else {
-                    rassert(!done_cond->is_pulsed());
-                    done_cond->pulse();
-                }
-            }
-            store_view_t<protocol_t> *store;
-            signal_t *dont_go_until;
-            signal_t *interruptor;
-            chunk_queue_t *chunk_queue;
-            cond_t *done_cond;
-        };
-
-        chunk_callback_t chunk_callback(store, &dont_go_until, interruptor, &chunk_queue, &done_cond);
-        /* A callback, this function will be called on backfill_chunk_ts as
-         * they are popped off the queue. */
-        //typename coro_pool_t<std::pair<backfill_chunk_t, auto_drainer_t::lock_t> >::boost_function_callback_t 
-        //    chunk_callback(boost::bind(&on_receive_backfill_chunk<protocol_t>,
-        //        store, &dont_go_until, boost::bind(&std::pair::first, _1), interruptor, boost::bind(&std::pair::second, _1)
-        //        ));
-
-        coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
-
         /* Use an `auto_drainer_t` to wait for all the bits of the backfill to
         finish being applied. Construct it before `chunk_mailbox` so that we
         don't get any chunks after `drainer` is destroyed. */
@@ -148,6 +116,13 @@ void backfillee(
         mailbox_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_mailbox(
             mailbox_manager, boost::bind(&push_chunk_on_queue<backfill_chunk_t>, &chunk_queue, _1, _2));
 
+        /* The backfiller will register for allocations on the allocation
+         * registration box. */
+        promise_t<mailbox_addr_t<void(int)> > alloc_mailbox_promise;
+        mailbox_t<void(mailbox_addr_t<void(int)>)>  alloc_registration_mbox(
+                mailbox_manager, boost::bind(&promise_t<mailbox_addr_t<void(int)> >::pulse, &alloc_mailbox_promise, _1), mailbox_callback_mode_inline);
+
+
         /* Send off the backfill request */
         send(mailbox_manager,
             backfiller.access().backfill_mailbox,
@@ -155,8 +130,67 @@ void backfillee(
             start_point,
             end_point_mailbox.get_address(),
             chunk_mailbox.get_address(),
-            done_mailbox.get_address()
+            done_mailbox.get_address(),
+            alloc_registration_mbox.get_address()
             );
+
+        /* Wait to get an allocation mailbox */
+        wait_interruptible(alloc_mailbox_promise.get_ready_signal(), interruptor);
+
+        mailbox_addr_t<void(int)> allocation_mailbox = alloc_mailbox_promise.get_value();
+
+        /* Create a callback for popping backfill chunks off the queue and also
+         * a queue of backfill chunks. */
+        struct chunk_callback_t : public coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> >::callback_t, 
+                                  public home_thread_mixin_t {
+            chunk_callback_t(store_view_t<protocol_t> *_store, signal_t *_dont_go_until, 
+                             signal_t *_interruptor, chunk_queue_t *_chunk_queue,
+                             cond_t *_done_cond, mailbox_manager_t *_mbox_manager, 
+                             mailbox_addr_t<void(int)> _allocation_mailbox)
+                : store(_store), dont_go_until(_dont_go_until), interruptor(_interruptor), 
+                  chunk_queue(_chunk_queue), done_cond(_done_cond), mbox_manager(_mbox_manager),
+                  allocation_mailbox(_allocation_mailbox), unacked_chunks(0)
+            { }
+            void coro_pool_callback(std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> chunk) {
+                assert_thread();
+                if (chunk.first.first) {
+                    on_receive_backfill_chunk(store, dont_go_until, chunk.first.second, interruptor, chunk.second, chunk_queue);
+                    int chunks_to_send_out = 0;
+                    {
+                        /* Notice it's important that we don't wait while we're
+                         * modifying unacked chunks, otherwise another callback may
+                         * decided to send out an allocation as well. */
+                        ASSERT_NO_CORO_WAITING;
+                        ++unacked_chunks;
+                        rassert(unacked_chunks <= ALLOCATION_CHUNK);
+                        if (unacked_chunks == ALLOCATION_CHUNK) {
+                            unacked_chunks = 0;
+                            chunks_to_send_out = ALLOCATION_CHUNK;
+                        }
+                    }
+                    if (chunks_to_send_out != 0) {
+                        send(mbox_manager, allocation_mailbox, chunks_to_send_out);
+                    }
+                } else {
+                    rassert(!done_cond->is_pulsed());
+                    done_cond->pulse();
+                }
+            }
+            store_view_t<protocol_t> *store;
+            signal_t *dont_go_until;
+            signal_t *interruptor;
+            chunk_queue_t *chunk_queue;
+            cond_t *done_cond;
+            mailbox_manager_t *mbox_manager;
+            mailbox_addr_t<void(int)> allocation_mailbox;
+            int unacked_chunks;
+        };
+
+        /* The callback. */
+        chunk_callback_t chunk_callback(store, &dont_go_until, interruptor, &chunk_queue, &done_cond, mailbox_manager, allocation_mailbox);
+
+        /* A pool of coroutines that run the callback on the backfill chunks. */
+        coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
 
         /* If something goes wrong, we'd like to inform the backfiller that it
         it has gone wrong, so it doesn't just keep blindly sending us chunks.
