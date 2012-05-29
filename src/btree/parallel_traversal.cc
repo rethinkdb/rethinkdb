@@ -322,17 +322,17 @@ void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, in
 struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
     traversal_state_t *state;
     int level;
-    btree_key_buffer_t left_exclusive;
+    store_key_t left_exclusive;
     bool left_unbounded;
-    btree_key_buffer_t right_inclusive;
+    store_key_t right_inclusive;
     bool right_unbounded;
 
     void on_node_ready(buf_lock_t *buf) {
         rassert(coro_t::self());
         const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
 
-        const btree_key_t *left_exclusive_or_null = left_unbounded ? NULL : left_exclusive.key();
-        const btree_key_t *right_inclusive_or_null = right_unbounded ? NULL : right_inclusive.key();
+        const btree_key_t *left_exclusive_or_null = left_unbounded ? NULL : left_exclusive.btree_key();
+        const btree_key_t *right_inclusive_or_null = right_unbounded ? NULL : right_inclusive.btree_key();
 
         if (node::is_leaf(node)) {
             if (state->helper->progress) {
@@ -422,17 +422,17 @@ void interesting_children_callback_t::receive_interesting_child(int child_index)
     const btree_key_t *right_incl_or_null;
     ids_source->get_block_id_and_bounding_interval(child_index, &block_id, &left_excl_or_null, &right_incl_or_null);
 
-    btree_key_buffer_t left_excl;
-    btree_key_buffer_t right_incl;
+    store_key_t left_excl;
+    store_key_t right_incl;
 
     if (left_excl_or_null) {
         left_excl.assign(left_excl_or_null);
-        left_excl_or_null = left_excl.key();
+        left_excl_or_null = left_excl.btree_key();
     }
 
     if (right_incl_or_null) {
         right_incl.assign(right_incl_or_null);
-        right_incl_or_null = right_incl.key();
+        right_incl_or_null = right_incl.btree_key();
     }
 
     ++acquisition_countdown;

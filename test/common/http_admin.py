@@ -6,6 +6,7 @@ import time
 import socket
 import random
 from httplib import HTTPConnection
+import urllib   # for `quote()` and `unquote()`
 
 """ The `http_admin.py` module is a Python wrapper around the HTTP interface to
 RethinkDB. It is not responsible for starting and stopping RethinkDB processes;
@@ -191,9 +192,9 @@ class MemcachedNamespace(Namespace):
         shard_json = []
         last_split = u""
         for split in self.shards:
-            shard_json.append(u"[\"%s\", \"%s\"]" % (last_split, split))
+            shard_json.append(json.dumps([urllib.quote(last_split), urllib.quote(split)]))
             last_split = split
-        shard_json.append(u"[\"%s\", null]" % (last_split))
+        shard_json.append(json.dumps([urllib.quote(last_split), None]))
         return shard_json
 
     def parse_shards(self, shards):
@@ -201,17 +202,20 @@ class MemcachedNamespace(Namespace):
         splits = [ ]
         last_split = u""
         matches = None
+        parsed_shards = [ ]
         for shard in shards:
-            matches = re.match(u"^\[\"(\w*)\", \"(\w*)\"\]$|^\[\"(\w*)\", null\]$", shard)
-            assert matches is not None
-            if matches.group(3) is None:
-                assert matches.group(1) == last_split
-                splits.append(matches.group(2))
-                last_split = matches.group(2)
-            else:
-                assert matches.group(3) == last_split
-        if matches is not None:
-            assert matches.group(3) is not None
+            left, right = json.loads(shard)
+            assert isinstance(left, basestring)
+            assert right is None or isinstance(right, basestring)
+            parsed_shards.append((urllib.unquote(left), urllib.unquote(right) if right is not None else None))
+        parsed_shards.sort()
+        last_split = u""
+        for left, right in parsed_shards:
+            assert left == last_split
+            if right is not None:
+                splits.append(right)
+            last_split = right
+        assert last_split is None
         assert sorted(splits) == splits
         return splits
 

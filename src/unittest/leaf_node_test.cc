@@ -81,12 +81,11 @@ public:
     }
     ~LeafNodeTracker() { delete[] reinterpret_cast<char *>(node_); }
 
-    bool Insert(const std::string& key, const std::string& value) {
+    bool Insert(const store_key_t& key, const std::string& value) {
         // printf("\n\nInserting %s\n\n", key.c_str());
-        btree_key_buffer_t k(key.begin(), key.end());
         short_value_buffer_t v(value);
 
-        if (leaf::is_full(&sizer_, node_, k.key(), v.data())) {
+        if (leaf::is_full(&sizer_, node_, key.btree_key(), v.data())) {
             Print();
 
             Verify();
@@ -94,7 +93,7 @@ public:
         }
 
         repli_timestamp_t tstamp = NextTimestamp();
-        leaf::insert(&sizer_, node_, k.key(), v.data(), tstamp, key_modification_proof_t::real_proof());
+        leaf::insert(&sizer_, node_, key.btree_key(), v.data(), tstamp, key_modification_proof_t::real_proof());
 
         kv_[key] = value;
 
@@ -104,16 +103,15 @@ public:
         return true;
     }
 
-    void Remove(const std::string& key) {
+    void Remove(const store_key_t& key) {
         // printf("\n\nRemoving %s\n\n", key.c_str());
-        btree_key_buffer_t k(key.begin(), key.end());
 
         ASSERT_TRUE(ShouldHave(key));
 
         kv_.erase(key);
 
         repli_timestamp_t tstamp = NextTimestamp();
-        leaf::remove(&sizer_, node_, k.key(), tstamp, key_modification_proof_t::real_proof());
+        leaf::remove(&sizer_, node_, key.btree_key(), tstamp, key_modification_proof_t::real_proof());
 
         Verify();
 
@@ -128,7 +126,7 @@ public:
         leaf::merge(&sizer_, lnode.node_, node_);
 
         int old_kv_size = kv_.size();
-        for (std::map<std::string, std::string>::iterator p = lnode.kv_.begin(), e = lnode.kv_.end(); p != e; ++p) {
+        for (std::map<store_key_t, std::string>::iterator p = lnode.kv_.begin(), e = lnode.kv_.end(); p != e; ++p) {
             kv_[p->first] = p->second;
         }
 
@@ -152,41 +150,38 @@ public:
         *could_level_out = false;
         ASSERT_EQ(bs_.ser_value(), sibling.bs_.ser_value());
 
-        btree_key_buffer_t replacement;
-        bool can_level = leaf::level(&sizer_, nodecmp_value, node_, sibling.node_, replacement.key());
+        store_key_t replacement;
+        bool can_level = leaf::level(&sizer_, nodecmp_value, node_, sibling.node_, replacement.btree_key());
 
         if (can_level) {
             ASSERT_TRUE(!sibling.kv_.empty());
             if (nodecmp_value < 0) {
                 // Copy keys from front of sibling until and including replacement key.
 
-                std::string replacement_str(replacement.key()->contents, replacement.key()->size);
-                std::map<std::string, std::string>::iterator p = sibling.kv_.begin();
-                while (p != sibling.kv_.end() && p->first < replacement_str) {
+                std::map<store_key_t, std::string>::iterator p = sibling.kv_.begin();
+                while (p != sibling.kv_.end() && p->first < replacement) {
                     kv_[p->first] = p->second;
-                    std::map<std::string, std::string>::iterator prev = p;
+                    std::map<store_key_t, std::string>::iterator prev = p;
                     ++p;
                     sibling.kv_.erase(prev);
                 }
                 ASSERT_TRUE(p != sibling.kv_.end());
-                ASSERT_EQ(p->first, replacement_str);
+                ASSERT_EQ(key_to_unescaped_str(p->first), key_to_unescaped_str(replacement));
                 kv_[p->first] = p->second;
                 sibling.kv_.erase(p);
             } else {
                 // Copy keys from end of sibling until but not including replacement key.
 
-                std::string replacement_str(replacement.key()->contents, replacement.key()->size);
-
-                std::map<std::string, std::string>::iterator p = sibling.kv_.end();
+                std::map<store_key_t, std::string>::iterator p = sibling.kv_.end();
                 --p;
-                while (p != sibling.kv_.begin() && p->first > replacement_str) {
+                while (p != sibling.kv_.begin() && p->first > replacement) {
                     kv_[p->first] = p->second;
-                    std::map<std::string, std::string>::iterator prev = p;
+                    std::map<store_key_t, std::string>::iterator prev = p;
                     --p;
                     sibling.kv_.erase(prev);
                 }
 
-                ASSERT_EQ(p->first, replacement_str);
+                ASSERT_EQ(key_to_unescaped_str(p->first), key_to_unescaped_str(replacement));
             }
         }
 
@@ -201,30 +196,27 @@ public:
 
         ASSERT_TRUE(leaf::is_empty(right.node_));
 
-        btree_key_buffer_t median;
-        leaf::split(&sizer_, node_, right.node_, median.key());
+        store_key_t median;
+        leaf::split(&sizer_, node_, right.node_, median.btree_key());
 
-        std::string median_str(median.key()->contents, median.key()->size);
-
-        std::map<std::string, std::string>::iterator p = kv_.end();
+        std::map<store_key_t, std::string>::iterator p = kv_.end();
         --p;
-        while (p->first > median_str && p != kv_.begin()) {
+        while (p->first > median && p != kv_.begin()) {
             right.kv_[p->first] = p->second;
-            std::map<std::string, std::string>::iterator prev = p;
+            std::map<store_key_t, std::string>::iterator prev = p;
             --p;
             kv_.erase(prev);
         }
 
-        ASSERT_EQ(p->first, median_str);
+        ASSERT_EQ(key_to_unescaped_str(p->first), key_to_unescaped_str(median));
     }
 
-    bool IsFull(const std::string& key, const std::string& value) {
-        btree_key_buffer_t key_buf(key.begin(), key.end());
+    bool IsFull(const store_key_t& key, const std::string& value) {
         short_value_buffer_t value_buf(value);
-        return leaf::is_full(&sizer_, node_, key_buf.key(), value_buf.data());
+        return leaf::is_full(&sizer_, node_, key.btree_key(), value_buf.data());
     }
 
-    bool ShouldHave(const std::string& key) {
+    bool ShouldHave(const store_key_t& key) {
         return kv_.end() != kv_.find(key);
     }
 
@@ -257,25 +249,25 @@ public:
             ASSERT_TRUE(got_lost_deletions_);
             const short_value_t *value = static_cast<const short_value_t *>(v_value);
 
-            std::string k_str(k->contents, k->size);
+            store_key_t k_buf(k);
             short_value_buffer_t v_buf(value);
             std::string v_str = v_buf.as_str();
 
-            ASSERT_TRUE(kv_map_.find(k_str) == kv_map_.end());
-            kv_map_[k_str] = v_str;
+            ASSERT_TRUE(kv_map_.find(k_buf) == kv_map_.end());
+            kv_map_[k_buf] = v_str;
         }
 
-        const std::map<std::string, std::string>& map() const { return kv_map_; }
+        const std::map<store_key_t, std::string>& map() const { return kv_map_; }
 
     private:
         bool got_lost_deletions_;
 
-        std::map<std::string, std::string> kv_map_;
+        std::map<store_key_t, std::string> kv_map_;
     };
 
-    void printmap(const std::map<std::string, std::string>& m) {
-        for (std::map<std::string, std::string>::const_iterator p = m.begin(), q = m.end(); p != q; ++p) {
-            printf("%s: %s;", p->first.c_str(), p->second.c_str());
+    void printmap(const std::map<store_key_t, std::string>& m) {
+        for (std::map<store_key_t, std::string>::const_iterator p = m.begin(), q = m.end(); p != q; ++p) {
+            printf("%s: %s;", key_to_debug_str(p->first).c_str(), p->second.c_str());
         }
     }
 
@@ -305,7 +297,7 @@ public:
 
     int tstamp_counter_;
 
-    std::map<std::string, std::string> kv_;
+    std::map<store_key_t, std::string> kv_;
 
 
     DISABLE_COPYING(LeafNodeTracker);
@@ -324,7 +316,7 @@ TEST(LeafNodeTest, Offsets) {
 TEST(LeafNodeTest, Reinserts) {
     LeafNodeTracker tracker;
     std::string v = "aa";
-    std::string k = "key";
+    store_key_t k("key");
     for (; v[0] <= 'z'; ++v[0]) {
         v[1] = 'a';
         for (; v[1] <= 'z'; ++v[1]) {
@@ -340,7 +332,7 @@ TEST(LeafNodeTest, TenInserts) {
     ASSERT_LT(leaf::MANDATORY_TIMESTAMPS, 10);
 
     const int num_keys = 10;
-    std::string ks[num_keys] = { "the_relatively_long_key_that_is_relatively_long,_eh?__or_even_longer",
+    const char *ks[num_keys] = { "the_relatively_long_key_that_is_relatively_long,_eh?__or_even_longer",
                            "some_other_relatively_long_key_that_...whatever.",
                            "another_relatively_long_key",
                            "a_short_key",
@@ -357,7 +349,7 @@ TEST(LeafNodeTest, TenInserts) {
         v += ('a' + (i % 26));
 
         for (int j = 0; j < num_keys; ++j) {
-            tracker.Insert(ks[j], v);
+            tracker.Insert(store_key_t(ks[j]), v);
         }
     }
 }
@@ -366,7 +358,7 @@ TEST(LeafNodeTest, InsertRemove) {
     LeafNodeTracker tracker;
 
     const int num_keys = 10;
-    std::string ks[num_keys] = { "the_relatively_long_key_that_is_relatively_long,_eh?__or_even_longer",
+    const char *ks[num_keys] = { "the_relatively_long_key_that_is_relatively_long,_eh?__or_even_longer",
                            "some_other_relatively_long_key_that_...whatever.",
                            "another_relatively_long_key",
                            "a_short_key",
@@ -385,10 +377,10 @@ TEST(LeafNodeTest, InsertRemove) {
 
         for (int j = 0; j < num_keys; ++j) {
             if (rng.randint(2) == 1) {
-                tracker.Insert(ks[j], v);
+                tracker.Insert(store_key_t(ks[j]), v);
             } else {
-                if (tracker.ShouldHave(ks[j])) {
-                    tracker.Remove(ks[j]);
+                if (tracker.ShouldHave(store_key_t(ks[j]))) {
+                    tracker.Remove(store_key_t(ks[j]));
                 }
             }
         }
@@ -406,7 +398,7 @@ TEST(LeafNodeTest, ZeroOneMerging) {
     LeafNodeTracker left;
     LeafNodeTracker right;
 
-    right.Insert("b", "B");
+    right.Insert(store_key_t("b"), "B");
 
     right.Merge(left);
 }
@@ -415,7 +407,7 @@ TEST(LeafNodeTest, OneZeroMerging) {
     LeafNodeTracker left;
     LeafNodeTracker right;
 
-    left.Insert("a", "A");
+    left.Insert(store_key_t("a"), "A");
 
     right.Merge(left);
 }
@@ -425,8 +417,8 @@ TEST(LeafNodeTest, OneOneMerging) {
     LeafNodeTracker left;
     LeafNodeTracker right;
 
-    left.Insert("a", "A");
-    right.Insert("b", "B");
+    left.Insert(store_key_t("a"), "A");
+    right.Insert(store_key_t("b"), "B");
 
     right.Merge(left);
 }
@@ -454,8 +446,8 @@ TEST(LeafNodeTest, SimpleMerging) {
     // you can go cry to your mommy.
 
     for (int i = 0; i < 1722 / 12; ++i) {
-        left.Insert(strprintf("a%d", i), strprintf("A%d", i));
-        right.Insert(strprintf("b%d", i), strprintf("B%d", i));
+        left.Insert(store_key_t(strprintf("a%d", i)), strprintf("A%d", i));
+        right.Insert(store_key_t(strprintf("b%d", i)), strprintf("B%d", i));
     }
 
     right.Merge(left);
@@ -466,11 +458,11 @@ TEST(LeafNodeTest, MergingWithRemoves) {
     LeafNodeTracker right;
 
     for (int i = 0; i < (1722 * 5 / 6) / 12; ++i) {
-        left.Insert(strprintf("a%d", i), strprintf("A%d", i));
-        right.Insert(strprintf("b%d", i), strprintf("B%d", i));
+        left.Insert(store_key_t(strprintf("a%d", i)), strprintf("A%d", i));
+        right.Insert(store_key_t(strprintf("b%d", i)), strprintf("B%d", i));
         if (i % 5 == 0) {
-            left.Remove(strprintf("a%d", i / 5));
-            right.Remove(strprintf("b%d", i / 5));
+            left.Remove(store_key_t(strprintf("a%d", i / 5)));
+            right.Remove(store_key_t(strprintf("b%d", i / 5)));
         }
     }
 
@@ -487,13 +479,13 @@ TEST(LeafNodeTest, MergingWithHugeEntries) {
     // huge deletes.  One of them will not be merged.
 
     for (int i = 0; i < 4; ++i) {
-        left.Insert(std::string(250, 'a' + i), std::string(255, 'A' + i));
-        right.Insert(std::string(250, 'n' + i), std::string(255, 'N' + i));
+        left.Insert(store_key_t(std::string(250, 'a' + i)), std::string(255, 'A' + i));
+        right.Insert(store_key_t(std::string(250, 'n' + i)), std::string(255, 'N' + i));
     }
 
     for (int i = 0; i < 3; ++i) {
-        left.Remove(std::string(250, 'a' + i));
-        right.Remove(std::string(250, 'n' + 1 + i));
+        left.Remove(store_key_t(std::string(250, 'a' + i)));
+        right.Remove(store_key_t(std::string(250, 'n' + 1 + i)));
     }
 
     right.Merge(left);
@@ -513,10 +505,10 @@ TEST(LeafNodeTest, LevelingLeftToRight) {
     // overflow.
 
     for (int i = 0; i < 4272 / 12; ++i) {
-        left.Insert(strprintf("a%d", i), strprintf("A%d", i));
+        left.Insert(store_key_t(strprintf("a%d", i)), strprintf("A%d", i));
     }
 
-    right.Insert("b0", "B0");
+    right.Insert(store_key_t("b0"), "B0");
 
     bool could_level;
     right.Level(1, left, &could_level);
@@ -528,7 +520,7 @@ TEST(LeafNodeTest, LevelingLeftToZero) {
     LeafNodeTracker right;
 
     for (int i = 0; i < 4272 / 12; ++i) {
-        left.Insert(strprintf("a%d", i), strprintf("A%d", i));
+        left.Insert(store_key_t(strprintf("a%d", i)), strprintf("A%d", i));
     }
 
     bool could_level;
@@ -540,10 +532,10 @@ TEST(LeafNodeTest, LevelingRightToLeft) {
     LeafNodeTracker left;
     LeafNodeTracker right;
     for (int i = 0; i < 4272 / 12; ++i) {
-        right.Insert(strprintf("b%d", i), strprintf("B%d", i));
+        right.Insert(store_key_t(strprintf("b%d", i)), strprintf("B%d", i));
     }
 
-    left.Insert("a0", "A0");
+    left.Insert(store_key_t("a0"), "A0");
 
     bool could_level;
     left.Level(-1, right, &could_level);
@@ -555,7 +547,7 @@ TEST(LeafNodeTest, LevelingRightToZero) {
     LeafNodeTracker left;
     LeafNodeTracker right;
     for (int i = 0; i < 4272 / 12; ++i) {
-        right.Insert(strprintf("b%d", i), strprintf("B%d", i));
+        right.Insert(store_key_t(strprintf("b%d", i)), strprintf("B%d", i));
     }
 
     bool could_level;
@@ -566,7 +558,7 @@ TEST(LeafNodeTest, LevelingRightToZero) {
 TEST(LeafNodeTest, Splitting) {
     LeafNodeTracker left;
     for (int i = 0; i < 4272 / 12; ++i) {
-        left.Insert(strprintf("a%d", i), strprintf("A%d", i));
+        left.Insert(store_key_t(strprintf("a%d", i)), strprintf("A%d", i));
     }
 
     LeafNodeTracker right;
@@ -578,10 +570,10 @@ TEST(LeafNodeTest, Fullness) {
     LeafNodeTracker node;
     int i;
     for (i = 0; i < 4272 / 12; ++i) {
-        node.Insert(strprintf("a%d", i), strprintf("A%d", i));
+        node.Insert(store_key_t(strprintf("a%d", i)), strprintf("A%d", i));
     }
 
-    ASSERT_TRUE(node.IsFull(strprintf("a%d", i), strprintf("A%d", i)));
+    ASSERT_TRUE(node.IsFull(store_key_t(strprintf("a%d", i)), strprintf("A%d", i)));
 }
 
 }  // namespace unittest

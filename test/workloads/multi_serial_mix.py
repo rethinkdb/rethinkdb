@@ -1,20 +1,33 @@
 #!/usr/bin/python
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import multiprocessing, workload_common, serial_mix, time
+import multiprocessing, time, pickle
+import workload_common, serial_mix
 from vcoptparse import *
 
-def child(opts, log_path):
+def child(opts, log_path, load, save):
     # This is run in a separate process
     import sys
     sys.stdout = sys.stderr = file(log_path, "w")
-    print "Starting test against server at %s:%d..." % (opts["host"], opts["port"])
+    if load is None:
+        clone, deleted = {}, set()
+    else:
+        print "Loading from %r..." % load
+        with open(load) as f:
+            clone, deleted = pickle.load(f)
+    print "Starting test against server at %s:%d..." % opts["address"]
     with workload_common.make_memcache_connection(opts) as mc:
-        serial_mix.test(opts, mc)
+        serial_mix.test(opts, mc, clone, deleted)
+    if save is not None:
+        print "Saving to %r..." % save
+        with open(save, "w") as f:
+            pickle.dump((clone, deleted), f)
     print "Done with test."
 
 op = serial_mix.option_parser_for_serial_mix()
 op["num_testers"] = IntFlag("--num-testers", 16)
+op["load"] = StringFlag("--load", None)
+op["save"] = StringFlag("--save", None)
 opts = op.parse(sys.argv)
 
 shutdown_grace_period = 15
@@ -30,11 +43,13 @@ try:
     for id in xrange(opts["num_testers"]):
 
         log_path = os.path.join(tester_log_dir, "%d.txt" % id)
+        load_path = opts["load"] + "_%d" % id if opts["load"] is not None else None
+        save_path = opts["save"] + "_%d" % id if opts["save"] is not None else None
 
         opts2 = dict(opts)
         opts2["keysuffix"] = "_%d" % id   # Prevent collisions between tests
 
-        process = multiprocessing.Process(target = child, args = (opts2, log_path))
+        process = multiprocessing.Process(target = child, args = (opts2, log_path, load_path, save_path))
         process.start()
 
         processes.append((process, id))

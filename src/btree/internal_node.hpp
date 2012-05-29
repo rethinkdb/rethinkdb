@@ -33,7 +33,7 @@ bool remove(block_size_t block_size, buf_lock_t *node_buf, const btree_key_t *ke
 void split(block_size_t block_size, buf_lock_t *node_buf, internal_node_t *rnode, btree_key_t *median);
 void merge(block_size_t block_size, const internal_node_t *node, buf_lock_t *rnode_buf, const internal_node_t *parent);
 bool level(block_size_t block_size, buf_lock_t *node_buf, buf_lock_t *rnode_buf, btree_key_t *replacement_key, const internal_node_t *parent);
-int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id, btree_key_buffer_t *key_in_middle_out);
+int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id, store_key_t *key_in_middle_out);
 void update_key(buf_lock_t *node_buf, const btree_key_t *key_to_replace, const btree_key_t *replacement_key);
 int nodecmp(const internal_node_t *node1, const internal_node_t *node2);
 bool is_full(const internal_node_t *node);
@@ -52,6 +52,8 @@ btree_internal_pair *get_pair(internal_node_t *node, uint16_t offset);
 const btree_internal_pair *get_pair_by_index(const internal_node_t *node, int index);
 btree_internal_pair *get_pair_by_index(internal_node_t *node, int index);
 
+int get_offset_index(const internal_node_t *node, const btree_key_t *key);
+
 // We can't use "internal" for internal stuff obviously.
 class ibuf_t;
 namespace impl {
@@ -61,7 +63,6 @@ size_t pair_size_with_key_size(uint8_t size);
 void delete_pair(buf_lock_t *node_buf, uint16_t offset);
 uint16_t insert_pair(ibuf_t *node_buf, const btree_internal_pair *pair);
 uint16_t insert_pair(buf_lock_t *node_buf, block_id_t lnode, const btree_key_t *key);
-int get_offset_index(const internal_node_t *node, const btree_key_t *key);
 void delete_offset(buf_lock_t *node_buf, int index);
 void insert_offset(buf_lock_t *node_buf, uint16_t offset, int index);
 void make_last_pair_special(buf_lock_t *node_buf);
@@ -83,14 +84,7 @@ public:
         return compare(key1, key2) < 0;
     }
     static int compare(const btree_key_t *key1, const btree_key_t *key2) {
-        if (key1->size == 0 && key2->size == 0) //check for the special end pair
-            return 0;
-        else if (key1->size == 0)
-            return 1;
-        else if (key2->size == 0)
-            return -1;
-        else
-            return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
+        return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
     }
 };
 

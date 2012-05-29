@@ -27,6 +27,7 @@ class mock_cache_account_t;
 class mock_transaction_t;
 class internal_buf_t;
 class serializer_t;
+class perfmon_collection_t;
 
 /* Buf */
 
@@ -128,11 +129,8 @@ public:
     typedef mock_transaction_t transaction_t;
     typedef mock_cache_account_t cache_account_t;
 
-    static void create(
-        serializer_t *serializer,
-        mirrored_cache_static_config_t *static_config);
-    mock_cache_t(serializer_t *serializer,
-                 mirrored_cache_config_t *dynamic_config);
+    static void create(serializer_t *serializer, mirrored_cache_static_config_t *static_config);
+    mock_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *parent);
     ~mock_cache_t();
 
     block_size_t get_block_size();

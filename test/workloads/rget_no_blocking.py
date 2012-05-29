@@ -64,7 +64,8 @@ updated_key = gen_key('foo', updated_key_id)
 updated_value = gen_value('changed', updated_key_id)
 orig_value = gen_value('foo', updated_key_id)
 
-with workload_common.MemcacheConnection(opts["host"], opts["port"]) as mc:
+host, port = opts["address"]
+with workload_common.MemcacheConnection(host, port) as mc:
     print "Creating test data"
     for i in range(0, rget_keys):
         mc.set(gen_key('foo', i), gen_value('foo', i))

@@ -8,13 +8,10 @@
 void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp,
     transaction_t *txn, superblock_t *superblock) {
 
-    btree_key_buffer_t kbuffer(store_key);
-    btree_key_t *key = kbuffer.key();
-
     block_size_t block_size = slice->cache()->get_block_size();
 
     keyvalue_location_t<memcached_value_t> kv_location;
-    find_keyvalue_location_for_write(txn, superblock, key, &kv_location, &slice->root_eviction_priority, &slice->stats);
+    find_keyvalue_location_for_write(txn, superblock, store_key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     scoped_malloc<memcached_value_t> the_value;
     the_value.reinterpret_swap(kv_location.value);
 
@@ -42,7 +39,7 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
     if (update_needed) {
         kv_location.value.reinterpret_swap(the_value);
         null_key_modification_callback_t<memcached_value_t> null_cb;
-        apply_keyvalue_change(txn, &kv_location, key, timestamp, expired, &null_cb, &slice->root_eviction_priority);
+        apply_keyvalue_change(txn, &kv_location, store_key.btree_key(), timestamp, expired, &null_cb, &slice->root_eviction_priority);
     }
 }
 

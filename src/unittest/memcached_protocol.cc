@@ -70,7 +70,7 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
         memcached_protocol_t::write_t write(set, time(NULL), 12345);
 
         cond_t interruptor;
-        memcached_protocol_t::write_response_t result = nsi->write(write, osource.check_in("unittest"), &interruptor);
+        memcached_protocol_t::write_response_t result = nsi->write(write, osource.check_in("unittest::run_get_set_test(memcached_protocol.cc-A)"), &interruptor);
 
         if (set_result_t *maybe_set_result = boost::get<set_result_t>(&result.result)) {
             EXPECT_EQ(*maybe_set_result, sr_stored);
@@ -85,7 +85,7 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
         memcached_protocol_t::read_t read(get, time(NULL));
 
         cond_t interruptor;
-        memcached_protocol_t::read_response_t result = nsi->read(read, osource.check_in("unittest"), &interruptor);
+        memcached_protocol_t::read_response_t result = nsi->read(read, osource.check_in("unittest::run_get_set_test(memcached_protocol.cc-B)"), &interruptor);
 
         if (get_result_t *maybe_get_result = boost::get<get_result_t>(&result.result)) {
             EXPECT_TRUE(maybe_get_result->value.get() != NULL);
@@ -100,15 +100,15 @@ void run_get_set_test(namespace_interface_t<memcached_protocol_t> *nsi) {
     }
 
     {
-        rget_query_t rget(rget_bound_none, store_key_t(), rget_bound_open, store_key_t("z"), 1000);
+        rget_query_t rget(key_range_t::universe(), 1000);
         memcached_protocol_t::read_t read(rget, time(NULL));
 
         cond_t interruptor;
-        memcached_protocol_t::read_response_t result = nsi->read(read, osource.check_in("unittest"), &interruptor);
+        memcached_protocol_t::read_response_t result = nsi->read(read, osource.check_in("unittest::run_get_set_test(memcached_protocol.cc-C)"), &interruptor);
         if (rget_result_t *maybe_rget_result = boost::get<rget_result_t>(&result.result)) {
             ASSERT_FALSE(maybe_rget_result->truncated);
             EXPECT_EQ(1, int(maybe_rget_result->pairs.size()));
-            EXPECT_EQ(std::string("a"), key_to_str(maybe_rget_result->pairs[0].key));
+            EXPECT_EQ(std::string("a"), key_to_unescaped_str(maybe_rget_result->pairs[0].key));
             EXPECT_EQ('A', maybe_rget_result->pairs[0].value_provider->buf()[0]);
         } else {
             ADD_FAILURE() << "got wrong type of result back";

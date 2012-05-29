@@ -67,12 +67,12 @@ TEST(UtilsTest, Time) {
 
 TEST(UtilsTest, SizedStrcmp)
 {
-    char test1[] = "foobarbazn\nqux";
-    char test2[] = "foobarbazn\nquxr";
-    char test3[] = "hello world";
+    uint8_t test1[] = "foobarbazn\nqux";
+    uint8_t test2[] = "foobarbazn\nquxr";
+    uint8_t test3[] = "hello world";
 
-    ASSERT_EQ(-1, sized_strcmp(test1, 14, test2, 15));
-    ASSERT_EQ(1, sized_strcmp(test2, 15, test1, 14));
+    ASSERT_GT(0, sized_strcmp(test1, 14, test2, 15));
+    ASSERT_LT(0, sized_strcmp(test2, 15, test1, 14));
     ASSERT_EQ(0, sized_strcmp(test1, 10, test1, 10));
     ASSERT_EQ(0, sized_strcmp(test1, 14, test1, 14));
     ASSERT_EQ(0, sized_strcmp(test1, 0, test1, 0));

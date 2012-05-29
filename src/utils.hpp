@@ -11,6 +11,8 @@
 
 #include "errors.hpp"
 
+class append_only_printf_buffer_t;
+
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
 
@@ -95,6 +97,8 @@ inline bool divides(int64_t x, int64_t y) {
 
 int gcd(int x, int y);
 
+int64_t round_up_to_power_of_two(int64_t x);
+
 typedef uint64_t ticks_t;
 ticks_t secs_to_ticks(float secs);
 ticks_t get_ticks();
@@ -154,7 +158,7 @@ std::string demangle_cpp_name(const char *mangled_name);
 // yyyy-mm-ddThh:mm:ss.nnnnnnnnn   (29 characters)
 const size_t formatted_time_length = 29;    // not including null
 
-void format_time(struct timespec time, char* buf, size_t max_chars);
+void format_time(struct timespec time, append_only_printf_buffer_t *buf);
 std::string format_time(struct timespec time);
 
 struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error);
@@ -165,7 +169,7 @@ void print_hd(const void *buf, size_t offset, size_t length);
 
 // Fast string compare
 
-int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
+int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 
 /* The home thread mixin is a mixin for objects that can only be used
@@ -233,6 +237,10 @@ bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
 }
 
 bool notf(bool x);
+
+/* Translates to and from `0123456789ABCDEF`. */
+bool hex_to_int(char c, int *out);
+char int_to_hex(int i);
 
 std::string read_file(const char *path);
 

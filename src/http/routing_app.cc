@@ -1,5 +1,7 @@
-#include "errors.hpp"
 #include "http/routing_app.hpp"
+
+#include <string.h>
+
 #include "stl_utils.hpp"
 
 routing_http_app_t::routing_http_app_t(http_app_t *_defaultroute, std::map<std::string, http_app_t *> _subroutes)

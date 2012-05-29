@@ -178,4 +178,3 @@ module 'DashboardView', ->
             return @perf_panel.render().$el
 
 
-

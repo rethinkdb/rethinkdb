@@ -47,26 +47,13 @@ struct get_result_t {
 
 /* `rget` */
 
-enum rget_bound_mode_t {
-    rget_bound_open,   // Don't include boundary key
-    rget_bound_closed,   // Include boundary key
-    rget_bound_none   // Ignore boundary key and go all the way to the left/right side of the tree
-};
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(rget_bound_mode_t, int8_t, rget_bound_open, rget_bound_none);
-
 struct rget_query_t {
-    rget_bound_mode_t left_mode;
-    store_key_t left_key;
-    rget_bound_mode_t right_mode;
-    store_key_t right_key;
+    key_range_t range;
     int maximum;
 
     rget_query_t() { }
-    rget_query_t(const rget_bound_mode_t& left_mode_, const store_key_t left_key_,
-                 const rget_bound_mode_t& right_mode_, const store_key_t right_key_,
-                 int maximum_)
-        : left_mode(left_mode_), left_key(left_key_), right_mode(right_mode_), right_key(right_key_), maximum(maximum_) { }
+    rget_query_t(key_range_t range_, int maximum_)
+        : range(range_), maximum(maximum_) { }
 };
 
 struct key_with_data_buffer_t {
@@ -104,7 +91,7 @@ struct distribution_result_t  {
     //Then k1 == left_key
     //and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
     //key_counts[kn] = the number of keys in [kn, right_key)
-    std::map<std::string, int> key_counts;
+    std::map<store_key_t, int> key_counts;
 };
 
 /* `gets` */

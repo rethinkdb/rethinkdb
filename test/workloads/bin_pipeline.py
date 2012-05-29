@@ -26,7 +26,8 @@ import pdb
 
 signal.signal(signal.SIGUSR1, lambda sig, stack: pdb.set_trace())
 
-with workload_common.MemcacheConnection(opts["host"], opts["port"], mclib="pylibmc", protocol="binary") as mc:
+hsot, port = opts["address"]
+with workload_common.MemcacheConnection(host, port, mclib="pylibmc", protocol="binary") as mc:
     print "Inserting"
     insert_dict = dict((str(i), str(i)) for i in xrange(NUM_INTS))
     if (0 == mc.set_multi(insert_dict)):

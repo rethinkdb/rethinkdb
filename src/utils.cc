@@ -1,4 +1,7 @@
+#define __STDC_LIMIT_MACROS
+
 #include "utils.hpp"
+
 #include <boost/tokenizer.hpp>
 
 #include <cxxabi.h>
@@ -6,6 +9,7 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,7 +39,7 @@ MUST_USE int deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {
 
 
 // fast non-null terminated string comparison
-int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
+int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
     int min_len = std::min(len1, len2);
     int res = memcmp(str1, str2, min_len);
     if (res == 0) {
@@ -99,11 +103,11 @@ void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     funlockfile(stderr);
 }
 
-void format_time(struct timespec time, char* buf, size_t max_chars) {
+void format_time(struct timespec time, append_only_printf_buffer_t *buf) {
     struct tm t;
     struct tm *res1 = localtime_r(&time.tv_sec, &t);
     guarantee_err(res1 == &t, "gmtime_r() failed.");
-    int res2 = snprintf(buf, max_chars,
+    buf->appendf(
         "%04d-%02d-%02dT%02d:%02d:%02d.%09ld",
         t.tm_year+1900,
         t.tm_mon+1,
@@ -112,14 +116,12 @@ void format_time(struct timespec time, char* buf, size_t max_chars) {
         t.tm_min,
         t.tm_sec,
         time.tv_nsec);
-    (void) res2;
-    rassert(0 <= res2);
 }
 
 std::string format_time(struct timespec time) {
-    char buf[formatted_time_length+1];
-    format_time(time, buf, sizeof(buf));
-    return std::string(buf);
+    printf_buffer_t<formatted_time_length + 1> buf;
+    format_time(time, &buf);
+    return std::string(buf.c_str());
 }
 
 struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error) {
@@ -206,19 +208,32 @@ void *malloc_aligned(size_t size, size_t alignment) {
 
 #ifndef NDEBUG
 void debugf(const char *msg, ...) {
-    flockfile(stderr);
-    char formatted_time[formatted_time_length+1];
     struct timespec t;
+
     int res = clock_gettime(CLOCK_REALTIME, &t);
     guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
-    format_time(t, formatted_time, sizeof(formatted_time));
-    fprintf(stderr, "%s Thread %d: ", formatted_time, get_thread_id());
 
-    va_list args;
-    va_start(args, msg);
-    vfprintf(stderr, msg, args);
-    va_end(args);
-    funlockfile(stderr);
+    printf_buffer_t<1000> buf;
+    format_time(t, &buf);
+
+    buf.appendf(" Thread %d: ", get_thread_id());
+
+    va_list ap;
+    va_start(ap, msg);
+
+    buf.vappendf(msg, ap);
+
+    va_end(ap);
+
+    // Writing a single buffer in one shot like this makes it less
+    // likely that stderr debugfs and stdout printfs get mixed
+    // together, and probably makes it faster too.  (We can't simply
+    // flockfile both stderr and stdout because there's no established
+    // rule about which one should be locked first.)
+    size_t nitems = fwrite(buf.data(), 1, buf.size(), stderr);
+    guarantee_err(nitems == size_t(buf.size()), "trouble writing to stderr");
+    res = fflush(stderr);
+    guarantee_err(res == 0, "fflush(stderr) failed");
 }
 #endif
 
@@ -346,6 +361,22 @@ int gcd(int x, int y) {
 
     return x;
 }
+
+int64_t round_up_to_power_of_two(int64_t x) {
+    rassert(x >= 0);
+
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x |= x >> 32;
+
+    rassert(x < INT64_MAX);
+
+    return x + 1;
+}
+
 
 ticks_t secs_to_ticks(float secs) {
     // The timespec struct used in clock_gettime has a tv_nsec field.
@@ -553,6 +584,30 @@ void print_backtrace(FILE *out, bool use_addr2line) {
         free(symbols);
     } else {
         fprintf(out, "(too little memory for backtrace)\n");
+    }
+}
+
+bool hex_to_int(char c, int *out) {
+    if (c >= '0' && c <= '9') {
+        *out = c - '0';
+        return true;
+    } else if (c >= 'a' && c <= 'f') {
+        *out = c - 'a' + 10;
+        return true;
+    } else if (c >= 'A' && c <= 'F') {
+        *out = c - 'A' + 10;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+char int_to_hex(int x) {
+    rassert(x >= 0 && x < 16);
+    if (x < 10) {
+        return '0' + x;
+    } else {
+        return 'A' + x - 10;
     }
 }
 
