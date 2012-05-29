@@ -230,6 +230,7 @@ class Issues extends Backbone.Collection
     model: Issue
     url: '/ajax/issues'
 
+# We compare the directory and the blueprints to detect redundancy problems
 class IssuesRedundancy extends Backbone.Collection
     model: IssueRedundancy
     num_replicas : 0

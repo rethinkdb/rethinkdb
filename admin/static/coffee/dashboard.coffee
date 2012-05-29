@@ -7,7 +7,7 @@ module 'DashboardView', ->
     class @Container extends Backbone.View
         el: '#cluster'
         className: 'dashboard_view'
-        template: Handlebars.compile $('#dashboard_view-template').html()
+        template: Handlebars.compile $('#dashboard_view-template').html() # TODO use div instead of a table
         initialize: =>
             log_initial '(initializing) sidebar view:'
 
@@ -26,7 +26,17 @@ module 'DashboardView', ->
         template: Handlebars.compile $('#cluster_status-template').html()
 
         events:->
-            'click a[rel=dashboard_details]': 'do_nothing'
+            'click a[rel=dashboard_details]': 'show_popover'
+
+        show_popover: (event) =>
+            event.preventDefault()
+            console.log event.currentTarget
+            @.$(event.currentTarget).popover('show')
+            $popover = $('.popover')
+
+            $popover.on 'clickoutside', (e) -> 
+                if e.target isnt event.target  # so we don't remove the popover when we click on the link
+                    $(e.currentTarget).remove()
 
         initialize: ->
             log_initial '(initializing) dashboard view'
@@ -35,13 +45,10 @@ module 'DashboardView', ->
             machines.on 'stats_updated', @render # when the stats of the machines are updated
             @render()
 
-        do_something: ->
-            alert "youhou"
-        do_nothing: (event) -> event.preventDefault()
 
-    
-        threshold_cpu: 0.90
-        threshold_ram: 0.90
+        # We could create a model to create issues because of CPU/RAM   
+        threshold_cpu: 0.9
+        threshold_ram: 0.9
 
         compute_status: ->
             status = 
@@ -55,7 +62,7 @@ module 'DashboardView', ->
                 num_namespaces: namespaces.length
                 num_masters: 0
 
-            masters = {}
+            masters = {} # find all the masters
             namespaces.each (namespace) ->
                 for machine_uuid, role_summary of namespace.get('blueprint').peers_roles
                     for shard, role of role_summary
@@ -72,7 +79,8 @@ module 'DashboardView', ->
                 status.num_masters_offline = 0
                 status.masters_offline = []
 
-                status.num_conflicts = 0
+                status.num_conflicts_name = 0
+                status.num_conflicts_vector = 0
 
                 for issue in issues.models
                     switch issue.get("type")
@@ -89,9 +97,9 @@ module 'DashboardView', ->
                                     namespace_name: masters[issue.get('victim')].name
                                     namespace_id: masters[issue.get('victim')].id
                         when "NAME_CONFLICT_ISSUE"
-                            status.num_conflicts++
+                            status.num_conflicts_name++
                         when "VCLOCK_CONFLICT"
-                            status.num_conflicts++
+                            status.num_conflicts_vector++
 
                 if status.machines_with_disk_problems.length > 0
                     status.num_machines_with_disk_problems = status.machines_with_disk_problems.length
@@ -99,7 +107,8 @@ module 'DashboardView', ->
                 if status.masters_offline.length > 0
                     status.num_masters_offline = status.masters_offline.length
                     status.has_availability_problems = true
-                if status.num_conflicts > 0
+                if status.num_conflicts_name or status.num_conflicts_vector > 0
+                    status.num_conflicts = status.num_conflicts_name+status.num_conflicts_vector
                     status.has_conflicts_problems = true
 
 
@@ -111,7 +120,7 @@ module 'DashboardView', ->
                 status.replicas_offline = issues_redundancy.models
             
 
-            # checking for CPU prolems 
+            # checking for CPU and RAM prolems 
             status.machines_with_cpu_problems = []
             status.machines_with_ram_problems = []
 
@@ -144,18 +153,13 @@ module 'DashboardView', ->
 
             status
 
-        isnt_empty: (data) ->
-            for i of data
-                return true
-            return false
-
         render: =>
             log_render '(rendering) cluster status view'
             
             @.$el.html @template(@compute_status())
             @.$('a[rel=dashboard_details]').popover
-                html: true
-
+                trigger: 'manual'
+            @.delegateEvents()
             return @
 
     class @ClusterPerformance extends Backbone.View
