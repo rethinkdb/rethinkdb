@@ -44,9 +44,9 @@ def verify(opts, mc, clone, deleted, key):
         verify_all(opts, mc, clone, deleted)
 
 def random_action(opts, mc, clone, deleted):
-    
+
     what_to_do = random.random()
-    
+
     if what_to_do < 0.2:
         # Check a random key
         if opts["thorough"]:
@@ -54,7 +54,7 @@ def random_action(opts, mc, clone, deleted):
             return
         if not clone: return
         verify(opts, mc, clone, deleted, random.choice(clone.keys()))
-        
+
     elif what_to_do < 0.25:
         # Check a deleted or nonexistent key
         if random.random() < 0.5 and deleted:
@@ -64,7 +64,7 @@ def random_action(opts, mc, clone, deleted):
             # A new key
             key = random_key(opts)
         verify(opts, mc, clone, deleted, key)
-    
+
     elif what_to_do < 0.6:
         # Set
         if random.random() < 0.3 and clone:
@@ -80,7 +80,7 @@ def random_action(opts, mc, clone, deleted):
         if ok == 0:
             raise ValueError("Could not set %r to %r." % (key, value))
         verify(opts, mc, clone, deleted, key)
-    
+
     elif what_to_do < 0.95:
         # Append/prepend
         if not clone: return
@@ -99,7 +99,7 @@ def random_action(opts, mc, clone, deleted):
         if ok == 0:
             raise ValueError("Could not append/prepend %r to key %r" % (value_to_pend, key))
         verify(opts, mc, clone, deleted, key)
-    
+
     else:
         # Delete
         if not clone: return
@@ -111,24 +111,51 @@ def random_action(opts, mc, clone, deleted):
             raise ValueError("Could not delete %r." % key)
         verify(opts, mc, clone, deleted, key)
 
-def test(opts, mc):
-    clone = {}
-    deleted = set()
-    start_time = time.time()
-    while time.time() < start_time + opts["duration"]:
-        random_action(opts, mc, clone, deleted)
+def test(opts, mc, clone, deleted):
+    if opts["duration"] == "forever":
+        try:
+            while True:
+                random_action(opts, mc, clone, deleted)
+        except KeyboardInterrupt:
+            pass
+    else:
+        start_time = time.time()
+        while time.time() < start_time + opts["duration"]:
+            random_action(opts, mc, clone, deleted)
 
 def option_parser_for_serial_mix():
     op = workload_common.option_parser_for_memcache()
     op["keysize"] = IntFlag("--keysize", 250)
     op["valuesize"] = IntFlag("--valuesize", 10000)
     op["thorough"] = BoolFlag("--thorough")
-    op["duration"] = IntFlag("--duration", 10)
+    def int_or_forever_parser(string):
+        if string == "forever":
+            return "forever"
+        else:
+            try:
+                return int(string)
+            except ValueError:
+                raise OptError("expected 'forever' or integer, got %r" % string)
+    op["duration"] = ValueFlag("--duration", converter = int_or_forever_parser, default = 10)
     return op
 
 if __name__ == "__main__":
+    import pickle
+
     op = option_parser_for_serial_mix()
+    op["load"] = StringFlag("--load", None)
+    op["save"] = StringFlag("--save", None)
     opts = op.parse(sys.argv)
 
+    if opts["load"] is None:
+        clone, deleted = {}, set()
+    else:
+        print "Loading from %r..." % opts["load"]
+        with open(opts["load"]) as f:
+            clone, deleted = pickle.load(f)
     with workload_common.make_memcache_connection(opts) as mc:
-        test(opts, mc)
+        test(opts, mc, clone, deleted)
+    if opts["save"] is not None:
+        print "Saving to %r..." % opts["save"]
+        with open(opts["save"], "w") as f:
+            pickle.dump((clone, deleted), f)
