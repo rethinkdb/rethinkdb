@@ -13,6 +13,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
+#include "clustering/administration/cli/key_parsing.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
@@ -22,33 +23,53 @@
 #include "do_on_thread.hpp"
 #include "perfmon.hpp"
 
-std::string admin_value_to_string(const perfmon_result_t& stats) {
-    std::string result;
-
-    if (stats.is_string())
-        result.assign(*stats.get_string() + "\n");
-    else if (stats.is_map())
-        for (perfmon_result_t::const_iterator i = stats.begin(); i != stats.end(); ++i)
-            if (i->second->is_string())
-                result += i->first + ": " + admin_value_to_string(*i->second);
-            else
-                result += i->first + ":\n" + admin_value_to_string(*i->second);
-
-    return result;
+bool is_uuid(const std::string& str) {
+    try {
+        str_to_uuid(str);
+    } catch (...) {
+        return false;
+    }
+    return true;
 }
 
-// TODO: use key_to_escaped_string
+void admin_cluster_link_t::admin_stats_to_table(const std::string& machine,
+                                                const std::string& prefix,
+                                                const perfmon_result_t& stats,
+                                                std::vector<std::vector<std::string> >& table) {
+    std::vector<std::string> delta;
+
+    if (stats.is_string()) {
+        // TODO: this should only happen in the case of an empty stats, which shouldn't really happen
+        delta.push_back(machine);
+        delta.push_back("-");
+        delta.push_back("-");
+        delta.push_back("-");
+        table.push_back(delta);
+    } else if (stats.is_map()) {
+        for (perfmon_result_t::const_iterator i = stats.begin(); i != stats.end(); ++i) {
+            if (i->second->is_string()) {
+                delta.clear();
+                delta.push_back(machine);
+                delta.push_back(prefix);
+                delta.push_back(i->first);
+                delta.push_back(*i->second->get_string());
+                table.push_back(delta);
+            } else {
+                std::string postfix(i->first);
+                // Try to convert any uuids to a name, if that fails, ignore
+                try {
+                    boost::uuids::uuid temp = str_to_uuid(postfix);
+                    postfix = get_info_from_id(uuid_to_str(temp))->name;
+                } catch (...) {
+                }
+                admin_stats_to_table(machine, prefix.empty() ? postfix : (prefix + "/" + postfix), *i->second, table);
+            }
+        }
+    }
+}
+
 std::string admin_value_to_string(const memcached_protocol_t::region_t& region) {
-    std::string shard_str;
-    if (region.left == store_key_t())
-        shard_str += "inf-";
-    else
-        shard_str += "\"" + key_to_str(region.left) + "\"-";
-    if (region.right.unbounded)
-        shard_str += "inf";
-    else
-        shard_str += "\"" + key_to_str(region.right.key) + "\"";
-    return shard_str;
+    return key_range_to_cli_str(region);
 }
 
 std::string admin_value_to_string(const mock::dummy_protocol_t::region_t& region) {
@@ -378,21 +399,22 @@ admin_cluster_link_t::metadata_info_t* admin_cluster_link_t::get_info_from_id(co
 
         return uuid_map.lower_bound(id)->second;
     } else if (name_map.count(id) != 1) {
-        std::stringstream exception_info;
-        exception_info << "'" << id << "' not unique, possible objects:";
-        for (std::map<std::string, metadata_info_t*>::iterator item = name_map.lower_bound(id); item != name_map.end() && item->first == id; ++item) {
+        std::string exception_info(strprintf("'%s' not unique, possible objects:", id.c_str()));
+
+        for (std::map<std::string, metadata_info_t*>::iterator item = name_map.lower_bound(id);
+             item != name_map.end() && item->first == id; ++item) {
             if (item->second->path[0] == "datacenters")
-                exception_info << std::endl << "datacenter    " << item->second->uuid.substr(0, uuid_output_length);
+                exception_info += strprintf("\ndatacenter    %s", item->second->uuid.substr(0, uuid_output_length).c_str());
             else if (item->second->path[0] == "dummy_namespaces")
-                exception_info << std::endl << "namespace (d) " << item->second->uuid.substr(0, uuid_output_length);
+                exception_info += strprintf("\nnamespace (d) %s", item->second->uuid.substr(0, uuid_output_length).c_str());
             else if (item->second->path[0] == "memcached_namespaces")
-                exception_info << std::endl << "namespace (m) " << item->second->uuid.substr(0, uuid_output_length);
+                exception_info += strprintf("\nnamespace (m) %s", item->second->uuid.substr(0, uuid_output_length).c_str());
             else if (item->second->path[0] == "machines")
-                exception_info << std::endl << "machine       " << item->second->uuid.substr(0, uuid_output_length);
+                exception_info += strprintf("\nmachine       %s", item->second->uuid.substr(0, uuid_output_length).c_str());
             else
-                exception_info << std::endl << "unknown       " << item->second->uuid.substr(0, uuid_output_length);
+                exception_info += strprintf("\nunknown       %s", item->second->uuid.substr(0, uuid_output_length).c_str());
         }
-        throw admin_cluster_exc_t(exception_info.str());
+        throw admin_cluster_exc_t(exception_info);
     }
 
     return name_map.find(id)->second;
@@ -781,55 +803,36 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
 
 void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    std::string id = (data.params.count("filter") == 0 ? "" : data.params["filter"][0]);
+    std::string obj_str = (data.params.count("object") == 0 ? "" : data.params["object"][0]);
     bool long_format = (data.params.count("long") == 1);
 
-    if (id != "namespaces" && data.params.count("protocol") != 0)
-        throw admin_parse_exc_t("--protocol option only valid when listing namespaces");
-
-    if (id == "machines") {
-        list_machines(long_format, cluster_metadata);
-    } else if (id == "datacenters") {
-        list_datacenters(long_format, cluster_metadata);
-    } else if (id == "namespaces") {
-        if (data.params.count("protocol") == 0)
-            list_namespaces("", long_format, cluster_metadata);
-        else
-            list_namespaces(data.params["protocol"][0], long_format, cluster_metadata);
-    } else if (id == "issues") {
-        list_issues(long_format);
-    } else if (id == "directory") {
-        list_directory(long_format);
-    } else if (id == "stats") {
-        list_stats(data);
-    } else if (id.empty()) {
+    if (obj_str.empty()) {
         list_all(long_format, cluster_metadata);
     } else {
-        // TODO: special formatting for each object type, instead of JSON
-        metadata_info_t *info = get_info_from_id(id);
+        metadata_info_t *info = get_info_from_id(obj_str);
         boost::uuids::uuid obj_id = str_to_uuid(info->uuid);
         if (info->path[0] == "datacenters") {
             datacenters_semilattice_metadata_t::datacenter_map_t::iterator i = cluster_metadata.datacenters.datacenters.find(obj_id);
             if (i == cluster_metadata.datacenters.datacenters.end() || i->second.is_deleted())
-                throw admin_cluster_exc_t("object not found: " + id);
+                throw admin_cluster_exc_t("object not found: " + obj_str);
             list_single_datacenter(obj_id, i->second.get_mutable(), cluster_metadata);
         } else if (info->path[0] == "dummy_namespaces") {
             namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(obj_id);
             if (i == cluster_metadata.dummy_namespaces.namespaces.end() || i->second.is_deleted())
-                throw admin_cluster_exc_t("object not found: " + id);
+                throw admin_cluster_exc_t("object not found: " + obj_str);
             list_single_namespace(obj_id, i->second.get_mutable(), cluster_metadata, "dummy");
         } else if (info->path[0] == "memcached_namespaces") {
             namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(obj_id);
             if (i == cluster_metadata.memcached_namespaces.namespaces.end() || i->second.is_deleted())
-                throw admin_cluster_exc_t("object not found: " + id);
+                throw admin_cluster_exc_t("object not found: " + obj_str);
             list_single_namespace(obj_id, i->second.get_mutable(), cluster_metadata, "memcached");
         } else if (info->path[0] == "machines") {
             machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.find(obj_id);
             if (i == cluster_metadata.machines.machines.end() || i->second.is_deleted())
-                throw admin_cluster_exc_t("object not found: " + id);
+                throw admin_cluster_exc_t("object not found: " + obj_str);
             list_single_machine(obj_id, i->second.get_mutable(), cluster_metadata);
         } else
-            throw admin_cluster_exc_t("unexpected error, object found, but type not recognized");
+            throw admin_cluster_exc_t("unexpected error, object found, but type not recognized: " + info->path[0]);
     }
 }
 
@@ -898,28 +901,42 @@ struct admin_stats_request_t {
     mailbox_t<void(perfmon_result_t)> response_mailbox;
 };
 
-void admin_cluster_link_t::list_stats(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_stats(admin_command_parser_t::command_data& data) {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     boost::ptr_map<machine_id_t, admin_stats_request_t> request_map;
+    std::set<machine_id_t> machine_filters;
+    std::set<namespace_id_t> namespace_filters;
+    std::string stat_filter;
     signal_timer_t timer(5000); // 5 second timeout to get all stats
 
+    // Check command params for namespace or machine filter
+    if (data.params.count("id-filter") == 1) {
+        for (size_t i = 0; i < data.params["id-filter"].size(); ++i) {
+            std::string temp = data.params["id-filter"][i];
+            metadata_info_t *info = get_info_from_id(temp);
+            if (info->path[0] == "machines")
+                machine_filters.insert(str_to_uuid(info->uuid));
+            else if (info->path[0] == "dummy_namespaces" || info->path[0] == "memcached_namespaces")
+                namespace_filters.insert(str_to_uuid(info->uuid));
+            else
+                throw admin_parse_exc_t("object filter is not a machine or namespace: " + temp);
+        }
+    }
+
     // Get the set of machines to request stats from and construct mailboxes for the responses
-    if (data.params.count("machine") == 0) {
+    if (machine_filters.empty()) {
         for (machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.begin();
              i != cluster_metadata.machines.machines.end(); ++i)
             if (!i->second.is_deleted()) {
                 machine_id_t target = i->first;
                 request_map.insert(target, new admin_stats_request_t(&mailbox_manager));
             }
-    } else {
-        std::string machine_str(data.params["machine"][0]);
-        metadata_info_t *info = get_info_from_id(machine_str);
-        if (info->path[0] != "machines")
-            throw admin_parse_exc_t("object is not a machine: " + machine_str);
-        machine_id_t target = str_to_uuid(info->uuid);
-        request_map.insert(target, new admin_stats_request_t(&mailbox_manager));
-    }
+    } else
+        for (std::set<machine_id_t>::iterator i = machine_filters.begin(); i != machine_filters.end(); ++i) {
+            machine_id_t id = *i;
+            request_map.insert(id, new admin_stats_request_t(&mailbox_manager));
+        }
 
     if (request_map.empty())
         throw admin_cluster_exc_t("no machines to query stats from");
@@ -943,6 +960,15 @@ void admin_cluster_link_t::list_stats(admin_command_parser_t::command_data& data
             throw admin_cluster_exc_t("Could not locate machine in directory: " + uuid_to_str(i->first));
     }
 
+    std::vector<std::vector<std::string> > stats_table;
+    std::vector<std::string> header;
+
+    header.push_back("machine");
+    header.push_back("category");
+    header.push_back("stat");
+    header.push_back("value");
+    stats_table.push_back(header);
+
     // Wait for responses and output them, filtering as necessary
     for (boost::ptr_map<machine_id_t, admin_stats_request_t>::iterator i = request_map.begin(); i != request_map.end(); ++i) {
         signal_t *stats_ready = i->second->stats_promise.get_ready_signal();
@@ -951,12 +977,33 @@ void admin_cluster_link_t::list_stats(admin_command_parser_t::command_data& data
 
         if (stats_ready->is_pulsed()) {
             perfmon_result_t stats = i->second->stats_promise.wait();
-            printf("machine %s:\n%s\n", uuid_to_str(i->first).c_str(), admin_value_to_string(stats).c_str());
+            std::string machine_name = get_info_from_id(uuid_to_str(i->first))->name;
+
+            // If namespaces were selected, only list stats belonging to those namespaces
+            if (!namespace_filters.empty()) {
+                for (perfmon_result_t::const_iterator i = stats.begin(); i != stats.end(); ++i) {
+                    if (is_uuid(i->first) && namespace_filters.count(str_to_uuid(i->first)) == 1) {
+                        // Try to convert the uuid to a (unique) name
+                        std::string id = i->first;
+                        try {
+                            boost::uuids::uuid temp = str_to_uuid(id);
+                            id = get_info_from_id(uuid_to_str(temp))->name;
+                        } catch (...) {
+                        }
+                        admin_stats_to_table(machine_name, id, *i->second, stats_table);
+                    }
+                }
+            } else {
+                admin_stats_to_table(machine_name, std::string(), stats, stats_table);
+            }
         }
     }
+
+    if (stats_table.size() > 1)
+        admin_print_table(stats_table);
 }
 
-void admin_cluster_link_t::list_directory(bool long_format UNUSED) {
+void admin_cluster_link_t::do_admin_list_directory(admin_command_parser_t::command_data& data UNUSED) {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
 
     for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.begin(); i != directory.end(); i++) {
@@ -967,7 +1014,7 @@ void admin_cluster_link_t::list_directory(bool long_format UNUSED) {
     }
 }
 
-void admin_cluster_link_t::list_issues(bool long_format UNUSED) {
+void admin_cluster_link_t::do_admin_list_issues(admin_command_parser_t::command_data& data UNUSED) {
     std::list<clone_ptr_t<global_issue_t> > issues = issue_aggregator.get_issues();
     for (std::list<clone_ptr_t<global_issue_t> >::iterator i = issues.begin(); i != issues.end(); ++i) {
         puts((*i)->get_description().c_str());
@@ -1058,7 +1105,10 @@ void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std
         }
 }
 
-void admin_cluster_link_t::list_datacenters(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
+void admin_cluster_link_t::do_admin_list_datacenters(admin_command_parser_t::command_data& data) {
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    bool long_format = (data.params.count("long") == 1);
+
     std::vector<std::vector<std::string> > table;
     std::vector<std::string> delta;
     std::map<datacenter_id_t, datacenter_info_t> long_info;
@@ -1148,7 +1198,11 @@ size_t admin_cluster_link_t::get_replica_count_from_blueprint(const bp_type& bp)
     return count;
 }
 
-void admin_cluster_link_t::list_namespaces(const std::string& type, bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
+void admin_cluster_link_t::do_admin_list_namespaces(admin_command_parser_t::command_data& data) {
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    std::string type = (data.params.count("protocol") == 0 ? "" : data.params["protocol"][0]);
+    bool long_format = (data.params.count("long") == 1);
+
     std::vector<std::vector<std::string> > table;
     std::vector<std::string> header;
 
@@ -1282,7 +1336,10 @@ void admin_cluster_link_t::add_machine_info_from_blueprint(const bp_type& bp, st
     }
 }
 
-void admin_cluster_link_t::list_machines(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
+void admin_cluster_link_t::do_admin_list_machines(admin_command_parser_t::command_data& data) {
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    bool long_format = (data.params.count("long") == 1);
+
     std::map<machine_id_t, machine_info_t> long_info;
     std::vector<std::vector<std::string> > table;
     std::vector<std::string> delta;
@@ -2007,6 +2064,7 @@ bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& mach
     for (typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::iterator i = machine_entry->second.begin();
          i != machine_entry->second.end(); ++i) {
         if (i->second == blueprint_details::role_primary || i->second == blueprint_details::role_secondary) {
+            delta.clear();
             delta.push_back(ns_uuid);
             delta.push_back(ns_name);
 

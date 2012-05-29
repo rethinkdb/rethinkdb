@@ -77,6 +77,19 @@ public:
             w, order_token, interruptor);
     }
 
+    std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
+        std::vector<typename protocol_t::region_t> s;
+        for (typename std::map<master_id_t, master_connection_t *>::const_iterator it = open_connections.begin(); it != open_connections.end(); it++) {
+            s.push_back(it->second->region);
+        }
+        typename protocol_t::region_t whole;
+        region_join_result_t res = region_join(s, &whole);
+        if (res != REGION_JOIN_OK || whole != protocol_t::region_t::universe()) {
+            throw cannot_perform_query_exc_t("cannot compute sharding scheme because masters are missing or duplicate");
+        }
+        return std::set<typename protocol_t::region_t>(s.begin(), s.end());
+    }
+
 private:
     class master_connection_t {
     public:

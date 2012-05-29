@@ -16,7 +16,7 @@
 // If you change this struct, previous stored data will be misinterpreted.
 struct btree_key_t {
     uint8_t size;
-    char contents[];
+    uint8_t contents[];
     uint16_t full_size() const {
         return size + offsetof(btree_key_t, contents);
     }
@@ -34,7 +34,7 @@ public:
         set_size(0);
     }
 
-    store_key_t(int sz, const char *buf) {
+    store_key_t(int sz, const uint8_t *buf) {
         assign(sz, buf);
     }
 
@@ -47,7 +47,7 @@ public:
     }
 
     explicit store_key_t(const std::string& s) {
-        assign(s.size(), s.data());
+        assign(s.size(), reinterpret_cast<const uint8_t *>(s.data()));
     }
 
     btree_key_t *btree_key() { return reinterpret_cast<btree_key_t *>(buffer); }
@@ -57,10 +57,10 @@ public:
         btree_key()->size = s;
     }
     int size() const { return btree_key()->size; }
-    char *contents() { return btree_key()->contents; }
-    const char *contents() const { return btree_key()->contents; }
+    uint8_t *contents() { return btree_key()->contents; }
+    const uint8_t *contents() const { return btree_key()->contents; }
 
-    void assign(int sz, const char *buf) {
+    void assign(int sz, const uint8_t *buf) {
         set_size(sz);
         memcpy(contents(), buf, sz);
     }
@@ -82,7 +82,7 @@ public:
         for (int i = 0; i < MAX_KEY_SIZE; i++) {
             buf[i] = 255;
         }
-        return store_key_t(MAX_KEY_SIZE, reinterpret_cast<char *>(buf));
+        return store_key_t(MAX_KEY_SIZE, buf);
     }
 
     bool increment() {
@@ -91,7 +91,7 @@ public:
             set_size(size() + 1);
             return true;
         }
-        while (size() > 0 && (reinterpret_cast<uint8_t *>(contents()))[size()-1] == 255) {
+        while (size() > 0 && contents()[size()-1] == 255) {
             set_size(size() - 1);
         }
         if (size() == 0) {
@@ -107,13 +107,17 @@ public:
     bool decrement() {
         if (size() == 0) {
             return false;
-        }
-        if ((reinterpret_cast<uint8_t *>(contents()))[size()-1] > 0) {
+        } else if ((reinterpret_cast<uint8_t *>(contents()))[size()-1] > 0) {
             (reinterpret_cast<uint8_t *>(contents()))[size()-1]--;
+            for (int i = size(); i < MAX_KEY_SIZE; i++) {
+                contents()[i] = 255;
+            }
+            set_size(MAX_KEY_SIZE);
+            return true;
+        } else {
+            set_size(size() - 1);
             return true;
         }
-        set_size(size() - 1);
-        return true;
     }
 
     int compare(const store_key_t& k) const {
@@ -171,20 +175,10 @@ inline bool operator>=(const store_key_t &k1, const store_key_t &k2) {
     return k2 <= k1;
 }
 
-inline bool str_to_key(const char *str, store_key_t *buf) {
-    int len = strlen(str);
-    if (len <= MAX_KEY_SIZE) {
-        memcpy(buf->contents(), str, len);
-        buf->set_size(uint8_t(len));
-        return true;
-    } else {
-        return false;
-    }
-}
+bool unescaped_str_to_key(const char *str, store_key_t *buf);
+std::string key_to_unescaped_str(const store_key_t &key);
 
-inline std::string key_to_str(const store_key_t &key) {
-    return std::string(key.contents(), key.size());
-}
+std::string key_to_debug_str(const store_key_t &key);
 
 /* `key_range_t` represents a contiguous set of keys. */
 struct key_range_t {
@@ -216,7 +210,7 @@ struct key_range_t {
         return left_ok && right_ok;
     }
 
-    bool contains_key(const char *key, uint8_t size) const {
+    bool contains_key(const uint8_t *key, uint8_t size) const {
         bool left_ok = sized_strcmp(left.contents(), left.size(), key, size) <= 0;
         bool right_ok = right.unbounded || sized_strcmp(key, size, right.key.contents(), right.key.size()) < 0;
         return left_ok && right_ok;
@@ -238,5 +232,18 @@ struct key_range_t {
 
     RDB_MAKE_ME_SERIALIZABLE_2(left, right);
 };
+
+std::string key_range_to_debug_str(const key_range_t &kr);
+
+bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
+bool operator!=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
+bool operator<(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
+bool operator<=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
+bool operator>(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
+bool operator>=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
+
+bool operator==(key_range_t, key_range_t) THROWS_NOTHING;
+bool operator!=(key_range_t, key_range_t) THROWS_NOTHING;
+bool operator<(const key_range_t &, const key_range_t &) THROWS_NOTHING;
 
 #endif // BTREE_KEYS_HPP_

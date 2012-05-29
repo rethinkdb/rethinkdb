@@ -70,7 +70,7 @@ std::list<clone_ptr_t<global_issue_t> > vector_clock_conflict_issue_tracker_t::g
 
     for (std::list<clone_ptr_t<vector_clock_conflict_issue_t> >::iterator i = vector_clock_issues.begin();
          i != vector_clock_issues.end(); ++i)
-        global_issues.push_back(clone_ptr_t<global_issue_t>(i->get()));
+        global_issues.push_back(clone_ptr_t<global_issue_t>((*i)->clone()));
 
     return global_issues;
 }

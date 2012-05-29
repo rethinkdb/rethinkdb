@@ -2,6 +2,7 @@
 #include <boost/variant.hpp>
 
 #include "clustering/administration/http/distribution_app.hpp"
+#include "memcached/protocol_json_adapter.hpp"
 #include "stl_utils.hpp"
 
 #define DEFAULT_DEPTH 1

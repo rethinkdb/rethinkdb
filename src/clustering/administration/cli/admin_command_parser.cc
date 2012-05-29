@@ -17,6 +17,12 @@ admin_command_parser_t *admin_command_parser_t::instance = NULL;
 uint64_t admin_command_parser_t::cluster_join_timeout = 5000; // Give 5 seconds to connect to all machines in the cluster
 
 const char *admin_command_parser_t::list_command = "ls";
+const char *admin_command_parser_t::list_stats_command = "ls stats";
+const char *admin_command_parser_t::list_issues_command = "ls issues";
+const char *admin_command_parser_t::list_machines_command = "ls machines";
+const char *admin_command_parser_t::list_directory_command = "ls directory";
+const char *admin_command_parser_t::list_namespaces_command = "ls namespaces";
+const char *admin_command_parser_t::list_datacenters_command = "ls datacenters";
 const char *admin_command_parser_t::exit_command = "exit";
 const char *admin_command_parser_t::help_command = "help";
 const char *admin_command_parser_t::resolve_command = "resolve";
@@ -35,7 +41,13 @@ const char *admin_command_parser_t::remove_command = "rm";
 const char *admin_command_parser_t::complete_command = "complete";
 
 const char *admin_command_parser_t::exit_usage = "";
-const char *admin_command_parser_t::list_usage = "[ datacenters | namespaces [--protocol <protocol>] | machines | issues | directory | <id> ] [--long]";
+const char *admin_command_parser_t::list_usage = "[<id>] [--long]";
+const char *admin_command_parser_t::list_stats_usage = "[<machine>...] [<namespace>...] [--filter <filter>]";
+const char *admin_command_parser_t::list_issues_usage = "";
+const char *admin_command_parser_t::list_machines_usage = "[--long]";
+const char *admin_command_parser_t::list_directory_usage = "";
+const char *admin_command_parser_t::list_namespaces_usage = "[--protocol <protocol>] [--long]";
+const char *admin_command_parser_t::list_datacenters_usage = "[--long]";
 const char *admin_command_parser_t::help_usage = "[ ls | create | rm | set | split | merge | resolve | help ]";
 const char *admin_command_parser_t::resolve_usage = "<id> <field>";
 const char *admin_command_parser_t::pin_shard_usage = "<namespace> <shard> [--primary <machine>] [--secondary <machine>...]";
@@ -49,7 +61,13 @@ const char *admin_command_parser_t::create_namespace_usage = "<name> --port <por
 const char *admin_command_parser_t::create_datacenter_usage = "<name>";
 const char *admin_command_parser_t::remove_usage = "<id>...";
 
-const char *admin_command_parser_t::list_description = "Print a list of objects in the cluster.  If a type of object is specified, only objects of that type are listed.  An individual object can be selected by name or uuid.";
+const char *admin_command_parser_t::list_description = "Print a list of objects in the cluster.  An individual object can be selected by name or uuid.";
+const char *admin_command_parser_t::list_stats_description = ""; // TODO
+const char *admin_command_parser_t::list_issues_description = "";
+const char *admin_command_parser_t::list_machines_description = "";
+const char *admin_command_parser_t::list_directory_description = "";
+const char *admin_command_parser_t::list_namespaces_description = "";
+const char *admin_command_parser_t::list_datacenters_description = "";
 const char *admin_command_parser_t::exit_description = "Quit the cluster administration console.";
 const char *admin_command_parser_t::help_description = "Print help on a cluster administration command.";
 const char *admin_command_parser_t::resolve_description = "If there are any conflicted values in the cluster, either list the possible values or resolve the conflict by selecting one of the values.";
@@ -101,12 +119,6 @@ admin_command_parser_t::param_options * admin_command_parser_t::command_info::ad
     param_options *option = new param_options(name, count, required);
     positionals.push_back(option);
     return option;
-}
-
-void admin_command_parser_t::command_info::add_subcommand(command_info *info)
-{
-    rassert(subcommands.count(info->command) == 0);
-    subcommands.insert(std::make_pair(info->command, info));
 }
 
 void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info_t>& helps,
@@ -164,6 +176,12 @@ void admin_command_parser_t::do_usage(bool console) {
     helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
     helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
     helps.push_back(admin_help_info_t(list_command, list_usage, list_description));
+    helps.push_back(admin_help_info_t(list_stats_command, list_stats_usage, list_stats_description));
+    helps.push_back(admin_help_info_t(list_issues_command, list_issues_usage, list_issues_description));
+    helps.push_back(admin_help_info_t(list_machines_command, list_machines_usage, list_machines_description));
+    helps.push_back(admin_help_info_t(list_directory_command, list_directory_usage, list_directory_description));
+    helps.push_back(admin_help_info_t(list_namespaces_command, list_namespaces_usage, list_namespaces_description));
+    helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
     helps.push_back(admin_help_info_t(resolve_command, resolve_usage, resolve_description));
     helps.push_back(admin_help_info_t(split_shard_command, split_shard_usage, split_shard_description));
     helps.push_back(admin_help_info_t(merge_shard_command, merge_shard_usage, merge_shard_description));
@@ -219,6 +237,12 @@ void admin_command_parser_t::do_list_usage(bool console) {
     std::vector<admin_help_info_t> helps;
     std::vector<std::string> options;
     helps.push_back(admin_help_info_t(list_command, list_usage, list_description));
+    helps.push_back(admin_help_info_t(list_stats_command, list_stats_usage, list_stats_description));
+    helps.push_back(admin_help_info_t(list_issues_command, list_issues_usage, list_issues_description));
+    helps.push_back(admin_help_info_t(list_machines_command, list_machines_usage, list_machines_description));
+    helps.push_back(admin_help_info_t(list_directory_command, list_directory_usage, list_directory_description));
+    helps.push_back(admin_help_info_t(list_namespaces_command, list_namespaces_usage, list_namespaces_description));
+    helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
     // TODO: add option descriptions
     do_usage_internal(helps, options, "list - display information from the cluster", console);
 }
@@ -297,8 +321,18 @@ admin_command_parser_t::command_info * admin_command_parser_t::add_command(std::
 
         info = add_command(i->second->subcommands, full_cmd, cmd.substr(space_index + 1), usage, post_sync, fn);
     } else {
-        info = new command_info(full_cmd, cmd, usage, post_sync, fn);
-        cmd_map.insert(std::make_pair(info->command, info));
+        std::map<std::string, command_info *>::iterator i = cmd_map.find(cmd);
+
+        if (i == cmd_map.end())
+            i = cmd_map.insert(std::make_pair(cmd, new command_info(full_cmd, cmd, usage, post_sync, fn))).first;
+        else {
+            // This node already exists, but this command should overwrite the current values
+            i->second->usage = usage;
+            i->second->post_sync = post_sync;
+            i->second->do_function = fn;
+        }
+
+        info = i->second;
     }
 
     return info;
@@ -345,8 +379,24 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
 
     info = add_command(commands, list_command, list_command, list_usage, false, &admin_cluster_link_t::do_admin_list);
-    info->add_positional("filter", 1, false)->add_options("issues", "machines", "namespaces", "datacenters", "directory", "stats", "!id", NULL);
+    info->add_positional("object", 1, false)->add_options("!id", NULL);
+
+    info = add_command(commands, list_stats_command, list_stats_command, list_stats_usage, false, &admin_cluster_link_t::do_admin_list_stats);
+    info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULL);
+    info->add_flag("filter", 1, false); // TODO: add filter options
+
+    info = add_command(commands, list_issues_command, list_issues_command, list_issues_usage, false, &admin_cluster_link_t::do_admin_list_issues);
+
+    info = add_command(commands, list_machines_command, list_machines_command, list_machines_usage, false, &admin_cluster_link_t::do_admin_list_machines);
+    info->add_flag("long", 0, false);
+
+    info = add_command(commands, list_directory_command, list_directory_command, list_directory_usage, false, &admin_cluster_link_t::do_admin_list_directory);
+
+    info = add_command(commands, list_namespaces_command, list_namespaces_command, list_namespaces_usage, false, &admin_cluster_link_t::do_admin_list_namespaces);
     info->add_flag("protocol", 1, false)->add_options("memcached", "dummy", NULL);
+    info->add_flag("long", 0, false);
+
+    info = add_command(commands, list_datacenters_command, list_datacenters_command, list_datacenters_usage, false, &admin_cluster_link_t::do_admin_list_datacenters);
     info->add_flag("long", 0, false);
 
     info = add_command(commands, create_namespace_command, create_namespace_command, create_namespace_usage, true, &admin_cluster_link_t::do_admin_create_namespace);
@@ -397,7 +447,7 @@ admin_command_parser_t::command_info * admin_command_parser_t::find_command(cons
     if (i == commands.end())
         return NULL;
     else
-        // If any subcommands exist, one must be selected by the next substring
+        // If any subcommands exist, either one is selected by the next substring, or we're at the final command
         for (index = 1; index < line.size() && !i->second->subcommands.empty(); ++index) {
             std::map<std::string, command_info *>::iterator temp = i->second->subcommands.find(line[index]);
             if (temp == i->second->subcommands.end())
@@ -573,19 +623,24 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
             return;
 
         for (index = 1; index < line.size() && !i->second->subcommands.empty(); ++index) {
-            end = i->second->subcommands.end();
+            std::map<std::string, command_info *>::const_iterator old = i;
             i = find_command_with_completion(i->second->subcommands, line[index], completions, partial && line.size() == index + 1);
-            if (i == end)
-                return;
+            if (i == old->second->subcommands.end()) {
+                i = old;
+                break;
+            }
         }
 
         command_info *cmd = i->second;
 
-        if (!cmd->subcommands.empty()) {
+        if (index == line.size() && !cmd->subcommands.empty()) {
             // We're at the end of the line, and there are still more subcommands
             find_command_with_completion(cmd->subcommands, std::string(), completions, !partial);
-            return;
         }
+
+        // Non-terminal commands cannot have arguments
+        if (cmd->do_function == NULL)
+            return;
 
         if (index == line.size()) {
             if (!partial) // Only the command specified, show positionals
@@ -678,7 +733,7 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
 
         if (info == NULL)
             throw admin_parse_exc_t("unknown command: " + line[0]);
-        else if (!info->subcommands.empty())
+        else if (info->do_function == NULL)
             throw admin_parse_exc_t("incomplete command");
 
         command_data data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
