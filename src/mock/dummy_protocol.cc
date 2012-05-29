@@ -479,9 +479,11 @@ void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::write
             buf->appendf(", ");
         }
         first = false;
-        debug_print_quoted_string(buf, it->first.data(), it->first.size());
+        const char *first_data = it->first.data();
+        debug_print_quoted_string(buf, reinterpret_cast<const uint8_t *>(first_data), it->first.size());
         buf->appendf(" => ");
-        debug_print_quoted_string(buf, it->second.data(), it->second.size());
+        const char *second_data = it->second.data();
+        debug_print_quoted_string(buf, reinterpret_cast<const uint8_t *>(second_data), it->second.size());
     }
     buf->appendf("}");
 }

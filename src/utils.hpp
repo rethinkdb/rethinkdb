@@ -110,7 +110,7 @@ double ticks_to_secs(ticks_t ticks);
 // debug.hpp (and debug.cc).
 /* Debugging printing API (prints current thread in addition to message) */
 #ifndef NDEBUG
-void debug_print_quoted_string(append_only_printf_buffer_t *buf, const char *s, size_t n);
+void debug_print_quoted_string(append_only_printf_buffer_t *buf, const uint8_t *s, size_t n);
 void debugf_prefix_buf(printf_buffer_t<1000> *buf);
 void debugf_dump_buf(printf_buffer_t<1000> *buf);
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));

@@ -206,7 +206,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
     return ptr;
 }
 
-void debug_print_quoted_string(append_only_printf_buffer_t *buf, const char *s, size_t n) {
+void debug_print_quoted_string(append_only_printf_buffer_t *buf, const uint8_t *s, size_t n) {
     buf->appendf("\"");
     for (size_t i = 0; i < n; ++i) {
         uint8_t ch = s[i];
