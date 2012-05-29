@@ -3,12 +3,10 @@
 
 /* This file provides btree specific buffer patches */
 
+#include "btree/keys.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "utils.hpp"
-
-/* Btree leaf node logical patches */
-struct btree_key_t;
 
 template <class V> class value_sizer_t;
 
@@ -29,11 +27,11 @@ protected:
 private:
     friend void leaf_patched_insert(value_sizer_t<void> *sizer, buf_lock_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
 
-    leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const void *value, uint8_t key_size, const char *key_contents, repli_timestamp_t insertion_time);
+    leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const void *value, const btree_key_t *key, repli_timestamp_t insertion_time);
 
     uint16_t value_size;
     scoped_malloc<char> value_buf;
-    scoped_malloc<btree_key_t> key_buf;
+    store_key_t key;
     repli_timestamp_t insertion_time;
 };
 
@@ -50,10 +48,10 @@ protected:
 
 private:
     friend void leaf_patched_remove(buf_lock_t *node, const btree_key_t *key, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
-    leaf_remove_patch_t(block_id_t block_id, patch_counter_t patch_counter, repli_timestamp_t tstamp, uint8_t key_size, const char *key_contents);
+    leaf_remove_patch_t(block_id_t block_id, patch_counter_t patch_counter, repli_timestamp_t tstamp, const btree_key_t *key);
 
     repli_timestamp_t timestamp;
-    scoped_malloc<btree_key_t> key_buf;
+    store_key_t key;
 };
 
 /* Erase a key/value pair from a leaf node, when this is an idempotent
@@ -70,9 +68,9 @@ protected:
 
 private:
     friend void leaf_patched_erase_presence(buf_lock_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
-    leaf_erase_presence_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint8_t key_size, const char *key_contents);
+    leaf_erase_presence_patch_t(block_id_t block_id, patch_counter_t patch_counter, const btree_key_t *_key);
 
-    scoped_malloc<btree_key_t> key_buf;
+    store_key_t key;
 };
 
 #endif /* BTREE_BUF_PATCHES_HPP_ */

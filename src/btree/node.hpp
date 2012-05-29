@@ -68,10 +68,6 @@ struct internal_node_t {
     static const block_magic_t expected_magic;
 };
 
-inline std::string key_to_str(const btree_key_t* key) {
-    return std::string(key->contents, key->size);
-}
-
 // A node_t is either a btree_internal_node or a btree_leaf_node.
 struct node_t {
     block_magic_t magic;

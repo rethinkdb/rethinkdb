@@ -5,7 +5,6 @@
 #include <set>
 
 #include "errors.hpp"
-#include <boost/function.hpp>
 #include <boost/optional.hpp>
 
 /* stl utils make some stl structures nicer to work with */
@@ -21,12 +20,6 @@ bool std_contains(const container_t &, const typename container_t::key_type &);
 
 template <class container_t>
 bool std_does_not_contain(const container_t &, const typename container_t::key_type &);
-
-template <class container_t>
-bool std_exists_such_that(const container_t &, boost::function<bool(typename container_t::const_iterator)>);
-
-template <class container_t>
-void std_forall_pairs(const container_t &, boost::function<void(typename container_t::const_iterator, typename container_t::const_iterator)>);
 
 //Note this function is kind of a hack because if you try to access with a
 //default value it will insert that value.

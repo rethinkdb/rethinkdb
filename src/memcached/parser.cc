@@ -281,7 +281,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     gets.reserve(argc - 1);
     for (int i = 1; i < argc; i++) {
         gets.push_back(get_t());
-        if (!str_to_key(argv[i], &gets.back().key)) {
+        if (!unescaped_str_to_key(argv[i], &gets.back().key)) {
             pipeliner_acq.done_argparsing();
             pipeliner_acq.begin_write();
             rh->client_error_bad_command_line_format();
@@ -330,10 +330,10 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
 
                 /* Write the "VALUE ..." header */
                 if (with_cas) {
-                    rh->write_value_header(key.contents(), key.size(), res.flags, res.value->size(), res.cas);
+                    rh->write_value_header(reinterpret_cast<const char *>(key.contents()), key.size(), res.flags, res.value->size(), res.cas);
                 } else {
                     rassert(res.cas == 0);
-                    rh->write_value_header(key.contents(), key.size(), res.flags, res.value->size());
+                    rh->write_value_header(reinterpret_cast<const char *>(key.contents()), key.size(), res.flags, res.value->size());
                 }
 
                 rh->write_from_data_provider(res.value.get());
@@ -350,7 +350,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
 static const char *rget_null_key = "null";
 
 static bool rget_parse_bound(char *flag, char *key, key_range_t::bound_t *mode_out, store_key_t *key_out) {
-    if (!str_to_key(key, key_out)) return false;
+    if (!unescaped_str_to_key(key, key_out)) return false;
 
     const char *invalid_char;
     int64_t open_flag = strtoi64_strict(flag, &invalid_char, 10);
@@ -391,7 +391,6 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
     /* Parse left/right boundary keys and flags */
     key_range_t::bound_t left_mode, right_mode;
     store_key_t left_key, right_key;
-
     if (!rget_parse_bound(argv[3], argv[1], &left_mode, &left_key) ||
         !rget_parse_bound(argv[4], argv[2], &right_mode, &right_key)) {
         pipeliner_acq.done_argparsing();
@@ -400,6 +399,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
         pipeliner_acq.end_write();
         return;
     }
+    key_range_t range(left_mode, left_key, right_mode, right_key);
 
     /* Parse max items count */
     const char *invalid_char;
@@ -418,49 +418,107 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
 
     pipeliner_acq.begin_write();
 
-    while (max_items > 0) {
-        rget_result_t results;
-        std::string error_message;
-        bool ok;
+    std::string error_message;
+    try {
+        /* Range scans can potentially request enormous amounts of data. To
+        avoid having to store all that data in memory at once or transfer it all
+        over the network at once, we break the range scan into many
+        sub-requests. `rget_query_t` will automatically stop the range scan once
+        it has read `rget_max_chunk_size` bytes of data. When we get the
+        `rget_result_t` back, if the query was truncated, we dispatch another
+        `rget_query_t` starting where the last one left off. */
 
-        try {
-            rget_query_t rget_query(key_range_t(left_mode, left_key, right_mode, right_key), max_items);
+        /* The naive approach has a problem, though. Suppose that we request a
+        range from 'a' to 'z', and the database is sharded at 'm'. Both the
+        'a'-'m' shard and the 'm'-'z' shard will get a request. Because the
+        semantics of `rget_query_t` are that a `rget_max_chunk_size`-sized chunk
+        will be returned, and the `m'-'z' shard doesn't know how much data might
+        be present in the 'a'-'m' shard, both shards return an
+        `rget_max_chunk_size`-sized chunk of data, and then the `unshard()`
+        function discards the second one. This means that the rget internally
+        transfers (m + 1)/2 times as much data as it should have to, where "m"
+        is the number of shards. To avoid this, we need to be aware of the
+        sharding scheme and not dispatch `rget_query_t`s that cross shard
+        boundaries */
+        std::set<key_range_t> shards = rh->nsi->get_sharding_scheme();
+
+        /* The `std::set` should already be sorted properly, but we check that
+        explicitly in debug mode. */
+#ifndef NDEBUG
+        key_range_t::right_bound_t bound(store_key_t::min());
+        for (std::set<key_range_t>::iterator it = shards.begin(); it != shards.end(); it++) {
+            rassert(!bound.unbounded);
+            rassert(bound.key == it->left);
+            bound = it->right;
+        }
+        rassert(bound.unbounded);
+#endif
+
+        /* Find the shard that we're going to start in. */
+        std::set<key_range_t>::iterator shard_it = shards.begin();
+        while (!shard_it->contains_key(range.left)) {
+            shard_it++;
+        }
+
+        while (max_items > 0) {
+            rget_query_t rget_query(region_intersection(range, *shard_it), max_items);
             memcached_protocol_t::read_t read(rget_query, time(NULL));
             cond_t non_interruptor;
             memcached_protocol_t::read_response_t response = rh->nsi->read(read, order_token_t::ignore, &non_interruptor);
-            results = boost::get<rget_result_t>(response.result);
-            ok = true;
-        } catch (cannot_perform_query_exc_t e) {
-            /* We can't call `server_error()` directly from within here because it's
-            not safe to call `coro_t::wait()` from inside a `catch`-block. */
-            error_message = e.what();
-            ok = false;
-        }
+            rget_result_t results = boost::get<rget_result_t>(response.result);
 
-        if (!ok) {
-            rh->server_error("%s\r\n", error_message.c_str());
-            break;
-        }
+            for (std::vector<key_with_data_buffer_t>::iterator it = results.pairs.begin(); it != results.pairs.end(); it++) {
+                rh->write_value_header(reinterpret_cast<const char *>(it->key.contents()), it->key.size(), it->mcflags, it->value_provider->size());
+                rh->write_from_data_provider(it->value_provider.get());
+                rh->write_crlf();
+            }
 
-        for (std::vector<key_with_data_buffer_t>::iterator it = results.pairs.begin(); it != results.pairs.end(); it++) {
-            rh->write_value_header(it->key.contents(), it->key.size(), it->mcflags, it->value_provider->size());
-            rh->write_from_data_provider(it->value_provider.get());
-            rh->write_crlf();
-        }
+            if (results.truncated) {
+                /* This round of the range scan stopped because the chunk was
+                getting too big. We need to submit another range scan with the left
+                key equal to the rightmost key of the results we got */
+                rassert(!results.pairs.empty());
+                range.left = results.pairs.back().key;
+                range.left.increment();
+            } else {
+                /* This round of the range scan stopped for some other reason... */
+                if (shard_it->right < range.right) {
+                    /* The `rget_query_t` hit the right-hand bound of the range we
+                    passed to it. But because we were filtering by shard, the
+                    right-hand bound of the range we passed to it isn't the
+                    right-hand bound of the range scan as a whole. Switch to the
+                    next shard and keep going. (It's also possible that we hit
+                    the maximum number of rows that the user requested, but in that
+                    case the `while` loop will stop, so we don't have to distinguish
+                    between the two cases.) */
+                    shard_it++;
+                    range.left = shard_it->left;
+                } else {
+                    /* The `rget_query_t` hit the right-hand bound of the range we
+                    passed to it. Because the right-hand bound of the range scan
+                    as a whole lies within the shard we're currently at, the
+                    right-hand bound we passed to the `rget_query_t` is the
+                    right-hand bound of the range scan as a whole. So abort. (As
+                    above, it's also possible that we hit `max_items`.) */
+                    break;
+                }
+            }
 
-        if (!results.truncated) {
-            break;
-        }
+            rassert(results.pairs.size() <= max_items);
+            max_items -= results.pairs.size();
+        } 
+        rh->write_end();
 
-        rassert(!results.pairs.empty());
-
-        rassert(max_items >= results.pairs.size());
-        max_items -= results.pairs.size();
-
-        left_mode = key_range_t::open;
-        left_key = results.pairs.back().key;
+    } catch (cannot_perform_query_exc_t e) {
+        /* We can't call `server_error()` directly from within here because
+        it's not safe to call `coro_t::wait()` from inside a `catch`-block.
+        */
+        error_message = e.what();
     }
-    rh->write_end();
+
+    if (error_message != "") {
+        rh->server_error("%s\r\n", error_message.c_str());
+    }
 
     pipeliner_acq.end_write();
 }
@@ -643,7 +701,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 
     /* First parse the key */
     store_key_t key;
-    if (!str_to_key(argv[1], &key)) {
+    if (!unescaped_str_to_key(argv[1], &key)) {
         pipeliner_acq->done_argparsing();
         pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
@@ -822,7 +880,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool i, i
 
     /* Parse key */
     store_key_t key;
-    if (!str_to_key(argv[1], &key)) {
+    if (!unescaped_str_to_key(argv[1], &key)) {
         pipeliner_acq.done_argparsing();
         pipeliner_acq.begin_write();
         rh->client_error_bad_command_line_format();
@@ -917,7 +975,7 @@ void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, ch
 
     /* Parse key */
     store_key_t key;
-    if (!str_to_key(argv[1], &key)) {
+    if (!unescaped_str_to_key(argv[1], &key)) {
         pipeliner_acq.done_argparsing();
         pipeliner_acq.begin_write();
         rh->client_error_bad_command_line_format();

@@ -169,7 +169,7 @@ void print_hd(const void *buf, size_t offset, size_t length);
 
 // Fast string compare
 
-int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
+int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 
 /* The home thread mixin is a mixin for objects that can only be used
@@ -237,6 +237,10 @@ bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
 }
 
 bool notf(bool x);
+
+/* Translates to and from `0123456789ABCDEF`. */
+bool hex_to_int(char c, int *out);
+char int_to_hex(int i);
 
 std::string read_file(const char *path);
 

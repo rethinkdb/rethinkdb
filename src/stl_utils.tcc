@@ -41,32 +41,6 @@ bool std_does_not_contain(const container_t &container, const typename container
 }
 
 template <class container_t>
-bool std_exists_such_that(const container_t &container, boost::function<bool(typename container_t::const_iterator)> p) {
-    for (typename container_t::const_iterator it =  container.begin();
-                                              it != container.end();
-                                              it++) {
-        if (p(it)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-template <class container_t>
-void std_forall_pairs(const container_t &container, boost::function<void(typename container_t::const_iterator, typename container_t::const_iterator)> f) {
-    for (typename container_t::const_iterator a_it =  container.begin();
-                                              a_it != container.end();
-                                              a_it++) {
-
-        for (typename container_t::const_iterator b_it =  container.begin();
-                                                  b_it != container.end();
-                                                  b_it++) {
-            f(a_it, b_it);
-        }
-    }
-}
-
-template <class container_t>
 typename container_t::mapped_type &get_with_default(container_t &container, const typename container_t::key_type &key, const typename container_t::mapped_type &default_value) {
     if (container.find(key) == container.end()) {
         container[key] = default_value;

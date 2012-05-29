@@ -39,7 +39,7 @@ MUST_USE int deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {
 
 
 // fast non-null terminated string comparison
-int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
+int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
     int min_len = std::min(len1, len2);
     int res = memcmp(str1, str2, min_len);
     if (res == 0) {
@@ -584,6 +584,30 @@ void print_backtrace(FILE *out, bool use_addr2line) {
         free(symbols);
     } else {
         fprintf(out, "(too little memory for backtrace)\n");
+    }
+}
+
+bool hex_to_int(char c, int *out) {
+    if (c >= '0' && c <= '9') {
+        *out = c - '0';
+        return true;
+    } else if (c >= 'a' && c <= 'f') {
+        *out = c - 'a' + 10;
+        return true;
+    } else if (c >= 'A' && c <= 'F') {
+        *out = c - 'A' + 10;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+char int_to_hex(int x) {
+    rassert(x >= 0 && x < 16);
+    if (x < 10) {
+        return '0' + x;
+    } else {
+        return 'A' + x - 10;
     }
 }
 

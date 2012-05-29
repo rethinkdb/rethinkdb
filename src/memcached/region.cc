@@ -2,94 +2,6 @@
 
 #include <algorithm>
 
-/* Comparison operators for `key_range_t::right_bound_t` are declared in here
-because nothing outside of this file ever needs them. */
-bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
-    return a.unbounded == b.unbounded && a.key == b.key;
-}
-bool operator!=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
-    return !(a == b);
-}
-bool operator<(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
-    if (a.unbounded) return false;
-    if (b.unbounded) return true;
-    return a.key < b.key;
-}
-bool operator<=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
-    return a == b || a < b;
-}
-bool operator>(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
-    return b < a;
-}
-bool operator>=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
-    return b <= a;
-}
-
-key_range_t::key_range_t() :
-    left(""), right(store_key_t("")) { }
-
-key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const store_key_t& r) {
-    switch (lm) {
-        case closed:
-            left = l;
-            break;
-        case open:
-            left = l;
-            if (left.increment()) {
-                break;
-            } else {
-                /* Our left bound is the largest possible key, and we are open
-                on the left-hand side. So we are empty. */
-                *this = key_range_t::empty();
-                return;
-            }
-        case none:
-            left = store_key_t("");
-            break;
-        default:
-            unreachable();
-    }
-
-    switch (rm) {
-        case closed: {
-            store_key_t r_copy(r);
-            if (r_copy.increment()) {
-                right = right_bound_t(r_copy);
-                break;
-            } else {
-                /* Our right bound is the largest possible key, and we are
-                closed on the right-hand side. The only way to express this is
-                to set `right` to `right_bound_t()`. */
-                right = right_bound_t();
-                break;
-            }
-        }
-        case open:
-            right = right_bound_t(r);
-            break;
-        case none:
-            right = right_bound_t();
-            break;
-        default:
-            unreachable();
-    }
-}
-
-std::string key_range_as_string(const key_range_t &kr) {
-    std::string ret;
-    ret += "[\"";
-    ret += key_to_str(kr.left);
-    ret += "\", ";
-    if (kr.right.unbounded) {
-        ret += "...]";
-    } else {
-        ret += "\"";
-        ret += key_to_str(kr.right.key);
-        ret += "\")";
-    }
-    return ret;
-}
-
 bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING {
     /* Special-case empty ranges */
     if (key_range_t::right_bound_t(potential_subset.left) == potential_subset.right) return true;
@@ -121,9 +33,9 @@ region_join_result_t region_join(const std::vector<key_range_t> &vec, key_range_
     } else {
         std::vector<key_range_t> sorted = vec;
         std::sort(sorted.begin(), sorted.end(), &compare_range_by_left);
-	// TODO: Why the is this called a "cursor"?
+        // TODO: Why the is this called a "cursor"?
         key_range_t::right_bound_t cursor = key_range_t::right_bound_t(sorted[0].left);
-	// TODO: Avoid C-style casts.
+        // TODO: Avoid C-style casts.
         for (int i = 0; i < (int)sorted.size(); i++) {
             if (cursor < key_range_t::right_bound_t(sorted[i].left)) {
                 return REGION_JOIN_BAD_REGION;
@@ -180,15 +92,3 @@ std::vector<key_range_t> region_subtract_many(key_range_t minuend, const std::ve
     return buf;
 }
 
-
-bool operator==(key_range_t a, key_range_t b) THROWS_NOTHING {
-    return a.left == b.left && a.right == b.right;
-}
-
-bool operator!=(key_range_t a, key_range_t b) THROWS_NOTHING {
-    return !(a == b);
-}
-
-bool operator<(const key_range_t &a, const key_range_t &b) THROWS_NOTHING {
-    return (a.left < b.left || (a.left == b.left && a.right < b.right));
-}

@@ -136,6 +136,11 @@ private:
     void list_dummy_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
     void list_memcached_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
 
+    void admin_stats_to_table(const std::string& machine,
+                              const std::string& prefix,
+                              const perfmon_result_t& stats,
+                              std::vector<std::vector<std::string> >& table);
+
     template <class map_type>
     void add_namespaces(const std::string& protocol, bool long_format, map_type& namespaces, std::vector<std::vector<std::string> >& table);
 

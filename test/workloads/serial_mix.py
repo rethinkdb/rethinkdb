@@ -111,9 +111,7 @@ def random_action(opts, mc, clone, deleted):
             raise ValueError("Could not delete %r." % key)
         verify(opts, mc, clone, deleted, key)
 
-def test(opts, mc):
-    clone = {}
-    deleted = set()
+def test(opts, mc, clone, deleted):
     start_time = time.time()
     while time.time() < start_time + opts["duration"]:
         random_action(opts, mc, clone, deleted)
@@ -127,8 +125,22 @@ def option_parser_for_serial_mix():
     return op
 
 if __name__ == "__main__":
+    import pickle
+
     op = option_parser_for_serial_mix()
+    op["load"] = StringFlag("--load", None)
+    op["save"] = StringFlag("--save", None)
     opts = op.parse(sys.argv)
 
+    if opts["load"] is None:
+        clone, deleted = {}, set()
+    else:
+        print "Loading from %r..." % opts["load"]
+        with open(opts["load"]) as f:
+            clone, deleted = pickle.load(f)
     with workload_common.make_memcache_connection(opts) as mc:
-        test(opts, mc)
+        test(opts, mc, clone, deleted)
+    if opts["save"] is not None:
+        print "Saving to %r..." % opts["save"]
+        with open(opts["save"], "w") as f:
+            pickle.dump((clone, deleted), f)
