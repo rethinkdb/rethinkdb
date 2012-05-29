@@ -42,7 +42,7 @@ const char *admin_command_parser_t::complete_command = "complete";
 
 const char *admin_command_parser_t::exit_usage = "";
 const char *admin_command_parser_t::list_usage = "[<id>] [--long]";
-const char *admin_command_parser_t::list_stats_usage = "[<machine>] [--filter <filter>]";
+const char *admin_command_parser_t::list_stats_usage = "[<machine>...] [<namespace>...] [--filter <filter>]";
 const char *admin_command_parser_t::list_issues_usage = "";
 const char *admin_command_parser_t::list_machines_usage = "[--long]";
 const char *admin_command_parser_t::list_directory_usage = "";
@@ -382,7 +382,7 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("object", 1, false)->add_options("!id", NULL);
 
     info = add_command(commands, list_stats_command, list_stats_command, list_stats_usage, false, &admin_cluster_link_t::do_admin_list_stats);
-    info->add_positional("machine", 1, false)->add_options("!machine", NULL);
+    info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULL);
     info->add_flag("filter", 1, false); // TODO: add filter options
 
     info = add_command(commands, list_issues_command, list_issues_command, list_issues_usage, false, &admin_cluster_link_t::do_admin_list_issues);

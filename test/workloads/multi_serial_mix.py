@@ -8,7 +8,7 @@ def child(opts, log_path):
     # This is run in a separate process
     import sys
     sys.stdout = sys.stderr = file(log_path, "w")
-    print "Starting test against server at %s:%d..." % (opts["host"], opts["port"])
+    print "Starting test against server at %s:%d..." % opts["address"]
     with workload_common.make_memcache_connection(opts) as mc:
         serial_mix.test(opts, mc)
     print "Done with test."
