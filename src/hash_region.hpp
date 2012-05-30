@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
 // Returns a value in [0, HASH_REGION_HASH_SIZE).
@@ -53,6 +54,11 @@ public:
     // beg < end unless 0 == end and 0 == beg.
     uint64_t beg, end;
     inner_region_t inner;
+
+private:
+    RDB_MAKE_ME_SERIALIZABLE_3(beg, end, inner);
+
+    // This is a copyable type.
 };
 
 template <class inner_region_t>
