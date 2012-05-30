@@ -7,7 +7,7 @@ from vcoptparse import *
 op = workload_common.option_parser_for_memcache()
 op["num_keys"] = IntFlag("--num-keys", 5000)
 op["sequential"] = BoolFlag("--sequential")
-op["phase"] = ChoiceFlag("--phase", ["w", "r", "wr"])
+op["phase"] = ChoiceFlag("--phase", ["w", "r", "wr"], "wr")
 opts = op.parse(sys.argv)
 
 with workload_common.make_memcache_connection(opts) as mc:
