@@ -149,7 +149,7 @@ public:
     ~admin_command_parser_t();
 
     void parse_and_run_command(const std::vector<std::string>& line);
-    void run_console();
+    void run_console(bool exit_on_failure);
     void run_completion(const std::vector<std::string>& command_args);
 
     static void do_usage(bool console);
@@ -193,7 +193,7 @@ private:
     command_data parse_command(command_info *info, const std::vector<std::string>& command_args);
     void run_command(command_data& data);
 
-    void print_subcommands_usage(command_info *info, FILE *file);
+    std::string get_subcommands_usage(command_info *info);
 
     std::map<std::string, command_info *>::const_iterator find_command_with_completion(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches);
     void add_option_matches(const param_options *option, const std::string& partial, linenoiseCompletions *completions);

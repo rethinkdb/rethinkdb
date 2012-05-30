@@ -13,6 +13,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
+#include "arch/io/network.hpp"
 #include "clustering/administration/cli/key_parsing.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
@@ -30,6 +31,30 @@ bool is_uuid(const std::string& str) {
         return false;
     }
     return true;
+}
+
+std::string admin_cluster_link_t::peer_id_to_machine_name(const std::string& peer_id) {
+    std::string result(peer_id);
+
+    if (is_uuid(peer_id)) {
+        peer_id_t peer(str_to_uuid(peer_id));
+
+        if (peer == connectivity_cluster.get_me()) {
+            result.assign("admin_cli");
+        } else {
+            std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
+            std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.find(peer);
+
+            if (i != directory.end()) {
+                try {
+                    result = get_info_from_id(uuid_to_str(i->second.machine_id))->name;
+                } catch (...) {
+                }
+            }
+        }
+    }
+
+    return result;
 }
 
 void admin_cluster_link_t::admin_stats_to_table(const std::string& machine,
@@ -61,6 +86,7 @@ void admin_cluster_link_t::admin_stats_to_table(const std::string& machine,
                     boost::uuids::uuid temp = str_to_uuid(postfix);
                     postfix = get_info_from_id(uuid_to_str(temp))->name;
                 } catch (...) {
+                    postfix = peer_id_to_machine_name(postfix);
                 }
                 admin_stats_to_table(machine, prefix.empty() ? postfix : (prefix + "/" + postfix), *i->second, table);
             }
@@ -193,7 +219,7 @@ admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins
     semilattice_manager_cluster(&semilattice_manager_client, cluster_semilattice_metadata_t()),
     semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_cluster),
     directory_manager_client(&message_multiplexer, 'D'),
-    our_directory_metadata(cluster_directory_metadata_t(connectivity_cluster.get_me().get_uuid(), std::vector<std::string>(), stat_manager.get_address(), log_server.get_business_card())),
+    our_directory_metadata(cluster_directory_metadata_t(connectivity_cluster.get_me().get_uuid(), get_ips(), stat_manager.get_address(), log_server.get_business_card(), ADMIN_PEER)),
     directory_read_manager(connectivity_cluster.get_connectivity_service()),
     directory_write_manager(&directory_manager_client, our_directory_metadata.get_watchable()),
     directory_manager_client_run(&directory_manager_client, &directory_read_manager),
@@ -390,7 +416,7 @@ admin_cluster_link_t::metadata_info_t* admin_cluster_link_t::get_info_from_id(co
             throw admin_parse_exc_t("identifier not found, too short to specify a uuid: " + id);
 
         if (item == uuid_map.end() || item->first.find(id) != 0)
-            throw admin_cluster_exc_t("identifier not found: " + id);
+            throw admin_parse_exc_t("identifier not found: " + id);
 
         // Make sure that the found id is unique
         ++item;
@@ -1003,15 +1029,57 @@ void admin_cluster_link_t::do_admin_list_stats(admin_command_parser_t::command_d
         admin_print_table(stats_table);
 }
 
-void admin_cluster_link_t::do_admin_list_directory(admin_command_parser_t::command_data& data UNUSED) {
+void admin_cluster_link_t::do_admin_list_directory(admin_command_parser_t::command_data& data) {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    bool long_format = data.params.count("long");
+    std::vector<std::vector<std::string> > table;
+    std::vector<std::string> delta;
+
+    delta.push_back("type");
+    delta.push_back("name");
+    delta.push_back("uuid");
+    delta.push_back("ips");
+    table.push_back(delta);
 
     for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.begin(); i != directory.end(); i++) {
-        printf("%s  ", uuid_to_str(i->second.machine_id).c_str());
-        for (std::vector<std::string>::iterator j = i->second.ips.begin(); j != i->second.ips.end(); ++j)
-            printf(" %s", j->c_str());
-        printf("\n");
+        delta.clear();
+
+        if (i->second.peer_type == ADMIN_PEER)
+            delta.push_back("admin");
+        else if (i->second.peer_type == SERVER_PEER)
+            delta.push_back("server");
+        else if (i->second.peer_type == PROXY_PEER)
+            delta.push_back("proxy");
+        else
+            delta.push_back("unknown");
+
+        machines_semilattice_metadata_t::machine_map_t::iterator m = cluster_metadata.machines.machines.find(i->second.machine_id);
+        if (m != cluster_metadata.machines.machines.end()) {
+            if (m->second.is_deleted())
+                delta.push_back("<deleted>");
+            else if (m->second.get().name.in_conflict())
+                delta.push_back("<conflict>");
+            else
+                delta.push_back(m->second.get().name.get());
+        } else
+            delta.push_back("");
+
+        if (long_format)
+            delta.push_back(uuid_to_str(i->second.machine_id));
+        else
+            delta.push_back(uuid_to_str(i->second.machine_id).substr(0, uuid_output_length));
+
+        std::string ips;
+        for (size_t j = 0; j != i->second.ips.size(); ++j)
+            ips += (j == 0 ? "" : " ") + i->second.ips[j];
+        delta.push_back(ips);
+
+        table.push_back(delta);
     }
+
+    if (table.size() > 1)
+        admin_print_table(table);
 }
 
 void admin_cluster_link_t::do_admin_list_issues(admin_command_parser_t::command_data& data UNUSED) {
