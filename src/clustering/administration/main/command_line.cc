@@ -67,21 +67,21 @@ std::set<peer_address_t> look_up_peers_addresses(std::vector<host_and_port_t> na
     return peers;
 }
 
-void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool *result_out) {
+void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_port, const std::vector<std::string>& command_args, bool exit_on_failure, bool *result_out) {
     os_signal_cond_t sigint_cond;
     *result_out = true;
-    std::stringstream host_port;
+    std::string host_port;
 
     if (!joins.empty())
-        host_port << joins[0].host << ":" << joins[0].port;
+        host_port = strprintf("%s:%d", joins[0].host.c_str(), joins[0].port);
 
     try {
         if (command_args.empty())
-            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port, &sigint_cond).run_console();
+            admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).run_console(exit_on_failure);
         else if (command_args[0] == admin_command_parser_t::complete_command)
-            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port, &sigint_cond).run_completion(command_args);
+            admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).run_completion(command_args);
         else
-            admin_command_parser_t(host_port.str(), look_up_peers_addresses(joins), client_port, &sigint_cond).parse_and_run_command(command_args);
+            admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).parse_and_run_command(command_args);
     } catch (admin_no_connection_exc_t& ex) {
         fprintf(stderr, "%s\n", ex.what());
         fprintf(stderr, "valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
@@ -283,7 +283,8 @@ po::options_description get_rethinkdb_admin_options() {
 #ifndef NDEBUG
         ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes")
 #endif
-        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to");
+        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
+        ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
     return desc;
 }
 
@@ -366,6 +367,9 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 #else
         int client_port = 0;
 #endif
+        bool exit_on_failure = false;
+        if (vm.count("exit-failure") > 0)
+            exit_on_failure = true;
 
         std::vector<std::string> cmd_args = po::collect_unrecognized(parsed.options, po::include_positional); 
 
@@ -374,7 +378,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         if (last_arg == "-" || last_arg == "--")
             cmd_args.push_back(last_arg);
 
-        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, &result));
+        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result));
 
     } catch (std::exception& ex) {
         printf("%s\n", ex.what());

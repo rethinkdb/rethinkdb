@@ -42,10 +42,10 @@ const char *admin_command_parser_t::complete_command = "complete";
 
 const char *admin_command_parser_t::exit_usage = "";
 const char *admin_command_parser_t::list_usage = "[<id>] [--long]";
-const char *admin_command_parser_t::list_stats_usage = "[<machine>...] [<namespace>...] [--filter <filter>]";
+const char *admin_command_parser_t::list_stats_usage = "[<machine>...] [<namespace>...]";
 const char *admin_command_parser_t::list_issues_usage = "";
 const char *admin_command_parser_t::list_machines_usage = "[--long]";
-const char *admin_command_parser_t::list_directory_usage = "";
+const char *admin_command_parser_t::list_directory_usage = "[--long]";
 const char *admin_command_parser_t::list_namespaces_usage = "[--protocol <protocol>] [--long]";
 const char *admin_command_parser_t::list_datacenters_usage = "[--long]";
 const char *admin_command_parser_t::help_usage = "[ ls | create | rm | set | split | merge | resolve | help ]";
@@ -383,7 +383,6 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(commands, list_stats_command, list_stats_command, list_stats_usage, false, &admin_cluster_link_t::do_admin_list_stats);
     info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULL);
-    info->add_flag("filter", 1, false); // TODO: add filter options
 
     info = add_command(commands, list_issues_command, list_issues_command, list_issues_usage, false, &admin_cluster_link_t::do_admin_list_issues);
 
@@ -391,6 +390,7 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_flag("long", 0, false);
 
     info = add_command(commands, list_directory_command, list_directory_command, list_directory_usage, false, &admin_cluster_link_t::do_admin_list_directory);
+    info->add_flag("long", 0, false);
 
     info = add_command(commands, list_namespaces_command, list_namespaces_command, list_namespaces_usage, false, &admin_cluster_link_t::do_admin_list_namespaces);
     info->add_flag("protocol", 1, false)->add_options("memcached", "dummy", NULL);
@@ -716,17 +716,24 @@ void admin_command_parser_t::run_completion(const std::vector<std::string>& comm
     linenoiseFreeCompletions(&completions);
 }
 
-void admin_command_parser_t::print_subcommands_usage(command_info *info, FILE *file) {
+std::string admin_command_parser_t::get_subcommands_usage(command_info *info) {
+    std::string result;
+
+    if (info->do_function != NULL)
+        result += "\t" + info->full_command + " " + info->usage + "\n";
+
     if (!info->subcommands.empty()) {
         for (std::map<std::string, command_info *>::const_iterator i = info->subcommands.begin(); i != info->subcommands.end(); ++i) {
-            print_subcommands_usage(i->second, file);
+            result += get_subcommands_usage(i->second);
         }
-    } else
-        fprintf(file, "\t%s %s\n", info->full_command.c_str(), info->usage.c_str());
+    }
+
+    return result;
 }
 
 void admin_command_parser_t::parse_and_run_command(const std::vector<std::string>& line) {
     command_info *info = NULL;
+
     try {
         size_t index;
         info = find_command(commands, line, index);
@@ -739,15 +746,15 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
         command_data data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
         run_command(data);
     } catch (admin_parse_exc_t& ex) {
-        fprintf(stderr, "%s\n", ex.what());
+        std::string exception_str(ex.what());
         if (info != NULL) {
-            fprintf(stderr, "usage: ");
-            print_subcommands_usage(info, stderr);
+            // Cut off the trailing newline from get_subcommand_usage
+            std::string usage_str(get_subcommands_usage(info));
+            exception_str += "\nusage: " + usage_str.substr(0, usage_str.size() - 1);
         }
-    } catch (admin_no_connection_exc_t& ex) {
-        throw; // This will be caught and handled elsewhere
+        throw admin_parse_exc_t(exception_str);
     } catch (std::exception& ex) {
-        fprintf(stderr, "%s\n", ex.what());
+        throw;
     }
 }
 
@@ -760,7 +767,7 @@ public:
     void operator () () const { *raw_line_ptr = linenoise(prompt); }
 };
 
-void admin_command_parser_t::run_console() {
+void admin_command_parser_t::run_console(bool exit_on_failure) {
     // Can only run console mode with a connection, try to get one
     console_mode = true;
     get_cluster();
@@ -786,18 +793,33 @@ void admin_command_parser_t::run_console() {
             break;
 
         if (!line.empty()) {
+            std::vector<std::string> split_line;
 
             try {
-                std::vector<std::string> split_line = boost::program_options::split_unix(line);
-
-                if (!split_line.empty())
-                    parse_and_run_command(split_line);
-            } catch (admin_no_connection_exc_t& ex) {
-                fprintf(stderr, "fatal error: connection to cluster failed\n");
-                free(raw_line);
-                break;
+                split_line = boost::program_options::split_unix(line);
             } catch (...) {
-                fprintf(stderr, "could not parse line\n");
+                if (exit_on_failure) {
+                    free(raw_line);
+                    console_mode = false;
+                    throw admin_parse_exc_t("could not parse line");
+                }
+            }
+
+            if (!split_line.empty()) {
+                try {
+                    parse_and_run_command(split_line);
+                } catch (admin_no_connection_exc_t& ex) {
+                    free(raw_line);
+                    console_mode = false;
+                    throw admin_cluster_exc_t("fatal error: connection to cluster failed");
+                } catch (std::exception& ex) {
+                    if (exit_on_failure) {
+                        free(raw_line);
+                        console_mode = false;
+                        throw;
+                    } else
+                        fprintf(stderr, "%s\n", ex.what());
+                }
             }
 
             linenoiseHistoryAdd(raw_line);
