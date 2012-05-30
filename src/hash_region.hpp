@@ -14,12 +14,21 @@
 const uint64_t HASH_REGION_HASH_SIZE = 1ULL << 63;
 uint64_t hash_region_hasher(const uint8_t *s, size_t len);
 
+// Forms a region that shards an inner_region_t by a different
+// dimension: hash values, which are computed by the function
+// hash_region_hasher.  Represents a rectangle, with one range of
+// coordinates represented by the inner region, the other range of
+// coordinates being a range of hash values.  This doesn't really
+// change _much_ about our perspective of regions, but one thing in
+// particular is that every multistore should have a
+// get_multistore_joined_region return value with .beg == 0, .end ==
+// HASH_REGION_HASH_SIZE.
 template <class inner_region_t>
 class hash_region_t {
 public:
     // Produces the empty region.
     hash_region_t()
-	: beg(0), end(0), inner() { }
+	: beg(0), end(0), inner(inner_region_t::empty()) { }
 
     // For use with non-equal beg and end, non-empty inner.
     hash_region_t(uint64_t _beg, uint64_t _end, const inner_region_t &_inner)
@@ -28,6 +37,20 @@ public:
 	guarantee(!region_is_empty(inner));
     }
 
+    // For use with a non-empty inner, I think.
+    explicit hash_region_t(const inner_region_t &_inner) : beg(0), end(HASH_REGION_HASH_SIZE), inner(_inner) {
+        guarantee(!region_is_empty(inner));
+    }
+
+    static hash_region_t universe() {
+        return hash_region_t(inner_region_t::universe());
+    }
+
+    static hash_region_t empty() {
+        return hash_region_t();
+    }
+
+    // beg < end unless 0 == end and 0 == beg.
     uint64_t beg, end;
     inner_region_t inner;
 };
