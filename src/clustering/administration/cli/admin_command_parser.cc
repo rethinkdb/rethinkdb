@@ -61,13 +61,13 @@ const char *admin_command_parser_t::create_namespace_usage = "<name> --port <por
 const char *admin_command_parser_t::create_datacenter_usage = "<name>";
 const char *admin_command_parser_t::remove_usage = "<id>...";
 
-const char *admin_command_parser_t::list_description = "Print a list of objects in the cluster.  An individual object can be selected by name or uuid.";
-const char *admin_command_parser_t::list_stats_description = ""; // TODO
-const char *admin_command_parser_t::list_issues_description = "";
-const char *admin_command_parser_t::list_machines_description = "";
-const char *admin_command_parser_t::list_directory_description = "";
-const char *admin_command_parser_t::list_namespaces_description = "";
-const char *admin_command_parser_t::list_datacenters_description = "";
+const char *admin_command_parser_t::list_description = "Print a list of objects in the cluster.  An individual object can be selected by name or uuid for a detailed description of the object.";
+const char *admin_command_parser_t::list_stats_description = "Print a list of statistics gathered by the cluster.  Statistics will be on a per-machine and per-namespace basis, if applicable, and can be filtered by machine or namespace.";
+const char *admin_command_parser_t::list_issues_description = "Print a list of issues currently detected by the cluster.";
+const char *admin_command_parser_t::list_machines_description = "Print a list of machines in the cluster along with some relevant data about each machine.";
+const char *admin_command_parser_t::list_directory_description = "Print a list of nodes currently connected to the running admin client, this may include data servers, proxy nodes, or other admin clients.";
+const char *admin_command_parser_t::list_namespaces_description = "Print a list of namespaces in the cluster along with some relevant data about each namespace. The list may be filtered by a namespace protocol type.";
+const char *admin_command_parser_t::list_datacenters_description = "Print a list of datacenters in the cluster along with some relevant data about each datacenter.";
 const char *admin_command_parser_t::exit_description = "Quit the cluster administration console.";
 const char *admin_command_parser_t::help_description = "Print help on a cluster administration command.";
 const char *admin_command_parser_t::resolve_description = "If there are any conflicted values in the cluster, either list the possible values or resolve the conflict by selecting one of the values.";
@@ -79,7 +79,7 @@ const char *admin_command_parser_t::set_acks_description = "Set how many replica
 const char *admin_command_parser_t::set_replicas_description = "Set the replica affinities of a namespace.  This represents the number of replicas that the namespace will have in each specified datacenter.";
 const char *admin_command_parser_t::set_datacenter_description = "Set the primary datacenter of a namespace, or the datacenter that a machine belongs to.";
 const char *admin_command_parser_t::create_namespace_description = "Create a new namespace with the given protocol.  The namespace's primary datacenter and listening port must be specified.";
-const char *admin_command_parser_t::create_datacenter_description = "Create a new datacenter with the given name, if specified.  Once this is done, machines then replicas may be assigned to the datacenter.";
+const char *admin_command_parser_t::create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
 const char *admin_command_parser_t::remove_description = "Remove an object from the cluster.";
 
 void admin_command_parser_t::param_options::add_option(const char *term) {
@@ -740,7 +740,7 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
 
         if (info == NULL)
             throw admin_parse_exc_t("unknown command: " + line[0]);
-        else if (info->do_function == NULL)
+        else if (info->do_function == NULL && info->full_command != help_command)
             throw admin_parse_exc_t("incomplete command");
 
         command_data data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
