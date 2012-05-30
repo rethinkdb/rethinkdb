@@ -5,7 +5,7 @@ import http_admin, driver, workload_runner
 from vcoptparse import *
 
 op = OptParser()
-op["workload"] = PositionalArg()
+workload_runner.prepare_option_parser_for_split_or_continuous_workload(op)
 opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
@@ -27,9 +27,8 @@ with driver.Metacluster() as metacluster:
     http.check_no_issues()
 
     host, port = http.get_namespace_host(ns)
-    with workload_runner.ContinuousWorkload(opts["workload"], host, port) as workload:
-        workload.start()
-        time.sleep(20)
+    with workload_runner.SplitOrContinuousWorkload(opts, host, port) as workload:
+        workload.step1()
         cluster.check()
         http.check_no_issues()
         workload.check()
@@ -39,9 +38,7 @@ with driver.Metacluster() as metacluster:
         http.set_namespace_affinities(ns, {dc1: 1, dc2: 0})
         cluster.check()
         http.check_no_issues()
-        workload.check()
-        time.sleep(20)
-        workload.stop()
+        workload.step2()
 
     http.check_no_issues()
     cluster.check_and_close()

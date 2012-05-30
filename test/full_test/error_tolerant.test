@@ -3,7 +3,7 @@ error_tolerant_workloads = [
     ]
 
 scenarios = [
-    "$RETHINKDB/test/scenarios/change_primary.py.py '%(workload)s'",
+    "$RETHINKDB/test/scenarios/change_primary.py.py --continuous-workload '%(workload)s'",
     ]
 
 for scenario in scenarios:

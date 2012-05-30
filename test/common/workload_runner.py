@@ -1,4 +1,5 @@
 import subprocess, os, time, string, signal
+from vcoptparse import *
 
 def run(command_line, host, port, timeout):
     start_time = time.time()
@@ -83,10 +84,62 @@ class ContinuousWorkload(object):
         else:
             raise RuntimeError("workload '%s' failed to terminate within %d seconds of SIGTERM" % (self.command_line, shutdown_grace_period))
 
-    def __exit__(self, exc, ty, tb):
+    def __exit__(self, exc = None, ty = None, tb = None):
         if self.running:
             try:
                 os.killpg(self.proc.pid, signal.SIGTERM)
             except OSError:
                 pass
 
+# A lot of scenarios work either with a two-phase split workload or a continuous
+# workload. This code factors out the details of parsing and handling that. The
+# syntax for invoking such scenarios is as follows:
+#     scenario.py --split-workload 'workload1.py $HOST:$PORT' 'workload2.py $HOST:$PORT' [--timeout timeout]
+#     scenario.py --continuous-workload 'workload.py $HOST:$PORT'
+
+def prepare_option_parser_for_split_or_continuous_workload(op):
+    op["workload-type"] = ChoiceFlags(["--split-workload", "--continuous-workload"])
+    op["workloads"] = ManyPositionalArgs()
+    op["timeout"] = IntFlag("--timeout", 60)
+
+class SplitOrContinuousWorkload(object):
+    def __init__(self, opts, host, port):
+        self.type = opts["workload-type"]
+        assert self.type in ["split-workload", "continuous-workload"]
+        if self.type == "continuous-workload":
+            if len(opts["workloads"]) < 1:
+                raise ValueError("You must specify the workload on the command line.")
+            if len(opts["workloads"]) > 1:
+                raise ValueError("If you specify --continuous-workload, you should only specify one workload on the command line.")
+            self.workload, = opts["workloads"]
+        else:
+            if len(opts["workloads"]) != 2:
+                raise ValueError("If you specify --split-workload, you should specify two workloads on the command line.")
+            self.workload1, self.workload2 = opts["workloads"]
+        self.timeout = opts["timeout"]
+        self.host, self.port = host, port
+    def __enter__(self):
+        if self.type == "continuous-workload":
+            self.continuous_workload = ContinuousWorkload(self.workload, self.host, self.port)
+            self.continuous_workload.__enter__()
+        return self
+    def step1(self):
+        if self.type == "continuous-workload":
+            self.continuous_workload.start()
+            time.sleep(10)
+            self.continuous_workload.check()
+        else:
+            run(self.workload1, self.host, self.port, self.timeout)
+    def check(self):
+        if self.type == "continuous-workload":
+            self.continuous_workload.check()
+    def step2(self):
+        if self.type == "continuous-workload":
+            self.continuous_workload.check()
+            time.sleep(10)
+            self.continuous_workload.stop()
+        else:
+            run(self.workload2, self.host, self.port, self.timeout)
+    def __exit__(self, exc = None, ty = None, tb = None):
+        if self.type == "continuous-workload":
+            self.continuous_workload.__exit__()
