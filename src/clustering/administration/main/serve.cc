@@ -67,7 +67,8 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
             machine_id,
             get_ips(),
             stat_manager.get_address(),
-            log_server.get_business_card()
+            log_server.get_business_card(),
+            SERVER_PEER
         ));
 
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');

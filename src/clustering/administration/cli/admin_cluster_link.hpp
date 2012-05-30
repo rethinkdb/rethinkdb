@@ -92,6 +92,8 @@ private:
 
     std::vector<std::string> get_ids_internal(const std::string& base, const std::string& path);
 
+    std::string peer_id_to_machine_name(const std::string& peer_id);
+
     size_t get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter);
 
     template <class protocol_t>

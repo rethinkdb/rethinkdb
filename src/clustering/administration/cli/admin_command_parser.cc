@@ -42,10 +42,10 @@ const char *admin_command_parser_t::complete_command = "complete";
 
 const char *admin_command_parser_t::exit_usage = "";
 const char *admin_command_parser_t::list_usage = "[<id>] [--long]";
-const char *admin_command_parser_t::list_stats_usage = "[<machine>...] [<namespace>...] [--filter <filter>]";
+const char *admin_command_parser_t::list_stats_usage = "[<machine>...] [<namespace>...]";
 const char *admin_command_parser_t::list_issues_usage = "";
 const char *admin_command_parser_t::list_machines_usage = "[--long]";
-const char *admin_command_parser_t::list_directory_usage = "";
+const char *admin_command_parser_t::list_directory_usage = "[--long]";
 const char *admin_command_parser_t::list_namespaces_usage = "[--protocol <protocol>] [--long]";
 const char *admin_command_parser_t::list_datacenters_usage = "[--long]";
 const char *admin_command_parser_t::help_usage = "[ ls | create | rm | set | split | merge | resolve | help ]";
@@ -61,13 +61,13 @@ const char *admin_command_parser_t::create_namespace_usage = "<name> --port <por
 const char *admin_command_parser_t::create_datacenter_usage = "<name>";
 const char *admin_command_parser_t::remove_usage = "<id>...";
 
-const char *admin_command_parser_t::list_description = "Print a list of objects in the cluster.  An individual object can be selected by name or uuid.";
-const char *admin_command_parser_t::list_stats_description = ""; // TODO
-const char *admin_command_parser_t::list_issues_description = "";
-const char *admin_command_parser_t::list_machines_description = "";
-const char *admin_command_parser_t::list_directory_description = "";
-const char *admin_command_parser_t::list_namespaces_description = "";
-const char *admin_command_parser_t::list_datacenters_description = "";
+const char *admin_command_parser_t::list_description = "Print a list of objects in the cluster.  An individual object can be selected by name or uuid for a detailed description of the object.";
+const char *admin_command_parser_t::list_stats_description = "Print a list of statistics gathered by the cluster.  Statistics will be on a per-machine and per-namespace basis, if applicable, and can be filtered by machine or namespace.";
+const char *admin_command_parser_t::list_issues_description = "Print a list of issues currently detected by the cluster.";
+const char *admin_command_parser_t::list_machines_description = "Print a list of machines in the cluster along with some relevant data about each machine.";
+const char *admin_command_parser_t::list_directory_description = "Print a list of nodes currently connected to the running admin client, this may include data servers, proxy nodes, or other admin clients.";
+const char *admin_command_parser_t::list_namespaces_description = "Print a list of namespaces in the cluster along with some relevant data about each namespace. The list may be filtered by a namespace protocol type.";
+const char *admin_command_parser_t::list_datacenters_description = "Print a list of datacenters in the cluster along with some relevant data about each datacenter.";
 const char *admin_command_parser_t::exit_description = "Quit the cluster administration console.";
 const char *admin_command_parser_t::help_description = "Print help on a cluster administration command.";
 const char *admin_command_parser_t::resolve_description = "If there are any conflicted values in the cluster, either list the possible values or resolve the conflict by selecting one of the values.";
@@ -79,7 +79,7 @@ const char *admin_command_parser_t::set_acks_description = "Set how many replica
 const char *admin_command_parser_t::set_replicas_description = "Set the replica affinities of a namespace.  This represents the number of replicas that the namespace will have in each specified datacenter.";
 const char *admin_command_parser_t::set_datacenter_description = "Set the primary datacenter of a namespace, or the datacenter that a machine belongs to.";
 const char *admin_command_parser_t::create_namespace_description = "Create a new namespace with the given protocol.  The namespace's primary datacenter and listening port must be specified.";
-const char *admin_command_parser_t::create_datacenter_description = "Create a new datacenter with the given name, if specified.  Once this is done, machines then replicas may be assigned to the datacenter.";
+const char *admin_command_parser_t::create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
 const char *admin_command_parser_t::remove_description = "Remove an object from the cluster.";
 
 void admin_command_parser_t::param_options::add_option(const char *term) {
@@ -383,7 +383,6 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(commands, list_stats_command, list_stats_command, list_stats_usage, false, &admin_cluster_link_t::do_admin_list_stats);
     info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULL);
-    info->add_flag("filter", 1, false); // TODO: add filter options
 
     info = add_command(commands, list_issues_command, list_issues_command, list_issues_usage, false, &admin_cluster_link_t::do_admin_list_issues);
 
@@ -391,6 +390,7 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_flag("long", 0, false);
 
     info = add_command(commands, list_directory_command, list_directory_command, list_directory_usage, false, &admin_cluster_link_t::do_admin_list_directory);
+    info->add_flag("long", 0, false);
 
     info = add_command(commands, list_namespaces_command, list_namespaces_command, list_namespaces_usage, false, &admin_cluster_link_t::do_admin_list_namespaces);
     info->add_flag("protocol", 1, false)->add_options("memcached", "dummy", NULL);
@@ -716,38 +716,45 @@ void admin_command_parser_t::run_completion(const std::vector<std::string>& comm
     linenoiseFreeCompletions(&completions);
 }
 
-void admin_command_parser_t::print_subcommands_usage(command_info *info, FILE *file) {
+std::string admin_command_parser_t::get_subcommands_usage(command_info *info) {
+    std::string result;
+
+    if (info->do_function != NULL)
+        result += "\t" + info->full_command + " " + info->usage + "\n";
+
     if (!info->subcommands.empty()) {
         for (std::map<std::string, command_info *>::const_iterator i = info->subcommands.begin(); i != info->subcommands.end(); ++i) {
-            print_subcommands_usage(i->second, file);
+            result += get_subcommands_usage(i->second);
         }
-    } else
-        fprintf(file, "\t%s %s\n", info->full_command.c_str(), info->usage.c_str());
+    }
+
+    return result;
 }
 
 void admin_command_parser_t::parse_and_run_command(const std::vector<std::string>& line) {
     command_info *info = NULL;
+
     try {
         size_t index;
         info = find_command(commands, line, index);
 
         if (info == NULL)
             throw admin_parse_exc_t("unknown command: " + line[0]);
-        else if (info->do_function == NULL)
+        else if (info->do_function == NULL && info->full_command != help_command)
             throw admin_parse_exc_t("incomplete command");
 
         command_data data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
         run_command(data);
     } catch (admin_parse_exc_t& ex) {
-        fprintf(stderr, "%s\n", ex.what());
+        std::string exception_str(ex.what());
         if (info != NULL) {
-            fprintf(stderr, "usage: ");
-            print_subcommands_usage(info, stderr);
+            // Cut off the trailing newline from get_subcommand_usage
+            std::string usage_str(get_subcommands_usage(info));
+            exception_str += "\nusage: " + usage_str.substr(0, usage_str.size() - 1);
         }
-    } catch (admin_no_connection_exc_t& ex) {
-        throw; // This will be caught and handled elsewhere
+        throw admin_parse_exc_t(exception_str);
     } catch (std::exception& ex) {
-        fprintf(stderr, "%s\n", ex.what());
+        throw;
     }
 }
 
@@ -760,7 +767,7 @@ public:
     void operator () () const { *raw_line_ptr = linenoise(prompt); }
 };
 
-void admin_command_parser_t::run_console() {
+void admin_command_parser_t::run_console(bool exit_on_failure) {
     // Can only run console mode with a connection, try to get one
     console_mode = true;
     get_cluster();
@@ -786,18 +793,33 @@ void admin_command_parser_t::run_console() {
             break;
 
         if (!line.empty()) {
+            std::vector<std::string> split_line;
 
             try {
-                std::vector<std::string> split_line = boost::program_options::split_unix(line);
-
-                if (!split_line.empty())
-                    parse_and_run_command(split_line);
-            } catch (admin_no_connection_exc_t& ex) {
-                fprintf(stderr, "fatal error: connection to cluster failed\n");
-                free(raw_line);
-                break;
+                split_line = boost::program_options::split_unix(line);
             } catch (...) {
-                fprintf(stderr, "could not parse line\n");
+                if (exit_on_failure) {
+                    free(raw_line);
+                    console_mode = false;
+                    throw admin_parse_exc_t("could not parse line");
+                }
+            }
+
+            if (!split_line.empty()) {
+                try {
+                    parse_and_run_command(split_line);
+                } catch (admin_no_connection_exc_t& ex) {
+                    free(raw_line);
+                    console_mode = false;
+                    throw admin_cluster_exc_t("fatal error: connection to cluster failed");
+                } catch (std::exception& ex) {
+                    if (exit_on_failure) {
+                        free(raw_line);
+                        console_mode = false;
+                        throw;
+                    } else
+                        fprintf(stderr, "%s\n", ex.what());
+                }
             }
 
             linenoiseHistoryAdd(raw_line);
