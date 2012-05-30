@@ -310,7 +310,7 @@ void print_dummy_protocol_thing(append_only_printf_buffer_t *buf, const binary_b
 }
 
 void print_metainfo(append_only_printf_buffer_t *buf, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
-    typename region_map_t<dummy_protocol_t, binary_blob_t>::const_iterator it = m.begin(), e = m.end();
+    region_map_t<dummy_protocol_t, binary_blob_t>::const_iterator it = m.begin(), e = m.end();
     buf->appendf("region_map_t(");
     for (; it != e; ++it) {
         print_region(buf, it->first);
