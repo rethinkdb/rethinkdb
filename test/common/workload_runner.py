@@ -126,7 +126,9 @@ class SplitOrContinuousWorkload(object):
     def step1(self):
         if self.type == "continuous-workload":
             self.continuous_workload.start()
-            time.sleep(10)
+            duration = 10
+            print "Letting %r run for %d seconds..." % (self.workload, duration)
+            time.sleep(duration)
             self.continuous_workload.check()
         else:
             run(self.workload1, self.host, self.port, self.timeout)
@@ -136,7 +138,9 @@ class SplitOrContinuousWorkload(object):
     def step2(self):
         if self.type == "continuous-workload":
             self.continuous_workload.check()
-            time.sleep(10)
+            duration = 10
+            print "Letting %r run for %d seconds..." % (self.workload, duration)
+            time.sleep(duration)
             self.continuous_workload.stop()
         else:
             run(self.workload2, self.host, self.port, self.timeout)

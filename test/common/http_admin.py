@@ -409,12 +409,26 @@ class ClusterAccess(object):
         aff_dict = { }
         for datacenter, count in affinities.iteritems():
             aff_dict[self.find_datacenter(datacenter).uuid] = count
-        namespace.replica_affinities = aff_dict
+        namespace.replica_affinities.update(aff_dict)
         if isinstance(namespace, MemcachedNamespace):
             name = "memcached_namespaces"
         else:
             name = "dummy_namespaces"
         self.do_query("POST", "/ajax/%s/%s/replica_affinities" % (name, namespace.uuid), aff_dict)
+        self.wait_for_propagation()
+        self.update_cluster_data()
+
+    def set_namespace_ack_expectations(self, namespace, ack_expectations = { }):
+        namespace = self.find_namespace(namespace)
+        ae_dict = { }
+        for datacenter, count in ack_expectations.iteritems():
+            ae_dict[self.find_datacenter(datacenter).uuid] = count
+        namespace.ack_expectations.update(ae_dict)
+        if isinstance(namespace, MemcachedNamespace):
+            name = "memcached_namespaces"
+        else:
+            name = "dummy_namespaces"
+        self.do_query("POST", "/ajax/%s/%s/ack_expectations" % (name, namespace.uuid), ae_dict)
         self.wait_for_propagation()
         self.update_cluster_data()
 
