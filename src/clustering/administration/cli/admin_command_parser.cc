@@ -41,7 +41,7 @@ const char *admin_command_parser_t::remove_command = "rm";
 const char *admin_command_parser_t::complete_command = "complete";
 
 const char *admin_command_parser_t::exit_usage = "";
-const char *admin_command_parser_t::list_usage = "[<id>] [--long]";
+const char *admin_command_parser_t::list_usage = "[<id> | --long]";
 const char *admin_command_parser_t::list_stats_usage = "[<machine>...] [<namespace>...]";
 const char *admin_command_parser_t::list_issues_usage = "";
 const char *admin_command_parser_t::list_machines_usage = "[--long]";
@@ -197,80 +197,6 @@ void admin_command_parser_t::do_usage(bool console) {
         do_usage_internal(helps, options, "- access or modify cluster metadata", console);
 }
 
-void admin_command_parser_t::do_set_usage(bool console) {
-    std::vector<admin_help_info_t> helps;
-    std::vector<std::string> options;
-    helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
-    helps.push_back(admin_help_info_t(set_acks_command, set_acks_usage, set_acks_description));
-    helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
-    helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
-    // TODO: add option descriptions
-    do_usage_internal(helps, options, "set - change the value of a field in cluster metadata, and resolve conflicts", console);
-}
-
-void admin_command_parser_t::do_create_usage(bool console) {
-    std::vector<admin_help_info_t> helps;
-    std::vector<std::string> options;
-    helps.push_back(admin_help_info_t(create_namespace_command, create_namespace_usage, create_namespace_description));
-    helps.push_back(admin_help_info_t(create_datacenter_command, create_datacenter_usage, create_datacenter_description));
-    // TODO: add option descriptions
-    do_usage_internal(helps, options, "create - create a namespace or datacenter in the cluster", console);
-}
-
-void admin_command_parser_t::do_remove_usage(bool console) {
-    std::vector<admin_help_info_t> helps;
-    std::vector<std::string> options;
-    helps.push_back(admin_help_info_t(remove_command, remove_usage, remove_description));
-    // TODO: add option descriptions
-    do_usage_internal(helps, options, "remove - delete an object from the cluster metadata", console);
-}
-
-void admin_command_parser_t::do_merge_usage(bool console) {
-    std::vector<admin_help_info_t> helps;
-    std::vector<std::string> options;
-    helps.push_back(admin_help_info_t(merge_shard_command, merge_shard_usage, merge_shard_description));
-    // TODO: add option descriptions
-    do_usage_internal(helps, options, "merge - merge two or more shards in a namespace", console);
-}
-
-void admin_command_parser_t::do_list_usage(bool console) {
-    std::vector<admin_help_info_t> helps;
-    std::vector<std::string> options;
-    helps.push_back(admin_help_info_t(list_command, list_usage, list_description));
-    helps.push_back(admin_help_info_t(list_stats_command, list_stats_usage, list_stats_description));
-    helps.push_back(admin_help_info_t(list_issues_command, list_issues_usage, list_issues_description));
-    helps.push_back(admin_help_info_t(list_machines_command, list_machines_usage, list_machines_description));
-    helps.push_back(admin_help_info_t(list_directory_command, list_directory_usage, list_directory_description));
-    helps.push_back(admin_help_info_t(list_namespaces_command, list_namespaces_usage, list_namespaces_description));
-    helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
-    // TODO: add option descriptions
-    do_usage_internal(helps, options, "list - display information from the cluster", console);
-}
-
-void admin_command_parser_t::do_help_usage(bool console) {
-    std::vector<admin_help_info_t> helps;
-    std::vector<std::string> options;
-    helps.push_back(admin_help_info_t(help_command, help_usage, help_description));
-    // TODO: add option descriptions
-    do_usage_internal(helps, options, "help - provide information about a cluster administration command", console);
-}
-
-void admin_command_parser_t::do_split_usage(bool console) {
-    std::vector<admin_help_info_t> helps;
-    std::vector<std::string> options;
-    helps.push_back(admin_help_info_t(split_shard_command, split_shard_usage, split_shard_description));
-    // TODO: add option descriptions
-    do_usage_internal(helps, options, "split - split a shard in a namespace into more shards", console);
-}
-
-void admin_command_parser_t::do_resolve_usage(bool console) {
-    std::vector<admin_help_info_t> helps;
-    std::vector<std::string> options;
-    helps.push_back(admin_help_info_t(resolve_command, resolve_usage, resolve_description));
-    // TODO: add option descriptions
-    do_usage_internal(helps, options, "resolve - resolve a conflict on a cluster metadata value", console);
-}
-
 admin_command_parser_t::admin_command_parser_t(const std::string& peer_string, const std::set<peer_address_t>& joins, int client_port, signal_t *_interruptor) :
     join_peer(peer_string),
     joins_param(joins),
@@ -412,7 +338,8 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("id", -1, true)->add_option("!id");
 
     info = add_command(commands, help_command, help_command, help_usage, false, NULL); // Special case, 'help' is not done through the cluster
-    info->add_positional("type", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", NULL);
+    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", NULL);
+    info->add_positional("subcommand", 1, false);
 }
 
 admin_cluster_link_t * admin_command_parser_t::get_cluster() {
@@ -832,21 +759,105 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
 }
 
 void admin_command_parser_t::do_admin_help(command_data& data) {
-    if (data.params.count("type") == 1) {
-        std::string type = data.params["type"][0];
+    if (data.params.count("command") == 1) {
+        std::string command = data.params["command"][0];
+        std::string subcommand = (data.params.count("subcommand") > 0 ? data.params["subcommand"][0] : "");
+        std::vector<admin_help_info_t> helps;
+        std::vector<std::string> options;
 
-        if (type == "rm")           do_remove_usage(console_mode);
-        else if (type == "ls")      do_list_usage(console_mode);
-        else if (type == "set")     do_set_usage(console_mode);
-        else if (type == "help")    do_help_usage(console_mode);
-        else if (type == "split")   do_split_usage(console_mode);
-        else if (type == "merge")   do_merge_usage(console_mode);
-        else if (type == "create")  do_create_usage(console_mode);
-        else if (type == "resolve") do_resolve_usage(console_mode);
-        else throw admin_parse_exc_t("unknown command: " + type);
-    } else if (data.params.count("type") == 0)
+        // TODO: add option descriptions
+        if (command == "ls") {
+            if (subcommand.empty()) {
+                helps.push_back(admin_help_info_t(list_command, list_usage, list_description));
+                helps.push_back(admin_help_info_t(list_stats_command, list_stats_usage, list_stats_description));
+                helps.push_back(admin_help_info_t(list_issues_command, list_issues_usage, list_issues_description));
+                helps.push_back(admin_help_info_t(list_machines_command, list_machines_usage, list_machines_description));
+                helps.push_back(admin_help_info_t(list_directory_command, list_directory_usage, list_directory_description));
+                helps.push_back(admin_help_info_t(list_namespaces_command, list_namespaces_usage, list_namespaces_description));
+                helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
+                do_usage_internal(helps, options, "ls - display information from the cluster", console_mode);
+            } else if (subcommand == "stats") {
+                helps.push_back(admin_help_info_t(list_stats_command, list_stats_usage, list_stats_description));
+                do_usage_internal(helps, options, "ls stats - display statistics gathered from the cluster", console_mode);
+            } else if (subcommand == "issues") {
+                helps.push_back(admin_help_info_t(list_issues_command, list_issues_usage, list_issues_description));
+                do_usage_internal(helps, options, "ls issues - display current issues detected by the cluster", console_mode);
+            } else if (subcommand == "machines") {
+                helps.push_back(admin_help_info_t(list_machines_command, list_machines_usage, list_machines_description));
+                do_usage_internal(helps, options, "ls machines - display a list of machines in the cluster", console_mode);
+            } else if (subcommand == "directory") {
+                helps.push_back(admin_help_info_t(list_directory_command, list_directory_usage, list_directory_description));
+                do_usage_internal(helps, options, "ls directory - display a list of nodes connected to the cluster", console_mode);
+            } else if (subcommand == "namespaces") {
+                helps.push_back(admin_help_info_t(list_namespaces_command, list_namespaces_usage, list_namespaces_description));
+                do_usage_internal(helps, options, "ls namespaces - display a list of namespaces in the cluster", console_mode);
+            } else if (subcommand == "datacenters") {
+                helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
+                do_usage_internal(helps, options, "ls datacenters - display a list of datacenters in the cluster", console_mode);
+            } else
+                throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+        } else if (command == "set") {
+            if (subcommand.empty()) {
+                helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
+                helps.push_back(admin_help_info_t(set_acks_command, set_acks_usage, set_acks_description));
+                helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
+                helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
+                do_usage_internal(helps, options, "set - change the value of a field in cluster metadata", console_mode);
+            } else if (subcommand == "name") {
+                helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
+                do_usage_internal(helps, options, "set name - change the name of an object in the cluster", console_mode);
+            } else if (subcommand == "acks") {
+                helps.push_back(admin_help_info_t(set_acks_command, set_acks_usage, set_acks_description));
+                do_usage_internal(helps, options, "set acks - change the number of acknowledgements required for a write operation to succeed", console_mode);
+            } else if (subcommand == "replicas") {
+                helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
+                do_usage_internal(helps, options, "set replicas - change the number of replicas for a namespace in a datacenter", console_mode);
+            } else if (subcommand == "datacenter") {
+                helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
+                do_usage_internal(helps, options, "set datacenter - change the primary datacenter for a namespace or machine", console_mode);
+            } else
+                throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+        } else if (command == "create") {
+            if (subcommand.empty()) {
+                helps.push_back(admin_help_info_t(create_namespace_command, create_namespace_usage, create_namespace_description));
+                helps.push_back(admin_help_info_t(create_datacenter_command, create_datacenter_usage, create_datacenter_description));
+                do_usage_internal(helps, options, "create - add a new namespace or datacenter to the cluster", console_mode);
+            } else if (subcommand == "namespace") {
+                helps.push_back(admin_help_info_t(create_namespace_command, create_namespace_usage, create_namespace_description));
+                do_usage_internal(helps, options, "create namespace - add a new namespace to the cluster", console_mode);
+            } else if (subcommand == "datacenter") {
+                helps.push_back(admin_help_info_t(create_datacenter_command, create_datacenter_usage, create_datacenter_description));
+                do_usage_internal(helps, options, "create datacenter - add a new datacenter to the cluster", console_mode);
+            } else
+                throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+        } else if (command == "rm") {
+            if (!subcommand.empty())
+                throw admin_parse_exc_t("no recognized subcommands for 'rm'");
+            helps.push_back(admin_help_info_t(remove_command, remove_usage, remove_description));
+            do_usage_internal(helps, options, "remove - delete an object from the cluster metadata", console_mode);
+        } else if (command == "help") {
+            if (!subcommand.empty())
+                throw admin_parse_exc_t("no recognized subcommands for 'help'");
+            helps.push_back(admin_help_info_t(help_command, help_usage, help_description));
+            do_usage_internal(helps, options, "help - provide information about a cluster administration command", console_mode);
+        } else if (command == "split") {
+            if (!subcommand.empty() || subcommand != "shard")
+                throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            helps.push_back(admin_help_info_t(split_shard_command, split_shard_usage, split_shard_description));
+            do_usage_internal(helps, options, "split - split a shard in a namespace into more shards", console_mode);
+        } else if (command == "merge") {
+            if (!subcommand.empty() || subcommand != "shard")
+                throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            helps.push_back(admin_help_info_t(merge_shard_command, merge_shard_usage, merge_shard_description));
+            do_usage_internal(helps, options, "merge - merge two or more shards in a namespace", console_mode);
+        } else if (command == "resolve") {
+            if (!subcommand.empty())
+                throw admin_parse_exc_t("no recognized subcommands for 'resolve'");
+            helps.push_back(admin_help_info_t(resolve_command, resolve_usage, resolve_description));
+            do_usage_internal(helps, options, "resolve - resolve a conflict on a cluster metadata value", console_mode);
+        } else
+            throw admin_parse_exc_t("unknown command: " + command);
+    } else
         do_usage(console_mode);
-    else
-        throw admin_parse_exc_t("only one help topic allowed at a time");
 }
 
