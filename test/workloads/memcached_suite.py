@@ -13,8 +13,8 @@ memcached_suite_dir = os.path.join(os.path.dirname(__file__), "memcached_suite")
 
 # The memcached test scripts now get the port as an environment variable
 # (instead of running the server themselves).
-#assert opts["host"] in ["localhost", "127.0.0.1"]
-os.environ["RUN_PORT"] = str(opts["port"])
+assert opts["address"][0] in ["localhost", "127.0.0.1"]
+os.environ["RUN_PORT"] = str(opts["address"][1])
 os.environ["PERLLIB"] = os.path.join(memcached_suite_dir, "lib") + ":" + os.getenv("PERLLIB", "")
 
 subprocess.check_call(os.path.join(memcached_suite_dir, opts["suite-test"]))
