@@ -1,5 +1,3 @@
-# Each workload is a pair of two command-line strings. The first one will be run
-# once; the next one will be run one or more times.
 workloads = [
     ("$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d 10000q",
      "true"),
