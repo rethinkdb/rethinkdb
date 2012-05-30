@@ -1,6 +1,8 @@
 #ifndef HASH_REGION_HPP_
 #define HASH_REGION_HPP_
 
+// TODO: Find a good location for this file.
+
 #include <stdint.h>
 
 #include <algorithm>

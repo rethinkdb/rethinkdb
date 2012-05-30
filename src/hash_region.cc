@@ -1,4 +1,4 @@
-#include "clustering/immediate_consistency/branch/hash_region.hpp"
+#include "hash_region.hpp"
 
 // TODO: Replace this with a real hash function, if it is not one
 // already.  It needs the property that values are uniformly
