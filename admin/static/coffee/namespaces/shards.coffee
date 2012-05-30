@@ -117,6 +117,18 @@ module 'NamespaceView', ->
                         return true if machine.get('id') in machine_uuids
                     if shard.get('primary_uuid')
                         return true if machine.get('id') is shard.get('primary_uuid')
+                sort: (a, b) =>
+                    a_is_master = a.model.get('id') is @options.args.shard.get('primary_uuid')
+                    b_is_master = b.model.get('id') is @options.args.shard.get('primary_uuid')
+                    a_name = a.model.get('name')
+                    b_name = b.model.get('name')
+
+                    return -1 if a_is_master > b_is_master
+                    return 1 if a_is_master < b_is_master
+
+                    return -1 if a_name < b_name
+                    return 1 if a_name > b_name
+                    return 0
                 element_args:
                     shard: @options.args.shard
                     namespace: @options.args.namespace
@@ -150,6 +162,11 @@ module 'NamespaceView', ->
     class @ShardMachineList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_machine_list-template').html()
 
+        initialize: ->
+            super
+            @namespace = @options.element_args.namespace
+            @namespace.on 'change:primary_pinnings', @render
+
     class @ShardMachine extends Backbone.View
         template: Handlebars.compile $('#namespace_view-shard_machine-template').html()
         change_machine_popover: Handlebars.compile $('#namespace_view-shard_machine-assign_machine_popover-template').html()
@@ -169,7 +186,7 @@ module 'NamespaceView', ->
             @shard.on 'change:secondary_uuids', @render
             @model.on 'change:name', @render
             directory.on 'all', @render
-            @namespace.on 'change:primary_pinnings', @render
+            #@namespace.on 'change:primary_pinnings', => @list.render()
 
         show_popover: (event) =>
             event.preventDefault()
@@ -246,6 +263,7 @@ module 'NamespaceView', ->
                 is_master: @model.get('id') is @options.args.shard.get('primary_uuid')
                 cannot_be_master: @options.args.datacenter.get('id') isnt @options.args.namespace.get('primary_uuid')
                 backfill_progress: DataUtils.get_backfill_progress(@namespace.get('id'), @shard.get('shard_boundaries'), @model.get('id'))
+                no_available_machines: @get_available_machines_in_datacenter().length is 0
 
             # Popover to change the machine
             @.$('a[rel=popover]').popover

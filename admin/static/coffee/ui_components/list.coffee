@@ -13,6 +13,7 @@ module 'UIComponents', ->
         # They can also take several options:
         #   filter: optional filter that defines what elements to use from the collection using a truth test
         #           (function whose argument is a Backbone model and whose output is true/false)
+        #   sort: optional function that defines a sort order for the lista (defaults to Array.prototype.sort)
         initialize: (collection, element_view_class, container, options) ->
             #log_initial '(initializing) list view: ' + class_name @collection
             @collection = collection
@@ -28,6 +29,10 @@ module 'UIComponents', ->
                 @filter = @options.filter
             else
                 @filter = (model) -> true
+
+            if @options? and @options.sort?
+                @sort = @options.sort
+            else @sort = (a,b) -> 0
 
             # Initially we need to populate the element views list
             @reset_element_views()
@@ -50,6 +55,7 @@ module 'UIComponents', ->
                     @remove_elements model
 
         render: =>
+            @element_views.sort @sort
             #log_render '(rendering) list view: ' + class_name @collection
             # Render and append the list template to the DOM
             @.$el.html(@template({}))

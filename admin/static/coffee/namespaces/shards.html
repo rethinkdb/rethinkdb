@@ -56,9 +56,11 @@
     {{/if}}
     <a class="machine name" href="#machines/{{id}}">{{name}}</a>
     {{#unless is_master}}
-        <a class="change-machine" href="#" rel="popover" data-title="Change machine for this shard"><i class="icon-edit"></i></a>
+        {{#unless no_available_machines}} 
+            <a class="change-machine" href="#" rel="popover" data-title="Change machine for this shard"><i class="icon-edit"></i></a>
+        {{/unless}}
         {{#unless cannot_be_master}}
-        <a class="make-master" data-loading-text="changing master..." href="#">make master</a>
+            <a class="make-master" data-loading-text="changing master..." href="#">make master</a>
         {{/unless}}
     {{/unless}}
     <p class="status">
