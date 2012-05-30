@@ -185,7 +185,7 @@ bool region_overlaps(const hash_region_t<inner_region_t> &r1, const hash_region_
 	&& region_overlaps(r1.inner, r2.inner);
 }
 
-// TODO: Implement region_subtract_many?  Naah fuck dat shit.
+// TODO: Implement region_subtract_many?  Naah.
 
 template <class inner_region_t>
 bool operator==(const hash_region_t<inner_region_t> &r1,
@@ -197,6 +197,12 @@ template <class inner_region_t>
 bool operator!=(const hash_region_t<inner_region_t> &r1,
 		const hash_region_t<inner_region_t> &r2) {
     return !(r1 == r2);
+}
+
+// Used for making std::sets of hash_region_t.
+template <class inner_region_t>
+bool operator<(const hash_region_t<inner_region_t> &r1, const hash_region_t<inner_region_t> &r2) {
+    return (r1.beg < r2.beg || (r1.beg == r2.beg && (r1.end < r2.end || (r1.end == r2.end && r1.inner < r2.inner))));
 }
 
 
