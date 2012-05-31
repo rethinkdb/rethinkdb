@@ -23,7 +23,7 @@ private:
     };
 
     void on_change();
-    void serve_queries(namespace_id_t ns, int port, auto_drainer_t::lock_t keepalive);
+    void serve_queries(std::string ns_name, namespace_id_t ns, int port, auto_drainer_t::lock_t keepalive);
 
     mailbox_manager_t *mailbox_manager;
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_semilattice_metadata;
