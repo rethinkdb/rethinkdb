@@ -1,5 +1,7 @@
+#define __STDC_FORMAT_MACROS
 #include "clustering/administration/cli/admin_cluster_link.hpp"
 
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -95,7 +97,8 @@ void admin_cluster_link_t::admin_stats_to_table(const std::string& machine,
 }
 
 std::string admin_value_to_string(const memcached_protocol_t::region_t& region) {
-    return key_range_to_cli_str(region);
+    // TODO(sam): I don't know what is the appropriate sort of thing for an admin_value_to_string call.
+    return strprintf("%" PRIu64 ":%" PRIu64 ":%s", region.beg, region.end, key_range_to_cli_str(region.inner).c_str());
 }
 
 std::string admin_value_to_string(const mock::dummy_protocol_t::region_t& region) {
@@ -134,10 +137,10 @@ std::string admin_value_to_string(const std::set<mock::dummy_protocol_t::region_
     return result;
 }
 
-std::string admin_value_to_string(const std::set<key_range_t>& value) {
+std::string admin_value_to_string(const std::set<hash_region_t<key_range_t> >& value) {
     std::string result;
     size_t count = 0;
-    for (std::set<key_range_t>::const_iterator i = value.begin(); i != value.end(); ++i) {
+    for (std::set<hash_region_t<key_range_t> >::const_iterator i = value.begin(); i != value.end(); ++i) {
         ++count;
         result += strprintf("%s%s", admin_value_to_string(*i).c_str(), count == value.size() ? "" : ", ");
     }
@@ -515,23 +518,26 @@ typename protocol_t::region_t admin_cluster_link_t::find_shard_in_namespace(name
     typename protocol_t::region_t shard;
     typename std::set<typename protocol_t::region_t>::iterator s = ns.shards.get_mutable().begin();
     while (s != ns.shards.get_mutable().end()) {
-        if ((shard_in.left.inf && s->left == store_key_t::min()) ||
-            (!shard_in.left.key.empty() && s->left == store_key_t(shard_in.left.key))) {
-            if (shard_in.right.inf && !s->right.unbounded)
+        // TODO: This is a low level assertion.
+        guarantee(s->beg == 0 && s->end == HASH_REGION_HASH_SIZE);
+
+        if ((shard_in.left.inf && s->inner.left == store_key_t::min()) ||
+            (!shard_in.left.key.empty() && s->inner.left == store_key_t(shard_in.left.key))) {
+            if (shard_in.right.inf && !s->inner.right.unbounded)
                 throw admin_cluster_exc_t("could not find specified shard");
-            else if (!shard_in.right.key.empty() && s->right.key != store_key_t(shard_in.right.key))
+            else if (!shard_in.right.key.empty() && s->inner.right.key != store_key_t(shard_in.right.key))
                 throw admin_cluster_exc_t("could not find specified shard");
             shard = *s;
             break;
         }
 
-        if (shard_in.right.inf && s->right.unbounded) {
+        if (shard_in.right.inf && s->inner.right.unbounded) {
             // If the left was specified, it must not have matched, so we fail
             if (shard_in.left.inf || !shard_in.left.key.empty())
                 throw admin_cluster_exc_t("could not find specified shard");
             shard = *s;
             break;
-        } else if (!shard_in.right.key.empty() && s->right.key == store_key_t(shard_in.right.key)) {
+        } else if (!shard_in.right.key.empty() && s->inner.right.key == store_key_t(shard_in.right.key)) {
             // If the left was specified, it must not have matched, so we fail
             if (shard_in.left.inf || !shard_in.left.key.empty())
                 throw admin_cluster_exc_t("could not find specified shard");
@@ -576,6 +582,9 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
     // Verify that the selected shard exists, and convert it into a region_t
     typename protocol_t::region_t shard = find_shard_in_namespace(ns, shard_in);
 
+    // TODO: low-level hash_region_t shard assertion
+    guarantee(shard.beg == 0 && shard.end == HASH_REGION_HASH_SIZE);
+
     // Verify primary is a valid machine and matches the primary datacenter
     if (!primary_str.empty()) {
         std::vector<std::string> primary_path(get_info_from_id(primary_str)->path);
@@ -601,9 +610,13 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
     }
 
     // Find the secondary pinnings and build the old datacenter pinning map if it exists
-    for (secondaries_shard = ns.secondary_pinnings.get_mutable().begin(); secondaries_shard != ns.secondary_pinnings.get_mutable().end(); ++secondaries_shard)
-        if (secondaries_shard->first.contains_key(shard.left))
+    for (secondaries_shard = ns.secondary_pinnings.get_mutable().begin(); secondaries_shard != ns.secondary_pinnings.get_mutable().end(); ++secondaries_shard) {
+        // TODO: low level hash_region_t assertion
+        guarantee(secondaries_shard->first.beg == 0 && secondaries_shard->first.end == HASH_REGION_HASH_SIZE);
+        if (secondaries_shard->first.inner.contains_key(shard.inner.left)) {
             break;
+        }
+    }
 
     if (secondaries_shard != ns.secondary_pinnings.get_mutable().end())
         for (std::set<machine_id_t>::iterator i = secondaries_shard->second.begin(); i != secondaries_shard->second.begin(); ++i)
@@ -625,9 +638,9 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
 
     // Set primary and secondaries
     if (!primary_str.empty())
-        insert_pinning(ns.primary_pinnings.get_mutable(), shard, primary);
+        insert_pinning(ns.primary_pinnings.get_mutable(), shard.inner, primary);
     if (!secondary_strs.empty())
-        insert_pinning(ns.secondary_pinnings.get_mutable(), shard, secondaries);
+        insert_pinning(ns.secondary_pinnings.get_mutable(), shard.inner, secondaries);
 
     // Post changes to the sync peer
     if (!primary_str.empty())
@@ -636,24 +649,27 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
         post_metadata(post_path + "/secondary_pinnings", ns.secondary_pinnings.get_mutable());
 }
 
+// TODO: WTF are these template parameters.
 template <class map_type, class value_type>
 void admin_cluster_link_t::insert_pinning(map_type& region_map, const key_range_t& shard, value_type& value) {
     map_type new_map;
     bool shard_done = false;
 
     for (typename map_type::iterator i = region_map.begin(); i != region_map.end(); ++i) {
-        if (i->first.contains_key(shard.left)) {
-            if (i->first.left != shard.left) {
-                key_range_t new_shard(key_range_t::closed, i->first.left, key_range_t::open, shard.left);
-                new_map.set(new_shard, i->second);
+        // TODO: low level hash_region_t assertion.
+        guarantee(i->first.beg == 0 && i->first.end == HASH_REGION_HASH_SIZE);
+        if (i->first.inner.contains_key(shard.left)) {
+            if (i->first.inner.left != shard.left) {
+                key_range_t new_shard(key_range_t::closed, i->first.inner.left, key_range_t::open, shard.left);
+                new_map.set(hash_region_t<key_range_t>(new_shard), i->second);
             }
-            new_map.set(shard, value);
-            if (i->first.right.key != shard.right.key) {
+            new_map.set(hash_region_t<key_range_t>(shard), value);
+            if (i->first.inner.right.key != shard.right.key) {
                 // TODO: what if the shard we're looking for staggers the right bound
                 key_range_t new_shard;
                 new_shard.left = shard.right.key;
-                new_shard.right = i->first.right;
-                new_map.set(new_shard, i->second);
+                new_shard.right = i->first.inner.right;
+                new_map.set(hash_region_t<key_range_t>(new_shard), i->second);
             }
             shard_done = true;
         } else {
@@ -698,34 +714,38 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
                     // this should never happen, but try to handle it anyway
                     key_range_t left(key_range_t::none, store_key_t(), key_range_t::open, store_key_t(key));
                     key_range_t right(key_range_t::closed, store_key_t(key), key_range_t::none, store_key_t());
-                    ns.shards.get_mutable().insert(left);
-                    ns.shards.get_mutable().insert(right);
+                    ns.shards.get_mutable().insert(hash_region_t<key_range_t>(left));
+                    ns.shards.get_mutable().insert(hash_region_t<key_range_t>(right));
                 } else {
                     // TODO: use a better search than linear
-                    std::set<key_range_t>::iterator shard = ns.shards.get_mutable().begin();
+                    std::set< hash_region_t<key_range_t> >::iterator shard = ns.shards.get_mutable().begin();
                     while (true) {
                         if (shard == ns.shards.get_mutable().end())
                             throw admin_cluster_exc_t("split point could not be placed: " + split_points[i]);
-                        if (shard->contains_key(key))
+
+                        // TODO: This assertion is too low-level, there should be a function for hash_region_t that computes the expression.
+                        guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
+
+                        if (shard->inner.contains_key(key))
                             break;
                         ++shard;
                     }
 
                     // Don't split if this key is already the split point
-                    if (shard->left == key)
+                    if (shard->inner.left == key)
                         throw admin_cluster_exc_t("split point already exists: " + split_points[i]);
 
                     // Create the two new shards to be inserted
                     key_range_t left;
-                    left.left = shard->left;
+                    left.left = shard->inner.left;
                     left.right = key_range_t::right_bound_t(key);
                     key_range_t right;
                     right.left = key;
-                    right.right = shard->right;
+                    right.right = shard->inner.right;
 
                     ns.shards.get_mutable().erase(shard);
-                    ns.shards.get_mutable().insert(left);
-                    ns.shards.get_mutable().insert(right);
+                    ns.shards.get_mutable().insert(hash_region_t<key_range_t>(left));
+                    ns.shards.get_mutable().insert(hash_region_t<key_range_t>(right));
                 }
             } catch (std::exception& ex) {
                 printf("%s\n", ex.what());
@@ -783,32 +803,43 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
                     throw admin_cluster_exc_t("split point could not be parsed: " + split_points[i]);
 
                 // TODO: use a better search than linear
-                std::set<key_range_t>::iterator shard = ns.shards.get_mutable().begin();
+                std::set< hash_region_t<key_range_t> >::iterator shard = ns.shards.get_mutable().begin();
 
                 if (shard == ns.shards.get_mutable().end())
                     throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
 
-                std::set<key_range_t>::iterator prev = shard++;
+                std::set< hash_region_t<key_range_t> >::iterator prev = shard;
+                // TODO: This assertion's expression is too low-level, there should be a function for it.
+                guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
+
+                ++shard;
                 while (true) {
                     if (shard == ns.shards.get_mutable().end())
                         throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
-                    if (shard->contains_key(key))
+
+                    // TODO: This assertion's expression is too low-level, there should be a function for it.
+                    guarantee(shard->beg == 0 && shard->end == HASH_REGION_HASH_SIZE);
+
+                    if (shard->inner.contains_key(key))
                         break;
-                    prev = shard++;
+
+                    prev = shard;
+                    ++shard;
                 }
 
-                if (shard->left != store_key_t(key))
+                if (shard->inner.left != store_key_t(key))
                     throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
 
                 // Create the new shard to be inserted
                 key_range_t merged;
-                merged.left = prev->left;
-                merged.right = shard->right;
+                merged.left = prev->inner.left;
+                merged.right = shard->inner.right;
 
                 ns.shards.get_mutable().erase(shard);
                 ns.shards.get_mutable().erase(prev);
-                ns.shards.get_mutable().insert(merged);
+                ns.shards.get_mutable().insert(hash_region_t<key_range_t>(merged));
             } catch (std::exception& ex) {
+                // TODO: This is a fairly lame printf statement.
                 printf("%s\n", ex.what());
                 errored = true;
             }
@@ -884,7 +915,10 @@ void admin_cluster_link_t::list_pinnings(namespace_semilattice_metadata_t<protoc
     // Search through for the shard
     typename protocol_t::region_t shard = find_shard_in_namespace(ns, shard_in);
 
-    list_pinnings_internal(ns.blueprint.get(), shard, cluster_metadata);
+    // TODO: this is a low-level assertion.
+    guarantee(shard.beg == 0 && shard.end == HASH_REGION_HASH_SIZE);
+
+    list_pinnings_internal(ns.blueprint.get(), shard.inner, cluster_metadata);
 }
 
 template <class bp_type>
@@ -900,7 +934,7 @@ void admin_cluster_link_t::list_pinnings_internal(const bp_type& bp,
     table.push_back(delta);
 
     for (typename bp_type::role_map_t::const_iterator i = bp.machines_roles.begin(); i != bp.machines_roles.end(); ++i) {
-        typename bp_type::region_to_role_map_t::const_iterator j = i->second.find(shard);
+        typename bp_type::region_to_role_map_t::const_iterator j = i->second.find(hash_region_t<key_range_t>(shard));
         if (j != i->second.end() && j->second != blueprint_details::role_nothing) {
             delta.clear();
 

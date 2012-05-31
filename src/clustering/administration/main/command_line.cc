@@ -173,9 +173,11 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
 
             persistable_blueprint_t<memcached_protocol_t> blueprint;
-            std::map<key_range_t, blueprint_details::role_t> roles;
-            roles.insert(std::make_pair(key_range_t::universe(), blueprint_details::role_primary));
-            blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
+            {
+                std::map<hash_region_t<key_range_t>, blueprint_details::role_t> roles;
+                roles.insert(std::make_pair(hash_region_t<key_range_t>::universe(), blueprint_details::role_primary));
+                blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
+            }
             namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<memcached_protocol_t> >(blueprint, our_machine_id);
 
             namespace_metadata.primary_datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);

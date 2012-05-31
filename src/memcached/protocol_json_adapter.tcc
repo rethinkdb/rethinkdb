@@ -95,7 +95,34 @@ void apply_json_to(cJSON *change, key_range_t *target, const ctx_t &c) {
 }
 
 template <class ctx_t>
-void  on_subfield_change(memcached_protocol_t::region_t *, const ctx_t &) { }
+void  on_subfield_change(key_range_t *, const ctx_t &) { }
+
+
+// json adapter for hash_region_t<key_range_t>
+// TODO(sam): I don't know what the heck I'm doing.
+
+template <class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(hash_region_t<key_range_t> *target, const ctx_t &) {
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t ret;
+    ret["beg"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<uint64_t, ctx_t>(&target->beg));
+    ret["end"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<uint64_t, ctx_t>(&target->end));
+    ret["key_range"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<key_range_t, ctx_t>(&target->inner));
+    return ret;
+}
+
+template <class ctx_t>
+cJSON *render_as_json(hash_region_t<key_range_t> *target, const ctx_t &c) {
+    return render_as_directory(target, c);
+}
+
+template <class ctx_t>
+void apply_json_to(cJSON *change, hash_region_t<key_range_t> *target, const ctx_t &ctx) {
+    apply_as_directory(change, target, ctx);
+}
+
+template <class ctx_t>
+void on_subfield_change(hash_region_t<key_range_t> *, const ctx_t &) { }
+
 
 
 #endif  // MEMCACHED_PROTOCOL_JSON_ADAPTER_TCC_
