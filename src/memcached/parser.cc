@@ -123,8 +123,10 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         writef("SERVER_ERROR ");
         va_list args;
         va_start(args, format);
-        vwritef(format, args);
+        printf_buffer_t<1000> buffer(args, format);
+        write(buffer.data(), buffer.size());
         va_end(args);
+        debugf("Client request returned SERVER_ERROR %s\n", buffer.data());
     }
 
     void client_error_bad_command_line_format() {
