@@ -51,7 +51,7 @@ runs a workload or workloads against them. The scenarios live in
 `rethinkdb/test/scenarios/`.
 
 Here are some examples:
-* `static_cluster.py <DISCRETE WORKLOAD>` starts a cluster of three RethinkDB
+* `scenarios/static_cluster.py <DISCRETE WORKLOAD>` starts a cluster of three RethinkDB
     instances, runs the workload against one of the instances in the cluster,
     and then shuts down the cluster.
 * `restart.py <DISCRETE WORKLOAD 1> <DISCRETE WORKLOAD 2>` starts a RethinkDB
@@ -76,7 +76,12 @@ debugging purposes, but sometimes they will get confused by left-over temporary
 files from a previous run. To avoid that, and to keep the local directory clean,
 I recommend running tests something like this:
 
-    $ (rm -rf scratch; mkdir scratch; cd scratch; ../scenarios/<SCENARIO> <ARGUMENTS...>)
+    ~/rethinkdb/test$ (rm -rf scratch; mkdir scratch; cd scratch; ../scenarios/<SCENARIO> <ARGUMENTS...>)
+
+For example, to run the `static_cluster.py` scenario with the
+`append_prepend.py` workload, you could type:
+
+    ~/rethinkdb/test$ (rm -rf scratch; mkdir scratch; cd scratch; ../scenarios/static_cluster.py '../workloads/append_prepend.py $HOST:$PORT')
 
 Interface tests
 ---------------
