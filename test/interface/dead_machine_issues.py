@@ -6,9 +6,9 @@ import driver, http_admin
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     print "Spinning up two processes..."
-    prince_hamlet_files = driver.Files(metacluster, name = "Prince Hamlet", db_path = "prince-hamlet-db")
+    prince_hamlet_files = driver.Files(metacluster, machine_name = "Prince Hamlet", db_path = "prince-hamlet-db")
     prince_hamlet = driver.Process(cluster, prince_hamlet_files, log_path = "prince-hamlet-log")
-    king_hamlet_files = driver.Files(metacluster, name = "King Hamlet", db_path = "king-hamlet-db")
+    king_hamlet_files = driver.Files(metacluster, machine_name = "King Hamlet", db_path = "king-hamlet-db")
     king_hamlet = driver.Process(cluster, king_hamlet_files, log_path = "king-hamlet-log")
     time.sleep(1)
     cluster.check()
