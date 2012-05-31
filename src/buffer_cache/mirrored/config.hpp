@@ -106,5 +106,4 @@ struct mirrored_cache_static_config_t {
     int32_t n_patch_log_blocks;
 };
 
-#endif
-
+#endif /* BUFFER_CACHE_MIRRORED_CONFIG_HPP_ */

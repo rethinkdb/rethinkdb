@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP__
-#define __CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP_
+#define CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP_
 
 #include "perfmon.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
@@ -13,4 +13,4 @@ private:
     boost::ptr_map<namespace_id_t, perfmon_collection_t> perfmon_collections;
 };
 
-#endif
+#endif /* CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP_ */

@@ -1,5 +1,5 @@
-#ifndef __CLUSTERING_ADMINISTRATION_HTTP_CYANIDE_HPP__
-#define __CLUSTERING_ADMINISTRATION_HTTP_CYANIDE_HPP__
+#ifndef CLUSTERING_ADMINISTRATION_HTTP_CYANIDE_HPP_
+#define CLUSTERING_ADMINISTRATION_HTTP_CYANIDE_HPP_
 
 #include "http/http.hpp"
 
@@ -12,4 +12,4 @@ class cyanide_http_app_t : public http_app_t {
     }
 };
 
-#endif
+#endif /* CLUSTERING_ADMINISTRATION_HTTP_CYANIDE_HPP_ */

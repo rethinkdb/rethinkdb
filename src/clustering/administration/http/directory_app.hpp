@@ -1,5 +1,5 @@
-#ifndef CLUSTERING_ADMINSTRATION_HTTP_DIRECTORY_APP_HPP_
-#define CLUSTERING_ADMINSTRATION_HTTP_DIRECTORY_APP_HPP_
+#ifndef CLUSTERING_ADMINISTRATION_HTTP_DIRECTORY_APP_HPP_
+#define CLUSTERING_ADMINISTRATION_HTTP_DIRECTORY_APP_HPP_
 
 #include "clustering/administration/metadata.hpp"
 #include "http/http.hpp"
@@ -17,4 +17,4 @@ private:
     DISABLE_COPYING(directory_http_app_t);
 };
 
-#endif
+#endif /* CLUSTERING_ADMINISTRATION_HTTP_DIRECTORY_APP_HPP_ */

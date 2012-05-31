@@ -34,8 +34,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LINENOISE_H_
-#define LINENOISE_H_
+#ifndef CLUSTERING_ADMINISTRATION_CLI_LINENOISE_HPP_
+#define CLUSTERING_ADMINISTRATION_CLI_LINENOISE_HPP_
 
 typedef struct linenoiseCompletions {
   size_t len;
@@ -55,4 +55,4 @@ int linenoiseHistorySave(char *filename);
 int linenoiseHistoryLoad(char *filename);
 void linenoiseClearScreen(void);
 
-#endif /* LINENOISE_H_ */
+#endif /* CLUSTERING_ADMINISTRATION_CLI_LINENOISE_HPP_ */

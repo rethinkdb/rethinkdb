@@ -83,4 +83,4 @@ void semilattice_join(vclock_t<T> *, const vclock_t<T> &);
 
 #include "rpc/semilattice/joins/vclock.tcc"
 
-#endif
+#endif /* RPC_SEMILATTICE_JOINS_VCLOCK_HPP_ */

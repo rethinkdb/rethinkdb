@@ -1,5 +1,5 @@
-#ifndef __MEMCACHED_STATS_HPP__
-#define __MEMCACHED_STATS_HPP__
+#ifndef MEMCACHED_STATS_HPP_
+#define MEMCACHED_STATS_HPP_
 
 #include "perfmon.hpp"
 
@@ -41,4 +41,4 @@ struct memcached_stats_t {
 };
 
 
-#endif
+#endif /* MEMCACHED_STATS_HPP_ */

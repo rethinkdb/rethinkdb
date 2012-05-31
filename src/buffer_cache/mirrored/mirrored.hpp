@@ -1,5 +1,5 @@
-#ifndef MIRRORED_CACHE_HPP_
-#define MIRRORED_CACHE_HPP_
+#ifndef BUFFER_CACHE_MIRRORED_MIRRORED_HPP_
+#define BUFFER_CACHE_MIRRORED_MIRRORED_HPP_
 
 #include <map>
 
@@ -440,4 +440,4 @@ private:
     DISABLE_COPYING(mc_cache_t);
 };
 
-#endif // MIRRORED_CACHE_HPP_
+#endif // BUFFER_CACHE_MIRRORED_MIRRORED_HPP_

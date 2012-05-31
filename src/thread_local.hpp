@@ -112,4 +112,4 @@ void TLS_set_ ## name(type val) {\
 
 #endif
 
-#endif
+#endif /* THREAD_LOCAL_HPP_ */
