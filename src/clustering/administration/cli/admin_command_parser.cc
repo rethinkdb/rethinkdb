@@ -233,8 +233,9 @@ void admin_command_parser_t::do_usage(bool console) {
     if (console) {
         helps.push_back(admin_help_info_t(exit_command, exit_usage, exit_description));
         do_usage_internal(helps, options, "rethinkdb admin console - access or modify cluster metadata", console);
-    } else
+    } else {
         do_usage_internal(helps, options, "- access or modify cluster metadata", console);
+    }
 }
 
 admin_command_parser_t::admin_command_parser_t(const std::string& peer_string, const std::set<peer_address_t>& joins, int client_port, signal_t *_interruptor) :
@@ -289,9 +290,9 @@ admin_command_parser_t::command_info * admin_command_parser_t::add_command(std::
     } else {
         std::map<std::string, command_info *>::iterator i = cmd_map.find(cmd);
 
-        if (i == cmd_map.end())
+        if (i == cmd_map.end()) {
             i = cmd_map.insert(std::make_pair(cmd, new command_info(full_cmd, cmd, usage, post_sync, fn))).first;
-        else {
+        } else {
             // This node already exists, but this command should overwrite the current values
             i->second->usage = usage;
             i->second->post_sync = post_sync;
@@ -482,11 +483,11 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
 
 void admin_command_parser_t::run_command(command_data& data) {
     // Special cases for help and join, which do nothing through the cluster
-    if (data.info->command == "help")
+    if (data.info->command == "help") {
         do_admin_help(data);
-    else if (data.info->do_function == NULL)
+    } else if (data.info->do_function == NULL) {
         throw admin_parse_exc_t("incomplete command (should have been caught earlier, though)");
-    else {
+    } else {
         get_cluster()->sync_from();
 
         // Retry until the command completes, this is necessary if multiple sources modify the same vclock
@@ -545,11 +546,11 @@ void admin_command_parser_t::add_option_matches(const param_options *option, con
     std::vector<std::string> ids;
 
     // !id and !conflict are mutually exclusive will all patterns, others can be combined
-    if (option->valid_options.count("!id") > 0)
+    if (option->valid_options.count("!id") > 0) {
         ids = get_cluster()->get_ids(partial);
-    else if (option->valid_options.count("!conflict") > 0)
+    } else if (option->valid_options.count("!conflict") > 0) {
         ids = get_cluster()->get_conflicted_ids(partial);
-    else { // TODO: any way to make uuids show before names?
+    } else { // TODO: any way to make uuids show before names?
         if (option->valid_options.count("!datacenter") > 0) {
             std::vector<std::string> delta = get_cluster()->get_datacenter_ids(partial);
             std::copy(delta.begin(), delta.end(), std::back_inserter(ids));
@@ -774,8 +775,9 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
                     free(raw_line);
                     console_mode = false;
                     throw;
-                } else
+                } else {
                     fprintf(stderr, "%s\n", ex.what());
+                }
             }
 
             linenoiseHistoryAdd(raw_line);
@@ -823,8 +825,9 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
             } else if (subcommand == "datacenters") {
                 helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
                 do_usage_internal(helps, options, "ls datacenters - display a list of datacenters in the cluster", console_mode);
-            } else
+            } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            }
         } else if (command == "set") {
             if (subcommand.empty()) {
                 helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
@@ -844,8 +847,9 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
             } else if (subcommand == "datacenter") {
                 helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
                 do_usage_internal(helps, options, "set datacenter - change the primary datacenter for a namespace or machine", console_mode);
-            } else
+            } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            }
         } else if (command == "create") {
             if (subcommand.empty()) {
                 helps.push_back(admin_help_info_t(create_namespace_command, create_namespace_usage, create_namespace_description));
@@ -857,8 +861,9 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
             } else if (subcommand == "datacenter") {
                 helps.push_back(admin_help_info_t(create_datacenter_command, create_datacenter_usage, create_datacenter_description));
                 do_usage_internal(helps, options, "create datacenter - add a new datacenter to the cluster", console_mode);
-            } else
+            } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            }
         } else if (command == "rm") {
             if (!subcommand.empty())
                 throw admin_parse_exc_t("no recognized subcommands for 'rm'");
@@ -884,9 +889,11 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
                 throw admin_parse_exc_t("no recognized subcommands for 'resolve'");
             helps.push_back(admin_help_info_t(resolve_command, resolve_usage, resolve_description));
             do_usage_internal(helps, options, "resolve - resolve a conflict on a cluster metadata value", console_mode);
-        } else
+        } else {
             throw admin_parse_exc_t("unknown command: " + command);
-    } else
+        }
+    } else {
         do_usage(console_mode);
+    }
 }
 

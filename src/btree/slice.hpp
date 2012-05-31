@@ -16,7 +16,7 @@ class key_tester_t;
 
 class btree_stats_t {
 public:
-    btree_stats_t(perfmon_collection_t *parent)
+    explicit btree_stats_t(perfmon_collection_t *parent)
         : btree_collection("btree", parent, true, true),
           pm_keys_read("keys_read", secs_to_ticks(1), &btree_collection),
           pm_keys_set("keys_set", secs_to_ticks(1), &btree_collection),

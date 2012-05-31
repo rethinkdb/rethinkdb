@@ -504,8 +504,9 @@ void admin_cluster_link_t::do_admin_pin_shard(admin_command_parser_t::command_da
             list_pinnings(i->second.get_mutable(), shard_in, cluster_metadata);
         else
             do_admin_pin_shard_internal(i->second.get_mutable(), shard_in, primary, secondaries, cluster_metadata, post_path);
-    } else
+    } else {
         throw admin_cluster_exc_t("unexpected error, unknown namespace protocol");
+    }
 }
 
 template <class protocol_t>
@@ -748,8 +749,9 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
 
     } else if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("splitting not supported for dummy namespaces");
-    } else
+    } else {
         throw admin_cluster_exc_t("invalid object type");
+    }
 
     if (errored && split_points.size() > 1)
         throw admin_cluster_exc_t("not all split points were successfully added");
@@ -828,8 +830,9 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
 
     } else if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("merging not supported for dummy namespaces");
-    } else
+    } else {
         throw admin_cluster_exc_t("invalid object type");
+    }
 
     if (errored && split_points.size() > 1)
         throw admin_cluster_exc_t("not all split points were successfully removed");
@@ -865,8 +868,9 @@ void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& d
             if (i == cluster_metadata.machines.machines.end() || i->second.is_deleted())
                 throw admin_cluster_exc_t("object not found: " + obj_str);
             list_single_machine(obj_id, i->second.get_mutable(), cluster_metadata);
-        } else
+        } else {
             throw admin_cluster_exc_t("unexpected error, object found, but type not recognized: " + info->path[0]);
+        }
     }
 }
 
@@ -966,11 +970,12 @@ void admin_cluster_link_t::do_admin_list_stats(admin_command_parser_t::command_d
                 machine_id_t target = i->first;
                 request_map.insert(target, new admin_stats_request_t(&mailbox_manager));
             }
-    } else
+    } else {
         for (std::set<machine_id_t>::iterator i = machine_filters.begin(); i != machine_filters.end(); ++i) {
             machine_id_t id = *i;
             request_map.insert(id, new admin_stats_request_t(&mailbox_manager));
         }
+    }
 
     if (request_map.empty())
         throw admin_cluster_exc_t("no machines to query stats from");
@@ -1070,8 +1075,9 @@ void admin_cluster_link_t::do_admin_list_directory(admin_command_parser_t::comma
                 delta.push_back("<conflict>");
             else
                 delta.push_back(m->second.get().name.get());
-        } else
+        } else {
             delta.push_back("");
+        }
 
         if (long_format)
             delta.push_back(uuid_to_str(i->second.machine_id));
@@ -1300,8 +1306,9 @@ void admin_cluster_link_t::do_admin_list_namespaces(admin_command_parser_t::comm
         add_namespaces(type, long_format, cluster_metadata.dummy_namespaces.namespaces, table);
     } else if (type == "memcached") {
         add_namespaces(type, long_format, cluster_metadata.memcached_namespaces.namespaces, table);
-    } else
+    } else {
         throw admin_parse_exc_t("unrecognized namespace type: " + type);
+    }
 
     if (table.size() > 1)
         admin_print_table(table);
@@ -1334,14 +1341,16 @@ void admin_cluster_link_t::add_namespaces(const std::string& protocol, bool long
                 if (info.shards != -1) {
                     snprintf(buffer, sizeof(buffer), "%i", info.shards);
                     delta.push_back(buffer);
-                } else
+                } else {
                     delta.push_back("<conflict>");
+                }
 
                 if (info.replicas != -1) {
                     snprintf(buffer, sizeof(buffer), "%i", info.replicas);
                     delta.push_back(buffer);
-                } else
+                } else {
                     delta.push_back("<conflict>");
+                }
 
                 delta.push_back(info.primary);
             }
@@ -1456,8 +1465,9 @@ void admin_cluster_link_t::do_admin_list_machines(admin_command_parser_t::comman
                     delta.push_back(uuid_to_str(i->second.get().datacenter.get()));
                 else
                     delta.push_back(truncate_uuid(i->second.get().datacenter.get()));
-            } else
+            } else {
                 delta.push_back("<conflict>");
+            }
 
             if (long_format) {
                 char buffer[64];
@@ -1567,8 +1577,9 @@ void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::comma
             remove_machine_pinnings(machine, "memcached_namespaces", cluster_metadata.memcached_namespaces.namespaces);
             remove_machine_pinnings(machine, "dummy_namespaces", cluster_metadata.dummy_namespaces.namespaces);
         }
-    } else
+    } else {
         throw admin_cluster_exc_t("target object is not a namespace or machine");
+    }
 
     post_metadata(post_path, datacenter_uuid);
 }
@@ -1654,8 +1665,9 @@ void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_dat
             throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
         do_admin_set_acks_internal(i->second.get_mutable(), str_to_uuid(dc_info->uuid), atoi(acks_str.c_str()), post_path);
 
-    } else
+    } else {
         throw admin_parse_exc_t(data.params["namespace"][0] + " is not a namespace");
+    }
 }
 
 template <class protocol_t>
@@ -1719,8 +1731,9 @@ void admin_cluster_link_t::do_admin_set_replicas(admin_command_parser_t::command
             throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
         do_admin_set_replicas_internal(i->second.get_mutable(), datacenter, num_replicas, post_path);
 
-    } else
+    } else {
         throw admin_parse_exc_t(data.params["namespace"][0] + " is not a namespace");
+    }
 }
 
 template <class protocol_t>
@@ -1844,8 +1857,9 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             printf("primary datacenter %s\n", uuid_to_str(ns.primary_datacenter.get()).c_str());
         else
             printf("primary datacenter '%s' %s\n", dc->second.get_mutable().name.get().c_str(), uuid_to_str(ns.primary_datacenter.get()).c_str());
-    } else
+    } else {
         printf("primary datacenter <conflict>\n");
+    }
 
     // Print port
     if (ns.port.in_conflict())
@@ -1882,14 +1896,16 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             } else if (ns.replica_affinities.get_mutable().count(i->first) == 1) {
                 delta.push_back(strprintf("%i", ns.replica_affinities.get_mutable()[i->first]));
                 affinity = true;
-            } else
+            } else {
                 delta.push_back("0");
+            }
 
             if (ns.ack_expectations.get_mutable().count(i->first) == 1) {
                 delta.push_back(strprintf("%i", ns.ack_expectations.get_mutable()[i->first]));
                 affinity = true;
-            } else
+            } else {
                 delta.push_back("0");
+            }
 
             if (affinity)
                 table.push_back(delta);
@@ -2054,8 +2070,9 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
                 ns.primary_datacenter.get() == dc_id) {
                 delta.push_back("yes");
                 ++replicas;
-            } else
+            } else {
                 delta.push_back("no");
+            }
 
             if (!ns.replica_affinities.in_conflict() &&
                 ns.replica_affinities.get_mutable().count(dc_id) == 1)
@@ -2087,8 +2104,9 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
             printf("in datacenter %s\n", uuid_to_str(machine.datacenter.get()).c_str());
         else
             printf("in datacenter '%s' %s\n", dc->second.get_mutable().name.get().c_str(), uuid_to_str(machine.datacenter.get()).c_str());
-    } else
+    } else {
         printf("in datacenter <conflict>\n");
+    }
     printf("\n");
 
     // Print hosted replicas
@@ -2159,8 +2177,9 @@ bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& mach
 
             table.push_back(delta);
             match = true;
-        } else
+        } else {
             continue;
+        }
     }
 
 
@@ -2193,8 +2212,9 @@ void admin_cluster_link_t::do_admin_resolve(admin_command_parser_t::command_data
         if (i == cluster_metadata.memcached_namespaces.namespaces.end() || i->second.is_deleted())
             throw admin_cluster_exc_t("unexpected exception when looking up object: " + obj_id);
         resolve_namespace_value(i->second.get_mutable(), field, "memcached_namespaces" + obj_info->uuid);
-    } else
+    } else {
         throw admin_cluster_exc_t("unexpected object type encountered: " + obj_info->path[0]);
+    }
 }
 
 template <class T>

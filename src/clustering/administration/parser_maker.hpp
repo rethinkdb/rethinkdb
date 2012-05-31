@@ -6,18 +6,18 @@
 template<class protocol_t, class parser_t>
 class parser_maker_t {
 public:
-    parser_maker_t(mailbox_manager_t *,
-                   boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > >,
+    explicit parser_maker_t(mailbox_manager_t *,
+                            boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > >,
 #ifndef NDEBUG
-                   boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> >,
+                            boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> >,
 #endif
-                   namespace_repo_t<protocol_t> *repo,
-                   perfmon_collection_repo_t *_perfmon_collection_repo);
+                            namespace_repo_t<protocol_t> *repo,
+                            perfmon_collection_repo_t *_perfmon_collection_repo);
 
 private:
     class ns_record_t {
     public:
-        ns_record_t(int p) : port(p) { }
+        explicit ns_record_t(int p) : port(p) { }
         int port;
         cond_t stopper;
     };

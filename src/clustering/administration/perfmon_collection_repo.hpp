@@ -6,7 +6,7 @@
 
 class perfmon_collection_repo_t {
 public:
-    perfmon_collection_repo_t(perfmon_collection_t *);
+    explicit perfmon_collection_repo_t(perfmon_collection_t *);
     perfmon_collection_t *get_perfmon_collection_for_namespace(namespace_id_t);
 private:
     perfmon_collection_t *parent;

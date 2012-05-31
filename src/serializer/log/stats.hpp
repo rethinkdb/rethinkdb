@@ -5,7 +5,7 @@
 
 struct log_serializer_stats_t {
     perfmon_collection_t serializer_collection;
-    log_serializer_stats_t(perfmon_collection_t *perfmon_collection);
+    explicit log_serializer_stats_t(perfmon_collection_t *perfmon_collection);
 
     perfmon_duration_sampler_t pm_serializer_block_reads;
     perfmon_counter_t pm_serializer_index_reads;

@@ -52,7 +52,7 @@ You should make a separate conflict_resolving_diskmgr_t for each file. */
 template<class payload_t>
 struct conflict_resolving_diskmgr_t {
 
-    conflict_resolving_diskmgr_t(perfmon_collection_t *stats);
+    explicit conflict_resolving_diskmgr_t(perfmon_collection_t *stats);
     ~conflict_resolving_diskmgr_t();
 
     struct action_t : public payload_t {
