@@ -186,24 +186,75 @@ bool region_overlaps(const hash_region_t<inner_region_t> &r1, const hash_region_
 }
 
 template <class inner_region_t>
-std::vector< hash_region_t<key_range_t> > region_subtract_many(const hash_region_t<key_range_t> &minuend,
-                                                               const std::vector<hash_region_t<key_range_t>& subtrahends) {
-    std::vector< hash_region_t<key_range_t> > buf;
-    std::vector< hash_region_t<key_range_t> > temp_result_buf;
+std::vector< hash_region_t<inner_region_t> > region_subtract_many(const hash_region_t<inner_region_t> &minuend,
+                                                                  const std::vector< hash_region_t<inner_region_t> >& subtrahends) {
+    std::vector< hash_region_t<inner_region_t> > buf;
+    std::vector< hash_region_t<inner_region_t> > temp_result_buf;
 
     buf.push_back(minuend);
 
-    for (std::vector< hash_region_t<key_range_t> >::const_iterator s = subtrahends.begin(); s != subtrahends.end(); ++s) {
-        for (std::vector< hash_region_t<key_range_t> >::const_iterator m = buf.begin(); m != buf.end(); ++m) {
-            
+    for (typename std::vector< hash_region_t<inner_region_t> >::const_iterator s = subtrahends.begin(); s != subtrahends.end(); ++s) {
+        for (typename std::vector< hash_region_t<inner_region_t> >::const_iterator m = buf.begin(); m != buf.end(); ++m) {
+            // Subtract s from m, push back onto temp_result_buf.
+            // (See the "subtraction drawing" after this function.)
+            // We first subtract m.inner - s.inner, combining the
+            // difference with m's hash interval to create a set of
+            // regions w.  Then m.inner is intersected with s.inner,
+            // and the hash range is formed from subtracting s's hash
+            // range from m's, possibly creating x and/or z.
 
+            const std::vector<inner_region_t> s_vec(1, s->inner);
+            const std::vector<inner_region_t> w_inner = region_subtract_many(m->inner, s_vec);
 
+            for (typename std::vector<inner_region_t>::const_iterator it = w_inner.begin(); it != w_inner.end(); ++it) {
+                temp_result_buf.push_back(hash_region_t<inner_region_t>(m->beg, m->end, *it));
+            }
+
+            // This outer conditional check is unnecessary, but it
+            // might improve performance because we avoid trying an
+            // unnecessary region intersection.
+            if (m->beg < s->beg || s->end < m->end) {
+                inner_region_t isect = region_intersection(m->inner, s->inner);
+
+                if (!region_is_empty(isect)) {
+
+                    // Add x, if it exists.
+                    if (m->beg < s->beg) {
+                        temp_result_buf.push_back(hash_region_t<inner_region_t>(m->beg, std::min(s->beg, m->end), isect));
+                    }
+
+                    // Add z, if it exists.
+                    if (s->end < m->end) {
+                        temp_result_buf.push_back(hash_region_t<inner_region_t>(std::max(m->beg, s->end), m->end, isect));
+                    }
+                }
+            }
         }
+
+        buf.swap(temp_result_buf);
+        temp_result_buf.clear();
     }
 
-
+    return buf;
 }
 
+// The "subtraction drawing":
+/*
+           _____________________
+          |   .  z   .          |
+          |   .______.          |
+          |w_j|  s   |    w_k   |
+          |   |______|          |
+          |   .      .          |
+          |   .  x   .          |
+   ^      |___.______.__________|
+   |
+   |
+  hash values
+
+     inner_region_t -->
+
+ */
 
 
 template <class inner_region_t>
