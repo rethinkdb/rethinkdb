@@ -107,7 +107,8 @@ std::vector<std::string> parse_line(const std::string& line) {
         } else if (quote != '\0' || (line[i] != ' ' && line[i] != '\t' && line[i] != '\r' && line[i] != '\n')) {
             argument += line[i];
         } else {
-            result.push_back(argument);
+            if (!argument.empty())
+                result.push_back(argument);
             argument.clear();
         }
     }
@@ -115,7 +116,9 @@ std::vector<std::string> parse_line(const std::string& line) {
     if (quote != '\0')
         throw admin_parse_exc_t("unmatched quote");
 
-    result.push_back(argument);
+    if (!argument.empty())
+        result.push_back(argument);
+
     return result;
 }
 
@@ -760,12 +763,8 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
 
             try {
                 std::vector<std::string> split_line = parse_line(line);
-
-                if (!split_line.empty()) {
-                    for (size_t i = 0; i < split_line.size(); ++i)
-                        printf("%s\n", split_line[i].c_str());
+                if (!split_line.empty())
                     parse_and_run_command(split_line);
-                }
             } catch (admin_no_connection_exc_t& ex) {
                 free(raw_line);
                 console_mode = false;
