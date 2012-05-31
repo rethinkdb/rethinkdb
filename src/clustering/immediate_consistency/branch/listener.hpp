@@ -8,6 +8,9 @@
 #include "timestamps.hpp"
 #include "utils.hpp"
 #include "concurrency/coro_pool.hpp"
+#include "serializer/types.hpp"
+#include "buffer_cache/mirrored/mirrored.hpp"
+#include "buffer_cache/semantic_checking.hpp"
 
 template <class T> class replier_t;
 template <class T> class intro_receiver_t;
@@ -15,6 +18,8 @@ template <class T> class registrant_t;
 template <class T> class semilattice_read_view_t;
 template <class T> class semilattice_readwrite_view_t;
 template <class T> class broadcaster_t;
+
+//template <class protocol_t> class disk_backed_write_queue_t;
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
 backfills from an existing mirror on a branch into the store, and as long as it
@@ -200,6 +205,9 @@ private:
      * this right now is the replier_t who needs to be able to tell backfillees
      * how up to date s/he is. */
     std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
+
+    bool serialize_writes;
+    //boost::scoped_ptr<disk_backed_write_queue_t<protocol_t> > write_queue;
 
     DISABLE_COPYING(listener_t);
 };

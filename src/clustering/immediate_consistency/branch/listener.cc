@@ -8,6 +8,7 @@
 
 #define OPERATION_CORO_POOL_SIZE 10
 
+
 template <class protocol_t>
 listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
@@ -79,6 +80,9 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
                 );
     }
 #endif
+
+    //write_queue.reset(new disk_backed_write_queue_t<protocol_t>(backfill_session_id));
+    serialize_writes = true;
 
     /* Attempt to register for reads and writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
@@ -330,6 +334,7 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
             death_runner_t finish_write(boost::bind(&fifo_enforcer_queue_t<boost::function<void()> >::finish_write, &fifo_queue, fifo_token));
             /* Enforce that we start our transaction in the same order as we
                entered the FIFO at the broadcaster. */
+            //TODO make this just an assertion and see what happens;
             fifo_enforcer_sink_t::exit_write_t fifo_exit(&fifo_sink, fifo_token);
             fifo_exit.wait();
             wait_interruptible(&fifo_exit, &on_destruct);
@@ -345,6 +350,11 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
             /* Block until the backfill succeeds or fails. If the backfill
                fails, then the constructor will throw an exception, so
                `&on_destruct` will be pulsed. */
+            if (serialize_writes) {
+                //rassert(write_queue);
+                //write_queue->push_write(write, transition_timestamp);
+            }
+
             wait_interruptible(backfill_done_cond.get_ready_signal(), &on_destruct);
 
             if (transition_timestamp.timestamp_before() < backfill_done_cond.get_value()) {
