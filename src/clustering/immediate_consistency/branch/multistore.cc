@@ -263,7 +263,7 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
                                                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                                      std::vector<typename protocol_t::read_response_t> *responses,
                                                      signal_t *interruptor) THROWS_NOTHING {
-    const typename protocol_t::region_t ith_region = get_region(i);
+    DEBUG_ONLY_VAR const typename protocol_t::region_t ith_region = get_region(i);
     typename protocol_t::region_t ith_intersection = region_intersection(get_region(i), read.get_region());
 
     if (region_is_empty(ith_intersection)) {
