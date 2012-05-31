@@ -113,6 +113,14 @@ Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
 
     return new Handlebars.SafeString(result);
 
+Handlebars.registerHelper 'humanize_namespace_reachability', (reachability) ->
+    if reachability 
+        result = "<span class='label label-success'>Live</span>"
+    else
+        result = "<span class='label label-important'>Down</span>"
+
+    return new Handlebars.SafeString(result);
+
 Handlebars.registerHelper 'display_truncated_machines', (data) ->
     machines = data.machines
     out = ''

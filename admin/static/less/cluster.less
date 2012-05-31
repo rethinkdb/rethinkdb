@@ -832,7 +832,39 @@
         }
     }
     /* End override */
+    .list_stats {
+        float: left;
+        list-style: none;
+        li {
+            display: inline-block;
+            padding: 5px 0px 0px 0px;
+        }
+        .title{
+            width: 90px;
+        }
+        .minichart{
+            width: 80px;
+            .progress{
+                height: 15px;
+                width: 75px;
+                margin: 0px 0px -3px 0px;
+                padding: 0px;
+            }
+        }
+        .value{
+            width: 140px;
+        }
+    }
+    .machine-stats{
+        overflow: hidden;
+    }
+    .label{
+        position: relative;
+        bottom: 3px;
+        left: 3px;
+    }
 }
+
 
 /*
     ----------------------------

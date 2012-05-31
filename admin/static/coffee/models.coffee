@@ -78,6 +78,39 @@ class Namespace extends Backbone.Model
                     __s.keys_set += keys_set
         return __s
 
+
+    get_stats_for_performance: =>
+        # Ops/sec stats
+        __s =
+            keys_read: 0
+            keys_set: 0
+            global_cpu_util_avg: 0
+            global_mem_total: 0
+            global_mem_used: 0
+            global_disk_space: 0
+            global_net_recv_persec_avg: 0
+            global_net_sent_persec_avg: 0
+        for namespace in namespaces.models
+            _s = namespace.get_stats()
+            if not _s?
+                continue
+            __s.keys_read += _s.keys_read
+            __s.keys_set += _s.keys_set
+        # CPU, mem, disk
+        num_machines_in_namespace = 0
+        for machine in machines.models
+            if machine.get('stats')? and  @get('id') of machine.get('stats') and machine.is_reachable
+                num_machines_in_namespace++
+                mstats = machine.get_stats().proc
+                __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util_avg)
+                __s.global_mem_total += parseInt(mstats.global_mem_total)
+                __s.global_mem_used += parseInt(mstats.global_mem_used)
+                __s.global_disk_space += machine.get_used_disk_space()
+                __s.global_net_recv_persec_avg += parseFloat(mstats.global_net_recv_persec_avg)
+                __s.global_net_sent_persec_avg += parseFloat(mstats.global_net_sent_persec_avg)
+        __s.global_cpu_util_avg /= num_machines_in_namespace
+        return __s
+
 class Datacenter extends Backbone.Model
     get_stats: =>
         # Look boo, here's what we gonna do, okay? We gonna collect
@@ -702,3 +735,52 @@ module 'DataUtils', ->
 
         return json
 
+
+    @get_namespace_status = (namespace_uuid, datacenter_uuid) ->
+        namespace = namespaces.get(namespace_uuid)
+        json =
+            nshards: 0
+            nreplicas: 0
+            nashards: 0
+            nareplicas: 0
+
+        # If we can't see the namespace...
+        if not namespace?
+            return null
+
+        # machine and datacenter counts
+        _machines = []
+        _datacenters = []
+
+        for machine_uuid, role of namespace.get('blueprint').peers_roles
+            if datacenter_uuid? and
+               machines.get(machine_uuid) and
+               machines.get(machine_uuid).get('datacenter_uuid') isnt datacenter_uuid
+                continue
+            peer_accessible = directory.get(machine_uuid)
+            machine_active_for_namespace = false
+            for shard, role_name of role
+                if role_name is 'role_primary'
+                    machine_active_for_namespace = true
+                    json.nshards += 1
+                    if peer_accessible?
+                        json.nashards += 1
+                if role_name is 'role_secondary'
+                    machine_active_for_namespace = true
+                    json.nreplicas += 1
+                    if peer_accessible?
+                        json.nareplicas += 1
+            if machine_active_for_namespace
+                _machines[_machines.length] = machine_uuid
+                _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
+
+        json.nmachines = _.uniq(_machines).length
+        json.ndatacenters = _.uniq(_datacenters).length
+        if json.nshards is json.nashards
+            json.reachability = 'Live'
+        else
+            json.reachability = 'Down'
+
+        json.backfill_progress = @get_backfill_progress_agg(namespace_uuid, datacenter_uuid)
+
+        return json

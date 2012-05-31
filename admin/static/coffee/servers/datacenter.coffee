@@ -104,7 +104,7 @@ module 'DatacenterView', ->
 
         close_alert: (event) ->
             event.preventDefault()
-            $(event.currentTarget).parent().slideUp('fast', -> this.parent().remove())
+            $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
     # DatacenterView.Title
     class @Title extends Backbone.View

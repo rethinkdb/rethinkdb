@@ -13,7 +13,7 @@
   </div>
 
   <h3 class="title">Statistics</h3>
-  <div class="section datacenter-stats"></div>
+  <div class="section namespace-stats"></div>
 
   <h3 class="title">Data in this datacenter</h3>
   <div class="section data"></div>
@@ -35,7 +35,7 @@
     <h3 class="title">Datacenter profile</h3>
     <div class="section summary">
       <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
-      <p class="status">Machines: {{status.reachable}}/{{status.total}} reachable</p>
+      <p class="status">Machines: {{status.reachable}} of {{status.total}} reachable</p>
     </div>
     <h3 class="title">Machines</h3>
     <div class="section dc-machine-list">

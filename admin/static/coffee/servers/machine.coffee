@@ -99,7 +99,7 @@ module 'MachineView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
-    # MachineView.Profile
+    # MachineView.Title
     class @Title extends Backbone.View
         className: 'machine-info-view'
         template: Handlebars.compile $('#machine_view_title-template').html()
