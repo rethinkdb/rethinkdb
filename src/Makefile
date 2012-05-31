@@ -129,7 +129,7 @@ else
 ifeq ($(COMPILER), CLANG)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration
 else
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
 endif
 endif
 
