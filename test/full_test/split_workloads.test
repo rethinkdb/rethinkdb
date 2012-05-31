@@ -13,6 +13,8 @@ scenarios = [
     "$RETHINKDB/test/scenarios/rebalance.py '%(workload1)s' '%(workload2)s'",
     "$RETHINKDB/test/scenarios/change_primary.py --split-workload '%(workload1)s' '%(workload2)s'",
     "$RETHINKDB/test/scenarios/failover_to_secondary.py --split-workload '%(workload1)s' '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --more --split-workload '%(workload1)s' '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --less --split-workload '%(workload1)s' '%(workload2)s'",
     ]
 
 for scenario in scenarios:
