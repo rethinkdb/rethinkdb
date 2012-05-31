@@ -688,16 +688,18 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
             throw admin_cluster_exc_t("namespace shards are in conflict, run 'help resolve' for more information");
 
         for (size_t i = 0; i < split_points.size(); ++i) {
-            // TODO: use escaped_string_to_key
-            store_key_t key(split_points[i]);
-            if (ns.shards.get().empty()) {
-                // this should never happen, but try to handle it anyway
-                key_range_t left(key_range_t::none, store_key_t(), key_range_t::open, store_key_t(key));
-                key_range_t right(key_range_t::closed, store_key_t(key), key_range_t::none, store_key_t());
-                ns.shards.get_mutable().insert(left);
-                ns.shards.get_mutable().insert(right);
-            } else {
-                try {
+            try {
+                store_key_t key;
+                if (!cli_str_to_key(split_points[i], &key))
+                    throw admin_cluster_exc_t("split point could not be parsed: " + split_points[i]);
+
+                if (ns.shards.get().empty()) {
+                    // this should never happen, but try to handle it anyway
+                    key_range_t left(key_range_t::none, store_key_t(), key_range_t::open, store_key_t(key));
+                    key_range_t right(key_range_t::closed, store_key_t(key), key_range_t::none, store_key_t());
+                    ns.shards.get_mutable().insert(left);
+                    ns.shards.get_mutable().insert(right);
+                } else {
                     // TODO: use a better search than linear
                     std::set<key_range_t>::iterator shard = ns.shards.get_mutable().begin();
                     while (true) {
@@ -723,10 +725,10 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
                     ns.shards.get_mutable().erase(shard);
                     ns.shards.get_mutable().insert(left);
                     ns.shards.get_mutable().insert(right);
-                } catch (std::exception& ex) {
-                    printf("%s\n", ex.what());
-                    errored = true;
                 }
+            } catch (std::exception& ex) {
+                printf("%s\n", ex.what());
+                errored = true;
             }
         }
 
@@ -773,9 +775,11 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
             throw admin_cluster_exc_t("namespace shards are in conflict, run 'help resolve' for more information");
 
         for (size_t i = 0; i < split_points.size(); ++i) {
-            // TODO: use escaped_string_to_key
-            store_key_t key(split_points[i]);
             try {
+                store_key_t key;
+                if (!cli_str_to_key(split_points[i], &key))
+                    throw admin_cluster_exc_t("split point could not be parsed: " + split_points[i]);
+
                 // TODO: use a better search than linear
                 std::set<key_range_t>::iterator shard = ns.shards.get_mutable().begin();
 

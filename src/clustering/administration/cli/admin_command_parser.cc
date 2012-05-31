@@ -11,8 +11,6 @@
 #include "help.hpp"
 #include "errors.hpp"
 
-#include <boost/program_options.hpp>
-
 admin_command_parser_t *admin_command_parser_t::instance = NULL;
 uint64_t admin_command_parser_t::cluster_join_timeout = 5000; // Give 5 seconds to connect to all machines in the cluster
 
@@ -50,7 +48,7 @@ const char *admin_command_parser_t::list_namespaces_usage = "[--protocol <protoc
 const char *admin_command_parser_t::list_datacenters_usage = "[--long]";
 const char *admin_command_parser_t::help_usage = "[ ls | create | rm | set | split | merge | resolve | help ]";
 const char *admin_command_parser_t::resolve_usage = "<id> <field>";
-const char *admin_command_parser_t::pin_shard_usage = "<namespace> <shard> [--primary <machine>] [--secondary <machine>...]";
+const char *admin_command_parser_t::pin_shard_usage = "<namespace> <shard> [--master <machine>] [--replica <machine>...]";
 const char *admin_command_parser_t::split_shard_usage = "<namespace> <split-point>...";
 const char *admin_command_parser_t::merge_shard_usage = "<namespace> <split-point>...";
 const char *admin_command_parser_t::set_name_usage = "<id> <new name>";
@@ -81,6 +79,45 @@ const char *admin_command_parser_t::set_datacenter_description = "Set the primar
 const char *admin_command_parser_t::create_namespace_description = "Create a new namespace with the given protocol.  The namespace's primary datacenter and listening port must be specified.";
 const char *admin_command_parser_t::create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
 const char *admin_command_parser_t::remove_description = "Remove an object from the cluster.";
+
+std::vector<std::string> parse_line(const std::string& line) {
+    std::vector<std::string> result;
+    char quote = '\0';
+    bool escape = false;
+    std::string argument;
+
+    for (size_t i = 0; i < line.length(); ++i) {
+        if (escape) {
+            // It was easier for me to understand the boolean logic like this, empty if statements intentional
+            if (quote == '\0' && (line[i] == '\'' || line[i] == '\"' || line[i] == ' ' || line[i] == '\t' || line[i] == '\r' || line[i] == '\n'));
+            else if (quote != '\0' && line[i] == quote);
+            else
+                argument += '\\';
+            argument += line[i];
+            escape = false;
+        } else if (line[i] == '\\') {
+            escape = true;
+        } else if (line[i] == '\'' || line[i] == '\"') {
+            if (quote == '\0')
+                quote = line[i];
+            else if (quote == line[i])
+                quote = '\0';
+            else
+                argument += line[i];
+        } else if (quote != '\0' || (line[i] != ' ' && line[i] != '\t' && line[i] != '\r' && line[i] != '\n')) {
+            argument += line[i];
+        } else {
+            result.push_back(argument);
+            argument.clear();
+        }
+    }
+
+    if (quote != '\0')
+        throw admin_parse_exc_t("unmatched quote");
+
+    result.push_back(argument);
+    return result;
+}
 
 void admin_command_parser_t::param_options::add_option(const char *term) {
     valid_options.insert(term);
@@ -470,7 +507,7 @@ void admin_command_parser_t::completion_generator_hook(const char *raw, linenois
     } else {
         bool partial = !linenoiseIsUnescapedSpace(raw, strlen(raw) - 1);
         try {
-            std::vector<std::string> line = boost::program_options::split_unix(raw);
+            std::vector<std::string> line = parse_line(raw);
             instance->completion_generator(line, completions, partial);
         } catch(std::exception& ex) {
             // Do nothing - if the line can't be parsed or completions failed, we just can't complete the line
@@ -720,33 +757,26 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
             break;
 
         if (!line.empty()) {
-            std::vector<std::string> split_line;
 
             try {
-                split_line = boost::program_options::split_unix(line);
-            } catch (...) {
+                std::vector<std::string> split_line = parse_line(line);
+
+                if (!split_line.empty()) {
+                    for (size_t i = 0; i < split_line.size(); ++i)
+                        printf("%s\n", split_line[i].c_str());
+                    parse_and_run_command(split_line);
+                }
+            } catch (admin_no_connection_exc_t& ex) {
+                free(raw_line);
+                console_mode = false;
+                throw admin_cluster_exc_t("fatal error: connection to cluster failed");
+            } catch (std::exception& ex) {
                 if (exit_on_failure) {
                     free(raw_line);
                     console_mode = false;
-                    throw admin_parse_exc_t("could not parse line");
-                }
-            }
-
-            if (!split_line.empty()) {
-                try {
-                    parse_and_run_command(split_line);
-                } catch (admin_no_connection_exc_t& ex) {
-                    free(raw_line);
-                    console_mode = false;
-                    throw admin_cluster_exc_t("fatal error: connection to cluster failed");
-                } catch (std::exception& ex) {
-                    if (exit_on_failure) {
-                        free(raw_line);
-                        console_mode = false;
-                        throw;
-                    } else
-                        fprintf(stderr, "%s\n", ex.what());
-                }
+                    throw;
+                } else
+                    fprintf(stderr, "%s\n", ex.what());
             }
 
             linenoiseHistoryAdd(raw_line);
