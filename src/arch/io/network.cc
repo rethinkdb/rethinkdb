@@ -707,6 +707,14 @@ linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
     port(_port)
 {
     bind_socket(sock_fd, port);
+    if (port == 0) {
+        // Determine the port that was assigned
+        struct sockaddr_in sa;
+        socklen_t sa_len(sizeof(sa));
+        int res = getsockname(sock_fd, (struct sockaddr*)&sa, &sa_len);
+        guarantee_err(res != -1, "Could not determine socket local port number");
+        port = ntohs(sa.sin_port);
+    }
 }
 
 linux_tcp_bound_socket_t::~linux_tcp_bound_socket_t()
