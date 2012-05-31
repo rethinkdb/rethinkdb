@@ -359,6 +359,7 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(commands, list_command, list_command, list_usage, false, &admin_cluster_link_t::do_admin_list);
     info->add_positional("object", 1, false)->add_options("!id", NULL);
+    info->add_flag("long", 0, false);
 
     info = add_command(commands, list_stats_command, list_stats_command, list_stats_usage, false, &admin_cluster_link_t::do_admin_list_stats);
     info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULL);
