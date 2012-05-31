@@ -1,5 +1,5 @@
-#ifndef TIMER_HPP_
-#define TIMER_HPP_
+#ifndef ARCH_TIMER_HPP_
+#define ARCH_TIMER_HPP_
 
 #include "containers/intrusive_list.hpp"
 #include "arch/io/timer_provider.hpp"
@@ -30,4 +30,4 @@ private:
     intrusive_list_t<timer_token_t> timers;
 };
 
-#endif /* TIMER_HPP_ */
+#endif /* ARCH_TIMER_HPP_ */

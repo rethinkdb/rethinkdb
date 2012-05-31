@@ -1,5 +1,5 @@
-#ifndef CLUSTERING_REGISTRATION_HPP_
-#define CLUSTERING_REGISTRATION_HPP_
+#ifndef CLUSTERING_REGISTRATION_METADATA_HPP_
+#define CLUSTERING_REGISTRATION_METADATA_HPP_
 
 #include "rpc/mailbox/typed.hpp"
 #include <boost/uuid/uuid.hpp>
@@ -27,4 +27,4 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_2(create_mailbox, delete_mailbox);
 };
 
-#endif /* CLUSTERING_REGISTRATION_HPP_ */
+#endif /* CLUSTERING_REGISTRATION_METADATA_HPP_ */

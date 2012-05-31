@@ -114,4 +114,4 @@ void on_subfield_change(region_map_t<protocol_t, value_t> *, const ctx_t &);
 
 #include "clustering/administration/http/json_adapters.tcc"
 
-#endif
+#endif /* CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_HPP_ */

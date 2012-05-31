@@ -1,5 +1,5 @@
-#ifndef PROGRESS_HPP_
-#define PROGRESS_HPP_
+#ifndef PROGRESS_PROGRESS_HPP_
+#define PROGRESS_PROGRESS_HPP_
 
 #include <stdio.h>
 
@@ -79,4 +79,4 @@ private:
     repeating_timer_t timer;
 };
 
-#endif //PROGRESS_HPP_
+#endif // PROGRESS_PROGRESS_HPP_

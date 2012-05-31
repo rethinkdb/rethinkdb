@@ -94,4 +94,4 @@ void apply_json_to(cJSON *change, machines_semilattice_metadata_t *target, const
 template <class ctx_t>
 void on_subfield_change(machines_semilattice_metadata_t *, const ctx_t &) { }
 
-#endif
+#endif /* CLUSTERING_ADMINISTRATION_MACHINE_METADATA_HPP_ */

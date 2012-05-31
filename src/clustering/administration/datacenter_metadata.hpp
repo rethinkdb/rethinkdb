@@ -77,4 +77,4 @@ void on_subfield_change(datacenters_semilattice_metadata_t *target, const ctx_t 
     on_subfield_change(&target->datacenters, ctx);
 }
 
-#endif
+#endif /* CLUSTERING_ADMINISTRATION_DATACENTER_METADATA_HPP_ */

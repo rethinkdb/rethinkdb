@@ -74,6 +74,9 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
         /* Create parsers as necessary by spawning instances of
         `serve_queries()` */
         if (h_it == namespaces_being_handled.end() && !it->second.is_deleted() && !it->second.get().port.in_conflict()) {
+            vclock_t<std::string> v_ns_name = it->second.get().name;
+            std::string ns_name(v_ns_name.in_conflict() ? "<in conflict>" : v_ns_name.get());
+
             int port = get_port(it->second.get()
 #ifndef NDEBUG
                                 , machine_metadata_snapshot
@@ -83,15 +86,16 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
             namespaces_being_handled.insert(tmp, new ns_record_t(port));
             coro_t::spawn_sometime(boost::bind(
                 &parser_maker_t::serve_queries, this,
-                it->first, port, auto_drainer_t::lock_t(&drainer)
+                ns_name, it->first, port, auto_drainer_t::lock_t(&drainer)
                 ));
         }
     }
 }
 
 template<class protocol_t, class parser_t>
-void parser_maker_t<protocol_t, parser_t>::serve_queries(namespace_id_t ns, int port, auto_drainer_t::lock_t keepalive) {
+void parser_maker_t<protocol_t, parser_t>::serve_queries(std::string ns_name, namespace_id_t ns, int port, auto_drainer_t::lock_t keepalive) {
     try {
+        printf("Starting to serve queries for the namespace '%s' %s on port %d...\n", ns_name.c_str(), uuid_to_str(ns).c_str(), port);
         wait_any_t interruptor(&namespaces_being_handled.find(ns)->second->stopper, keepalive.get_drain_signal());
         typename namespace_repo_t<protocol_t>::access_t access(repo, ns, &interruptor);
         parser_t parser(port, access.get_namespace_if(), perfmon_collection_repo->get_perfmon_collection_for_namespace(ns));

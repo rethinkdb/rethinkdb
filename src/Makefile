@@ -129,7 +129,7 @@ else
 ifeq ($(COMPILER), CLANG)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration
 else
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
 endif
 endif
 
@@ -736,7 +736,7 @@ analyze: $(SOURCES)
 	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
 
 style:
-	$(QUIET) find . -name \*.cc -o -name \*.hpp -o -name \*.tcc | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,+build/include_order,-whitespace/labels,-runtime/references,-whitespace/blank_line,-readability/function,-build/include_order 2>&1 | grep -v Done\ processing
+	$(QUIET) find . -name \*.cc -o -name \*.hpp -o -name \*.tcc | xargs -d\\n ../scripts/cpplint --verbose 5 --basedir=. --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,+build/include_order,-whitespace/labels,-runtime/references,-whitespace/blank_line,-readability/function,-build/include_order 2>&1 | grep -v Done\ processing
 
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null

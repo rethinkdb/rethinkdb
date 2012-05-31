@@ -34,7 +34,7 @@ void on_subfield_change(issue_json_t *, const ctx_t &) { }
 //json adapter concept for local_issue_json_t
 template <class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(local_issue_json_t *target, const ctx_t &ctx) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res = render_as_json(dynamic_cast<issue_json_t *>(target), ctx);
+    typename json_adapter_if_t<ctx_t>::json_adapter_map_t res = render_as_json(static_cast<issue_json_t *>(target), ctx);
     res["machine"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<bool, ctx_t>(&target->machine));
 }
 

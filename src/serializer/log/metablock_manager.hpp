@@ -1,5 +1,5 @@
-#ifndef SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP_
-#define SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP_
+#ifndef SERIALIZER_LOG_METABLOCK_MANAGER_HPP_
+#define SERIALIZER_LOG_METABLOCK_MANAGER_HPP_
 
 /* Notice:
  * This file defines templatized classes and does not provide their
@@ -170,4 +170,4 @@ private:
     direct_file_t *dbfile;
 };
 
-#endif /* SERIALIZER_LOG_METABLOCK_METABLOCK_MANAGER_HPP_ */
+#endif /* SERIALIZER_LOG_METABLOCK_MANAGER_HPP_ */

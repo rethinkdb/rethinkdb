@@ -1,5 +1,5 @@
-#ifndef TWO_LEVEL_ARRAY_HPP_
-#define TWO_LEVEL_ARRAY_HPP_
+#ifndef CONTAINERS_TWO_LEVEL_ARRAY_HPP_
+#define CONTAINERS_TWO_LEVEL_ARRAY_HPP_
 
 #include "errors.hpp"
 
@@ -116,4 +116,4 @@ public:
     }
 };
 
-#endif // TWO_LEVEL_ARRAY_HPP_
+#endif // CONTAINERS_TWO_LEVEL_ARRAY_HPP_

@@ -41,7 +41,6 @@ public:
     bool operator==(const cartesian_product_iterator_t &);
 };
 
-#endif
-
 #include "stl_utils.tcc"
 
+#endif /* STL_UTILS_HPP_ */

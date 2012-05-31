@@ -1,5 +1,5 @@
-#ifndef SERIALIZER_HPP_
-#define SERIALIZER_HPP_
+#ifndef SERIALIZER_SERIALIZER_HPP_
+#define SERIALIZER_SERIALIZER_HPP_
 
 #include <vector>
 
@@ -183,4 +183,4 @@ intrusive_ptr_t<typename serializer_traits_t<serializer_type>::block_token_type>
 
 }
 
-#endif /* SERIALIZER_HPP_ */
+#endif /* SERIALIZER_SERIALIZER_HPP_ */

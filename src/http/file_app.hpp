@@ -15,4 +15,4 @@ private:
     std::string asset_dir;
 };
 
-#endif
+#endif /* HTTP_FILE_APP_HPP_ */

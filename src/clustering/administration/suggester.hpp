@@ -37,4 +37,4 @@ void fill_in_blueprints_for_protocol(
         THROWS_ONLY(missing_machine_exc_t);
 
 #include "clustering/administration/suggester.tcc"
-#endif
+#endif /* CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_ */

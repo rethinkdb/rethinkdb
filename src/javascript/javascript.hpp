@@ -248,4 +248,4 @@ std::string js_obj_to_string(scoped_js_string_t);
 
 } //namespace JS
 
-#endif
+#endif /* JAVASCRIPT_JAVASCRIPT_HPP_ */

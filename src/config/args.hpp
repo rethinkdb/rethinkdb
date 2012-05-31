@@ -316,5 +316,5 @@
 // The frequency (in ms) with which statistics are persisted to disk (see stat/persist.hpp)
 #define STAT_PERSIST_FREQUENCY_MS                 1000
 
-#endif // __CONFIG_ARGS_H__
+#endif  // CONFIG_ARGS_HPP_
 
