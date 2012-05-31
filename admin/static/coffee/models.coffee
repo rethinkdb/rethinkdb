@@ -125,7 +125,7 @@ class Datacenter extends Backbone.Model
         # CPU, mem, disk
         num_machines_in_datacenter = 0
         for machine in machines.models
-            if machine.get('datacenter_uuid') is @get('id')
+            if machine.get('datacenter_uuid') is @get('id') and machine.is_reachable
                 num_machines_in_datacenter++
                 mstats = machine.get_stats().proc
                 __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util_avg)
@@ -134,9 +134,10 @@ class Datacenter extends Backbone.Model
                 __s.global_disk_space += machine.get_used_disk_space()
                 __s.global_net_recv_persec_avg += parseFloat(mstats.global_net_recv_persec_avg)
                 __s.global_net_sent_persec_avg += parseFloat(mstats.global_net_sent_persec_avg)
-            __s.global_cpu_util_avg /= num_machines_in_datacenter
-
+        __s.global_cpu_util_avg /= num_machines_in_datacenter
         return __s
+
+
 class Machine extends Backbone.Model
     get_stats: =>
         stats = @get('stats')
@@ -182,6 +183,9 @@ class Machine extends Backbone.Model
         # CPU, mem, disk
         return __s
 
+    is_reachable: =>
+        reachable = directory.get(@get('id'))?
+        return reachable
 
 class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)

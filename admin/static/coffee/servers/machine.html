@@ -1,14 +1,14 @@
 <script id="machine_view-container-template" type="text/x-handlebars-template">
-  <h1>Machine overview for {{name}}</h1> (<a href="#" class="rename-machine">rename</a>)
+  <div class="main_title"></div>
   <div id="user-alert-space"></div>
 
   <div class="two-panel-section">
     <div class="panel-left-unbalanced profile">
     </div>
 
-    <div class="panel-right-unbalanced">
+    <div class="panel-right-unbalanced performance">
       <h3 class="title">Performance</h3>
-      <div class="performance"></div>
+      <div class="performance-graph"></div>
     </div>
   </div>
 
@@ -37,6 +37,10 @@
     <p>IP {{pluralize_noun "address" nips}}: {{#if ips}} {{html_list ips}} {{else}} N/A {{/if}}</p>
     <p class="uptime">Uptime: {{uptime}}</p>
   </div>
+</script>
+
+<script id="machine_view_title-template" type="text/x-handlebars-template">
+  <h1>Machine overview for {{name}}</h1> (<a href="#" class="rename-machine">rename</a>)
 </script>
 
 

@@ -1,31 +1,35 @@
 <script id="namespace_view-container-template" type="text/x-handlebars-template">
-  <div class="profile-holder"></div>
+
+  <div class="full_profile">
+    <h1>Namespace overview for {{name}}</h1> (<a href="#" class="rename-namespace">rename</a>)
+    <div id="user-alert-space">{{print_safe old_alert_html}}</div>
+    <div class="two-panel-section">
+      <div class="panel-left profile">
+
+      </div>
+    <div class="panel-right">
+      <h3 class="title">Performance</h3>
+    </div>
+  </div>
+
   <h3 class="title">Replication settings</h3>
   <div class="section replication"></div>
+
   <h3 class="title">Sharding settings</h3>
   <div class="section sharding"></div>
 </script>
 
 <script id="namespace_view-profile-template" type="text/x-handlebars-template">
-  <h1>Namespace overview for {{name}}</h1> (<a href="#" class="rename-namespace">rename</a>)
-  <div id="user-alert-space">{{print_safe old_alert_html}}</div>
-  <div class="two-panel-section">
-    <div class="panel-left">
-      <h3 class="title">Namespace profile</h3>
-      <div class="section summary">
-        <p class="protocol">Protocol: {{protocol}}</p>
-        <p class="port">Port: {{port}}</p>
-      </div>
+  <h3 class="title">Namespace profile</h3>
+    <div class="section summary">
+      <p class="protocol">Protocol: {{protocol}}</p>
+      <p class="port">Port: {{port}}</p>
     </div>
-    <div class="panel-right">
-      <h3 class="title">Namespace status</h3>
-      <div class="section summary">
-        <p>Status: {{reachability}}</p>
-        <p>Masters: {{nashards}} of {{nshards}} reachable</p>
-        <p>Replicas: {{nareplicas}} of {{nreplicas}} reachable</p>
-        <p>Replication: {{> backfill_progress_summary}}</p>
-      </div>
+
+    <div class="section summary">
+      <p>Status: {{reachability}}</p>
+      <p>Masters: {{nashards}} of {{nshards}} reachable</p>
+      <p>Replicas: {{nareplicas}} of {{nreplicas}} reachable</p>
+      <p>Replication: {{> backfill_progress_summary}}</p>
     </div>
-    <div class="two-panel-clear"></div>
-  </div>
 </script>

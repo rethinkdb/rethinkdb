@@ -35,6 +35,7 @@ module 'NamespaceView', ->
             @replicas = new NamespaceView.Replicas(model: @model)
             @shards = new NamespaceView.Shards(model: @model)
 
+
             # We no longer need all this logic in wait_for_model, so
             # switch it to noop for the callers
             @wait_for_model = @wait_for_model_noop
@@ -55,7 +56,7 @@ module 'NamespaceView', ->
             @.$el.html @template json
 
             # Add the replica and shards views
-            @.$('.profile-holder').html @profile.render().el
+            @.$('.profile').html @profile.render().el
             @.$('.section.replication').html @replicas.render().el
             @.$('.section.sharding').html @shards.render().el
 

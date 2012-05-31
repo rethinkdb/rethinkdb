@@ -737,6 +737,7 @@
         border-bottom: thin solid #CCC;
         padding-bottom: 10px;
         margin-bottom: 10px;
+        overflow:hidden;
     }
 
     h3.title {
@@ -865,6 +866,61 @@
     }
     .machine-stats{
         overflow: hidden;
+    }
+    .label{
+        position: relative;
+        bottom: 3px;
+        left: 3px;
+    }
+}
+
+/*
+    ----------------------------
+    Datacenter view
+    ----------------------------
+*/
+
+.datacenter-view {
+    .profile-expandable{
+        height: 285px;
+        .more_machines{
+            list-style: none;
+            margin: 3px 0px 60px 20px;
+        }
+    }
+    .list_stats {
+        float: left;
+        list-style: none;
+        li {
+            display: inline-block;
+            padding: 5px 0px 0px 0px;
+        }
+        .title{
+            width: 90px;
+        }
+        .minichart{
+            width: 80px;
+            .progress{
+                height: 15px;
+                width: 75px;
+                margin: 0px 0px -3px 0px;
+                padding: 0px;
+            }
+        }
+        .value{
+            width: 140px;
+        }
+    }
+    .machine-stats{
+        overflow: hidden;
+    }
+    .timeago{
+        margin-left: 15px;
+    }
+    .label{
+        position: relative;
+        bottom: 3px;
+        left: 3px;
     }
 }
 

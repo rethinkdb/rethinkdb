@@ -96,7 +96,8 @@ Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
             result = "<span class='label label-success'>Reachable</span>"
         else
             _last_seen = if status.last_seen? then status.last_seen else 'unknown'
-            result = "<span class='label label-important'>Unreachable</span> (<abbr class='timeago' title='#{_last_seen}'>since #{_last_seen}</abbr>)"
+            result = "<span class='label label-important'>Unreachable</span>
+                <br/><span class='timeago' title='#{_last_seen}'>since #{_last_seen}</span>"
     return new Handlebars.SafeString(result);
 
 Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
@@ -107,11 +108,28 @@ Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
             result = "<span class='label label-important'>Down</span>"
         else
             result = "<span class='label'>Empty</span>"
-    result += "(#{status.reachable} of #{status.total} machines reachable)"
     if status.reachable == 0 and status.total > 0
-        result += " <abbr class='timeago' title='#{status.last_seen}'>since #{status.last_seen}</abbr>"
+        result += "<br/><span class='timeago' title='#{status.last_seen}'>since #{status.last_seen}</abbr>"
 
     return new Handlebars.SafeString(result);
+
+Handlebars.registerHelper 'display_truncated_machines', (data) ->
+    machines = data.machines
+    out = ''
+    num_displayed_machine = 0
+    more_link_should_be_displayed = data.more_link_should_be_displayed
+    for machine in machines
+        out += '<li><a href="#machines/'+machine.id+'">'+machine.name+'</a>'+Handlebars.helpers.humanize_machine_reachability(machine.status)+'</li>'
+        num_displayed_machine++
+        if machine.status.reachable isnt true
+            num_displayed_machine++
+
+        if more_link_should_be_displayed is true and num_displayed_machine > 6
+            more_link_should_be_displayed = false
+            out += '<li class="more_machines"><a href="#" class="display_more_machines">» More</a></li>'
+ 
+
+    return new Handlebars.SafeString(out);
 
 # Safe string
 Handlebars.registerHelper 'print_safe', (str) ->

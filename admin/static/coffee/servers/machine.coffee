@@ -8,6 +8,7 @@ module 'MachineView', ->
         events: ->
             'click a.set-datacenter': 'set_datacenter'
             'click a.rename-machine': 'rename_machine'
+            'click .close': 'close_alert'
 
         max_log_entries_to_render: 3
 
@@ -20,6 +21,8 @@ module 'MachineView', ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'machine'
             rename_modal.render()
+            @title.update()
+
 
         wait_for_model_noop: =>
             return true
@@ -50,6 +53,7 @@ module 'MachineView', ->
             if not @wait_for_model()
                 return @render_empty()
 
+            @title = new MachineView.Title(@machine_uuid)
             @profile = new MachineView.Profile(@machine_uuid)
             @data = new MachineView.Data(@machine_uuid)
             
@@ -58,14 +62,15 @@ module 'MachineView', ->
             
             @stats_panel = new Vis.StatsPanel(stats)
 
-            json =
-                name: @model.get('name')
             # create main structure
-            @.$el.html @template json
+            @.$el.html @template
+
+            # fill the title of this page
+            @.$('.main_title').html @title.render().$el
 
             # fill the profile (name, reachable + performance)
             @.$('.profile').html @profile.render().$el
-            @.$('.performance').html @performance_graph.render().$el
+            @.$('.performance-graph').html @performance_graph.render().$el
 
             # display stats sparklines
             @.$('.machine-stats').html @stats_panel.render().$el
@@ -89,6 +94,30 @@ module 'MachineView', ->
             event.preventDefault()
             set_datacenter_modal = new ServerView.SetDatacenterModal
             set_datacenter_modal.render [@model]
+
+        close_alert: (event) ->
+            event.preventDefault()
+            $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
+
+    # MachineView.Profile
+    class @Title extends Backbone.View
+        className: 'machine-info-view'
+        template: Handlebars.compile $('#machine_view_title-template').html()
+        initialize: (model_id) =>
+            @id = model_id
+            @name = machines.get(@id).get('name')
+            machines.on 'all', @update
+        
+        update: =>
+            if @name isnt machines.get(@id).get('name')
+                @name = machines.get(@id).get('name')
+                @render()
+
+        render: =>
+            json =
+                name: @name
+            @.$el.html @template(json)
+            return @
 
     # MachineView.Profile
     class @Profile extends Backbone.View
