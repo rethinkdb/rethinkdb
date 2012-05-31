@@ -148,8 +148,9 @@ private:
 
     struct shard_input_t {
         struct {
-            bool inf;
-            std::string key;
+            bool exists;
+            bool unbounded;
+            store_key_t key;
         } left, right;
     };
 
