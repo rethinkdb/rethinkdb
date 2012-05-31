@@ -21,7 +21,7 @@ struct order_bucket_t {
 private:
     RDB_MAKE_ME_SERIALIZABLE_1(uuid_);
 
-    order_bucket_t(boost::uuids::uuid uuid) : uuid_(uuid) { }
+    explicit order_bucket_t(boost::uuids::uuid uuid) : uuid_(uuid) { }
 };
 
 

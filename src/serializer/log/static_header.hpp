@@ -1,5 +1,5 @@
-#ifndef SERIALIZER_STATIC_HEADER_HPP_
-#define SERIALIZER_STATIC_HEADER_HPP_
+#ifndef SERIALIZER_LOG_STATIC_HEADER_HPP_
+#define SERIALIZER_LOG_STATIC_HEADER_HPP_
 
 #include <stddef.h>
 #include "arch/types.hpp"
@@ -28,4 +28,4 @@ struct static_header_read_callback_t {
 
 bool static_header_read(direct_file_t *file, void *data_out, size_t data_size, static_header_read_callback_t *cb);
 
-#endif /* SERIALIZER_STATIC_HEADER_HPP_ */
+#endif /* SERIALIZER_LOG_STATIC_HEADER_HPP_ */

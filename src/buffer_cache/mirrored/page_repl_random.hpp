@@ -1,5 +1,5 @@
-#ifndef PAGE_REPL_RANDOM_HPP_
-#define PAGE_REPL_RANDOM_HPP_
+#ifndef BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_
+#define BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_
 
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"
@@ -77,4 +77,4 @@ private:
     two_level_array_t<evictable_t*, MAX_BLOCKS_IN_MEMORY> array;
 };
 
-#endif // PAGE_REPL_RANDOM_HPP_
+#endif // BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_

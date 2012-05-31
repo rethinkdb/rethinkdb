@@ -106,5 +106,5 @@ struct log_serializer_static_config_t : public log_serializer_on_disk_static_con
     RDB_MAKE_ME_SERIALIZABLE_2(block_size_, extent_size_);
 };
 
-#endif
+#endif /* SERIALIZER_LOG_CONFIG_HPP_ */
 

@@ -21,7 +21,8 @@ cJSON *render_as_json(store_key_t *target, const ctx_t &) {
 
 template <class ctx_t>
 void apply_json_to(cJSON *change, store_key_t *target, const ctx_t &) {
-    if (!unescaped_str_to_key(percent_unescaped_string(get_string(change)).c_str(), target)) {
+    std::string str(percent_unescaped_string(get_string(change)));
+    if (!unescaped_str_to_key(str.c_str(), str.length(), target)) {
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a store_key_t.\n", get_string(change).c_str()));
     }
 }

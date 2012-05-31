@@ -124,16 +124,16 @@ static char *print_number(cJSON *item)
 	if (fabs(((double)item->valueint)-d)<=DBL_EPSILON && d<=INT_MAX && d>=INT_MIN)
 	{
 		str=(char*)cJSON_malloc(21);	/* 2^64+1 can be represented in 21 chars. */
-		if (str) sprintf(str,"%d",item->valueint);
+		if (str) sprintf(str,"%d",item->valueint);  // NOLINT(runtime/printf)
 	}
 	else
 	{
 		str=(char*)cJSON_malloc(64);	/* This is a nice tradeoff. */
 		if (str)
 		{
-			if (fabs(floor(d)-d)<=DBL_EPSILON)			sprintf(str,"%.0f",d);
-			else if (fabs(d)<1.0e-6 || fabs(d)>1.0e9)	sprintf(str,"%e",d);
-			else										sprintf(str,"%f",d);
+			if (fabs(floor(d)-d)<=DBL_EPSILON)			sprintf(str,"%.0f",d); // NOLINT(runtime/printf)
+			else if (fabs(d)<1.0e-6 || fabs(d)>1.0e9)	sprintf(str,"%e",d);   // NOLINT(runtime/printf)
+			else										sprintf(str,"%f",d);   // NOLINT(runtime/printf)
 		}
 	}
 	return str;
@@ -229,7 +229,7 @@ static char *print_string_ptr(const char *str)
 				case '\n':	*ptr2++='n';	break;
 				case '\r':	*ptr2++='r';	break;
 				case '\t':	*ptr2++='t';	break;
-				default: sprintf(ptr2,"u%04x",token);ptr2+=5;	break;	/* escape and print */
+				default: sprintf(ptr2,"u%04x",token);ptr2+=5;	break;	/* escape and print */  // NOLINT(runtime/printf)
 			}
 		}
 	}

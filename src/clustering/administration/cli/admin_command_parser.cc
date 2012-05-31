@@ -11,8 +11,6 @@
 #include "help.hpp"
 #include "errors.hpp"
 
-#include <boost/program_options.hpp>
-
 admin_command_parser_t *admin_command_parser_t::instance = NULL;
 uint64_t admin_command_parser_t::cluster_join_timeout = 5000; // Give 5 seconds to connect to all machines in the cluster
 
@@ -50,7 +48,7 @@ const char *admin_command_parser_t::list_namespaces_usage = "[--protocol <protoc
 const char *admin_command_parser_t::list_datacenters_usage = "[--long]";
 const char *admin_command_parser_t::help_usage = "[ ls | create | rm | set | split | merge | resolve | help ]";
 const char *admin_command_parser_t::resolve_usage = "<id> <field>";
-const char *admin_command_parser_t::pin_shard_usage = "<namespace> <shard> [--primary <machine>] [--secondary <machine>...]";
+const char *admin_command_parser_t::pin_shard_usage = "<namespace> <shard> [--master <machine>] [--replica <machine>...]";
 const char *admin_command_parser_t::split_shard_usage = "<namespace> <split-point>...";
 const char *admin_command_parser_t::merge_shard_usage = "<namespace> <split-point>...";
 const char *admin_command_parser_t::set_name_usage = "<id> <new name>";
@@ -81,6 +79,48 @@ const char *admin_command_parser_t::set_datacenter_description = "Set the primar
 const char *admin_command_parser_t::create_namespace_description = "Create a new namespace with the given protocol.  The namespace's primary datacenter and listening port must be specified.";
 const char *admin_command_parser_t::create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
 const char *admin_command_parser_t::remove_description = "Remove an object from the cluster.";
+
+std::vector<std::string> parse_line(const std::string& line) {
+    std::vector<std::string> result;
+    char quote = '\0';
+    bool escape = false;
+    std::string argument;
+
+    for (size_t i = 0; i < line.length(); ++i) {
+        if (escape) {
+            // It was easier for me to understand the boolean logic like this, empty if statements intentional
+            if (quote == '\0' && (line[i] == '\'' || line[i] == '\"' || line[i] == ' ' || line[i] == '\t' || line[i] == '\r' || line[i] == '\n'));
+            else if (quote != '\0' && line[i] == quote);
+            else
+                argument += '\\';
+            argument += line[i];
+            escape = false;
+        } else if (line[i] == '\\') {
+            escape = true;
+        } else if (line[i] == '\'' || line[i] == '\"') {
+            if (quote == '\0')
+                quote = line[i];
+            else if (quote == line[i])
+                quote = '\0';
+            else
+                argument += line[i];
+        } else if (quote != '\0' || (line[i] != ' ' && line[i] != '\t' && line[i] != '\r' && line[i] != '\n')) {
+            argument += line[i];
+        } else {
+            if (!argument.empty())
+                result.push_back(argument);
+            argument.clear();
+        }
+    }
+
+    if (quote != '\0')
+        throw admin_parse_exc_t("unmatched quote");
+
+    if (!argument.empty())
+        result.push_back(argument);
+
+    return result;
+}
 
 void admin_command_parser_t::param_options::add_option(const char *term) {
     valid_options.insert(term);
@@ -193,8 +233,9 @@ void admin_command_parser_t::do_usage(bool console) {
     if (console) {
         helps.push_back(admin_help_info_t(exit_command, exit_usage, exit_description));
         do_usage_internal(helps, options, "rethinkdb admin console - access or modify cluster metadata", console);
-    } else
+    } else {
         do_usage_internal(helps, options, "- access or modify cluster metadata", console);
+    }
 }
 
 admin_command_parser_t::admin_command_parser_t(const std::string& peer_string, const std::set<peer_address_t>& joins, int client_port, signal_t *_interruptor) :
@@ -249,9 +290,9 @@ admin_command_parser_t::command_info * admin_command_parser_t::add_command(std::
     } else {
         std::map<std::string, command_info *>::iterator i = cmd_map.find(cmd);
 
-        if (i == cmd_map.end())
+        if (i == cmd_map.end()) {
             i = cmd_map.insert(std::make_pair(cmd, new command_info(full_cmd, cmd, usage, post_sync, fn))).first;
-        else {
+        } else {
             // This node already exists, but this command should overwrite the current values
             i->second->usage = usage;
             i->second->post_sync = post_sync;
@@ -442,11 +483,11 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
 
 void admin_command_parser_t::run_command(command_data& data) {
     // Special cases for help and join, which do nothing through the cluster
-    if (data.info->command == "help")
+    if (data.info->command == "help") {
         do_admin_help(data);
-    else if (data.info->do_function == NULL)
+    } else if (data.info->do_function == NULL) {
         throw admin_parse_exc_t("incomplete command (should have been caught earlier, though)");
-    else {
+    } else {
         get_cluster()->sync_from();
 
         // Retry until the command completes, this is necessary if multiple sources modify the same vclock
@@ -470,7 +511,7 @@ void admin_command_parser_t::completion_generator_hook(const char *raw, linenois
     } else {
         bool partial = !linenoiseIsUnescapedSpace(raw, strlen(raw) - 1);
         try {
-            std::vector<std::string> line = boost::program_options::split_unix(raw);
+            std::vector<std::string> line = parse_line(raw);
             instance->completion_generator(line, completions, partial);
         } catch(std::exception& ex) {
             // Do nothing - if the line can't be parsed or completions failed, we just can't complete the line
@@ -505,11 +546,11 @@ void admin_command_parser_t::add_option_matches(const param_options *option, con
     std::vector<std::string> ids;
 
     // !id and !conflict are mutually exclusive will all patterns, others can be combined
-    if (option->valid_options.count("!id") > 0)
+    if (option->valid_options.count("!id") > 0) {
         ids = get_cluster()->get_ids(partial);
-    else if (option->valid_options.count("!conflict") > 0)
+    } else if (option->valid_options.count("!conflict") > 0) {
         ids = get_cluster()->get_conflicted_ids(partial);
-    else { // TODO: any way to make uuids show before names?
+    } else { // TODO: any way to make uuids show before names?
         if (option->valid_options.count("!datacenter") > 0) {
             std::vector<std::string> delta = get_cluster()->get_datacenter_ids(partial);
             std::copy(delta.begin(), delta.end(), std::back_inserter(ids));
@@ -720,32 +761,22 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
             break;
 
         if (!line.empty()) {
-            std::vector<std::string> split_line;
 
             try {
-                split_line = boost::program_options::split_unix(line);
-            } catch (...) {
+                std::vector<std::string> split_line = parse_line(line);
+                if (!split_line.empty())
+                    parse_and_run_command(split_line);
+            } catch (admin_no_connection_exc_t& ex) {
+                free(raw_line);
+                console_mode = false;
+                throw admin_cluster_exc_t("fatal error: connection to cluster failed");
+            } catch (std::exception& ex) {
                 if (exit_on_failure) {
                     free(raw_line);
                     console_mode = false;
-                    throw admin_parse_exc_t("could not parse line");
-                }
-            }
-
-            if (!split_line.empty()) {
-                try {
-                    parse_and_run_command(split_line);
-                } catch (admin_no_connection_exc_t& ex) {
-                    free(raw_line);
-                    console_mode = false;
-                    throw admin_cluster_exc_t("fatal error: connection to cluster failed");
-                } catch (std::exception& ex) {
-                    if (exit_on_failure) {
-                        free(raw_line);
-                        console_mode = false;
-                        throw;
-                    } else
-                        fprintf(stderr, "%s\n", ex.what());
+                    throw;
+                } else {
+                    fprintf(stderr, "%s\n", ex.what());
                 }
             }
 
@@ -794,8 +825,9 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
             } else if (subcommand == "datacenters") {
                 helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
                 do_usage_internal(helps, options, "ls datacenters - display a list of datacenters in the cluster", console_mode);
-            } else
+            } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            }
         } else if (command == "set") {
             if (subcommand.empty()) {
                 helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
@@ -815,8 +847,9 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
             } else if (subcommand == "datacenter") {
                 helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
                 do_usage_internal(helps, options, "set datacenter - change the primary datacenter for a namespace or machine", console_mode);
-            } else
+            } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            }
         } else if (command == "create") {
             if (subcommand.empty()) {
                 helps.push_back(admin_help_info_t(create_namespace_command, create_namespace_usage, create_namespace_description));
@@ -828,8 +861,9 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
             } else if (subcommand == "datacenter") {
                 helps.push_back(admin_help_info_t(create_datacenter_command, create_datacenter_usage, create_datacenter_description));
                 do_usage_internal(helps, options, "create datacenter - add a new datacenter to the cluster", console_mode);
-            } else
+            } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            }
         } else if (command == "rm") {
             if (!subcommand.empty())
                 throw admin_parse_exc_t("no recognized subcommands for 'rm'");
@@ -855,9 +889,11 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
                 throw admin_parse_exc_t("no recognized subcommands for 'resolve'");
             helps.push_back(admin_help_info_t(resolve_command, resolve_usage, resolve_description));
             do_usage_internal(helps, options, "resolve - resolve a conflict on a cluster metadata value", console_mode);
-        } else
+        } else {
             throw admin_parse_exc_t("unknown command: " + command);
-    } else
+        }
+    } else {
         do_usage(console_mode);
+    }
 }
 

@@ -211,4 +211,4 @@ private:
     DISABLE_COPYING(admin_command_parser_t);
 };
 
-#endif
+#endif /* CLUSTERING_ADMINISTRATION_CLI_ADMIN_COMMAND_PARSER_HPP_ */

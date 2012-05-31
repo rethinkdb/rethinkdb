@@ -1,5 +1,5 @@
-#ifndef HASH_REGION_HPP_
-#define HASH_REGION_HPP_
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_
 
 // TODO: Find a good location for this file.
 
@@ -225,4 +225,4 @@ bool operator<(const hash_region_t<inner_region_t> &r1, const hash_region_t<inne
 }
 
 
-#endif  // HASH_REGION_HPP_
+#endif  // CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_

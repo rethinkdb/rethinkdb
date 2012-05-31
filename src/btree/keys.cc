@@ -1,7 +1,6 @@
 #include "btree/keys.hpp"
 
-bool unescaped_str_to_key(const char *str, store_key_t *buf) {
-    int len = strlen(str);
+bool unescaped_str_to_key(const char *str, int len, store_key_t *buf) {
     if (len <= MAX_KEY_SIZE) {
         memcpy(buf->contents(), str, len);
         buf->set_size(uint8_t(len));

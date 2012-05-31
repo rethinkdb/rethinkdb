@@ -281,7 +281,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     gets.reserve(argc - 1);
     for (int i = 1; i < argc; i++) {
         gets.push_back(get_t());
-        if (!unescaped_str_to_key(argv[i], &gets.back().key)) {
+        if (!unescaped_str_to_key(argv[i], strlen(argv[1]), &gets.back().key)) {
             pipeliner_acq.done_argparsing();
             pipeliner_acq.begin_write();
             rh->client_error_bad_command_line_format();
@@ -350,7 +350,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
 static const char *rget_null_key = "null";
 
 static bool rget_parse_bound(char *flag, char *key, key_range_t::bound_t *mode_out, store_key_t *key_out) {
-    if (!unescaped_str_to_key(key, key_out)) return false;
+    if (!unescaped_str_to_key(key, strlen(key), key_out)) return false;
 
     const char *invalid_char;
     int64_t open_flag = strtoi64_strict(flag, &invalid_char, 10);
@@ -702,7 +702,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 
     /* First parse the key */
     store_key_t key;
-    if (!unescaped_str_to_key(argv[1], &key)) {
+    if (!unescaped_str_to_key(argv[1], strlen(argv[1]), &key)) {
         pipeliner_acq->done_argparsing();
         pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
@@ -881,7 +881,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool i, i
 
     /* Parse key */
     store_key_t key;
-    if (!unescaped_str_to_key(argv[1], &key)) {
+    if (!unescaped_str_to_key(argv[1], strlen(argv[1]), &key)) {
         pipeliner_acq.done_argparsing();
         pipeliner_acq.begin_write();
         rh->client_error_bad_command_line_format();
@@ -976,7 +976,7 @@ void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, ch
 
     /* Parse key */
     store_key_t key;
-    if (!unescaped_str_to_key(argv[1], &key)) {
+    if (!unescaped_str_to_key(argv[1], strlen(argv[1]), &key)) {
         pipeliner_acq.done_argparsing();
         pipeliner_acq.begin_write();
         rh->client_error_bad_command_line_format();

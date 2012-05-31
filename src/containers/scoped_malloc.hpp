@@ -1,5 +1,5 @@
-#ifndef SCOPED_MALLOC_HPP_
-#define SCOPED_MALLOC_HPP_
+#ifndef CONTAINERS_SCOPED_MALLOC_HPP_
+#define CONTAINERS_SCOPED_MALLOC_HPP_
 
 #include <string.h>
 
@@ -61,4 +61,4 @@ private:
     void operator=(const scoped_malloc&);
 };
 
-#endif  // SCOPED_MALLOC_HPP_
+#endif  // CONTAINERS_SCOPED_MALLOC_HPP_

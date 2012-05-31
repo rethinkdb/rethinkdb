@@ -67,14 +67,14 @@ class ContinuousWorkload(object):
     def stop(self):
         self.check()
         print "Stopping %r..." % self.command_line
-        self.proc.send_signal(signal.SIGTERM)
+        os.killpg(self.proc.pid, signal.SIGINT)
         shutdown_grace_period = 10   # seconds
         end_time = time.time() + shutdown_grace_period
         while time.time() < end_time:
             result = self.proc.poll()
             if result is None:
                 time.sleep(1)
-            elif result == 0 or result == -signal.SIGTERM:
+            elif result == 0 or result == -signal.SIGINT:
                 print "OK"
                 self.running = False
                 break
@@ -82,7 +82,7 @@ class ContinuousWorkload(object):
                 self.running = False
                 raise RuntimeError("workload '%s' failed when interrupted with error code %d" % (self.command_line, result))
         else:
-            raise RuntimeError("workload '%s' failed to terminate within %d seconds of SIGTERM" % (self.command_line, shutdown_grace_period))
+            raise RuntimeError("workload '%s' failed to terminate within %d seconds of SIGINT" % (self.command_line, shutdown_grace_period))
 
     def __exit__(self, exc = None, ty = None, tb = None):
         if self.running:

@@ -37,7 +37,6 @@
 #include "rpc/semilattice/view/member.hpp"
 
 bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
-
     local_issue_tracker_t local_issue_tracker;
 
     log_writer_t log_writer(filepath + "/log_file", &local_issue_tracker);
@@ -226,8 +225,12 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
     metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
 
     {
+        int http_port = port + 1000;
+        guarantee(http_port < 65536);
+
+        printf("Starting up administrative HTTP server on port %d...\n", http_port);
         administrative_http_server_manager_t administrative_http_interface(
-            port + 1000,
+            http_port,
             &mailbox_manager,
             semilattice_manager_cluster.get_root_view(),
             directory_read_manager.get_root_view(),
