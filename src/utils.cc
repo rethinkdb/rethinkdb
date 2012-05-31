@@ -1,4 +1,5 @@
 #define __STDC_LIMIT_MACROS
+#define __STDC_FORMAT_MACROS
 
 #include "utils.hpp"
 
@@ -7,7 +8,7 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -274,6 +275,10 @@ void debugf(const char *msg, ...) {
     va_end(ap);
 
     debugf_dump_buf(&buf);
+}
+
+void debug_print(append_only_printf_buffer_t *buf, uint64_t x) {
+    buf->appendf("%" PRIu64, x);
 }
 #endif
 

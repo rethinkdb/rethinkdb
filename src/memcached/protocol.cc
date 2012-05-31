@@ -74,12 +74,16 @@ RDB_IMPL_SERIALIZABLE_3(append_prepend_mutation_t, kind, key, data);
 RDB_IMPL_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, cas_or_zero);
 
 
+hash_region_t<key_range_t> monokey_region(const store_key_t &k) {
+    uint64_t h = hash_region_hasher(k.contents(), k.size());
+    return hash_region_t<key_range_t>(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
+}
+
 /* `memcached_protocol_t::read_t::get_region()` */
 
 struct read_get_region_visitor_t : public boost::static_visitor<hash_region_t<key_range_t> > {
     hash_region_t<key_range_t> operator()(get_query_t get) {
-        uint64_t h = hash_region_hasher(get.key.contents(), get.key.size());
-        return hash_region_t<key_range_t>(h, h + 1, key_range_t(key_range_t::closed, get.key, key_range_t::closed, get.key));
+        return monokey_region(get.key);
     }
     hash_region_t<key_range_t> operator()(rget_query_t rget) {
         // TODO: I bet this causes problems.
@@ -106,7 +110,7 @@ struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t:
     exptime_t effective_time;
 
     memcached_protocol_t::read_t operator()(get_query_t get) {
-        rassert(region == hash_region_t<key_range_t>(key_range_t(key_range_t::closed, get.key, key_range_t::closed, get.key)));
+        rassert(region == monokey_region(get.key));
         return memcached_protocol_t::read_t(get, effective_time);
     }
     memcached_protocol_t::read_t operator()(rget_query_t rget) {
@@ -206,8 +210,7 @@ struct write_get_region_visitor_t : public boost::static_visitor< hash_region_t<
     /* All the types of mutation have a member called `key` */
     template<class mutation_t>
     hash_region_t<key_range_t> operator()(mutation_t mut) {
-        uint64_t h = hash_region_hasher(mut.key.contents(), mut.key.size());
-        return hash_region_t<key_range_t>(h, h + 1, key_range_t(key_range_t::closed, mut.key, key_range_t::closed, mut.key));
+        return monokey_region(mut.key);
     }
 };
 
@@ -242,12 +245,6 @@ struct backfill_chunk_get_region_visitor_t : public boost::static_visitor< hash_
 
     hash_region_t<key_range_t> operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
         return monokey_region(kv.backfill_atom.key);
-    }
-
-private:
-    static hash_region_t<key_range_t> monokey_region(const store_key_t &k) {
-        uint64_t h = hash_region_hasher(k.contents(), k.size());
-        return hash_region_t<key_range_t>(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
     }
 };
 
@@ -903,10 +900,6 @@ void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::w
     }
 
     buf->appendf("}");
-}
-
-void debug_print(append_only_printf_buffer_t *buf, const store_key_t& k) {
-    debug_print_quoted_string(buf, k.contents(), k.size());
 }
 
 void debug_print(append_only_printf_buffer_t *buf, const get_cas_mutation_t& mut) {

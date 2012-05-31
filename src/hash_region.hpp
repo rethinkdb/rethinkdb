@@ -276,4 +276,15 @@ bool operator<(const hash_region_t<inner_region_t> &r1, const hash_region_t<inne
 }
 
 
+template <class inner_region_t>
+void debug_print(append_only_printf_buffer_t *buf, const hash_region_t<inner_region_t> &r) {
+    buf->appendf("hash_region_t{beg: ");
+    debug_print(buf, r.beg);
+    buf->appendf(", end: ");
+    debug_print(buf, r.end);
+    buf->appendf(", inner: ");
+    debug_print(buf, r.inner);
+    buf->appendf("}");
+}
+
 #endif  // CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_

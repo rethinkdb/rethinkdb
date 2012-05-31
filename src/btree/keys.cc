@@ -96,6 +96,22 @@ std::string key_range_to_debug_str(const key_range_t &kr) {
     return ret;
 }
 
+void debug_print(append_only_printf_buffer_t *buf, const store_key_t &k) {
+    debug_print_quoted_string(buf, k.contents(), k.size());
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const key_range_t &kr) {
+    buf->appendf("[");
+    debug_print(buf, kr.left);
+    buf->appendf(", ");
+    if (kr.right.unbounded) {
+        buf->appendf("+inf");
+    } else {
+        debug_print(buf, kr.right.key);
+    }
+    buf->appendf(")");
+}
+
 bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
     return a.unbounded == b.unbounded && a.key == b.key;
 }

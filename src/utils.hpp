@@ -123,6 +123,8 @@ void debug_print(const char *msg, const T& obj) {
     buf.appendf("\n");
     debugf_dump_buf(&buf);
 }
+
+void debug_print(append_only_printf_buffer_t *buf, uint64_t x);
 #else
 #define debugf(...) ((void)0)
 #define debug_print(...) ((void)0)
