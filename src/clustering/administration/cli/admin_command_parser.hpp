@@ -153,14 +153,6 @@ public:
     void run_completion(const std::vector<std::string>& command_args);
 
     static void do_usage(bool console);
-    static void do_set_usage(bool console);
-    static void do_list_usage(bool console);
-    static void do_help_usage(bool console);
-    static void do_split_usage(bool console);
-    static void do_merge_usage(bool console);
-    static void do_create_usage(bool console);
-    static void do_remove_usage(bool console);
-    static void do_resolve_usage(bool console);
 
 private:
 

@@ -7,7 +7,7 @@ from vcoptparse import *
 op = workload_common.option_parser_for_memcache()
 op["num_keys"] = IntFlag("--num-keys", 5000)
 op["sequential"] = BoolFlag("--sequential")
-op["phase"] = ChoiceFlag("--phase", ["w", "r", "wr"])
+op["phase"] = ChoiceFlag("--phase", ["w", "r", "wr"], "wr")
 opts = op.parse(sys.argv)
 
 with workload_common.make_memcache_connection(opts) as mc:
@@ -41,7 +41,6 @@ with workload_common.make_memcache_connection(opts) as mc:
         for key in keys:
             if i % 16 == 0:
                 values = mc.get_multi(keys[i:i+16])
-                print "get", keys[i:i+16], "->", values
             value = values[key]
             if value != key:
                 raise ValueError("Key %r is set to %r, expected %r" % (key, value, key))

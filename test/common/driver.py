@@ -158,10 +158,10 @@ class Files(object):
     `Files`. To "restart" a server, create a `Files`, create a `Process`, stop
     the process, and then start a new `Process` on the same `Files`. """
 
-    def __init__(self, metacluster, name = None, port_offset = 0, db_path = None, log_path = None, executable_path = None, command_prefix = []):
+    def __init__(self, metacluster, machine_name = None, port_offset = 0, db_path = None, log_path = None, executable_path = None, command_prefix = []):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
-        assert name is None or isinstance(name, str)
+        assert machine_name is None or isinstance(machine_name, str)
         assert db_path is None or isinstance(db_path, str)
 
         if executable_path is None:
@@ -177,15 +177,17 @@ class Files(object):
             assert not os.path.exists(db_path)
             self.db_path = db_path
 
-        if name is None:
-            name = "node-%d" % self.id_number
+        if machine_name is None:
+            self.machine_name = "node-%d" % self.id_number
+        else:
+            self.machine_name = machine_name
 
         self.port_offset = self.id_number
 
         create_args = command_prefix + [executable_path, "create",
             "--directory=" + self.db_path,
             "--port-offset=" + str(self.port_offset),
-            "--name=" + name]
+            "--name=" + self.machine_name]
 
         if log_path is None:
             subprocess.check_call(create_args, stdout = sys.stdout, stderr = subprocess.STDOUT)

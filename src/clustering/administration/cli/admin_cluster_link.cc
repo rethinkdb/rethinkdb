@@ -702,11 +702,15 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
                     std::set<key_range_t>::iterator shard = ns.shards.get_mutable().begin();
                     while (true) {
                         if (shard == ns.shards.get_mutable().end())
-                            throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
+                            throw admin_cluster_exc_t("split point could not be placed: " + split_points[i]);
                         if (shard->contains_key(key))
                             break;
                         ++shard;
                     }
+
+                    // Don't split if this key is already the split point
+                    if (shard->left == key)
+                        throw admin_cluster_exc_t("split point already exists: " + split_points[i]);
 
                     // Create the two new shards to be inserted
                     key_range_t left;
