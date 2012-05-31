@@ -48,7 +48,7 @@ const char *admin_command_parser_t::list_namespaces_usage = "[--protocol <protoc
 const char *admin_command_parser_t::list_datacenters_usage = "[--long]";
 const char *admin_command_parser_t::help_usage = "[ ls | create | rm | set | split | merge | resolve | help ]";
 const char *admin_command_parser_t::resolve_usage = "<id> <field>";
-const char *admin_command_parser_t::pin_shard_usage = "<namespace> <shard> [--master <machine>] [--replica <machine>...]";
+const char *admin_command_parser_t::pin_shard_usage = "<namespace> <shard> [--master <machine>] [--replicas <machine>...]";
 const char *admin_command_parser_t::split_shard_usage = "<namespace> <split-point>...";
 const char *admin_command_parser_t::merge_shard_usage = "<namespace> <split-point>...";
 const char *admin_command_parser_t::set_name_usage = "<id> <new name>";
@@ -69,7 +69,7 @@ const char *admin_command_parser_t::list_datacenters_description = "Print a list
 const char *admin_command_parser_t::exit_description = "Quit the cluster administration console.";
 const char *admin_command_parser_t::help_description = "Print help on a cluster administration command.";
 const char *admin_command_parser_t::resolve_description = "If there are any conflicted values in the cluster, either list the possible values or resolve the conflict by selecting one of the values.";
-const char *admin_command_parser_t::pin_shard_description = "Set the master machine for a given shard in a namespace.";
+const char *admin_command_parser_t::pin_shard_description = "Set machines to host the master and/or replicas for a given shard in a namespace.";
 const char *admin_command_parser_t::split_shard_description = "Add a new shard to a namespace by creating a new split point.  This will subdivide a given shard into two shards at the specified key.";
 const char *admin_command_parser_t::merge_shard_description = "Remove a shard from a namespace by deleting a split point.  This will merge the two shards on each side of the split point into one.";
 const char *admin_command_parser_t::set_name_description = "Set the name of an object.  This object may be referred to by its existing name or its UUID.  An object may have only one name at a time.";
@@ -312,8 +312,8 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(commands, pin_shard_command, pin_shard_command, pin_shard_usage, true, &admin_cluster_link_t::do_admin_pin_shard);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("key", 1, true); // TODO: list possible shards
-    info->add_flag("primary", 1, false)->add_option("!machine");
-    info->add_flag("secondary", -1, false)->add_option("!machine"); // TODO: not sure if -1 works here
+    info->add_flag("master", 1, false)->add_option("!machine");
+    info->add_flag("replicas", -1, false)->add_option("!machine");
 
     info = add_command(commands, split_shard_command, split_shard_command, split_shard_usage, true, &admin_cluster_link_t::do_admin_split_shard);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
@@ -445,7 +445,7 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
                     if (index + remaining >= line.size())
                         throw admin_parse_exc_t("not enough arguments provided for flag: " + line[index]);
 
-                    while(remaining > 0) {
+                    while(remaining > 0 && index < line.size() - 1) {
                         ++index;
                         --remaining;
                         if (line[index].find("--") == 0)
@@ -874,16 +874,21 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
                 throw admin_parse_exc_t("no recognized subcommands for 'help'");
             helps.push_back(admin_help_info_t(help_command, help_usage, help_description));
             do_usage_internal(helps, options, "help - provide information about a cluster administration command", console_mode);
+        } else if (command == "pin") {
+            if (!subcommand.empty() || subcommand != "shard")
+                throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            helps.push_back(admin_help_info_t(pin_shard_command, pin_shard_usage, pin_shard_description));
+            do_usage_internal(helps, options, "pin shard - assign machines to host the master or replicas of a shard", console_mode);
         } else if (command == "split") {
             if (!subcommand.empty() || subcommand != "shard")
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             helps.push_back(admin_help_info_t(split_shard_command, split_shard_usage, split_shard_description));
-            do_usage_internal(helps, options, "split - split a shard in a namespace into more shards", console_mode);
+            do_usage_internal(helps, options, "split shard - split a shard in a namespace into more shards", console_mode);
         } else if (command == "merge") {
             if (!subcommand.empty() || subcommand != "shard")
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             helps.push_back(admin_help_info_t(merge_shard_command, merge_shard_usage, merge_shard_description));
-            do_usage_internal(helps, options, "merge - merge two or more shards in a namespace", console_mode);
+            do_usage_internal(helps, options, "merge shard - merge two or more shards in a namespace", console_mode);
         } else if (command == "resolve") {
             if (!subcommand.empty())
                 throw admin_parse_exc_t("no recognized subcommands for 'resolve'");
