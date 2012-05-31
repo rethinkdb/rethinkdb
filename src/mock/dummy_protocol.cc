@@ -321,7 +321,7 @@ void print_metainfo(append_only_printf_buffer_t *buf, const region_map_t<dummy_p
     buf->appendf(")");
 }
 
-void debugf_metainfo(const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
+void debugf_metainfo(DEBUG_ONLY_VAR const char *msg, const region_map_t<dummy_protocol_t, binary_blob_t> &m) {
     printf_buffer_t<2048> buf;
     print_metainfo(&buf, m);
     debugf("%s: %s\n", msg, buf.c_str());

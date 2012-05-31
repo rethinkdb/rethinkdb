@@ -8,9 +8,11 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/registrant.hpp"
 #include "clustering/resource.hpp"
+#include "protocol_api.hpp"
 
 #define OPERATION_CORO_POOL_SIZE 10
 
+#ifndef NDEBUG
 template <class protocol_t>
 struct version_leq_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
 public:
@@ -31,6 +33,7 @@ private:
 
     DISABLE_COPYING(version_leq_metainfo_checker_callback_t);
 };
+#endif // NDEBUG
 
 template <class protocol_t>
 listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
