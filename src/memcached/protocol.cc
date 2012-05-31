@@ -324,7 +324,7 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create,
 
     if (create) {
         // Initialize metainfo to an empty `binary_blob_t` because its domain is
-        // required to be `key_range_t::universe()` at all times
+        // required to be `hash_region_t<key_range_t>::universe()` at all times
         /* Wow, this is a lot of lines of code for a simple concept. Can we do better? */
         boost::scoped_ptr<real_superblock_t> superblock;
         boost::scoped_ptr<transaction_t> txn;
@@ -336,7 +336,7 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create,
 
         vector_stream_t key;
         write_message_t msg;
-        key_range_t kr = key_range_t::universe();   // `operator<<` needs a non-const reference
+        hash_region_t<key_range_t> kr = hash_region_t<key_range_t>::universe();   // `operator<<` needs a non-const reference  // TODO <- what
         msg << kr;
         DEBUG_ONLY_VAR int res = send_write_message(&key, &msg);
         rassert(!res);
@@ -440,7 +440,7 @@ region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t:
         {
             vector_read_stream_t key(&i->first);
             DEBUG_ONLY_VAR int res = deserialize(&key, &region);
-            rassert(!res);
+            rassert(!res, "res = %d", res);
         }
 
         result.push_back(std::make_pair(
@@ -846,7 +846,6 @@ void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metain
     clear_superblock_metainfo(txn, sb_buf);
 
     for (region_map_t<memcached_protocol_t, binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
-
         vector_stream_t key;
         write_message_t msg;
         msg << i->first;
@@ -855,6 +854,7 @@ void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metain
 
         std::vector<char> value(static_cast<const char*>((*i).second.data()),
                                 static_cast<const char*>((*i).second.data()) + (*i).second.size());
+
         set_superblock_metainfo(txn, sb_buf, key.vector(), value); // FIXME: this is not efficient either, see how value is created
     }
 }
