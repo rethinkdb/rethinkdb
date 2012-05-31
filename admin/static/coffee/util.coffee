@@ -17,6 +17,13 @@ Handlebars.registerHelper 'comma_separated', (context, block) ->
         out += ", " if i isnt context.length-1
     return out
 
+# Returns an html list
+Handlebars.registerHelper 'html_list', (context) ->
+    out = "<ul>"
+    for i in [0...context.length]
+        out += '<li>'+context[i]+'</li>'
+    out += '</ul>'
+    return new Handlebars.SafeString(out);
 
 # Returns a list to links to machine
 Handlebars.registerHelper 'links_to_machines', (machines) ->

@@ -2,8 +2,6 @@
 # Dashboard View
 module 'DashboardView', ->
     # Cluster.Container
-    
-
     class @Container extends Backbone.View
         el: '#cluster'
         className: 'dashboard_view'
@@ -30,7 +28,6 @@ module 'DashboardView', ->
 
         show_popover: (event) =>
             event.preventDefault()
-            console.log event.currentTarget
             @.$(event.currentTarget).popover('show')
             $popover = $('.popover')
 

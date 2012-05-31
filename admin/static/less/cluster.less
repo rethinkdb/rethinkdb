@@ -460,7 +460,30 @@
     h1.performance, h1.sharding-replication-settings {
         margin-top: 1em;
     }
+    .list_stats {
+        list-style: none;
+        li {
+            display: inline-block;
+            padding: 5px 0px 0px 0px;
+        }
+        .title{
+            width: 90px;
+        }
+        .minichart{
+            width: 80px;
+            .progress{
+                height: 15px;
+                width: 75px;
+                margin: 0px 0px -3px 0px;
+                padding: 0px;
+            }
+        }
+        .value{
+            width: 140px;
+        }
+    }
 }
+
 
 .dashboard-view table.status {
     width: 100%;
@@ -678,12 +701,22 @@
         padding-bottom: 10px;
         margin-bottom: 10px;
         width: 100%;
+        overflow: hidden;
         .panel-left {
             float: left;
             width: 50%;
         }
         .panel-right {
             float: left;
+        }
+        .panel-left-unbalanced {
+            float: left;
+            width: 320px;
+        }
+        .panel-right-unbalanced {
+            float: right;
+            width: 380px;
+            
         }
         .two-panel-clear {
             clear: both;
@@ -694,7 +727,12 @@
             margin-bottom: 0;
         }
     }
-    
+    .two-panel-section-no-border {
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        width: 100%;
+        overflow: hidden;   
+    }
     .section {
         border-bottom: thin solid #CCC;
         padding-bottom: 10px;
@@ -802,6 +840,32 @@
 */
 
 .machine-view {
+    .list_stats {
+        float: left;
+        list-style: none;
+        li {
+            display: inline-block;
+            padding: 5px 0px 0px 0px;
+        }
+        .title{
+            width: 90px;
+        }
+        .minichart{
+            width: 80px;
+            .progress{
+                height: 15px;
+                width: 75px;
+                margin: 0px 0px -3px 0px;
+                padding: 0px;
+            }
+        }
+        .value{
+            width: 140px;
+        }
+    }
+    .machine-stats{
+        overflow: hidden;
+    }
 }
 
 /*
@@ -1210,5 +1274,12 @@
         width: 75px;
         padding-left: 5px;
         padding-right: 5px;
+    }
+}
+
+.statistics_horizontal{
+    width: 100%;
+    .title-moved{
+        margin-left: 30px;
     }
 }

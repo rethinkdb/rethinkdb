@@ -105,6 +105,38 @@ class Datacenter extends Backbone.Model
         stats.global_cpu_util_avg /= nmachines
         return stats
 
+    get_stats_for_performance: =>
+        # Ops/sec stats
+        __s =
+            keys_read: 0
+            keys_set: 0
+            global_cpu_util_avg: 0
+            global_mem_total: 0
+            global_mem_used: 0
+            global_disk_space: 0
+            global_net_recv_persec_avg: 0
+            global_net_sent_persec_avg: 0
+        for namespace in namespaces.models
+            _s = namespace.get_stats()
+            if not _s?
+                continue
+            __s.keys_read += _s.keys_read
+            __s.keys_set += _s.keys_set
+        # CPU, mem, disk
+        num_machines_in_datacenter = 0
+        for machine in machines.models
+            if machine.get('datacenter_uuid') is @get('id')
+                num_machines_in_datacenter++
+                mstats = machine.get_stats().proc
+                __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util_avg)
+                __s.global_mem_total += parseInt(mstats.global_mem_total)
+                __s.global_mem_used += parseInt(mstats.global_mem_used)
+                __s.global_disk_space += machine.get_used_disk_space()
+                __s.global_net_recv_persec_avg += parseFloat(mstats.global_net_recv_persec_avg)
+                __s.global_net_sent_persec_avg += parseFloat(mstats.global_net_sent_persec_avg)
+            __s.global_cpu_util_avg /= num_machines_in_datacenter
+
+        return __s
 class Machine extends Backbone.Model
     get_stats: =>
         stats = @get('stats')
@@ -123,6 +155,33 @@ class Machine extends Backbone.Model
                 if stats?
                     machine_disk_space += parseInt(stats.block_size) * parseInt(stats.blocks_total)
         return machine_disk_space
+
+
+    get_stats_for_performance: =>
+
+        stats_full = @get_stats()
+        mstats = stats_full.proc
+        __s =
+            keys_read: 0
+            keys_set: 0
+            global_cpu_util_avg: parseFloat(mstats.global_cpu_util_avg)
+            global_mem_total: parseInt(mstats.global_mem_total)
+            global_mem_used: parseInt(mstats.global_mem_used)
+            global_disk_space: parseInt(@get_used_disk_space())
+            global_net_recv_persec_avg: parseFloat(mstats.global_net_recv_persec_avg)
+            global_net_sent_persec_avg: parseFloat(mstats.global_net_sent_persec_avg)
+        
+        for namespace in namespaces.models
+            _s = namespace.get_stats()
+            if not _s?
+                continue
+            
+            if namespace.get('id') of stats_full
+                __s.keys_read += _s.keys_read
+                __s.keys_set += _s.keys_set
+        # CPU, mem, disk
+        return __s
+
 
 class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)
@@ -191,6 +250,9 @@ class ComputedCluster extends Backbone.Model
         __s.global_cpu_util_avg /= machines.models.length
 
         return __s
+
+
+
 
 # Collections for Backbone.js
 class Namespaces extends Backbone.Collection

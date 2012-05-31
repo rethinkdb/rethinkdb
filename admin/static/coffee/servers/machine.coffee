@@ -15,6 +15,7 @@ module 'MachineView', ->
             log_initial '(initializing) machine view: container'
             @machine_uuid = id
 
+
         rename_machine: (event) ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'machine'
@@ -30,13 +31,10 @@ module 'MachineView', ->
                 machines.on 'all', @render
                 return false
 
-            # Model is finally ready, bind necessary handlers
+            # Model is finally ready, unbind unnecessary handlers
             machines.off 'all', @render
-            @model.on 'all', @render
-            directory.on 'all', @render
 
-            # Everything has been set up, we don't need this logic any
-            # more
+            # Everything has been set up, we don't need this logic any more
             @wait_for_model = @wait_for_model_noop
 
             return true
@@ -46,11 +44,64 @@ module 'MachineView', ->
             return @
 
         render: =>
+
             log_render '(rendering) machine view: container'
 
             if not @wait_for_model()
                 return @render_empty()
 
+            @profile = new MachineView.Profile(@machine_uuid)
+            @data = new MachineView.Data(@machine_uuid)
+            
+            stats = @model.get_stats_for_performance
+            @performance_graph = new Vis.OpsPlot(stats)
+            
+            @stats_panel = new Vis.StatsPanel(stats)
+
+            json =
+                name: @model.get('name')
+            # create main structure
+            @.$el.html @template json
+
+            # fill the profile (name, reachable + performance)
+            @.$('.profile').html @profile.render().$el
+            @.$('.performance').html @performance_graph.render().$el
+
+            # display stats sparklines
+            @.$('.machine-stats').html @stats_panel.render().$el
+
+            # display the data on the machines
+            @.$('.data').html @data.render().$el
+
+
+            # log entries
+            if @model.get('log_entries')?
+                entries_to_render = []
+                @model.get('log_entries').each (log_entry) =>
+                    entries_to_render.push(new MachineView.RecentLogEntry
+                        model: log_entry)
+                entries_to_render = entries_to_render.slice(0, @max_log_entries_to_render)
+                @.$('.recent-log-entries').append entry.render().el for entry in entries_to_render
+
+            return @
+
+        set_datacenter: (event) =>
+            event.preventDefault()
+            set_datacenter_modal = new ServerView.SetDatacenterModal
+            set_datacenter_modal.render [@model]
+
+    # MachineView.Profile
+    class @Profile extends Backbone.View
+        className: 'machine-info-view'
+        template: Handlebars.compile $('#machine_view_profile-template').html()
+        initialize: (model_id) =>
+            @id = model_id
+            @model = machines.get(model_id)
+            @model.on 'all', @render
+            directory.on 'all', @render
+            machines.on 'all', @render
+
+        render: =>
             datacenter_uuid = @model.get('datacenter_uuid')
             ips = if directory.get(@model.get('id'))? then directory.get(@model.get('id')).get('ips') else null
             json =
@@ -65,13 +116,35 @@ module 'MachineView', ->
                 global_net_sent: human_readable_units(@model.get_stats().proc.global_net_sent_persec_avg, units_space)
                 global_net_recv: human_readable_units(@model.get_stats().proc.global_net_recv_persec_avg, units_space)
                 machine_disk_space: human_readable_units(@model.get_used_disk_space(), units_space)
-
+            
             # If the machine is assigned to a datacenter, add relevant json
             if datacenter_uuid?
                 json = _.extend json,
                     assigned_to_datacenter: datacenter_uuid
                     datacenter_name: datacenters.get(datacenter_uuid).get('name')
 
+
+            # Reachability
+            _.extend json,
+                status: DataUtils.get_machine_reachability(@model.get('id'))
+            @.$el.html @template(json)
+
+
+
+            return @
+
+    class @Data extends Backbone.View
+        className: 'machine-info-view'
+        template: Handlebars.compile $('#machine_view_data-template').html()
+
+        initialize: (model_id) =>
+            @model = machines.get(model_id)
+
+            @model.on 'all', @render
+            directory.on 'all', @render
+
+        render: =>
+            json = {}
             # If the machine is reachable, add relevant json
             _namespaces = []
             for namespace in namespaces.models
@@ -89,7 +162,6 @@ module 'MachineView', ->
                         shards: _shards
                         name: namespace.get('name')
                         uuid: namespace.id
-
             json = _.extend json,
                 data:
                     namespaces: _namespaces
@@ -97,23 +169,11 @@ module 'MachineView', ->
             # Reachability
             _.extend json,
                 status: DataUtils.get_machine_reachability(@model.get('id'))
-
-            @.$el.html @template json
-
-            if @model.get('log_entries')?
-                entries_to_render = []
-                @model.get('log_entries').each (log_entry) =>
-                    entries_to_render.push(new MachineView.RecentLogEntry
-                        model: log_entry)
-                entries_to_render = entries_to_render.slice(0, @max_log_entries_to_render)
-                @.$('.recent-log-entries').append entry.render().el for entry in entries_to_render
-
+            
+            @.$el.html @template(json)
             return @
 
-        set_datacenter: (event) =>
-            event.preventDefault()
-            set_datacenter_modal = new ServerView.SetDatacenterModal
-            set_datacenter_modal.render [@model]
+
 
     # MachineView.RecentLogEntry
     class @RecentLogEntry extends Backbone.View
@@ -128,6 +188,7 @@ module 'MachineView', ->
         render: =>
             json = _.extend @model.toJSON(), @model.get_formatted_message()
             @.$el.html @template _.extend json,
+
                 machine_name: machines.get(@model.get('machine_uuid')).get('name')
                 timeago_timestamp: @model.get_iso_8601_timestamp()
 

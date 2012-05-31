@@ -1,36 +1,46 @@
 <script id="machine_view-container-template" type="text/x-handlebars-template">
   <h1>Machine overview for {{name}}</h1> (<a href="#" class="rename-machine">rename</a>)
   <div id="user-alert-space"></div>
+
   <div class="two-panel-section">
-    <div class="panel-left">
-      <h3 class="title">Machine profile</h3>
-      <div class="section summary">
-        <p class="datacenter-name">Datacenter:
-          {{#if assigned_to_datacenter}}
-          <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
-          {{else}}
-          Unassigned 
-          {{/if}}
-          (<a class="set-datacenter" href="#">change</a>)
-        </p>
-        <p>Status: {{humanize_machine_reachability status}}</p>
-        <p>IP {{pluralize_noun "address" nips}}: {{#if ips}}{{#comma_separated ips}}{{this}}{{/comma_separated}}{{else}}N/A{{/if}}</p>
-        <p class="uptime">Uptime: {{uptime}}</p>
-      </div>
+    <div class="panel-left-unbalanced profile">
     </div>
-    <div class="panel-right">
-      <h3 class="title">Machine resources</h3>
-      <div class="section system-resources">
-        <p class="cpu">CPU: {{global_cpu_util}}%</p>
-        <p class="ram">RAM: {{global_mem_used}} of {{global_mem_total}}</p>
-        <p class="disk">Network: {{global_net_sent}}/s sent, {{global_net_recv}}/s recv</p>
-        <p class="disk">Disk data: {{machine_disk_space}}</p>
-      </div>
+
+    <div class="panel-right-unbalanced">
+      <h3 class="title">Performance</h3>
+      <div class="performance"></div>
     </div>
-    <div class="two-panel-clear"></div>
   </div>
+
+  <h3 class="title">Statistics</h3>
+  <div class="section machine-stats"></div>
+
   <h3 class="title">Data on this machine</h3>
-  <div class="section data">
+  <div class="section data"></div>
+
+  <h3 class="title">Recent log entries for this machine</h3>
+  <div class="section recent-log-entries"></div>
+</script>
+
+<script id="machine_view_profile-template" type="text/x-handlebars-template">
+  <h3 class="title">Machine profile</h3>
+  <div class="section summary">
+    <p class="datacenter-name">Datacenter:
+      {{#if assigned_to_datacenter}}
+      <a href="#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>
+      {{else}}
+      Unassigned 
+      {{/if}}
+      (<a class="set-datacenter" href="#">change</a>)
+    </p>
+    <p>Status: {{humanize_machine_reachability status}}</p>
+    <p>IP {{pluralize_noun "address" nips}}: {{#if ips}} {{html_list ips}} {{else}} N/A {{/if}}</p>
+    <p class="uptime">Uptime: {{uptime}}</p>
+  </div>
+</script>
+
+
+<script id="machine_view_data-template" type="text/x-handlebars-template">
     {{#unless data.namespaces}}
     <p>No data found on this machine.</p>
     {{/unless}}
@@ -44,12 +54,9 @@
       </ul>
     </div>
     {{/each}}
-  </div>
-  <h3 class="title">Performance</h3>
-  <div class="section performance-graph"></div>
-  <h3 class="title">Recent log entries for this machine</h3>
-  <div class="section recent-log-entries"></div>
 </script>
+
+
 
 <script id="machine_view-recent_log_entry-template" type="text/x-handlebars-template">
     <div class="entry-metadata">
