@@ -423,7 +423,10 @@ void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfil
     if (rng.randint(2) == 0) nap(rng.randint(10), interruptor);
 }
 
-void dummy_protocol_t::store_t::reset_data(dummy_protocol_t::region_t subregion, const metainfo_t &new_metainfo, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &subregion,
+                                           const metainfo_t &new_metainfo,
+                                           boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                                           signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 

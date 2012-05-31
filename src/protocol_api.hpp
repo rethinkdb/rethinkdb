@@ -348,7 +348,7 @@ public:
     [May block]
      */
     virtual void reset_data(
-            typename protocol_t::region_t subregion,
+            const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
             signal_t *interruptor)
@@ -482,7 +482,7 @@ public:
     }
 
     void reset_data(
-            typename protocol_t::region_t subregion,
+            const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
             signal_t *interruptor)

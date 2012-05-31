@@ -76,19 +76,22 @@ RDB_IMPL_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, ca
 
 /* `memcached_protocol_t::read_t::get_region()` */
 
-struct read_get_region_visitor_t : public boost::static_visitor<key_range_t> {
-    key_range_t operator()(get_query_t get) {
-        return key_range_t(key_range_t::closed, get.key, key_range_t::closed, get.key);
+struct read_get_region_visitor_t : public boost::static_visitor<hash_region_t<key_range_t> > {
+    hash_region_t<key_range_t> operator()(get_query_t get) {
+        uint64_t h = hash_region_hasher(get.key.contents(), get.key.size());
+        return hash_region_t<key_range_t>(h, h + 1, key_range_t(key_range_t::closed, get.key, key_range_t::closed, get.key));
     }
-    key_range_t operator()(rget_query_t rget) {
-        return rget.range;
+    hash_region_t<key_range_t> operator()(rget_query_t rget) {
+        // TODO: I bet this causes problems.
+        return hash_region_t<key_range_t>(rget.range);
     }
-    key_range_t operator()(distribution_get_query_t dst_get) {
-        return dst_get.range;
+    hash_region_t<key_range_t> operator()(distribution_get_query_t dst_get) {
+        // TODO: Similarly, I bet this causes problems.
+        return hash_region_t<key_range_t>(dst_get.range);
     }
 };
 
-key_range_t memcached_protocol_t::read_t::get_region() const THROWS_NOTHING {
+hash_region_t<key_range_t> memcached_protocol_t::read_t::get_region() const THROWS_NOTHING {
     read_get_region_visitor_t v;
     return boost::apply_visitor(v, query);
 }
@@ -96,27 +99,31 @@ key_range_t memcached_protocol_t::read_t::get_region() const THROWS_NOTHING {
 /* `memcached_protocol_t::read_t::shard()` */
 
 struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_t> {
-    read_shard_visitor_t(const key_range_t &r, exptime_t et) :
+    read_shard_visitor_t(const hash_region_t<key_range_t> &r, exptime_t et) :
         region(r), effective_time(et) { }
-    const key_range_t &region;
+
+    const hash_region_t<key_range_t> &region;
     exptime_t effective_time;
+
     memcached_protocol_t::read_t operator()(get_query_t get) {
-        rassert(region == key_range_t(key_range_t::closed, get.key, key_range_t::closed, get.key));
+        rassert(region == hash_region_t<key_range_t>(key_range_t(key_range_t::closed, get.key, key_range_t::closed, get.key)));
         return memcached_protocol_t::read_t(get, effective_time);
     }
-    memcached_protocol_t::read_t operator()(UNUSED rget_query_t rget) {
-        rassert(region_is_superset(rget.range, region));
-        rget.range = region;
+    memcached_protocol_t::read_t operator()(rget_query_t rget) {
+        rassert(region_is_superset(hash_region_t<key_range_t>(rget.range), region));
+        // TODO: Reevaluate this code.  Should rget_query_t really have a key_range_t range?
+        rget.range = region.inner;
         return memcached_protocol_t::read_t(rget, effective_time);
     }
     memcached_protocol_t::read_t operator()(distribution_get_query_t distribution_get) {
-        rassert(region_is_superset(distribution_get.range, region));
-        distribution_get.range = region;
+        rassert(region_is_superset(hash_region_t<key_range_t>(distribution_get.range), region));
+        // TODO: Reevaluate this code.  Should distribution_get_query_t really have a key_range_t range?
+        distribution_get.range = region.inner;
         return memcached_protocol_t::read_t(distribution_get, effective_time);
     }
 };
 
-memcached_protocol_t::read_t memcached_protocol_t::read_t::shard(const key_range_t &r) const THROWS_NOTHING {
+memcached_protocol_t::read_t memcached_protocol_t::read_t::shard(const hash_region_t<key_range_t> &r) const THROWS_NOTHING {
     read_shard_visitor_t v(r, effective_time);
     return boost::apply_visitor(v, query);
 }
@@ -195,22 +202,23 @@ memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(std:
 
 /* `memcached_protocol_t::write_t::get_region()` */
 
-struct write_get_region_visitor_t : public boost::static_visitor<key_range_t> {
+struct write_get_region_visitor_t : public boost::static_visitor< hash_region_t<key_range_t> > {
     /* All the types of mutation have a member called `key` */
     template<class mutation_t>
-    key_range_t operator()(mutation_t mut) {
-        return key_range_t(key_range_t::closed, mut.key, key_range_t::closed, mut.key);
+    hash_region_t<key_range_t> operator()(mutation_t mut) {
+        uint64_t h = hash_region_hasher(mut.key.contents(), mut.key.size());
+        return hash_region_t<key_range_t>(h, h + 1, key_range_t(key_range_t::closed, mut.key, key_range_t::closed, mut.key));
     }
 };
 
-key_range_t memcached_protocol_t::write_t::get_region() const THROWS_NOTHING {
+hash_region_t<key_range_t> memcached_protocol_t::write_t::get_region() const THROWS_NOTHING {
     write_get_region_visitor_t v;
     return boost::apply_visitor(v, mutation);
 }
 
 /* `memcached_protocol_t::write_t::shard()` */
 
-memcached_protocol_t::write_t memcached_protocol_t::write_t::shard(UNUSED key_range_t region) const THROWS_NOTHING {
+memcached_protocol_t::write_t memcached_protocol_t::write_t::shard(DEBUG_ONLY_VAR const hash_region_t<key_range_t> &region) const THROWS_NOTHING {
     rassert(region == get_region());
     return *this;
 }
@@ -223,22 +231,23 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     return responses[0];
 }
 
-struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<memcached_protocol_t::region_t> {
-    memcached_protocol_t::region_t operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t &del) {
+struct backfill_chunk_get_region_visitor_t : public boost::static_visitor< hash_region_t<key_range_t> > {
+    hash_region_t<key_range_t> operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t &del) {
         return monokey_region(del.key);
     }
 
-    memcached_protocol_t::region_t operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t &del) {
+    hash_region_t<key_range_t> operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t &del) {
         return del.range;
     }
 
-    memcached_protocol_t::region_t operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
+    hash_region_t<key_range_t> operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
         return monokey_region(kv.backfill_atom.key);
     }
 
 private:
-    static memcached_protocol_t::region_t monokey_region(const store_key_t &k) {
-        return key_range_t(key_range_t::closed, k, key_range_t::closed, k);
+    static hash_region_t<key_range_t> monokey_region(const store_key_t &k) {
+        uint64_t h = hash_region_hasher(k.contents(), k.size());
+        return hash_region_t<key_range_t>(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
     }
 };
 
@@ -282,7 +291,7 @@ memcached_protocol_t::backfill_chunk_t memcached_protocol_t::backfill_chunk_t::s
 
 
 memcached_protocol_t::store_t::store_t(const std::string& filename, bool create, perfmon_collection_t *_perfmon_collection)
-    : store_view_t<memcached_protocol_t>(key_range_t::universe()),
+    : store_view_t<memcached_protocol_t>(hash_region_t<key_range_t>::universe()),
       perfmon_collection(_perfmon_collection) {
     if (create) {
         standard_serializer_t::create(
@@ -440,7 +449,8 @@ region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t:
         ));
     }
     region_map_t<memcached_protocol_t, binary_blob_t> res(result.begin(), result.end());
-    rassert(res.get_domain() == key_range_t::universe());
+    // TODO: What?  Why is res.get_domain() equal to universe?
+    rassert(res.get_domain() == hash_region_t<key_range_t>::universe());
     return res;
 }
 
@@ -570,33 +580,41 @@ memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(
     return boost::apply_visitor(v, write.mutation);
 }
 
-struct memcached_backfill_callback_t : public backfill_callback_t {
+class memcached_backfill_callback_t : public backfill_callback_t {
     typedef memcached_protocol_t::backfill_chunk_t chunk_t;
-    const boost::function<void(chunk_t)> &chunk_fun;
-
-    explicit memcached_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun_) : chunk_fun(chunk_fun_) { }
+public:
+    explicit memcached_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun, uint64_t hash_interval_beg, uint64_t hash_interval_end)
+        : chunk_fun_(chunk_fun), hash_interval_beg_(hash_interval_beg), hash_interval_end_(hash_interval_end) { }
 
     void on_delete_range(const btree_key_t *left_exclusive, const btree_key_t *right_inclusive) {
-        chunk_fun(chunk_t::delete_range(
-            key_range_t(
-                left_exclusive ? key_range_t::open : key_range_t::none, left_exclusive ? store_key_t(left_exclusive->size, left_exclusive->contents) : store_key_t(),
-                right_inclusive ? key_range_t::closed : key_range_t::none, right_inclusive ? store_key_t(right_inclusive->size, right_inclusive->contents) : store_key_t()
-            )
-        ));
+        key_range_t key_range(left_exclusive ? key_range_t::open : key_range_t::none,
+                              left_exclusive ? store_key_t(left_exclusive->size, left_exclusive->contents) : store_key_t(),
+                              right_inclusive ? key_range_t::closed : key_range_t::none,
+                              right_inclusive ? store_key_t(right_inclusive->size, right_inclusive->contents) : store_key_t());
+
+        chunk_fun_(chunk_t::delete_range(hash_region_t<key_range_t>(hash_interval_beg_, hash_interval_end_, key_range)));
     }
 
     void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
-        chunk_fun(chunk_t::delete_key(to_store_key(key), recency));
+        chunk_fun_(chunk_t::delete_key(to_store_key(key), recency));
     }
 
     void on_keyvalue(const backfill_atom_t& atom) {
-        chunk_fun(chunk_t::set_key(atom));
+        chunk_fun_(chunk_t::set_key(atom));
     }
     ~memcached_backfill_callback_t() { }
+
 protected:
     store_key_t to_store_key(const btree_key_t *key) {
         return store_key_t(key->size, key->contents);
     }
+
+private:
+    const boost::function<void(chunk_t)> &chunk_fun_;
+    const uint64_t hash_interval_beg_;
+    const uint64_t hash_interval_end_;
+
+    DISABLE_COPYING(memcached_backfill_callback_t);
 };
 
 class refcount_superblock_t : public superblock_t {
@@ -642,12 +660,12 @@ private:
     int refcount;
 };
 
-static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<memcached_protocol_t::region_t, state_timestamp_t> > &regions,
+static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<hash_region_t<key_range_t>, state_timestamp_t> > &regions,
         backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress) {
     traversal_progress_t *p = new traversal_progress_t;
     progress->add_constituent(p);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
-    memcached_backfill(btree, regions[i].first, timestamp, callback, txn, superblock, p);
+    memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p);
 }
 
 bool memcached_protocol_t::store_t::send_backfill(
@@ -665,12 +683,24 @@ bool memcached_protocol_t::store_t::send_backfill(
 
     metainfo_t metainfo = get_metainfo_internal(txn.get(), superblock->get()).mask(start_point.get_domain());
     if (should_backfill(metainfo)) {
-        memcached_backfill_callback_t callback(chunk_fun);
+        std::vector<std::pair<hash_region_t<key_range_t>, state_timestamp_t> > regions(start_point.begin(), start_point.end());
 
-        std::vector<std::pair<memcached_protocol_t::region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
-        refcount_superblock_t refcount_wrapper(superblock.get(), regions.size());
-        pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
-            btree.get(), regions, &callback, txn.get(), &refcount_wrapper, progress));
+        // Make sure all hash regions have the same hash-range.
+        for (int i = 1, e = regions.size(); i < e; ++i) {
+            guarantee(regions[i].first.beg == regions[0].first.beg
+                      && regions[i].first.end == regions[0].first.end);
+        }
+
+        // TODO(sam): I don't know if regions could be empty.  I think not.
+        rassert(regions.size() > 0);
+
+        if (regions.size() > 0) {
+            memcached_backfill_callback_t callback(chunk_fun, regions[0].first.beg, regions[0].first.end);
+
+            refcount_superblock_t refcount_wrapper(superblock.get(), regions.size());
+            pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
+                                             btree.get(), regions, &callback, txn.get(), &refcount_wrapper, progress));
+        }
 
         return true;
     } else {
@@ -679,19 +709,19 @@ bool memcached_protocol_t::store_t::send_backfill(
 }
 
 struct receive_backfill_visitor_t : public boost::static_visitor<> {
-    receive_backfill_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, signal_t *interruptor_) : btree(btree_), txn(txn_), superblock(superblock_), interruptor(interruptor_) { }
+    receive_backfill_visitor_t(btree_slice_t *_btree, transaction_t *_txn, superblock_t *_superblock, signal_t *_interruptor) : btree(_btree), txn(_txn), superblock(_superblock), interruptor(_interruptor) { }
     void operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t& delete_key) const {
         // FIXME: we ignored delete_key.recency here. Should we use it in place of repli_timestamp_t::invalid?
         memcached_delete(delete_key.key, true, btree, 0, repli_timestamp_t::invalid, txn, superblock);
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t& delete_range) const {
-        const key_range_t& range = delete_range.range;
-        range_key_tester_t tester(range);
-        bool left_supplied = range.left != store_key_t::min();
-        bool right_supplied = !range.right.unbounded;
+        const hash_region_t<key_range_t>& range = delete_range.range;
+        hash_range_key_tester_t tester(range);
+        bool left_supplied = range.inner.left != store_key_t::min();
+        bool right_supplied = !range.inner.right.unbounded;
         memcached_erase_range(btree, &tester,
-              left_supplied, range.left,
-              right_supplied, range.right.key,
+              left_supplied, range.inner.left,
+              right_supplied, range.inner.right.key,
               txn, superblock);
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t& kv) const {
@@ -704,16 +734,18 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
             txn, superblock);
     }
 private:
-    /* TODO: This might be redundant. I thought that `key_tester_t` was only
-    originally necessary because in v1.1.x the hashing scheme might be different
-    between the source and destination machines. */
-    struct range_key_tester_t : public key_tester_t {
-        explicit range_key_tester_t(const key_range_t& delete_range_) : delete_range(delete_range_) { }
+    struct hash_range_key_tester_t : public key_tester_t {
+        explicit hash_range_key_tester_t(const hash_region_t<key_range_t>& delete_range) : delete_range_(delete_range) { }
         bool key_should_be_erased(const btree_key_t *key) {
-            return delete_range.contains_key(key->contents, key->size);
+            uint64_t h = hash_region_hasher(key->contents, key->size);
+            return delete_range_.beg <= h && h < delete_range_.end
+                && delete_range_.inner.contains_key(key->contents, key->size);
         }
 
-        const key_range_t& delete_range;
+        const hash_region_t<key_range_t>& delete_range_;
+
+    private:
+        DISABLE_COPYING(hash_range_key_tester_t);
     };
     btree_slice_t *btree;
     transaction_t *txn;
@@ -736,8 +768,24 @@ void memcached_protocol_t::store_t::receive_backfill(
     boost::apply_visitor(receive_backfill_visitor_t(btree.get(), txn.get(), superblock.get(), interruptor), chunk.val);
 }
 
+// TODO: Maybe hash_range_key_tester_t is redundant with this, since
+// the key range test is redundant.
+struct hash_key_tester_t : public key_tester_t {
+    hash_key_tester_t(uint64_t beg, uint64_t end) : beg_(beg), end_(end) { }
+    bool key_should_be_erased(const btree_key_t *key) {
+        uint64_t h = hash_region_hasher(key->contents, key->size);
+        return beg_ <= h && h < end_;
+    }
+
+private:
+    uint64_t beg_;
+    uint64_t end_;
+
+    DISABLE_COPYING(hash_key_tester_t);
+};
+
 void memcached_protocol_t::store_t::reset_data(
-        memcached_protocol_t::region_t subregion,
+        const hash_region_t<key_range_t>& subregion,
         const metainfo_t &new_metainfo,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor)
@@ -758,8 +806,8 @@ void memcached_protocol_t::store_t::reset_data(
     region_map_t<memcached_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock->get());
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
 
-    always_true_key_tester_t key_tester;
-    memcached_erase_range(btree.get(), &key_tester, subregion, txn.get(), superblock.get());
+    hash_key_tester_t key_tester(subregion.beg, subregion.end);
+    memcached_erase_range(btree.get(), &key_tester, subregion.inner, txn.get(), superblock.get());
 }
 
 void memcached_protocol_t::store_t::check_and_update_metainfo(
@@ -790,7 +838,9 @@ void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metain
     region_map_t<memcached_protocol_t, binary_blob_t> updated_metadata = old_metainfo;
     updated_metadata.update(new_metainfo);
 
-    rassert(updated_metadata.get_domain() == key_range_t::universe());
+    // TODO(sam): Am I missing something?  How is the updated_metadata
+    // domain possibly the key range universe?
+    rassert(updated_metadata.get_domain() == hash_region_t<key_range_t>::universe());
 
     buf_lock_t* sb_buf = superblock->get();
     clear_superblock_metainfo(txn, sb_buf);

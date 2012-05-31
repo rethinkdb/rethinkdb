@@ -12,6 +12,7 @@
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
+#include "hash_region.hpp"
 #include "memcached/queries.hpp"
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
@@ -47,7 +48,7 @@ functions that the query-routing logic needs to know about. */
 
 class memcached_protocol_t {
 public:
-    typedef key_range_t region_t;
+    typedef hash_region_t<key_range_t> region_t;
 
     struct temporary_cache_t { };
 
@@ -65,8 +66,8 @@ public:
     struct read_t {
         typedef boost::variant<get_query_t, rget_query_t, distribution_get_query_t> query_t;
 
-        key_range_t get_region() const THROWS_NOTHING;
-        read_t shard(const key_range_t &region) const THROWS_NOTHING;
+        hash_region_t<key_range_t> get_region() const THROWS_NOTHING;
+        read_t shard(const hash_region_t<key_range_t> &region) const THROWS_NOTHING;
         read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         read_t() { }
@@ -92,8 +93,8 @@ public:
 
     struct write_t {
         typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> query_t;
-        key_range_t get_region() const THROWS_NOTHING;
-        write_t shard(key_range_t region) const THROWS_NOTHING;
+        hash_region_t<key_range_t> get_region() const THROWS_NOTHING;
+        write_t shard(const hash_region_t<key_range_t> &region) const THROWS_NOTHING;
         write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         write_t() { }
@@ -145,7 +146,7 @@ public:
 
         boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
 
-        static backfill_chunk_t delete_range(const key_range_t& range) {
+        static backfill_chunk_t delete_range(const hash_region_t<key_range_t>& range) {
             return backfill_chunk_t(delete_range_t(range));
         }
         static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
@@ -223,7 +224,7 @@ public:
                 THROWS_ONLY(interrupted_exc_t);
 
         void reset_data(
-                memcached_protocol_t::region_t subregion,
+                const hash_region_t<key_range_t> &subregion,
                 const metainfo_t &new_metainfo,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                 signal_t *interruptor)

@@ -188,9 +188,9 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             ack_expectations.insert(std::make_pair(datacenter_id, 1));
             namespace_metadata.ack_expectations = vclock_t<std::map<datacenter_id_t, int> >(ack_expectations, our_machine_id);
 
-            std::set<key_range_t> shards;
-            shards.insert(key_range_t::universe());
-            namespace_metadata.shards = vclock_t<std::set<key_range_t> >(shards, our_machine_id);
+            std::set< hash_region_t<key_range_t> > shards;
+            shards.insert(hash_region_t<key_range_t>::universe());
+            namespace_metadata.shards = vclock_t<std::set<hash_region_t<key_range_t> > >(shards, our_machine_id);
 
             semilattice_metadata.memcached_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
 

@@ -142,7 +142,7 @@ public:
                               boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-        void reset_data(dummy_protocol_t::region_t subregion,
+        void reset_data(const dummy_protocol_t::region_t &subregion,
                         const metainfo_t &new_metainfo,
                         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);

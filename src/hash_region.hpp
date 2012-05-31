@@ -185,7 +185,26 @@ bool region_overlaps(const hash_region_t<inner_region_t> &r1, const hash_region_
 	&& region_overlaps(r1.inner, r2.inner);
 }
 
-// TODO: Implement region_subtract_many?  Naah.
+template <class inner_region_t>
+std::vector< hash_region_t<key_range_t> > region_subtract_many(const hash_region_t<key_range_t> &minuend,
+                                                               const std::vector<hash_region_t<key_range_t>& subtrahends) {
+    std::vector< hash_region_t<key_range_t> > buf;
+    std::vector< hash_region_t<key_range_t> > temp_result_buf;
+
+    buf.push_back(minuend);
+
+    for (std::vector< hash_region_t<key_range_t> >::const_iterator s = subtrahends.begin(); s != subtrahends.end(); ++s) {
+        for (std::vector< hash_region_t<key_range_t> >::const_iterator m = buf.begin(); m != buf.end(); ++m) {
+            
+
+
+        }
+    }
+
+
+}
+
+
 
 template <class inner_region_t>
 bool operator==(const hash_region_t<inner_region_t> &r1,

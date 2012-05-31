@@ -24,6 +24,10 @@ struct data_buffer_t;
 
 template <typename T> struct one_way_iterator_t;
 
+
+// TODO: Too many of these query objects are publicly mutable objects.
+
+
 /* `get` */
 
 struct get_query_t {

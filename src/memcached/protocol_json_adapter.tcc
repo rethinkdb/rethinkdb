@@ -29,14 +29,14 @@ void apply_json_to(cJSON *change, store_key_t *target, const ctx_t &) {
 template <class ctx_t>
 void  on_subfield_change(store_key_t *, const ctx_t &) { }
 
-//json adapter concept for memcached_protocol_t::region_t
+// json adapter for key_range_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(memcached_protocol_t::region_t *, const ctx_t &) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(key_range_t *, const ctx_t &) {
     return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
 }
 
 template <class ctx_t>
-cJSON *render_as_json(memcached_protocol_t::region_t *target, const ctx_t &c) {
+cJSON *render_as_json(key_range_t *target, const ctx_t &c) {
     scoped_cJSON_t res(cJSON_CreateArray());
 
     cJSON_AddItemToArray(res.get(), render_as_json(&target->left, c));
@@ -52,7 +52,7 @@ cJSON *render_as_json(memcached_protocol_t::region_t *target, const ctx_t &c) {
 }
 
 template <class ctx_t>
-void apply_json_to(cJSON *change, memcached_protocol_t::region_t *target, const ctx_t &c) {
+void apply_json_to(cJSON *change, key_range_t *target, const ctx_t &c) {
     scoped_cJSON_t js(cJSON_Parse(get_string(change).c_str()));
     if (js.get() == NULL) {
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a memcached_protocol_t::region_t.\n", get_string(change).c_str()));
@@ -80,13 +80,13 @@ void apply_json_to(cJSON *change, memcached_protocol_t::region_t *target, const 
         store_key_t left;
         apply_json_to(first, &left, c);
         if (second->type == cJSON_NULL) {
-            *target = memcached_protocol_t::region_t(memcached_protocol_t::region_t::closed, left,
-                                                     memcached_protocol_t::region_t::none,   store_key_t(""));
+            *target = key_range_t(key_range_t::closed, left,
+                                  key_range_t::none,   store_key_t(""));
         } else {
             store_key_t right;
             apply_json_to(second, &right, c);
-            *target = memcached_protocol_t::region_t(memcached_protocol_t::region_t::closed, left,
-                                                     memcached_protocol_t::region_t::open,   right);
+            *target = key_range_t(key_range_t::closed, left,
+                                  key_range_t::open,   right);
         }
     } catch (std::runtime_error) {
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a memcached_protocol_t::region_t.\n", get_string(change).c_str()));
@@ -96,4 +96,5 @@ void apply_json_to(cJSON *change, memcached_protocol_t::region_t *target, const 
 template <class ctx_t>
 void  on_subfield_change(memcached_protocol_t::region_t *, const ctx_t &) { }
 
-#endif
+
+#endif  // MEMCACHED_PROTOCOL_JSON_ADAPTER_TCC_
