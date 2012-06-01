@@ -2,7 +2,6 @@ workloads = [
     "$RETHINKDB/test/workloads/append_prepend.py $HOST:$PORT",
     "$RETHINKDB/test/workloads/append_stress.py $HOST:$PORT",
     "$RETHINKDB/test/workloads/big_values.py $HOST:$PORT",
-    "$RETHINKDB/test/workloads/bin_pipeline.py $HOST:$PORT",
     "$RETHINKDB/test/workloads/cas.py $HOST:$PORT",
     "$RETHINKDB/test/workloads/deletion.py $HOST:$PORT",
     "$RETHINKDB/test/workloads/expiration.py $HOST:$PORT",
