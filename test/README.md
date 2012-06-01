@@ -2,7 +2,7 @@ Guide to the `rethinkdb/test/` directory
 ---------------------------------------
 
 RethinkDB has two types of tests: unit tests and integration tests. Unit tests
-live in `rethinkdb/src/unit/` and are outside the scope of this document.
+live in `rethinkdb/src/unittest/` and are outside the scope of this document.
 
 RethinkDB tests are run nightly. The infrastructure for running nightly tests
 lives in `rethinkdb/scripts/nightly-test/` and `rethinkdb/scripts/test-host/`
