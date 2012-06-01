@@ -11,32 +11,29 @@ opts = op.parse(sys.argv)
 with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
-    primary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-1"), log_path = "serve-output-1")
-    secondary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-2"), log_path = "serve-output-2")
-    primary.wait_until_started_up()
+    primary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-primary"), log_path = "serve-output-primary")
+    secondary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-secondary"), log_path = "serve-output-secondary")
     secondary.wait_until_started_up()
 
     print "Creating namespace..."
-    http = http_admin.ClusterAccess([("localhost", secondary.http_port)])
+    http = http_admin.ClusterAccess([("localhost", primary.http_port)])
     primary_dc = http.add_datacenter()
     http.move_server_to_datacenter(primary.files.machine_name, primary_dc)
     secondary_dc = http.add_datacenter()
     http.move_server_to_datacenter(secondary.files.machine_name, secondary_dc)
     ns = http.add_namespace(protocol = "memcached", primary = primary_dc, affinities = {primary_dc: 0, secondary_dc: 1})
-    http.set_namespace_ack_expectations(ns, {secondary_dc: 1})
     time.sleep(10)
     cluster.check()
     http.check_no_issues()
 
-    host, port = http.get_namespace_host(ns, secondary_dc)
+    host, port = http.get_namespace_host(ns, primary_dc)
     with workload_runner.SplitOrContinuousWorkload(opts, host, port) as workload:
         workload.step1()
         cluster.check()
         http.check_no_issues()
-        print "Killing the primary..."
-        primary.close()
-        http.declare_machine_dead(primary.files.machine_name)
-        http.move_namespace_to_datacenter(ns, secondary_dc)
+        print "Killing the secondary..."
+        secondary.close()
+        http.declare_machine_dead(secondary.files.machine_name)
         http.set_namespace_affinities(ns, {secondary_dc: 0})
         cluster.check()
         http.check_no_issues()

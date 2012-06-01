@@ -16,7 +16,8 @@ with driver.Metacluster() as metacluster:
     num_nodes = 3
     processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i), log_path = "serve-output-%d" % i)
         for i in xrange(num_nodes)]
-    time.sleep(3)
+    for process in processes:
+        process.wait_until_started_up()
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     primary_dc = http.add_datacenter()
@@ -39,4 +40,4 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     http.check_no_issues()
     workload_runner.run(opts["workload2"], host, port, opts["timeout"])
-    cluster.check_and_close()
+    cluster.check_and_stop()

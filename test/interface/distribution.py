@@ -10,7 +10,8 @@ with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     processes = [driver.Process(cluster, driver.Files(metacluster))
         for i in xrange(2)]
-    time.sleep(3)
+    for process in processes:
+        process.wait_until_started_up()
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     dc = http.add_datacenter()
@@ -26,9 +27,8 @@ with driver.Metacluster() as metacluster:
         for i in range(10000):
             mc.set(str(i) * 10, str(i)*20)
 
-
     time.sleep(1)
 
     distribution = http.get_distribution(ns)
 
-    cluster.check_and_close()
+    cluster.check_and_stop()

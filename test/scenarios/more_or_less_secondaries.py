@@ -21,7 +21,8 @@ with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     process1 = driver.Process(cluster, driver.Files(metacluster, db_path = "db-1"), log_path = "serve-output-1")
     process2 = driver.Process(cluster, driver.Files(metacluster, db_path = "db-2"), log_path = "serve-output-2")
-    time.sleep(3)
+    process1.wait_until_started_up()
+    process2.wait_until_started_up()
 
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in [process1, process2]])
@@ -47,4 +48,4 @@ with driver.Metacluster() as metacluster:
         workload.step2()
 
     http.check_no_issues()
-    cluster.check_and_close()
+    cluster.check_and_stop()

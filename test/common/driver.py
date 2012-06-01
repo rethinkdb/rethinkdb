@@ -117,14 +117,14 @@ class Cluster(object):
         for proc in self.processes:
             proc.check()
 
-    def check_and_close(self):
+    def check_and_stop(self):
         """First checks that each process in the cluster is still running, then
         stops them by sending SIGINT. Throws an exception if any exit with a
         nonzero exit code. Also makes the cluster object invalid, like
         `close()`. """
         try:
             while self.processes:
-                iter(self.processes).next().check_and_close()
+                iter(self.processes).next().check_and_stop()
         finally:
             self.close()
 
@@ -247,13 +247,29 @@ class Process(object):
                     other_cluster._unblock_process(self)
             raise
 
+    def wait_until_started_up(self, timeout = 15):
+        time_limit = time.time() + timeout
+        while time.time() < time_limit:
+            self.check()
+            s = socket.socket()
+            try:
+                s.connect(("localhost", self.http_port))
+            except socket.error, e:
+                time.sleep(1)
+            else:
+                break
+            finally:
+                s.close()
+        else:
+            raise RuntimeError("Process was not responding to HTTP traffic within %d seconds." % timeout)
+
     def check(self):
         """Throws an exception if the process has crashed or stopped. """
         assert self.process is not None
         if self.process.poll() is not None:
             raise RuntimeError("Process stopped unexpectedly with return code %d" % self.process.poll())
 
-    def check_and_close(self):
+    def check_and_stop(self):
         """Asserts that the process is still running, and then shuts it down by
         sending `SIGINT`. Throws an exception if the exit code is nonzero. Also
         invalidates the `Process` object like `close()`. """
@@ -303,5 +319,5 @@ if __name__ == "__main__":
         f = Files(mc)
         p = Process(c, f)
         time.sleep(3)
-        p.check_and_close()
+        p.check_and_stop()
 

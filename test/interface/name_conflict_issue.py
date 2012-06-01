@@ -8,7 +8,7 @@ with driver.Metacluster() as metacluster:
     print "Spinning up a process..."
     files = driver.Files(metacluster, db_path = "db")
     process = driver.Process(cluster, files, log_path = "log")
-    time.sleep(1)
+    process.wait_until_started_up()
     cluster.check()
     access = http_admin.ClusterAccess([("localhost", process.http_port)])
     assert access.get_issues() == []
@@ -25,6 +25,6 @@ with driver.Metacluster() as metacluster:
     assert issues[0]["type"] == "NAME_CONFLICT_ISSUE"
     assert issues[0]["contested_name"].upper() == "John Jacob Jingleheimer Schmidt".upper()
     assert set(issues[0]["contestants"]) == set([namespace1.uuid, namespace2.uuid])
-    cluster.check_and_close()
+    cluster.check_and_stop()
 print "Done."
 
