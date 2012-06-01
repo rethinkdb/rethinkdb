@@ -386,7 +386,7 @@ dummy_protocol_t::region_t a_thru_z_region() {
     return r;
 }
 
-std::string to_string(dummy_protocol_t::region_t r) {
+std::string region_to_debug_str(dummy_protocol_t::region_t r) {
     std::string ret = "{ ";
     for (std::set<std::string>::iterator it  = r.keys.begin();
                                          it != r.keys.end();
