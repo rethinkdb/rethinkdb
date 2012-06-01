@@ -6,6 +6,7 @@ scenarios = [
     "$RETHINKDB/test/scenarios/change_primary.py --continuous-workload '%(workload)s'",
     "$RETHINKDB/test/scenarios/failover_to_secondary.py --continuous-workload '%(workload)s'",
     "$RETHINKDB/test/scenarios/kill_secondary.py --continuous-workload '%(workload)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --less --continuous-workload '%(workload)s'",
     ]
 
 for scenario in scenarios:
