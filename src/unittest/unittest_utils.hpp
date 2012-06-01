@@ -30,6 +30,8 @@ public:
 
 void let_stuff_happen();
 
+int randport();
+
 }  // namespace unittest
 
 #endif  // UNITTEST_UNITTEST_UTILS_HPP_
