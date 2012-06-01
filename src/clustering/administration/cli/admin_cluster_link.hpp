@@ -1,5 +1,5 @@
 #ifndef CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
-#define CLUSTERING_ADMINISTRATION_CLU_ADMIN_CLUSTER_LINK_HPP_
+#define CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 
 #include <curl/curl.h>
 
@@ -92,6 +92,8 @@ private:
 
     std::vector<std::string> get_ids_internal(const std::string& base, const std::string& path);
 
+    std::string peer_id_to_machine_name(const std::string& peer_id);
+
     size_t get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter);
 
     template <class protocol_t>
@@ -146,8 +148,9 @@ private:
 
     struct shard_input_t {
         struct {
-            bool inf;
-            std::string key;
+            bool exists;
+            bool unbounded;
+            store_key_t key;
         } left, right;
     };
 
@@ -355,4 +358,4 @@ private:
     DISABLE_COPYING(admin_cluster_link_t);
 };
 
-#endif
+#endif /* CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_ */

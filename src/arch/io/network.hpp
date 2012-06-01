@@ -38,7 +38,7 @@ public:
 
     class connect_failed_exc_t : public std::exception {
     public:
-        connect_failed_exc_t(int en) : error(en) { }
+        explicit connect_failed_exc_t(int en) : error(en) { }
         const char *what() const throw () {
             return strprintf("Could not make connection: %s", strerror(error)).c_str();
         }
@@ -266,7 +266,7 @@ private:
 
 class linux_tcp_bound_socket_t {
 public:
-    linux_tcp_bound_socket_t(int _port);
+    explicit linux_tcp_bound_socket_t(int _port);
     ~linux_tcp_bound_socket_t();
     int get_port();
     fd_t get_fd();

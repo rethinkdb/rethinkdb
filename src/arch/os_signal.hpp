@@ -1,5 +1,5 @@
-#ifndef OS_SIGNAL_HPP_
-#define OS_SIGNAL_HPP_
+#ifndef ARCH_OS_SIGNAL_HPP_
+#define ARCH_OS_SIGNAL_HPP_
 
 #include "concurrency/cond_var.hpp"
 #include "arch/runtime/runtime.hpp"
@@ -13,4 +13,4 @@ public:
     void on_thread_switch();
 };
 
-#endif  // OS_SIGNAL_HPP_
+#endif  // ARCH_OS_SIGNAL_HPP_

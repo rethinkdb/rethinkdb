@@ -1,0 +1,18 @@
+error_tolerant_workloads = [
+    "$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity --ignore-protocol-errors"
+    ]
+
+scenarios = [
+    "$RETHINKDB/test/scenarios/change_primary.py --continuous-workload '%(workload)s'",
+    "$RETHINKDB/test/scenarios/failover_to_secondary.py --continuous-workload '%(workload)s'",
+    "$RETHINKDB/test/scenarios/kill_secondary.py --continuous-workload '%(workload)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --less --continuous-workload '%(workload)s'",
+    ]
+
+for scenario in scenarios:
+    for w in error_tolerant_workloads:
+        do_test(
+            scenario % {"workload": w},
+            repeat = 3,
+            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
+            )

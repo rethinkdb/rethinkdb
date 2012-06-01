@@ -62,5 +62,5 @@ public:
     }
 };
 
-#endif /* ARCH_LINUX_CONCURRENCY_HPP_ */
+#endif /* ARCH_IO_CONCURRENCY_HPP_ */
 

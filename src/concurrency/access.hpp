@@ -1,5 +1,5 @@
-#ifndef ACCESS_HPP_
-#define ACCESS_HPP_
+#ifndef CONCURRENCY_ACCESS_HPP_
+#define CONCURRENCY_ACCESS_HPP_
 
 /* TODO: This enum is pretty terrible. It's used for several barely-related
 things:
@@ -52,5 +52,5 @@ inline bool is_write_mode(access_t mode) {
     return !is_read_mode(mode);
 }
 
-#endif // ACCESS_HPP_
+#endif // CONCURRENCY_ACCESS_HPP_
 

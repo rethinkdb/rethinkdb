@@ -46,4 +46,4 @@ void project(cJSON *json, std::set<std::string> keys);
 //Merge two cJSON objects, crashes if there are overlapping keys
 cJSON *merge(cJSON *, cJSON *);
 
-#endif
+#endif /* HTTP_JSON_HPP_ */

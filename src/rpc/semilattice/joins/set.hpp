@@ -17,4 +17,4 @@ void semilattice_join(std::set<T> *a, const std::set<T> &b) {
 
 }
 
-#endif
+#endif /* RPC_SEMILATTICE_JOINS_SET_HPP_ */

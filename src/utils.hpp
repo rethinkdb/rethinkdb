@@ -144,15 +144,6 @@ MUST_USE bool strtou64_strict(const std::string &str, int base, uint64_t *out_re
 std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 std::string vstrprintf(const char *format, va_list ap);
 
-/* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
-succeeds, it returns the result as a `std::string`. If it fails, it throws
-`demangle_failed_exc_t`. */
-struct demangle_failed_exc_t : public std::exception {
-    const char *what() const throw () {
-        return "Could not demangle C++ name.";
-    }
-};
-std::string demangle_cpp_name(const char *mangled_name);
 
 // formatted time:
 // yyyy-mm-ddThh:mm:ss.nnnnnnnnn   (29 characters)
@@ -220,7 +211,6 @@ public:
     ~on_thread_t();
 };
 
-void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 
 template <class InputIterator, class UnaryPredicate>
 bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {

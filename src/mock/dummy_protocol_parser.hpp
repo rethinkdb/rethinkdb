@@ -37,6 +37,6 @@ private:
     http_server_t server;
 };
 
-}//namespace mock
+} //namespace mock
 
-#endif
+#endif /* MOCK_DUMMY_PROTOCOL_PARSER_HPP_ */

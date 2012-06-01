@@ -8,7 +8,7 @@ with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     print "Spinning up a process..."
     proc = driver.Process(cluster, driver.Files(metacluster, db_path = "db", log_path = "create-output"), log_path = "serve-output")
-    time.sleep(1)
+    proc.wait_until_started_up()
     cluster.check()
     access = http_admin.ClusterAccess([("localhost", proc.http_port)])
     print "Getting root"
@@ -24,6 +24,6 @@ with driver.Metacluster() as metacluster:
     log = access.get_log(access.machines.keys()[0], max_length = 100)
     print "Log is %d lines" % len(log)
     assert any('nonwhitelisted' in entry['message'] for entry in log)
-    cluster.check_and_close()
+    cluster.check_and_stop()
 print "Done."
 

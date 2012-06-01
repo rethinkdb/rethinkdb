@@ -1,5 +1,5 @@
-#ifndef PATCH_DISK_STORAGE_HPP_
-#define PATCH_DISK_STORAGE_HPP_
+#ifndef BUFFER_CACHE_MIRRORED_PATCH_DISK_STORAGE_HPP_
+#define BUFFER_CACHE_MIRRORED_PATCH_DISK_STORAGE_HPP_
 
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
@@ -91,5 +91,5 @@ private:
     std::vector<mc_buf_lock_t *> log_block_bufs;
 };
 
-#endif /* PATCH_DISK_STORAGE_HPP_ */
+#endif /* BUFFER_CACHE_MIRRORED_PATCH_DISK_STORAGE_HPP_ */
 

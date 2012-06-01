@@ -391,9 +391,10 @@ bool tcp_http_msg_parser_t::header_line_parser_t::parse(std::string &src) {
 }
 
 bool is_safe(char c) {
-    return strchr("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                  "abcdefghijklmnopqrstuvwxyz"
-                  "0123456789-_.~", c) != NULL;
+    return (c >= 'a' && c <= 'z') ||
+        (c >= 'A' && c <= 'Z') ||
+        (c >= '0' && c <= '9') ||
+        c == '-' || c == '_' || c == '.' || c == '~';
 }
 
 std::string percent_escaped_string(const std::string &s) {

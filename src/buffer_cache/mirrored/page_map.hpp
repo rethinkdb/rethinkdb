@@ -1,5 +1,5 @@
-#ifndef BUFFER_CACHE_PAGE_MAP_ARRAY_HPP_
-#define BUFFER_CACHE_PAGE_MAP_ARRAY_HPP_
+#ifndef BUFFER_CACHE_MIRRORED_PAGE_MAP_HPP_
+#define BUFFER_CACHE_MIRRORED_PAGE_MAP_HPP_
 
 #include "containers/two_level_array.hpp"
 #include "config/args.hpp"
@@ -31,5 +31,5 @@ private:
     DISABLE_COPYING(array_map_t);
 };
 
-#endif // BUFFER_CACHE_PAGE_MAP_ARRAY_HPP_
+#endif // BUFFER_CACHE_MIRRORED_PAGE_MAP_HPP_
 

@@ -32,4 +32,4 @@ void  on_subfield_change(memcached_protocol_t::region_t *, const ctx_t &);
 
 #include "memcached/protocol_json_adapter.tcc"
 
-#endif
+#endif /* MEMCACHED_PROTOCOL_JSON_ADAPTER_HPP_ */

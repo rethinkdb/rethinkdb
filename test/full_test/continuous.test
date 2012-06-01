@@ -1,0 +1,16 @@
+continuous_workloads = [
+    "$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity",
+    "$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT --duration forever",
+    ]
+
+scenarios = [
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --more --continuous-workload '%(workload)s'",
+    ]
+
+for scenario in scenarios:
+    for w in continuous_workloads:
+        do_test(
+            scenario % {"workload": w},
+            repeat = 3,
+            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
+            )

@@ -31,72 +31,8 @@ class admin_command_parser_t {
 public:
     struct command_data;
 
-    // Command strings for various commands
-    static const char *list_command;
-    static const char *list_stats_command;
-    static const char *list_issues_command;
-    static const char *list_machines_command;
-    static const char *list_directory_command;
-    static const char *list_namespaces_command;
-    static const char *list_datacenters_command;
-    static const char *exit_command;
-    static const char *help_command;
-    static const char *resolve_command;
-    static const char *pin_shard_command;
-    static const char *split_shard_command;
-    static const char *merge_shard_command;
-    static const char *set_name_command;
-    static const char *set_acks_command;
-    static const char *set_replicas_command;
-    static const char *set_datacenter_command;
-    static const char *create_namespace_command;
-    static const char *create_datacenter_command;
-    static const char *remove_command;
+    // Used by the command-line launcher to run complete in a special mode
     static const char *complete_command;
-
-    // Usage strings for various commands
-    static const char *list_usage;
-    static const char *list_stats_usage;
-    static const char *list_issues_usage;
-    static const char *list_machines_usage;
-    static const char *list_directory_usage;
-    static const char *list_namespaces_usage;
-    static const char *list_datacenters_usage;
-    static const char *exit_usage;
-    static const char *help_usage;
-    static const char *resolve_usage;
-    static const char *pin_shard_usage;
-    static const char *split_shard_usage;
-    static const char *merge_shard_usage;
-    static const char *set_name_usage;
-    static const char *set_acks_usage;
-    static const char *set_replicas_usage;
-    static const char *set_datacenter_usage;
-    static const char *create_namespace_usage;
-    static const char *create_datacenter_usage;
-    static const char *remove_usage;
-
-    // Descriptive strings for various commands
-    static const char *list_description;
-    static const char *list_stats_description;
-    static const char *list_issues_description;
-    static const char *list_machines_description;
-    static const char *list_directory_description;
-    static const char *list_namespaces_description;
-    static const char *list_datacenters_description;
-    static const char *exit_description;
-    static const char *help_description;
-    static const char *resolve_description;
-    static const char *pin_shard_description;
-    static const char *split_shard_description;
-    static const char *merge_shard_description;
-    static const char *set_name_description;
-    static const char *set_acks_description;
-    static const char *set_replicas_description;
-    static const char *set_datacenter_description;
-    static const char *create_namespace_description;
-    static const char *create_datacenter_description;
-    static const char *remove_description;
 
 private:
 
@@ -149,18 +85,10 @@ public:
     ~admin_command_parser_t();
 
     void parse_and_run_command(const std::vector<std::string>& line);
-    void run_console();
+    void run_console(bool exit_on_failure);
     void run_completion(const std::vector<std::string>& command_args);
 
     static void do_usage(bool console);
-    static void do_set_usage(bool console);
-    static void do_list_usage(bool console);
-    static void do_help_usage(bool console);
-    static void do_split_usage(bool console);
-    static void do_merge_usage(bool console);
-    static void do_create_usage(bool console);
-    static void do_remove_usage(bool console);
-    static void do_resolve_usage(bool console);
 
 private:
 
@@ -193,7 +121,7 @@ private:
     command_data parse_command(command_info *info, const std::vector<std::string>& command_args);
     void run_command(command_data& data);
 
-    void print_subcommands_usage(command_info *info, FILE *file);
+    std::string get_subcommands_usage(command_info *info);
 
     std::map<std::string, command_info *>::const_iterator find_command_with_completion(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches);
     void add_option_matches(const param_options *option, const std::string& partial, linenoiseCompletions *completions);
@@ -219,4 +147,4 @@ private:
     DISABLE_COPYING(admin_command_parser_t);
 };
 
-#endif
+#endif /* CLUSTERING_ADMINISTRATION_CLI_ADMIN_COMMAND_PARSER_HPP_ */

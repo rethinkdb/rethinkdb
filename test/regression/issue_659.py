@@ -55,4 +55,7 @@ with driver.Metacluster() as metacluster:
     else:
         raise RuntimeError("Never detected a backfill happening")
 
-    cluster.check_and_close()
+    cluster.check()
+    # Don't call `check_and_stop()` because it expects the server to shut down
+    # in some reasonable period of time, but since the server has a lot of data
+    # to flush to disk, it might not.

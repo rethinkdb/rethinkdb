@@ -69,4 +69,4 @@ private:
     DISABLE_COPYING(reactor_driver_t);
 };
 
-#endif
+#endif /* CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_HPP_ */

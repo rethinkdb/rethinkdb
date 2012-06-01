@@ -7,7 +7,7 @@
 struct mc_cache_stats_t {
     perfmon_collection_t cache_collection;
 
-    mc_cache_stats_t(perfmon_collection_t *parent);
+    explicit mc_cache_stats_t(perfmon_collection_t *parent);
 
     perfmon_counter_t 
         pm_registered_snapshots,

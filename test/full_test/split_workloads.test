@@ -1,5 +1,3 @@
-# Each workload is a pair of two command-line strings. The first one will be run
-# once; the next one will be run one or more times.
 workloads = [
     ("$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d 10000q",
      "true"),
@@ -13,6 +11,12 @@ workloads = [
 
 scenarios = [
     "$RETHINKDB/test/scenarios/rebalance.py '%(workload1)s' '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/change_primary.py --split-workload '%(workload1)s' '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/failover_to_secondary.py --split-workload '%(workload1)s' '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --more --split-workload '%(workload1)s' '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --less --split-workload '%(workload1)s' '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/kill_secondary.py --split-workload '%(workload1)s' '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/transfer.py '%(workload1)s' '%(workload2)s'",
     ]
 
 for scenario in scenarios:

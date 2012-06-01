@@ -9,6 +9,7 @@
 #include <typeinfo>
 
 #include "utils.hpp"
+#include "backtrace.hpp"
 
 void report_user_error(const char *msg, ...) {
     flockfile(stderr);
