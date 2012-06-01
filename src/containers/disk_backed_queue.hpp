@@ -83,7 +83,21 @@ public:
         boost::scoped_ptr<buf_lock_t> _head(new buf_lock_t(&txn, super_block->head, rwi_write));
         queue_block_t* head = reinterpret_cast<queue_block_t *>(_head->get_data_major_write());
 
-        if (((char *)(head->data + head->data_size) - (char *)(head)) + MAX_REF_SIZE > cache->get_block_size().value()) {
+        write_message_t wm;
+        wm << t;
+        vector_stream_t stream;
+        int res = send_write_message(&stream, &wm);
+        rassert(res == 0);
+
+        char buffer[MAX_REF_SIZE];
+        bzero(buffer, MAX_REF_SIZE);
+
+        blob_t blob(buffer, MAX_REF_SIZE);
+        blob.append_region(&txn, stream.vector().size());
+        std::string sered_data(stream.vector().begin(), stream.vector().end());
+        blob.write_from_string(sered_data, &txn, 0);
+
+        if (((char *)(head->data + head->data_size) - (char *)(head)) + blob.refsize(cache->get_block_size()) > cache->get_block_size().value()) {
             //The data won't fit in our current head block, so it's time to make a new one
             head = NULL;
             _head.reset();
@@ -92,38 +106,7 @@ public:
             head = reinterpret_cast<queue_block_t *>(_head->get_data_major_write());
         }
 
-        write_message_t wm;
-        wm << t;
-        vector_stream_t stream;
-        int res = send_write_message(&stream, &wm);
-        rassert(res == 0);
-        bzero(head->data + head->data_size, MAX_REF_SIZE);
-
-        //debugf("Serializaing:\n");
-        //print_hd(stream.vector().data(), 0, stream.vector().size());
-
-        //debugf("Blob to: %p\n", head->data + head->data_size);
-        blob_t blob(head->data + head->data_size, MAX_REF_SIZE);
-        blob.append_region(&txn, stream.vector().size());
-        std::string sered_data(stream.vector().begin(), stream.vector().end());
-        blob.write_from_string(sered_data, &txn, 0);
-
-        //blob_t blob2(head->data + head->data_size, MAX_REF_SIZE);
-        //std::string sered_data_check;
-        //blob2.read_to_string(sered_data_check, &txn, 0, blob2.valuesize());
-
-        //debugf("serialized data:\n");
-        //print_hd(sered_data.data(), 0, sered_data.size());
-
-        //debugf("deserialized data:\n");
-        //print_hd(sered_data_check.data(), 0, sered_data_check.size());
-
-        //rassert(sered_data == sered_data_check);
-        //Update the block and the super_block
-
-        //debugf("Block post push:\n");
-        //print_hd(head, 0, cache->get_block_size().value());
-
+        memcpy(head->data + head->data_size, buffer, blob.refsize(cache->get_block_size()));
         head->data_size += blob.refsize(cache->get_block_size());
         super_block->count++;
     }
@@ -138,13 +121,9 @@ public:
         queue_block_t *tail = reinterpret_cast<queue_block_t *>(_tail->get_data_major_write());
         rassert(tail->data_size != tail->live_data_offset);
 
-        //debugf("Block pre pop:\n");
-        //print_hd(tail, 0, cache->get_block_size().value());
-
         /* Grab the data from the blob and delete it. */
 
         memcpy(buffer, tail->data + tail->live_data_offset, blob::ref_size(cache->get_block_size(), tail->data + tail->live_data_offset, MAX_REF_SIZE));
-        //debugf("Blob from: %p\n", tail->data + tail->live_data_offset);
         blob_t blob(buffer, MAX_REF_SIZE);
         std::string data;
         blob.read_to_string(data, &txn, 0, blob.valuesize());
@@ -153,6 +132,8 @@ public:
         tail->live_data_offset += blob.refsize(cache->get_block_size());
 
         blob.clear(&txn);
+
+        super_block->count--;
 
         /* If that was the last blob in this block move on to the next one. */
         if (tail->live_data_offset == tail->data_size) {
@@ -163,8 +144,6 @@ public:
         /* Deserialize the value and return it. */
         std::vector<char> data_vec(data.begin(), data.end());
 
-        //debugf("Deserializaing:\n");
-        //print_hd(data_vec.data(), 0, data_vec.size());
         vector_read_stream_t read_stream(&data_vec);
         T t;
         int res = deserialize(&read_stream, &t);
@@ -216,8 +195,6 @@ private:
     }
     boost::scoped_ptr<standard_serializer_t> serializer;
     boost::scoped_ptr<cache_t> cache;
-    //boost::scoped_ptr<buf_lock_t> tail_block, hd_block;
-    //boost::scoped_ptr<transaction_t> transaction;
 };
 
 #endif
