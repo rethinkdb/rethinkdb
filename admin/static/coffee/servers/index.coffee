@@ -9,6 +9,7 @@ module 'ServerView', ->
         events:
             'click a.btn.add-datacenter': 'add_datacenter'
             'click a.btn.set-datacenter': 'set_datacenter'
+            'click .close': 'remove_parent_alert'
 
         initialize: ->
             @add_datacenter_dialog = new ServerView.AddDatacenterModal
@@ -26,6 +27,11 @@ module 'ServerView', ->
             @update_toolbar_buttons()
 
             return @
+
+        remove_parent_alert: (event) ->
+            event.preventDefault()
+            element = $(event.target).parent()
+            element.slideUp 'fast', -> element.remove()
 
         add_datacenter: (event) =>
             log_action 'add datacenter button clicked'

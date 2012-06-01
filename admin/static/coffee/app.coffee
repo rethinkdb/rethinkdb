@@ -29,6 +29,7 @@ apply_to_collection = (collection, collection_data) ->
             if collection.get(id)
                 collection.remove(id)
 
+
 add_protocol_tag = (data, tag) ->
     f = (unused,id) ->
         if (data[id])
@@ -112,7 +113,8 @@ set_log_entries = (log_data_from_server) ->
 
 set_stats = (stat_data) ->
     for machine_id, data of stat_data
-        machines.get(machine_id).set('stats', data)
+        if machines.get(machine_id)? #if the machines are not ready, we just skip the current stats
+            machines.get(machine_id).set('stats', data)
 
 collections_ready = ->
     # Data is now ready, let's get rockin'!
@@ -132,6 +134,7 @@ $ ->
     window.progress_list = new ProgressList
     window.directory = new Directory
     window.recent_log_entries = new LogEntries
+    window.issues_redundancy = new IssuesRedundancy
     window.connection_status = new ConnectionStatus
     window.computed_cluster = new ComputedCluster
 

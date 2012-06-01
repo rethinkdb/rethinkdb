@@ -17,6 +17,32 @@ Handlebars.registerHelper 'comma_separated', (context, block) ->
         out += ", " if i isnt context.length-1
     return out
 
+
+# Returns a list to links to machine
+Handlebars.registerHelper 'links_to_machines', (machines) ->
+    out = ""
+    for i in [0...machines.length]
+        out += '<a href="#machines/'+machines[i].uid+'">'+machines[i].name+'</a>'
+        out += ", " if i isnt machines.length-1
+    return out
+
+#Returns a list of links to machines and namespaces
+Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
+    out = ""
+    for i in [0...machines.length]
+        out += '<p><a href="#namespaces/'+machines[i].namespace_uuid+'">'+machines[i].namespace_name+'</a> (<a href="#machines/'+machines[i].machine_id+'">'+machines[i].machine_name+'</a>)</p>'
+        out += ", " if i isnt machines.length-1
+    return out
+
+
+#Returns a list of links to machines and namespaces
+Handlebars.registerHelper 'links_to_replicas_and_namespaces', (machines) ->
+    out = ""
+    for i in [0...machines.length]
+        out += '<p><a href="#namespaces/'+machines[i].get('namespace_uuid')+'">'+machines[i].get('namespace_name')+'</a> (<a href="#machines/'+machines[i].get('machine_id')+'">'+machines[i].get('machine_name')+'</a>)</p>'
+        out += ", " if i isnt machines.length-1
+    return out
+
 # If the two arguments are equal, show the inner block; else block is available
 Handlebars.registerHelper 'ifequal', (val_a, val_b, if_block, else_block) ->
     if val_a is val_b
