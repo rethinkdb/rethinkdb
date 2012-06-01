@@ -550,4 +550,49 @@ TEST(RPCConnectivityTest, PeerIDSemanticsMultiThread) {
     run_in_thread_pool(&run_peer_id_semantics_test, 3);
 }
 
+/* `CheckHeaders` makes sure that we close the connection if we get a malformed header. */
+void run_check_headers_test() {
+    int port = randport();
+
+    // Set up a cluster node.
+    connectivity_cluster_t c1;
+    connectivity_cluster_t::run_t cr1(&c1, port, NULL);
+
+    // Manually connect to the cluster.
+    peer_address_t addr = c1.get_peer_address(c1.get_me());
+    cond_t cond;                // dummy signal
+    tcp_conn_stream_t conn(addr.ip, addr.port, &cond, 0);
+
+    // Read & check its header.
+    static const char header[] = CLUSTER_PROTO_HEADER;
+    const int64_t len = sizeof header - 1;
+    {
+        char data[len];
+        ASSERT_TRUE(len == force_read(&conn, data, len));
+        ASSERT_FALSE(memcmp(header, data, len));
+    }
+
+    // Send it an initially okay-looking but ultimately malformed header.
+    const int64_t initlen = 10;
+    ASSERT_TRUE(initlen < len); // sanity check
+    ASSERT_TRUE(initlen == conn.write(header, initlen));
+    let_stuff_happen();
+    ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
+
+    // Send malformed continuation.
+    char badchar = header[initlen] ^ 0x7f;
+    ASSERT_EQ(1, conn.write(&badchar, 1));
+    let_stuff_happen();
+
+    // Try to write something, and discover that the other end has shut down.
+    ASSERT_EQ(-1, conn.write("a", 1));
+    let_stuff_happen();
+    ASSERT_FALSE(conn.is_write_open());
+    ASSERT_FALSE(conn.is_read_open());
+}
+
+TEST(RPCConnectivityTest, CheckHeaders) {
+    run_in_thread_pool(&run_check_headers_test);
+}
+
 }   /* namespace unittest */
