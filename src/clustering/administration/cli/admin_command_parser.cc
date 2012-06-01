@@ -14,71 +14,104 @@
 admin_command_parser_t *admin_command_parser_t::instance = NULL;
 uint64_t admin_command_parser_t::cluster_join_timeout = 5000; // Give 5 seconds to connect to all machines in the cluster
 
-const char *admin_command_parser_t::list_command = "ls";
-const char *admin_command_parser_t::list_stats_command = "ls stats";
-const char *admin_command_parser_t::list_issues_command = "ls issues";
-const char *admin_command_parser_t::list_machines_command = "ls machines";
-const char *admin_command_parser_t::list_directory_command = "ls directory";
-const char *admin_command_parser_t::list_namespaces_command = "ls namespaces";
-const char *admin_command_parser_t::list_datacenters_command = "ls datacenters";
-const char *admin_command_parser_t::exit_command = "exit";
-const char *admin_command_parser_t::help_command = "help";
-const char *admin_command_parser_t::resolve_command = "resolve";
-const char *admin_command_parser_t::pin_shard_command = "pin shard";
-const char *admin_command_parser_t::split_shard_command = "split shard";
-const char *admin_command_parser_t::merge_shard_command = "merge shard";
-const char *admin_command_parser_t::set_name_command = "set name";
-const char *admin_command_parser_t::set_acks_command = "set acks";
-const char *admin_command_parser_t::set_replicas_command = "set replicas";
-const char *admin_command_parser_t::set_datacenter_command = "set datacenter";
-const char *admin_command_parser_t::create_namespace_command = "create namespace";
-const char *admin_command_parser_t::create_datacenter_command = "create datacenter";
-const char *admin_command_parser_t::remove_command = "rm";
+const char *list_command = "ls";
+const char *list_stats_command = "ls stats";
+const char *list_issues_command = "ls issues";
+const char *list_machines_command = "ls machines";
+const char *list_directory_command = "ls directory";
+const char *list_namespaces_command = "ls namespaces";
+const char *list_datacenters_command = "ls datacenters";
+const char *exit_command = "exit";
+const char *help_command = "help";
+const char *resolve_command = "resolve";
+const char *pin_shard_command = "pin shard";
+const char *split_shard_command = "split shard";
+const char *merge_shard_command = "merge shard";
+const char *set_name_command = "set name";
+const char *set_acks_command = "set acks";
+const char *set_replicas_command = "set replicas";
+const char *set_datacenter_command = "set datacenter";
+const char *create_namespace_command = "create namespace";
+const char *create_datacenter_command = "create datacenter";
+const char *remove_command = "rm";
 
 // Special commands - used only in certain cases
 const char *admin_command_parser_t::complete_command = "complete";
 
-const char *admin_command_parser_t::exit_usage = "";
-const char *admin_command_parser_t::list_usage = "[<id> | --long]";
-const char *admin_command_parser_t::list_stats_usage = "[<machine>...] [<namespace>...]";
-const char *admin_command_parser_t::list_issues_usage = "";
-const char *admin_command_parser_t::list_machines_usage = "[--long]";
-const char *admin_command_parser_t::list_directory_usage = "[--long]";
-const char *admin_command_parser_t::list_namespaces_usage = "[--protocol <protocol>] [--long]";
-const char *admin_command_parser_t::list_datacenters_usage = "[--long]";
-const char *admin_command_parser_t::help_usage = "[ ls | create | rm | set | split | merge | resolve | help ]";
-const char *admin_command_parser_t::resolve_usage = "<id> <field>";
-const char *admin_command_parser_t::pin_shard_usage = "<namespace> <shard> [--master <machine>] [--replicas <machine>...]";
-const char *admin_command_parser_t::split_shard_usage = "<namespace> <split-point>...";
-const char *admin_command_parser_t::merge_shard_usage = "<namespace> <split-point>...";
-const char *admin_command_parser_t::set_name_usage = "<id> <new name>";
-const char *admin_command_parser_t::set_acks_usage = "<namespace> <datacenter> <num-acks>";
-const char *admin_command_parser_t::set_replicas_usage = "<namespace> <datacenter> <num-replicas>";
-const char *admin_command_parser_t::set_datacenter_usage = "( <namespace> | <machine> ) <datacenter>";
-const char *admin_command_parser_t::create_namespace_usage = "<name> --port <port> --protocol ( memcached | dummy ) --primary <datacenter>";
-const char *admin_command_parser_t::create_datacenter_usage = "<name>";
-const char *admin_command_parser_t::remove_usage = "<id>...";
+const char *exit_usage = "";
+const char *list_usage = "[<id> | --long]";
+const char *list_stats_usage = "[<machine>...] [<namespace>...]";
+const char *list_issues_usage = "";
+const char *list_machines_usage = "[--long]";
+const char *list_directory_usage = "[--long]";
+const char *list_namespaces_usage = "[--protocol <protocol>] [--long]";
+const char *list_datacenters_usage = "[--long]";
+const char *help_usage = "[ ls | create | rm | set | split | merge | resolve | help ]";
+const char *resolve_usage = "<id> <field>";
+const char *pin_shard_usage = "<namespace> <shard> [--master <machine>] [--replicas <machine>...]";
+const char *split_shard_usage = "<namespace> <split-point>...";
+const char *merge_shard_usage = "<namespace> <split-point>...";
+const char *set_name_usage = "<id> <new-name>";
+const char *set_acks_usage = "<namespace> <datacenter> <num-acks>";
+const char *set_replicas_usage = "<namespace> <datacenter> <num-replicas>";
+const char *set_datacenter_usage = "( <namespace> | <machine> ) <datacenter>";
+const char *create_namespace_usage = "<name> --port <port> --protocol <protocol> --primary <datacenter>";
+const char *create_datacenter_usage = "<name>";
+const char *remove_usage = "<id>...";
 
-const char *admin_command_parser_t::list_description = "Print a list of objects in the cluster.  An individual object can be selected by name or uuid for a detailed description of the object.";
-const char *admin_command_parser_t::list_stats_description = "Print a list of statistics gathered by the cluster.  Statistics will be on a per-machine and per-namespace basis, if applicable, and can be filtered by machine or namespace.";
-const char *admin_command_parser_t::list_issues_description = "Print a list of issues currently detected by the cluster.";
-const char *admin_command_parser_t::list_machines_description = "Print a list of machines in the cluster along with some relevant data about each machine.";
-const char *admin_command_parser_t::list_directory_description = "Print a list of nodes currently connected to the running admin client, this may include data servers, proxy nodes, or other admin clients.";
-const char *admin_command_parser_t::list_namespaces_description = "Print a list of namespaces in the cluster along with some relevant data about each namespace. The list may be filtered by a namespace protocol type.";
-const char *admin_command_parser_t::list_datacenters_description = "Print a list of datacenters in the cluster along with some relevant data about each datacenter.";
-const char *admin_command_parser_t::exit_description = "Quit the cluster administration console.";
-const char *admin_command_parser_t::help_description = "Print help on a cluster administration command.";
-const char *admin_command_parser_t::resolve_description = "If there are any conflicted values in the cluster, either list the possible values or resolve the conflict by selecting one of the values.";
-const char *admin_command_parser_t::pin_shard_description = "Set machines to host the master and/or replicas for a given shard in a namespace.";
-const char *admin_command_parser_t::split_shard_description = "Add a new shard to a namespace by creating a new split point.  This will subdivide a given shard into two shards at the specified key.";
-const char *admin_command_parser_t::merge_shard_description = "Remove a shard from a namespace by deleting a split point.  This will merge the two shards on each side of the split point into one.";
-const char *admin_command_parser_t::set_name_description = "Set the name of an object.  This object may be referred to by its existing name or its UUID.  An object may have only one name at a time.";
-const char *admin_command_parser_t::set_acks_description = "Set how many replicas must acknowledge a write operation for it to succeed, for the given namespace and datacenter.";
-const char *admin_command_parser_t::set_replicas_description = "Set the replica affinities of a namespace.  This represents the number of replicas that the namespace will have in each specified datacenter.";
-const char *admin_command_parser_t::set_datacenter_description = "Set the primary datacenter of a namespace, or the datacenter that a machine belongs to.";
-const char *admin_command_parser_t::create_namespace_description = "Create a new namespace with the given protocol.  The namespace's primary datacenter and listening port must be specified.";
-const char *admin_command_parser_t::create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
-const char *admin_command_parser_t::remove_description = "Remove an object from the cluster.";
+const char *list_id_option = "[<id>] - print out a detailed description of a single object in the cluster, this can be a machine, namespace, or datacenter";
+const char *list_long_option = "[--long] - print out full uuids (and extra information when listing machines, namespaces, or datacenters)";
+const char *list_stats_machine_option = "[<machine>...] - limit stat collection to the set of machines specified";
+const char *list_stats_namespace_option = "[<namespace>...] - limit stat collection to the set of namespaces specified";
+const char *list_namespaces_protocol_option = "[--protocol <protocol>] - limit the list of namespaces to namespaces matching the specified protocol";
+const char *resolve_id_option = "<id> - the name or uuid of an object with a conflicted field";
+const char *resolve_field_option = "<field> - the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters this can be 'name' only, and for namespaces, this can be 'name', 'datacenter', 'replicas', 'acks', 'shards', 'port', master_pinnings', or 'replica_pinnings'";
+const char *pin_shard_namespace_option = "<namespace> - the namespace to change the shard pinnings of";
+const char *pin_shard_shard_option = "<shard> - the shard to be affected, this is of the format [lower_bound]-[upper_bound] where one or more of the bounds must be specified.  Any non-alphanumeric character should be specified using escaped hexadecimal, e.g. '\\7E' for a '~', the minimum and maximum bounds can be referred to as '-inf' and '+inf', respectively.  Only one shard may be modified at a time.";
+const char *pin_shard_master_option = "[--master <machine>] - the machine to host the master replica of the shard, this machine must belong to the primary datacenter of the namespace";
+const char *pin_shard_replicas_option = "[--replicas <machine>...] - the machines to host the replicas of the shards, these must belong to datacenters that have been configured to replicate the namespace using the 'set replicas' command, and their numbers should not exceed the number of replicas.  The master replica counts towards this value.";
+const char *split_shard_namespace_option = "<namespace> - the namespace to add another shard to";
+const char *split_shard_split_point_option = "<split-point> - the key at which to split an existing shard into two shards";
+const char *merge_shard_namespace_option = "<namespace> - the namespace to remove a shard from";
+const char *merge_shard_split_point_option = "<split-point> - the shard boundary to remove, combining the shard on each side into one";
+const char *set_name_id_option = "<id> - a machine, datacenter, or namespace to change the name of";
+const char *set_name_new_name_option = "<new-name> - the new name for the specified object";
+const char *set_acks_namespace_option = "<namespace> - the namespace to change the acks for";
+const char *set_acks_datacenter_option = "<datacenter> - a datacenter hosting the namespace to change the acks for";
+const char *set_acks_num_acks_option = "<num-acks> - the number of acknowledgements required from the replicas in a datacenter for a write operation to be considered successful, this value should not exceed the number of replicas of the specified namespace for the specified datacenter";
+const char *set_replicas_namespace_option = "<namespace> - the namespace to change the number of replicas of";
+const char *set_replicas_datacenter_option = "<datacenter> - the datacenter which will host the replicas";
+const char *set_replicas_num_replicas_option = "<num-replicas> - the number of replicas of the specified namespace to host in the specified datacenter, this value should not exceed the number of machines in the datacenter";
+const char *set_datacenter_namespace_option = "<namespace> - the namespace which will have its shards' master replicas moved to the specified datacenter";
+const char *set_datacenter_machine_option = "<machine> - the machine to move to the specified datacenter";
+const char *set_datacenter_datacenter_option = "<datacenter> - the datacenter to move to";
+const char *create_namespace_name_option = "<name> - the name of the new namespace";
+const char *create_namespace_port_option = "--port <port> - the port for the namespace to serve data from for every machine in the cluster";
+const char *create_namespace_protocol_option = "--protocol <protocol> - the protocol for the namespace to use, only memcached is supported at the moment";
+const char *create_namespace_primary_option = "--primary <datacenter> - the primary datacenter of the new namespace, this datacenter will host the master replicas of each shard";
+const char *create_datacenter_name_option = "<name> - the name of the new datacenter";
+const char *remove_id_option = "<id> - the name or uuid of the object to remove";
+
+const char *list_description = "Print a list of objects in the cluster.  An individual object can be selected by name or uuid for a detailed description of the object.";
+const char *list_stats_description = "Print a list of statistics gathered by the cluster.  Statistics will be on a per-machine and per-namespace basis, if applicable, and can be filtered by machine or namespace.";
+const char *list_issues_description = "Print a list of issues currently detected by the cluster.";
+const char *list_machines_description = "Print a list of machines in the cluster along with some relevant data about each machine.";
+const char *list_directory_description = "Print a list of nodes currently connected to the running admin client, this may include data servers, proxy nodes, or other admin clients.";
+const char *list_namespaces_description = "Print a list of namespaces in the cluster along with some relevant data about each namespace. The list may be filtered by a namespace protocol type.";
+const char *list_datacenters_description = "Print a list of datacenters in the cluster along with some relevant data about each datacenter.";
+const char *exit_description = "Quit the cluster administration console.";
+const char *help_description = "Print help on a cluster administration command.";
+const char *resolve_description = "If there are any conflicted values in the cluster, list the possible values for a conflicted field and resolve the conflict by selecting one of the values.";
+const char *pin_shard_description = "Set machines to host the master and/or replicas for a given shard in a namespace.";
+const char *split_shard_description = "Add a new shard to a namespace by creating a new split point.  This will subdivide a given shard into two shards at the specified key, and clear all existing pinnings for the namespace.";
+const char *merge_shard_description = "Remove a shard from a namespace by deleting a split point.  This will merge the two shards on each side of the split point into one, and clear all existing pinnings for the namespace..";
+const char *set_name_description = "Set the name of an object.  This object may be referred to by its existing name or its UUID.  An object may have only one name at a time.";
+const char *set_acks_description = "Set how many replicas must acknowledge a write operation for it to succeed, for the given namespace and datacenter.";
+const char *set_replicas_description = "Set the replica affinities of a namespace.  This represents the number of replicas that the namespace will have in each specified datacenter.";
+const char *set_datacenter_description = "Set the primary datacenter of a namespace, or the datacenter that a machine belongs to.";
+const char *create_namespace_description = "Create a new namespace with the given protocol.  The namespace's primary datacenter and listening port must be specified.";
+const char *create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
+const char *remove_description = "Remove an object from the cluster.";
 
 std::vector<std::string> parse_line(const std::string& line) {
     std::vector<std::string> result;
@@ -861,24 +894,36 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
                 helps.push_back(admin_help_info_t(list_directory_command, list_directory_usage, list_directory_description));
                 helps.push_back(admin_help_info_t(list_namespaces_command, list_namespaces_usage, list_namespaces_description));
                 helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
+                options.push_back(list_id_option);
+                options.push_back(list_long_option);
+                options.push_back(list_stats_machine_option);
+                options.push_back(list_stats_namespace_option);
+                options.push_back(list_namespaces_protocol_option);
                 do_usage_internal(helps, options, "ls - display information from the cluster", console_mode);
             } else if (subcommand == "stats") {
                 helps.push_back(admin_help_info_t(list_stats_command, list_stats_usage, list_stats_description));
+                options.push_back(list_stats_machine_option);
+                options.push_back(list_stats_namespace_option);
                 do_usage_internal(helps, options, "ls stats - display statistics gathered from the cluster", console_mode);
             } else if (subcommand == "issues") {
                 helps.push_back(admin_help_info_t(list_issues_command, list_issues_usage, list_issues_description));
                 do_usage_internal(helps, options, "ls issues - display current issues detected by the cluster", console_mode);
             } else if (subcommand == "machines") {
                 helps.push_back(admin_help_info_t(list_machines_command, list_machines_usage, list_machines_description));
+                options.push_back(list_long_option);
                 do_usage_internal(helps, options, "ls machines - display a list of machines in the cluster", console_mode);
             } else if (subcommand == "directory") {
                 helps.push_back(admin_help_info_t(list_directory_command, list_directory_usage, list_directory_description));
+                options.push_back(list_long_option);
                 do_usage_internal(helps, options, "ls directory - display a list of nodes connected to the cluster", console_mode);
             } else if (subcommand == "namespaces") {
                 helps.push_back(admin_help_info_t(list_namespaces_command, list_namespaces_usage, list_namespaces_description));
+                options.push_back(list_long_option);
+                options.push_back(list_namespaces_protocol_option);
                 do_usage_internal(helps, options, "ls namespaces - display a list of namespaces in the cluster", console_mode);
             } else if (subcommand == "datacenters") {
                 helps.push_back(admin_help_info_t(list_datacenters_command, list_datacenters_usage, list_datacenters_description));
+                options.push_back(list_long_option);
                 do_usage_internal(helps, options, "ls datacenters - display a list of datacenters in the cluster", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
@@ -892,15 +937,26 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
                 do_usage_internal(helps, options, "set - change the value of a field in cluster metadata", console_mode);
             } else if (subcommand == "name") {
                 helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
+                options.push_back(set_name_id_option);
+                options.push_back(set_name_new_name_option);
                 do_usage_internal(helps, options, "set name - change the name of an object in the cluster", console_mode);
             } else if (subcommand == "acks") {
                 helps.push_back(admin_help_info_t(set_acks_command, set_acks_usage, set_acks_description));
+                options.push_back(set_acks_namespace_option);
+                options.push_back(set_acks_datacenter_option);
+                options.push_back(set_acks_num_acks_option);
                 do_usage_internal(helps, options, "set acks - change the number of acknowledgements required for a write operation to succeed", console_mode);
             } else if (subcommand == "replicas") {
                 helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
+                options.push_back(set_replicas_namespace_option);
+                options.push_back(set_replicas_datacenter_option);
+                options.push_back(set_replicas_num_replicas_option);
                 do_usage_internal(helps, options, "set replicas - change the number of replicas for a namespace in a datacenter", console_mode);
             } else if (subcommand == "datacenter") {
                 helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
+                options.push_back(set_datacenter_namespace_option);
+                options.push_back(set_datacenter_machine_option);
+                options.push_back(set_datacenter_datacenter_option);
                 do_usage_internal(helps, options, "set datacenter - change the primary datacenter for a namespace or machine", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
@@ -912,9 +968,14 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
                 do_usage_internal(helps, options, "create - add a new namespace or datacenter to the cluster", console_mode);
             } else if (subcommand == "namespace") {
                 helps.push_back(admin_help_info_t(create_namespace_command, create_namespace_usage, create_namespace_description));
+                options.push_back(create_namespace_name_option);
+                options.push_back(create_namespace_port_option);
+                options.push_back(create_namespace_protocol_option);
+                options.push_back(create_namespace_primary_option);
                 do_usage_internal(helps, options, "create namespace - add a new namespace to the cluster", console_mode);
             } else if (subcommand == "datacenter") {
                 helps.push_back(admin_help_info_t(create_datacenter_command, create_datacenter_usage, create_datacenter_description));
+                options.push_back(create_datacenter_name_option);
                 do_usage_internal(helps, options, "create datacenter - add a new datacenter to the cluster", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
@@ -924,6 +985,7 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
                 throw admin_parse_exc_t("no recognized subcommands for 'rm'");
             }
             helps.push_back(admin_help_info_t(remove_command, remove_usage, remove_description));
+            options.push_back(remove_id_option);
             do_usage_internal(helps, options, "remove - delete an object from the cluster metadata", console_mode);
         } else if (command == "help") {
             if (!subcommand.empty()) {
@@ -936,24 +998,34 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
             helps.push_back(admin_help_info_t(pin_shard_command, pin_shard_usage, pin_shard_description));
+            options.push_back(pin_shard_namespace_option);
+            options.push_back(pin_shard_shard_option);
+            options.push_back(pin_shard_master_option);
+            options.push_back(pin_shard_replicas_option);
             do_usage_internal(helps, options, "pin shard - assign machines to host the master or replicas of a shard", console_mode);
         } else if (command == "split") {
             if (!subcommand.empty() || subcommand != "shard") {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
             helps.push_back(admin_help_info_t(split_shard_command, split_shard_usage, split_shard_description));
+            options.push_back(split_shard_namespace_option);
+            options.push_back(split_shard_split_point_option);
             do_usage_internal(helps, options, "split shard - split a shard in a namespace into more shards", console_mode);
         } else if (command == "merge") {
             if (!subcommand.empty() || subcommand != "shard") {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
             helps.push_back(admin_help_info_t(merge_shard_command, merge_shard_usage, merge_shard_description));
+            options.push_back(merge_shard_namespace_option);
+            options.push_back(merge_shard_split_point_option);
             do_usage_internal(helps, options, "merge shard - merge two or more shards in a namespace", console_mode);
         } else if (command == "resolve") {
             if (!subcommand.empty()) {
                 throw admin_parse_exc_t("no recognized subcommands for 'resolve'");
             }
             helps.push_back(admin_help_info_t(resolve_command, resolve_usage, resolve_description));
+            options.push_back(resolve_id_option);
+            options.push_back(resolve_field_option);
             do_usage_internal(helps, options, "resolve - resolve a conflict on a cluster metadata value", console_mode);
         } else {
             throw admin_parse_exc_t("unknown command: " + command);

@@ -2515,9 +2515,9 @@ void admin_cluster_link_t::resolve_namespace_value(namespace_semilattice_metadat
         resolve_value(ns.shards, "shards", post_path);
     } else if (field == "port") {
         resolve_value(ns.port, "port", post_path);
-    } else if (field == "primary_pinnings") {
+    } else if (field == "master_pinnings") {
         resolve_value(ns.primary_pinnings, "primary_pinnings", post_path);
-    } else if (field == "secondary_pinnings") {
+    } else if (field == "replica_pinnings") {
         resolve_value(ns.secondary_pinnings, "secondary_pinnings", post_path);
     } else {
         throw admin_cluster_exc_t("unknown namespace field: " + field);
