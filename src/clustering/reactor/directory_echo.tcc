@@ -96,6 +96,22 @@ void directory_echo_mirror_t<internal_t>::on_change() {
                 ));
         }
     }
+    /* Erase `last_seen` table entries for now-disconnected peers. This serves
+    two purposes:
+    1. It saves space if many peers connect and disconnect (this is not very
+        important, but nice theoretically)
+    2. It means that if they re-connect, we will re-transmit the ack. This is
+        important because maybe they didn't get the ack the first time due to
+        the connection going down.
+    */
+    for (typename std::map<peer_id_t, directory_echo_version_t>::iterator it = last_seen.begin();
+            it != last_seen.end();) {
+        if (snapshot.find(it->first) == snapshot.end()) {
+            last_seen.erase(it++);
+        } else {
+            ++it;
+        }
+    }
 }
 
 template<class internal_t>
