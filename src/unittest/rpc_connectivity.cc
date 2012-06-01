@@ -567,9 +567,11 @@ void run_check_headers_test() {
     static const char header[] = CLUSTER_PROTO_HEADER;
     const int64_t len = sizeof header - 1;
     {
-        char data[len];
-        ASSERT_TRUE(len == force_read(&conn, data, len));
-        ASSERT_FALSE(memcmp(header, data, len));
+        char data[len+1];
+        int64_t read = force_read(&conn, data, len);
+        ASSERT_TRUE(read >= 0);
+        data[read] = 0;         // null-terminate
+        ASSERT_STREQ(header, data);
     }
 
     // Send it an initially okay-looking but ultimately malformed header.
@@ -585,7 +587,7 @@ void run_check_headers_test() {
     let_stuff_happen();
 
     // Try to write something, and discover that the other end has shut down.
-    ASSERT_EQ(-1, conn.write("a", 1));
+    (void)(1 == conn.write("a", 1)); // avoid unused return value warning
     let_stuff_happen();
     ASSERT_FALSE(conn.is_write_open());
     ASSERT_FALSE(conn.is_read_open());
