@@ -9,14 +9,17 @@ with driver.Metacluster() as metacluster:
     print "Spinning up two processes..."
     proc1 = driver.Process(cluster1, driver.Files(metacluster))
     proc2 = driver.Process(cluster1, driver.Files(metacluster))
-    time.sleep(1)
+    proc1.wait_until_started_up()
+    proc2.wait_until_started_up()
     cluster1.check()
+
     access1 = http_admin.ClusterAccess([("localhost", proc1.http_port)])
     access2 = http_admin.ClusterAccess([("localhost", proc2.http_port)])
     dc = access1.add_datacenter("Fizz")
     time.sleep(2)
     access2.update_cluster_data()
     assert len(access1.get_directory()) == len(access2.get_directory()) == 2
+
     print "Splitting cluster, then waiting 20s..."
     cluster2 = driver.Cluster(metacluster)
     metacluster.move_processes(cluster1, cluster2, [proc2])

@@ -8,7 +8,7 @@ with driver.Metacluster() as metacluster:
     print "Spinning up a process..."
     files = driver.Files(metacluster, db_path = "db")
     process = driver.Process(cluster, files, log_path = "log")
-    time.sleep(1)
+    process.wait_until_started_up()
     cluster.check()
     access = http_admin.ClusterAccess([("localhost", process.http_port)])
     assert access.get_issues() == []
