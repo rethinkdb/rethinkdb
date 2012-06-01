@@ -283,7 +283,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     gets.reserve(argc - 1);
     for (int i = 1; i < argc; i++) {
         gets.push_back(get_t());
-        if (!unescaped_str_to_key(argv[i], strlen(argv[1]), &gets.back().key)) {
+        if (!unescaped_str_to_key(argv[i], strlen(argv[i]), &gets.back().key)) {
             pipeliner_acq.done_argparsing();
             pipeliner_acq.begin_write();
             rh->client_error_bad_command_line_format();
