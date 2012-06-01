@@ -43,4 +43,4 @@ with driver.Metacluster() as metacluster:
     time.sleep(10)
     cluster.check()
 
-    cluster.check_and_close()
+    cluster.check_and_stop()

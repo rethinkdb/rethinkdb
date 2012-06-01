@@ -23,7 +23,7 @@ with driver.Metacluster() as metacluster:
         time.sleep(0.1)
         s.close()
     print
-    cluster.check_and_close()
+    cluster.check_and_stop()
 print "Done."
 
 with driver.Metacluster() as metacluster:
@@ -36,7 +36,7 @@ with driver.Metacluster() as metacluster:
     s = socket.socket()
     s.connect(("localhost", proc.cluster_port))
     print "Trying to stop cluster..."
-    cluster.check_and_close()
+    cluster.check_and_stop()
     s.close()
 print "Done."
 

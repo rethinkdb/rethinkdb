@@ -42,7 +42,7 @@ with driver.Metacluster() as metacluster:
     time.sleep(30)
 
     print "Shutting down old server..."
-    process1.check_and_close()
+    process1.check_and_stop()
     http2 = http_admin.ClusterAccess([("localhost", process2.http_port)])
     http2.declare_machine_dead(files1.machine_name)
     http2.set_namespace_affinities(ns.name, {dc.name: 0})
@@ -51,4 +51,4 @@ with driver.Metacluster() as metacluster:
 
     workload_runner.run(opts["workload2"], host, port, opts["timeout"])
 
-    cluster.check_and_close()
+    cluster.check_and_stop()

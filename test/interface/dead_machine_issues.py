@@ -36,6 +36,6 @@ with driver.Metacluster() as metacluster:
     issues = access.get_issues()
     assert len(issues) == 1
     assert issues[0]["type"] == "MACHINE_GHOST"
-    cluster.check_and_close()
+    cluster.check_and_stop()
 print "Done."
 

@@ -39,4 +39,4 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     http.check_no_issues()
     workload_runner.run(opts["workload2"], host, port, opts["timeout"])
-    cluster.check_and_close()
+    cluster.check_and_stop()
