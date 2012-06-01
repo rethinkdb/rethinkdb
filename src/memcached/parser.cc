@@ -126,6 +126,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         printf_buffer_t<1000> buffer(args, format);
         write(buffer.data(), buffer.size());
         va_end(args);
+        writef("\r\n");
         debugf("Client request returned SERVER_ERROR %s\n", buffer.data());
     }
 
@@ -138,7 +139,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     }
 
     void server_error_object_too_large_for_cache() {
-        server_error("object too large for cache\r\n");
+        server_error("object too large for cache");
     }
 
     void flush_buffer() {
@@ -312,7 +313,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     /* Check if any failed */
     for (int i = 0; i < (int)gets.size(); i++) {
         if (!gets[i].ok) {
-            rh->server_error("%s\r\n", gets[i].error_message.c_str());
+            rh->server_error("%s", gets[i].error_message.c_str());
             pipeliner_acq.end_write();
             return;
         }
@@ -519,7 +520,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
     }
 
     if (error_message != "") {
-        rh->server_error("%s\r\n", error_message.c_str());
+        rh->server_error("%s", error_message.c_str());
     }
 
     pipeliner_acq.end_write();
@@ -633,7 +634,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                 default: unreachable();
                 }
             } else {
-                rh->server_error("%s\r\n", error_message.c_str());
+                rh->server_error("%s", error_message.c_str());
             }
         }
 
@@ -669,7 +670,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                 default: unreachable();
                 }
             } else {
-                rh->server_error("%s\r\n", error_message.c_str());
+                rh->server_error("%s", error_message.c_str());
             }
         }
     }
@@ -859,7 +860,7 @@ void run_incr_decr(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, 
                 default: unreachable();
             }
         } else {
-            rh->server_error("%s\r\n", error_message.c_str());
+            rh->server_error("%s", error_message.c_str());
         }
     }
 
@@ -954,7 +955,7 @@ void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, sto
                 default: unreachable();
             }
         } else {
-            rh->server_error("%s\r\n", error_message.c_str());
+            rh->server_error("%s", error_message.c_str());
         }
     }
 
