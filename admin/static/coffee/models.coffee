@@ -23,7 +23,6 @@ class Namespace extends Backbone.Model
                 @set('key_distr_sorted', distr_keys)
                 # TODO: magic number
                 window.setTimeout @load_key_distr, 5000
-
     sorted_key_distr_keys: =>
         keys = @get('key_distr_sorted')
         if keys?
@@ -70,13 +69,46 @@ class Namespace extends Backbone.Model
         _.each DataUtils.get_namespace_machines(@get('id')), (mid) =>
             _m = machines.get(mid)
             _s = _m.get_stats()[@get('id')]
-            if _s?
+            if _s? and _s.btree?
                 keys_read = parseFloat(_s.btree.keys_read)
                 if not isNaN(keys_read)
                     __s.keys_read += keys_read
                 keys_set = parseFloat(_s.btree.keys_set)
                 if not isNaN(keys_set)
                     __s.keys_set += keys_set
+        return __s
+
+
+    get_stats_for_performance: =>
+        # Ops/sec stats
+        __s =
+            keys_read: 0
+            keys_set: 0
+            global_cpu_util_avg: 0
+            global_mem_total: 0
+            global_mem_used: 0
+            global_disk_space: 0
+            global_net_recv_persec_avg: 0
+            global_net_sent_persec_avg: 0
+        for namespace in namespaces.models
+            _s = namespace.get_stats()
+            if not _s?
+                continue
+            __s.keys_read += _s.keys_read
+            __s.keys_set += _s.keys_set
+        # CPU, mem, disk
+        num_machines_in_namespace = 0
+        for machine in machines.models
+            if machine.get('stats')? and  @get('id') of machine.get('stats') and machine.is_reachable
+                num_machines_in_namespace++
+                mstats = machine.get_stats().proc
+                __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util_avg)
+                __s.global_mem_total += parseInt(mstats.global_mem_total)
+                __s.global_mem_used += parseInt(mstats.global_mem_used)
+                __s.global_disk_space += machine.get_used_disk_space()
+                __s.global_net_recv_persec_avg += parseFloat(mstats.global_net_recv_persec_avg)
+                __s.global_net_sent_persec_avg += parseFloat(mstats.global_net_sent_persec_avg)
+        __s.global_cpu_util_avg /= num_machines_in_namespace
         return __s
 
 class Datacenter extends Backbone.Model
@@ -106,6 +138,39 @@ class Datacenter extends Backbone.Model
         stats.global_cpu_util_avg /= nmachines
         return stats
 
+    get_stats_for_performance: =>
+        # Ops/sec stats
+        __s =
+            keys_read: 0
+            keys_set: 0
+            global_cpu_util_avg: 0
+            global_mem_total: 0
+            global_mem_used: 0
+            global_disk_space: 0
+            global_net_recv_persec_avg: 0
+            global_net_sent_persec_avg: 0
+        for namespace in namespaces.models
+            _s = namespace.get_stats()
+            if not _s?
+                continue
+            __s.keys_read += _s.keys_read
+            __s.keys_set += _s.keys_set
+        # CPU, mem, disk
+        num_machines_in_datacenter = 0
+        for machine in machines.models
+            if machine.get('datacenter_uuid') is @get('id') and machine.is_reachable
+                num_machines_in_datacenter++
+                mstats = machine.get_stats().proc
+                __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util_avg)
+                __s.global_mem_total += parseInt(mstats.global_mem_total)
+                __s.global_mem_used += parseInt(mstats.global_mem_used)
+                __s.global_disk_space += machine.get_used_disk_space()
+                __s.global_net_recv_persec_avg += parseFloat(mstats.global_net_recv_persec_avg)
+                __s.global_net_sent_persec_avg += parseFloat(mstats.global_net_sent_persec_avg)
+        __s.global_cpu_util_avg /= num_machines_in_datacenter
+        return __s
+
+
 class Machine extends Backbone.Model
     get_stats: =>
         stats = @get('stats')
@@ -124,6 +189,36 @@ class Machine extends Backbone.Model
                 if stats?
                     machine_disk_space += parseInt(stats.block_size) * parseInt(stats.blocks_total)
         return machine_disk_space
+
+
+    get_stats_for_performance: =>
+
+        stats_full = @get_stats()
+        mstats = stats_full.proc
+        __s =
+            keys_read: 0
+            keys_set: 0
+            global_cpu_util_avg: parseFloat(mstats.global_cpu_util_avg)
+            global_mem_total: parseInt(mstats.global_mem_total)
+            global_mem_used: parseInt(mstats.global_mem_used)
+            global_disk_space: parseInt(@get_used_disk_space())
+            global_net_recv_persec_avg: parseFloat(mstats.global_net_recv_persec_avg)
+            global_net_sent_persec_avg: parseFloat(mstats.global_net_sent_persec_avg)
+        
+        for namespace in namespaces.models
+            _s = namespace.get_stats()
+            if not _s?
+                continue
+            
+            if namespace.get('id') of stats_full
+                __s.keys_read += _s.keys_read
+                __s.keys_set += _s.keys_set
+        # CPU, mem, disk
+        return __s
+
+    is_reachable: =>
+        reachable = directory.get(@get('id'))?
+        return reachable
 
 class LogEntry extends Backbone.Model
     get_iso_8601_timestamp: => ISODateString new Date(@.get('timestamp') * 1000)
@@ -146,6 +241,8 @@ class LogEntry extends Backbone.Model
 
 
 class Issue extends Backbone.Model
+
+class IssueRedundancy extends Backbone.Model
 
 class Progress extends Backbone.Model
 
@@ -191,6 +288,9 @@ class ComputedCluster extends Backbone.Model
 
         return __s
 
+
+
+
 # Collections for Backbone.js
 class Namespaces extends Backbone.Collection
     model: Namespace
@@ -228,6 +328,69 @@ class LogEntries extends Backbone.Collection
 class Issues extends Backbone.Collection
     model: Issue
     url: '/ajax/issues'
+
+# We compare the directory and the blueprints to detect redundancy problems
+class IssuesRedundancy extends Backbone.Collection
+    model: IssueRedundancy
+    num_replicas : 0
+    initialize: ->
+        directory.on 'all', @compute_redundancy_errors
+        namespaces.on 'all', @compute_redundancy_errors
+
+
+
+    convert_activity:
+        'role_secondary': 'secondary_up_to_date'
+        'role_nothing': 'nothing'
+        'role_primary': 'primary'
+
+    compute_redundancy_errors: =>
+        issues_redundancy = []
+        @num_replicas = 0
+
+
+        directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
+        for namespace in namespaces.models
+            namespace_id = namespace.get('id')
+            blueprint = namespace.get('blueprint').peers_roles
+            for machine_id of blueprint
+                if machines.get(machine_id)? and machines.get(machine_id).get('name')?
+                    machine_name = machines.get(machine_id).get('name')
+                else # can happen if machines is not loaded yet
+                    machine_name = machine_id
+
+                for key of blueprint[machine_id]
+                    value = blueprint[machine_id][key]
+                    if value is "role_primary" or value is "role_secondary"
+                        @num_replicas++
+
+                        if !(directory_by_namespaces?) or !(directory_by_namespaces[namespace_id]?) or !(directory_by_namespaces[namespace_id][machine_id]?)
+                            issue_redundancy_param =
+                                machine_id: machine_id
+                                machine_name: machine_name
+                                namespace_uuid: namespace_id
+                                namespace_name: namespace.get('name')
+                            issue_redundancy = new IssueRedundancy issue_redundancy_param
+                            issues_redundancy.push issue_redundancy
+                        else if directory_by_namespaces[namespace_id][machine_id][0] != key
+                            issue_redundancy_param =
+                                machine_id: machine_id
+                                machine_name: machine_name
+                                namespace_uuid: namespace_id
+                                namespace_name: namespace.get('name')
+                            issues_redundancy.push new IssueRedundancy issue_redundancy_param
+                        else if directory_by_namespaces[namespace_id][machine_id][1].type != @convert_activity[value]
+                            issue_redundancy_param =
+                                machine_id: machine_id
+                                machine_name: machine_name
+                                namespace_uuid: namespace_id
+                                namespace_name: namespace.get('name')
+                            issues_redundancy.push new IssueRedundancy issue_redundancy_param
+ 
+        if issues_redundancy.length > 0 or issues_redundancy.length isnt @.length
+            @.reset(issues_redundancy)
+        
+        
 
 class ProgressList extends Backbone.Collection
     model: Progress
@@ -347,6 +510,19 @@ module 'DataUtils', ->
                         value: activity
                         machine_id: machine.get('id')
                         namespace_id: namespace_id
+        return activities
+
+    @get_directory_activities_by_namespaces = ->
+        activities = {}
+        for machine in directory.models
+            bcards = machine.get('memcached_namespaces')['reactor_bcards']
+            for namespace_id, activity_map of bcards
+                activity_map = activity_map['activity_map']
+                for activity_id, activity of activity_map
+                    if !(namespace_id of activities)
+                        activities[namespace_id] = {}
+                    activities[namespace_id][machine.get('id')] = activity
+
         return activities
 
     # Computes backfill progress for a given (namespace, shard,
@@ -559,3 +735,52 @@ module 'DataUtils', ->
 
         return json
 
+
+    @get_namespace_status = (namespace_uuid, datacenter_uuid) ->
+        namespace = namespaces.get(namespace_uuid)
+        json =
+            nshards: 0
+            nreplicas: 0
+            nashards: 0
+            nareplicas: 0
+
+        # If we can't see the namespace...
+        if not namespace?
+            return null
+
+        # machine and datacenter counts
+        _machines = []
+        _datacenters = []
+
+        for machine_uuid, role of namespace.get('blueprint').peers_roles
+            if datacenter_uuid? and
+               machines.get(machine_uuid) and
+               machines.get(machine_uuid).get('datacenter_uuid') isnt datacenter_uuid
+                continue
+            peer_accessible = directory.get(machine_uuid)
+            machine_active_for_namespace = false
+            for shard, role_name of role
+                if role_name is 'role_primary'
+                    machine_active_for_namespace = true
+                    json.nshards += 1
+                    if peer_accessible?
+                        json.nashards += 1
+                if role_name is 'role_secondary'
+                    machine_active_for_namespace = true
+                    json.nreplicas += 1
+                    if peer_accessible?
+                        json.nareplicas += 1
+            if machine_active_for_namespace
+                _machines[_machines.length] = machine_uuid
+                _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
+
+        json.nmachines = _.uniq(_machines).length
+        json.ndatacenters = _.uniq(_datacenters).length
+        if json.nshards is json.nashards
+            json.reachability = 'Live'
+        else
+            json.reachability = 'Down'
+
+        json.backfill_progress = @get_backfill_progress_agg(namespace_uuid, datacenter_uuid)
+
+        return json

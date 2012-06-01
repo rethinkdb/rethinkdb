@@ -267,23 +267,25 @@ module 'Vis', ->
                 disk_used: human_readable_units(stats.global_disk_space, units_space)
                 global_net_recv: human_readable_units(stats.global_net_recv_persec_avg, units_space)
                 global_net_sent: human_readable_units(stats.global_net_sent_persec_avg, units_space)
+            
+
 
             # Totals ops sparkline
-            @.$('tr.total_ops_sec > td.minichart > span').sparkline(@total_ops_cache.get(), @SPARKLINE_DEFAULTS)
+            @.$('ul.total_ops_sec > li.minichart > span').sparkline(@total_ops_cache.get(), @SPARKLINE_DEFAULTS)
             # CPU utilization sparkline
             cpu_sparkline_json = {}
             _.extend cpu_sparkline_json, @SPARKLINE_DEFAULTS,
                 chartRangeMin: 0
                 chartRangeMax: 100
-            @.$('tr.total_cpu_util > td.minichart > span').sparkline(@total_cpu_util_cache.get(), cpu_sparkline_json)
+            @.$('ul.total_cpu_util > li.minichart > span').sparkline(@total_cpu_util_cache.get(), cpu_sparkline_json)
             # Disk utilization sparkline
             disk_sparkline_json = {}
             _.extend disk_sparkline_json, @SPARKLINE_DEFAULTS,
                 chartRangeMin: 0
-            @.$('tr.total_disk_usage > td.minichart > span').sparkline(@total_disk_space_cache.get(), disk_sparkline_json)
+            @.$('ul.total_disk_usage > li.minichart > span').sparkline(@total_disk_space_cache.get(), disk_sparkline_json)
             # Network sparklines
-            @.$('tr.global_net_sent > td.minichart > span').sparkline(@net_sent_cache.get(), @SPARKLINE_DEFAULTS)
-            @.$('tr.global_net_recv > td.minichart > span').sparkline(@net_recv_cache.get(), @SPARKLINE_DEFAULTS)
+            @.$('ul.global_net_sent > li.minichart > span').sparkline(@net_sent_cache.get(), @SPARKLINE_DEFAULTS)
+            @.$('ul.global_net_recv > li.minichart > span').sparkline(@net_recv_cache.get(), @SPARKLINE_DEFAULTS)
 
 
             # Rerender ourselves to update the data

@@ -17,6 +17,39 @@ Handlebars.registerHelper 'comma_separated', (context, block) ->
         out += ", " if i isnt context.length-1
     return out
 
+# Returns an html list
+Handlebars.registerHelper 'html_list', (context) ->
+    out = "<ul>"
+    for i in [0...context.length]
+        out += '<li>'+context[i]+'</li>'
+    out += '</ul>'
+    return new Handlebars.SafeString(out);
+
+# Returns a list to links to machine
+Handlebars.registerHelper 'links_to_machines', (machines) ->
+    out = ""
+    for i in [0...machines.length]
+        out += '<a href="#machines/'+machines[i].uid+'">'+machines[i].name+'</a>'
+        out += ", " if i isnt machines.length-1
+    return out
+
+#Returns a list of links to machines and namespaces
+Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
+    out = ""
+    for i in [0...machines.length]
+        out += '<p><a href="#namespaces/'+machines[i].namespace_uuid+'">'+machines[i].namespace_name+'</a> (<a href="#machines/'+machines[i].machine_id+'">'+machines[i].machine_name+'</a>)</p>'
+        out += ", " if i isnt machines.length-1
+    return out
+
+
+#Returns a list of links to machines and namespaces
+Handlebars.registerHelper 'links_to_replicas_and_namespaces', (machines) ->
+    out = ""
+    for i in [0...machines.length]
+        out += '<p><a href="#namespaces/'+machines[i].get('namespace_uuid')+'">'+machines[i].get('namespace_name')+'</a> (<a href="#machines/'+machines[i].get('machine_id')+'">'+machines[i].get('machine_name')+'</a>)</p>'
+        out += ", " if i isnt machines.length-1
+    return out
+
 # If the two arguments are equal, show the inner block; else block is available
 Handlebars.registerHelper 'ifequal', (val_a, val_b, if_block, else_block) ->
     if val_a is val_b
@@ -63,7 +96,8 @@ Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
             result = "<span class='label label-success'>Reachable</span>"
         else
             _last_seen = if status.last_seen? then status.last_seen else 'unknown'
-            result = "<span class='label label-important'>Unreachable</span> (<abbr class='timeago' title='#{_last_seen}'>since #{_last_seen}</abbr>)"
+            result = "<span class='label label-important'>Unreachable</span>
+                <br/><span class='timeago' title='#{_last_seen}'>since #{_last_seen}</span>"
     return new Handlebars.SafeString(result);
 
 Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
@@ -74,11 +108,36 @@ Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
             result = "<span class='label label-important'>Down</span>"
         else
             result = "<span class='label'>Empty</span>"
-    result += "(#{status.reachable} of #{status.total} machines reachable)"
     if status.reachable == 0 and status.total > 0
-        result += " <abbr class='timeago' title='#{status.last_seen}'>since #{status.last_seen}</abbr>"
+        result += "<br/><span class='timeago' title='#{status.last_seen}'>since #{status.last_seen}</abbr>"
 
     return new Handlebars.SafeString(result);
+
+Handlebars.registerHelper 'humanize_namespace_reachability', (reachability) ->
+    if reachability 
+        result = "<span class='label label-success'>Live</span>"
+    else
+        result = "<span class='label label-important'>Down</span>"
+
+    return new Handlebars.SafeString(result);
+
+Handlebars.registerHelper 'display_truncated_machines', (data) ->
+    machines = data.machines
+    out = ''
+    num_displayed_machine = 0
+    more_link_should_be_displayed = data.more_link_should_be_displayed
+    for machine in machines
+        out += '<li><a href="#machines/'+machine.id+'">'+machine.name+'</a>'+Handlebars.helpers.humanize_machine_reachability(machine.status)+'</li>'
+        num_displayed_machine++
+        if machine.status.reachable isnt true
+            num_displayed_machine++
+
+        if more_link_should_be_displayed is true and num_displayed_machine > 6
+            more_link_should_be_displayed = false
+            out += '<li class="more_machines"><a href="#" class="display_more_machines">» More</a></li>'
+ 
+
+    return new Handlebars.SafeString(out);
 
 # Safe string
 Handlebars.registerHelper 'print_safe', (str) ->
