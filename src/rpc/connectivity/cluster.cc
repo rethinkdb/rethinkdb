@@ -450,7 +450,6 @@ void connectivity_cluster_t::run_t::handle(
                 std::string message;
                 assert(get_thread_id() == chosen_thread);
                 if (deserialize(conn, &message)) {
-                    // FIXME RNTZ: should this check whether conn is read/write open?
                     throw fake_archive_exc_t();
                 }
 
