@@ -205,48 +205,70 @@ void connectivity_cluster_t::run_t::handle(
     tries. */
     conn->get_underlying_conn()->set_keepalive(10, 3, 3);
 
-    /* Each side sends their own ID and address, then receives the other side's.
-    */
+    if (0) {
+        /* We expect that sending & receiving can fail due to a network problem. If that happens,
+           we ignore it. If sending/receiving fails for some other reason, then the programmer
+           should learn about it, so we throw the exception. */
+      fail_read:
+        if (conn->is_read_open())
+            throw fake_archive_exc_t();
+        return;
 
+      fail_write:
+        if (conn->is_write_open())
+            throw fake_archive_exc_t();
+        return;
+    }
+
+    // Each side sends a header followed by its own ID and address, then receives and checks the
+    // other side's.
+    static const char header[] = CLUSTER_PROTO_HEADER;
+    const int64_t header_size = sizeof header - 1;
+
+    // Send header, id, address.
     {
         write_message_t msg;
+        msg.append(header, header_size);
         msg << parent->me;
         msg << routing_table[parent->me];
-        int res = send_write_message(conn, &msg);
-
-        if (res == -1) {
-            /* We expect that sending can fail due to a network
-               problem. If that happens, just ignore it. If sending
-               fails for some other reason, then the programmer should
-               learn about it, so we throw the exception. */
-            if (!conn->is_write_open()) {
-                return;
-            } else {
-                throw fake_archive_exc_t();
-            }
-        }
-        rassert(res == 0);
+        if (send_write_message(conn, &msg))
+            goto fail_write;
     }
 
+    // Receive & check header.
+    {
+        char data[header_size];
+        int64_t r;
+        for (int64_t i = 0; i < header_size; i += r) {
+            r = conn->read(data, header_size - i);
+            if (-1 == r)
+                // Network error.
+                goto fail_read;
+            rassert (r >= 0);
+            // If EOF or data does not match header, terminate connection.
+            if (0 == r || memcmp(header + i, data, r)) {
+                ip_address_t addr;
+                if (!conn->get_underlying_conn()->getpeername(&addr)) {
+                    std::string s = addr.as_dotted_decimal();
+                    logINF("received invalid clustering header from %s, terminating connection", s.c_str());
+                }
+                else
+                    logWRN("invalid clustering header, terminating connection; could not get address info from socket");
+                return;
+            }
+        }
+    }
+
+    // Receive id, address.
     peer_id_t other_id;
     peer_address_t other_address;
-    {
-        int res = deserialize(conn, &other_id);
-        if (!res) {
-            res = deserialize(conn, &other_address);
-        }
-
-        if (res) {
-            if (!conn->is_read_open()) {
-                return;
-            } else {
-                throw fake_archive_exc_t();
-            }
-        }
-    }
+    if (deserialize(conn, &other_id) || deserialize(conn, &other_address))
+        goto fail_read;
 
     /* Sanity checks */
     if (other_id == parent->me) {
+        // TODO: this can't crash (it can eg. occur due to stupid arguments on command-line), but
+        // should report error somehow.
         return;
     }
     if (other_id.is_nil()) {
@@ -321,43 +343,21 @@ void connectivity_cluster_t::run_t::handle(
         {
             write_message_t msg;
             msg << routing_table_to_send;
-            int res = send_write_message(conn, &msg);
-            if (res) {
-                if (!conn->is_write_open()) {
-                    return;
-                } else {
-                    throw fake_archive_exc_t();
-                }
-            }
+            if (send_write_message(conn, &msg))
+                goto fail_write;
         }
 
         /* Receive the follower's routing table */
-        {
-            int res = deserialize(conn, &other_routing_table);
-            if (res) {
-                if (!conn->is_read_open()) {
-                    return;
-                } else {
-                    throw fake_archive_exc_t();
-                }
-            }
-        }
+        if (deserialize(conn, &other_routing_table))
+            goto fail_read;
 
     } else {
 
         /* Receive the leader's routing table. (If our connection has lost a
         conflict, then the leader will close the connection instead of sending
         the routing table. */
-        {
-            int res = deserialize(conn, &other_routing_table);
-            if (res) {
-                if (!conn->is_read_open()) {
-                    return;
-                } else {
-                    throw fake_archive_exc_t();
-                }
-            }
-        }
+        if (deserialize(conn, &other_routing_table))
+            goto fail_read;
 
         std::map<peer_id_t, peer_address_t> routing_table_to_send;
 
@@ -387,14 +387,8 @@ void connectivity_cluster_t::run_t::handle(
         {
             write_message_t msg;
             msg << routing_table_to_send;
-            int res = send_write_message(conn, &msg);
-            if (res) {
-                if (!conn->is_write_open()) {
-                    return;
-                } else {
-                    throw fake_archive_exc_t();
-                }
-            }
+            if (send_write_message(conn, &msg))
+                goto fail_write;
         }
     }
 
@@ -454,12 +448,10 @@ void connectivity_cluster_t::run_t::handle(
                 just a length and a byte vector. This is obviously slow and we
                 should change it when we care about performance. */
                 std::string message;
-                {
-                    assert(get_thread_id() == chosen_thread);
-                    int res = deserialize(conn, &message);
-                    if (res) {
-                        throw fake_archive_exc_t();
-                    }
+                assert(get_thread_id() == chosen_thread);
+                if (deserialize(conn, &message)) {
+                    // FIXME RNTZ: should this check whether conn is read/write open?
+                    throw fake_archive_exc_t();
                 }
 
                 std::vector<char> vec(message.begin(), message.end());
