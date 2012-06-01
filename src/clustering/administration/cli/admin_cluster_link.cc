@@ -595,7 +595,6 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
                                                        cluster_semilattice_metadata_t& cluster_metadata,
                                                        const std::string& post_path) {
     machine_id_t primary(nil_uuid());
-    machine_id_t old_primary(nil_uuid());
     std::multimap<datacenter_id_t, machine_id_t> datacenter_use;
     std::multimap<datacenter_id_t, machine_id_t> old_datacenter_use;
     typename region_map_t<protocol_t, machine_id_t>::iterator primary_shard;
