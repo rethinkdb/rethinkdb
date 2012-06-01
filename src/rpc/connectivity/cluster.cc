@@ -222,8 +222,8 @@ void connectivity_cluster_t::run_t::handle(
 
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
-    static const char header[] = "rethinkdb " RETHINKDB_VERSION " cluster\n";
-    static const int64_t header_size = sizeof header - 1; // -1 for null byte
+    static const char header[] = CLUSTER_PROTO_HEADER;
+    const int64_t header_size = sizeof header - 1;
 
     // Send header, id, address.
     {
@@ -239,16 +239,17 @@ void connectivity_cluster_t::run_t::handle(
     {
         char data[header_size];
         int64_t r;
-        for (size_t i = 0; i < header_size; i += r) {
+        for (int64_t i = 0; i < header_size; i += r) {
             r = conn->read(data, header_size - i);
             if (-1 == r)
                 // Network error.
                 goto fail_read;
             rassert (r >= 0);
             // If EOF or data does not match header, terminate connection.
-            if (0 == r || memcmp(header + i, data, r))
-                // TODO RNTZ: Log some sort of warning here?
+            if (0 == r || memcmp(header + i, data, r)) {
+                // TODO RNTZ: Log some sort of warning here? Use logINF.
                 return;
+            }
         }
     }
 

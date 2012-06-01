@@ -14,6 +14,8 @@
 #include "rpc/connectivity/messages.hpp"
 #include "containers/uuid.hpp"
 
+#define CLUSTER_PROTO_HEADER "RethinkDB " RETHINKDB_VERSION " cluster\n"
+
 class peer_address_t {
 public:
     peer_address_t(ip_address_t i, int p) : ip(i), port(p) { }
