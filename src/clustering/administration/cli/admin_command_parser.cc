@@ -91,19 +91,21 @@ std::vector<std::string> parse_line(const std::string& line) {
             // It was easier for me to understand the boolean logic like this, empty if statements intentional
             if (quote == '\0' && (line[i] == '\'' || line[i] == '\"' || line[i] == ' ' || line[i] == '\t' || line[i] == '\r' || line[i] == '\n'));
             else if (quote != '\0' && line[i] == quote);
-            else
+            else {
                 argument += '\\';
+            }
             argument += line[i];
             escape = false;
         } else if (line[i] == '\\') {
             escape = true;
         } else if (line[i] == '\'' || line[i] == '\"') {
-            if (quote == '\0')
+            if (quote == '\0') {
                 quote = line[i];
-            else if (quote == line[i])
+            } else if (quote == line[i]) {
                 quote = '\0';
-            else
+            } else {
                 argument += line[i];
+            }
         } else if (quote != '\0' || (line[i] != ' ' && line[i] != '\t' && line[i] != '\r' && line[i] != '\n')) {
             argument += line[i];
         } else {
@@ -113,11 +115,13 @@ std::vector<std::string> parse_line(const std::string& line) {
         }
     }
 
-    if (quote != '\0')
+    if (quote != '\0') {
         throw admin_parse_exc_t("unmatched quote");
+    }
 
-    if (!argument.empty())
+    if (!argument.empty()) {
         result.push_back(argument);
+    }
 
     return result;
 }
@@ -137,14 +141,17 @@ void admin_command_parser_t::param_options::add_options(const char *term, ...) {
 }
 
 admin_command_parser_t::command_info::~command_info() {
-    for(std::map<std::string, param_options *>::iterator i = flags.begin(); i != flags.end(); ++i)
+    for(std::map<std::string, param_options *>::iterator i = flags.begin(); i != flags.end(); ++i) {
         delete i->second;
+    }
 
-    for(std::vector<param_options *>::iterator i = positionals.begin(); i != positionals.end(); ++i)
+    for(std::vector<param_options *>::iterator i = positionals.begin(); i != positionals.end(); ++i) {
         delete *i;
+    }
 
-    for(std::map<std::string, command_info *>::iterator i = subcommands.begin(); i != subcommands.end(); ++i)
+    for(std::map<std::string, command_info *>::iterator i = subcommands.begin(); i != subcommands.end(); ++i) {
         delete i->second;
+    }
 }
 
 admin_command_parser_t::param_options * admin_command_parser_t::command_info::add_flag(const std::string& name, int count, bool required)
@@ -174,10 +181,11 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
     }
 
     help->pagef("Usage:\n");
-    for (size_t i = 0; i < helps.size(); ++i)
+    for (size_t i = 0; i < helps.size(); ++i) {
         help->pagef("  %s%s %s\n", prefix, helps[i].command.c_str(), helps[i].usage.c_str());
+    }
 
-    if (!console)
+    if (!console) {
         help->pagef("\n"
                     "Clustering Options:\n"
 #ifndef NDEBUG
@@ -186,12 +194,13 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
 #endif
                     "  -j,--join <host>:<port>   specify the host and cluster port of a node in the cluster\n"
                     "                              to join\n");
+    }
 
     bool description_header_printed = false;
     for (size_t i = 0; i < helps.size(); ++i) {
-        if (helps[i].description.c_str() == NULL)
+        if (helps[i].description.c_str() == NULL) {
             continue;
-        if (description_header_printed == false) {
+        } if (description_header_printed == false) {
             help->pagef("\nDescription:\n");
             description_header_printed = true;
         }
@@ -201,8 +210,9 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
     if (!options.empty()) {
         help->pagef("\n"
                     "Options:\n");
-        for (size_t i = 0; i < options.size(); ++i)
+        for (size_t i = 0; i < options.size(); ++i) {
             help->pagef("  %s\n", options[i].c_str());
+        }
     }
 
     delete help;
@@ -262,8 +272,9 @@ admin_command_parser_t::~admin_command_parser_t() {
 
 void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, command_info *>& cmd_map) {
     for (std::map<std::string, command_info *>::iterator i = cmd_map.begin(); i != cmd_map.end(); ++i) {
-        if (!i->second->subcommands.empty())
+        if (!i->second->subcommands.empty()) {
             destroy_command_descriptions(i->second->subcommands);
+        }
         delete i->second;
     }
     cmd_map.clear();
@@ -283,8 +294,9 @@ admin_command_parser_t::command_info * admin_command_parser_t::add_command(std::
         std::string fragment(cmd.substr(0, space_index));
         std::map<std::string, command_info *>::iterator i = cmd_map.find(fragment);
 
-        if (i == cmd_map.end())
+        if (i == cmd_map.end()) {
             i = cmd_map.insert(std::make_pair(fragment, new command_info(full_cmd, fragment, "", false, NULL))).first;
+        }
 
         info = add_command(i->second->subcommands, full_cmd, cmd.substr(space_index + 1), usage, post_sync, fn);
     } else {
@@ -347,6 +359,7 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(commands, list_command, list_command, list_usage, false, &admin_cluster_link_t::do_admin_list);
     info->add_positional("object", 1, false)->add_options("!id", NULL);
+    info->add_flag("long", 0, false);
 
     info = add_command(commands, list_stats_command, list_stats_command, list_stats_usage, false, &admin_cluster_link_t::do_admin_list_stats);
     info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULL);
@@ -385,23 +398,26 @@ void admin_command_parser_t::build_command_descriptions() {
 
 admin_cluster_link_t * admin_command_parser_t::get_cluster() {
     if (cluster == NULL) {
-        if (joins_param.empty())
+        if (joins_param.empty()) {
             throw admin_no_connection_exc_t("no join parameter specified");
+        }
         cluster = new admin_cluster_link_t(joins_param, client_port_param, interruptor);
 
         // Spin for some time, trying to connect to the whole cluster
         for (uint64_t time_waited = 0; time_waited < cluster_join_timeout &&
              (cluster->machine_count() > cluster->available_machine_count() ||
-              cluster->available_machine_count() == 0); time_waited += 100)
+              cluster->available_machine_count() == 0); time_waited += 100) {
             nap(100);
+        }
 
         if (console_mode) {
             cluster->sync_from();
             size_t machine_count = cluster->machine_count();
             fprintf(stdout, "Connected to cluster with %ld machine%s, run 'help' for more information\n", machine_count, machine_count > 1 ? "s" : "");
             size_t num_issues = cluster->issue_count();
-            if (num_issues > 0)
+            if (num_issues > 0) {
                 fprintf(stdout, "There %s %ld outstanding issue%s, run 'ls issues' for more information\n", num_issues > 1 ? "are" : "is", num_issues, num_issues > 1 ? "s" : "");
+            }
         }
     }
 
@@ -412,16 +428,18 @@ admin_cluster_link_t * admin_command_parser_t::get_cluster() {
 admin_command_parser_t::command_info * admin_command_parser_t::find_command(const std::map<std::string, admin_command_parser_t::command_info *>& cmd_map, const std::vector<std::string>& line, size_t& index) {
     std::map<std::string, command_info *>::const_iterator i = cmd_map.find(line[0]);
 
-    if (i == commands.end())
+    if (i == commands.end()) {
         return NULL;
-    else
+    } else {
         // If any subcommands exist, either one is selected by the next substring, or we're at the final command
         for (index = 1; index < line.size() && !i->second->subcommands.empty(); ++index) {
             std::map<std::string, command_info *>::iterator temp = i->second->subcommands.find(line[index]);
-            if (temp == i->second->subcommands.end())
+            if (temp == i->second->subcommands.end()) {
                 break;
+            }
             i = temp;
         }
+    }
 
     return i->second;
 }
@@ -442,14 +460,16 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
                     data.params[option->name] = std::vector<std::string>();
                 } else {
                     size_t remaining = option->count;
-                    if (index + remaining >= line.size())
+                    if (index + remaining >= line.size()) {
                         throw admin_parse_exc_t("not enough arguments provided for flag: " + line[index]);
+                    }
 
                     while(remaining > 0 && index < line.size() - 1) {
                         ++index;
                         --remaining;
-                        if (line[index].find("--") == 0)
+                        if (line[index].find("--") == 0) {
                             throw admin_parse_exc_t("not enough arguments provided for flag: " + line[index]);
+                        }
                         data.params[option->name].push_back(line[index]);
                     }
                 }
@@ -457,8 +477,9 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
                 throw admin_parse_exc_t("unrecognized flag: " + line[index]);
             }
         } else { // Otherwise, it must be a positional
-            if (positional_index + 1 > info->positionals.size())
+            if (positional_index + 1 > info->positionals.size()) {
                 throw admin_parse_exc_t("too many positional arguments");
+            }
             data.params[info->positionals[positional_index]->name].push_back(line[index]);
             if (++positional_count >= info->positionals[positional_index]->count) {
                 positional_count = 0;
@@ -469,13 +490,15 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
 
     // Make sure all required options have been provided
     for (size_t j = 0; j < info->positionals.size(); ++j) {
-        if (info->positionals[j]->required && data.params.find(info->positionals[j]->name) == data.params.end())
+        if (info->positionals[j]->required && data.params.find(info->positionals[j]->name) == data.params.end()) {
             throw admin_parse_exc_t("insufficient positional parameters provided");
+        }
     }
 
     for (std::map<std::string, param_options *>::iterator j = info->flags.begin(); j != info->flags.end(); ++j) {
-        if (j->second->required && data.params.find(j->second->name) == data.params.end())
+        if (j->second->required && data.params.find(j->second->name) == data.params.end()) {
             throw admin_parse_exc_t("required flag not specified: " + j->second->name);
+        }
     }
 
     return data;
@@ -500,8 +523,9 @@ void admin_command_parser_t::run_command(command_data& data) {
             }
         }
 
-        if (data.info->post_sync)
+        if (data.info->post_sync) {
             get_cluster()->sync_from();
+        }
     }
 }
 
@@ -522,11 +546,13 @@ void admin_command_parser_t::completion_generator_hook(const char *raw, linenois
 std::map<std::string, admin_command_parser_t::command_info *>::const_iterator admin_command_parser_t::find_command_with_completion(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches) {
     std::map<std::string, command_info *>::const_iterator i = commands.find(str);
     if (add_matches) {
-        if (i == commands.end())
-            for (i = commands.lower_bound(str); i != commands.end() && i->first.find(str) == 0; ++i)
+        if (i == commands.end()) {
+            for (i = commands.lower_bound(str); i != commands.end() && i->first.find(str) == 0; ++i) {
                 linenoiseAddCompletion(completions, i->first.c_str());
-        else
+            }
+        } else {
             linenoiseAddCompletion(completions, i->first.c_str());
+        }
 
         return commands.end();
     }
@@ -535,12 +561,16 @@ std::map<std::string, admin_command_parser_t::command_info *>::const_iterator ad
 
 void admin_command_parser_t::add_option_matches(const param_options *option, const std::string& partial, linenoiseCompletions *completions) {
 
-    if (partial.find("!") == 0) // Don't allow completions beginning with '!', as we use it as a special case
+    if (partial.find("!") == 0) {
+        // Don't allow completions beginning with '!', as we use it as a special case
         return;
+    }
 
     for (std::set<std::string>::iterator i = option->valid_options.lower_bound(partial); i != option->valid_options.end() && i->find(partial) == 0; ++i) {
-        if (i->find("!") != 0) // skip special cases
+        if (i->find("!") != 0) {
+            // skip special cases
             linenoiseAddCompletion(completions, i->c_str());
+        }
     }
 
     std::vector<std::string> ids;
@@ -565,30 +595,36 @@ void admin_command_parser_t::add_option_matches(const param_options *option, con
         }
     }
 
-    for (std::vector<std::string>::iterator i = ids.begin(); i != ids.end(); ++i)
+    for (std::vector<std::string>::iterator i = ids.begin(); i != ids.end(); ++i) {
         linenoiseAddCompletion(completions, i->c_str());
+    }
 }
 
 void admin_command_parser_t::add_positional_matches(const command_info *info, size_t offset, const std::string& partial, linenoiseCompletions *completions) {
-    if (info->positionals.size() > offset)
+    if (info->positionals.size() > offset) {
         add_option_matches(info->positionals[offset], partial, completions);
+    }
 }
 
 void admin_command_parser_t::completion_generator(const std::vector<std::string>& line, linenoiseCompletions *completions, bool partial) {
     // TODO: this function is too long, too complicated, and is probably redundant in some cases
     //   I'm sure it can be simplified, but for now it seems to work
 
-    if (line.empty()) { // No command specified, available completions are all basic commands
-        for (std::map<std::string, command_info *>::iterator i = commands.begin(); i != commands.end(); ++i)
+    if (line.empty()) {
+        // No command specified, available completions are all basic commands
+        for (std::map<std::string, command_info *>::iterator i = commands.begin(); i != commands.end(); ++i) {
             linenoiseAddCompletion(completions, i->first.c_str());
-    } else { // Command specified, find a matching command/subcommand
+        }
+    } else {
+        // Command specified, find a matching command/subcommand
         size_t index = 0;
         std::map<std::string, command_info *>::const_iterator i = commands.find(line[0]);
         std::map<std::string, command_info *>::const_iterator end = commands.end();
 
         i = find_command_with_completion(commands, line[index], completions, partial && line.size() == 1);
-        if (i == end)
+        if (i == end) {
             return;
+        }
 
         for (index = 1; index < line.size() && !i->second->subcommands.empty(); ++index) {
             std::map<std::string, command_info *>::const_iterator old = i;
@@ -607,14 +643,18 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
         }
 
         // Non-terminal commands cannot have arguments
-        if (cmd->do_function == NULL)
+        if (cmd->do_function == NULL) {
             return;
+        }
 
         if (index == line.size()) {
-            if (!partial) // Only the command specified, show positionals
+            if (!partial) {
+                // Only the command specified, show positionals
                 add_positional_matches(cmd, 0, std::string(), completions);
-            else // command specified with no space at the end, throw one on to show completion
+            } else {
+                // command specified with no space at the end, throw one on to show completion
                 linenoiseAddCompletion(completions, line[index - 1].c_str());
+            }
             return;
         }
 
@@ -627,26 +667,34 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
                 std::map<std::string, param_options *>::iterator opt_iter = cmd->flags.find(line[index].substr(2));
                 if (opt_iter != cmd->flags.end() && (index != line.size() - 1 || !partial)) {
                     if (line.size() <= index + opt_iter->second->count) { // Not enough params for this flag
-                        if (!partial) // print valid_options
+                        if (!partial) {
+                            // print valid_options
                             add_option_matches(opt_iter->second, std::string(), completions);
-                        else // find matches of last word with valid_options
+                        } else {
+                            // find matches of last word with valid_options
                             add_option_matches(opt_iter->second, line[line.size() - 1], completions);
+                        }
                         return;
                     } else if (line.size() == index + opt_iter->second->count + 1) {
-                        if (!partial)
+                        if (!partial) {
                             add_positional_matches(cmd, positional_index, std::string(), completions);
-                        else // find matches of last word with valid_options
+                        } else {
+                            // find matches of last word with valid_options
                             add_option_matches(opt_iter->second, line[line.size() - 1], completions);
+                        }
                         return;
                     } else {
                         index += opt_iter->second->count;
                     }
                 } else if (line.size() == index + 1) {
-                    if (partial)
-                        for (opt_iter = cmd->flags.lower_bound(line[index].substr(2)); opt_iter != cmd->flags.end() && opt_iter->first.find(line[index].substr(2)) == 0; ++opt_iter)
+                    if (partial) {
+                        for (opt_iter = cmd->flags.lower_bound(line[index].substr(2));
+                             opt_iter != cmd->flags.end() && opt_iter->first.find(line[index].substr(2)) == 0; ++opt_iter) {
                             linenoiseAddCompletion(completions, ("--" + opt_iter->first).c_str());
-                    else
+                        }
+                    } else {
                         add_positional_matches(cmd, positional_index, std::string(), completions);
+                    }
                     return;
                 }
 
@@ -673,13 +721,15 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
 void admin_command_parser_t::run_completion(const std::vector<std::string>& command_args) {
     linenoiseCompletions completions = { 0, NULL };
 
-    if (command_args.size() < 2 || (command_args[1] != "partial" && command_args[1] != "full"))
+    if (command_args.size() < 2 || (command_args[1] != "partial" && command_args[1] != "full")) {
         throw admin_parse_exc_t("usage: rethinkdb admin complete ( partial | full ) [...]");
+    }
 
     completion_generator(std::vector<std::string>(command_args.begin() + 2, command_args.end()), &completions, command_args[1] == "partial");
 
-    for (size_t i = 0; i < completions.len; ++i)
+    for (size_t i = 0; i < completions.len; ++i) {
         printf("%s\n", completions.cvec[i]);
+    }
 
     linenoiseFreeCompletions(&completions);
 }
@@ -687,8 +737,9 @@ void admin_command_parser_t::run_completion(const std::vector<std::string>& comm
 std::string admin_command_parser_t::get_subcommands_usage(command_info *info) {
     std::string result;
 
-    if (info->do_function != NULL)
+    if (info->do_function != NULL) {
         result += "\t" + info->full_command + " " + info->usage + "\n";
+    }
 
     if (!info->subcommands.empty()) {
         for (std::map<std::string, command_info *>::const_iterator i = info->subcommands.begin(); i != info->subcommands.end(); ++i) {
@@ -706,10 +757,11 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
         size_t index;
         info = find_command(commands, line, index);
 
-        if (info == NULL)
+        if (info == NULL) {
             throw admin_parse_exc_t("unknown command: " + line[0]);
-        else if (info->do_function == NULL && info->full_command != help_command)
+        } else if (info->do_function == NULL && info->full_command != help_command) {
             throw admin_parse_exc_t("incomplete command");
+        }
 
         command_data data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
         run_command(data);
@@ -747,8 +799,9 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
 
     // Build the prompt based on our initial join command
     std::string join_peer_truncated(join_peer);
-    if (join_peer.length() > 50)
+    if (join_peer.length() > 50) {
         join_peer_truncated = join_peer.substr(0, 47) + "...";
+    }
     snprintf(prompt, 64, "%s> ", join_peer_truncated.c_str());
 
     linenoiseSetCompletionCallback(completion_generator_hook);
@@ -757,15 +810,17 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
     while(raw_line != NULL) {
         line.assign(raw_line);
 
-        if (line == exit_command)
+        if (line == exit_command) {
             break;
+        }
 
         if (!line.empty()) {
 
             try {
                 std::vector<std::string> split_line = parse_line(line);
-                if (!split_line.empty())
+                if (!split_line.empty()) {
                     parse_and_run_command(split_line);
+                }
             } catch (admin_no_connection_exc_t& ex) {
                 free(raw_line);
                 console_mode = false;
@@ -865,33 +920,39 @@ void admin_command_parser_t::do_admin_help(command_data& data) {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
         } else if (command == "rm") {
-            if (!subcommand.empty())
+            if (!subcommand.empty()) {
                 throw admin_parse_exc_t("no recognized subcommands for 'rm'");
+            }
             helps.push_back(admin_help_info_t(remove_command, remove_usage, remove_description));
             do_usage_internal(helps, options, "remove - delete an object from the cluster metadata", console_mode);
         } else if (command == "help") {
-            if (!subcommand.empty())
+            if (!subcommand.empty()) {
                 throw admin_parse_exc_t("no recognized subcommands for 'help'");
+            }
             helps.push_back(admin_help_info_t(help_command, help_usage, help_description));
             do_usage_internal(helps, options, "help - provide information about a cluster administration command", console_mode);
         } else if (command == "pin") {
-            if (!subcommand.empty() || subcommand != "shard")
+            if (!subcommand.empty() || subcommand != "shard") {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            }
             helps.push_back(admin_help_info_t(pin_shard_command, pin_shard_usage, pin_shard_description));
             do_usage_internal(helps, options, "pin shard - assign machines to host the master or replicas of a shard", console_mode);
         } else if (command == "split") {
-            if (!subcommand.empty() || subcommand != "shard")
+            if (!subcommand.empty() || subcommand != "shard") {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            }
             helps.push_back(admin_help_info_t(split_shard_command, split_shard_usage, split_shard_description));
             do_usage_internal(helps, options, "split shard - split a shard in a namespace into more shards", console_mode);
         } else if (command == "merge") {
-            if (!subcommand.empty() || subcommand != "shard")
+            if (!subcommand.empty() || subcommand != "shard") {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
+            }
             helps.push_back(admin_help_info_t(merge_shard_command, merge_shard_usage, merge_shard_description));
             do_usage_internal(helps, options, "merge shard - merge two or more shards in a namespace", console_mode);
         } else if (command == "resolve") {
-            if (!subcommand.empty())
+            if (!subcommand.empty()) {
                 throw admin_parse_exc_t("no recognized subcommands for 'resolve'");
+            }
             helps.push_back(admin_help_info_t(resolve_command, resolve_usage, resolve_description));
             do_usage_internal(helps, options, "resolve - resolve a conflict on a cluster metadata value", console_mode);
         } else {
