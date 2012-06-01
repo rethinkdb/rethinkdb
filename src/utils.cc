@@ -469,18 +469,16 @@ std::string read_file(const char *path) {
     return s;
 }
 
+static const char * unix_path_separator = "/";
+
 path_t parse_as_path(const std::string &path) {
-    debugf("Path: %s\n", path.c_str());
     path_t res;
-    if (path[0] == '/') {
-        res.is_absolute = true;
-    } else {
-        res.is_absolute = false;
-    }
+    res.is_absolute = (path[0] == unix_path_separator[0]);
+
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     typedef tokenizer::iterator tok_iterator;
 
-    boost::char_separator<char> sep("/");
+    boost::char_separator<char> sep(unix_path_separator);
     tokenizer tokens(path, sep);
 
     res.nodes.assign(tokens.begin(), tokens.end());
@@ -494,7 +492,7 @@ std::string render_as_path(const path_t &path) {
                                                   it != path.nodes.end();
                                                   it++) {
         if (it != path.nodes.begin() || path.is_absolute) {
-            res += "/";
+            res += unix_path_separator;
         }
         res += *it;
     }
