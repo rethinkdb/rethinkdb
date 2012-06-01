@@ -11,7 +11,7 @@ with driver.Metacluster() as metacluster:
     print "Spinning up a process..."
     cluster = driver.Cluster(metacluster)
     proc = driver.Process(cluster, driver.Files(metacluster, db_path = "db-1"), log_path = "serve-output-1")
-    time.sleep(1)
+    proc.wait_until_started_up()
     cluster.check()
     print "Generating garbage traffic..."
     for i in xrange(30):
@@ -19,9 +19,10 @@ with driver.Metacluster() as metacluster:
         sys.stdout.flush()
         s = socket.socket()
         s.connect(("localhost", proc.cluster_port))
-        s.send(garbage(random.randint(0, 2000)))
-        time.sleep(0.1)
+        s.send(garbage(random.randint(0, 500)))
+        time.sleep(3)
         s.close()
+        cluster.check()
     print
     cluster.check_and_stop()
 print "Done."
@@ -30,7 +31,7 @@ with driver.Metacluster() as metacluster:
     print "Spinning up another process..."
     cluster = driver.Cluster(metacluster)
     proc = driver.Process(cluster, driver.Files(metacluster, db_path = "db-2"), log_path = "serve-output-2")
-    time.sleep(1)
+    proc.wait_until_started_up()
     cluster.check()
     print "Opening and holding a connection..."
     s = socket.socket()

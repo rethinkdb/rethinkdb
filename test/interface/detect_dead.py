@@ -9,7 +9,8 @@ with driver.Metacluster() as metacluster:
     print "Spinning up two processes..."
     proc1 = driver.Process(cluster1, driver.Files(metacluster))
     proc2 = driver.Process(cluster1, driver.Files(metacluster))
-    time.sleep(1)
+    proc1.wait_until_started_up()
+    proc2.wait_until_started_up()
     cluster1.check()
     access1 = http_admin.ClusterAccess([("localhost", proc1.http_port)])
     access2 = http_admin.ClusterAccess([("localhost", proc2.http_port)])

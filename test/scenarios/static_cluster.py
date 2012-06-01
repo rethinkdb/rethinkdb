@@ -17,7 +17,9 @@ with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i), executable_path = driver.find_rethinkdb_executable(opts["mode"]), log_path = "serve-output-%d" % i)
         for i in xrange(opts["num-nodes"])]
-    time.sleep(3)
+    for process in processes:
+        process.wait_until_started_up()
+
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     dc = http.add_datacenter()
@@ -27,7 +29,9 @@ with driver.Metacluster() as metacluster:
     for i in xrange(opts["num-shards"] - 1):
         http.add_namespace_shard(ns, chr(ord('a') + 26 * i // opts["num-shards"]))
     time.sleep(10)
+
     host, port = http.get_namespace_host(ns)
     workload_runner.run(opts["workload"], host, port, opts["timeout"])
+
     cluster.check_and_stop()
 

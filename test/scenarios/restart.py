@@ -16,7 +16,7 @@ with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     files = driver.Files(metacluster)
     process = driver.Process(cluster, files, executable_path = driver.find_rethinkdb_executable(opts["mode"]))
-    time.sleep(3)
+    process.wait_until_started_up()
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", process.http_port)])
     dc = http.add_datacenter()
@@ -28,6 +28,7 @@ with driver.Metacluster() as metacluster:
     print "Restarting server..."
     process.check_and_stop()
     process2 = driver.Process(cluster, files)
+    process2.wait_until_started_up()
     time.sleep(10)
     workload_runner.run(opts["workload2"], host, port, opts["timeout"])
     cluster.check_and_stop()

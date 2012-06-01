@@ -247,6 +247,22 @@ class Process(object):
                     other_cluster._unblock_process(self)
             raise
 
+    def wait_until_started_up(self, timeout = 15):
+        time_limit = time.time() + timeout
+        while time.time() < time_limit:
+            self.check()
+            s = socket.socket()
+            try:
+                s.connect(("localhost", self.http_port))
+            except socket.error, e:
+                time.sleep(1)
+            else:
+                break
+            finally:
+                s.close()
+        else:
+            raise RuntimeError("Process was not responding to HTTP traffic within %d seconds." % timeout)
+
     def check(self):
         """Throws an exception if the process has crashed or stopped. """
         assert self.process is not None

@@ -13,7 +13,7 @@ with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     primary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-primary"), log_path = "serve-output-primary")
     secondary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-secondary"), log_path = "serve-output-secondary")
-    time.sleep(3)
+    secondary.wait_until_started_up()
 
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", primary.http_port)])
