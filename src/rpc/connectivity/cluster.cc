@@ -247,7 +247,13 @@ void connectivity_cluster_t::run_t::handle(
             rassert (r >= 0);
             // If EOF or data does not match header, terminate connection.
             if (0 == r || memcmp(header + i, data, r)) {
-                // TODO RNTZ: Log some sort of warning here? Use logINF.
+                ip_address_t addr;
+                if (!conn->get_underlying_conn()->getpeername(&addr)) {
+                    std::string s = addr.as_dotted_decimal();
+                    logINF("received invalid clustering header from %s, terminating connection", s.c_str());
+                }
+                else
+                    logWRN("invalid clustering header, terminating connection; could not get address info from socket");
                 return;
             }
         }

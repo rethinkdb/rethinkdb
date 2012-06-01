@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
-#include <netinet/in.h> 
+#include <netinet/in.h>
 
 #include <vector>
 #include <stdexcept>
@@ -138,6 +138,9 @@ public:
 public:
 
     void rethread(int);
+
+    int getsockname(ip_address_t *addr);
+    int getpeername(ip_address_t *addr);
 
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
