@@ -54,9 +54,10 @@ cJSON *render_as_json(key_range_t *target, const ctx_t &c) {
 
 template <class ctx_t>
 void apply_json_to(cJSON *change, key_range_t *target, const ctx_t &c) {
+    // TODO: Can we so casually call get_string on a cJSON object?  What if it's not a string?
     scoped_cJSON_t js(cJSON_Parse(get_string(change).c_str()));
     if (js.get() == NULL) {
-        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a memcached_protocol_t::region_t.\n", get_string(change).c_str()));
+        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", get_string(change).c_str()));
     }
 
     /* TODO: If something other than an array is passed here, then it will crash
@@ -65,16 +66,16 @@ void apply_json_to(cJSON *change, key_range_t *target, const ctx_t &c) {
 
     cJSON *first = it.next();
     if (first == NULL) {
-        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a memcached_protocol_t::region_t.\n", get_string(change).c_str()));
+        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", get_string(change).c_str()));
     }
 
     cJSON *second = it.next();
     if (second == NULL) {
-        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a memcached_protocol_t::region_t.\n", get_string(change).c_str()));
+        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", get_string(change).c_str()));
     }
 
     if (it.next() != NULL) {
-        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a memcached_protocol_t::region_t.\n", get_string(change).c_str()));
+        throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a key_range_t.", get_string(change).c_str()));
     }
 
     try {
@@ -89,7 +90,7 @@ void apply_json_to(cJSON *change, key_range_t *target, const ctx_t &c) {
             *target = key_range_t(key_range_t::closed, left,
                                   key_range_t::open,   right);
         }
-    } catch (std::runtime_error) {
+    } catch (std::runtime_error) {  // TODO Explain wtf can throw a std::runtime_error to us here.
         throw schema_mismatch_exc_t(strprintf("Failed to parse %s as a memcached_protocol_t::region_t.\n", get_string(change).c_str()));
     }
 }
@@ -98,31 +99,33 @@ template <class ctx_t>
 void  on_subfield_change(key_range_t *, const ctx_t &) { }
 
 
+
 // json adapter for hash_region_t<key_range_t>
-// TODO(sam): I don't know what the heck I'm doing.
+
+// TODO: This is extremely ghetto: we assert that the hash region isn't split by hash value (because why should the UI ever be exposed to that?) and then only serialize the key range.
 
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(hash_region_t<key_range_t> *target, const ctx_t &) {
-    typename json_adapter_if_t<ctx_t>::json_adapter_map_t ret;
-    ret["beg"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<uint64_t, ctx_t>(&target->beg));
-    ret["end"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<uint64_t, ctx_t>(&target->end));
-    ret["key_range"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<key_range_t, ctx_t>(&target->inner));
-    return ret;
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(UNUSED hash_region_t<key_range_t> *target, UNUSED const ctx_t &) {
+    return typename json_adapter_if_t<ctx_t>::json_adapter_map_t();
 }
 
 template <class ctx_t>
 cJSON *render_as_json(hash_region_t<key_range_t> *target, const ctx_t &c) {
-    return render_as_directory(target, c);
+    // TODO: ghetto low level hash_region_t assertion.
+    guarantee(target->beg == 0 && target->end == HASH_REGION_HASH_SIZE);
+
+    return render_as_json(&target->inner, c);
 }
 
 template <class ctx_t>
 void apply_json_to(cJSON *change, hash_region_t<key_range_t> *target, const ctx_t &ctx) {
-    apply_as_directory(change, target, ctx);
+    target->beg = 0;
+    target->end = HASH_REGION_HASH_SIZE;
+    apply_json_to(change, &target->inner, ctx);
 }
 
 template <class ctx_t>
 void on_subfield_change(hash_region_t<key_range_t> *, const ctx_t &) { }
-
 
 
 #endif  // MEMCACHED_PROTOCOL_JSON_ADAPTER_TCC_
