@@ -29,7 +29,7 @@ TEST(DiskBackedQueue, ManyInts) {
     run_in_thread_pool(&run_many_ints_test, 2);
 }
 
-#define NUM_BIG_ELTS_IN_QUEUE 5000
+#define NUM_BIG_ELTS_IN_QUEUE 100
 
 void run_big_values_test() {
     disk_backed_write_queue_t<std::string> queue("test");
