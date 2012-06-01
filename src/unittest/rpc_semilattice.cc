@@ -54,7 +54,7 @@ void assign(T *target, T value) {
 /* `SingleMetadata` tests metadata's properties on a single node. */
 
 void run_single_metadata_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c;
     semilattice_manager_t<sl_int_t> slm(&c, sl_int_t(2));
     connectivity_cluster_t::run_t cr(&c, port, &slm);
@@ -75,7 +75,7 @@ TEST(RPCSemilatticeTest, SingleMetadata) {
 nodes. */
 
 void run_metadata_exchange_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t cluster1, cluster2;
     semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
     connectivity_cluster_t::run_t run1(&cluster1, port, &slm1), run2(&cluster2, port+1, &slm2);
@@ -122,7 +122,7 @@ TEST(RPCSemilatticeTest, MetadataExchange) {
 }
 
 void run_sync_from_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t cluster1, cluster2;
     semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
     connectivity_cluster_t::run_t run1(&cluster1, port, &slm1), run2(&cluster2, port+1, &slm2);
@@ -168,7 +168,7 @@ TEST(RPCSemilatticeTest, SyncFrom) {
 changes. */
 
 void run_watcher_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t cluster;
     semilattice_manager_t<sl_int_t> slm(&cluster, sl_int_t(2));
     connectivity_cluster_t::run_t run(&cluster, port, &slm);
