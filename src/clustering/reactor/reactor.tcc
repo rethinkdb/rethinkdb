@@ -188,11 +188,34 @@ boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > reac
 
 template <class protocol_t>
 void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t version_to_wait_on, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    blueprint_t<protocol_t> bp = blueprint_watchable->get();
-    typename std::map<peer_id_t, std::map<typename protocol_t::region_t, typename blueprint_details::role_t> >::iterator it = bp.peers_roles.begin();
-    for (it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
-        typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::ack_waiter_t ack_waiter(&directory_echo_writer, it->first, version_to_wait_on);
-        wait_interruptible(&ack_waiter, interruptor);
+    while (true) {
+        /* This function waits for acks from all the peers mentioned in the
+        blueprint. If the blueprint changes while we're waiting for acks, we
+        restart from the top. This is important because otherwise we might
+        deadlock. For example, if we were waiting for a machine to come back up
+        and then it was declared dead, our interruptor might not be pulsed but
+        the `ack_waiter_t` would never be pulsed so we would get stuck. */
+        cond_t blueprint_changed;
+        blueprint_t<protocol_t> bp;
+        typename watchable_t<blueprint_t<protocol_t> >::subscription_t subscription(
+            boost::bind(&cond_t::pulse_if_not_already_pulsed, &blueprint_changed));
+        {
+            typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint_watchable);
+            bp = blueprint_watchable->get();
+            subscription.reset(blueprint_watchable, &freeze);
+        }
+        typename std::map<peer_id_t, std::map<typename protocol_t::region_t, typename blueprint_details::role_t> >::iterator it = bp.peers_roles.begin();
+        for (it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
+            typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::ack_waiter_t ack_waiter(&directory_echo_writer, it->first, version_to_wait_on);
+            wait_any_t waiter(&ack_waiter, &blueprint_changed);
+            wait_interruptible(&waiter, interruptor);
+            if (blueprint_changed.is_pulsed()) {
+                break;
+            }
+        }
+        if (!blueprint_changed.is_pulsed()) {
+            break;
+        }
     }
 }
 
