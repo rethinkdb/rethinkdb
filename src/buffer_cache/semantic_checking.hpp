@@ -8,6 +8,7 @@
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "perfmon_types.hpp"
+#include "repli_timestamp.hpp"
 
 // TODO: Have the semantic checking cache make sure that the
 // repli_timestamp_ts are correct.

@@ -23,8 +23,8 @@ def generate_make_serializable_macro(nfields):
         print "        msg << thing.field%d; \\" % (i + 1)
     print "    return msg; \\"
     print "    } \\"
-    print "    function_attr int deserialize(%sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg)
-    print "        int res = 0; \\"
+    print "    function_attr archive_result_t deserialize(%sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg)
+    print "        archive_result_t res = ARCHIVE_SUCCESS; \\"
     for i in xrange(nfields):
         print "        res = deserialize(s, &thing->field%d); \\" % (i + 1)
         print "        if (res) { return res; } \\"
@@ -45,8 +45,8 @@ def generate_make_me_serializable_macro(nfields):
         print "        msg << field%d; \\" % (i + 1)
     print "    } \\"
     print "    friend class archive_deserializer_t; \\"
-    print "    int rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
-    print "        int res = 0; \\"
+    print "    archive_result_t rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
+    print "        archive_result_t res = ARCHIVE_SUCCESS; \\"
     for i in xrange(nfields):
         print "        res = deserialize(s, &field%d); \\" % (i + 1)
         print "        if (res) { return res; } \\"
@@ -90,7 +90,7 @@ the class scope. */
     print
     print "#define RDB_DECLARE_SERIALIZABLE(type_t) \\"
     print "    write_message_t &operator<<(write_message_t &, const type_t &); \\"
-    print "    int deserialize(read_stream_t *s, type_t *thing);"
+    print "    archive_result_t deserialize(read_stream_t *s, type_t *thing);"
     print
 
     for nfields in xrange(20):
