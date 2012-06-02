@@ -143,6 +143,12 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
     } else {
         printf("It does not already exist. Creating it...\n");
 
+        int res = mkdir(filepath.c_str(), 0755);
+        if (res != 0) {
+            printf("Could not create directory: %s\n", metadata_persistence::errno_to_string(errno).c_str());
+            return;
+        }
+
         machine_id_t our_machine_id = generate_uuid();
         cluster_semilattice_metadata_t semilattice_metadata;
 

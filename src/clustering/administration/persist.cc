@@ -30,12 +30,12 @@ bool check_existence(const std::string& file_path) THROWS_ONLY(file_exc_t) {
 }
 
 void create(const std::string& file_path, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &semilattice) {
-    persistent_file_t store(file_path, true);
+    persistent_file_t store(metadata_file(file_path), true);
     store.update(machine_id, semilattice, true);
 }
 
 void read(const std::string& file_path, machine_id_t *machine_id_out, cluster_semilattice_metadata_t *semilattice_out) {    
-    persistent_file_t store(file_path);
+    persistent_file_t store(metadata_file(file_path));
     store.read(machine_id_out, semilattice_out);
 }
 
@@ -43,7 +43,7 @@ semilattice_watching_persister_t::semilattice_watching_persister_t(
         const std::string &filepath,
         machine_id_t mi,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > v) :
-    persistent_file(filepath), machine_id(mi), view(v),
+    persistent_file(metadata_file(filepath)), machine_id(mi), view(v),
     flush_again(new cond_t),
     subs(boost::bind(&semilattice_watching_persister_t::on_change, this), v)
 {
@@ -109,7 +109,7 @@ void persistent_file_t::update(const machine_id_t &machine_id, const cluster_sem
 
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
 
-    blob_superblock_t *sb = reinterpret_cast<blob_superblock_t *>(superblock.get_data_major_write());
+    blob_superblock_t *sb = static_cast<blob_superblock_t *>(superblock.get_data_major_write());
 
     if (create) {
         // we need to initialize the superblock
@@ -151,11 +151,11 @@ void persistent_file_t::update(const machine_id_t &machine_id, const cluster_sem
 }
 
 void persistent_file_t::read(machine_id_t *machine_id_out, cluster_semilattice_metadata_t *semilattice_out) {
-    transaction_t txn(cache.get(), rwi_read, 1, repli_timestamp_t::distant_past);
+    transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past);
 
-    buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
+    buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_read);
 
-    blob_superblock_t *sb = reinterpret_cast<blob_superblock_t *>(superblock.get_data_major_write());
+    blob_superblock_t *sb = const_cast<blob_superblock_t *>(static_cast<const blob_superblock_t *>(superblock.get_data_read()));
 
     blob_t blob(sb->metainfo_blob, blob_superblock_t::METADATA_BLOB_MAXREFLEN);
 
@@ -165,7 +165,7 @@ void persistent_file_t::read(machine_id_t *machine_id_out, cluster_semilattice_m
 
     read_string_stream_t ss(str);
 
-    guarantee(ss.read(reinterpret_cast<void *>(machine_id_out), sizeof(machine_id_t)) != 0);
+    guarantee(ss.read(static_cast<void *>(machine_id_out), sizeof(machine_id_t)) != 0);
 
     semilattice_out->rdb_deserialize(&ss);
 }
