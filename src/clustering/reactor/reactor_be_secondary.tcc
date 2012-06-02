@@ -134,7 +134,7 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
 
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &blueprint, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
         /* Tell everyone that we're backfilling so that we can get up to
          * date. */
@@ -167,7 +167,11 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 directory_entry.set(activity);
 
                 /* Wait until we can find a primary for our region. */
-                reactor_directory->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::find_broadcaster_in_directory, this, region, blueprint, _1, &broadcaster), interruptor);
+                run_until_satisfied_2(
+                    reactor_directory,
+                    blueprint,
+                    boost::bind(&reactor_t<protocol_t>::find_broadcaster_in_directory, this, region, _2, _1, &broadcaster),
+                    interruptor);
 
                 /* We need to save this to a local variable because there may be a
                  * race condition should the broadcaster go down. */
@@ -181,7 +185,11 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 }
                 branch_id = broadcaster_business_card.get().get().branch_id;
 
-                reactor_directory->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::find_replier_in_directory, this, region, branch_id, blueprint, _1, &location_to_backfill_from, &peer_id, &activity_id), interruptor);
+                run_until_satisfied_2(
+                    reactor_directory,
+                    blueprint,
+                    boost::bind(&reactor_t<protocol_t>::find_replier_in_directory, this, region, branch_id, _2, _1, &location_to_backfill_from, &peer_id, &activity_id),
+                    interruptor);
 
                 /* Note, the backfiller goes out of scope here, that's because
                  * we're about to start backfilling from someone else and thus
