@@ -11,7 +11,7 @@ namespace unittest {
 /* `OneNode` starts a single directory node, then shuts it down again. */
 
 void run_one_node_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c;
     directory_read_manager_t<int> read_manager(&c);
     watchable_variable_t<int> watchable(5);
@@ -27,7 +27,7 @@ TEST(RPCDirectoryTest, OneNode) {
 then shuts them down again. */
 
 void run_three_nodes_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1, c2, c3;
     directory_read_manager_t<int> rm1(&c1), rm2(&c2), rm3(&c3);
     watchable_variable_t<int> w1(101), w2(202), w3(303);
@@ -44,7 +44,7 @@ TEST(RPCDirectoryTest, ThreeNodes) {
 /* `Exchange` tests that directory nodes receive values from their peers. */
 
 void run_exchange_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1, c2, c3;
     directory_read_manager_t<int> rm1(&c1), rm2(&c2), rm3(&c3);
     watchable_variable_t<int> w1(101), w2(202), w3(303);
@@ -67,7 +67,7 @@ TEST(RPCDirectoryTest, Exchange) {
 /* `Update` tests that directory nodes see updates from their peers. */
 
 void run_update_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1, c2, c3;
     directory_read_manager_t<int> rm1(&c1), rm2(&c2), rm3(&c3);
     watchable_variable_t<int> w1(101), w2(202), w3(303);
@@ -92,7 +92,7 @@ TEST(RPCDirectoryTest, Update) {
 /* `DestructorRace` tests a nasty race condition that we had at some point. */
 
 void run_destructor_race_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c;
     directory_read_manager_t<int> rm(&c);
     watchable_variable_t<int> w(5);

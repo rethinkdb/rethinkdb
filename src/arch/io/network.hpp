@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
-#include <netinet/in.h> 
+#include <netinet/in.h>
 
 #include <vector>
 #include <stdexcept>
@@ -46,6 +46,7 @@ public:
         int error;
     };
 
+    // NB. interruptor cannot be NULL.
     linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port = 0) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
 
     /* Reading */
@@ -137,6 +138,9 @@ public:
 public:
 
     void rethread(int);
+
+    int getsockname(ip_address_t *addr);
+    int getpeername(ip_address_t *addr);
 
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
