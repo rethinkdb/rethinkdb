@@ -564,25 +564,24 @@ void run_check_headers_test() {
     tcp_conn_stream_t conn(addr.ip, addr.port, &cond, 0);
 
     // Read & check its header.
-    static const char header[] = CLUSTER_PROTO_HEADER;
-    const int64_t len = sizeof header - 1;
+    const int64_t len = strlen(cluster_proto_header);
     {
         char data[len+1];
         int64_t read = force_read(&conn, data, len);
         ASSERT_TRUE(read >= 0);
         data[read] = 0;         // null-terminate
-        ASSERT_STREQ(header, data);
+        ASSERT_STREQ(cluster_proto_header, data);
     }
 
     // Send it an initially okay-looking but ultimately malformed header.
     const int64_t initlen = 10;
     ASSERT_TRUE(initlen < len); // sanity check
-    ASSERT_TRUE(initlen == conn.write(header, initlen));
+    ASSERT_TRUE(initlen == conn.write(cluster_proto_header, initlen));
     let_stuff_happen();
     ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
 
     // Send malformed continuation.
-    char badchar = header[initlen] ^ 0x7f;
+    char badchar = cluster_proto_header[initlen] ^ 0x7f;
     ASSERT_EQ(1, conn.write(&badchar, 1));
     let_stuff_happen();
 

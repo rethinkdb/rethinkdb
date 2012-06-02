@@ -14,6 +14,9 @@
 #include "logger.hpp"
 #include "utils.hpp"
 
+#define CLUSTER_PROTO_HEADER "RethinkDB " RETHINKDB_VERSION " cluster\n"
+const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
+
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
         message_handler_t *mh,
@@ -222,13 +225,12 @@ void connectivity_cluster_t::run_t::handle(
 
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
-    static const char header[] = CLUSTER_PROTO_HEADER;
-    const int64_t header_size = sizeof header - 1;
+    const int64_t header_size = sizeof CLUSTER_PROTO_HEADER - 1;
 
     // Send header, id, address.
     {
         write_message_t msg;
-        msg.append(header, header_size);
+        msg.append(cluster_proto_header, header_size);
         msg << parent->me;
         msg << routing_table[parent->me];
         if (send_write_message(conn, &msg))
@@ -246,7 +248,7 @@ void connectivity_cluster_t::run_t::handle(
                 goto fail_read;
             rassert (r >= 0);
             // If EOF or data does not match header, terminate connection.
-            if (0 == r || memcmp(header + i, data, r)) {
+            if (0 == r || memcmp(cluster_proto_header + i, data, r)) {
                 ip_address_t addr;
                 if (!conn->get_underlying_conn()->getpeername(&addr)) {
                     std::string s = addr.as_dotted_decimal();
