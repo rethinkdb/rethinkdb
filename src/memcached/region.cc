@@ -91,3 +91,6 @@ std::vector<key_range_t> region_subtract_many(key_range_t minuend, const std::ve
     return buf;
 }
 
+std::string region_to_debug_str(const key_range_t &r) {
+    return key_range_to_debug_str(r);
+}

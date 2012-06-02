@@ -57,12 +57,13 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const blueprint_t<protocol_t> &blueprint, signal_t *interruptor) THROWS_NOTHING {
-
-    const int num_stores = svs->num_stores();
-
+void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
+        multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint,
+        signal_t *interruptor) THROWS_NOTHING {
     try {
         directory_entry_t directory_entry(this, region);
+
+        const int num_stores = svs->num_stores();
 
         {
             /* We offer backfills while waiting for it to be safe to shutdown
@@ -100,9 +101,11 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region, mul
 
             /* Make sure we don't go down and delete the data on our machine
              * before every who needs a copy has it. */
-            reactor_directory->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_nothing,
-                                                               this, _1, blueprint, region),
-                                                   interruptor);
+            run_until_satisfied_2(
+                reactor_directory,
+                blueprint,
+                boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_nothing, this, _1, _2, region),
+                interruptor);
         }
 
         /* We now know that it's safe to shutdown so we tell the other peers

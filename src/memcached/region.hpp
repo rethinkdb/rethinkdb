@@ -12,4 +12,6 @@ MUST_USE region_join_result_t region_join(const std::vector<key_range_t> &vec, k
 bool region_overlaps(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING;
 std::vector<key_range_t> region_subtract_many(key_range_t a, const std::vector<key_range_t>& b);
 
+std::string region_to_debug_str(const key_range_t &r);
+
 #endif  // MEMCACHED_REGION_HPP_

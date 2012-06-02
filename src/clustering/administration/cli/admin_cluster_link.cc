@@ -102,7 +102,7 @@ std::string admin_value_to_string(const memcached_protocol_t::region_t& region) 
 }
 
 std::string admin_value_to_string(const mock::dummy_protocol_t::region_t& region) {
-    return mock::to_string(region);
+    return mock::region_to_debug_str(region);
 }
 
 std::string admin_value_to_string(int value) {

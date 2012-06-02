@@ -58,8 +58,17 @@ private:
         DISABLE_COPYING(directory_entry_t);
     };
 
+    class current_role_t {
+    public:
+        current_role_t(blueprint_details::role_t r, const blueprint_t<protocol_t> &b) :
+            role(r), blueprint(b) { }
+        blueprint_details::role_t role;
+        watchable_variable_t<blueprint_t<protocol_t> > blueprint;
+        cond_t abort;
+    };
+
     /* To save typing */
-    peer_id_t get_me() THROWS_NOTHING{
+    peer_id_t get_me() THROWS_NOTHING {
         return mailbox_manager->get_connectivity_service()->get_me();
     }
 
@@ -67,13 +76,11 @@ private:
     void try_spawn_roles() THROWS_NOTHING;
     void run_role(
             typename protocol_t::region_t region,
-            typename blueprint_details::role_t role,
-            cond_t *blueprint_changed_cond,
-            const blueprint_t<protocol_t> &blueprint,
+            current_role_t *role,
             auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
     /* Implemented in clustering/reactor/reactor_be_primary.tcc */
-    void be_primary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const blueprint_t<protocol_t> &,
+    void be_primary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
             signal_t *interruptor) THROWS_NOTHING;
 
     /* A backfill candidate is a structure we use to keep track of the different
@@ -116,19 +123,21 @@ private:
     bool find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
                                       clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_out);
 
-    void be_secondary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const blueprint_t<protocol_t> &,
+    void be_secondary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
             signal_t *interruptor) THROWS_NOTHING;
 
 
-    /* Implemented in clustering/reactor/reactor_be_listener.tcc */
+    /* Implemented in clustering/reactor/reactor_be_nothing.tcc */
     bool is_safe_for_us_to_be_nothing(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                       const typename protocol_t::region_t &region);
 
-    void be_nothing(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const blueprint_t<protocol_t> &,
+    void be_nothing(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
             signal_t *interruptor) THROWS_NOTHING;
 
     static boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > extract_broadcaster_from_reactor_business_card_primary(
         const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard);
+
+    /* Shared between all three roles (primary, secondary, nothing) */
 
     void wait_for_directory_acks(directory_echo_version_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
@@ -151,10 +160,7 @@ private:
 
     multistore_ptr_t<protocol_t> *underlying_svs;
 
-    std::map<
-            typename protocol_t::region_t,
-            std::pair<typename blueprint_details::role_t, cond_t *>
-            > current_roles;
+    std::map<typename protocol_t::region_t, current_role_t *> current_roles;
 
     auto_drainer_t drainer;
 
