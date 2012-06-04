@@ -22,7 +22,7 @@ with driver.Metacluster() as metacluster:
     secondary_dc = http.add_datacenter()
     http.move_server_to_datacenter(secondary.files.machine_name, secondary_dc)
     ns = http.add_namespace(protocol = "memcached", primary = primary_dc, affinities = {primary_dc: 0, secondary_dc: 1})
-    time.sleep(10)
+    http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
 
@@ -35,6 +35,7 @@ with driver.Metacluster() as metacluster:
         secondary.close()
         http.declare_machine_dead(secondary.files.machine_name)
         http.set_namespace_affinities(ns, {secondary_dc: 0})
+        http.wait_until_blueprint_satisfied(ns)
         cluster.check()
         http.check_no_issues()
         workload.step2()

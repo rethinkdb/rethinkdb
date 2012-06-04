@@ -24,7 +24,7 @@ with driver.Metacluster() as metacluster:
     dc = http1.add_datacenter()
     http1.move_server_to_datacenter(files1.machine_name, dc)
     ns = http1.add_namespace(protocol = "memcached", primary = dc)
-    time.sleep(10)
+    http1.wait_until_blueprint_satisfied(ns)
 
     host, port = http1.get_namespace_host(ns)
     workload_runner.run(opts["workload1"], host, port, opts["timeout"])
@@ -49,7 +49,7 @@ with driver.Metacluster() as metacluster:
     http2.declare_machine_dead(files1.machine_name)
     http2.set_namespace_affinities(ns.name, {dc.name: 0})
     http2.check_no_issues()
-    time.sleep(10)
+    http2.wait_until_blueprint_satisfied(ns)
 
     host, port = http2.get_namespace_host(ns.name)
     workload_runner.run(opts["workload2"], host, port, opts["timeout"])

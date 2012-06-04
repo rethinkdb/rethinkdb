@@ -28,7 +28,7 @@ with driver.Metacluster() as metacluster:
     ns = http.add_namespace(protocol = "memcached", primary = dc)
     for i in xrange(opts["num-shards"] - 1):
         http.add_namespace_shard(ns, chr(ord('a') + 26 * i // opts["num-shards"]))
-    time.sleep(10)
+    http.wait_until_blueprint_satisfied(ns)
 
     host, port = http.get_namespace_host(ns)
     workload_runner.run(opts["workload"], host, port, opts["timeout"])
