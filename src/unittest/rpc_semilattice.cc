@@ -156,6 +156,7 @@ void run_sync_from_test() {
     }
 
     slm1.get_root_view()->sync_from(cluster2.get_me(), &non_interruptor);
+    slm2.get_root_view()->sync_from(cluster1.get_me(), &non_interruptor);
 
     EXPECT_EQ(3, slm1.get_root_view()->get().i);
     EXPECT_EQ(3, slm2.get_root_view()->get().i);
