@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "repli_timestamp.hpp"
 #include "rpc/serialize_macros.hpp"
 
 /* These are the timestamp types used by the clustering code.

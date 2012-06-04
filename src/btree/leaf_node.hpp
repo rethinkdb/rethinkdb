@@ -3,10 +3,11 @@
 
 #include <string>
 
+#include "btree/buf_patches.hpp"
+#include "btree/node.hpp"
 #include "config/args.hpp"
 #include "errors.hpp"
-#include "btree/node.hpp"
-#include "btree/buf_patches.hpp"
+#include "repli_timestamp.hpp"
 
 // TODO: Could key_modification_proof_t not go in this file?
 

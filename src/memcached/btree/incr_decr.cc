@@ -7,6 +7,7 @@
 #include "containers/printf_buffer.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "memcached/btree/modify_oper.hpp"
+#include "repli_timestamp.hpp"
 
 struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
 
