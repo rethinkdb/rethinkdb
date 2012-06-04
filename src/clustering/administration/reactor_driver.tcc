@@ -156,6 +156,9 @@ private:
     void initialize_reactor() {
         perfmon_collection_t *perfmon_collection = parent->perfmon_collection_repo->get_perfmon_collection_for_namespace(namespace_id);
 
+        // TODO: This is quite suspicious in that we check if the file
+        // exists and then assume it exists or does not exist when
+        // loading or creating it.
         int res = access(get_file_name().c_str(), R_OK | W_OK);
         if (res == 0) {
             /* The file already exists thus we don't create it. */
