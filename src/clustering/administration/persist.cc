@@ -8,42 +8,11 @@
 
 namespace metadata_persistence {
 
-std::string metadata_file(const std::string& file_path) {
-    return file_path + "/metadata";
-}
-
-std::string errno_to_string(int err) {
-    char buffer[200];
-    char *res = strerror_r(err, buffer, sizeof(buffer));
-    return std::string(res);
-}
-
-bool check_existence(const std::string& file_path) THROWS_ONLY(file_exc_t) {
-    int res = access(file_path.c_str(), F_OK);
-    if (res == 0) {
-        return true;
-    } else if (errno == ENOENT) {
-        return false;
-    } else {
-        throw file_exc_t(errno_to_string(errno));
-    }
-}
-
-void create(const std::string& file_path, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &semilattice) {
-    persistent_file_t store(metadata_file(file_path), true);
-    store.update(machine_id, semilattice, true);
-}
-
-void read(const std::string& file_path, machine_id_t *machine_id_out, cluster_semilattice_metadata_t *semilattice_out) {    
-    persistent_file_t store(metadata_file(file_path));
-    store.read(machine_id_out, semilattice_out);
-}
-
 semilattice_watching_persister_t::semilattice_watching_persister_t(
-        const std::string &filepath,
+        persistent_file_t *persistent_file_,
         machine_id_t mi,
         boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > v) :
-    persistent_file(metadata_file(filepath)), machine_id(mi), view(v),
+    persistent_file(persistent_file_), machine_id(mi), view(v),
     flush_again(new cond_t),
     subs(boost::bind(&semilattice_watching_persister_t::on_change, this), v)
 {
@@ -53,7 +22,7 @@ semilattice_watching_persister_t::semilattice_watching_persister_t(
 void semilattice_watching_persister_t::dump_loop(auto_drainer_t::lock_t keepalive) {
     try {
         for (;;) {
-            persistent_file.update(machine_id, view->get());
+            persistent_file->update(machine_id, view->get());
             {
                 wait_any_t c(flush_again.get(), &stop);
                 wait_interruptible(&c, keepalive.get_drain_signal());
@@ -75,6 +44,19 @@ void semilattice_watching_persister_t::on_change() {
         flush_again->pulse();
     }
 }
+
+struct blob_superblock_t {
+    block_magic_t magic;
+
+    // We are unnecessarily generous with the amount of space
+    // allocated here, but there's nothing else to push out of the
+    // way.
+    static const int METADATA_BLOB_MAXREFLEN = 1500;
+
+    char metainfo_blob[METADATA_BLOB_MAXREFLEN];
+
+    static const block_magic_t expected_magic;
+};
 
 const block_magic_t blob_superblock_t::expected_magic = { { 'b', 'l', 'o', 'b' } };
 
@@ -98,7 +80,8 @@ persistent_file_t::persistent_file_t(const std::string& filename, bool create) {
         cache_t::create(serializer.get(), &cache_static_config);
     }
 
-    cache_dynamic_config.flush_timer_ms = 1000;
+    cache_dynamic_config.wait_for_flush = true;         // flush to disk immediately on change
+    cache_dynamic_config.flush_waiting_threshold = 0;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
     cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, NULL));
@@ -121,7 +104,7 @@ void persistent_file_t::update(const machine_id_t &machine_id, const cluster_sem
 
     write_message_t msg;
 
-    semilattice.rdb_serialize(msg);
+    msg << semilattice;
 
     intrusive_list_t<write_buffer_t> *buffers = msg.unsafe_expose_buffers();
 
@@ -167,7 +150,8 @@ void persistent_file_t::read(machine_id_t *machine_id_out, cluster_semilattice_m
 
     guarantee(ss.read(static_cast<void *>(machine_id_out), sizeof(machine_id_t)) != 0);
 
-    semilattice_out->rdb_deserialize(&ss);
+    int res = deserialize(&ss, semilattice_out);
+    guarantee(res == 0);
 }
 
 }  // namespace metadata_persistence

@@ -1,30 +1,28 @@
 #include "clustering/administration/issues/local.hpp"
 
+#include "utils.hpp"
 #include "clustering/administration/persist.hpp"
 
-int deserialize(read_stream_t *s, local_issue_t **issue_ptr) {
-    bool exists;
-    int res = deserialize(s, &exists);
-    if (res) { return res; }
-    if (!exists) {
-        *issue_ptr = NULL;
-        return ARCHIVE_SUCCESS;
-    }
 
-    int8_t code;
-    res = deserialize(s, &code);
-    if (res) { return res; }
+local_issue_t::local_issue_t(const std::string& _type, bool _critical, const std::string& _description)
+        : type(_type), critical(_critical), description(_description) { }
 
-    // The only subclass is persistence_issue_t.
-    if (code != local_issue_t::PERSISTENCE_ISSUE_CODE) {
-        return ARCHIVE_RANGE_ERROR;
-    }
+std::string local_issue_t::get_description() const {
+    return type + ": " + description;
+}
 
-    std::string desc;
-    res = deserialize(s, &desc);
-    if (res) { return res; }
+cJSON *local_issue_t::get_json_description() const {
+    issue_json_t json;
+    json.critical = critical;
+    json.description = description;
+    json.time = timestamp;
+    json.type = type;
 
-    *issue_ptr = new metadata_persistence::persistence_issue_t(desc);
+    return render_as_json(&json, 0);
+}
 
-    return ARCHIVE_SUCCESS;
+local_issue_t *local_issue_t::clone() const {
+    local_issue_t *ret = new local_issue_t(type, critical, description);
+    ret->timestamp = timestamp;
+    return ret;
 }
