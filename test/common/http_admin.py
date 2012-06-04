@@ -485,6 +485,7 @@ class ClusterAccess(object):
         self.update_cluster_data()
 
     def add_namespace_shard(self, namespace, split_point):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -495,6 +496,7 @@ class ClusterAccess(object):
         self.update_cluster_data()
 
     def remove_namespace_shard(self, namespace, split_point):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -505,6 +507,7 @@ class ClusterAccess(object):
         self.update_cluster_data()
 
     def change_namespace_shards(self, namespace, adds=[], removes=[]):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -523,6 +526,7 @@ class ClusterAccess(object):
         return namespace.port + machine.port_offset
 
     def get_namespace_host(self, namespace, selector = None):
+        namespace = self.find_namespace(namespace)
         # selector may be a specific machine or datacenter to use, none will take any
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -543,6 +547,7 @@ class ClusterAccess(object):
         return ("localhost", self.compute_port(namespace, machine))
 
     def get_datacenter_in_namespace(self, namespace, primary = None):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
         if primary is not None:
@@ -555,7 +560,7 @@ class ClusterAccess(object):
         return random.choice(datacenters)
 
     def get_machine_in_datacenter(self, datacenter):
-        assert self.datacenters[datacenter.uuid] is datacenter
+        datacenter = self.find_datacenter(datacenter)
         # Build a list of machines in the given datacenter
         machines = [ ]
         for serv in self.machines.itervalues():

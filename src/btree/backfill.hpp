@@ -5,6 +5,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "containers/data_buffer.hpp"
+#include "repli_timestamp.hpp"
 #include "utils.hpp"
 
 class btree_slice_t;

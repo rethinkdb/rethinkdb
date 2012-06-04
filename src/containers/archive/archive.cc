@@ -72,7 +72,7 @@ write_message_t &operator<<(write_message_t &msg, const boost::uuids::uuid &uuid
     return msg;
 }
 
-MUST_USE int deserialize(read_stream_t *s, boost::uuids::uuid *uuid) {
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::uuids::uuid *uuid) {
     int64_t sz = boost::uuids::uuid::static_size();
     int64_t res = force_read(s, uuid->data, sz);
 

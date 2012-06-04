@@ -14,7 +14,7 @@ write_message_t &operator<<(UNUSED write_message_t &msg, UNUSED boost::detail::v
 }
 
 inline
-MUST_USE int deserialize(UNUSED read_stream_t *s, UNUSED boost::detail::variant::void_ *v) {
+MUST_USE archive_result_t deserialize(UNUSED read_stream_t *s, UNUSED boost::detail::variant::void_ *v) {
     unreachable("You cannot do deserialize(read_stream_t *, boost::detail::variant::void_ *).");
 }
 
@@ -122,9 +122,9 @@ write_message_t &operator<<(write_message_t &msg, const boost::variant<T1, T2, T
 
 template <class T> struct archive_variant_deserialize_standin_t {
     template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
-    static MUST_USE int do_the_deserialization(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
+    static MUST_USE archive_result_t do_the_deserialization(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
         T v;
-        int res = deserialize(s, &v);
+        archive_result_t res = deserialize(s, &v);
         if (res) { return res; }
         *x = v;
 
@@ -134,15 +134,15 @@ template <class T> struct archive_variant_deserialize_standin_t {
 
 template <> struct archive_variant_deserialize_standin_t<boost::detail::variant::void_> {
     template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
-    static MUST_USE int do_the_deserialization(UNUSED read_stream_t *s, UNUSED boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
+    static MUST_USE archive_result_t do_the_deserialization(UNUSED read_stream_t *s, UNUSED boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
         return ARCHIVE_RANGE_ERROR;
     }
 };
 
 template <class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15, class T16, class T17, class T18, class T19, class T20>
-MUST_USE int deserialize(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::variant<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> *x) {
     uint8_t n;
-    int res = deserialize(s, &n);
+    archive_result_t res = deserialize(s, &n);
     if (res) { return res; }
     if (!(1 <= n && n <= 20)) {
         return ARCHIVE_RANGE_ERROR;
@@ -190,11 +190,11 @@ write_message_t &operator<<(write_message_t &msg, const boost::optional<T> &x) {
 }
 
 template <class T>
-MUST_USE int deserialize(read_stream_t *s, boost::optional<T> *x) {
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
     bool exists;
     rassert(!x->get_ptr());
 
-    int res = deserialize(s, &exists);
+    archive_result_t res = deserialize(s, &exists);
     if (res) { return res; }
     if (exists) {
         x->reset(T());
@@ -219,11 +219,11 @@ write_message_t &operator<<(write_message_t &msg, const boost::ptr_map<K,V> &x) 
 }
 
 template <class K, class V>
-MUST_USE int deserialize(read_stream_t *s, boost::ptr_map<K,V> *x) {
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::ptr_map<K,V> *x) {
     x->clear();
 
     typename boost::ptr_map<K,V>::size_type size;
-    int res = deserialize(s, &size);
+    archive_result_t res = deserialize(s, &size);
     if (res != ARCHIVE_SUCCESS) {
         goto FAIL;
     }

@@ -22,6 +22,7 @@
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
 #include "buffer_cache/mirrored/stats.hpp"
+#include "repli_timestamp.hpp"
 
 #include "buffer_cache/mirrored/writeback.hpp"
 
