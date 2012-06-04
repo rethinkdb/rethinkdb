@@ -30,13 +30,15 @@ void run_with_broadcaster(
 
     /* Set up a broadcaster and initial listener */
     test_store_t<memcached_protocol_t> initial_store;
+    store_view_t<memcached_protocol_t> *store_ptr = &initial_store.store;
+    multistore_ptr_t<memcached_protocol_t> multi_store(&store_ptr, 1);
     cond_t interruptor;
 
     boost::scoped_ptr<broadcaster_t<memcached_protocol_t> > broadcaster(
         new broadcaster_t<memcached_protocol_t>(
             cluster.get_mailbox_manager(),
             branch_history_controller.get_view(),
-            &initial_store.store,
+            &multi_store,
             &interruptor
         ));
 
@@ -127,14 +129,17 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
 
     /* Set up a second mirror */
     test_store_t<memcached_protocol_t> store2;
-    memcached_protocol_t::region_t subregion(key_range_t::closed, store_key_t("a"), key_range_t::closed, store_key_t("z"));
-    store_subview_t<memcached_protocol_t> substore(&store2.store, subregion);
+    store_view_t<memcached_protocol_t> *store2_ptr = &store2.store;
+
+    hash_region_t<key_range_t> subregion(key_range_t(key_range_t::closed, store_key_t("a"), key_range_t::closed, store_key_t("z")));
+    multistore_ptr_t<memcached_protocol_t> multi_store2(&store2_ptr, 1, subregion);
+
     cond_t interruptor;
     listener_t<memcached_protocol_t> listener2(
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view,
         branch_history_view,
-        &substore,
+        &multi_store2,
         replier_business_card_variable.get_watchable(),
         generate_uuid(),
         &interruptor);
