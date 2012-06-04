@@ -161,13 +161,18 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     debugf("Draining the queue\n");
     while (!write_queue->empty()) {
         perform_backlogged_write(write_queue->pop());
+        debugf("Popped off queue, queue size: %d\n", write_queue->size());
         unlock_on_evens++;
         if (unlock_on_evens == 2) {
             write_semaphore->unlock();
             unlock_on_evens = 0;
         }
+        if (write_queue->size() < 100) {
+            what_to_do_with_writes = DONT_SERIALIZE_WRITES;
+        }
     }
     debugf("Queue drained\n");
+    queue_drained_cond.pulse();
 }
 
 
@@ -364,24 +369,30 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
                (May throw `interrupted_exc_t`) */
             wait_interruptible(registration_done_cond.get_ready_signal(), &on_destruct);
 
-            /* Block until the backfill succeeds or fails. If the backfill
-               fails, then the constructor will throw an exception, so
-               `&on_destruct` will be pulsed. */
+            /* If we're enqueueing writes do the disk backed queue do so. */
             switch (what_to_do_with_writes) {
             case DONT_SERIALIZE_WRITES:
                 break;
             case THROTTLINGLY_SERIALIZE_WRITES:
+                debugf("Waiting for write_semaphore\n");
                 write_semaphore->co_lock();
+                debugf("Got write semaphore\n");
             case DO_SERIALIZE_WRITES:
                 rassert(write_queue);
                 write_queue->push(std::make_pair(write, transition_timestamp));
+                debugf("Pushed a write on the queue its size is now: %d\n", write_queue->size());
+                send(mailbox_manager, ack_addr);
                 return;
                 break;
             default:
                 unreachable();
             }
 
+            /* Block until the backfill succeeds or fails. If the backfill
+               fails, then the constructor will throw an exception, so
+               `&on_destruct` will be pulsed. */
             wait_interruptible(backfill_done_cond.get_ready_signal(), &on_destruct);
+            wait_interruptible(&queue_drained_cond, &on_destruct);
 
             if (transition_timestamp.timestamp_before() < backfill_done_cond.get_value()) {
                 /* `write` is a duplicate; we got it both as part of the

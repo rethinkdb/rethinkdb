@@ -176,6 +176,8 @@ private:
     to `registration_failed_cond`. */
     promise_t<state_timestamp_t> backfill_done_cond;
 
+    cond_t queue_drained_cond;
+
     state_timestamp_t current_timestamp;
 
     fifo_enforcer_sink_t fifo_sink;
