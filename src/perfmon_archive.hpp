@@ -26,8 +26,8 @@ inline write_message_t &operator<<(write_message_t &msg, const perfmon_result_t 
     return msg;
 }
 
-inline int deserialize(read_stream_t *s, perfmon_result_t *thing) {
-    int res = deserialize(s, &thing->type);
+inline archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
+    archive_result_t res = deserialize(s, &thing->type);
     if (res) { return res; }
     res = deserialize(s, &thing->value_);
     if (res) { return res; }

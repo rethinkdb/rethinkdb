@@ -17,6 +17,8 @@
 #include "concurrency/rwi_lock.hpp"
 #include "utils.hpp"
 
+#include "containers/archive/archive.hpp"
+
 // Some arch/runtime declarations.
 int get_num_threads();
 int get_thread_id();
@@ -124,7 +126,7 @@ private:
     // We need these two friends for serialization, but we don't want to include the
     // serialization headers, neither we want to define the serializers here.
     friend write_message_t &operator<<(write_message_t &msg, const perfmon_result_t &thing);
-    friend int deserialize(read_stream_t *s, perfmon_result_t *thing);
+    friend archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing);
 
     perfmon_result_type_t type;
 

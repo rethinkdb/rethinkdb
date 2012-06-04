@@ -13,38 +13,6 @@
 
 class append_only_printf_buffer_t;
 
-/* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
-counter. */
-
-// for safety
-class repli_timestamp_t {
-public:
-    uint32_t time;
-
-    bool operator==(repli_timestamp_t t) const { return time == t.time; }
-    bool operator!=(repli_timestamp_t t) const { return time != t.time; }
-    bool operator<(repli_timestamp_t t) const { return time < t.time; }
-    bool operator>(repli_timestamp_t t) const { return time > t.time; }
-    bool operator<=(repli_timestamp_t t) const { return time <= t.time; }
-    bool operator>=(repli_timestamp_t t) const { return time >= t.time; }
-
-    repli_timestamp_t next() const {
-        repli_timestamp_t t;
-        t.time = time + 1;
-        return t;
-    }
-
-    static const repli_timestamp_t distant_past;
-    static const repli_timestamp_t invalid;
-};
-
-class write_message_t;
-write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp);
-
-class read_stream_t;
-int deserialize(read_stream_t *s, repli_timestamp_t *tstamp);
-
-
 struct const_charslice {
     const char *beg, *end;
     const_charslice(const char *beg_, const char *end_) : beg(beg_), end(end_) { }
@@ -63,10 +31,6 @@ public:
         return "interrupted";
     }
 };
-
-// Like std::max, except it's technically not associative.
-repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y);
-
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
 

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "utils.hpp"
+#include "repli_timestamp.hpp"
 #include <boost/optional.hpp>
 
 #include "arch/types.hpp"
