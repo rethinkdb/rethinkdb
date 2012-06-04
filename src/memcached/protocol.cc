@@ -39,13 +39,13 @@ write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buf
     return msg;
 }
 
-int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf) {
+archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf) {
     bool exists;
-    int res = deserialize(s, &exists);
+    archive_result_t res = deserialize(s, &exists);
     if (res) { return res; }
     if (exists) {
         int64_t size;
-        int res = deserialize(s, &size);
+        res = deserialize(s, &size);
         if (res) { return res; }
         if (size < 0) { return ARCHIVE_RANGE_ERROR; }
         *buf = data_buffer_t::create(size);
@@ -436,7 +436,7 @@ region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t:
         memcached_protocol_t::region_t region;
         {
             vector_read_stream_t key(&i->first);
-            DEBUG_ONLY_VAR int res = deserialize(&key, &region);
+            DEBUG_ONLY_VAR archive_result_t res = deserialize(&key, &region);
             rassert(!res, "res = %d", res);
         }
 

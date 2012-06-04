@@ -25,16 +25,6 @@
 #include <valgrind/memcheck.h>
 #endif
 
-write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp) {
-    return msg << tstamp.time;
-}
-
-MUST_USE int deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {
-    return deserialize(s, &tstamp->time);
-}
-
-
-
 // fast non-null terminated string comparison
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
     int min_len = std::min(len1, len2);
@@ -170,10 +160,6 @@ on_thread_t::~on_thread_t() {
     coro_t::move_to_thread(home_thread());
 }
 
-
-const repli_timestamp_t repli_timestamp_t::invalid = { static_cast<uint32_t>(-1) };
-const repli_timestamp_t repli_timestamp_t::distant_past = { 0 };
-
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;
@@ -181,12 +167,6 @@ microtime_t current_microtime() {
     rassert(0 == res);
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
-
-
-repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y) {
-    return int32_t(x.time - y.time) < 0 ? y : x;
-}
-
 
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;

@@ -14,7 +14,7 @@
 #include "rpc/connectivity/messages.hpp"
 #include "containers/uuid.hpp"
 
-#define CLUSTER_PROTO_HEADER "RethinkDB " RETHINKDB_VERSION " cluster\n"
+extern const char *const cluster_proto_header;
 
 class peer_address_t {
 public:

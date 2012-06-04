@@ -24,10 +24,11 @@ public:
 };
 
 #ifndef NDEBUG
-void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, int port_offset, bool *result_out) {
+void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, int port_offset, bool *result_out)
 #else
-void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, bool *result_out) {
+void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, bool *result_out)
 #endif
+{
 
     if (metadata_persistence::check_existence(filepath)) {
         printf("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
@@ -116,10 +117,11 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
 }
 
 #ifndef NDEBUG
-void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, int port_offset, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out, std::string web_assets) {
+void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, int port_offset, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out, std::string web_assets)
 #else
-void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out, std::string web_assets) {
+void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, int port, int client_port, bool *result_out, std::string web_assets)
 #endif
+{
 
     os_signal_cond_t sigint_cond;
 

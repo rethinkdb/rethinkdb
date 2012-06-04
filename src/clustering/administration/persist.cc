@@ -99,7 +99,7 @@ static void read_blocking(const std::string& file_path, machine_id_t *machine_id
         return;
     }
 
-    int res = deserialize(&file, machine_id_out);
+    archive_result_t res = deserialize(&file, machine_id_out);
     if (!res) { res = deserialize(&file, semilattice_out); }
     if (res) {
         *out = "File contents invalid.";

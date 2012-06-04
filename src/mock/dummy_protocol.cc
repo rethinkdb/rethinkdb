@@ -187,7 +187,7 @@ dummy_protocol_t::store_t::store_t(const std::string& fn, bool create, perfmon_c
         blocking_read_file_stream_t stream;
         DEBUG_ONLY_VAR bool success = stream.init(filename.c_str());
         rassert(success);
-        int res = deserialize(&stream, &metainfo);
+        archive_result_t res = deserialize(&stream, &metainfo);
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(&stream, &values);
         if (res) { throw fake_archive_exc_t(); }

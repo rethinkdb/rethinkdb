@@ -6,6 +6,7 @@
 #include "btree/keys.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "containers/scoped_malloc.hpp"
+#include "repli_timestamp.hpp"
 #include "utils.hpp"
 
 template <class V> class value_sizer_t;

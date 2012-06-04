@@ -1,7 +1,7 @@
 #include "memcached/btree/append_prepend.hpp"
-
 #include "memcached/btree/modify_oper.hpp"
 #include "containers/buffer_group.hpp"
+#include "repli_timestamp.hpp"
 
 struct memcached_append_prepend_oper_t : public memcached_modify_oper_t {
 
