@@ -188,15 +188,49 @@ private:
     DISABLE_COPYING(cluster_conn_closing_subscription_t);
 };
 
+
+// Error-handling helper for connectivity_cluster_t::run_t::handle(). Returns true if handle()
+// should return.
+template<typename T>
+static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) {
+    archive_result_t res = deserialize(c, p);
+    switch (res) {
+      case ARCHIVE_SUCCESS: return false; // no problem.
+
+        // Network error. Report nothing.
+      case ARCHIVE_SOCK_ERROR: case ARCHIVE_SOCK_EOF: return true;
+
+      case ARCHIVE_RANGE_ERROR:
+        logERR("could not deserialize data received from %s, closing connection", peer);
+        return true;
+
+      default: case ARCHIVE_GENERIC_ERROR:
+        logERR("unknown error occurred on connection from %s, closing connection", peer);
+        return true;
+    }
+}
+
+// We log error conditions as follows:
+// - silent: network error; conflict between parallel connections
+// - warning: invalid header
+// - error: id or address don't match expected id or address; deserialization range error; unknown error
+// In all cases we close the connection and quit.
 void connectivity_cluster_t::run_t::handle(
-        /* `conn` should remain valid until `handle()` returns. `handle()` does
-        not take ownership of `conn`. */
+        /* `conn` should remain valid until `handle()` returns.
+         * `handle()` does not take ownership of `conn`. */
         tcp_conn_stream_t *conn,
         boost::optional<peer_id_t> expected_id,
         boost::optional<peer_address_t> expected_address,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING
 {
     parent->assert_thread();
+
+    // Get the name of our peer, for error reporting.
+    ip_address_t peer_addr;
+    std::string peerstr = "(unknown)";
+    if (!conn->get_underlying_conn()->getpeername(&peer_addr))
+        peerstr = peer_addr.as_dotted_decimal();
+    const char *peername = peerstr.c_str();
 
     // Make sure that if we're ordered to shut down, any pending read
     // or write gets interrupted.
@@ -207,21 +241,6 @@ void connectivity_cluster_t::run_t::handle(
     acked, try again every three seconds and declare connection dead after three
     tries. */
     conn->get_underlying_conn()->set_keepalive(10, 3, 3);
-
-    if (0) {
-        /* We expect that sending & receiving can fail due to a network problem. If that happens,
-           we ignore it. If sending/receiving fails for some other reason, then the programmer
-           should learn about it, so we throw the exception. */
-      fail_read:
-        if (conn->is_read_open())
-            throw fake_archive_exc_t();
-        return;
-
-      fail_write:
-        if (conn->is_write_open())
-            throw fake_archive_exc_t();
-        return;
-    }
 
     // Each side sends a header followed by its own ID and address, then receives and checks the
     // other side's.
@@ -234,7 +253,7 @@ void connectivity_cluster_t::run_t::handle(
         msg << parent->me;
         msg << routing_table[parent->me];
         if (send_write_message(conn, &msg))
-            goto fail_write;
+            return;             // network error.
     }
 
     // Receive & check header.
@@ -244,18 +263,12 @@ void connectivity_cluster_t::run_t::handle(
         for (int64_t i = 0; i < header_size; i += r) {
             r = conn->read(data, header_size - i);
             if (-1 == r)
-                // Network error.
-                goto fail_read;
+                return;         // network error.
             rassert (r >= 0);
             // If EOF or data does not match header, terminate connection.
             if (0 == r || memcmp(cluster_proto_header + i, data, r)) {
-                ip_address_t addr;
-                if (!conn->get_underlying_conn()->getpeername(&addr)) {
-                    std::string s = addr.as_dotted_decimal();
-                    logINF("received invalid clustering header from %s, terminating connection", s.c_str());
-                }
-                else
-                    logWRN("invalid clustering header, terminating connection; could not get address info from socket");
+                // Wrong header.
+                logWRN("received invalid clustering header from %s, closing connection", peername);
                 return;
             }
         }
@@ -264,23 +277,26 @@ void connectivity_cluster_t::run_t::handle(
     // Receive id, address.
     peer_id_t other_id;
     peer_address_t other_address;
-    if (deserialize(conn, &other_id) || deserialize(conn, &other_address))
-        goto fail_read;
+    if (deserialize_and_check(conn, &other_id, peername) ||
+        deserialize_and_check(conn, &other_address, peername))
+        return;
 
     /* Sanity checks */
     if (other_id == parent->me) {
-        // TODO: this can't crash (it can eg. occur due to stupid arguments on command-line), but
-        // should report error somehow.
+        // TODO: report this on command-line in some cases. see issue 546 on github.
         return;
     }
     if (other_id.is_nil()) {
-        crash("Peer is nil");
+        logERR("received nil peer id from %s, closing connection", peername);
+        return;
     }
     if (expected_id && other_id != *expected_id) {
-        crash("Inconsistent routing information: wrong ID");
+        logERR("received inconsistent routing information (wrong ID) from %s, closing connection", peername);
+        return;
     }
     if (expected_address && other_address != *expected_address) {
-        crash("Inconsistent routing information: wrong address");
+        logERR("received inconsistent routing information (wrong address) from %s, closing connection", peername);
+        return;
     }
 
     // Just saying that we're still on the rpc listener thread.
@@ -346,20 +362,20 @@ void connectivity_cluster_t::run_t::handle(
             write_message_t msg;
             msg << routing_table_to_send;
             if (send_write_message(conn, &msg))
-                goto fail_write;
+                return;         // network error
         }
 
         /* Receive the follower's routing table */
-        if (deserialize(conn, &other_routing_table))
-            goto fail_read;
+        if (deserialize_and_check(conn, &other_routing_table, peername))
+            return;
 
     } else {
 
         /* Receive the leader's routing table. (If our connection has lost a
         conflict, then the leader will close the connection instead of sending
         the routing table. */
-        if (deserialize(conn, &other_routing_table))
-            goto fail_read;
+        if (deserialize_and_check(conn, &other_routing_table, peername))
+            return;
 
         std::map<peer_id_t, peer_address_t> routing_table_to_send;
 
@@ -390,7 +406,7 @@ void connectivity_cluster_t::run_t::handle(
             write_message_t msg;
             msg << routing_table_to_send;
             if (send_write_message(conn, &msg))
-                goto fail_write;
+                return;         // network error
         }
     }
 
@@ -451,24 +467,23 @@ void connectivity_cluster_t::run_t::handle(
                 should change it when we care about performance. */
                 std::string message;
                 assert(get_thread_id() == chosen_thread);
-                if (deserialize(conn, &message)) {
-                    throw fake_archive_exc_t();
-                }
+                if (deserialize_and_check(conn, &message, peername))
+                    break;
 
                 std::vector<char> vec(message.begin(), message.end());
                 vector_read_stream_t stream(&vec);
-                message_handler->on_message(other_id, &stream);
+                message_handler->on_message(other_id, &stream); // might raise fake_archive_exc_t
             }
         } catch (fake_archive_exc_t) {
             /* The exception broke us out of the loop, and that's what we
             wanted. This could either be because we lost contact with the peer
             or because the cluster is shutting down and `close_conn()` got
             called. */
-
-            guarantee(!conn->is_read_open(), "the connection is still open for "
-                "read, which means we had a problem other than the TCP "
-                "connection closing or dying");
         }
+
+        guarantee(!conn->is_read_open(), "the connection is still open for "
+            "read, which means we had a problem other than the TCP "
+            "connection closing or dying");
 
         /* The `conn_structure` destructor removes us from the connection map
         and notifies any disconnect listeners. */
