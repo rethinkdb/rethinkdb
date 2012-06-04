@@ -159,6 +159,13 @@ public:
         const super_block_t *super_block = reinterpret_cast<const super_block_t *>(_super_block.get_data_read());
         return (super_block->tail == NULL_BLOCK_ID);
     }
+
+    int size() {
+        transaction_t txn(cache.get(), rwi_read, 0, repli_timestamp_t::distant_past);
+        buf_lock_t _super_block(&txn, SUPERBLOCK_ID, rwi_read);
+        const super_block_t *super_block = reinterpret_cast<const super_block_t *>(_super_block.get_data_read());
+        return super_block->count;
+    }
 private:
     void add_block_to_head(transaction_t *txn, super_block_t *super_block) {
         buf_lock_t _new_head(txn);

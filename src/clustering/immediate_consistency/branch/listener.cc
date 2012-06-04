@@ -32,7 +32,8 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     writeread_mailbox(mailbox_manager, boost::bind(&listener_t::on_writeread, this,
                                                    _1, _2, _3, _4), mailbox_callback_mode_inline),
     read_mailbox(mailbox_manager, boost::bind(&listener_t::on_read, this,
-                                               _1, _2, _3, _4), mailbox_callback_mode_inline)
+                                               _1, _2, _3, _4), mailbox_callback_mode_inline),
+    what_to_do_with_writes(DONT_SERIALIZE_WRITES)
 {
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
@@ -81,8 +82,8 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     }
 #endif
 
-    //write_queue.reset(new disk_backed_write_queue_t<protocol_t>(backfill_session_id));
-    serialize_writes = true;
+    what_to_do_with_writes = DO_SERIALIZE_WRITES;
+    write_queue.reset(new write_queue_t("backfill_serialization" + uuid_to_str(backfill_session_id)));
 
     /* Attempt to register for reads and writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
@@ -151,6 +152,22 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
     current_timestamp = backfill_end_timestamp;
     backfill_done_cond.pulse(backfill_end_timestamp);
+
+    write_semaphore.reset(new semaphore_t(write_queue->size()));
+    write_semaphore->lock_now(write_queue->size());
+    what_to_do_with_writes = THROTTLINGLY_SERIALIZE_WRITES;
+
+    int unlock_on_evens = 0;
+    debugf("Draining the queue\n");
+    while (!write_queue->empty()) {
+        perform_backlogged_write(write_queue->pop());
+        unlock_on_evens++;
+        if (unlock_on_evens == 2) {
+            write_semaphore->unlock();
+            unlock_on_evens = 0;
+        }
+    }
+    debugf("Queue drained\n");
 }
 
 
@@ -350,9 +367,18 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
             /* Block until the backfill succeeds or fails. If the backfill
                fails, then the constructor will throw an exception, so
                `&on_destruct` will be pulsed. */
-            if (serialize_writes) {
-                //rassert(write_queue);
-                //write_queue->push_write(write, transition_timestamp);
+            switch (what_to_do_with_writes) {
+            case DONT_SERIALIZE_WRITES:
+                break;
+            case THROTTLINGLY_SERIALIZE_WRITES:
+                write_semaphore->co_lock();
+            case DO_SERIALIZE_WRITES:
+                rassert(write_queue);
+                write_queue->push(std::make_pair(write, transition_timestamp));
+                return;
+                break;
+            default:
+                unreachable();
             }
 
             wait_interruptible(backfill_done_cond.get_ready_signal(), &on_destruct);
@@ -387,6 +413,48 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
                 &non_interruptor);
 
         send(mailbox_manager, ack_addr);
+    } catch (interrupted_exc_t) {
+        return;
+    }
+}
+
+template <class protocol_t>
+void listener_t<protocol_t>::perform_backlogged_write(std::pair<typename protocol_t::write_t, transition_timestamp_t> serialized_write) 
+    THROWS_NOTHING 
+{
+    try {
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
+
+        typename protocol_t::write_t write = serialized_write.first;
+        transition_timestamp_t transition_timestamp = serialized_write.second;
+        //TODO this could really be an assert
+        wait_interruptible(backfill_done_cond.get_ready_signal(), &on_destruct);
+
+        if (transition_timestamp.timestamp_before() < backfill_done_cond.get_value()) {
+            /* `write` is a duplicate; we got it both as part of the
+               backfill, and from the broadcaster. Ignore this copy of it. */
+            return;
+        }
+
+        advance_current_timestamp_and_pulse_waiters(transition_timestamp);
+
+        store->new_write_token(token);
+
+        /* Mask out any parts of the operation that don't apply to us */
+        write = write.shard(region_intersection(write.get_region(), store->get_region()));
+
+        cond_t non_interruptor;
+        store->write(
+                DEBUG_ONLY(
+                    region_map_t<protocol_t, binary_blob_t>(store->get_region(),
+                        binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_before())))),
+                    )
+                region_map_t<protocol_t, binary_blob_t>(store->get_region(),
+                    binary_blob_t(version_range_t(version_t(branch_id, transition_timestamp.timestamp_after())))),
+                write,
+                transition_timestamp,
+                token,
+                &non_interruptor);
     } catch (interrupted_exc_t) {
         return;
     }

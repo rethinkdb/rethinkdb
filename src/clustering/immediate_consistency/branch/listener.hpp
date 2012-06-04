@@ -3,14 +3,15 @@
 
 #include <map>
 
-#include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "concurrency/promise.hpp"
-#include "timestamps.hpp"
-#include "utils.hpp"
-#include "concurrency/coro_pool.hpp"
-#include "serializer/types.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/semantic_checking.hpp"
+#include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "concurrency/coro_pool.hpp"
+#include "concurrency/promise.hpp"
+#include "containers/disk_backed_queue.hpp"
+#include "serializer/types.hpp"
+#include "timestamps.hpp"
+#include "utils.hpp"
 
 template <class T> class replier_t;
 template <class T> class intro_receiver_t;
@@ -18,8 +19,6 @@ template <class T> class registrant_t;
 template <class T> class semilattice_read_view_t;
 template <class T> class semilattice_readwrite_view_t;
 template <class T> class broadcaster_t;
-
-//template <class protocol_t> class disk_backed_write_queue_t;
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
 backfills from an existing mirror on a branch into the store, and as long as it
@@ -121,6 +120,9 @@ private:
             mailbox_addr_t<void()> ack_addr)
 	THROWS_NOTHING;
 
+    void perform_backlogged_write(std::pair<typename protocol_t::write_t, transition_timestamp_t> serialized_write) 
+        THROWS_NOTHING;
+
     /* See the note at the place where `writeread_mailbox` is declared for an
     explanation of why `on_writeread()` and `on_read()` are here. */
 
@@ -206,8 +208,15 @@ private:
      * how up to date s/he is. */
     std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
 
-    bool serialize_writes;
-    //boost::scoped_ptr<disk_backed_write_queue_t<protocol_t> > write_queue;
+    enum { DONT_SERIALIZE_WRITES, 
+           DO_SERIALIZE_WRITES, 
+           THROTTLINGLY_SERIALIZE_WRITES }
+    what_to_do_with_writes;
+
+    typedef disk_backed_write_queue_t<std::pair<typename protocol_t::write_t, transition_timestamp_t> > write_queue_t;
+    boost::scoped_ptr<write_queue_t> write_queue;
+
+    boost::scoped_ptr<semaphore_t> write_semaphore;
 
     DISABLE_COPYING(listener_t);
 };
