@@ -278,7 +278,7 @@ class ComputedCluster extends Backbone.Model
         # CPU, mem, disk
         for m in machines.models
             mstats = m.get_stats().proc
-            if mstats? and mstats.global_cpu_util?
+            if mstats? and mstats.global_cpu_util? #if global_cpu_util is present, the other attributes should too.
                 __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util.avg)
                 __s.global_mem_total += parseInt(mstats.global_mem_total)
                 __s.global_mem_used += parseInt(mstats.global_mem_used)
