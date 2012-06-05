@@ -11,6 +11,9 @@
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
 
+#include <vector>
+#include <set>
+
 #include "concurrency/coro_fifo.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/semaphore.hpp"
@@ -1019,27 +1022,43 @@ void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, ch
 
 /* "stats" command */
 
-std::string memcached_stats(int argc, char **argv) {
-    std::string res;
-    perfmon_result_t stats;
+void format_stats(const perfmon_result_t *stats, const std::string& name, const std::set<std::string>& names_to_match, std::vector<std::string>& result) {
+    // `switch` is used instead of `if` with `is_map` and `is_string` checks
+    // because that way the compiler guarantees us an error message if someone
+    // adds another type of `perfmon_results_t` and forgets to change this code
+    switch (stats->get_type()) {
+        case perfmon_result_t::type_value:
+             // This is not super-efficient (better to only scan for the stats
+             // that match the name), but we don't care right now
+            if (names_to_match.empty() || names_to_match.count(name) != 0) {
+                result.push_back(strprintf("STAT %s %s\r\n", name.c_str(), stats->get_string()->c_str()));
+            }
+            break;
+        case perfmon_result_t::type_map:
+            for (perfmon_result_t::const_iterator i = stats->begin(); i != stats->end(); i++) {
+                std::string sub_name(name.empty() ? i->first : name + "." + i->first);
+                format_stats(i->second, sub_name, names_to_match, result);
+            }
+            break;
+        default:
+            unreachable("Bad perfmon result type");
+    }
+}
 
+void memcached_stats(int argc, char **argv, std::vector<std::string>& stat_response_lines) {
+    static const std::string end_marker("END\r\n");
+
+    // parse args, if any
+    std::set<std::string> names_to_match;
+    for (int i = 1; i < argc; i++) {
+        names_to_match.insert(argv[i]);
+    }
+
+    perfmon_result_t stats(perfmon_result_t::make_map());
     perfmon_get_stats(&stats);
 
-    if (argc == 1) {
-        for (perfmon_result_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
-            res += strprintf("STAT %s %s\r\n", iter->first.c_str(), iter->second->get_string()->c_str());
-        }
-    } else {
-        for (int i = 1; i < argc; i++) {
-            perfmon_result_t::iterator iter = stats.get_map()->find(argv[i]);
-            res += strprintf("STAT %s %s\r\n", argv[i], iter == stats.end()
-                                                        ? "NOT_FOUND"
-                                                        : iter->second->get_string()->c_str());
-
-        }
-    }
-    res += "END\r\n";
-    return res;
+    format_stats(&stats, std::string(), names_to_match, stat_response_lines);
+    stat_response_lines.push_back(end_marker);
 }
 
 /* Handle memcached, takes a txt_memcached_handler_t and handles the memcached commands that come in on it */
@@ -1135,12 +1154,15 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
             pipeliner_acq_t pipeliner_acq(&pipeliner);
             pipeliner_acq.begin_operation();
 
-            std::string the_stats = memcached_stats(args.size(), args.data());
+            std::vector<std::string> stat_response_lines;
+            memcached_stats(args.size(), args.data(), stat_response_lines);
 
             // We block everybody before writing.  I don't think we care.
             pipeliner_acq.done_argparsing();
             pipeliner_acq.begin_write();
-            rh.write(the_stats); // Only shows "public" stats; to see all stats, use "rdb stats".
+            for (std::vector<std::string>::const_iterator i = stat_response_lines.begin(); i != stat_response_lines.end(); ++i) {
+                rh.write(*i);
+            }
             pipeliner_acq.end_write();
         } else if (!strcmp(args[0], "version")) {
             pipeliner_acq_t pipeliner_acq(&pipeliner);
