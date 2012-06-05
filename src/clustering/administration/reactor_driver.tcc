@@ -50,11 +50,11 @@ public:
     watchable_and_reactor_t(reactor_driver_t<protocol_t> *parent_,
                             namespace_id_t _namespace_id,
                             const blueprint_t<protocol_t> &bp,
-                            const std::string &_file_path) :
+                            svs_by_namespace_t<protocol_t> *_svs_by_namespace) :
         watchable(bp),
         parent(parent_),
         namespace_id(_namespace_id),
-        file_path(_file_path)
+        svs_by_namespace(_svs_by_namespace)
     {
         coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this));
     }
@@ -80,9 +80,11 @@ public:
         reactor.reset();
     }
 
+#if 0
     std::string get_file_name() {
         return file_path + "/" + uuid_to_str(namespace_id);
     }
+#endif  // 0
 
     watchable_variable_t<blueprint_t<protocol_t> > watchable;
 
@@ -156,34 +158,11 @@ private:
     void initialize_reactor() {
         perfmon_collection_t *perfmon_collection = parent->perfmon_collection_repo->get_perfmon_collection_for_namespace(namespace_id);
 
-        // TODO: This is quite suspicious in that we check if the file
-        // exists and then assume it exists or does not exist when
-        // loading or creating it.
-        int res = access(get_file_name().c_str(), R_OK | W_OK);
-        if (res == 0) {
-            /* The file already exists thus we don't create it. */
-            store.reset(new typename protocol_t::store_t(get_file_name(), false, perfmon_collection));
-        } else {
-            /* The file does not exist, create it. */
-            store.reset(new typename protocol_t::store_t(get_file_name(), true, perfmon_collection));
+        // TODO: We probably shouldn't have to pass in this perfmon collection.
+        svs_by_namespace->get_svs(perfmon_collection, namespace_id, &store, &svs);
 
-            //Initialize the metadata in the underlying store
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
-            store->new_write_token(token);
-
-            cond_t dummy_interruptor;
-            store->set_metainfo(region_map_t<protocol_t, binary_blob_t>(store->get_region(),
-                                                                        binary_blob_t(version_range_t(version_t::zero()))),
-                                order_token_t::ignore,  // TODO
-                                token,
-                                &dummy_interruptor);
-        }
-
-        // TODO: Support multiple stores.
-        {
-            store_view_t<protocol_t> *store_ptr = store.get();
-            svs.reset(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
-        }
+#if 0
+#endif  // 0
 
         reactor.reset(new reactor_t<protocol_t>(
             parent->mbox_manager,
@@ -221,8 +200,8 @@ private:
     cond_t reactor_has_been_initialized;
 
     reactor_driver_t<protocol_t> *parent;
-    namespace_id_t namespace_id;
-    std::string file_path;
+    const namespace_id_t namespace_id;
+    svs_by_namespace_t<protocol_t> *const svs_by_namespace;
 
     boost::scoped_ptr<typename protocol_t::store_t> store;
     boost::scoped_ptr<multistore_ptr_t<protocol_t> > svs;
@@ -240,7 +219,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
                  boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
                  boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                  const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
-                 std::string _file_path,
+                 svs_by_namespace_t<protocol_t> *_svs_by_namespace,
                  perfmon_collection_repo_t *_perfmon_collection_repo)
     : mbox_manager(_mbox_manager),
       directory_view(_directory_view),
@@ -248,7 +227,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
       machine_id_translation_table(_machine_id_translation_table),
       namespaces_view(_namespaces_view),
       machines_view(machines_view_),
-      file_path(_file_path),
+      svs_by_namespace(_svs_by_namespace),
       watchable_variable(namespaces_directory_metadata_t<protocol_t>()),
       semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
       translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this)),
@@ -307,7 +286,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(this, it->first, bp, file_path));
+                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(this, it->first, bp, svs_by_namespace));
                 } else {
                     reactor_data.find(it->first)->second->watchable.set_value(bp);
                 }

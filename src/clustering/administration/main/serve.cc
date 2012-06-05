@@ -21,6 +21,8 @@
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
+// TODO: the multistore header doesn't really belong.
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include <stdio.h>
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
@@ -35,6 +37,58 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/function.hpp"
 #include "rpc/semilattice/view/member.hpp"
+
+// TODO: This doesn't really belong here.
+template <class protocol_t>
+class file_based_svs_by_namespace_t : public svs_by_namespace_t<protocol_t> {
+public:
+    file_based_svs_by_namespace_t(const std::string &file_path) : file_path_(file_path) { }
+
+    void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
+                 boost::scoped_ptr<typename protocol_t::store_t> *store_out,
+                 boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
+
+        std::string file_name = file_path_ + "/" + uuid_to_str(namespace_id);
+
+        typename protocol_t::store_t *store;
+
+        // TODO: This is quite suspicious in that we check if the file
+        // exists and then assume it exists or does not exist when
+        // loading or creating it.
+        int res = access(file_name.c_str(), R_OK | W_OK);
+        if (res == 0) {
+            /* The file already exists thus we don't create it. */
+            store = new typename protocol_t::store_t(file_name, false, perfmon_collection);
+        } else {
+            /* The file does not exist, create it. */
+            store = new typename protocol_t::store_t(file_name, true, perfmon_collection);
+
+            //Initialize the metadata in the underlying store
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
+            store->new_write_token(token);
+
+            cond_t dummy_interruptor;
+            store->set_metainfo(region_map_t<protocol_t, binary_blob_t>(store->get_region(),
+                                                                        binary_blob_t(version_range_t(version_t::zero()))),
+                                order_token_t::ignore,  // TODO
+                                token,
+                                &dummy_interruptor);
+        }
+
+        // TODO: Support multiple stores.
+        store_view_t<protocol_t> *store_ptr = store;
+        multistore_ptr_t<protocol_t> *svs = new multistore_ptr_t<protocol_t>(&store_ptr, 1);
+
+        store_out->reset(store);
+        svs_out->reset(svs);
+    }
+
+
+private:
+    const std::string file_path_;
+
+    DISABLE_COPYING(file_based_svs_by_namespace_t);
+};
 
 bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     local_issue_tracker_t local_issue_tracker;
@@ -154,6 +208,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     perfmon_collection_repo_t perfmon_repo(NULL);
 
+    file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(filepath);
     reactor_driver_t<mock::dummy_protocol_t> dummy_reactor_driver(&mailbox_manager,
                                                                   directory_read_manager.get_root_view()->subview(
                                                                       field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
@@ -161,7 +216,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
                                                                   metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
                                                                   directory_read_manager.get_root_view()->subview(
                                                                       field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                                                                  filepath,
+                                                                  &dummy_svs_source,
                                                                   &perfmon_repo);
     field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> dummy_reactor_directory_copier(
         &cluster_directory_metadata_t::dummy_namespaces,
@@ -169,6 +224,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         &our_root_directory_variable
         );
 
+    file_based_svs_by_namespace_t<memcached_protocol_t> memcached_svs_source(filepath);
     reactor_driver_t<memcached_protocol_t> memcached_reactor_driver(&mailbox_manager,
                                                                     directory_read_manager.get_root_view()->subview(
                                                                         field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
@@ -176,7 +232,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
                                                                     metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
                                                                     directory_read_manager.get_root_view()->subview(
                                                                         field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                                                                    filepath,
+                                                                    &memcached_svs_source,
                                                                     &perfmon_repo);
     field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> memcached_reactor_directory_copier(
         &cluster_directory_metadata_t::memcached_namespaces,
