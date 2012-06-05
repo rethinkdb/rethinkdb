@@ -140,10 +140,7 @@ private:
     // We _own_ these pointers and must delete them at destruction.
     std::vector<store_view_t<protocol_t> *> store_views;
 
-    // TODO: Can this be wrapped in ifndef NDEBUG?
-#ifndef NDEBUG
-    typename protocol_t::region_t region_mask;
-#endif
+    typename protocol_t::region_t region;
 
     DISABLE_COPYING(multistore_ptr_t);
 };

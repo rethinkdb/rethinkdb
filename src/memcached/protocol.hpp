@@ -162,6 +162,8 @@ public:
 
     typedef traversal_progress_combiner_t backfill_progress_t;
 
+    static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
+
     class store_t : public store_view_t<memcached_protocol_t> {
         boost::scoped_ptr<standard_serializer_t> serializer;
         mirrored_cache_config_t cache_dynamic_config;

@@ -48,40 +48,60 @@ public:
                  boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > *stores_out,
                  boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
 
-        std::string file_name = file_path_ + "/" + uuid_to_str(namespace_id);
+        // TODO: Obviously, the hard-coded numeric constant here might
+        // be regarded as a problem.
+        const int num_stores = 24;
+        const std::string file_name_base = file_path_ + "/" + uuid_to_str(namespace_id);
 
-        typename protocol_t::store_t *store;
+        debugf("actually calling get_svs...\n");
 
         // TODO: This is quite suspicious in that we check if the file
         // exists and then assume it exists or does not exist when
         // loading or creating it.
-        int res = access(file_name.c_str(), R_OK | W_OK);
-        if (res == 0) {
-            /* The file already exists thus we don't create it. */
-            store = new typename protocol_t::store_t(file_name, false, perfmon_collection);
-        } else {
-            /* The file does not exist, create it. */
-            store = new typename protocol_t::store_t(file_name, true, perfmon_collection);
 
-            //Initialize the metadata in the underlying store
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
-            store->new_write_token(token);
+        // TODO: Also we only check file 0.
+
+        stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
+
+        int res = access((file_name_base + "_" + strprintf("%d", 0)).c_str(), R_OK | W_OK);
+        if (res == 0) {
+            // The files already exist, thus we don't create them.
+            boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
+
+            for (int i = 0; i < num_stores; ++i) {
+                const std::string file_name = file_name_base + "_" + strprintf("%d", i);
+                (*stores_out)[i].reset(new typename protocol_t::store_t(file_name, false, perfmon_collection));
+                store_views[i] = (*stores_out)[i].get();
+            }
+
+            svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
+        } else {
+            // TODO: How do we specify what the stores' regions are?
+
+            // The files do not exist, create them.
+            boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
+            for (int i = 0; i < num_stores; ++i) {
+                const std::string file_name = file_name_base + "_" + strprintf("%d", i);
+                (*stores_out)[i].reset(new typename protocol_t::store_t(file_name, true, perfmon_collection));
+                store_views[i] = (*stores_out)[i].get();
+            }
+
+            svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
+
+            // Initialize the metadata in the underlying stores.
+            boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+
+            (*svs_out)->new_write_tokens(write_tokens.get(), num_stores);
 
             cond_t dummy_interruptor;
-            store->set_metainfo(region_map_t<protocol_t, binary_blob_t>(store->get_region(),
-                                                                        binary_blob_t(version_range_t(version_t::zero()))),
-                                order_token_t::ignore,  // TODO
-                                token,
-                                &dummy_interruptor);
+
+            (*svs_out)->set_all_metainfos(region_map_t<protocol_t, binary_blob_t>((*svs_out)->get_multistore_joined_region(),
+                                                                                  binary_blob_t(version_range_t(version_t::zero()))),
+                                          order_token_t::ignore,  // TODO
+                                          write_tokens.get(),
+                                          num_stores,
+                                          &dummy_interruptor);
         }
-
-        // TODO: Support multiple stores.
-        store_view_t<protocol_t> *store_ptr = store;
-        multistore_ptr_t<protocol_t> *svs = new multistore_ptr_t<protocol_t>(&store_ptr, 1);
-
-        stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[1]);
-        (*stores_out)[0].reset(store);
-        svs_out->reset(svs);
     }
 
 

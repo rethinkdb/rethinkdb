@@ -176,6 +176,19 @@ bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
     return !(a == b);
 }
 
+dummy_protocol_t::region_t dummy_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
+    rassert(subregion_number >= 0);
+    rassert(subregion_number < num_cpu_shards);
+
+    // We have a fairly worthless sharding scheme for the dummy protocol, for now.
+    if (subregion_number == 0) {
+        return region_t::universe();
+    } else {
+        return region_t::empty();
+    }
+}
+
+
 dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename("") {
     initialize_empty();
 }
@@ -472,6 +485,18 @@ std::string region_to_debug_str(dummy_protocol_t::region_t r) {
     ret += "}";
 
     return ret;
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::region_t &region) {
+    buf->appendf("dummy_region{");
+    for (std::set<std::string>::const_iterator it = region.keys.begin(); it != region.keys.end(); ++it) {
+        if (it != region.keys.begin()) {
+            buf->appendf(", ");
+        }
+        const char *data = it->data();
+        debug_print_quoted_string(buf, reinterpret_cast<const uint8_t *>(data), it->size());
+    }
+    buf->appendf("}");
 }
 
 void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::write_t& write) {

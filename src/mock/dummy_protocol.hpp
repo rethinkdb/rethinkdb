@@ -95,6 +95,7 @@ public:
         }
     };
 
+    static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 
 
     class store_t : public store_view_t<dummy_protocol_t> {
@@ -177,6 +178,7 @@ std::vector<dummy_protocol_t::region_t> region_subtract_many(const dummy_protoco
 bool operator==(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 
+void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::region_t &region);
 void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::write_t& write);
 
 } // namespace mock

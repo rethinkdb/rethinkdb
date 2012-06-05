@@ -283,6 +283,18 @@ memcached_protocol_t::backfill_chunk_t memcached_protocol_t::backfill_chunk_t::s
 
 
 
+hash_region_t<key_range_t> memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
+    rassert(subregion_number >= 0);
+    rassert(subregion_number < num_cpu_shards);
+
+    // We have to be careful with the math here, to avoid overflow.
+    uint64_t width = HASH_REGION_HASH_SIZE / num_cpu_shards;
+
+    uint64_t beg = width * subregion_number;
+    uint64_t end = subregion_number + 1 == num_cpu_shards ? HASH_REGION_HASH_SIZE : beg + width;
+
+    return hash_region_t<key_range_t>(beg, end, key_range_t::universe());
+}
 
 
 
