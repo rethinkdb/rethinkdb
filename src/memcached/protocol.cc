@@ -520,13 +520,8 @@ struct memcached_backfill_callback_t : public backfill_callback_t {
 
     explicit memcached_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun_) : chunk_fun(chunk_fun_) { }
 
-    void on_delete_range(const btree_key_t *left_exclusive, const btree_key_t *right_inclusive) {
-        chunk_fun(chunk_t::delete_range(
-            key_range_t(
-                left_exclusive ? key_range_t::open : key_range_t::none, left_exclusive ? store_key_t(left_exclusive->size, left_exclusive->contents) : store_key_t(),
-                right_inclusive ? key_range_t::closed : key_range_t::none, right_inclusive ? store_key_t(right_inclusive->size, right_inclusive->contents) : store_key_t()
-            )
-        ));
+    void on_delete_range(const key_range_t &range) {
+        chunk_fun(chunk_t::delete_range(range));
     }
 
     void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
@@ -629,14 +624,8 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
         memcached_delete(delete_key.key, true, btree, 0, repli_timestamp_t::invalid, txn, superblock);
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t& delete_range) const {
-        const key_range_t& range = delete_range.range;
-        range_key_tester_t tester(range);
-        bool left_supplied = range.left != store_key_t::min();
-        bool right_supplied = !range.right.unbounded;
-        memcached_erase_range(btree, &tester,
-              left_supplied, range.left,
-              right_supplied, range.right.key,
-              txn, superblock);
+        range_key_tester_t tester(delete_range.range);
+        memcached_erase_range(btree, &tester, delete_range.range, txn, superblock);
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t& kv) const {
         const backfill_atom_t& bf_atom = kv.backfill_atom;

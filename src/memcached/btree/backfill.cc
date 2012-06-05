@@ -9,17 +9,20 @@
 
 class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
-    explicit agnostic_memcached_backfill_callback_t(backfill_callback_t *cb) : cb_(cb) { }
+    explicit agnostic_memcached_backfill_callback_t(backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
 
-    void on_delete_range(const btree_key_t *low, const btree_key_t *high) {
-        cb_->on_delete_range(low, high);
+    void on_delete_range(const key_range_t &range) {
+        rassert(kr_.is_superset(range));
+        cb_->on_delete_range(range);
     }
 
     void on_deletion(const btree_key_t *key, repli_timestamp_t recency) {
+        rassert(kr_.contains_key(key->contents, key->size));
         cb_->on_deletion(key, recency);
     }
 
     void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val) {
+        rassert(kr_.contains_key(key->contents, key->size));
         const memcached_value_t *value = static_cast<const memcached_value_t *>(val);
         intrusive_ptr_t<data_buffer_t> data_provider = value_to_data_buffer(value, txn);
         backfill_atom_t atom;
@@ -33,11 +36,12 @@ public:
     }
 
     backfill_callback_t *cb_;
+    key_range_t kr_;
 };
 
 void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
                     transaction_t *txn, superblock_t *superblock, traversal_progress_t *p) {
-    agnostic_memcached_backfill_callback_t agnostic_cb(callback);
+    agnostic_memcached_backfill_callback_t agnostic_cb(callback, key_range);
     value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
     do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p);
 }
