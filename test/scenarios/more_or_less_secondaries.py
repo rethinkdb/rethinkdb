@@ -31,7 +31,7 @@ with driver.Metacluster() as metacluster:
     dc2 = http.add_datacenter()
     http.move_server_to_datacenter(process2.files.machine_name, dc2)
     ns = http.add_namespace(protocol = "memcached", primary = dc1, affinities = {dc1: 0, dc2: old_num_secondaries})
-    time.sleep(10)
+    http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
 
@@ -43,6 +43,7 @@ with driver.Metacluster() as metacluster:
         workload.check()
         print "Changing the number of secondaries from %d to %d..." % (old_num_secondaries, new_num_secondaries)
         http.set_namespace_affinities(ns, {dc1: 0, dc2: new_num_secondaries})
+        http.wait_until_blueprint_satisfied(ns, timeout = 3600)
         cluster.check()
         http.check_no_issues()
         workload.step2()

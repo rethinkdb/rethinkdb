@@ -23,7 +23,7 @@ with driver.Metacluster() as metacluster:
     dc2 = http.add_datacenter()
     http.move_server_to_datacenter(process2.files.machine_name, dc2)
     ns = http.add_namespace(protocol = "memcached", primary = dc1, affinities = {dc1: 0, dc2: 1})
-    time.sleep(10)
+    http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
 
@@ -37,6 +37,7 @@ with driver.Metacluster() as metacluster:
         http.set_namespace_affinities(ns, {dc1: 1, dc2: 1})
         http.move_namespace_to_datacenter(ns, dc2)
         http.set_namespace_affinities(ns, {dc1: 1, dc2: 0})
+        http.wait_until_blueprint_satisfied(ns)
         cluster.check()
         http.check_no_issues()
         workload.step2()
