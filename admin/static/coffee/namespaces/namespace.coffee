@@ -72,7 +72,7 @@ module 'NamespaceView', ->
             @.$('.performance-graph').html @performance_graph.render().$el
 
             # display the data on the machines
-            @.$('.datacenter-stats').html @stats_panel.render().$el
+            @.$('.namespace-stats').html @stats_panel.render().$el
 
             # Display the replicas
             @.$('.section.replication').html @replicas.render().el
