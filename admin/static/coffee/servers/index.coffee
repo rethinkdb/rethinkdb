@@ -185,8 +185,6 @@ module 'ServerView', ->
                 recv: 0
                 sent: 0
 
-
-
             num_machine_in_datacenter = 0
             all_machine_in_datacenter_ready = true
 
