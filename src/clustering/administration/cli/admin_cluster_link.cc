@@ -1188,14 +1188,11 @@ void admin_cluster_link_t::do_admin_list_directory(admin_command_parser_t::comma
     for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.begin(); i != directory.end(); i++) {
         delta.clear();
 
-        if (i->second.peer_type == ADMIN_PEER) {
-            delta.push_back("admin");
-        } else if (i->second.peer_type == SERVER_PEER) {
-            delta.push_back("server");
-        } else if (i->second.peer_type == PROXY_PEER) {
-            delta.push_back("proxy");
-        } else {
-            delta.push_back("unknown");
+        switch (i->second.peer_type) {
+          case ADMIN_PEER: delta.push_back("admin"); break;
+          case SERVER_PEER: delta.push_back("server"); break;
+          case PROXY_PEER: delta.push_back("proxy"); break;
+          default: delta.push_back("unknown"); break;
         }
 
         machines_semilattice_metadata_t::machine_map_t::iterator m = cluster_metadata.machines.machines.find(i->second.machine_id);
