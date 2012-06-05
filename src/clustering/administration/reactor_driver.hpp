@@ -26,7 +26,7 @@ template <class protocol_t>
 class svs_by_namespace_t {
 public:
     virtual void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
-                         boost::scoped_ptr<typename protocol_t::store_t> *store_out,
+                         boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > *stores_out,
                          boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) = 0;
 
 protected:

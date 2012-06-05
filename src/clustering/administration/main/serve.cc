@@ -45,7 +45,7 @@ public:
     file_based_svs_by_namespace_t(const std::string &file_path) : file_path_(file_path) { }
 
     void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
-                 boost::scoped_ptr<typename protocol_t::store_t> *store_out,
+                 boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > *stores_out,
                  boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
 
         std::string file_name = file_path_ + "/" + uuid_to_str(namespace_id);
@@ -79,7 +79,8 @@ public:
         store_view_t<protocol_t> *store_ptr = store;
         multistore_ptr_t<protocol_t> *svs = new multistore_ptr_t<protocol_t>(&store_ptr, 1);
 
-        store_out->reset(store);
+        stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[1]);
+        (*stores_out)[0].reset(store);
         svs_out->reset(svs);
     }
 
