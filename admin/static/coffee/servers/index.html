@@ -36,10 +36,58 @@
       <p class="status">{{humanize_machine_reachability status}}</p>
       <p class="actions"><a href="#" class="rename-machine">rename</a></p>
     </div>
-    {{#unless unassigned_machine}}
-    <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Namespaces: {{namespace_count}}</p>
-    {{/unless}}
-    <p class="contains">CPU: {{global_cpu_util}}%, RAM: {{global_mem_used}} of {{global_mem_total}} used, Network: {{global_net_sent}}/s sent, {{global_net_recv}}/s recv, Disk data: {{machine_disk_space}}</p>
+    {{#if unassigned_machine}}
+      <p class="contains">Not assign to any datacenter</p>
+    {{else}}
+      <p class="contains">Primaries: {{primary_count}}, Secondaries: {{secondary_count}}, Namespaces: {{namespace_count}}</p>
+    {{/if}}
+    <p class="contains">
+     <ul class="list_stats">
+          <li class="stat_name">RAM</li>
+          <li class="minichart">
+          <div class="progress" title="Ram used: {{mem_used}} of {{mem_available}}">
+              <div class="bar {{#if mem_used_has_problem}} bar-alert {{/if}}" style="width: {{mem_used_percent}}%;"></div>
+            </div>
+          </li>
+      </ul>
+      <ul class="list_stats">
+        <li class="stat_name">Disk</li>
+        <li class="minichart">
+          <div class="progress" title="Data on the disk {{machine_disk_space}} of {{machine_disk_available}}">
+            <div class="bar {{#if machine_disk_has_problem}} bar-alert {{/if}}" style="width: {{machine_disk_percent}}%;"></div>
+          </div>
+        </li>
+      </ul>
+      <ul class="list_stats">
+        <li class="stat_name">Data</li>
+        <li class="minichart">
+          <div class="progress" title="Data distribution {{machine_disk_space}} of {{total_data}}">
+            <div class="bar {{#if machine_data_has_problem}} bar-alert {{/if}}" style="width: {{machine_data_percent}}%;"></div>
+          </div>
+        </li>
+      </ul>
+      <ul class="list_stats">
+          <li class="stat_name">CPU</li>
+          <li class="minichart">
+            <div  title="CPU used: {{global_cpu_util}}%" class="cpu_sparkline sparkline_container">
+            </div>
+          </li>
+      </ul>
+      <ul class="list_stats">
+        <li class="stat_name">Traffic Out</li>
+        <li class="minichart">
+          <div title="Data received {{global_net_recv}}/s of {{global_total_net_recv}}/s" class="traffic_recv_sparkline sparkline_container">
+          </div>
+        </li>
+      </ul>
+      <ul class="list_stats">
+        <li class="stat_name">Traffic In</li>
+        <li class="minichart">
+          <div title="Data sent {{global_net_sent}}/s of {{global_total_net_sent}}/s" class="traffic_sent_sparkline sparkline_container">
+          </div>
+        </li>
+      </ul>
+   </p>
   </div>
 </script>
 

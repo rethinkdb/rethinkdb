@@ -538,6 +538,14 @@
         td + td { border-left: 0; }
         td { vertical-align: middle; }
 
+        tr.machine-element {
+            &.selected td {
+                background: @selected_color;
+            }
+            &.last-child td {
+                border-bottom: 0;
+            }
+        }
         tr.element {
             &.selected td {
                 background: @selected_color;
@@ -567,7 +575,6 @@
 
 .server-list {
     margin-top: 20px;
-
     .label.element-type {
         text-transform: uppercase;
         font-size: 10px;
@@ -588,7 +595,44 @@
         font-size: 10px;
         margin-right: 5px;
     }
-
+    
+    .list_stats {
+        margin: 0px 0px 0px 0px;
+        float: left;
+        list-style: none;
+        li {
+            display: inline-block;
+        }
+        .stat_name{
+            width: 80px;
+        }
+        .minichart{
+            width: 110px;
+            margin-right: 10px;
+        }
+        .sparkline_container{
+            height: 15px;
+            width: 75px;
+            margin: 0px 5px 0px 5px;
+            padding: 0px;
+        }
+        .progress{
+            height: 10px;
+            width: 75px;
+            margin: 0px 5px 0px 5px;
+            padding: 0px;
+        }
+        canvas{
+            border-bottom: 1px solid #ddd;
+            border-left: 1px solid #ddd;
+        }
+        .bar{
+            background: #a0b0b8;
+        }
+        .bar-alert{
+            background: #E62E2E;
+        }
+    }
     .machine.details {
         div.toolbar {
             float: right;
