@@ -59,12 +59,12 @@ Here are some examples:
     instance; runs the second workload; and then shuts down the RethinkDB
     instance. It's usually used with a split workload, to test that the data is
     correctly persisted to disk when RethinkDB is restarted.
-* `more_or_less_secondaries.py --more --continuous-workload <CONTINUOUS WORKLOAD>` starts
+* `more_or_less_secondaries.py --more --workload-during <CONTINUOUS WORKLOAD>` starts
     a RethinkDB cluster; starts the workload; increases the number of
     secondaries in the cluster; stops the workload; and stops the cluster. The
     idea is to make sure that RethinkDB doesn't crash if the number of
     secondaries is changed while queries are being sent.
-* `more_or_less_secondaries.py --more --split-workload <DISCRETE WORKLOAD 1> <DISCRETE WORKLOAD 2>` is
+* `more_or_less_secondaries.py --more --workload-before <DISCRETE WORKLOAD 1> --workload-after <DISCRETE WORKLOAD 2>` is
     like above except that instead of running one continuous workload the whole
     time, it runs two separate discrete workloads; one before adding the new
     secondary and one after. It can be used to make sure that data is not
