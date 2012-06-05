@@ -278,12 +278,13 @@ class ComputedCluster extends Backbone.Model
         # CPU, mem, disk
         for m in machines.models
             mstats = m.get_stats().proc
-            __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util_avg)
-            __s.global_mem_total += parseInt(mstats.global_mem_total)
-            __s.global_mem_used += parseInt(mstats.global_mem_used)
-            __s.global_disk_space += m.get_used_disk_space()
-            __s.global_net_recv_persec_avg += parseFloat(mstats.global_net_recv_persec_avg)
-            __s.global_net_sent_persec_avg += parseFloat(mstats.global_net_sent_persec_avg)
+            if mstats? and mstats.global_cpu_util?
+                __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util.avg)
+                __s.global_mem_total += parseInt(mstats.global_mem_total)
+                __s.global_mem_used += parseInt(mstats.global_mem_used)
+                __s.global_disk_space += m.get_used_disk_space()
+                __s.global_net_recv_persec_avg += parseFloat(mstats.global_net_recv_persec.avg)
+                __s.global_net_sent_persec_avg += parseFloat(mstats.global_net_sent_persec.avg)
         __s.global_cpu_util_avg /= machines.models.length
 
         return __s
