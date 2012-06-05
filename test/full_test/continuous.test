@@ -4,7 +4,7 @@ continuous_workloads = [
     ]
 
 scenarios = [
-    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --more --continuous-workload '%(workload)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --more --workload-during '%(workload)s'",
     ]
 
 for scenario in scenarios:
