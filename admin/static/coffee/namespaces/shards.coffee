@@ -110,7 +110,7 @@ module 'NamespaceView', ->
             @suggest_shards_view = false
 
             # We should rerender on key distro updates
-            @namespace.on 'all', @render
+            @namespace.on 'all', @render_only_shards
 
             super
 
@@ -130,7 +130,6 @@ module 'NamespaceView', ->
             @suggest_shards_view = true
             @render()
 
-        user_num_shards: ''
 
         compute_shards_suggestion: (e) =>
             # Do the bullshit event crap
@@ -218,7 +217,6 @@ module 'NamespaceView', ->
             @render()
 
         render: =>
-            @user_num_shards = @.$('.num_shards').val()
 
             log_render '(rendering) ModifyShards'
 
@@ -238,7 +236,7 @@ module 'NamespaceView', ->
 
             shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
             @.$('.shards tbody').append view.render().el for view in shard_views
-            @.$('.num_shards').val(@user_num_shards)
+
             # Control the suggest button
             @.$('.btn-compute-shards-suggestion').button()
 
@@ -249,6 +247,12 @@ module 'NamespaceView', ->
                 @reset_button_disable()
 
             return @
+
+        render_only_shards: =>
+            @.$('.shards tbody').html ''
+            shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
+            @.$('.shards tbody').append view.render().el for view in shard_views
+
 
         on_submit: (e) =>
             e.preventDefault()
