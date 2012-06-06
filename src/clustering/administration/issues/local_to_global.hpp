@@ -13,11 +13,17 @@ public:
         underlying(_underlying), source(_source) { }
 
     std::string get_description() const {
-        return "On machine " + uuid_to_str(source) + ": " + underlying.get_description();
+        return "On machine " + uuid_to_str(source) + ": " + underlying.type + ": " + underlying.description;
     }
 
     cJSON *get_json_description() {
-        cJSON *res = underlying.get_json_description();
+        issue_json_t json;
+        json.critical = underlying.critical;
+        json.description = underlying.description;
+        json.time = underlying.timestamp;
+        json.type = underlying.type;
+
+        cJSON *res = render_as_json(&json, 0);
         cJSON_AddItemToObject(res, "location", render_as_json(&source, 0));
 
         return res;

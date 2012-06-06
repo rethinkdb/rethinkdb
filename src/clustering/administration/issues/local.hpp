@@ -15,11 +15,8 @@ public:
     local_issue_t() { }
     local_issue_t(const std::string& type, bool critical, const std::string& description);
 
-    std::string get_description() const;
-    cJSON *get_json_description() const;
-
     local_issue_t *clone() const;
-private:
+
     std::string type;
     bool critical;
     std::string description;
