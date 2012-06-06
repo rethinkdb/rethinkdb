@@ -1192,7 +1192,7 @@ void admin_cluster_link_t::do_admin_list_directory(admin_command_parser_t::comma
           case ADMIN_PEER: delta.push_back("admin"); break;
           case SERVER_PEER: delta.push_back("server"); break;
           case PROXY_PEER: delta.push_back("proxy"); break;
-          default: delta.push_back("unknown"); break;
+          default: unreachable();
         }
 
         machines_semilattice_metadata_t::machine_map_t::iterator m = cluster_metadata.machines.machines.find(i->second.machine_id);
