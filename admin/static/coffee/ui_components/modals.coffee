@@ -10,6 +10,7 @@ module 'UIComponents', ->
             'click .cancel': 'cancel_modal'
             'click .close': 'cancel_modal'
             'click .btn-primary': 'abstract_submit'
+            'keypress .input_new_name': 'check_keypress_is_enter'
 
         initialize: ->
             @$container = $('#modal-dialog')
@@ -54,6 +55,11 @@ module 'UIComponents', ->
         cancel_modal: (e) ->
             @.hide_modal()
             e.preventDefault()
+
+        check_keypress_is_enter: (event) =>
+            if event.which is 13
+                event.preventDefault()
+                @abstract_submit(event)
 
         abstract_submit: (event) ->
             event.preventDefault()
