@@ -158,7 +158,7 @@ class Files(object):
     `Files`. To "restart" a server, create a `Files`, create a `Process`, stop
     the process, and then start a new `Process` on the same `Files`. """
 
-    def __init__(self, metacluster, machine_name = None, port_offset = 0, db_path = None, log_path = None, executable_path = None, command_prefix = []):
+    def __init__(self, metacluster, machine_name = None, db_path = None, log_path = None, executable_path = None, command_prefix = []):
         assert isinstance(metacluster, Metacluster)
         assert not metacluster.closed
         assert machine_name is None or isinstance(machine_name, str)
@@ -182,11 +182,8 @@ class Files(object):
         else:
             self.machine_name = machine_name
 
-        self.port_offset = self.id_number
-
         create_args = command_prefix + [executable_path, "create",
             "--directory=" + self.db_path,
-            "--port-offset=" + str(self.port_offset),
             "--name=" + self.machine_name]
 
         if log_path is None:
@@ -213,7 +210,7 @@ class Process(object):
         self.cluster_port = cluster.metacluster.base_port + self.files.id_number * 2
         self.local_cluster_port = cluster.metacluster.base_port + self.files.id_number * 2 + 1
         self.http_port = self.cluster_port + 1000
-        self.port_offset = self.files.port_offset
+        self.port_offset = self.files.id_number
 
         for other_cluster in cluster.metacluster.clusters:
             if other_cluster is not cluster:
@@ -223,6 +220,7 @@ class Process(object):
             self.args = command_prefix + [executable_path, "serve",
                 "--directory=" + self.files.db_path,
                 "--port=" + str(self.cluster_port),
+                "--port-offset=" + str(self.port_offset),
                 "--client-port=" + str(self.local_cluster_port)]
             for peer in cluster.processes:
                 if peer is not self:
