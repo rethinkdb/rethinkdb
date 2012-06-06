@@ -61,8 +61,8 @@ int main(int argc, char *argv[]) {
                 puts("'rethinkdb' is divided into a number of subcommands:");
                 puts("");
                 puts("    'rethinkdb create': prepare files on disk");
-                puts("    'rethinkdb serve': serve queries");
-                puts("    'rethinkdb proxy': serve queries by proxying an existing cluster");
+                puts("    'rethinkdb serve': serve queries and host data");
+                puts("    'rethinkdb proxy': serve queries but don't host data");
                 puts("    'rethinkdb admin': access and modify cluster metadata");
                 puts("");
                 puts("For more information, run 'rethinkdb help [subcommand]'.");
