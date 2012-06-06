@@ -1,4 +1,3 @@
-
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
 #include "clustering/administration/auto_reconnect.hpp"
@@ -36,7 +35,7 @@
 #include "rpc/semilattice/view/function.hpp"
 #include "rpc/semilattice/view/member.hpp"
 
-bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve(const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     local_issue_tracker_t local_issue_tracker;
 
     log_writer_t log_writer(filepath + "/log_file", &local_issue_tracker);
@@ -86,7 +85,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view())
         );
 
-    field_copier_t<std::list<clone_ptr_t<local_issue_t> >, cluster_directory_metadata_t> copy_local_issues_to_cluster(
+    field_copier_t<std::list<local_issue_t>, cluster_directory_metadata_t> copy_local_issues_to_cluster(
         &cluster_directory_metadata_t::local_issues,
         local_issue_tracker.get_issues_watchable(),
         &our_root_directory_variable
@@ -96,7 +95,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     remote_issue_collector_t remote_issue_tracker(
         directory_read_manager.get_root_view()->subview(
-            field_getter_t<std::list<clone_ptr_t<local_issue_t> >, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
+            field_getter_t<std::list<local_issue_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
         directory_read_manager.get_root_view()->subview(
             field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
         );
@@ -222,7 +221,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
         &memcached_namespace_repo,
         &perfmon_repo);
 
-    metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
+    metadata_persistence::semilattice_watching_persister_t persister(persistent_file, machine_id, semilattice_manager_cluster.get_root_view());
 
     {
         int http_port = port + 1000;

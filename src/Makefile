@@ -78,10 +78,8 @@ endif
 
 ifeq ($(COMPILER), CLANG)
 BUILD_DIR:=$(BUILD_DIR)_clang
-else
-ifeq ($(COMPILER), INTEL)
+else ifeq ($(COMPILER), INTEL)
 BUILD_DIR:=$(BUILD_DIR)_intel
-endif
 endif
 
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
@@ -96,16 +94,13 @@ else ifeq ($(COMPILER),INTEL)
 CXX:=icc
 endif
 
-
 ifeq ($(COMPILER),CLANG)
 LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lstdc++ -lm -lcurl
-else
-ifeq ($(COMPILER),INTEL)
+else ifeq ($(COMPILER),INTEL)
 LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lQtCore -lstdc++ -lcurl
 else
 # GCC
 LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lcurl
-endif
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
@@ -125,12 +120,10 @@ CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
 
 ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
-else
-ifeq ($(COMPILER), CLANG)
+else ifeq ($(COMPILER), CLANG)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration
 else
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
-endif
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)

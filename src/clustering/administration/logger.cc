@@ -235,10 +235,7 @@ void log_writer_t::write(const log_message_t &lm) {
         if (!issue) {
             issue.reset(new local_issue_tracker_t::entry_t(
                 issue_tracker,
-                // TODO: Make a separate issue class for log-file write failures
-                clone_ptr_t<local_issue_t>(new metadata_persistence::persistence_issue_t(
-                    error_message
-                    ))
+                local_issue_t("LOGFILE_WRITE_ERROR", true, error_message)
                 ));
         }
     }

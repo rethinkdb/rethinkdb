@@ -236,7 +236,7 @@ admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins
     issue_aggregator(),
     remote_issue_tracker(
         directory_read_manager.get_root_view()->subview(
-            field_getter_t<std::list<clone_ptr_t<local_issue_t> >, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
+            field_getter_t<std::list<local_issue_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
         directory_read_manager.get_root_view()->subview(
             field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
         ),
