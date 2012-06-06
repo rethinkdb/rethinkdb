@@ -142,8 +142,8 @@ module 'MachineView', ->
                 global_cpu_util: Math.floor(@model.get_stats().proc.global_cpu_util_avg * 100)
                 global_mem_total: human_readable_units(@model.get_stats().proc.global_mem_total * 1024, units_space)
                 global_mem_used: human_readable_units(@model.get_stats().proc.global_mem_used * 1024, units_space)
-                global_net_sent: human_readable_units(@model.get_stats().proc.global_net_sent_persec_avg, units_space)
-                global_net_recv: human_readable_units(@model.get_stats().proc.global_net_recv_persec_avg, units_space)
+                global_net_sent: if @model.get_stats().proc.global_net_sent_persec? then human_readable_units(@model.get_stats().proc.global_net_sent_persec.avg, units_space) else 0
+                global_net_recv: if @model.get_stats().proc.global_net_recv_persec? then human_readable_units(@model.get_stats().proc.global_net_recv_persec.avg, units_space) else 0
                 machine_disk_space: human_readable_units(@model.get_used_disk_space(), units_space)
             
             # If the machine is assigned to a datacenter, add relevant json

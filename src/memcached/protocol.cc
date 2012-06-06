@@ -595,13 +595,8 @@ public:
     explicit memcached_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun, uint64_t hash_interval_beg, uint64_t hash_interval_end)
         : chunk_fun_(chunk_fun), hash_interval_beg_(hash_interval_beg), hash_interval_end_(hash_interval_end) { }
 
-    void on_delete_range(const btree_key_t *left_exclusive, const btree_key_t *right_inclusive) {
-        key_range_t key_range(left_exclusive ? key_range_t::open : key_range_t::none,
-                              left_exclusive ? store_key_t(left_exclusive->size, left_exclusive->contents) : store_key_t(),
-                              right_inclusive ? key_range_t::closed : key_range_t::none,
-                              right_inclusive ? store_key_t(right_inclusive->size, right_inclusive->contents) : store_key_t());
-
-        chunk_fun_(chunk_t::delete_range(hash_region_t<key_range_t>(hash_interval_beg_, hash_interval_end_, key_range)));
+    void on_delete_range(const key_range_t &range) {
+        chunk_fun_(chunk_t::delete_range(hash_region_t<key_range_t>(range)));
     }
 
     void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
@@ -724,14 +719,8 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
         memcached_delete(delete_key.key, true, btree, 0, repli_timestamp_t::invalid, txn, superblock);
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t& delete_range) const {
-        const hash_region_t<key_range_t>& range = delete_range.range;
-        hash_range_key_tester_t tester(range);
-        bool left_supplied = range.inner.left != store_key_t::min();
-        bool right_supplied = !range.inner.right.unbounded;
-        memcached_erase_range(btree, &tester,
-              left_supplied, range.inner.left,
-              right_supplied, range.inner.right.key,
-              txn, superblock);
+        hash_range_key_tester_t tester(delete_range.range);
+        memcached_erase_range(btree, &tester, delete_range.range.inner, txn, superblock);
     }
     void operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t& kv) const {
         const backfill_atom_t& bf_atom = kv.backfill_atom;

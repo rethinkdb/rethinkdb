@@ -82,6 +82,30 @@ key_range_t::key_range_t(bound_t lm, const store_key_t& l, bound_t rm, const sto
     }
 }
 
+bool key_range_t::is_superset(const key_range_t &other) const {
+    /* Special-case empty ranges */
+    if (other.is_empty()) return true;
+    if (left > other.left) return false;
+    if (right < other.right) return false;
+    return true;
+}
+
+bool key_range_t::overlaps(const key_range_t &other) const {
+    return key_range_t::right_bound_t(left) < other.right &&
+        key_range_t::right_bound_t(other.left) < right &&
+        !is_empty() && !other.is_empty();
+}
+
+key_range_t key_range_t::intersection(const key_range_t &other) const {
+    if (!overlaps(other)) {
+        return key_range_t::empty();
+    }
+    key_range_t ixn;
+    ixn.left = left < other.left ? other.left : left;
+    ixn.right = right > other.right ? other.right : right;
+    return ixn;
+}
+
 std::string key_range_to_debug_str(const key_range_t &kr) {
     std::string ret;
     ret += "[";

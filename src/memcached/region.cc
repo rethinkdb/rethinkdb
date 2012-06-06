@@ -2,26 +2,6 @@
 
 #include <algorithm>
 
-bool region_is_superset(const key_range_t &potential_superset, const key_range_t &potential_subset) THROWS_NOTHING {
-    /* Special-case empty ranges */
-    if (key_range_t::right_bound_t(potential_subset.left) == potential_subset.right) return true;
-
-    if (potential_superset.left > potential_subset.left) return false;
-    if (potential_superset.right < potential_subset.right) return false;
-
-    return true;
-}
-
-key_range_t region_intersection(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING {
-    if (!region_overlaps(r1, r2)) {
-        return key_range_t::empty();
-    }
-    key_range_t ixn;
-    ixn.left = r1.left < r2.left ? r2.left : r1.left;
-    ixn.right = r1.right > r2.right ? r2.right : r1.right;
-    return ixn;
-}
-
 bool compare_range_by_left(const key_range_t &r1, const key_range_t &r2) {
     return r1.left < r2.left;
 }
@@ -54,17 +34,6 @@ region_join_result_t region_join(const std::vector<key_range_t> &vec, key_range_
     }
 }
 
-bool region_is_empty(const key_range_t &r) {
-    return key_range_t::right_bound_t(r.left) == r.right;
-}
-
-bool region_overlaps(const key_range_t &r1, const key_range_t &r2) THROWS_NOTHING {
-    return (key_range_t::right_bound_t(r1.left) < r2.right &&
-            key_range_t::right_bound_t(r2.left) < r1.right &&
-            !region_is_empty(r1) && !region_is_empty(r2));
-}
-
-// What does minuend mean?  And I think you mean subtrahendron.
 std::vector<key_range_t> region_subtract_many(key_range_t minuend, const std::vector<key_range_t>& subtrahends) {
     std::vector<key_range_t> buf, temp_result_buf;
     buf.push_back(minuend);
@@ -89,8 +58,4 @@ std::vector<key_range_t> region_subtract_many(key_range_t minuend, const std::ve
         temp_result_buf.clear();
     }
     return buf;
-}
-
-std::string region_to_debug_str(const key_range_t &r) {
-    return key_range_to_debug_str(r);
 }

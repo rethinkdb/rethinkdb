@@ -182,6 +182,18 @@ std::string key_to_debug_str(const store_key_t &key);
 
 /* `key_range_t` represents a contiguous set of keys. */
 struct key_range_t {
+    /* If `right.unbounded`, then the range contains all keys greater than or
+    equal to `left`. If `right.bounded`, then the range contains all keys
+    greater than or equal to `left` and less than `right.key`. */
+    struct right_bound_t {
+        right_bound_t() : unbounded(true) { }
+        explicit right_bound_t(store_key_t k) : unbounded(false), key(k) { }
+        bool unbounded;
+        store_key_t key;
+
+        RDB_MAKE_ME_SERIALIZABLE_2(unbounded, key);
+    };
+
     enum bound_t {
         open,
         closed,
@@ -216,17 +228,10 @@ struct key_range_t {
         return left_ok && right_ok;
     }
 
-    /* If `right.unbounded`, then the range contains all keys greater than or
-    equal to `left`. If `right.bounded`, then the range contains all keys
-    greater than or equal to `left` and less than `right.key`. */
-    struct right_bound_t {
-        right_bound_t() : unbounded(true) { }
-        explicit right_bound_t(store_key_t k) : unbounded(false), key(k) { }
-        bool unbounded;
-        store_key_t key;
+    bool is_superset(const key_range_t &other) const;
+    bool overlaps(const key_range_t &other) const;
+    key_range_t intersection(const key_range_t &other) const;
 
-        RDB_MAKE_ME_SERIALIZABLE_2(unbounded, key);
-    };
     store_key_t left;
     right_bound_t right;
 

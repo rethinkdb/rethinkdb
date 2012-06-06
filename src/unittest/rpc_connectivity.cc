@@ -403,34 +403,48 @@ void run_blob_join_test() {
     int port = randport();
 
     /* Two blobs of `blob_size` nodes */
-    const int blob_size = 4;
+    const size_t blob_size = 4;
 
     /* Spin up cluster-members */
     boost::scoped_ptr<connectivity_cluster_t> nodes[blob_size * 2];
     boost::scoped_ptr<connectivity_cluster_t::run_t> runs[blob_size * 2];
-    for (int i = 0; i < blob_size * 2; i++) {
+    for (size_t i = 0; i < blob_size * 2; i++) {
         nodes[i].reset(new connectivity_cluster_t);
         runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
 
-    for (int i = 1; i < blob_size; i++) {
+    for (size_t i = 1; i < blob_size; i++) {
         runs[i]->join(nodes[0]->get_peer_address(nodes[0]->get_me()));
     }
-    for (int i = blob_size+1; i < blob_size*2; i++) {
+    for (size_t i = blob_size+1; i < blob_size*2; i++) {
         runs[i]->join(nodes[blob_size]->get_peer_address(nodes[blob_size]->get_me()));
     }
 
-    let_stuff_happen();
+    // Allow some time for the two blobs to join with themselves
+    uint32_t total_waits = 0;
+    bool pass = false;
+    while(!pass) {
+        let_stuff_happen();
+        ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce internally
 
+        pass = true;
+        for (size_t i = 0; i < blob_size * 2; i++) {
+            pass &= (blob_size == nodes[i]->get_peers_list().size());
+        }
+    }
+
+    // Link the two blobs
     runs[1]->join(nodes[blob_size+1]->get_peer_address(nodes[blob_size+1]->get_me()));
 
-    let_stuff_happen();
-    let_stuff_happen();
-    let_stuff_happen();
+    pass = false;
+    while(!pass) {
+        let_stuff_happen();
+        ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce with each other
 
-    /* Make sure every node sees every other */
-    for (int i = 0; i < blob_size*2; i++) {
-        ASSERT_EQ(blob_size * 2, nodes[i]->get_peers_list().size());
+        pass = true;
+        for (size_t i = 0; i < blob_size * 2; i++) {
+            pass &= ((blob_size * 2) == nodes[i]->get_peers_list().size());
+        }
     }
 }
 TEST(RPCConnectivityTest, BlobJoin) {
