@@ -42,6 +42,9 @@ int main(int argc, char *argv[]) {
         } else if (subcommand == "serve") {
             return main_rethinkdb_serve(argc, argv);
 
+        } else if (subcommand == "proxy") {
+            return main_rethinkdb_proxy(argc, argv);
+
         } else if (subcommand == "admin") {
             return main_rethinkdb_admin(argc, argv);
 
@@ -59,6 +62,7 @@ int main(int argc, char *argv[]) {
                 puts("");
                 puts("    'rethinkdb create': prepare files on disk");
                 puts("    'rethinkdb serve': serve queries");
+                puts("    'rethinkdb proxy': serve queries by proxying an existing cluster");
                 puts("    'rethinkdb admin': access and modify cluster metadata");
                 puts("");
                 puts("For more information, run 'rethinkdb help [subcommand]'.");
@@ -75,6 +79,8 @@ int main(int argc, char *argv[]) {
                 } else if (subcommand2 == "admin") {
                     admin_command_parser_t::do_usage(false);
                     return 0;
+                } else if (subcommand2 == "proxy") {
+                    help_rethinkdb_proxy();
                 } else {
                     printf("ERROR: No help for '%s'\n", subcommand2.c_str());
                     return 1;

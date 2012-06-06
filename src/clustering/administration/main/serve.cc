@@ -36,12 +36,21 @@
 #include "rpc/semilattice/view/function.hpp"
 #include "rpc/semilattice/view/member.hpp"
 
-bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve_(
+    bool Iamaserver,
+    // NB. For ordinary servers, filepath is the path to the database directory. For proxies, it is
+    // the path of a log file.
+    const std::string &filepath,
+    const std::set<peer_address_t> &joins,
+    int port, DEBUG_ONLY(int port_offset,) int client_port,
+    machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
+    std::string web_assets, signal_t *stop_cond)
+{
     local_issue_tracker_t local_issue_tracker;
 
-    log_writer_t log_writer(filepath + "/log_file", &local_issue_tracker);
+    log_writer_t log_writer(Iamaserver ? filepath + "/log_file" : filepath, &local_issue_tracker);
 
-    printf("Establishing cluster node on port %d...\n", port);
+    printf("Establishing %s node on port %d...\n", Iamaserver ? "cluster" : "proxy", port);
 
     connectivity_cluster_t connectivity_cluster;
     message_multiplexer_t message_multiplexer(&connectivity_cluster);
@@ -67,7 +76,7 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
             get_ips(),
             stat_manager.get_address(),
             log_server.get_business_card(),
-            SERVER_PEER
+            Iamaserver ? SERVER_PEER : PROXY_PEER
         ));
 
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
@@ -154,36 +163,44 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
 
     perfmon_collection_repo_t perfmon_repo(NULL);
 
-    reactor_driver_t<mock::dummy_protocol_t> dummy_reactor_driver(&mailbox_manager,
-                                                                  directory_read_manager.get_root_view()->subview(
-                                                                      field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
-                                                                  metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-                                                                  metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-                                                                  directory_read_manager.get_root_view()->subview(
-                                                                      field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                                                                  filepath,
-                                                                  &perfmon_repo);
-    field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> dummy_reactor_directory_copier(
-        &cluster_directory_metadata_t::dummy_namespaces,
-        dummy_reactor_driver.get_watchable(),
-        &our_root_directory_variable
-        );
+    // Reactor drivers
+    boost::scoped_ptr<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!Iamaserver ? 0 :
+        new reactor_driver_t<mock::dummy_protocol_t>(
+            &mailbox_manager,
+            directory_read_manager.get_root_view()->subview(
+                field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
+            metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
+            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
+            directory_read_manager.get_root_view()->subview(
+                field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+            filepath,
+            &perfmon_repo));
+    boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
+        dummy_reactor_directory_copier(!Iamaserver ? 0 :
+            new field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(
+                &cluster_directory_metadata_t::dummy_namespaces,
+                dummy_reactor_driver->get_watchable(),
+                &our_root_directory_variable));
 
-    reactor_driver_t<memcached_protocol_t> memcached_reactor_driver(&mailbox_manager,
-                                                                    directory_read_manager.get_root_view()->subview(
-                                                                        field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
-                                                                    metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-                                                                    metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-                                                                    directory_read_manager.get_root_view()->subview(
-                                                                        field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-                                                                    filepath,
-                                                                    &perfmon_repo);
-    field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> memcached_reactor_directory_copier(
-        &cluster_directory_metadata_t::memcached_namespaces,
-        memcached_reactor_driver.get_watchable(),
-        &our_root_directory_variable
-        );
+    boost::scoped_ptr<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!Iamaserver ? 0 :
+        new reactor_driver_t<memcached_protocol_t>(
+            &mailbox_manager,
+            directory_read_manager.get_root_view()->subview(
+                field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
+            metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
+            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
+            directory_read_manager.get_root_view()->subview(
+                field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+            filepath,
+            &perfmon_repo));
+    boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
+        memcached_reactor_directory_copier(!Iamaserver ? 0 :
+            new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
+                &cluster_directory_metadata_t::memcached_namespaces,
+                memcached_reactor_driver->get_watchable(),
+                &our_root_directory_variable));
 
+    // Namespace repos
     namespace_repo_t<mock::dummy_protocol_t> dummy_namespace_repo(&mailbox_manager,
         directory_read_manager.get_root_view()->subview(
             field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces))
@@ -194,35 +211,23 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
             field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces))
         );
 
-#ifndef NDEBUG
-    boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> > machine_semilattice_view =
-        /* TODO: This will crash if we are declared dead. */
-        metadata_function<deletable_t<machine_semilattice_metadata_t>, machine_semilattice_metadata_t>(boost::bind(&deletable_getter<machine_semilattice_metadata_t>, _1),
-            metadata_member(machine_id,
-                metadata_field(&machines_semilattice_metadata_t::machines,
-                    metadata_field(&cluster_semilattice_metadata_t::machines,
-                        semilattice_manager_cluster.get_root_view()))));
-#endif
-
     parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
         &mailbox_manager,
         metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-#ifndef NDEBUG
-        machine_semilattice_view,
-#endif
+        DEBUG_ONLY(port_offset,)
         &dummy_namespace_repo,
         &perfmon_repo);
 
     parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
         &mailbox_manager,
         metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-#ifndef NDEBUG
-        machine_semilattice_view,
-#endif
+        DEBUG_ONLY(port_offset,)
         &memcached_namespace_repo,
         &perfmon_repo);
 
-    metadata_persistence::semilattice_watching_persister_t persister(filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker);
+    boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!Iamaserver ? 0 :
+        new metadata_persistence::semilattice_watching_persister_t(
+            filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker));
 
     {
         int http_port = port + 1000;
@@ -248,7 +253,16 @@ bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, i
     }
 
     cond_t non_interruptor;
-    persister.stop_and_flush(&non_interruptor);
+    if (persister)
+        persister->stop_and_flush(&non_interruptor);
 
     return true;
+}
+
+bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, DEBUG_ONLY(int port_offset,) int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+    return serve_(true, filepath, joins, port, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
+}
+
+bool serve_proxy(const std::string &filepath, const std::set<peer_address_t> &joins, int port, DEBUG_ONLY(int port_offset,) int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+    return serve_(false, filepath, joins, port, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
