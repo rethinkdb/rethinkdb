@@ -163,7 +163,7 @@ bool serve_(
     perfmon_collection_repo_t perfmon_repo(NULL);
 
     // Reactor drivers
-    boost::scoped_ptr<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!Iamaserver ? 0 :
+    boost::scoped_ptr<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!Iamaserver ? NULL :
         new reactor_driver_t<mock::dummy_protocol_t>(
             &mailbox_manager,
             directory_read_manager.get_root_view()->subview(
@@ -175,13 +175,13 @@ bool serve_(
             filepath,
             &perfmon_repo));
     boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
-        dummy_reactor_directory_copier(!Iamaserver ? 0 :
+        dummy_reactor_directory_copier(!Iamaserver ? NULL :
             new field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::dummy_namespaces,
                 dummy_reactor_driver->get_watchable(),
                 &our_root_directory_variable));
 
-    boost::scoped_ptr<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!Iamaserver ? 0 :
+    boost::scoped_ptr<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!Iamaserver ? NULL :
         new reactor_driver_t<memcached_protocol_t>(
             &mailbox_manager,
             directory_read_manager.get_root_view()->subview(
@@ -193,7 +193,7 @@ bool serve_(
             filepath,
             &perfmon_repo));
     boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
-        memcached_reactor_directory_copier(!Iamaserver ? 0 :
+        memcached_reactor_directory_copier(!Iamaserver ? NULL :
             new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::memcached_namespaces,
                 memcached_reactor_driver->get_watchable(),
@@ -224,7 +224,7 @@ bool serve_(
         &memcached_namespace_repo,
         &perfmon_repo);
 
-    boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!Iamaserver ? 0 :
+    boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!Iamaserver ? NULL :
         new metadata_persistence::semilattice_watching_persister_t(
             filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker));
 
