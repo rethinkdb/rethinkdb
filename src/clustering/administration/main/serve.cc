@@ -50,7 +50,7 @@ public:
 
         // TODO: Obviously, the hard-coded numeric constant here might
         // be regarded as a problem.
-        const int num_stores = 24;
+        const int num_stores = 4;
         const std::string file_name_base = file_path_ + "/" + uuid_to_str(namespace_id);
 
         debugf("actually calling get_svs...\n");
@@ -61,6 +61,9 @@ public:
 
         // TODO: Also we only check file 0.
 
+        // TODO: We should use N slices on M serializers, not N slices
+        // on N serializers.
+
         stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
 
         int res = access((file_name_base + "_" + strprintf("%d", 0)).c_str(), R_OK | W_OK);
@@ -68,6 +71,7 @@ public:
             // The files already exist, thus we don't create them.
             boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
 
+            // TODO: This should use pmap.
             for (int i = 0; i < num_stores; ++i) {
                 const std::string file_name = file_name_base + "_" + strprintf("%d", i);
                 (*stores_out)[i].reset(new typename protocol_t::store_t(file_name, false, perfmon_collection));
@@ -79,6 +83,7 @@ public:
             // TODO: How do we specify what the stores' regions are?
 
             // The files do not exist, create them.
+            // TODO: This should use pmap.
             boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
             for (int i = 0; i < num_stores; ++i) {
                 const std::string file_name = file_name_base + "_" + strprintf("%d", i);
@@ -102,6 +107,8 @@ public:
                                           num_stores,
                                           &dummy_interruptor);
         }
+
+        debugf("get_svs actually returning...\n");
     }
 
 
