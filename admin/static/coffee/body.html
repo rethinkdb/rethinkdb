@@ -21,3 +21,24 @@
         <div id="modal-dialog"></div>
     </div>
 </script>
+
+
+<script id="is_disconnected-template" type="text/x-handlebars-template">
+  <div class="modal show is_disconnected">
+    <div class="modal-header">
+      <h3>You have been disconnected from the server</h3>
+    </div>
+    <div class="modal-body">
+        <p>The connexion to the server has been lost.
+        <p class="animation_state">
+            <span class="reconnecting_state">Trying to reconnect</span>
+            <span class="three_dots_connecting"></span>
+        </p>
+    </div>
+  </div>
+</script>
+
+
+<script id="is_disconnected_message-template" type="text/x-handlebars-template">
+ Failed to reconnect. Trying again   
+</script>
