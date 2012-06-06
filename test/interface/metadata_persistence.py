@@ -23,7 +23,7 @@ with driver.Metacluster() as metacluster:
 
     ns1 = http.memcached_namespaces
     ns2 = http2.memcached_namespaces
-    assert(len(ns1) == 1 and len(ns1) == 1)
+    assert(len(ns1) == 1 and len(ns2) == 1)
     uuid = ns1.keys()[0]
     assert(uuid in ns2)
     assert(ns1[uuid].name == ns2[uuid].name)
