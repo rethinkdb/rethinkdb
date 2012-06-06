@@ -9,7 +9,7 @@
 
 class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
-    explicit agnostic_memcached_backfill_callback_t(backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
+    agnostic_memcached_backfill_callback_t(backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
 
     void on_delete_range(const key_range_t &range) {
         rassert(kr_.is_superset(range));

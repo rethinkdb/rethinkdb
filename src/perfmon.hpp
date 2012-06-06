@@ -317,7 +317,7 @@ private:
 
 struct perfmon_stddev_t : public perfmon_perthread_t<stddev_t> {
     // should be possible to make this a templated class if necessary
-    explicit perfmon_stddev_t(const std::string& name, perfmon_collection_t *parent);
+    perfmon_stddev_t(const std::string& name, perfmon_collection_t *parent);
     void record(float value);
 
 protected:
@@ -375,7 +375,7 @@ private:
     intrusive_list_t<internal_function_t> funs[MAX_THREADS];
 
 public:
-    explicit perfmon_function_t(std::string _name, perfmon_collection_t *parent)
+    perfmon_function_t(std::string _name, perfmon_collection_t *parent)
         : perfmon_t(parent), name(_name) { }
     virtual ~perfmon_function_t() { }
 
@@ -387,7 +387,7 @@ public:
 /* A perfmon collection allows you to add hierarchy to stats. */
 class perfmon_collection_t : public perfmon_t {
 public:
-    explicit perfmon_collection_t(const std::string &_name, perfmon_collection_t *parent, bool insert, bool _create_submap)
+    perfmon_collection_t(const std::string &_name, perfmon_collection_t *parent, bool insert, bool _create_submap)
         : perfmon_t(parent, insert), name(_name), create_submap(_create_submap)
     { }
 
