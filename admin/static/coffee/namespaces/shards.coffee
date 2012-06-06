@@ -130,6 +130,8 @@ module 'NamespaceView', ->
             @suggest_shards_view = true
             @render()
 
+        user_num_shards: ''
+
         compute_shards_suggestion: (e) =>
             # Do the bullshit event crap
             e.preventDefault()
@@ -216,6 +218,8 @@ module 'NamespaceView', ->
             @render()
 
         render: =>
+            @user_num_shards = @.$('.num_shards').val()
+
             log_render '(rendering) ModifyShards'
 
             # TODO render "touched" shards (that have been split or merged within this view) a bit differently
@@ -234,7 +238,7 @@ module 'NamespaceView', ->
 
             shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
             @.$('.shards tbody').append view.render().el for view in shard_views
-
+            @.$('.num_shards').val(@user_num_shards)
             # Control the suggest button
             @.$('.btn-compute-shards-suggestion').button()
 

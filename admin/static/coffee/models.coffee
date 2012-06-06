@@ -361,10 +361,8 @@ class IssuesRedundancy extends Backbone.Collection
         issues_redundancy = []
         @num_replicas = 0
 
-        console.log "___________________"
 
         directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
-        console.log directory_by_namespaces
         for namespace in namespaces.models
             namespace_id = namespace.get('id')
             blueprint = namespace.get('blueprint').peers_roles
@@ -375,8 +373,6 @@ class IssuesRedundancy extends Backbone.Collection
                     machine_name = machine_id
 
                 for key of blueprint[machine_id]
-                    console.log machine_id
-                    console.log key, blueprint[machine_id][key]
                     value = blueprint[machine_id][key]
                     if value is "role_primary" or value is "role_secondary"
                         @num_replicas++
@@ -402,7 +398,6 @@ class IssuesRedundancy extends Backbone.Collection
                                     namespace_uuid: namespace_id
                                     namespace_name: namespace.get('name')
                                 issues_redundancy.push new IssueRedundancy issue_redundancy_param
-        console.log issues_redundancy 
         if issues_redundancy.length > 0 or issues_redundancy.length isnt @.length
             @.reset(issues_redundancy)
         
