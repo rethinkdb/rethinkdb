@@ -48,12 +48,13 @@ public:
                  boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > *stores_out,
                  boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
 
+        // TODO: If the server gets killed when starting up, we can
+        // get a database in an invalid startup state.
+
         // TODO: Obviously, the hard-coded numeric constant here might
         // be regarded as a problem.
         const int num_stores = 4;
         const std::string file_name_base = file_path_ + "/" + uuid_to_str(namespace_id);
-
-        debugf("actually calling get_svs...\n");
 
         // TODO: This is quite suspicious in that we check if the file
         // exists and then assume it exists or does not exist when
@@ -107,8 +108,6 @@ public:
                                           num_stores,
                                           &dummy_interruptor);
         }
-
-        debugf("get_svs actually returning...\n");
     }
 
 

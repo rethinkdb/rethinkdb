@@ -1,9 +1,10 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_
 
-// TODO: Find a good location for this file.
 
-#include <stdint.h>
+// TODO: Find a good location for this file.
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
 #include <algorithm>
 #include <vector>
@@ -278,11 +279,7 @@ bool operator<(const hash_region_t<inner_region_t> &r1, const hash_region_t<inne
 
 template <class inner_region_t>
 void debug_print(append_only_printf_buffer_t *buf, const hash_region_t<inner_region_t> &r) {
-    buf->appendf("hash_region_t{beg: ");
-    debug_print(buf, r.beg);
-    buf->appendf(", end: ");
-    debug_print(buf, r.end);
-    buf->appendf(", inner: ");
+    buf->appendf("hash_region_t{beg: 0x%" PRIx64 ", end: 0x%" PRIx64 ", inner: ", r.beg, r.end);
     debug_print(buf, r.inner);
     buf->appendf("}");
 }

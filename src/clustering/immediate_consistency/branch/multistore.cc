@@ -95,9 +95,10 @@ get_all_metainfos(order_token_t order_token,
     for (int i = 0; i < num_read_tokens; ++i) {
         const region_map_t<protocol_t, binary_blob_t>& metainfo
             = store_views[i]->get_metainfo(order_token, read_tokens[i], interruptor);
-        debugf_print("untransformed map", metainfo);
+        const region_map_t<protocol_t, binary_blob_t>& masked_metainfo
+            = metainfo.mask(get_region(i));
         const region_map_t<protocol_t, version_range_t>& transformed
-            = region_map_transform<protocol_t, binary_blob_t, version_range_t>(metainfo,
+            = region_map_transform<protocol_t, binary_blob_t, version_range_t>(masked_metainfo,
                                                                                &binary_blob_t::get<version_range_t>);
         ret.update(transformed);
     }
