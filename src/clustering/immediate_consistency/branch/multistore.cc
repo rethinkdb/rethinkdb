@@ -93,8 +93,13 @@ get_all_metainfos(order_token_t order_token,
 
     region_map_t<protocol_t, version_range_t> ret(get_multistore_joined_region());
     for (int i = 0; i < num_read_tokens; ++i) {
-	ret.update(region_map_transform<protocol_t, binary_blob_t, version_range_t>(store_views[i]->get_metainfo(order_token, read_tokens[i], interruptor),
-										    &binary_blob_t::get<version_range_t>));
+        const region_map_t<protocol_t, binary_blob_t>& metainfo
+            = store_views[i]->get_metainfo(order_token, read_tokens[i], interruptor);
+        debugf_print("untransformed map", metainfo);
+        const region_map_t<protocol_t, version_range_t>& transformed
+            = region_map_transform<protocol_t, binary_blob_t, version_range_t>(metainfo,
+                                                                               &binary_blob_t::get<version_range_t>);
+        ret.update(transformed);
     }
 
     rassert(ret.get_domain() == region);

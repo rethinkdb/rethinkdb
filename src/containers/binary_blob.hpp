@@ -4,6 +4,8 @@
 #include <vector>
 
 #include "rpc/serialize_macros.hpp"
+#include "containers/printf_buffer.hpp"
+
 
 /* Binary blob that represents some unknown POD type */
 class binary_blob_t {
@@ -61,6 +63,17 @@ inline bool operator==(const binary_blob_t &left, const binary_blob_t &right) {
 
 inline bool operator!=(const binary_blob_t &left, const binary_blob_t &right) {
     return !(left == right);
+}
+
+inline void debug_print(append_only_printf_buffer_t *buf, const binary_blob_t &blob) {
+    const uint8_t *data = static_cast<const uint8_t *>(blob.data());
+    const uint8_t *end = data + blob.size();
+
+    buf->appendf("bb{");
+    for (const uint8_t *p = data; p != end; ++p) {
+        buf->appendf("%s%02X", (p == data ? "" : " "), *p);
+    }
+    buf->appendf("}");
 }
 
 #endif  // CONTAINERS_BINARY_BLOB_HPP_
