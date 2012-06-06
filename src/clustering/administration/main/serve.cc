@@ -38,9 +38,8 @@
 
 bool serve_(
     bool Iamaserver,
-    // NB. For ordinary servers, filepath is the path to the database directory. For proxies, it is
-    // the path of a log file.
     const std::string &filepath,
+    const std::string &logfilepath,
     const std::set<peer_address_t> &joins,
     int port, DEBUG_ONLY(int port_offset,) int client_port,
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
@@ -48,7 +47,7 @@ bool serve_(
 {
     local_issue_tracker_t local_issue_tracker;
 
-    log_writer_t log_writer(Iamaserver ? filepath + "/log_file" : filepath, &local_issue_tracker);
+    log_writer_t log_writer(logfilepath, &local_issue_tracker);
 
     printf("Establishing %s node on port %d...\n", Iamaserver ? "cluster" : "proxy", port);
 
@@ -260,9 +259,12 @@ bool serve_(
 }
 
 bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, DEBUG_ONLY(int port_offset,) int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
-    return serve_(true, filepath, joins, port, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
+    std::string logfilepath = filepath + "/log_file";
+    return serve_(true, filepath, logfilepath, joins, port, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
-bool serve_proxy(const std::string &filepath, const std::set<peer_address_t> &joins, int port, DEBUG_ONLY(int port_offset,) int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
-    return serve_(false, filepath, joins, port, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
+bool serve_proxy(const std::string &logfilepath, const std::set<peer_address_t> &joins, DEBUG_ONLY(int port_offset,) int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+    // we give a port of 0 to indicate that the OS should assign us a port.
+    // filepath is ignored for proxies, so we just use the empty string.
+    return serve_(false, "", logfilepath, joins, 0, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
