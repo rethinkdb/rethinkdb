@@ -233,9 +233,8 @@ module 'NamespaceView', ->
                 error_msg: @error_msg
             @error_msg = null
             @.$el.html(@template json)
-
-            shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
-            @.$('.shards tbody').append view.render().el for view in shard_views
+            
+            @render_only_shards
 
             # Control the suggest button
             @.$('.btn-compute-shards-suggestion').button()
