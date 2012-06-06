@@ -88,4 +88,20 @@ cartesian_product_iterator_t<left_container_t, right_container_t>::operator++(in
     return *this = *this + 1;
 }
 
+template <class K, class V>
+void debug_print(append_only_printf_buffer_t *buf, const std::map<K, V> &map) {
+    buf->appendf("{");
+    for (typename std::map<K, V>::const_iterator it = map.begin(); it != map.end(); ++it) {
+        if (it != map.begin()) {
+            buf->appendf(", ");
+        }
+        debug_print(buf, it->first);
+        buf->appendf(" => ");
+        debug_print(buf, it->second);
+    }
+    buf->appendf("}");
+}
+
+
+
 #endif  // STL_UTILS_TCC_

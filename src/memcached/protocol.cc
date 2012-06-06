@@ -189,7 +189,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
             for (std::map<store_key_t, int>::iterator it  = result->key_counts.begin();
                                                       it != result->key_counts.end();
                                                       ++it) {
-                rassert(!std_contains(res.key_counts, it->first));
+                rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'", int(it->first.size()), int(it->first.size()), it->first.contents());
             }
 #endif
             res.key_counts.insert(result->key_counts.begin(), result->key_counts.end());
