@@ -191,6 +191,15 @@ module 'UIComponents', ->
                             @reset_buttons()
                             break
 
+            if @item_type is 'datacenter'
+                if @formdata.new_name is ''
+                    no_error = false
+                    template_error =
+                        datacenter_is_empty: true
+                    $('.alert_modal').html @error_template template_error
+                    $('.alert_modal').alert()
+                    @reset_buttons()
+
             if no_error is true
                 $.ajax
                     processData: false
