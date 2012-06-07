@@ -10,7 +10,13 @@ module 'UIComponents', ->
             'click .cancel': 'cancel_modal'
             'click .close': 'cancel_modal'
             'click .btn-primary': 'abstract_submit'
-            'keypress .input_new_name': 'check_keypress_is_enter'
+            'keypress .input': 'check_keypress_is_enter'
+            'click .close_error': 'close_error'
+
+        close_error: (event) ->
+            event.preventDefault()
+            $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
+
 
         initialize: ->
             @$container = $('#modal-dialog')

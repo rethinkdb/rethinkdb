@@ -81,6 +81,7 @@ module 'NamespaceView', ->
     class @AddNamespaceModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_namespace-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_namespace-alert-template').html()
+        error_template: Handlebars.compile $('#port_isnt_integer-template').html()
         class: 'add-namespace'
 
         initialize: ->
@@ -95,21 +96,62 @@ module 'NamespaceView', ->
                 btn_primary_text: 'Add'
                 datacenters: _.map(datacenters.models, (datacenter) -> datacenter.toJSON())
 
-        on_submit: ->
+        on_submit: =>
             super
-
+            
             formdata = form_data_as_object($('form', @$modal))
-            $.ajax
-                processData: false
-                url: '/ajax/memcached_namespaces/new'
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify(
-                    name: formdata.name
-                    primary_uuid: formdata.primary_datacenter
-                    port : parseInt(formdata.port)
-                    )
-                success: @on_success
+            
+            template_error = {}
+            input_error = false
+
+            need_to_increase = false
+            if formdata.port is 0 or formdata.port is '' or formdata.port is '0'
+                need_to_increase = true
+                switch formdata.protocol
+                    when "Memcached"
+                        formdata.port = 11211
+                    when "Redis"
+                        formdata.port = 6379
+                    when "Riak"
+                        formdata.port = 8098
+                    when "MongoDB"
+                        formdata.port = 27017
+             if need_to_increase is true
+                used_ports = {}
+                for namespace in namespaces.models
+                    used_ports[namespace.get('port')] = true
+                    while formdata.port of used_ports
+                        formdata.port++
+            else if @isnt_integer(formdata.port)
+                input_error = true
+                template_error.port_isnt_integer = true
+
+            if formdata.name is ''
+                input_error = true
+                template_error.namespace_is_empty = true
+            else
+                for namespace in namespaces.models
+                    if namespace.get('name') is formdata.name
+                        input_error = true
+                        template_error.namespace_exists = true
+                        break
+                    
+            if input_error is true
+                $('.alert_modal').html @error_template template_error
+                $('.alert_modal').alert()
+                @reset_buttons()
+            else
+                $.ajax
+                    processData: false
+                    url: '/ajax/memcached_namespaces/new'
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify(
+                        name: formdata.name
+                        primary_uuid: formdata.primary_datacenter
+                        port : parseInt(formdata.port)
+                        )
+                    success: @on_success
 
         on_success: (response) =>
             super
@@ -124,6 +166,9 @@ module 'NamespaceView', ->
                 $('#user-alert-space').append @alert_tmpl
                     uuid: id
                     name: namespace.name
+
+        isnt_integer: (data) ->
+            return data.search(/^\d+$/) is -1
 
     # A modal for removing namespaces
     class @RemoveNamespaceModal extends UIComponents.AbstractModal
