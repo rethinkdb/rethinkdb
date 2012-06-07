@@ -122,7 +122,7 @@ module 'NamespaceView', ->
                         used_ports[namespace.get('port')] = true
                         while formdata.port of used_ports
                             formdata.port++
-            else if @isnt_integer(formdata.port)
+            else if DataUtils.is_integer(formdata.port) is false
                 input_error = true
                 template_error.port_isnt_integer = true
 
@@ -167,8 +167,6 @@ module 'NamespaceView', ->
                     uuid: id
                     name: namespace.name
 
-        isnt_integer: (data) ->
-            return data.search(/^\d+$/) is -1
 
     # A modal for removing namespaces
     class @RemoveNamespaceModal extends UIComponents.AbstractModal

@@ -5,9 +5,9 @@
       <button class="close" data-dismiss="modal">&times;</button>
       <h3>{{modal_title}}</h3>
     </div>
+    <div class="alert_modal"></div>
     <div class="modal-body">
     </div>
-    <div class="alert_modal"></div>
     <div class="modal-footer">
       <div class="custom_btn_placeholder"></div>
       <button class="btn cancel"
@@ -67,8 +67,14 @@
     {{#if datacenter_is_empty}}
         <p>Please do not use an empty name for a datacenter.</p>
     {{/if}}
+    {{#if datacenter_exists}}
+        <p>The chosen datacenter's name is already being used. please choose another one.</p>
+    {{/if}}
     {{#if machine_is_empty}}
         <p>Please do not use an empty name for a server.</p>
+    {{/if}}
+    {{#if machine_exists}}
+        <p>The chosen server's name is already being used. please choose another one.</p>
     {{/if}}
   </div>
 </script>

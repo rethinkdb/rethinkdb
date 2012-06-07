@@ -199,6 +199,16 @@ module 'UIComponents', ->
                     $('.alert_modal').html @error_template template_error
                     $('.alert_modal').alert()
                     @reset_buttons()
+                else
+                    for datacenter in datacenters.models
+                        if datacenter.get('name') is @formdata.new_name
+                            no_error = false
+                            template_error =
+                                datacenter_exists: true
+                            $('.alert_modal').html @error_template template_error
+                            $('.alert_modal').alert()
+                            @reset_buttons()
+                            break
 
             if @item_type is 'machine'
                 if @formdata.new_name is ''
@@ -208,6 +218,17 @@ module 'UIComponents', ->
                     $('.alert_modal').html @error_template template_error
                     $('.alert_modal').alert()
                     @reset_buttons()
+                else
+                    for machine in machines.models
+                        if machine.get('name') is @formdata.new_name
+                            no_error = false
+                            template_error =
+                                machine_exists: true
+                            $('.alert_modal').html @error_template template_error
+                            $('.alert_modal').alert()
+                            @reset_buttons()
+                            break
+
             if no_error is true
                 $.ajax
                     processData: false
