@@ -102,7 +102,7 @@ public:
     public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
-        explicit store_t();
+        store_t();
         store_t(const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
         ~store_t();
 

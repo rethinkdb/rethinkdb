@@ -131,9 +131,7 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     test_store_t<memcached_protocol_t> store2;
     store_view_t<memcached_protocol_t> *store2_ptr = &store2.store;
 
-    hash_region_t<key_range_t> subregion(key_range_t(key_range_t::closed, store_key_t("a"), key_range_t::closed, store_key_t("z")));
-    multistore_ptr_t<memcached_protocol_t> multi_store2(&store2_ptr, 1, subregion);
-
+    multistore_ptr_t<memcached_protocol_t> multi_store2(&store2_ptr, 1, memcached_protocol_t::region_t::universe());
     cond_t interruptor;
     listener_t<memcached_protocol_t> listener2(
         cluster->get_mailbox_manager(),
@@ -174,9 +172,9 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     }
 }
 
-// TEST(MemcachedBackfill, PartialBackfill) {
-//     run_in_thread_pool_with_broadcaster(&run_partial_backfill_test);
-//}
+TEST(MemcachedBackfill, Backfill) {
+     run_in_thread_pool_with_broadcaster(&run_partial_backfill_test);
+}
 
 }   /* namespace unittest */
 

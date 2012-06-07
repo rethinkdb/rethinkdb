@@ -9,15 +9,21 @@
 
 class remote_issue_t : public global_issue_t {
 public:
-    remote_issue_t(const clone_ptr_t<local_issue_t> &_underlying, machine_id_t _source) :
+    remote_issue_t(const local_issue_t &_underlying, machine_id_t _source) :
         underlying(_underlying), source(_source) { }
 
     std::string get_description() const {
-        return "On machine " + uuid_to_str(source) + ": " + underlying->get_description();
+        return "On machine " + uuid_to_str(source) + ": " + underlying.type + ": " + underlying.description;
     }
 
     cJSON *get_json_description() {
-        cJSON *res = underlying->get_json_description();
+        issue_json_t json;
+        json.critical = underlying.critical;
+        json.description = underlying.description;
+        json.time = underlying.timestamp;
+        json.type = underlying.type;
+
+        cJSON *res = render_as_json(&json, 0);
         cJSON_AddItemToObject(res, "location", render_as_json(&source, 0));
 
         return res;
@@ -27,7 +33,7 @@ public:
         return new remote_issue_t(underlying, source);
     }
 
-    clone_ptr_t<local_issue_t> underlying;
+    local_issue_t underlying;
     machine_id_t source;
 
 private:
@@ -37,15 +43,15 @@ private:
 class remote_issue_collector_t : public global_issue_tracker_t {
 public:
     remote_issue_collector_t(
-            const clone_ptr_t<watchable_t<std::map<peer_id_t, std::list<clone_ptr_t<local_issue_t> > > > > &_issues_view,
+            const clone_ptr_t<watchable_t<std::map<peer_id_t, std::list<local_issue_t> > > > &_issues_view,
             const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table) :
         issues_view(_issues_view), machine_id_translation_table(_machine_id_translation_table) { }
 
     std::list<clone_ptr_t<global_issue_t> > get_issues() {
         std::list<clone_ptr_t<global_issue_t> > l;
-        std::map<peer_id_t, std::list<clone_ptr_t<local_issue_t> > > issues_by_peer = issues_view->get();
+        std::map<peer_id_t, std::list<local_issue_t> > issues_by_peer = issues_view->get();
         std::map<peer_id_t, machine_id_t> translation_table = machine_id_translation_table->get();
-        for (std::map<peer_id_t, std::list<clone_ptr_t<local_issue_t> > >::iterator it = issues_by_peer.begin(); it != issues_by_peer.end(); it++) {
+        for (std::map<peer_id_t, std::list<local_issue_t> >::iterator it = issues_by_peer.begin(); it != issues_by_peer.end(); it++) {
             std::map<peer_id_t, machine_id_t>::const_iterator tt_it = translation_table.find(it->first);
             if (tt_it == translation_table.end()) {
                 /* This is unexpected. Did they disconnect after we got the
@@ -53,8 +59,8 @@ public:
                 case, do something safe. */
                 continue;
             }
-            std::list<clone_ptr_t<local_issue_t> > issues = it->second;
-            for (std::list<clone_ptr_t<local_issue_t> >::iterator jt = issues.begin(); jt != issues.end(); jt++) {
+            std::list<local_issue_t> issues = it->second;
+            for (std::list<local_issue_t>::iterator jt = issues.begin(); jt != issues.end(); jt++) {
                 l.push_back(clone_ptr_t<global_issue_t>(new remote_issue_t(*jt, tt_it->second)));
             }
         }
@@ -62,7 +68,7 @@ public:
     }
 
 private:
-    clone_ptr_t<watchable_t<std::map<peer_id_t, std::list<clone_ptr_t<local_issue_t> > > > > issues_view;
+    clone_ptr_t<watchable_t<std::map<peer_id_t, std::list<local_issue_t> > > > issues_view;
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
 
     DISABLE_COPYING(remote_issue_collector_t);

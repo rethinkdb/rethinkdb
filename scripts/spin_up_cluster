@@ -5,227 +5,116 @@ import signal
 import time
 import random
 
-names = ["Nicolas Appert",
- "Arthur C. W. Aldis",
- "Kurt Alder",
- "Ernst Alexanderson",
- "Archimedes",
- "James Anderton",
- "Aime Argand",
- "Henry Edward Armstrong",
- "William Chandler Roberts-Austen",
- "Donald Bailey",
- "Peter Barlow",
- "William Oliver",
- "Leo Baekeland",
- "Sir Francis Beaufort",
- "Thomas Beecham",
- "Leslie Hore-Belisha, 1st Baron Hore-Belisha",
- "Simon Benson",
- "Henry Bessemer",
- "Alfred Bird",
- "Laszlo Biro",
- "Stewart Blacker",
- "Amelia Bloomer",
- "Elbert Dysart Botts",
- "James Bowie",
- "Ernest Monnington Bowden",
- "Thomas and William Bowler",
- "George Bradshaw",
- "Charles F. Brannock",
- "Louis Braille",
- "Joseph Bramah",
- "Eugene Bourdon",
- "John Browning",
- "Ernst Buchner",
- "Henry Brougham, 1st Baron Brougham and Vaux",
- "Robert Bunsen",
- "Callan Pinckney",
- "James Brudenell, 7th Earl of Cardigan",
- "Catherine of Alexandria",
- "Edmund Clerihew Bentley",
- "Eleanor Coade",
- "Henry Coddington",
- "Samuel Colt",
- "Aeneas Coffey",
- "Sir William Congreve, 1st Baronet",
- "William Crookes",
- "Samuel Crompton",
- "Briggs Cunningham",
- "Louis Daguerre",
- "Norman Richard Daly",
- "John Frederic Daniell",
- "Captain John Davenport",
- "Cleland Davis",
- "Humphry Davy",
- "Henry Deringer",
- "Thomas Derrick",
- "James Dewar",
- "Rudolf Diesel",
- "Otto Dimroth",
- "Christian Doppler",
- "Karl Drais",
- "Thomas Edison",
- "John Ericsson",
- "Emil Erlenmeyer",
- "Euclid",
- "Michael Faraday",
- "George Washington Gale Ferris, Jr.",
- "Frederic Foley",
- "James B. Francis",
- "Benjamin Franklin",
- "Augustin-Jean Fresnel ",
- "Fritz Walter Paul Friedrichs",
- "Yisrael Galil ",
- "George Gallup",
- "Luigi Galvani",
- "Richard Jordan Gatling",
- "Maus Gatsonides",
- "Hans Geiger",
- "John Garand ",
- "King Camp Gillette ",
- "William Ewart Gladstone",
- "Johann Rudolf Glauber",
- "Thomas D. Graham",
- "Rev Sylvester Graham",
- "James Gregory (mathematician)|James Gregory",
- "Joseph-Ignace Guillotin",
- "Peter Halkett",
- "Andrew Smith Hallidie",
- "Hugh Halligan",
- "Laurens Hammond ",
- "Henry Heimlich",
- "Benjamin Tyler Henry",
- "Andrew Higgins",
- "William Henry Hoover",
- "Sidney Horstmann",
- "Charles G. Hutchinson",
- "Charles Inglis (engineer)|Charles Inglis",
- "Candido Jacuzzi",
- "Joseph Marie Jacquard",
- "Brian David Josephson",
- "Mikhail Kalashnikov ",
- "Viktor Kaplan",
- "John Kay (flying shuttle)|John Kay",
- "William Thomson, 1st Baron Kelvin",
- "John Kilner",
- "Petrus Jacobus Kipp",
- "Carl Emil Krarup",
- "Edwin H. Land",
- "Irving Langmuir",
- "Humphrey de Verd Leigh ",
- "Donald Leslie",
- "Isaac Newton Lewis",
- "James Harvey Logan",
- "John Loudon McAdam",
- "Mae West",
- "Ernst Mach",
- "Charles Macintosh",
- "Guglielmo Marconi",
- "John Landis Mason",
- "Mausolus",
- "Hiram Stevens Maxim",
- "Cyrus McCormick",
- "Gerardus Mercator",
- "John Mercer (scientist)|John Mercer",
- "Albert Abraham Michelson",
- "William Mills (inventor)|William Mills",
- "Isaac Newton",
- "Nellie Melba",
- "Robert Melville",
- "Vyacheslav Molotov",
- "Robert Moog ",
- "Samuel Morse",
- "George Frederic Muntz",
- "John Napier",
- "Thomas Newcomen",
- "Peter Norman Nissen",
- "James Henry Northrop",
- "Evelyn Owen",
- "Edward Ormerod",
- "Anna Pavlova",
- "Louis Pasteur",
- "George William Patchett",
- "William Payne (painter)|William Payne",
- "Joseph Peavey",
- "Lester Allan Pelton",
- "Frans Michel Penning",
- "Julius Richard Petri",
- "Joseph Pilates",
- "Christopher Pinchbeck",
- "Julius Pintsch",
- "Henry F. Phillips",
- "Isaac Pitman",
- "Henri Pitot",
- "Samuel Plimsoll",
- "Ed Pulaski",
- "Mihajlo Idvorski Pupin",
- "Karl Prusik",
- "C. V. Raman",
- "John Joseph Rawlings",
- "Charles Francis Richter",
- "Hermann Rorschach",
- "Benjamin Thompson",
- "Prince Rupert of the Rhine",
- "Jonas Salk",
- "Stephen Salter",
- "Sam Browne",
- "Earl of Sandwich",
- "Adolphe Sax",
- "Leonard Skeffington (or Skevington)",
- "Carl Wilhelm Scheele",
- "Henry Shrapnel",
- "John Philip Sousa",
- "Alexis Soyer",
- "Terry Spragg",
- "Hermann Sprengel",
- "Hans Stabinger",
- "Henry FitzRoy Stanhope",
- "Johannes Stark",
- "Frank Stelzer",
- "John Batterson Stetson",
- "Helmut Stief",
- "Daniel Chapman Stillson",
- "Rev. Robert Stirling",
- "George H. Stockbridge",
- "Wilfred Stokes",
- "Almon Brown Strowger",
- "John C. Swallow",
- "John T. Thompson",
- "Nikola Tesla",
- "Earl Silas Tupper",
- "Leo Ubbelohde",
- "Uziel Gal ",
- "John Venn",
- "Pierre Vernier",
- "Edward Wilson Very",
- "Henri Vigreux",
- "Alessandro Volta",
- " Richard Wagner",
- "Felix Wankel",
- "Nathaniel Bagshaw Ward",
- "John Waterhouse (astronomer)|John Waterhouse",
- "James Watt",
- "Josiah Wedgwood|Wedgwood family",
- "Arthur Wellesley, 1st Duke of Wellington|Duke of Wellington",
- "Alan Arthur Wells",
- "George Westinghouse",
- "Edward Weston",
- "Charles Wheatstone",
- "Oliver Winchester",
- "Joseph Whitworth",
- "John R. Wiegand",
- "Charles Thomson Rees Wilson",
- "Edward VII of the United Kingdom ",
- "William Hyde Wollaston",
- "William Hyde Wollaston",
- "W. N. Woodruff",
- "Robert W. Wood",
- "Pavel Yablochkov",
- "Linus Yale, Jr.",
- "Frank Zamboni",
- "Giuseppe Zamboni",
- "Ferdinand von Zeppelin"]
+names = """Nervous Energy
+Prosthetic Conscience
+Determinist
+Irregular Apocalypse
+No More Mr Nice Guy
+Profit Margin
+Revisionist
+Trade Surplus
+The Ends Of Invention
+Clear Air Turbulence
+Flexible Demeanour
+Just Read The Instructions
+Of Course I Still Love You
+Limiting Factor
+Cargo Cult
+Little Rascal
+So Much For Subtlety
+Unfortunate Conflict Of Evidence
+Just Testing
+Very Little Gravitas Indeed
+What Are The Civilian Applications?
+Congenital Optimist
+Size Isn't Everything
+Sweet and Full of Grace
+Different Tan
+Fate Amenable To Change
+It's Character Forming
+Jaundiced Outlook
+Problem Child
+Reasonable Excuse
+Recent Convert
+Tactical Grace
+Unacceptable Behaviour
+Steely Glint
+Highpoint
+Shoot Them Later
+Attitude Adjuster
+Killing Time
+Heavy Messing
+Frank Exchange Of Views
+Death and Gravity
+Ethics Gradient
+Honest Mistake
+Limnivorous
+No Fixed Abode
+Quietly Confident
+Uninvited Guest
+Use Psychology
+What Is The Answer and Why?
+Wisdom Like Silence
+Yawning Angel
+Zero Gravitas
+Misophist
+Serious Callers Only
+Not Invented Here
+Charitable View
+I Blame My Mother
+I Blame Your Mother
+Just Passing Through
+Appeal To Reason
+Break Even
+Long View
+Peace Makes Plenty
+Sober Counsel
+Within Reason
+Kiss the Blade
+Frightspear
+Furious Purpose
+Riptalon
+Xenoclast
+Bad for Business
+Arbitrary
+Cantankerous
+Only Slightly Bent
+I Thought He Was With You
+Space Monster
+A Series Of Unlikely Explanations
+Never Talk To Strangers
+Funny, It Worked Last Time...
+Don't Try This At Home
+Eight Rounds Rapid
+Lightly Seared On The Reality Grill
+Now We Try It My Way
+Liveware Problem
+Pure Big Mad Boat Man
+Qualifier
+Seed Drill
+Subtle Shift In Emphasis
+Transient Atmospheric Phenomenon
+You Naughty Monsters
+You'll Clean That Up Before You Leave
+Sense Amid Madness, Wit Amidst Folly
+Me, I'm Counting
+Total Internal Reflection
+Armchair Traveller
+Hidden Income
+Hylozoist
+No One Knows What The Dead Think
+Pelagian
+Fixed Grin
+Scar Glamour
+Labtebricolephile
+Dressed Up To Party
+Ucalegon
+Messenger Of Truth
+Fractious Person
+Rubric Of Ruin
+Abundance Of Onslaught
+Vision Of Hope Surpassed
+Partial Photic Boundary""".splitlines()
 
 
 def usage():
@@ -241,21 +130,19 @@ n_machines = int(os.sys.argv[2])
 if n_machines < 1:
     usage()
     exit(1)
-
 else:
     kids = []
-    for i in range(n_machines):
+    machine_names = random.sample(names, n_machines)
+    for i, machine_name in enumerate(machine_names):
         # cleanup the directory
         directory = "cluster_directory_%d" % i
         os.system("rm -rf " + directory)
         if (i == 0):
-            cl = ["../build/debug_clang/rethinkdb", "--port", str(port), "--directory", directory, "--name", random.choice(names), "--port-offset", str(i+port)]
-            print reduce(lambda x,y: x + ' ' + y, cl)
-            kids += [subprocess.Popen(cl)]
+            cl = ["../build/debug_clang/rethinkdb", "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
         else:
-            cl = ["../build/debug_clang/rethinkdb", "--port", str(port+i), "--directory", directory, "--name", random.choice(names), "--join", "newton:%d" % port, "--port-offset", str(i+port)]
-            print reduce(lambda x,y: x + ' ' + y, cl)
-            kids += [subprocess.Popen(cl)]
+            cl = ["../build/debug_clang/rethinkdb", "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "newton:%d" % port, "--port-offset", str(i+port)]
+        print ' '.join(cl)
+        kids += [subprocess.Popen(cl)]
         time.sleep(1)
 
     time.sleep(1)

@@ -6,7 +6,7 @@
 template<class protocol_t, class parser_t>
 class parser_maker_t {
 public:
-    explicit parser_maker_t(mailbox_manager_t *,
+    parser_maker_t(mailbox_manager_t *,
                             boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > >,
 #ifndef NDEBUG
                             boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> >,
