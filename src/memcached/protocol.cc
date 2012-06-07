@@ -121,6 +121,7 @@ struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t:
     }
     memcached_protocol_t::read_t operator()(distribution_get_query_t distribution_get) {
         rassert(region_is_superset(hash_region_t<key_range_t>(distribution_get.range), region));
+
         // TODO: Reevaluate this code.  Should distribution_get_query_t really have a key_range_t range?
         distribution_get.range = region.inner;
         return memcached_protocol_t::read_t(distribution_get, effective_time);
@@ -180,22 +181,75 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
         }
         return memcached_protocol_t::read_response_t(result);
     }
-    memcached_protocol_t::read_response_t operator()(distribution_get_query_t) {
-        distribution_result_t res;
-        for (int i = 0; i < (int)bits.size(); i++) {
-            distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
-            rassert(result, "Bad boost::get\n");
-#ifndef NDEBUG
-            for (std::map<store_key_t, int>::iterator it  = result->key_counts.begin();
-                                                      it != result->key_counts.end();
-                                                      ++it) {
-                rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'", int(it->first.size()), int(it->first.size()), it->first.contents());
-            }
-#endif
-            res.key_counts.insert(result->key_counts.begin(), result->key_counts.end());
+    memcached_protocol_t::read_response_t operator()(UNUSED distribution_get_query_t dget) {
+        rassert(bits.size() > 0);
+        rassert(boost::get<distribution_result_t>(&bits[0].result));
+        rassert(bits.size() == 1 || boost::get<distribution_result_t>(&bits[1].result));
 
+        // TODO: This condition is a bit of a hack to recognize distribution queries sharded by hash rather than key.
+        // Wait until you see how we do rget :(
+        if (bits.size() > 1
+            && boost::get<distribution_result_t>(&bits[0].result)->key_counts.begin()->first == boost::get<distribution_result_t>(&bits[1].result)->key_counts.begin()->first) {
+            distribution_result_t res;
+            int64_t total_num_keys = 0;
+            rassert(bits.size() > 0);
+
+            int64_t total_keys_in_res = 0;
+            for (int i = 0, e = bits.size(); i < e; ++i) {
+                distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
+                rassert(result, "Bad boost::get\n");
+
+                int64_t tmp_total_keys = 0;
+                for (std::map<store_key_t, int>::const_iterator it = result->key_counts.begin();
+                     it != result->key_counts.end();
+                     ++it) {
+                    tmp_total_keys += it->second;
+                }
+
+                total_num_keys += tmp_total_keys;
+
+                if (res.key_counts.size() < result->key_counts.size()) {
+                    res = *result;
+                    total_keys_in_res = tmp_total_keys;
+                }
+            }
+
+            if (total_keys_in_res == 0) {
+                return memcached_protocol_t::read_response_t(res);
+            }
+
+            double scale_factor = double(total_num_keys) / double(total_keys_in_res);
+
+            rassert(scale_factor >= 1.0);  // Directly provable from the code above.
+
+            for (std::map<store_key_t, int>::iterator it = res.key_counts.begin();
+                 it != res.key_counts.end();
+                 ++it) {
+                it->second *= scale_factor;
+            }
+
+            return memcached_protocol_t::read_response_t(res);
+        } else {
+
+            distribution_result_t res;
+
+            for (int i = 0, e = bits.size(); i < e; i++) {
+                distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
+                rassert(result, "Bad boost::get\n");
+
+#ifndef NDEBUG
+                for (std::map<store_key_t, int>::iterator it = result->key_counts.begin();
+                     it != result->key_counts.end();
+                     ++it) {
+                    rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'", int(it->first.size()), int(it->first.size()), it->first.contents());
+                }
+#endif
+                res.key_counts.insert(result->key_counts.begin(), result->key_counts.end());
+
+            }
+
+            return memcached_protocol_t::read_response_t(res);
         }
-        return memcached_protocol_t::read_response_t(res);
     }
 };
 

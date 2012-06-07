@@ -76,13 +76,13 @@ struct rget_result_t {
 };
 
 /* `distribution_get` */
-struct distribution_get_query_t { 
-    distribution_get_query_t() 
+struct distribution_get_query_t {
+    distribution_get_query_t()
         : max_depth(0), range(key_range_t::universe())
     { }
-    explicit distribution_get_query_t(int _max_depth) 
-        : max_depth(_max_depth), range(key_range_t::universe()) 
-    { } 
+    explicit distribution_get_query_t(int _max_depth)
+        : max_depth(_max_depth), range(key_range_t::universe())
+    { }
 
     int max_depth;
     key_range_t range;
