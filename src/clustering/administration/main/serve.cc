@@ -1,4 +1,3 @@
-
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
 #include "clustering/administration/auto_reconnect.hpp"
