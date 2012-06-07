@@ -720,6 +720,7 @@ tags:
 	$(QUIET) ctags $(TAGFLAGS) -f $(TAGS)
 
 etags:
+	$(QUIET) rm -f $(ETAGS)
 	$(QUIET) ctags -e $(TAGFLAGS) -f $(ETAGS)
 
 cscope:
