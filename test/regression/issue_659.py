@@ -25,7 +25,7 @@ with driver.Metacluster() as metacluster:
         http.move_server_to_datacenter(machine_id, dc)
     ns = http.add_namespace(protocol = "memcached", primary = dc)
     time.sleep(3)
-    host, port = http.get_namespace_host(ns)
+    host, port = driver.get_namespace_host(ns, processes)
     cluster.check()
 
     print "Increasing replication factor..."

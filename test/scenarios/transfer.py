@@ -26,7 +26,7 @@ with driver.Metacluster() as metacluster:
     ns = http1.add_namespace(protocol = "memcached", primary = dc)
     time.sleep(10)
 
-    host, port = http1.get_namespace_host(ns)
+    host, port = driver.get_namespace_host(ns, [process1])
     workload_runner.run(opts["workload1"], host, port, opts["timeout"])
 
     print "Bringing up new server..."

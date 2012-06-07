@@ -30,7 +30,7 @@ with driver.Metacluster() as metacluster:
         http.add_namespace_shard(ns, chr(ord('a') + 26 * i // opts["num-shards"]))
     time.sleep(10)
 
-    host, port = http.get_namespace_host(ns)
+    host, port = driver.get_namespace_host(ns, processes)
     workload_runner.run(opts["workload"], host, port, opts["timeout"])
 
     cluster.check_and_stop()
