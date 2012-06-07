@@ -200,6 +200,14 @@ module 'UIComponents', ->
                     $('.alert_modal').alert()
                     @reset_buttons()
 
+            if @item_type is 'machine'
+                if @formdata.new_name is ''
+                    no_error = false
+                    template_error =
+                        machine_is_empty: true
+                    $('.alert_modal').html @error_template template_error
+                    $('.alert_modal').alert()
+                    @reset_buttons()
             if no_error is true
                 $.ajax
                     processData: false
