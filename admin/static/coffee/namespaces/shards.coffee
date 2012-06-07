@@ -137,11 +137,12 @@ module 'NamespaceView', ->
             @.$('.btn-compute-shards-suggestion').button('loading')
 
             # Make sure their input aint crazy
-            @desired_shards = parseInt(form_data_as_object($('form', @.el)).num_shards)
-            if isNaN(@desired_shards)
+            if DataUtils.is_integer(form_data_as_object($('form', @.el)).num_shards) is false
                 @error_msg = "The number of shards must be an integer."
+                @desired_shards = form_data_as_object($('form', @.el)).num_shards
                 @render()
                 return
+            @desired_shards = parseInt(form_data_as_object($('form', @.el)).num_shards)
             if @desired_shards < 1 or @desired_shards > MAX_SHARD_COUNT
                 @error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
                 @render()
