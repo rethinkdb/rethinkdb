@@ -190,7 +190,7 @@ private:
 template <class T>
 class fifo_enforcer_queue_t : public passive_producer_t<T>, public home_thread_mixin_t {
 public:
-    explicit fifo_enforcer_queue_t();
+    fifo_enforcer_queue_t();
     ~fifo_enforcer_queue_t();
 
     void push(fifo_enforcer_read_token_t token, const T &t); 

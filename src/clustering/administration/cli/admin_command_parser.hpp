@@ -101,8 +101,8 @@ private:
     };
 
     static void do_usage_internal(const std::vector<admin_help_info_t>& helps,
-                                  const std::vector<std::string>& options,
-                                  const char *header,
+                                  const std::vector<std::pair<std::string, std::string> >& options,
+                                  const std::string& header,
                                   bool console);
 
     void build_command_descriptions();

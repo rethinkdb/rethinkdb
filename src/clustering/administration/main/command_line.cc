@@ -23,6 +23,24 @@ public:
     int port;
 };
 
+std::string metadata_file(const std::string& file_path) {
+    return file_path + "/metadata";
+}
+
+std::string errno_to_string(int err) {
+    char buffer[200];
+    char *res = strerror_r(err, buffer, sizeof(buffer));
+    return std::string(res);
+}
+
+bool check_existence(const std::string& file_path) {
+    int res = access(file_path.c_str(), F_OK);
+    if (res == 0) {
+        return true;
+    }
+    return false;
+}
+
 #ifndef NDEBUG
 void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, int port_offset, bool *result_out)
 #else
@@ -30,7 +48,7 @@ void run_rethinkdb_create(const std::string &filepath, std::string &machine_name
 #endif
 {
 
-    if (metadata_persistence::check_existence(filepath)) {
+    if (check_existence(filepath)) {
         printf("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
         *result_out = false;
         return;
@@ -53,7 +71,14 @@ void run_rethinkdb_create(const std::string &filepath, std::string &machine_name
         machine_semilattice_metadata
         ));
 
-    metadata_persistence::create(filepath, our_machine_id, metadata);
+    int res = mkdir(filepath.c_str(), 0755);
+    if (res != 0) {
+        printf("Could not create directory: %s\n", errno_to_string(errno).c_str());
+        return;
+    }
+
+    metadata_persistence::persistent_file_t store(metadata_file(filepath), true);
+    store.update(our_machine_id, metadata, true);
 
     printf("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
 
@@ -96,7 +121,7 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
 
     os_signal_cond_t sigint_cond;
 
-    if (!metadata_persistence::check_existence(filepath)) {
+    if (!check_existence(filepath)) {
         printf("ERROR: The directory '%s' does not exist.  Run 'rethinkdb create -d \"%s\"' and try again.\n", filepath.c_str(), filepath.c_str());
         *result_out = false;
         return;
@@ -105,15 +130,10 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
     machine_id_t persisted_machine_id;
     cluster_semilattice_metadata_t persisted_semilattice_metadata;
 
-    try {
-        metadata_persistence::read(filepath, &persisted_machine_id, &persisted_semilattice_metadata);
-    } catch (metadata_persistence::file_exc_t e) {
-        printf("ERROR: Could not read metadata file: %s\n", e.what());
-        *result_out = false;
-        return;
-    }
+    metadata_persistence::persistent_file_t store(metadata_file(filepath));
+    store.read(&persisted_machine_id, &persisted_semilattice_metadata);
 
-    *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata, web_assets, &sigint_cond);
+    *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata, web_assets, &sigint_cond);
 }
 
 #ifndef NDEBUG
@@ -126,17 +146,25 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
     os_signal_cond_t sigint_cond;
 
     printf("Checking if directory '%s' already exists...\n", filepath.c_str());
-    if (metadata_persistence::check_existence(filepath)) {
+    if (check_existence(filepath)) {
         printf("It already exists.  Loading data...\n");
 
         machine_id_t persisted_machine_id;
         cluster_semilattice_metadata_t persisted_semilattice_metadata;
-        metadata_persistence::read(filepath, &persisted_machine_id, &persisted_semilattice_metadata);
 
-        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata, web_assets, &sigint_cond);
+        metadata_persistence::persistent_file_t store(metadata_file(filepath));
+        store.read(&persisted_machine_id, &persisted_semilattice_metadata);
+
+        *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, persisted_machine_id, persisted_semilattice_metadata, web_assets, &sigint_cond);
 
     } else {
         printf("It does not already exist. Creating it...\n");
+
+        int res = mkdir(filepath.c_str(), 0755);
+        if (res != 0) {
+            printf("Could not create directory: %s\n", errno_to_string(errno).c_str());
+            return;
+        }
 
         machine_id_t our_machine_id = generate_uuid();
         cluster_semilattice_metadata_t semilattice_metadata;
@@ -210,9 +238,10 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
                 ));
         }
 
-        metadata_persistence::create(filepath, our_machine_id, semilattice_metadata);
+        metadata_persistence::persistent_file_t store(metadata_file(filepath), true);
+        store.update(our_machine_id, semilattice_metadata, true);
 
-        *result_out = serve(filepath, look_up_peers_addresses(joins), port, client_port, our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
+        *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
     }
 }
 
