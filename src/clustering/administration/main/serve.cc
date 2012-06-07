@@ -87,7 +87,7 @@ bool serve_(
     // If (0 == port), then we asked the OS to give us a port number.
     if (0 == port) port = connectivity_cluster_run.get_port();
     else rassert(port == connectivity_cluster_run.get_port());
-    printf("Listening for intracluster traffic on port %d...", port);
+    printf("Listening for intracluster traffic on port %d...\n", port);
 
     auto_reconnector_t auto_reconnector(
         &connectivity_cluster,
