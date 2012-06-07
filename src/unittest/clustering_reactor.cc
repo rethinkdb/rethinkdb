@@ -188,7 +188,7 @@ public:
     std::map<std::string, std::string> inserter_state;
 
     explicit test_cluster_group_t(int n_machines) {
-        int port = 10000 + randint(20000);
+        int port = randport();
         for (int i = 0; i < n_machines; i++) {
             files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
             stores.push_back(new typename protocol_t::store_t(files[i].name(), true, NULL));

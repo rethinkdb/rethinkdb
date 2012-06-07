@@ -14,6 +14,8 @@
 #include "rpc/connectivity/messages.hpp"
 #include "containers/uuid.hpp"
 
+extern const char *const cluster_proto_header;
+
 class peer_address_t {
 public:
     peer_address_t(ip_address_t i, int p) : ip(i), port(p) { }

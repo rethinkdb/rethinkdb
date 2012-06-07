@@ -17,6 +17,8 @@
 #include "concurrency/rwi_lock.hpp"
 #include "utils.hpp"
 
+#include "containers/archive/archive.hpp"
+
 // Some arch/runtime declarations.
 int get_num_threads();
 int get_thread_id();
@@ -48,7 +50,7 @@ public:
     perfmon_result_t();
     perfmon_result_t(const perfmon_result_t &);
     explicit perfmon_result_t(const std::string &);
-    ~perfmon_result_t();
+    virtual ~perfmon_result_t();
 
     static perfmon_result_t make_string() {
         return perfmon_result_t(std::string());
@@ -94,9 +96,15 @@ public:
         return type == type_map;
     }
 
-    std::pair<internal_map_t::iterator, bool> insert(const std::string &k, perfmon_result_t *val) {
-        std::string s = k;
-        return get_map()->insert(std::pair<std::string, perfmon_result_t *>(s, val));
+    perfmon_result_type_t get_type() const {
+        return type;
+    }
+
+    std::pair<internal_map_t::iterator, bool> insert(const std::string &name, perfmon_result_t *val) {
+        std::string s(name);
+        internal_map_t *map = get_map();
+        rassert(map->count(name) == 0);
+        return map->insert(std::pair<std::string, perfmon_result_t *>(s, val));
     }
 
     typedef internal_map_t::iterator iterator;
@@ -124,7 +132,7 @@ private:
     // We need these two friends for serialization, but we don't want to include the
     // serialization headers, neither we want to define the serializers here.
     friend write_message_t &operator<<(write_message_t &msg, const perfmon_result_t &thing);
-    friend int deserialize(read_stream_t *s, perfmon_result_t *thing);
+    friend archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing);
 
     perfmon_result_type_t type;
 
@@ -211,7 +219,7 @@ protected:
     void output_stat(const int64_t&, perfmon_result_t *);
 public:
     perfmon_counter_t(const std::string& name, perfmon_collection_t *parent);
-    ~perfmon_counter_t();
+    virtual ~perfmon_counter_t();
     void operator++() { get()++; }
     void operator+=(int64_t num) { get() += num; }
     void operator--() { get()--; }
@@ -226,32 +234,32 @@ time period, the average record, and the min and max records. */
 // need to use a namespace, not inner classes, so we can pass the auxiliary
 // classes to the templated base classes
 namespace perfmon_sampler {
-    struct stats_t {
-        int count;
-        double sum, min, max;
-        stats_t() : count(0), sum(0),
-            min(std::numeric_limits<double>::max()),
-            max(std::numeric_limits<double>::min())
-            { }
-        void record(double v) {
-            count++;
-            sum += v;
-            if (count) {
-                min = std::min(min, v);
-                max = std::max(max, v);
-            } else {
-                min = max = v;
-            }
+struct stats_t {
+    int count;
+    double sum, min, max;
+    stats_t() : count(0), sum(0),
+        min(std::numeric_limits<double>::max()),
+        max(std::numeric_limits<double>::min())
+        { }
+    void record(double v) {
+        count++;
+        sum += v;
+        if (count) {
+            min = std::min(min, v);
+            max = std::max(max, v);
+        } else {
+            min = max = v;
         }
-        void aggregate(const stats_t &s) {
-            count += s.count;
-            sum += s.sum;
-            if (s.count) {
-                min = std::min(min, s.min);
-                max = std::max(max, s.max);
-            }
+    }
+    void aggregate(const stats_t &s) {
+        count += s.count;
+        sum += s.sum;
+        if (s.count) {
+            min = std::min(min, s.min);
+            max = std::max(max, s.max);
         }
-    };
+    }
+};
 }
 
 class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
@@ -273,8 +281,8 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
     ticks_t length;
     bool include_rate;
 public:
-    perfmon_sampler_t(const std::string& name, ticks_t length, bool include_rate, perfmon_collection_t *parent);
-    ~perfmon_sampler_t();
+    perfmon_sampler_t(const std::string& _name, ticks_t _length, bool _include_rate, perfmon_collection_t *parent);
+    virtual ~perfmon_sampler_t();
     void record(double value);
 };
 
@@ -345,58 +353,6 @@ public:
     void record(double value = 1.0);
 };
 
-/* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a
- * starting and ending time. When something starts, call begin(); when
- * something ends, call end() with the same value as begin. It will produce
- * stats for the number of active events, the average length of an event, and
- * so on. If `global_full_perfmon` is false, it won't report any timing-related
- * stats because `get_ticks()` is rather slow.
- *
- * Frequently we're in the case
- * where we'd like to have a single slow perfmon up, but don't want the other
- * ones, perfmon_duration_sampler_t has an ignore_global_full_perfmon
- * field on it, which when true makes it run regardless of --full-perfmon flag
- * this can also be enable and disabled at runtime. */
-
-struct perfmon_duration_sampler_t {
-private:
-    perfmon_counter_t active;
-    perfmon_counter_t total;
-    perfmon_sampler_t recent;
-    bool ignore_global_full_perfmon;
-public:
-    perfmon_duration_sampler_t(const std::string& name, ticks_t length, perfmon_collection_t *parent, bool _ignore_global_full_perfmon = false)
-        : active(name + "_active_count", parent), total(name + "_total", parent),
-          recent(name, length, true, parent), ignore_global_full_perfmon(_ignore_global_full_perfmon)
-        { }
-    void begin(ticks_t *v) {
-        ++active;
-        ++total;
-        if (global_full_perfmon || ignore_global_full_perfmon) {
-            *v = get_ticks();
-        } else {
-            *v = 0;
-        }
-    }
-    void end(ticks_t *v) {
-        --active;
-        if (*v != 0) {
-            recent.record(ticks_to_secs(get_ticks() - *v));
-        }
-    }
-
-//Control interface used for enabling and disabling duration samplers at run time
-public:
-    std::string call(UNUSED int argc, UNUSED char **argv) {
-        ignore_global_full_perfmon = !ignore_global_full_perfmon;
-        if (ignore_global_full_perfmon) {
-            return "Enabled\n";
-        } else {
-            return "Disabled\n";
-        }
-    }
-};
-
 /* perfmon_function_t is a perfmon for calling an arbitrary function to compute a stat. You should
 not create such a perfmon at runtime; instead, declare it as a static variable and then construct
 a perfmon_function_t::internal_function_t instance for it. This way things get called on the
@@ -421,7 +377,7 @@ private:
 public:
     explicit perfmon_function_t(std::string _name, perfmon_collection_t *parent)
         : perfmon_t(parent), name(_name) { }
-    ~perfmon_function_t() { }
+    virtual ~perfmon_function_t() { }
 
     void *begin_stats();
     void visit_stats(void *data);
@@ -461,6 +417,7 @@ public:
         perfmon_result_t *map;
         if (create_submap) {
             perfmon_result_t::alloc_map_result(&map);
+            result->get_map()->insert(std::pair<std::string, perfmon_result_t *>(name, map));
         } else {
             map = result;
         }
@@ -470,9 +427,6 @@ public:
             p->end_stats(contexts[i], map);
         }
 
-        if (create_submap) {
-            result->get_map()->insert(std::pair<std::string, perfmon_result_t *>(name, map));
-        }
         delete[] contexts;
         constituents_access.unlock();
     }
@@ -494,6 +448,36 @@ private:
     std::string name;
     bool create_submap;
     intrusive_list_t<perfmon_t> constituents;
+};
+
+/* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a
+ * starting and ending time. When something starts, call begin(); when
+ * something ends, call end() with the same value as begin. It will produce
+ * stats for the number of active events, the average length of an event, and
+ * so on. If `global_full_perfmon` is false, it won't report any timing-related
+ * stats because `get_ticks()` is rather slow.
+ *
+ * Frequently we're in the case
+ * where we'd like to have a single slow perfmon up, but don't want the other
+ * ones, perfmon_duration_sampler_t has an ignore_global_full_perfmon
+ * field on it, which when true makes it run regardless of --full-perfmon flag
+ * this can also be enable and disabled at runtime. */
+
+struct perfmon_duration_sampler_t {
+private:
+    perfmon_collection_t stat;
+    perfmon_counter_t active;
+    perfmon_counter_t total;
+    perfmon_sampler_t recent;
+    bool ignore_global_full_perfmon;
+public:
+    perfmon_duration_sampler_t(const std::string& name, ticks_t length, perfmon_collection_t *parent, bool _ignore_global_full_perfmon = false);
+    void begin(ticks_t *v);
+    void end(ticks_t *v);
+
+public:
+    //Control interface used for enabling and disabling duration samplers at run time
+    std::string call(UNUSED int argc, UNUSED char **argv);
 };
 
 struct block_pm_duration {

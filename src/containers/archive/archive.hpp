@@ -23,34 +23,34 @@ private:
     DISABLE_COPYING(read_stream_t);
 };
 
+// Deserialize functions return 0 upon success, a positive or negative error
+// code upon failure. -1 means there was an error on the socket, -2 means EOF on
+// the socket, -3 means a "range error", +1 means specific error info was
+// discarded, the error code got used as a boolean.
+enum archive_result_t {
+    ARCHIVE_SUCCESS = 0,
+    ARCHIVE_SOCK_ERROR = -1,
+    ARCHIVE_SOCK_EOF = -2,
+    ARCHIVE_RANGE_ERROR = -3,
+    ARCHIVE_GENERIC_ERROR = 1,
+};
+
 // We wrap things in this class for making friend declarations more
 // compilable under gcc-4.5.
 class archive_deserializer_t {
 private:
-    template <class T> friend int deserialize(read_stream_t *s, T *thing);
+    template <class T> friend archive_result_t deserialize(read_stream_t *s, T *thing);
 
     template <class T>
-    static MUST_USE int deserialize(read_stream_t *s, T *thing) {
-	return thing->rdb_deserialize(s);
+    static MUST_USE archive_result_t deserialize(read_stream_t *s, T *thing) {
+        return thing->rdb_deserialize(s);
     }
 
     archive_deserializer_t();
 };
 
-const int ARCHIVE_SUCCESS = 0;
-const int ARCHIVE_SOCK_ERROR = -1;
-const int ARCHIVE_SOCK_EOF = -2;
-const int ARCHIVE_RANGE_ERROR = -3;
-const int ARCHIVE_GENERIC_ERROR = 1;
-
-// The deserialize function returns 0 upon success, a positive or
-// negative error code upon failure.  -1 means there was an error on
-// the socket, -2 means EOF on the socket, -3 means a "range error",
-// +1 means specific error info was discarded, the error code got used
-// as a boolean.
-
 template <class T>
-MUST_USE int deserialize(read_stream_t *s, T *thing) {
+MUST_USE archive_result_t deserialize(read_stream_t *s, T *thing) {
     return archive_deserializer_t::deserialize(s, thing);
 }
 
@@ -130,7 +130,7 @@ MUST_USE int send_message(write_stream_t *s, write_message_t *msg);
 #define ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(typ1, typ2, lo, hi)       \
     ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2);                   \
                                                                         \
-    inline MUST_USE int deserialize(read_stream_t *s, typ1 *x) {        \
+    inline MUST_USE archive_result_t deserialize(read_stream_t *s, typ1 *x) { \
         union {                                                         \
             typ2 v;                                                     \
             char buf[sizeof(typ2)];                                     \
@@ -154,7 +154,7 @@ MUST_USE int send_message(write_stream_t *s, write_message_t *msg);
 #define ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(typ)                         \
     ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ, typ);                     \
                                                                         \
-    inline MUST_USE int deserialize(read_stream_t *s, typ *x) {         \
+    inline MUST_USE archive_result_t deserialize(read_stream_t *s, typ *x) { \
         union {                                                         \
             typ v;                                                      \
             char buf[sizeof(typ)];                                      \
@@ -190,7 +190,7 @@ struct uuid;
 } }  // namespace boost::uuids
 
 write_message_t &operator<<(write_message_t &msg, const boost::uuids::uuid &uuid);
-MUST_USE int deserialize(read_stream_t *s, boost::uuids::uuid *uuid);
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::uuids::uuid *uuid);
 
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

@@ -12,6 +12,7 @@
 #include "concurrency/rwi_lock.hpp"
 #include "containers/two_level_array.hpp"
 #include "perfmon_types.hpp"
+#include "repli_timestamp.hpp"
 
 // TODO: Have the semantic checking cache make sure that the
 // repli_timestamp_ts are correct.

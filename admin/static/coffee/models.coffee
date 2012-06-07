@@ -84,12 +84,15 @@ class Namespace extends Backbone.Model
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util_avg: 0
+            global_cpu_util:
+                avg: 0
             global_mem_total: 0
             global_mem_used: 0
             global_disk_space: 0
-            global_net_recv_persec_avg: 0
-            global_net_sent_persec_avg: 0
+            global_net_recv_persec:
+                avg: 0
+            global_net_sent_persec:
+                avg: 0
         for namespace in namespaces.models
             _s = namespace.get_stats()
             if not _s?
@@ -102,12 +105,12 @@ class Namespace extends Backbone.Model
             if machine.get('stats')? and  @get('id') of machine.get('stats') and machine.is_reachable
                 num_machines_in_namespace++
                 mstats = machine.get_stats().proc
-                __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util_avg)
+                __s.global_cpu_util.avg += if mstats.global_cpu_util? then parseFloat(mstats.global_cpu_util.avg) else 0
                 __s.global_mem_total += parseInt(mstats.global_mem_total)
                 __s.global_mem_used += parseInt(mstats.global_mem_used)
                 __s.global_disk_space += machine.get_used_disk_space()
-                __s.global_net_recv_persec_avg += parseFloat(mstats.global_net_recv_persec_avg)
-                __s.global_net_sent_persec_avg += parseFloat(mstats.global_net_sent_persec_avg)
+                __s.global_net_recv_persec.avg += if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
+                __s.global_net_sent_persec.avg += if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
         __s.global_cpu_util_avg /= num_machines_in_namespace
         return __s
 
@@ -143,12 +146,15 @@ class Datacenter extends Backbone.Model
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util_avg: 0
+            global_cpu_util:
+                avg: 0
             global_mem_total: 0
             global_mem_used: 0
             global_disk_space: 0
-            global_net_recv_persec_avg: 0
-            global_net_sent_persec_avg: 0
+            global_net_recv_persec:
+                avg: 0
+            global_net_sent_persec:
+                avg: 0
         for namespace in namespaces.models
             _s = namespace.get_stats()
             if not _s?
@@ -161,12 +167,12 @@ class Datacenter extends Backbone.Model
             if machine.get('datacenter_uuid') is @get('id') and machine.is_reachable
                 num_machines_in_datacenter++
                 mstats = machine.get_stats().proc
-                __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util_avg)
+                __s.global_cpu_util.avg += if mstats.global_cpu_util? then parseFloat(mstats.global_cpu_util.avg) else 0
                 __s.global_mem_total += parseInt(mstats.global_mem_total)
                 __s.global_mem_used += parseInt(mstats.global_mem_used)
                 __s.global_disk_space += machine.get_used_disk_space()
-                __s.global_net_recv_persec_avg += parseFloat(mstats.global_net_recv_persec_avg)
-                __s.global_net_sent_persec_avg += parseFloat(mstats.global_net_sent_persec_avg)
+                __s.global_net_recv_persec.avg += if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
+                __s.global_net_sent_persec.avg += if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
         __s.global_cpu_util_avg /= num_machines_in_datacenter
         return __s
 
@@ -198,12 +204,15 @@ class Machine extends Backbone.Model
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util_avg: parseFloat(mstats.global_cpu_util_avg)
+            global_cpu_util:
+                avg: if mstats.global_cpu_util? then parseFloat(mstats.global_cpu_util.avg) else 0
             global_mem_total: parseInt(mstats.global_mem_total)
             global_mem_used: parseInt(mstats.global_mem_used)
             global_disk_space: parseInt(@get_used_disk_space())
-            global_net_recv_persec_avg: parseFloat(mstats.global_net_recv_persec_avg)
-            global_net_sent_persec_avg: parseFloat(mstats.global_net_sent_persec_avg)
+            global_net_recv_persec:
+                avg: if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
+            global_net_sent_persec:
+                avg: if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
         
         for namespace in namespaces.models
             _s = namespace.get_stats()
@@ -263,12 +272,15 @@ class ComputedCluster extends Backbone.Model
         __s =
             keys_read: 0
             keys_set: 0
-            global_cpu_util_avg: 0
+            global_cpu_util:
+                avg: 0
             global_mem_total: 0
             global_mem_used: 0
             global_disk_space: 0
-            global_net_recv_persec_avg: 0
-            global_net_sent_persec_avg: 0
+            global_net_recv_persec:
+                avg: 0
+            global_net_sent_persec:
+                avg: 0
         for namespace in namespaces.models
             _s = namespace.get_stats()
             if not _s?
@@ -278,12 +290,13 @@ class ComputedCluster extends Backbone.Model
         # CPU, mem, disk
         for m in machines.models
             mstats = m.get_stats().proc
-            __s.global_cpu_util_avg += parseFloat(mstats.global_cpu_util_avg)
-            __s.global_mem_total += parseInt(mstats.global_mem_total)
-            __s.global_mem_used += parseInt(mstats.global_mem_used)
-            __s.global_disk_space += m.get_used_disk_space()
-            __s.global_net_recv_persec_avg += parseFloat(mstats.global_net_recv_persec_avg)
-            __s.global_net_sent_persec_avg += parseFloat(mstats.global_net_sent_persec_avg)
+            if mstats? and mstats.global_cpu_util? #if global_cpu_util is present, the other attributes should too.
+                __s.global_cpu_util.avg += parseFloat(mstats.global_cpu_util.avg)
+                __s.global_mem_total += parseInt(mstats.global_mem_total)
+                __s.global_mem_used += parseInt(mstats.global_mem_used)
+                __s.global_disk_space += m.get_used_disk_space()
+                __s.global_net_recv_persec.avg += parseFloat(mstats.global_net_recv_persec.avg)
+                __s.global_net_sent_persec.avg += parseFloat(mstats.global_net_sent_persec.avg)
         __s.global_cpu_util_avg /= machines.models.length
 
         return __s
@@ -372,21 +385,19 @@ class IssuesRedundancy extends Backbone.Collection
                                 namespace_name: namespace.get('name')
                             issue_redundancy = new IssueRedundancy issue_redundancy_param
                             issues_redundancy.push issue_redundancy
-                        else if directory_by_namespaces[namespace_id][machine_id][0] != key
-                            issue_redundancy_param =
-                                machine_id: machine_id
-                                machine_name: machine_name
-                                namespace_uuid: namespace_id
-                                namespace_name: namespace.get('name')
-                            issues_redundancy.push new IssueRedundancy issue_redundancy_param
-                        else if directory_by_namespaces[namespace_id][machine_id][1].type != @convert_activity[value]
-                            issue_redundancy_param =
-                                machine_id: machine_id
-                                machine_name: machine_name
-                                namespace_uuid: namespace_id
-                                namespace_name: namespace.get('name')
-                            issues_redundancy.push new IssueRedundancy issue_redundancy_param
- 
+                        else
+                            found_activity = false
+                            for activity in directory_by_namespaces[namespace_id][machine_id]
+                                if key is activity[0] and @convert_activity[value] is activity[1].type
+                                    found_activity = true
+                            
+                            if found_activity is false
+                                issue_redundancy_param =
+                                    machine_id: machine_id
+                                    machine_name: machine_name
+                                    namespace_uuid: namespace_id
+                                    namespace_name: namespace.get('name')
+                                issues_redundancy.push new IssueRedundancy issue_redundancy_param
         if issues_redundancy.length > 0 or issues_redundancy.length isnt @.length
             @.reset(issues_redundancy)
         
@@ -521,7 +532,10 @@ module 'DataUtils', ->
                 for activity_id, activity of activity_map
                     if !(namespace_id of activities)
                         activities[namespace_id] = {}
-                    activities[namespace_id][machine.get('id')] = activity
+                    if activities[namespace_id][machine.get('id')]?
+                        activities[namespace_id][machine.get('id')].push(activity)
+                    else
+                        activities[namespace_id][machine.get('id')] = [activity]
 
         return activities
 

@@ -126,7 +126,7 @@ public:
 
 dummy_protocol_t::region_t a_thru_z_region();
 
-std::string to_string(dummy_protocol_t::region_t);
+std::string region_to_debug_str(dummy_protocol_t::region_t);
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);

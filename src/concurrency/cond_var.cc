@@ -10,6 +10,12 @@ void cond_t::pulse() {
     do_on_thread(home_thread(), boost::bind(&cond_t::do_pulse, this));
 }
 
+void cond_t::pulse_if_not_already_pulsed() {
+    if (!is_pulsed()) {
+        pulse();
+    }
+}
+
 void cond_t::do_pulse() {
     signal_t::pulse();
 }

@@ -238,7 +238,7 @@ bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<bro
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const blueprint_t<protocol_t> &blueprint, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);
@@ -265,7 +265,11 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
              * input/output parameter, after this call returns best_backfillers
              * will describe how to fill the store with the most up-to-date
              * data. */
-            reactor_directory->run_until_satisfied(boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, blueprint, region, &best_backfillers), interruptor);
+            run_until_satisfied_2(
+                reactor_directory,
+                blueprint,
+                boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers),
+                interruptor);
 
             /* We may be backfilling from several sources, each requires a
              * promise be passed in which gets pulsed with a value indicating

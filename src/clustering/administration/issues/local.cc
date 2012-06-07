@@ -2,9 +2,9 @@
 
 #include "clustering/administration/persist.hpp"
 
-int deserialize(read_stream_t *s, local_issue_t **issue_ptr) {
+archive_result_t deserialize(read_stream_t *s, local_issue_t **issue_ptr) {
     bool exists;
-    int res = deserialize(s, &exists);
+    archive_result_t res = deserialize(s, &exists);
     if (res) { return res; }
     if (!exists) {
         *issue_ptr = NULL;

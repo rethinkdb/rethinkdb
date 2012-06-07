@@ -76,6 +76,13 @@ private:
     DISABLE_COPYING(watchable_t);
 };
 
+template<class a_type, class b_type, class callable_type>
+void run_until_satisfied_2(
+        const clone_ptr_t<watchable_t<a_type> > &a,
+        const clone_ptr_t<watchable_t<b_type> > &b,
+        const callable_type &fun,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+
 template <class value_t>
 class watchable_variable_t {
 public:

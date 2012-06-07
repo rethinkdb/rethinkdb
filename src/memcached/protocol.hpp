@@ -18,13 +18,14 @@
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 #include "perfmon_types.hpp"
+#include "repli_timestamp.hpp"
 
 class real_superblock_t;
 
 write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf);
-int deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);
+archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);
 write_message_t &operator<<(write_message_t &msg, const rget_result_t &iter);
-int deserialize(read_stream_t *s, rget_result_t *iter);
+archive_result_t deserialize(read_stream_t *s, rget_result_t *iter);
 
 RDB_DECLARE_SERIALIZABLE(get_query_t);
 RDB_DECLARE_SERIALIZABLE(rget_query_t);
@@ -76,7 +77,7 @@ public:
         query_t query;
         exptime_t effective_time;
 
-        RDB_MAKE_ME_SERIALIZABLE_1(query);
+        RDB_MAKE_ME_SERIALIZABLE_2(query, effective_time);
     };
 
     struct write_response_t {
@@ -104,7 +105,7 @@ public:
         cas_t proposed_cas;
         exptime_t effective_time;   /* so operations are deterministic even with expiration */
 
-        RDB_MAKE_ME_SERIALIZABLE_2(mutation, proposed_cas);
+        RDB_MAKE_ME_SERIALIZABLE_3(mutation, proposed_cas, effective_time);
     };
 
     struct backfill_chunk_t {

@@ -13,6 +13,7 @@ class cond_t : public signal_t {
 public:
     cond_t() { }
     void pulse();
+    void pulse_if_not_already_pulsed();
 private:
     void do_pulse();
 

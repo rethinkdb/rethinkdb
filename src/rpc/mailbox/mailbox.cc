@@ -107,7 +107,7 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *
     int dest_thread;
     raw_mailbox_t::id_t dest_mailbox_id;
     {
-        int res = deserialize(stream, &dest_thread);
+        archive_result_t res = deserialize(stream, &dest_thread);
         if (!res) { res = deserialize(stream, &dest_mailbox_id); }
 
         if (res) {

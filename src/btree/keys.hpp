@@ -130,21 +130,21 @@ public:
         msg.append(contents(), sz);
     }
 
-    template <class T> friend int deserialize(read_stream_t *, T *);
-    int rdb_deserialize(read_stream_t *s) {
+    template <class T> friend archive_result_t deserialize(read_stream_t *, T *);
+    archive_result_t rdb_deserialize(read_stream_t *s) {
         uint8_t sz;
-        int res = deserialize(s, &sz);
+        archive_result_t res = deserialize(s, &sz);
         if (res) { return res; }
         int64_t num_read = force_read(s, contents(), sz);
         if (num_read == -1) {
-            return -1;
+            return ARCHIVE_SOCK_ERROR;
         }
         if (num_read < sz) {
-            return -2;
+            return ARCHIVE_SOCK_EOF;
         }
         rassert(num_read == sz);
         set_size(sz);
-        return 0;
+        return ARCHIVE_SUCCESS;
     }
 
 private:
@@ -182,6 +182,18 @@ std::string key_to_debug_str(const store_key_t &key);
 
 /* `key_range_t` represents a contiguous set of keys. */
 struct key_range_t {
+    /* If `right.unbounded`, then the range contains all keys greater than or
+    equal to `left`. If `right.bounded`, then the range contains all keys
+    greater than or equal to `left` and less than `right.key`. */
+    struct right_bound_t {
+        right_bound_t() : unbounded(true) { }
+        explicit right_bound_t(store_key_t k) : unbounded(false), key(k) { }
+        bool unbounded;
+        store_key_t key;
+
+        RDB_MAKE_ME_SERIALIZABLE_2(unbounded, key);
+    };
+
     enum bound_t {
         open,
         closed,
@@ -216,17 +228,10 @@ struct key_range_t {
         return left_ok && right_ok;
     }
 
-    /* If `right.unbounded`, then the range contains all keys greater than or
-    equal to `left`. If `right.bounded`, then the range contains all keys
-    greater than or equal to `left` and less than `right.key`. */
-    struct right_bound_t {
-        right_bound_t() : unbounded(true) { }
-        explicit right_bound_t(store_key_t k) : unbounded(false), key(k) { }
-        bool unbounded;
-        store_key_t key;
+    bool is_superset(const key_range_t &other) const;
+    bool overlaps(const key_range_t &other) const;
+    key_range_t intersection(const key_range_t &other) const;
 
-        RDB_MAKE_ME_SERIALIZABLE_2(unbounded, key);
-    };
     store_key_t left;
     right_bound_t right;
 

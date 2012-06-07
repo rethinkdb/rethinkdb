@@ -80,7 +80,7 @@ private:
 /* `StartStop` starts a cluster of three nodes, then shuts it down again. */
 
 void run_start_stop_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1, c2, c3;
     connectivity_cluster_t::run_t cr1(&c1, port, NULL), cr2(&c2, port+1, NULL), cr3(&c3, port+2, NULL);
     cr2.join(c1.get_peer_address(c1.get_me()));
@@ -99,7 +99,7 @@ TEST(RPCConnectivityTest, StartStopMultiThread) {
 /* `Message` sends some simple messages between the nodes of a cluster. */
 
 void run_message_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1, c2, c3;
     recording_test_application_t a1(&c1), a2(&c2), a3(&c3);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2), cr3(&c3, port+2, &a3);
@@ -131,7 +131,7 @@ TEST(RPCConnectivityTest, MesssageMultiThread) {
 fail. */
 
 void run_unreachable_peer_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1), a2(&c2);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);
@@ -170,7 +170,7 @@ TEST(RPCConnectivityTest, UnreachablePeerMultiThread) {
 order they were sent in. */
 
 void run_ordering_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1, c2;
     recording_test_application_t a1(&c1), a2(&c2);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);
@@ -202,7 +202,7 @@ TEST(RPCConnectivityTest, OrderingMultiThread) {
 correct. */
 
 void run_get_peers_list_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1;
     connectivity_cluster_t::run_t cr1(&c1, port, NULL);
 
@@ -243,7 +243,7 @@ TEST(RPCConnectivityTest, GetPeersListMultiThread) {
 `connectivity_service_t::peers_list_subscription_t` work properly. */
 
 void run_event_watchers_test() {
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1;
     connectivity_cluster_t::run_t cr1(&c1, port, NULL);
 
@@ -329,7 +329,7 @@ struct watcher_t {
 
 void run_event_watcher_ordering_test() {
 
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1;
     recording_test_application_t a1(&c1);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1);
@@ -363,7 +363,7 @@ while it is still coming up */
 
 void run_stop_mid_join_test() {
 
-    int port = 10000 + randint(20000);
+    int port = randport();
 
     const int num_members = 5;
 
@@ -400,37 +400,51 @@ together. */
 
 void run_blob_join_test() {
 
-    int port = 10000 + randint(20000);
+    int port = randport();
 
     /* Two blobs of `blob_size` nodes */
-    const int blob_size = 4;
+    const size_t blob_size = 4;
 
     /* Spin up cluster-members */
     boost::scoped_ptr<connectivity_cluster_t> nodes[blob_size * 2];
     boost::scoped_ptr<connectivity_cluster_t::run_t> runs[blob_size * 2];
-    for (int i = 0; i < blob_size * 2; i++) {
+    for (size_t i = 0; i < blob_size * 2; i++) {
         nodes[i].reset(new connectivity_cluster_t);
         runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
 
-    for (int i = 1; i < blob_size; i++) {
+    for (size_t i = 1; i < blob_size; i++) {
         runs[i]->join(nodes[0]->get_peer_address(nodes[0]->get_me()));
     }
-    for (int i = blob_size+1; i < blob_size*2; i++) {
+    for (size_t i = blob_size+1; i < blob_size*2; i++) {
         runs[i]->join(nodes[blob_size]->get_peer_address(nodes[blob_size]->get_me()));
     }
 
-    let_stuff_happen();
+    // Allow some time for the two blobs to join with themselves
+    uint32_t total_waits = 0;
+    bool pass = false;
+    while(!pass) {
+        let_stuff_happen();
+        ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce internally
 
+        pass = true;
+        for (size_t i = 0; i < blob_size * 2; i++) {
+            pass &= (blob_size == nodes[i]->get_peers_list().size());
+        }
+    }
+
+    // Link the two blobs
     runs[1]->join(nodes[blob_size+1]->get_peer_address(nodes[blob_size+1]->get_me()));
 
-    let_stuff_happen();
-    let_stuff_happen();
-    let_stuff_happen();
+    pass = false;
+    while(!pass) {
+        let_stuff_happen();
+        ASSERT_LT(++total_waits, 50); // cluster blobs took to long to coalesce with each other
 
-    /* Make sure every node sees every other */
-    for (int i = 0; i < blob_size*2; i++) {
-        ASSERT_EQ(blob_size * 2, nodes[i]->get_peers_list().size());
+        pass = true;
+        for (size_t i = 0; i < blob_size * 2; i++) {
+            pass &= ((blob_size * 2) == nodes[i]->get_peers_list().size());
+        }
     }
 }
 TEST(RPCConnectivityTest, BlobJoin) {
@@ -444,7 +458,7 @@ TEST(RPCConnectivityTest, BlobJoinMultiThread) {
 
 void run_multiplexer_test() {
 
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1, c2;
     message_multiplexer_t c1m(&c1), c2m(&c2);
     message_multiplexer_t::client_t c1mcA(&c1m, 'A'), c2mcA(&c2m, 'A');
@@ -512,7 +526,7 @@ public:
 
 void run_binary_data_test() {
 
-    int port = 10000 + randint(20000);
+    int port = randport();
     connectivity_cluster_t c1, c2;
     binary_test_application_t a1(&c1), a2(&c2);
     connectivity_cluster_t::run_t cr1(&c1, port, &a1), cr2(&c2, port+1, &a2);
@@ -548,6 +562,52 @@ TEST(RPCConnectivityTest, PeerIDSemantics) {
 }
 TEST(RPCConnectivityTest, PeerIDSemanticsMultiThread) {
     run_in_thread_pool(&run_peer_id_semantics_test, 3);
+}
+
+/* `CheckHeaders` makes sure that we close the connection if we get a malformed header. */
+void run_check_headers_test() {
+    int port = randport();
+
+    // Set up a cluster node.
+    connectivity_cluster_t c1;
+    connectivity_cluster_t::run_t cr1(&c1, port, NULL);
+
+    // Manually connect to the cluster.
+    peer_address_t addr = c1.get_peer_address(c1.get_me());
+    cond_t cond;                // dummy signal
+    tcp_conn_stream_t conn(addr.ip, addr.port, &cond, 0);
+
+    // Read & check its header.
+    const int64_t len = strlen(cluster_proto_header);
+    {
+        char data[len+1];
+        int64_t read = force_read(&conn, data, len);
+        ASSERT_TRUE(read >= 0);
+        data[read] = 0;         // null-terminate
+        ASSERT_STREQ(cluster_proto_header, data);
+    }
+
+    // Send it an initially okay-looking but ultimately malformed header.
+    const int64_t initlen = 10;
+    ASSERT_TRUE(initlen < len); // sanity check
+    ASSERT_TRUE(initlen == conn.write(cluster_proto_header, initlen));
+    let_stuff_happen();
+    ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
+
+    // Send malformed continuation.
+    char badchar = cluster_proto_header[initlen] ^ 0x7f;
+    ASSERT_EQ(1, conn.write(&badchar, 1));
+    let_stuff_happen();
+
+    // Try to write something, and discover that the other end has shut down.
+    (void)(1 == conn.write("a", 1)); // avoid unused return value warning
+    let_stuff_happen();
+    ASSERT_FALSE(conn.is_write_open());
+    ASSERT_FALSE(conn.is_read_open());
+}
+
+TEST(RPCConnectivityTest, CheckHeaders) {
+    run_in_thread_pool(&run_check_headers_test);
 }
 
 }   /* namespace unittest */

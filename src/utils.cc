@@ -24,16 +24,6 @@
 #include <valgrind/memcheck.h>
 #endif
 
-write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp) {
-    return msg << tstamp.time;
-}
-
-MUST_USE int deserialize(read_stream_t *s, repli_timestamp_t *tstamp) {
-    return deserialize(s, &tstamp->time);
-}
-
-
-
 // fast non-null terminated string comparison
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
     int min_len = std::min(len1, len2);
@@ -169,10 +159,6 @@ on_thread_t::~on_thread_t() {
     coro_t::move_to_thread(home_thread());
 }
 
-
-const repli_timestamp_t repli_timestamp_t::invalid = { static_cast<uint32_t>(-1) };
-const repli_timestamp_t repli_timestamp_t::distant_past = { 0 };
-
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;
@@ -180,12 +166,6 @@ microtime_t current_microtime() {
     rassert(0 == res);
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
-
-
-repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y) {
-    return int32_t(x.time - y.time) < 0 ? y : x;
-}
-
 
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
@@ -469,18 +449,16 @@ std::string read_file(const char *path) {
     return s;
 }
 
+static const char * unix_path_separator = "/";
+
 path_t parse_as_path(const std::string &path) {
-    debugf("Path: %s\n", path.c_str());
     path_t res;
-    if (path[0] == '/') {
-        res.is_absolute = true;
-    } else {
-        res.is_absolute = false;
-    }
+    res.is_absolute = (path[0] == unix_path_separator[0]);
+
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     typedef tokenizer::iterator tok_iterator;
 
-    boost::char_separator<char> sep("/");
+    boost::char_separator<char> sep(unix_path_separator);
     tokenizer tokens(path, sep);
 
     res.nodes.assign(tokens.begin(), tokens.end());
@@ -494,7 +472,7 @@ std::string render_as_path(const path_t &path) {
                                                   it != path.nodes.end();
                                                   it++) {
         if (it != path.nodes.begin() || path.is_absolute) {
-            res += "/";
+            res += unix_path_separator;
         }
         res += *it;
     }

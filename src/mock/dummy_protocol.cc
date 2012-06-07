@@ -184,7 +184,7 @@ dummy_protocol_t::store_t::store_t(const std::string& fn, bool create, perfmon_c
         blocking_read_file_stream_t stream;
         DEBUG_ONLY_VAR bool success = stream.init(filename.c_str());
         rassert(success);
-        int res = deserialize(&stream, &metainfo);
+        archive_result_t res = deserialize(&stream, &metainfo);
         if (res) { throw fake_archive_exc_t(); }
         res = deserialize(&stream, &values);
         if (res) { throw fake_archive_exc_t(); }
@@ -386,7 +386,7 @@ dummy_protocol_t::region_t a_thru_z_region() {
     return r;
 }
 
-std::string to_string(dummy_protocol_t::region_t r) {
+std::string region_to_debug_str(dummy_protocol_t::region_t r) {
     std::string ret = "{ ";
     for (std::set<std::string>::iterator it  = r.keys.begin();
                                          it != r.keys.end();

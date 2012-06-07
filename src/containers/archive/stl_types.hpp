@@ -21,8 +21,8 @@ write_message_t &operator<<(write_message_t &msg, const std::pair<T, U> &p) {
 }
 
 template <class T, class U>
-MUST_USE int deserialize(read_stream_t *s, std::pair<T, U> *p) {
-    int res = deserialize(s, &p->first);
+MUST_USE archive_result_t deserialize(read_stream_t *s, std::pair<T, U> *p) {
+    archive_result_t res = deserialize(s, &p->first);
     if (res) { return res; }
     res = deserialize(s, &p->second);
     return res;
@@ -44,11 +44,11 @@ write_message_t &operator<<(write_message_t &msg, const std::map<K, V> &m) {
 }
 
 template <class K, class V>
-MUST_USE int deserialize(read_stream_t *s, std::map<K, V> *m) {
+MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V> *m) {
     m->clear();
 
     uint64_t sz;
-    int res = deserialize(s, &sz);
+    archive_result_t res = deserialize(s, &sz);
     if (res) { return res; }
 
     // Using position should make this function take linear time, not
@@ -78,11 +78,11 @@ write_message_t &operator<<(write_message_t &msg, const std::set<T> &s) {
 }
 
 template <class T>
-MUST_USE int deserialize(read_stream_t *s, std::set<T> *out) {
+MUST_USE archive_result_t deserialize(read_stream_t *s, std::set<T> *out) {
     out->clear();
 
     uint64_t sz;
-    int res = deserialize(s, &sz);
+    archive_result_t res = deserialize(s, &sz);
     if (res) { return res; }
 
     typename std::set<T>::iterator position = out->begin();
@@ -110,11 +110,11 @@ write_message_t &operator<<(write_message_t &msg, const std::string &s) {
 }
 
 inline
-MUST_USE int deserialize(read_stream_t *s, std::string *out) {
+MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out) {
     out->clear();
 
     int64_t sz;
-    int res = deserialize(s, &sz);
+    archive_result_t res = deserialize(s, &sz);
     if (res) { return res; }
 
     if (sz < 0) {
@@ -154,11 +154,11 @@ write_message_t &operator<<(write_message_t &msg, const std::vector<T> &v) {
 }
 
 template <class T>
-MUST_USE int deserialize(read_stream_t *s, std::vector<T> *v) {
+MUST_USE archive_result_t deserialize(read_stream_t *s, std::vector<T> *v) {
     v->clear();
 
     uint64_t sz;
-    int res = deserialize(s, &sz);
+    archive_result_t res = deserialize(s, &sz);
     if (res) { return res; }
 
     v->resize(sz);
@@ -183,11 +183,11 @@ write_message_t &operator<<(write_message_t &msg, const std::list<T> &v) {
 }
 
 template <class T>
-MUST_USE int deserialize(read_stream_t *s, std::list<T> *v) {
+MUST_USE archive_result_t deserialize(read_stream_t *s, std::list<T> *v) {
     // Omit assertions because it's not a shame if a std::list gets corrupted.
 
     uint64_t sz;
-    int res = deserialize(s, &sz);
+    archive_result_t res = deserialize(s, &sz);
     if (res) { return res; }
 
     for (uint64_t i = 0; i < sz; ++i) {

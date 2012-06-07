@@ -80,21 +80,28 @@ reactor_t<protocol_t>::directory_entry_t::~directory_entry_t() {
 
 template<class protocol_t>
 void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
-    blueprint_watchable->get().assert_valid();
-    rassert(std_contains(blueprint_watchable->get().peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
+    blueprint_t<protocol_t> blueprint = blueprint_watchable->get();
+    blueprint.assert_valid();
+    rassert(std_contains(blueprint.peers_roles, get_me()), "reactor_t assumes that it is mentioned in the blueprint it's given.");
 
     std::map<typename protocol_t::region_t, typename blueprint_details::role_t> blueprint_roles =
-        (*blueprint_watchable->get().peers_roles.find(get_me())).second;
-    typename std::map<
-            typename protocol_t::region_t,
-            std::pair<typename blueprint_details::role_t, cond_t *>
-            >::iterator it;
-    for (it = current_roles.begin(); it != current_roles.end(); it++) {
+        blueprint.peers_roles.find(get_me())->second;
+    for (typename std::map<typename protocol_t::region_t, current_role_t *>::iterator it = current_roles.begin();
+            it != current_roles.end(); it++) {
         typename std::map<typename protocol_t::region_t, blueprint_details::role_t>::iterator it2 =
             blueprint_roles.find((*it).first);
-        if (it2 == blueprint_roles.end() || (*it).second.first != (*it2).second) {
-            if (!(*it).second.second->is_pulsed()) {
-                (*it).second.second->pulse();
+        if (it2 == blueprint_roles.end()) {
+            /* The shard boundaries have changed, and the shard that the running
+            coroutine was for no longer exists; interrupt it */
+            it->second->abort.pulse_if_not_already_pulsed();
+        } else {
+            if (it->second->role != it2->second) {
+                /* Our role for the shard has changed; interrupt the running
+                coroutine */
+                it->second->abort.pulse_if_not_already_pulsed();
+            } else {
+                /* Notify the running coroutine of the new blueprint */
+                it->second->blueprint.set_value(blueprint);
             }
         }
     }
@@ -110,11 +117,8 @@ void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
     typename std::map<typename protocol_t::region_t, blueprint_details::role_t>::iterator it;
     for (it = blueprint_roles.begin(); it != blueprint_roles.end(); it++) {
         bool none_overlap = true;
-        typename std::map<
-            typename protocol_t::region_t,
-            std::pair<typename blueprint_details::role_t, cond_t *>
-            >::iterator it2;
-        for (it2 = current_roles.begin(); it2 != current_roles.end(); it2++) {
+        for (typename std::map<typename protocol_t::region_t, current_role_t *>::iterator it2 = current_roles.begin();
+                it2 != current_roles.end(); it2++) {
             if (region_overlaps((*it).first, (*it2).first)) {
                 none_overlap = false;
                 break;
@@ -123,10 +127,10 @@ void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
 
         if (none_overlap) {
             //This state will be cleaned up in run_role
-            cond_t *blueprint_changed_cond = new cond_t;
-            current_roles.insert(std::make_pair(it->first, std::make_pair(it->second, blueprint_changed_cond)));
+            current_role_t *role = new current_role_t(it->second, blueprint);
+            current_roles.insert(std::make_pair(it->first, role));
             coro_t::spawn_sometime(boost::bind(&reactor_t<protocol_t>::run_role, this, it->first,
-                                               it->second, blueprint_changed_cond, blueprint, auto_drainer_t::lock_t(&drainer)));
+                                               role, auto_drainer_t::lock_t(&drainer)));
         }
     }
 }
@@ -134,9 +138,7 @@ void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
 template<class protocol_t>
 void reactor_t<protocol_t>::run_role(
         typename protocol_t::region_t region,
-        typename blueprint_details::role_t role,
-        cond_t *blueprint_changed_cond,
-        const blueprint_t<protocol_t> &blueprint,
+        current_role_t *role,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
 
     //A store_view_t derived object that acts as a store for the specified region
@@ -145,17 +147,17 @@ void reactor_t<protocol_t>::run_role(
     {
         //All of the be_{role} functions respond identically to blueprint changes
         //and interruptions... so we just unify those signals
-        wait_any_t wait_any(blueprint_changed_cond, keepalive.get_drain_signal());
+        wait_any_t wait_any(&role->abort, keepalive.get_drain_signal());
 
-        switch (role) {
+        switch (role->role) {
             case blueprint_details::role_primary:
-                be_primary(region, &store_subview, blueprint, &wait_any);
+                be_primary(region, &store_subview, role->blueprint.get_watchable(), &wait_any);
                 break;
             case blueprint_details::role_secondary:
-                be_secondary(region, &store_subview, blueprint, &wait_any);
+                be_secondary(region, &store_subview, role->blueprint.get_watchable(), &wait_any);
                 break;
             case blueprint_details::role_nothing:
-                be_nothing(region, &store_subview, blueprint, &wait_any);
+                be_nothing(region, &store_subview, role->blueprint.get_watchable(), &wait_any);
                 break;
             default:
                 unreachable();
@@ -165,7 +167,7 @@ void reactor_t<protocol_t>::run_role(
 
     //As promised, clean up the state from try_spawn_roles
     current_roles.erase(region);
-    delete blueprint_changed_cond;
+    delete role;
 
     if (!keepalive.get_drain_signal()->is_pulsed()) {
         try_spawn_roles();
@@ -188,11 +190,34 @@ boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > reac
 
 template <class protocol_t>
 void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t version_to_wait_on, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    blueprint_t<protocol_t> bp = blueprint_watchable->get();
-    typename std::map<peer_id_t, std::map<typename protocol_t::region_t, typename blueprint_details::role_t> >::iterator it = bp.peers_roles.begin();
-    for (it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
-        typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::ack_waiter_t ack_waiter(&directory_echo_writer, it->first, version_to_wait_on);
-        wait_interruptible(&ack_waiter, interruptor);
+    while (true) {
+        /* This function waits for acks from all the peers mentioned in the
+        blueprint. If the blueprint changes while we're waiting for acks, we
+        restart from the top. This is important because otherwise we might
+        deadlock. For example, if we were waiting for a machine to come back up
+        and then it was declared dead, our interruptor might not be pulsed but
+        the `ack_waiter_t` would never be pulsed so we would get stuck. */
+        cond_t blueprint_changed;
+        blueprint_t<protocol_t> bp;
+        typename watchable_t<blueprint_t<protocol_t> >::subscription_t subscription(
+            boost::bind(&cond_t::pulse_if_not_already_pulsed, &blueprint_changed));
+        {
+            typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint_watchable);
+            bp = blueprint_watchable->get();
+            subscription.reset(blueprint_watchable, &freeze);
+        }
+        typename std::map<peer_id_t, std::map<typename protocol_t::region_t, typename blueprint_details::role_t> >::iterator it = bp.peers_roles.begin();
+        for (it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
+            typename directory_echo_writer_t<reactor_business_card_t<protocol_t> >::ack_waiter_t ack_waiter(&directory_echo_writer, it->first, version_to_wait_on);
+            wait_any_t waiter(&ack_waiter, &blueprint_changed);
+            wait_interruptible(&waiter, interruptor);
+            if (blueprint_changed.is_pulsed()) {
+                break;
+            }
+        }
+        if (!blueprint_changed.is_pulsed()) {
+            break;
+        }
     }
 }
 

@@ -209,7 +209,8 @@ module 'Vis', ->
             if typeof(@stat) is 'function'
                 value = @stat(stats)
             else
-                value = stats[@stat]
+                if stats?
+                    value = stats[@stat]
             if isNaN(value)
                 return
             @values.push(value)
@@ -242,10 +243,12 @@ module 'Vis', ->
             log_initial '(initializing) stats panel'
             @stats_fn = _stats_fn
             @total_ops_cache = new Vis.SizeBoundedCache(@NUM_POINTS, ((stats) -> return stats['keys_read'] + stats['keys_set']))
-            @total_cpu_util_cache = new Vis.SizeBoundedCache(@NUM_POINTS, ((stats) -> return parseInt((stats['global_cpu_util_avg'] * 100).toFixed(0))))
+            @total_cpu_util_cache = new Vis.SizeBoundedCache(@NUM_POINTS, ((stats) -> 
+                return parseInt((stats['global_cpu_util']['avg'] * 100).toFixed(0))
+            ))
             @total_disk_space_cache = new Vis.SizeBoundedCache(@NUM_POINTS, 'global_disk_space')
-            @net_recv_cache = new Vis.SizeBoundedCache(@NUM_POINTS, 'global_net_recv_persec_avg')
-            @net_sent_cache = new Vis.SizeBoundedCache(@NUM_POINTS, 'global_net_sent_persec_avg')
+            @net_recv_cache = new Vis.SizeBoundedCache(@NUM_POINTS, 'avg')
+            @net_sent_cache = new Vis.SizeBoundedCache(@NUM_POINTS, 'avg')
 
         render: =>
             log_render '(rendering) stats panel'
@@ -254,8 +257,8 @@ module 'Vis', ->
             @total_ops_cache.push(stats)
             @total_cpu_util_cache.push(stats)
             @total_disk_space_cache.push(stats)
-            @net_recv_cache.push(stats)
-            @net_sent_cache.push(stats)
+            @net_recv_cache.push(stats.global_net_recv_persec)
+            @net_sent_cache.push(stats.global_net_sent_persec)
 
             # Render the plot container
             @.$el.html @template
@@ -265,8 +268,8 @@ module 'Vis', ->
                 mem_total: human_readable_units(stats.global_mem_total * 1024, units_space)
                 mem_used_percent: parseInt((stats.global_mem_used / stats.global_mem_total * 100).toFixed(0))
                 disk_used: human_readable_units(stats.global_disk_space, units_space)
-                global_net_recv: human_readable_units(stats.global_net_recv_persec_avg, units_space)
-                global_net_sent: human_readable_units(stats.global_net_sent_persec_avg, units_space)
+                global_net_recv: human_readable_units(stats.global_net_recv_persec.avg, units_space) if stats.global_net_recv_persec?
+                global_net_sent: human_readable_units(stats.global_net_sent_persec.avg, units_space) if stats.global_net_sent_persec?
             
 
 

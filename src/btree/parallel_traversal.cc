@@ -422,19 +422,6 @@ void interesting_children_callback_t::receive_interesting_child(int child_index)
     const btree_key_t *right_incl_or_null;
     ids_source->get_block_id_and_bounding_interval(child_index, &block_id, &left_excl_or_null, &right_incl_or_null);
 
-    store_key_t left_excl;
-    store_key_t right_incl;
-
-    if (left_excl_or_null) {
-        left_excl.assign(left_excl_or_null);
-        left_excl_or_null = left_excl.btree_key();
-    }
-
-    if (right_incl_or_null) {
-        right_incl.assign(right_incl_or_null);
-        right_incl_or_null = right_incl.btree_key();
-    }
-
     ++acquisition_countdown;
     do_a_subtree_traversal(state, level, block_id, left_excl_or_null, right_incl_or_null, this);
 }
