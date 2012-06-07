@@ -133,6 +133,7 @@ module 'UIComponents', ->
     class @RenameItemModal extends @AbstractModal
         template: Handlebars.compile $('#rename_item-modal-template').html()
         alert_tmpl: Handlebars.compile $('#renamed_item-alert-template').html()
+        error_template: Handlebars.compile $('#error_input-template').html()
         class: 'rename-item-modal'
 
         initialize: (uuid, type, on_success) ->
@@ -169,13 +170,35 @@ module 'UIComponents', ->
             super
             @old_name = @get_item_object().get('name')
             @formdata = form_data_as_object($('form', @$modal))
-            $.ajax
-                processData: false
-                url: "/ajax/" + @get_item_url() + "/#{@item_uuid}/name"
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify(@formdata.new_name)
-                success: @on_success
+
+            no_error = true
+            if @item_type is 'namespace'
+                if @formdata.new_name is ''
+                    no_error = false
+                    template_error =
+                        namespace_is_empty: true
+                    $('.alert_modal').html @error_template template_error
+                    $('.alert_modal').alert()
+                    @reset_buttons()
+                else
+                    for namespace in namespaces.models
+                        if namespace.get('name') is @formdata.new_name
+                            no_error = false
+                            template_error =
+                                namespace_exists: true
+                            $('.alert_modal').html @error_template template_error
+                            $('.alert_modal').alert()
+                            @reset_buttons()
+                            break
+
+            if no_error is true
+                $.ajax
+                    processData: false
+                    url: "/ajax/" + @get_item_url() + "/#{@item_uuid}/name"
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify(@formdata.new_name)
+                    success: @on_success
 
         on_success: (response) ->
             super

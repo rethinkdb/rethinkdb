@@ -81,7 +81,7 @@ module 'NamespaceView', ->
     class @AddNamespaceModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_namespace-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_namespace-alert-template').html()
-        error_template: Handlebars.compile $('#port_isnt_integer-template').html()
+        error_template: Handlebars.compile $('#error_input-template').html()
         class: 'add-namespace'
 
         initialize: ->

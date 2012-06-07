@@ -33,8 +33,9 @@
       <legend>Rename {{capitalize type}} from {{old_name}} to:</legend>
       <div class="clearfix">
         <label for="new_name">New name</label>
+
         <div class="input">
-            <input class="xlarge input_new_name" name="new_name" size="30" type="text" />
+            <input class="xlarge" name="new_name" size="30" type="text" />
         </div>
       </div>
     </fieldset>
@@ -51,7 +52,7 @@
 
 
 
-<script id="port_isnt_integer-template" type="text/x-handlebars-template">
+<script id="error_input-template" type="text/x-handlebars-template">
   <div class="alert alert-error" data-alert="alert">
     <a class="close_error" href="#">&times;</a>
     {{#if port_isnt_integer}}
