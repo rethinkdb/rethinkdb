@@ -60,12 +60,6 @@ void transact(serializer_t *ser, log_t *log, unsigned inserts, unsigned updates,
     do_writes(ser, writes, DEFAULT_DISK_ACCOUNT);
 
     ticks_t end_time = get_ticks();
-    if (log) {
-        txn_info_t info;
-        info.start = start_time;
-        info.end = end_time;
-        //log->push_back(info);
-    }
 
     ser->free(dummy_buf);
 
@@ -140,7 +134,7 @@ struct tester_t :
         log_serializer_t::create(config->ser_dynamic_config, config->ser_private_dynamic_config, config->ser_static_config);
         
         fprintf(stderr, "Starting serializer...\n");
-        ser = new log_serializer_t(config->ser_dynamic_config, config->ser_private_dynamic_config);
+        ser = new log_serializer_t(config->ser_dynamic_config, config->ser_private_dynamic_config, NULL);
         on_serializer_ready(ser);
     }
     
