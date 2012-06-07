@@ -16,30 +16,32 @@ with driver.Metacluster() as metacluster:
 
     print "Starting cluster..."
     files1 = driver.Files(metacluster, db_path = "db-first")
-    process1 = driver.Process(cluster, files1, executable_path = driver.find_rethinkdb_executable(opts["mode"]))
-    time.sleep(3)
+    process1 = driver.Process(cluster, files1, log_path = "serve-output-first", executable_path = driver.find_rethinkdb_executable(opts["mode"]))
+    process1.wait_until_started_up()
 
     print "Creating namespace..."
     http1 = http_admin.ClusterAccess([("localhost", process1.http_port)])
     dc = http1.add_datacenter()
     http1.move_server_to_datacenter(files1.machine_name, dc)
     ns = http1.add_namespace(protocol = "memcached", primary = dc)
-    time.sleep(10)
+    http1.wait_until_blueprint_satisfied(ns)
 
     host, port = driver.get_namespace_host(ns, [process1])
     workload_runner.run(opts["workload1"], host, port, opts["timeout"])
 
     print "Bringing up new server..."
     files2 = driver.Files(metacluster, db_path = "db-second")
-    process2 = driver.Process(cluster, files2, executable_path = driver.find_rethinkdb_executable(opts["mode"]))
-    time.sleep(3)
+    process2 = driver.Process(cluster, files2, log_path = "serve-output-second", executable_path = driver.find_rethinkdb_executable(opts["mode"]))
+    process2.wait_until_started_up()
     http1.update_cluster_data()
     http1.move_server_to_datacenter(files2.machine_name, dc)
     http1.set_namespace_affinities(ns, {dc: 1})
     http1.check_no_issues()
 
     print "Waiting for backfill..."
-    time.sleep(30)
+    backfill_start_time = time.time()
+    http1.wait_until_blueprint_satisfied(ns, timeout = 3600)
+    print "Backfill completed after %d seconds." % (time.time() - backfill_start_time)
 
     print "Shutting down old server..."
     process1.check_and_stop()
@@ -47,8 +49,9 @@ with driver.Metacluster() as metacluster:
     http2.declare_machine_dead(files1.machine_name)
     http2.set_namespace_affinities(ns.name, {dc.name: 0})
     http2.check_no_issues()
-    time.sleep(10)
+    http2.wait_until_blueprint_satisfied(ns.name)
 
+    host, port = http2.get_namespace_host(ns.name)
     workload_runner.run(opts["workload2"], host, port, opts["timeout"])
 
     cluster.check_and_stop()

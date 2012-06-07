@@ -15,6 +15,10 @@ initial_joiner_t::initial_joiner_t(
 {
     rassert(!peers.empty());
 
+    if (peers_not_heard_from.erase(cluster->get_peer_address(cluster->get_me())) != 0) {
+        logWRN("Attempted to join self, peer ignored");
+    }
+
     if (timeout_ms != -1) {
         grace_period_timer.reset(new signal_timer_t(timeout_ms));
     }

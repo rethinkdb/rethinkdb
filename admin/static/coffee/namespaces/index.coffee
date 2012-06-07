@@ -6,6 +6,7 @@ module 'NamespaceView', ->
     class @NamespaceList extends UIComponents.AbstractList
         # Use a namespace-specific template for the namespace list
         template: Handlebars.compile $('#namespace_list-template').html()
+        error_template: Handlebars.compile $('#error_adding_namespace-template').html()
 
         # Extend the generic list events
         events: ->
@@ -38,9 +39,13 @@ module 'NamespaceView', ->
             machine_list_element.on 'selected', @update_toolbar_buttons
 
         add_namespace: (event) =>
-            log_action 'add namespace button clicked'
-            @add_namespace_dialog.render()
             event.preventDefault()
+            if datacenters.length is 0
+                @.$('#user-alert-space').html @error_template
+                @.$('#user-alert-space').alert()
+            else
+                log_action 'add namespace button clicked'
+                @add_namespace_dialog.render()
 
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'
@@ -81,6 +86,7 @@ module 'NamespaceView', ->
     class @AddNamespaceModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_namespace-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_namespace-alert-template').html()
+        error_template: Handlebars.compile $('#error_input-template').html()
         class: 'add-namespace'
 
         initialize: ->
@@ -90,26 +96,66 @@ module 'NamespaceView', ->
         render: ->
             log_render '(rendering) add namespace dialog'
 
+            default_port = 11211
+            used_ports = {}
+            for namespace in namespaces.models
+                used_ports[namespace.get('port')] = true
+
+            while default_port of used_ports
+                default_port++
+
             super
                 modal_title: 'Add namespace'
                 btn_primary_text: 'Add'
                 datacenters: _.map(datacenters.models, (datacenter) -> datacenter.toJSON())
+                default_port: default_port
 
-        on_submit: ->
+        on_submit: =>
             super
-
+            
             formdata = form_data_as_object($('form', @$modal))
-            $.ajax
-                processData: false
-                url: '/ajax/memcached_namespaces/new'
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify(
-                    name: formdata.name
-                    primary_uuid: formdata.primary_datacenter
-                    port : parseInt(formdata.port)
-                    )
-                success: @on_success
+            
+            template_error = {}
+            input_error = false
+
+            need_to_increase = false
+            if DataUtils.is_integer(formdata.port) is false
+                input_error = true
+                template_error.port_isnt_integer = true
+            else
+                formdata.port = parseInt(formdata.port)
+                for namespace in namespaces.models
+                    if formdata.port is namespace.get('port')
+                        input_error = true
+                        template_error.port_is_used = true
+                        break
+
+            if formdata.name is ''
+                input_error = true
+                template_error.namespace_is_empty = true
+            else
+                for namespace in namespaces.models
+                    if namespace.get('name') is formdata.name
+                        input_error = true
+                        template_error.namespace_exists = true
+                        break
+                    
+            if input_error is true
+                $('.alert_modal').html @error_template template_error
+                $('.alert_modal').alert()
+                @reset_buttons()
+            else
+                $.ajax
+                    processData: false
+                    url: '/ajax/memcached_namespaces/new'
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify(
+                        name: formdata.name
+                        primary_uuid: formdata.primary_datacenter
+                        port : parseInt(formdata.port)
+                        )
+                    success: @on_success
 
         on_success: (response) =>
             super
@@ -124,6 +170,7 @@ module 'NamespaceView', ->
                 $('#user-alert-space').append @alert_tmpl
                     uuid: id
                     name: namespace.name
+
 
     # A modal for removing namespaces
     class @RemoveNamespaceModal extends UIComponents.AbstractModal

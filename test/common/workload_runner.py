@@ -98,52 +98,43 @@ class ContinuousWorkload(object):
 #     scenario.py --continuous-workload 'workload.py $HOST:$PORT'
 
 def prepare_option_parser_for_split_or_continuous_workload(op):
-    op["workload-type"] = ChoiceFlags(["--split-workload", "--continuous-workload"])
-    op["workloads"] = ManyPositionalArgs()
-    op["timeout"] = IntFlag("--timeout", 60)
+    op["workload-before"] = StringFlag("--workload-before", None)
+    op["timeout-before"] = IntFlag("--timeout-before", 600)
+    op["workload-during"] = StringFlag("--workload-during", None)
+    op["extra-before"] = IntFlag("--extra-before", 10)
+    op["extra-after"] = IntFlag("--extra-after", 10)
+    op["workload-after"] = StringFlag("--workload-after", None)
+    op["timeout-after"] = IntFlag("--timeout-after", 600)
 
 class SplitOrContinuousWorkload(object):
     def __init__(self, opts, host, port):
-        self.type = opts["workload-type"]
-        assert self.type in ["split-workload", "continuous-workload"]
-        if self.type == "continuous-workload":
-            if len(opts["workloads"]) < 1:
-                raise ValueError("You must specify the workload on the command line.")
-            if len(opts["workloads"]) > 1:
-                raise ValueError("If you specify --continuous-workload, you should only specify one workload on the command line.")
-            self.workload, = opts["workloads"]
-        else:
-            if len(opts["workloads"]) != 2:
-                raise ValueError("If you specify --split-workload, you should specify two workloads on the command line.")
-            self.workload1, self.workload2 = opts["workloads"]
-        self.timeout = opts["timeout"]
-        self.host, self.port = host, port
+        self.opts, self.host, self.port = opts, host, port
     def __enter__(self):
-        if self.type == "continuous-workload":
-            self.continuous_workload = ContinuousWorkload(self.workload, self.host, self.port)
+        if self.opts["workload-during"] is not None:
+            self.continuous_workload = ContinuousWorkload(self.opts["workload-during"], self.host, self.port)
             self.continuous_workload.__enter__()
         return self
     def step1(self):
-        if self.type == "continuous-workload":
+        if self.opts["workload-before"] is not None:
+            run(self.opts["workload-before"], self.host, self.port, self.opts["timeout-before"])
+        if self.opts["workload-during"] is not None:
             self.continuous_workload.start()
-            duration = 10
-            print "Letting %r run for %d seconds..." % (self.workload, duration)
-            time.sleep(duration)
-            self.continuous_workload.check()
-        else:
-            run(self.workload1, self.host, self.port, self.timeout)
+            if self.opts["extra-before"] != 0:
+                print "Letting %r run for %d seconds..." % (self.opts["workload-during"], self.opts["extra-before"])
+                time.sleep(self.opts["extra-before"])
+                self.continuous_workload.check()
     def check(self):
-        if self.type == "continuous-workload":
+        if self.opts["workload-during"] is not None:
             self.continuous_workload.check()
     def step2(self):
-        if self.type == "continuous-workload":
-            self.continuous_workload.check()
-            duration = 10
-            print "Letting %r run for %d seconds..." % (self.workload, duration)
-            time.sleep(duration)
+        if self.opts["workload-during"] is not None:
+            if self.opts["extra-after"] != 0:
+                self.continuous_workload.check()
+                print "Letting %r run for %d seconds..." % (self.opts["workload-during"], self.opts["extra-after"])
+                time.sleep(self.opts["extra-after"])
             self.continuous_workload.stop()
-        else:
-            run(self.workload2, self.host, self.port, self.timeout)
+        if self.opts["workload-after"] is not None:
+            run(self.opts["workload-after"], self.host, self.port, self.opts["timeout-after"])
     def __exit__(self, exc = None, ty = None, tb = None):
-        if self.type == "continuous-workload":
+        if self.opts["workload-during"] is not None:
             self.continuous_workload.__exit__()

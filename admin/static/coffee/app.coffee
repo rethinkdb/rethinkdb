@@ -149,10 +149,22 @@ $ ->
     # sakes!!!
     #   - an optional callback can be provided. Currently this callback will only be called after the /ajax route (metadata) is collected
     collect_server_data = (optional_callback) =>
-        $.getJSON('/ajax', (updates) ->
-            apply_diffs(updates)
-            optional_callback() if optional_callback
-        )
+        $.ajax({
+            url: '/ajax'
+            dataType: 'json'
+            success: (updates) ->
+                if window.is_disconnected?
+                    delete window.is_disconnected
+                    window.location.reload(true)
+
+                apply_diffs(updates)
+                optional_callback() if optional_callback
+            error: ->
+                if window.is_disconnected?
+                    window.is_disconnected.display_fail()
+                else
+                    window.is_disconnected = new IsDisconnected
+        })
         $.getJSON('/ajax/issues', set_issues)
         $.getJSON('/ajax/progress', set_progress)
         $.getJSON('/ajax/directory', set_directory)
@@ -194,3 +206,6 @@ $ ->
     # Populate collection for the first time
     collect_server_data(collections_ready)
     collect_stat_data()
+
+
+

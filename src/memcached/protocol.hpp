@@ -77,7 +77,7 @@ public:
         query_t query;
         exptime_t effective_time;
 
-        RDB_MAKE_ME_SERIALIZABLE_1(query);
+        RDB_MAKE_ME_SERIALIZABLE_2(query, effective_time);
     };
 
     struct write_response_t {
@@ -105,7 +105,7 @@ public:
         cas_t proposed_cas;
         exptime_t effective_time;   /* so operations are deterministic even with expiration */
 
-        RDB_MAKE_ME_SERIALIZABLE_2(mutation, proposed_cas);
+        RDB_MAKE_ME_SERIALIZABLE_3(mutation, proposed_cas, effective_time);
     };
 
     struct backfill_chunk_t {

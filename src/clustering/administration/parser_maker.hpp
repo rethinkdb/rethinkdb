@@ -7,7 +7,7 @@
 template<class protocol_t, class parser_t>
 class parser_maker_t {
 public:
-    explicit parser_maker_t(mailbox_manager_t *,
+    parser_maker_t(mailbox_manager_t *,
                             boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > >,
                             DEBUG_ONLY(int port_offset,)
                             namespace_repo_t<protocol_t> *repo,

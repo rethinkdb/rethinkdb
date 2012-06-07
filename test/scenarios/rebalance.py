@@ -29,14 +29,14 @@ with driver.Metacluster() as metacluster:
     ns = http.add_namespace(protocol = "memcached", primary = primary_dc,
         affinities = {primary_dc.uuid: 1, secondary_dc.uuid: 1})
     http.add_namespace_shard(ns, "j")
-    time.sleep(10)
+    http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     host, port = driver.get_namespace_host(ns, processes)
     workload_runner.run(opts["workload1"], host, port, opts["timeout"])
     cluster.check()
     print "Rebalancing..."
     http.change_namespace_shards(ns, adds = ["q"], removes = ["j"])
-    time.sleep(10)
+    http.wait_until_blueprint_satisfied(ns)
     cluster.check()
     http.check_no_issues()
     workload_runner.run(opts["workload2"], host, port, opts["timeout"])

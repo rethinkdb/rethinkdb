@@ -15,6 +15,7 @@
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 
+#include "config/args.hpp"
 #include "arch/address.hpp"
 #include "arch/io/event_watcher.hpp"
 #include "arch/io/io_utils.hpp"

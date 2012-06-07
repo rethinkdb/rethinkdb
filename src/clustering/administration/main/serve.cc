@@ -37,8 +37,9 @@
 
 bool serve_(
     bool Iamaserver,
-    const std::string &filepath,
     const std::string &logfilepath,
+    // NB. filepath & persistent_file are used iff Iamaserver is true.
+    const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file,
     const std::set<peer_address_t> &joins,
     int port, DEBUG_ONLY(int port_offset,) int client_port,
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
@@ -96,7 +97,7 @@ bool serve_(
         metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view())
         );
 
-    field_copier_t<std::list<clone_ptr_t<local_issue_t> >, cluster_directory_metadata_t> copy_local_issues_to_cluster(
+    field_copier_t<std::list<local_issue_t>, cluster_directory_metadata_t> copy_local_issues_to_cluster(
         &cluster_directory_metadata_t::local_issues,
         local_issue_tracker.get_issues_watchable(),
         &our_root_directory_variable
@@ -106,7 +107,7 @@ bool serve_(
 
     remote_issue_collector_t remote_issue_tracker(
         directory_read_manager.get_root_view()->subview(
-            field_getter_t<std::list<clone_ptr_t<local_issue_t> >, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
+            field_getter_t<std::list<local_issue_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
         directory_read_manager.get_root_view()->subview(
             field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
         );
@@ -228,7 +229,7 @@ bool serve_(
 
     boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!Iamaserver ? NULL :
         new metadata_persistence::semilattice_watching_persister_t(
-            filepath, machine_id, semilattice_manager_cluster.get_root_view(), &local_issue_tracker));
+            persistent_file, machine_id, semilattice_manager_cluster.get_root_view()));
 
     {
         int http_port = port + 1000;
@@ -260,13 +261,13 @@ bool serve_(
     return true;
 }
 
-bool serve(const std::string &filepath, const std::set<peer_address_t> &joins, int port, DEBUG_ONLY(int port_offset,) int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve(const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, int port, DEBUG_ONLY(int port_offset,) int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     std::string logfilepath = filepath + "/log_file";
-    return serve_(true, filepath, logfilepath, joins, port, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return serve_(true, logfilepath, filepath, persistent_file, joins, port, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
 bool serve_proxy(const std::string &logfilepath, const std::set<peer_address_t> &joins, DEBUG_ONLY(int port_offset,) int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     // we give a port of 0 to indicate that the OS should assign us a port.
-    // filepath is ignored for proxies, so we just use the empty string.
-    return serve_(false, "", logfilepath, joins, 0, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
+    // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
+    return serve_(false, logfilepath, "", NULL, joins, 0, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
 }

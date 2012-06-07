@@ -43,10 +43,22 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     }
 
 #ifndef NDEBUG
-    branch_birth_certificate_t<protocol_t> this_branch_history =
-        branch_history->get().branches[branch_id];
 
-    rassert(region_is_superset(this_branch_history.region, store->get_region()));
+    // We be paranoid and avoid calling branch_history->get() multiple
+    // times, so that we have one copy of the map and iterator
+    // comparisons work properly.
+
+    const std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > &actual_branches = branch_history->get().branches;
+
+    typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator branches_iterator
+        = actual_branches.find(branch_id);
+
+    // This check has failed before, see issue #728.
+    guarantee(branches_iterator != actual_branches.end());
+
+    branch_birth_certificate_t<protocol_t> this_branch_history = branches_iterator->second;
+
+    guarantee(region_is_superset(this_branch_history.region, store->get_region()));
 
     /* Sanity-check to make sure we're on the same timeline as the thing
        we're trying to join. The backfiller will perform an equivalent check,

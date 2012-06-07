@@ -83,7 +83,7 @@ class Blueprint(object):
         return { u"peers_roles": self.peers_roles }
 
     def __str__(self):
-        return "Blueprint()"
+        return "Blueprint(%r)" % self.to_json()
 
 class Namespace(object):
     def __init__(self, uuid, json_data):
@@ -484,6 +484,7 @@ class ClusterAccess(object):
         self.update_cluster_data()
 
     def add_namespace_shard(self, namespace, split_point):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -494,6 +495,7 @@ class ClusterAccess(object):
         self.update_cluster_data()
 
     def remove_namespace_shard(self, namespace, split_point):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -504,6 +506,7 @@ class ClusterAccess(object):
         self.update_cluster_data()
 
     def change_namespace_shards(self, namespace, adds=[], removes=[]):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -522,6 +525,7 @@ class ClusterAccess(object):
         return namespace.port + machine.port_offset
 
     def get_namespace_host(self, namespace, selector = None):
+        namespace = self.find_namespace(namespace)
         # selector may be a specific machine or datacenter to use, none will take any
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -542,6 +546,7 @@ class ClusterAccess(object):
         return ("localhost", self.compute_port(namespace, machine))
 
     def get_datacenter_in_namespace(self, namespace, primary = None):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
         if primary is not None:
@@ -554,7 +559,7 @@ class ClusterAccess(object):
         return random.choice(datacenters)
 
     def get_machine_in_datacenter(self, datacenter):
-        assert self.datacenters[datacenter.uuid] is datacenter
+        datacenter = self.find_datacenter(datacenter)
         # Build a list of machines in the given datacenter
         machines = [ ]
         for serv in self.machines.itervalues():
@@ -579,6 +584,39 @@ class ClusterAccess(object):
     def get_distribution(self, namespace, depth = 1):
         return self.do_query("GET", "/ajax/distribution?namespace=%s&depth=%d" % (namespace.uuid, depth))
 
+    def is_blueprint_satisfied(self, namespace):
+        namespace = self.find_namespace(namespace)
+        key_name = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces" }[type(namespace)]
+        directory = self.do_query("GET", "/ajax/directory/_")
+        blueprint = self.do_query("GET", "/ajax/%s/%s/blueprint" % (key_name, namespace.uuid))
+        for peer, shards in blueprint["peers_roles"].iteritems():
+            if peer in directory:
+                subdirectory = directory[peer]
+            else:
+                return False
+            if namespace.uuid in subdirectory[key_name]["reactor_bcards"]:
+                reactor_bcard = subdirectory[key_name]["reactor_bcards"][namespace.uuid]
+            else:
+                return False
+            for shard_range, shard_role in shards.iteritems():
+                for act_id, (act_range, act_info) in reactor_bcard["activity_map"].iteritems():
+                    if act_range == shard_range:
+                        if shard_role == "role_primary" and act_info["type"] == "primary":
+                            break
+                        elif shard_role == "role_secondary" and act_info["type"] == "secondary_up_to_date":
+                            break
+                        elif shard_role == "role_nothing" and act_info["type"] == "nothing":
+                            break
+                else:
+                    return False
+        return True
+
+    def wait_until_blueprint_satisfied(self, namespace, timeout = 60):
+        start_time = time.time()
+        while not self.is_blueprint_satisfied(namespace):
+            time.sleep(1)
+            if time.time() - start_time > timeout:
+                raise RuntimeError("Blueprint still not satisfied after %d seconds." % timeout)
 
     def _pull_cluster_data(self, cluster_data, local_data, data_type):
         for uuid in cluster_data.iterkeys():
