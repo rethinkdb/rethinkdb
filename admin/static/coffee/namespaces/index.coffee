@@ -109,19 +109,19 @@ module 'NamespaceView', ->
                 need_to_increase = true
                 switch formdata.protocol
                     when "Memcached"
-                        formdata.port = 11211
+                        formdata.port = 11213
                     when "Redis"
                         formdata.port = 6379
                     when "Riak"
                         formdata.port = 8098
                     when "MongoDB"
                         formdata.port = 27017
-             if need_to_increase is true
-                used_ports = {}
-                for namespace in namespaces.models
-                    used_ports[namespace.get('port')] = true
-                    while formdata.port of used_ports
-                        formdata.port++
+                if need_to_increase is true
+                    used_ports = {}
+                    for namespace in namespaces.models
+                        used_ports[namespace.get('port')] = true
+                        while formdata.port of used_ports
+                            formdata.port += 123
             else if @isnt_integer(formdata.port)
                 input_error = true
                 template_error.port_isnt_integer = true
