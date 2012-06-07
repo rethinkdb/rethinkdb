@@ -337,7 +337,7 @@ template <class protocol_t>
 void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
         transition_timestamp_t transition_timestamp,
         fifo_enforcer_write_token_t fifo_token,
-        mailbox_addr_t<void()> ack_addr)
+        mailbox_addr_t<void(listener_write_ack_t)> ack_addr)
         THROWS_NOTHING 
 {
     fifo_queue.push(fifo_token, boost::bind(&listener_t<protocol_t>::perform_write, this, write, transition_timestamp, fifo_token, ack_addr));
@@ -347,7 +347,7 @@ template <class protocol_t>
 void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
 	transition_timestamp_t transition_timestamp,
 	fifo_enforcer_write_token_t fifo_token,
-	mailbox_addr_t<void()> ack_addr)
+	mailbox_addr_t<void(listener_write_ack_t)> ack_addr)
 	THROWS_NOTHING 
 {
     try {
@@ -381,7 +381,7 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
                 rassert(write_queue);
                 write_queue->push(std::make_pair(write, transition_timestamp));
                 debugf("Pushed a write on the queue its size is now: %d\n", write_queue->size());
-                send(mailbox_manager, ack_addr);
+                send(mailbox_manager, ack_addr, listener_write_ack_enqueued);
                 return;
                 break;
             default:
@@ -423,7 +423,7 @@ void listener_t<protocol_t>::perform_write(typename protocol_t::write_t write,
                 token,
                 &non_interruptor);
 
-        send(mailbox_manager, ack_addr);
+        send(mailbox_manager, ack_addr, listener_write_ack_performed);
     } catch (interrupted_exc_t) {
         return;
     }

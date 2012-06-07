@@ -77,6 +77,13 @@ public:
 /* Every `listener_t` constructs a `listener_business_card_t` and sends it to
 the `broadcaster_t`. */
 
+enum listener_write_ack_t {
+    listener_write_ack_performed,
+    listener_write_ack_enqueued
+};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(listener_write_ack_t, int8_t, listener_write_ack_performed, listener_write_ack_enqueued);
+
 template<class protocol_t>
 class listener_business_card_t {
 
@@ -86,7 +93,7 @@ public:
 
     typedef mailbox_t< void(
         typename protocol_t::write_t, transition_timestamp_t, fifo_enforcer_write_token_t,
-        mailbox_addr_t<void()>
+        mailbox_addr_t<void(listener_write_ack_t)>
         )> write_mailbox_t;
 
     typedef mailbox_t< void(

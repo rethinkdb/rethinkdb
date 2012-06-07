@@ -266,23 +266,25 @@ Important: These functions must send the message before responding to
 `interruptor` being pulsed. */
 
 template<class protocol_t>
-void listener_write(
+listener_write_ack_t listener_write(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t &write_mailbox,
         typename protocol_t::write_t w, transition_timestamp_t ts, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
-    cond_t ack_cond;
-    mailbox_t<void()> ack_mailbox(
+    promise_t<listener_write_ack_t> ack_cond;
+    mailbox_t<void(listener_write_ack_t)> ack_mailbox(
         mailbox_manager,
-        boost::bind(&cond_t::pulse, &ack_cond),
+        boost::bind(&promise_t<listener_write_ack_t>::pulse, &ack_cond, _1),
         mailbox_callback_mode_inline);
 
     send(mailbox_manager, write_mailbox,
         w, ts, token, ack_mailbox.get_address());
 
-    wait_interruptible(&ack_cond, interruptor);
+    wait_interruptible(ack_cond.get_ready_signal(), interruptor);
+
+    return ack_cond.get_value();
 }
 
 template<class protocol_t>
@@ -573,11 +575,13 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
 
             write_ref.get()->notify_acked(mirror->get_peer(), resp);
         } else {
-            listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
+            listener_write_ack_t ack = listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
                     write_ref.get()->write, write_ref.get()->timestamp, token,
                     mirror_lock.get_drain_signal());
 
-            write_ref.get()->notify_acked(mirror->get_peer());
+            if (ack == listener_write_ack_performed) {
+                write_ref.get()->notify_acked(mirror->get_peer());
+            }
         }
     } catch (interrupted_exc_t) {
         return;

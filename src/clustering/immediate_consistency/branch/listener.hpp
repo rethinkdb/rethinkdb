@@ -111,13 +111,13 @@ private:
     void on_write(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
             fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void()> ack_addr)
+            mailbox_addr_t<void(listener_write_ack_t)> ack_addr)
 	THROWS_NOTHING;
 
     void perform_write(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
             fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void()> ack_addr)
+            mailbox_addr_t<void(listener_write_ack_t)> ack_addr)
 	THROWS_NOTHING;
 
     void perform_backlogged_write(std::pair<typename protocol_t::write_t, transition_timestamp_t> serialized_write) 
