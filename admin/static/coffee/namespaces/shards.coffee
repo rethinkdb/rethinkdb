@@ -142,7 +142,7 @@ module 'NamespaceView', ->
                 @desired_shards = form_data_as_object($('form', @.el)).num_shards
                 @render()
                 return
-            @desired_shards = parseInt(form_data_as_object($('form', @.el)).num_shards)
+            @desired_shards = parseInt(form_data_as_object($('form', @.el)).num_shards) #It's safe to use parseInt now
             if @desired_shards < 1 or @desired_shards > MAX_SHARD_COUNT
                 @error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
                 @render()
