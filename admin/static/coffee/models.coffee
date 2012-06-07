@@ -798,3 +798,7 @@ module 'DataUtils', ->
         json.backfill_progress = @get_backfill_progress_agg(namespace_uuid, datacenter_uuid)
 
         return json
+
+    @is_integer = (data) ->
+        return data.search(/^\d+$/) isnt -1
+

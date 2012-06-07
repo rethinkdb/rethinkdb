@@ -720,6 +720,7 @@ tags:
 	$(QUIET) ctags $(TAGFLAGS) -f $(TAGS)
 
 etags:
+	$(QUIET) rm -f $(ETAGS)
 	$(QUIET) ctags -e $(TAGFLAGS) -f $(ETAGS)
 
 cscope:
@@ -729,7 +730,7 @@ analyze: $(SOURCES)
 	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
 
 style:
-	$(QUIET) find . -name \*.cc -o -name \*.hpp -o -name \*.tcc | xargs -d\\n ../scripts/cpplint --verbose 5 --basedir=. --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,+build/include_order,-whitespace/labels,-runtime/references,-whitespace/blank_line,-readability/function,-build/include_order 2>&1 | grep -v Done\ processing
+	$(QUIET) ../scripts/check_style.sh 
 
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null
