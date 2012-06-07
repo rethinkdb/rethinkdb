@@ -10,7 +10,7 @@
 
 //TODO make sure this doesn't get messed up if we run on a machine that doesn't
 //have less installed
-#define HELP_VIEWER "less"
+#define HELP_VIEWER "less -R"
 
 /* !< \brief Class to create pageable help messages instead of print them to
  * stderr
