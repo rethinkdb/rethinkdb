@@ -44,7 +44,7 @@
       <div class="clearfix">
         <label for="port">Port</label>
         <div class="input">
-          <input class="xlarge" name="port" size="5" type="text" />
+          <input class="xlarge" name="port" size="5" type="text" value="{{default_port}}"/>
         </div>
       </div>
       <div class="clearfix">
@@ -52,9 +52,7 @@
         <div class="input">
           <select class="protocol" name="protocol">
             <option>Memcached</option>
-            <option>Redis</option>
-            <option>Riak</option>
-            <option>MongoDB</option>
+            <!-- <option>RethinkDB/option>-->
           </select>
         </div>
       </div>

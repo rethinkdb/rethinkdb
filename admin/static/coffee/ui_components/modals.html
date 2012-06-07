@@ -54,9 +54,12 @@
 
 <script id="error_input-template" type="text/x-handlebars-template">
   <div class="alert alert-error" data-alert="alert">
-    <a class="close_error" href="#">&times;</a>
+      <a class="close_error" href="#">&times;</a>
+    {{#if port_is_used}}
+        <p>Sorry the port you have chosen is already used.<p>
+    {{/if}}
     {{#if port_isnt_integer}}
-        <p>Please enter an integer for the port or leave it blank to automatically select a port.</p>
+        <p>Please enter an integer.</p>
     {{/if}}
     {{#if namespace_is_empty}}
         <p>Please do not use an empty namespace.</p>
