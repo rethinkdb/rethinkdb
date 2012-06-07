@@ -6,6 +6,7 @@ module 'NamespaceView', ->
     class @NamespaceList extends UIComponents.AbstractList
         # Use a namespace-specific template for the namespace list
         template: Handlebars.compile $('#namespace_list-template').html()
+        error_template: Handlebars.compile $('#error_adding_namespace-template').html()
 
         # Extend the generic list events
         events: ->
@@ -38,9 +39,13 @@ module 'NamespaceView', ->
             machine_list_element.on 'selected', @update_toolbar_buttons
 
         add_namespace: (event) =>
-            log_action 'add namespace button clicked'
-            @add_namespace_dialog.render()
             event.preventDefault()
+            if datacenters.length is 0
+                @.$('#user-alert-space').html @error_template
+                @.$('#user-alert-space').alert()
+            else
+                log_action 'add namespace button clicked'
+                @add_namespace_dialog.render()
 
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'
