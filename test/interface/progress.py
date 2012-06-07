@@ -35,6 +35,6 @@ with driver.Metacluster() as metacluster:
             for activity_id, temp3 in temp2.iteritems():
                 for region, progress_val in temp3.iteritems():
                     assert(progress_val[0] != "Timeout")
-                    assert(progress_val[0] < progress_val[1])
+                    assert(progress_val[0][0] <= progress_val[0][1])
 
     cluster.check_and_stop()

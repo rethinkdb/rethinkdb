@@ -13,7 +13,7 @@
 #include "http/json/json_adapter.hpp"
 
 static const char * PROGRESS_REQ_TIMEOUT_PARAM = "timeout";
-static const uint64_t DEFAULT_PROGRESS_REQ_TIMEOUT_MS = 500;
+static const uint64_t DEFAULT_PROGRESS_REQ_TIMEOUT_MS = 2000;
 static const uint64_t MAX_PROGRESS_REQ_TIMEOUT_MS = 60*1000;
 
 /* A record of a request made to another peer for progress on a backfill. */
