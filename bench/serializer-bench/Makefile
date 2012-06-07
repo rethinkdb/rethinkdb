@@ -10,7 +10,6 @@ EXTERNAL_SOURCE_DIR:=/usr/src/rethinkdb_lib_external
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a
 
 serializer-bench: main.cc Makefile
-	echo $(STATIC_LIBRARY_PATHS)
 	cd ../../src && make DEBUG=0 -j8
 	g++ main.cc -I ../../src/ -c -o main.o $(CXXFLAGS)
 	g++ main.o `find $(OBJDIR) -name "*.o" | grep -v main.o` $(STATIC_LIBRARY_PATHS) -o serializer-bench $(LDFLAGS)

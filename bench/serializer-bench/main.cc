@@ -55,11 +55,7 @@ void transact(serializer_t *ser, log_t *log, unsigned inserts, unsigned updates,
         writes.push_back(serializer_write_t::make_update(ser->max_block_id() + i, tstamp, dummy_buf));
     }
 
-    ticks_t start_time = get_ticks();
-
     do_writes(ser, writes, DEFAULT_DISK_ACCOUNT);
-
-    ticks_t end_time = get_ticks();
 
     ser->free(dummy_buf);
 
