@@ -233,9 +233,14 @@ module 'NamespaceView', ->
                 unsaved_settings: user_made_changes
                 error_msg: @error_msg
             @error_msg = null
+
+            shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
             @.$el.html(@template json)
             
             @render_only_shards
+
+            @.$('.shards tbody').html ''
+            @.$('.shards tbody').append view.render().el for view in shard_views
 
             # Control the suggest button
             @.$('.btn-compute-shards-suggestion').button()
@@ -249,8 +254,8 @@ module 'NamespaceView', ->
             return @
 
         render_only_shards: =>
-            @.$('.shards tbody').html ''
             shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
+            @.$('.shards tbody').html ''
             @.$('.shards tbody').append view.render().el for view in shard_views
 
 
