@@ -136,6 +136,15 @@ void debug_print(append_only_printf_buffer_t *buf, const key_range_t &kr) {
     buf->appendf(")");
 }
 
+void debug_print(append_only_printf_buffer_t *buf, const store_key_t *k) {
+    if (k) {
+        debug_print(buf, *k);
+    } else {
+        buf->appendf("NULL");
+    }
+}
+
+
 bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b) {
     return a.unbounded == b.unbounded && a.key == b.key;
 }
@@ -168,3 +177,4 @@ bool operator!=(key_range_t a, key_range_t b) THROWS_NOTHING {
 bool operator<(const key_range_t &a, const key_range_t &b) THROWS_NOTHING {
     return (a.left < b.left || (a.left == b.left && a.right < b.right));
 }
+
