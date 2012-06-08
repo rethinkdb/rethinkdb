@@ -345,7 +345,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     web_path.nodes.push_back("web");
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins, port, http_port, client_port,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins, port, client_port, http_port,
                                    DEBUG_ONLY(vm["port-offset"].as<int>(),)
                                    &result, render_as_path(web_path)));
 
