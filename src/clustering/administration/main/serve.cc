@@ -1,14 +1,9 @@
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
+#include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/auto_reconnect.hpp"
 #include "clustering/administration/http/server.hpp"
-#include "clustering/administration/issues/global.hpp"
-#include "clustering/administration/issues/local_to_global.hpp"
-#include "clustering/administration/issues/machine_down.hpp"
-#include "clustering/administration/issues/name_conflict.hpp"
-#include "clustering/administration/issues/pinnings_shards_mismatch.hpp"
-#include "clustering/administration/issues/unsatisfiable_goals.hpp"
-#include "clustering/administration/issues/vector_clock_conflict.hpp"
+#include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/serve.hpp"
@@ -32,8 +27,6 @@
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "rpc/semilattice/view/function.hpp"
-#include "rpc/semilattice/view/member.hpp"
 
 bool serve_(
     bool Iamaserver,
@@ -103,52 +96,8 @@ bool serve_(
         &our_root_directory_variable
         );
 
-    global_issue_aggregator_t issue_aggregator;
-
-    remote_issue_collector_t remote_issue_tracker(
-        directory_read_manager.get_root_view()->subview(
-            field_getter_t<std::list<local_issue_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
-        directory_read_manager.get_root_view()->subview(
-            field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
-        );
-    global_issue_aggregator_t::source_t remote_issue_tracker_feed(&issue_aggregator, &remote_issue_tracker);
-
-    machine_down_issue_tracker_t machine_down_issue_tracker(
-        semilattice_manager_cluster.get_root_view(),
-        directory_read_manager.get_root_view()->subview(
-            field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
-        );
-    global_issue_aggregator_t::source_t machine_down_issue_tracker_feed(&issue_aggregator, &machine_down_issue_tracker);
-
-    name_conflict_issue_tracker_t name_conflict_issue_tracker(
-        semilattice_manager_cluster.get_root_view()
-        );
-    global_issue_aggregator_t::source_t name_conflict_issue_tracker_feed(&issue_aggregator, &name_conflict_issue_tracker);
-
-    vector_clock_conflict_issue_tracker_t vector_clock_conflict_issue_tracker(
-        semilattice_manager_cluster.get_root_view()
-        );
-    global_issue_aggregator_t::source_t vector_clock_conflict_issue_tracker_feed(&issue_aggregator, &vector_clock_conflict_issue_tracker);
-
-    pinnings_shards_mismatch_issue_tracker_t<memcached_protocol_t> mc_pinnings_shards_mismatch_issue_tracker(
-        metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view())
-        );
-    global_issue_aggregator_t::source_t mc_pinnings_shards_mismatch_issue_tracker_feed(&issue_aggregator, &mc_pinnings_shards_mismatch_issue_tracker);
-
-    pinnings_shards_mismatch_issue_tracker_t<mock::dummy_protocol_t> dummy_pinnings_shards_mismatch_issue_tracker(
-        metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view())
-        );
-    global_issue_aggregator_t::source_t dummy_pinnings_shards_mismatch_issue_tracker_feed(&issue_aggregator, &dummy_pinnings_shards_mismatch_issue_tracker);
-
-    unsatisfiable_goals_issue_tracker_t unsatisfiable_goals_issue_tracker(
-        semilattice_manager_cluster.get_root_view());
-    global_issue_aggregator_t::source_t unsatisfiable_goals_issue_tracker_feed(&issue_aggregator, &unsatisfiable_goals_issue_tracker);
-
-    last_seen_tracker_t last_seen_tracker(
-        metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
-        directory_read_manager.get_root_view()->subview(
-            field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
-        );
+    admin_tracker_t admin_tracker(
+        semilattice_manager_cluster.get_root_view(), directory_read_manager.get_root_view());
 
     perfmon_collection_t proc_stats_collection("proc", NULL, true, true);
     proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
@@ -242,8 +191,7 @@ bool serve_(
             semilattice_manager_cluster.get_root_view(),
             directory_read_manager.get_root_view(),
             &memcached_namespace_repo,
-            &issue_aggregator,
-            &last_seen_tracker,
+            &admin_tracker,
             machine_id,
             web_assets);
 

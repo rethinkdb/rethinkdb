@@ -19,7 +19,6 @@
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/semilattice/view.hpp"
-#include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "do_on_thread.hpp"
 #include "perfmon.hpp"
@@ -233,27 +232,7 @@ admin_cluster_link_t::admin_cluster_link_t(const std::set<peer_address_t> &joins
     message_multiplexer_run(&message_multiplexer),
     connectivity_cluster_run(&connectivity_cluster, 0, &message_multiplexer_run, client_port),
     semilattice_metadata(semilattice_manager_cluster.get_root_view()),
-    issue_aggregator(),
-    remote_issue_tracker(
-        directory_read_manager.get_root_view()->subview(
-            field_getter_t<std::list<local_issue_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::local_issues)),
-        directory_read_manager.get_root_view()->subview(
-            field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))
-        ),
-    remote_issue_tracker_feed(&issue_aggregator, &remote_issue_tracker),
-    machine_down_issue_tracker(semilattice_metadata,
-        directory_read_manager.get_root_view()->subview(field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id))),
-    machine_down_issue_tracker_feed(&issue_aggregator, &machine_down_issue_tracker),
-    name_conflict_issue_tracker(semilattice_metadata),
-    name_conflict_issue_tracker_feed(&issue_aggregator, &name_conflict_issue_tracker),
-    vector_clock_conflict_issue_tracker(semilattice_metadata),
-    vector_clock_issue_tracker_feed(&issue_aggregator, &vector_clock_conflict_issue_tracker),
-    mc_pinnings_shards_mismatch_issue_tracker(metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_metadata)),
-    mc_pinnings_shards_mismatch_issue_tracker_feed(&issue_aggregator, &mc_pinnings_shards_mismatch_issue_tracker),
-    dummy_pinnings_shards_mismatch_issue_tracker(metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_metadata)),
-    dummy_pinnings_shards_mismatch_issue_tracker_feed(&issue_aggregator, &dummy_pinnings_shards_mismatch_issue_tracker),
-    unsatisfiable_goals_issue_tracker(semilattice_metadata),
-    unsatisfiable_goals_issue_tracker_feed(&issue_aggregator, &unsatisfiable_goals_issue_tracker),
+    admin_tracker(semilattice_metadata, directory_read_manager.get_root_view()),
     initial_joiner(&connectivity_cluster, &connectivity_cluster_run, joins, 5000),
     curl_handle(curl_easy_init()),
     curl_header_list(curl_slist_append(NULL, "Content-Type:application/json")),
@@ -387,7 +366,7 @@ std::vector<std::string> admin_cluster_link_t::get_conflicted_ids(const std::str
     std::set<std::string> unique_set;
     std::vector<std::string> results;
 
-    std::list<clone_ptr_t<vector_clock_conflict_issue_t> > conflicts = vector_clock_conflict_issue_tracker.get_vector_clock_issues();
+    std::list<clone_ptr_t<vector_clock_conflict_issue_t> > conflicts = admin_tracker.vector_clock_conflict_issue_tracker.get_vector_clock_issues();
 
     for (std::list<clone_ptr_t<vector_clock_conflict_issue_t> >::iterator i = conflicts.begin(); i != conflicts.end(); ++i) {
         unique_set.insert(uuid_to_str(i->get()->object_id));
@@ -1229,7 +1208,7 @@ void admin_cluster_link_t::do_admin_list_directory(admin_command_parser_t::comma
 }
 
 void admin_cluster_link_t::do_admin_list_issues(admin_command_parser_t::command_data& data UNUSED) {
-    std::list<clone_ptr_t<global_issue_t> > issues = issue_aggregator.get_issues();
+    std::list<clone_ptr_t<global_issue_t> > issues = admin_tracker.issue_aggregator.get_issues();
     for (std::list<clone_ptr_t<global_issue_t> >::iterator i = issues.begin(); i != issues.end(); ++i) {
         puts((*i)->get_description().c_str());
     }
@@ -2566,7 +2545,7 @@ size_t admin_cluster_link_t::available_machine_count() {
 }
 
 size_t admin_cluster_link_t::issue_count() {
-    return issue_aggregator.get_issues().size();
+    return admin_tracker.issue_aggregator.get_issues().size();
 }
 
 std::string admin_cluster_link_t::path_to_str(const std::vector<std::string>& path) {
