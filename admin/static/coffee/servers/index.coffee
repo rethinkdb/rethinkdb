@@ -453,6 +453,8 @@ module 'ServerView', ->
     class @AddDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_datacenter-alert-template').html()
+        error_template: Handlebars.compile $('#error_input-template').html()
+
         class: 'add-datacenter'
 
         initialize: ->
@@ -469,13 +471,32 @@ module 'ServerView', ->
             super
             @formdata = form_data_as_object($('form', @$modal))
 
-            $.ajax
-                processData: false
-                url: '/ajax/datacenters/new'
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify({"name" : @formdata.name})
-                success: @on_success
+            no_error = true
+            if @formdata.name is ''
+                no_error = false
+                template_error =
+                    datacenter_is_empty: true
+                $('.alert_modal').html @error_template template_error
+                $('.alert_modal').alert()
+                @reset_buttons()
+            else
+                for datacenter in datacenters.models
+                    if datacenter.get('name') is @formdata.name
+                        no_error = false
+                        template_error =
+                            datacenter_exists: true
+                        $('.alert_modal').html @error_template template_error
+                        $('.alert_modal').alert()
+                        @reset_buttons()
+                        break
+            if no_error is true
+                $.ajax
+                    processData: false
+                    url: '/ajax/datacenters/new'
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify({"name" : @formdata.name})
+                    success: @on_success
 
         on_success: (response) ->
             super

@@ -1,5 +1,12 @@
 #include "hash_region.hpp"
 
+#include <limits.h>
+
+#include "btree/keys.hpp"
+
+// TODO: Perhaps move key_range_t region stuff to btree/keys.hpp.
+#include "memcached/region.hpp"
+
 // TODO: Replace this with a real hash function, if it is not one
 // already.  It needs the property that values are uniformly
 // distributed beteween 0 and UINT64_MAX / 2, so that splitting
@@ -43,7 +50,7 @@ const store_key_t *double_key_lookup(int i, const std::vector<hash_region_t<key_
         if (r.inner.right.unbounded) {
             return NULL;
         } else {
-            return &r.inner.key;
+            return &r.inner.right.key;
         }
     }
 }
@@ -51,7 +58,7 @@ const store_key_t *double_key_lookup(int i, const std::vector<hash_region_t<key_
 
 class hash_splitpoint_comparer_t {
 public:
-    hash_splitpoint_comparer_t(const std::vector< hash_region_t<key_range_t> > &vec) : vec_(vec) { }
+    hash_splitpoint_comparer_t(const std::vector< hash_region_t<key_range_t> > *vec) : vec_(vec) { }
 
     int compare(int i, int j) {
         uint64_t ival = double_hash_lookup(i, *vec_);
@@ -82,7 +89,7 @@ public:
             if (jval == NULL) {
                 return -1;
             } else {
-                return ival->compare(*jval)
+                return ival->compare(*jval);
             }
         }
     }
@@ -142,81 +149,58 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
 
     std::vector<int>::iterator key_beg = key_splitpoints.begin();
     std::sort(key_beg, key_splitpoints.end(), key_less);
-    std::vector<int>::iterator key_end = std::unique(key_beg, key_splitpoints.end(); key_eq);
+    std::vector<int>::iterator key_end = std::unique(key_beg, key_splitpoints.end(), key_eq);
 
     // TODO: Finish implementing this function.
-    // int width = hash_end - hash_beg - 1
-    std::vector<bool>
+    int granular_height = hash_end - hash_beg - 1;
+    int granular_width = key_end - key_beg - 1;
 
-
-
-
-
-
-
-    // Our regions are generally limited to being rectangles.  Here we
-    // only support joins that join things row-wise or column-wise.
-    // Either all the begs and ends are the same, or all the inners
-    // are the same, of the regions in the vec.
-
-    if (vec.empty()) {
-	*out = hash_region_t<inner_region_t>();
-	return REGION_JOIN_OK;
+    if (granular_width <= 0 || granular_height <= 0) {
+        *out = hash_region_t<key_range_t>();
+        return REGION_JOIN_OK;
     }
 
-    if (all_have_same_hash_interval(vec)) {
-	// Try joining the inner regions.
-	std::vector<inner_region_t> inners;
-	inners.reserve(vec.size());
+    guarantee(granular_width < INT_MAX / granular_height);
 
-	for (int i = 0, e = vec.size(); i < e; ++i) {
-	    inners.push_back(vec[i].inner);
-	}
+    std::vector<bool> covered(granular_width * granular_height, false);
 
-	region_join_result_t res;
-	inner_region_t inner;
-	res = region_join(inners, &inner);
-	if (res == REGION_JOIN_OK) {
-	    *out = hash_region_t<inner_region_t>(vec[0].beg, vec[0].end, inner);
-	}
+    int num_covered = 0;
 
-	return res;
-    }
-
-    if (all_have_same_inner(vec)) {
-	std::vector< std::pair<uint64_t, uint64_t> > intervals;
-	intervals.reserve(vec.size());
-
-	for (int i = 0, e = vec.size(); i < e; ++i) {
-	    intervals.push_back(std::pair<uint64_t, uint64_t>(vec[i].beg, vec[i].end));
-	}
-
-	std::sort(intervals.begin(), intervals.end());
-
-	for (int i = 1, e = intervals.size(); i < e; ++i) {
-	    // TODO: Why the fuck is one a "bad region" and one a "bad
-	    // join"?
-	    if (intervals[i - 1].second < intervals[i].first) {
-		return REGION_JOIN_BAD_REGION;
-	    } else if (intervals[i - 1].second > intervals[i].first) {
-		return REGION_JOIN_BAD_JOIN;
-	    }
-	}
-
-	*out = hash_region_t<inner_region_t>(intervals.front().first, intervals.back().second, vec[0].inner);
-	return REGION_JOIN_OK;
-    }
-
-    debugf("bad region join\n");
     for (int i = 0, e = vec.size(); i < e; ++i) {
-        debugf("bad region join %d/%d\n", i, e);
-        debugf_print("region", vec[i]);
+        std::vector<int>::iterator beg_pos = std::lower_bound(hash_beg, hash_end, 2 * i, hash_less);
+        std::vector<int>::iterator end_pos = std::lower_bound(beg_pos, hash_end, 2 * i + 1, hash_less);
+
+        std::vector<int>::iterator left_pos = std::lower_bound(key_beg, key_end, 2 * i, key_less);
+        std::vector<int>::iterator right_pos = std::upper_bound(left_pos, key_end, 2 * i + 1, key_less);
+
+        for (std::vector<int>::iterator it = beg_pos; it < end_pos; ++it) {
+            for (std::vector<int>::iterator jt = left_pos; jt < right_pos; ++jt) {
+                int ix = (it - hash_beg) * granular_width + (jt - key_beg);
+                if (covered[ix]) {
+                    return REGION_JOIN_BAD_JOIN;
+                }
+                covered[ix] = true;
+                num_covered += 1;
+            }
+        }
     }
-    debugf("DONE\n");
 
-    // TODO: Invent a new error code like REGION_JOIN_BAD_RECTANGLE.
-    // I think it's always a sign of programmer error.
-    rassert(false, "bad rectangle");
+    if (num_covered < granular_width * granular_height) {
+        return REGION_JOIN_BAD_REGION;
+    }
 
-    return REGION_JOIN_BAD_REGION;  // Or is it BAD_JOIN?  BAD_RECTANGLE?
+    const store_key_t *out_left = double_key_lookup(*key_beg, vec);
+    const store_key_t *out_right = double_key_lookup(*(key_end - 1), vec);
+    uint64_t out_beg = double_hash_lookup(*hash_beg, vec);
+    uint64_t out_end = double_hash_lookup(*(hash_end - 1), vec);
+
+    rassert(out_left != NULL);
+
+    if (out_right != NULL) {
+        *out = hash_region_t<key_range_t>(out_beg, out_end, key_range_t(key_range_t::closed, *out_left, key_range_t::open, *out_right));
+    } else {
+        *out = hash_region_t<key_range_t>(out_beg, out_end, key_range_t(key_range_t::closed, *out_left, key_range_t::none, store_key_t()));
+    }
+
+    return REGION_JOIN_OK;
 }

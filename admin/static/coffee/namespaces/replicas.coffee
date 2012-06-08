@@ -161,12 +161,16 @@ module 'NamespaceView', ->
                 btn_primary_text: 'Commit'
             return json
 
-        render_inner: (error_msg) ->
+        render_inner: (error_msg, nreplicas_input, nacks_input) ->
             log_render '(rendering) modify replicas dialog (inner)'
             json = @compute_json()
             if error_msg?
                 @reset_buttons()
                 json['error_msg'] = error_msg
+            if nreplicas_input?
+                json.nreplicas_input = nreplicas_input
+            if nacks_input?
+                json.nacks_input = nacks_input
             @.$('.modal-body').html(@template json)
 
         render: ->
@@ -177,23 +181,39 @@ module 'NamespaceView', ->
             super
             formdata = form_data_as_object($('form', @$modal))
 
-            # validate first
-            msg = ''
-            @nreplicas = parseInt(formdata.num_replicas)
-            @nacks = parseInt(formdata.num_acks)
+            # Validate first
+            msg_error = []
+            if DataUtils.is_integer(formdata.num_replicas) is false
+                msg_error.push('The number of replicas must be an integer.')
+                nreplicas_input = formdata.num_replicas
+                nacks_input = formdata.num_acks
+            if DataUtils.is_integer(formdata.num_acks) is false
+                msg_error.push('The number of acks must be an integer.')
+                nreplicas_input = formdata.num_replicas
+                nacks_input = formdata.num_acks
+            if msg_error.length isnt 0
+                @render_inner msg_error, nreplicas_input, nacks_input
+                return
 
-            if @nreplicas > @total_machines
-                msg += 'The number of replicas (' + @nreplicas + ') cannot exceed the total number of machines (' + @total_machines + ').'
-                @render_inner msg
+            # It is now safe to use parseInt
+            nreplicas_input = parseInt(formdata.num_replicas)
+            nacks_input = parseInt(formdata.num_acks)
+
+            msg_error = []
+            if nreplicas_input > @total_machines
+                msg_error.push('The number of replicas (' + nreplicas_input + ') cannot exceed the total number of machines (' + @total_machines + ').')
+            if nreplicas_input is 0 and @namespace.get('primary_uuid') is @datacenter.get('id')
+                msg_error.push('The number of replicas must be at least one because ' + @datacenter.get('name') + ' is the primary datacenter for this namespace.')
+            if nacks_input > nreplicas_input
+                msg_error.push('The number of acks (' + nacks_input + ') cannot exceed the total number of replicas (' + nreplicas_input + ').')
+
+            if msg_error.length isnt 0
+                @render_inner msg_error, nreplicas_input, nacks_input
                 return
-            if @nreplicas is 0 and @namespace.get('primary_uuid') is @datacenter.get('id')
-                msg += 'The number of replicas must be at least one because ' + @datacenter.get('name') + ' is the primary datacenter for this namespace.'
-                @render_inner msg
-                return
-            if @nacks > @nreplicas
-                msg += 'The number of acks (' + @nacks + ') cannot exceed the total number of replicas (' + @nreplicas + ').'
-                @render_inner msg
-                return
+
+            # No error, we can save the change on replicas/acks
+            @nreplicas = nreplicas_input
+            @acks = nacks_input
 
             # Generate json
             replica_affinities_to_send = {}

@@ -12,6 +12,8 @@
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
+class key_range_t;
+
 // Returns a value in [0, HASH_REGION_HASH_SIZE).
 const uint64_t HASH_REGION_HASH_SIZE = 1ULL << 63;
 uint64_t hash_region_hasher(const uint8_t *s, ssize_t len);
@@ -118,7 +120,7 @@ bool all_have_same_inner(const std::vector< hash_region_t<inner_region_t> > &vec
 }
 
 MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_range_t> > &vec,
-					  hash_region_t<key_range_t> *out) {
+					  hash_region_t<key_range_t> *out);
 
 
 template <class inner_region_t>

@@ -10,7 +10,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "buffer_cache/types.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/access.hpp"
 #include "containers/buffer_group.hpp"
 
