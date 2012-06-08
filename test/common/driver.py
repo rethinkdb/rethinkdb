@@ -26,15 +26,17 @@ def unblock_path(source_port, dest_port):
     conn.sendall("unblock %s %s\n" % (str(source_port), str(dest_port)))
     conn.close()
 
-def find_rethinkdb_executable(mode = "debug"):
-    subpath = "build/%s/rethinkdb" % (mode)
+def find_subpath(subpath):
     paths = [subpath, "../" + subpath, "../../" + subpath, "../../../" + subpath]
     if "RETHINKDB" in os.environ:
         paths.append(os.path.join(os.environ["RETHINKDB"], subpath))
     for path in paths:
         if os.path.exists(path):
             return path
-    raise RuntimeError("Can't find RethinkDB executable. Tried these paths: %s" % paths)
+    raise RuntimeError("Can't find path %s.  Tried these paths: %s" % (subpath, paths))
+
+def find_rethinkdb_executable(mode = "debug"):
+    return find_subpath("build/%s/rethinkdb" % mode)
 
 class Metacluster(object):
     """A `Metacluster` is a group of clusters. It's responsible for maintaining
