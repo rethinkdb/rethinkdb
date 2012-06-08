@@ -29,9 +29,9 @@
 #include "rpc/semilattice/view/field.hpp"
 
 bool serve_(
-    bool Iamaserver,
+    bool i_am_a_server,
     const std::string &logfilepath,
-    // NB. filepath & persistent_file are used iff Iamaserver is true.
+    // NB. filepath & persistent_file are used iff i_am_a_server is true.
     const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file,
     const std::set<peer_address_t> &joins,
     int port, DEBUG_ONLY(int port_offset,) int client_port,
@@ -66,7 +66,7 @@ bool serve_(
             get_ips(),
             stat_manager.get_address(),
             log_server.get_business_card(),
-            Iamaserver ? SERVER_PEER : PROXY_PEER
+            i_am_a_server ? SERVER_PEER : PROXY_PEER
         ));
 
     message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
@@ -115,7 +115,7 @@ bool serve_(
     perfmon_collection_repo_t perfmon_repo(NULL);
 
     // Reactor drivers
-    boost::scoped_ptr<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!Iamaserver ? NULL :
+    boost::scoped_ptr<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<mock::dummy_protocol_t>(
             &mailbox_manager,
             directory_read_manager.get_root_view()->subview(
@@ -127,13 +127,13 @@ bool serve_(
             filepath,
             &perfmon_repo));
     boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
-        dummy_reactor_directory_copier(!Iamaserver ? NULL :
+        dummy_reactor_directory_copier(!i_am_a_server ? NULL :
             new field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::dummy_namespaces,
                 dummy_reactor_driver->get_watchable(),
                 &our_root_directory_variable));
 
-    boost::scoped_ptr<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!Iamaserver ? NULL :
+    boost::scoped_ptr<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<memcached_protocol_t>(
             &mailbox_manager,
             directory_read_manager.get_root_view()->subview(
@@ -145,7 +145,7 @@ bool serve_(
             filepath,
             &perfmon_repo));
     boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
-        memcached_reactor_directory_copier(!Iamaserver ? NULL :
+        memcached_reactor_directory_copier(!i_am_a_server ? NULL :
             new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::memcached_namespaces,
                 memcached_reactor_driver->get_watchable(),
@@ -176,7 +176,7 @@ bool serve_(
         &memcached_namespace_repo,
         &perfmon_repo);
 
-    boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!Iamaserver ? NULL :
+    boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
         new metadata_persistence::semilattice_watching_persister_t(
             persistent_file, machine_id, semilattice_manager_cluster.get_root_view()));
 
