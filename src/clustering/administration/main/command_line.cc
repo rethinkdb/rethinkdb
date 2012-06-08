@@ -209,13 +209,13 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
     }
 }
 
-void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, int client_port, int http_port, DEBUG_ONLY(int port_offset,) bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,) bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     cluster_semilattice_metadata_t semilattice_metadata;
     machine_id_t our_machine_id = generate_uuid();
     rassert(!joins.empty());
 
-    *result_out = serve_proxy(logfilepath, look_up_peers_addresses(joins), client_port, http_port, DEBUG_ONLY(port_offset,) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
+    *result_out = serve_proxy(logfilepath, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset,) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
 }
 
 po::options_description get_machine_options() {
@@ -281,10 +281,11 @@ po::options_description get_rethinkdb_serve_options() {
 po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
     desc.add_options()
-        ("http-port", po::value<int>()->default_value(0), "port for http admin console (defaults to randomly selected)")
+        ("port", po::value<int>()->default_value(0), "port for receiving connections from other nodes (defaults to randomly selected)")
         DEBUG_ONLY(
             ("port-offset,o", po::value<int>()->default_value(0), "port to use when connecting to other nodes")
             ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes"))
+        ("http-port", po::value<int>()->default_value(0), "port for http admin console (defaults to `port + 1000`)")
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
     return desc;
@@ -409,6 +410,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     std::string logfilepath = vm["log-file"].as<std::string>();
     std::vector<host_and_port_t> joins = vm["join"].as<std::vector<host_and_port_t> >();
+    int port = vm["port"].as<int>();
     int http_port = vm["http-port"].as<int>();
 #ifndef NDEBUG
     int client_port = vm["client-port"].as<int>();
@@ -421,7 +423,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     web_path.nodes.push_back("web");
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins, client_port, http_port,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins, port, client_port, http_port,
                                    DEBUG_ONLY(vm["port-offset"].as<int>(),)
                                    &result, render_as_path(web_path)));
 
