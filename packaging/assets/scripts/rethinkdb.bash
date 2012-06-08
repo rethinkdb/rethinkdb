@@ -41,7 +41,7 @@ _complete_rethinkdb_admin() {
             fi
         done
         local complete_params=("${COMP_WORDS[0]}" "admin" "complete" "${join_params[@]}" "$partiality" "${passthrough_params[@]}")
-        local result=`"${complete_params[@]}" 2>/dev/null`
+        local result=$("${complete_params[@]}" 2>/dev/null)
         COMPREPLY=( $( compgen -W "$result" -- "$cur" ) )
     else
         COMPREPLY=( )
