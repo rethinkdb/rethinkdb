@@ -890,8 +890,6 @@ void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metain
     region_map_t<memcached_protocol_t, binary_blob_t> updated_metadata = old_metainfo;
     updated_metadata.update(new_metainfo);
 
-    // TODO(sam): Am I missing something?  How is the updated_metadata
-    // domain possibly the key range universe?
     rassert(updated_metadata.get_domain() == hash_region_t<key_range_t>::universe());
 
     buf_lock_t* sb_buf = superblock->get();

@@ -164,35 +164,39 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
     std::vector<int>::iterator hash_beg = hash_splitpoints.begin();
     std::sort(hash_beg, hash_splitpoints.end(), hash_less);
 
-    //    for (int i = 0; i < int(hash_splitpoints.size()); ++i) {
-        // debugf("pre-unique hash_splitpoints[%d] = %d\n", i, hash_splitpoints[i]);
-        // uint64_t k = double_hash_lookup(hash_splitpoints[i], vec);
-        // debugf_print("key", k);
-    //    }
+#ifdef REGION_JOIN_DEBUG
+    for (int i = 0; i < int(hash_splitpoints.size()); ++i) {
+        debugf("pre-unique hash_splitpoints[%d] = %d\n", i, hash_splitpoints[i]);
+        uint64_t k = double_hash_lookup(hash_splitpoints[i], vec);
+        debugf_print("key", k);
+    }
+#endif  // REGION_JOIN_DEBUG
 
     std::vector<int>::iterator hash_end = std::unique(hash_beg, hash_splitpoints.end(), hash_eq);
 
     std::vector<int>::iterator key_beg = key_splitpoints.begin();
-    // debugf("BEGIN KEY SORT\n");
     std::sort(key_beg, key_splitpoints.end(), key_less);
-    // debugf("END KEY SORT\n");
 
+#ifdef REGION_JOIN_DEBUG
     for (int i = 0; i < int(key_splitpoints.size()); ++i) {
-        // debugf("pre-unique key_splitpoints[%d] = %d\n", i, key_splitpoints[i]);
+        debugf("pre-unique key_splitpoints[%d] = %d\n", i, key_splitpoints[i]);
         const store_key_t *k = double_key_lookup(key_splitpoints[i], vec);
         if (k != NULL) {
-            // debugf_print("key", *k);
+            debugf_print("key", *k);
+        } else {
+            debugf("key: (null)\n");
         }
     }
+#endif // REGION_JOIN_DEBUG
 
 
     std::vector<int>::iterator key_end = std::unique(key_beg, key_splitpoints.end(), key_eq);
 
-#if 0
+#ifdef REGION_JOIN_DEBUG
     for (int i = 0; i < hash_end - hash_beg; ++i) {
         debugf("hash_splitpoints[%d] = %d\n", i, *(hash_beg + i));
         uint64_t k = double_hash_lookup(*(hash_beg + i), vec);
-        debugf_print("key", k);
+        debugf("key: %zx\n", k);
     }
 
     for (int i = 0; i < key_end - key_beg; ++i) {
@@ -200,16 +204,22 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
         const store_key_t *k = double_key_lookup(*(key_beg + i), vec);
         if (k != NULL) {
             debugf_print("key", *k);
+        } else {
+            debugf("key: (null)\n");
         }
+
     }
     for (int i = key_end - key_beg; i < int(key_splitpoints.size()); ++i) {
         debugf("post-end key_splitpoints[%d] = %d\n", i, *(key_beg + i));
         const store_key_t *k = double_key_lookup(*(key_beg + i), vec);
         if (k != NULL) {
             debugf_print("key", *k);
+        } else {
+            debugf("key: (null)\n");
         }
+
     }
-#endif  // 0
+#endif  // REGION_JOIN_DEBUG
 
 
     // TODO: Finish implementing this function.
@@ -228,7 +238,6 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
 
     int num_covered = 0;
 
-    // debugf("beginning loop\n");
     for (int i = 0, e = vec.size(); i < e; ++i) {
         std::vector<int>::iterator beg_pos = std::lower_bound(hash_beg, hash_end, 2 * i, hash_less);
         std::vector<int>::iterator end_pos = std::lower_bound(beg_pos, hash_end, 2 * i + 1, hash_less);
@@ -236,14 +245,18 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
         std::vector<int>::iterator left_pos = std::lower_bound(key_beg, key_end, 2 * i, key_less);
         std::vector<int>::iterator right_pos = std::lower_bound(left_pos, key_end, 2 * i + 1, key_less);
 
-        // debugf("beg_pos = %zd, end_pos = %zd / left_pos = %zd, right_pos = %zd\n", beg_pos - hash_beg, end_pos - hash_beg, left_pos - key_beg, right_pos - key_beg);
+#ifdef REGION_JOIN_DEBUG
+        debugf("beg_pos = %zd, end_pos = %zd / left_pos = %zd, right_pos = %zd\n", beg_pos - hash_beg, end_pos - hash_beg, left_pos - key_beg, right_pos - key_beg);
+#endif
 
         for (std::vector<int>::iterator it = beg_pos; it < end_pos; ++it) {
             for (std::vector<int>::iterator jt = left_pos; jt < right_pos; ++jt) {
                 int x = jt - key_beg;
                 int y = it - hash_beg;
-                int ix = x * granular_width + y;
-                // debugf("gasp i=%d x=%d y=%d ix=%d covered=%d\n", i, x, y, ix, bool(covered[ix]));
+                int ix = y * granular_width + x;
+#ifdef REGION_JOIN_DEBUG
+                debugf("gasp i=%d x=%d y=%d ix=%d covered=%d\n", i, x, y, ix, bool(covered[ix]));
+#endif
                 if (covered[ix]) {
                     return REGION_JOIN_BAD_JOIN;
                 }
@@ -252,9 +265,6 @@ MUST_USE region_join_result_t region_join(const std::vector< hash_region_t<key_r
             }
         }
     }
-
-    // debugf("num_covered = %d, width = %d, height = %d\n", num_covered, granular_width, granular_height);
-
 
     if (num_covered < granular_width * granular_height) {
         return REGION_JOIN_BAD_REGION;

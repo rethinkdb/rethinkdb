@@ -87,6 +87,33 @@ TEST(HashRegionTest, RegionJoin2D) {
     assert_equal(kr3, r.inner);
 }
 
+TEST(HashRegionTest, SpecialNonSquareRegionJoin) {
+
+    key_range_t zt(key_range_t::none, store_key_t(), key_range_t::open, store_key_t("t"));
+    key_range_t tinf(key_range_t::closed, store_key_t("t"), key_range_t::none, store_key_t());
+
+    uint64_t quarter = HASH_REGION_HASH_SIZE / 4;
+    uint64_t half = quarter * 2;
+    uint64_t whole = HASH_REGION_HASH_SIZE;
+
+    std::vector<hash_region_t<key_range_t> > vec;
+    vec.push_back(hash_region_t<key_range_t>(0, quarter, zt));
+    vec.push_back(hash_region_t<key_range_t>(0, quarter, tinf));
+    vec.push_back(hash_region_t<key_range_t>(half, whole, zt));
+    vec.push_back(hash_region_t<key_range_t>(half, whole, tinf));
+    vec.push_back(hash_region_t<key_range_t>(quarter, half, zt));
+    vec.push_back(hash_region_t<key_range_t>(quarter, half, tinf));
+
+    hash_region_t<key_range_t> r;
+    region_join_result_t res = region_join(vec, &r);
+
+    ASSERT_EQ(REGION_JOIN_OK, res);
+    ASSERT_EQ(0, r.beg);
+    ASSERT_EQ(whole, r.end);
+    assert_equal(key_range_t::universe(), r.inner);
+}
+
+
 
 
 

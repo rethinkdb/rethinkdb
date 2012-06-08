@@ -108,7 +108,7 @@ public:
         }
         typename protocol_t::region_t join;
         DEBUG_ONLY_VAR region_join_result_t join_result = region_join(regions, &join);
-        rassert(join_result == REGION_JOIN_OK);
+        guarantee(join_result == REGION_JOIN_OK);
         return join;
     }
 
