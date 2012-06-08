@@ -34,7 +34,7 @@ bool serve_(
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
     const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file,
     const std::set<peer_address_t> &joins,
-    int port, DEBUG_ONLY(int port_offset,) int client_port,
+    int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,)
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
     std::string web_assets, signal_t *stop_cond)
 {
@@ -181,7 +181,9 @@ bool serve_(
             persistent_file, machine_id, semilattice_manager_cluster.get_root_view()));
 
     {
-        int http_port = port + 1000;
+        if (0 == http_port)
+            http_port = port + 1000;
+
         guarantee(http_port < 65536);
 
         printf("Starting up administrative HTTP server on port %d...\n", http_port);
@@ -209,13 +211,13 @@ bool serve_(
     return true;
 }
 
-bool serve(const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, int port, DEBUG_ONLY(int port_offset,) int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve(const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     std::string logfilepath = filepath + "/log_file";
-    return serve_(true, logfilepath, filepath, persistent_file, joins, port, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return serve_(true, logfilepath, filepath, persistent_file, joins, port, client_port, http_port, DEBUG_ONLY(port_offset,) machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
-bool serve_proxy(const std::string &logfilepath, const std::set<peer_address_t> &joins, DEBUG_ONLY(int port_offset,) int client_port, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve_proxy(const std::string &logfilepath, const std::set<peer_address_t> &joins, int client_port, int http_port, DEBUG_ONLY(int port_offset,) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     // we give a port of 0 to indicate that the OS should assign us a port.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return serve_(false, logfilepath, "", NULL, joins, 0, DEBUG_ONLY(port_offset,) client_port, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return serve_(false, logfilepath, "", NULL, joins, 0, client_port, http_port, DEBUG_ONLY(port_offset,) machine_id, semilattice_metadata, web_assets, stop_cond);
 }
