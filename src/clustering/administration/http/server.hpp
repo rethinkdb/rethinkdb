@@ -1,8 +1,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 
-#include "clustering/administration/issues/global.hpp"
-#include "clustering/administration/last_seen_tracker.hpp"
+#include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -30,8 +29,7 @@ public:
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
         clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
-        global_issue_tracker_t *_issue_tracker,
-        last_seen_tracker_t *_last_seen_tracker,
+        admin_tracker_t *_admin_tracker,
         boost::uuids::uuid _us,
         std::string _path);
     ~administrative_http_server_manager_t();

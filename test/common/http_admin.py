@@ -240,16 +240,15 @@ class Machine(object):
         self.uuid = validate_uuid(uuid)
         self.datacenter_uuid = json_data[u"datacenter_uuid"]
         self.name = json_data[u"name"]
-        self.port_offset = json_data[u"port_offset"]
 
     def check(self, data):
-        return data[u"datacenter_uuid"] == self.datacenter_uuid and data[u"name"] == self.name and data[u"port_offset"] == self.port_offset
+        return data[u"datacenter_uuid"] == self.datacenter_uuid and data[u"name"] == self.name
 
     def to_json(self):
-        return { u"datacenter_uuid": self.datacenter_uuid, u"name": self.name, u"port_offset": self.port_offset }
+        return { u"datacenter_uuid": self.datacenter_uuid, u"name": self.name }
 
     def __str__(self):
-        return "Server(uuid:%s, name:%s, datacenter:%s, port_offset:%d)" % (self.uuid, self.name, self.datacenter_uuid, self.port_offset)
+        return "Server(uuid:%s, name:%s, datacenter:%s)" % (self.uuid, self.name, self.datacenter_uuid)
 
 class ClusterAccess(object):
     def __init__(self, addresses = []):

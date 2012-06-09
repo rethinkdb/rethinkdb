@@ -32,10 +32,10 @@ with driver.Metacluster() as metacluster:
         http.move_server_to_datacenter(machine_id, dc)
     ns = http.add_namespace(protocol = "memcached", primary = dc)
     time.sleep(10)
-    host, port = http.get_namespace_host(ns)
+    host, port = driver.get_namespace_host(ns, processes)
     cluster.check()
 
-    host, port = http.get_namespace_host(ns)
+    host, port = driver.get_namespace_host(ns, processes)
     workload_runner.run(opts["workload"], host, port, opts["timeout"])
     cluster.check()
 

@@ -27,7 +27,7 @@ with driver.Metacluster() as metacluster:
     cluster.check()
     http.check_no_issues()
 
-    host, port = http.get_namespace_host(ns)
+    host, port = driver.get_namespace_host(ns, [process1, process2])
     with workload_runner.SplitOrContinuousWorkload(opts, host, port) as workload:
         workload.step1()
         cluster.check()

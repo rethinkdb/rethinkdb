@@ -79,6 +79,7 @@ class BackboneCluster extends Backbone.Router
     sharding_scheme: (id) ->
         log_router '/namespaces/' + id + '/sharding_scheme'
         clear_modals()
+        window.scrollTo(0,0); # Scroll to top
 
         # Helper function to build the namespace view
         build_sharding_scheme_view = (id) =>
