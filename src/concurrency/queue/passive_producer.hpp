@@ -2,6 +2,7 @@
 #define CONCURRENCY_QUEUE_PASSIVE_PRODUCER_HPP_
 
 #include "errors.hpp"
+#include "arch/runtime/coroutines.hpp"
 
 /* A passive producer is an object (often a queue) that a consumer can read from
 by calling a method. It's called "passive" because the consumer calls a method
@@ -77,6 +78,7 @@ struct passive_producer_t {
     /* `pop()` removes a value from the producer and returns it. It is
     an error to call `pop()` when `available->get()` is `false`. */
     value_t pop() {
+        ASSERT_NO_CORO_WAITING;
         rassert(available->get());
         return produce_next_value();
     }

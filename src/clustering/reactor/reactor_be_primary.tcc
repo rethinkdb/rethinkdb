@@ -334,7 +334,9 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
             }
         }
 
+        debugf("about to construct broadcaster\n");
         broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history, store, interruptor);
+        debugf("constructed broadcaster\n");
 
         directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card()));
 
@@ -342,11 +344,13 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
             get_directory_entry_view<typename reactor_business_card_t<protocol_t>::primary_t>(get_me(), directory_entry.get_reactor_activity_id())->
                 subview(&reactor_t<protocol_t>::extract_broadcaster_from_reactor_business_card_primary);
 
+        debugf("about to run_until_satisfied()\n");
         /* listener_t expects broadcaster to be visible in the directory at the
          * time that it's constructed. It might take some time to propogate to
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
+        debugf("about to construct listener_t\n");
         listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, interruptor);
         replier_t<protocol_t> replier(&listener);
         master_t<protocol_t> master(mailbox_manager, ack_checker, &master_directory, &master_directory_lock, region, &broadcaster);

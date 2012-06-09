@@ -33,7 +33,8 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
     write_handler(this),
     write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
     write_coro_pool(1, &write_queue, &write_handler),
-    current_write_buffer(get_write_buffer()) {
+    current_write_buffer(get_write_buffer()),
+    drainer(new auto_drainer_t) {
 
     struct sockaddr_in addr;
     if (local_port != 0) {
@@ -122,6 +123,7 @@ void linux_tcp_conn_t::release_write_buffer(write_buffer_t *buffer) {
 }
 
 void linux_tcp_conn_t::release_write_queue_op(write_queue_op_t *op) {
+    op->keepalive = auto_drainer_t::lock_t();
     unused_write_queue_ops.push_front(op);
 }
 
@@ -281,7 +283,7 @@ linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *parent_) :
     parent(parent_)
 { }
 
-void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *operation) {
+void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *operation, UNUSED signal_t *interruptor) {
     if (operation->buffer != NULL) {
         parent->perform_write(operation->buffer, operation->size);
         if (operation->dealloc != NULL) {
@@ -310,6 +312,7 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
     op->size = current_write_buffer->size;
     op->dealloc = current_write_buffer;
     op->cond = NULL;
+    op->keepalive = auto_drainer_t::lock_t(drainer.get());
     current_write_buffer = get_write_buffer();
 
     /* Acquire the write semaphore so the write queue doesn't get too long
@@ -537,6 +540,8 @@ void linux_tcp_conn_t::set_keepalive() {
 
 linux_tcp_conn_t::~linux_tcp_conn_t() {
     assert_thread();
+
+    drainer.reset();
 
     if (is_read_open()) shutdown_read();
     if (is_write_open()) shutdown_write();

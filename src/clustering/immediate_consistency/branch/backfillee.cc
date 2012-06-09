@@ -10,6 +10,7 @@
 
 #define ALLOCATION_CHUNK 50
 
+// TODO @tim fold this into the function that calls it
 template<class protocol_t>
 void on_receive_backfill_chunk(
         store_view_t<protocol_t> *store,
@@ -106,11 +107,6 @@ void backfillee(
             boost::bind(&push_finish_on_queue<backfill_chunk_t>, &chunk_queue, _1),
             mailbox_callback_mode_inline);
 
-        /* Use an `auto_drainer_t` to wait for all the bits of the backfill to
-        finish being applied. Construct it before `chunk_mailbox` so that we
-        don't get any chunks after `drainer` is destroyed. */
-        auto_drainer_t drainer;
-
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
         mailbox_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_mailbox(
@@ -122,7 +118,6 @@ void backfillee(
         mailbox_t<void(mailbox_addr_t<void(int)>)>  alloc_registration_mbox(
                 mailbox_manager, boost::bind(&promise_t<mailbox_addr_t<void(int)> >::pulse, &alloc_mailbox_promise, _1), mailbox_callback_mode_inline);
 
-
         /* Send off the backfill request */
         send(mailbox_manager,
             backfiller.access().backfill_mailbox,
@@ -133,6 +128,25 @@ void backfillee(
             done_mailbox.get_address(),
             alloc_registration_mbox.get_address()
             );
+
+        /* If something goes wrong, we'd like to inform the backfiller that it
+        it has gone wrong, so it doesn't just keep blindly sending us chunks.
+        `backfiller_notifier` notifies the backfiller in its destructor. If
+        everything goes right, we'll explicitly disarm it. */
+        death_runner_t backfiller_notifier;
+        {
+            /* We have to cast `send()` to the correct type before we pass
+            it to `boost::bind()`, or else C++ can't figure out which
+            overload to use. */
+            void (*send_cast_to_correct_type)(
+                mailbox_manager_t *,
+                typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t::address_t,
+                const backfill_session_id_t &) = &send;
+            backfiller_notifier.fun = boost::bind(
+                send_cast_to_correct_type, mailbox_manager,
+                backfiller.access().cancel_backfill_mailbox,
+                backfill_session_id);
+        }
 
         /* Wait to get an allocation mailbox */
         wait_interruptible(alloc_mailbox_promise.get_ready_signal(), interruptor);
@@ -151,7 +165,7 @@ void backfillee(
                   chunk_queue(_chunk_queue), done_cond(_done_cond), mbox_manager(_mbox_manager),
                   allocation_mailbox(_allocation_mailbox), unacked_chunks(0)
             { }
-            void coro_pool_callback(std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> chunk) {
+            void coro_pool_callback(std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> chunk, UNUSED signal_t *interruptor) {
                 assert_thread();
                 if (chunk.first.first) {
                     on_receive_backfill_chunk(store, dont_go_until, chunk.first.second, interruptor, chunk.second, chunk_queue);
@@ -174,6 +188,7 @@ void backfillee(
                 } else {
                     rassert(!done_cond->is_pulsed());
                     done_cond->pulse();
+                    chunk_queue->finish_write(chunk.second);
                 }
             }
             store_view_t<protocol_t> *store;
@@ -191,25 +206,6 @@ void backfillee(
 
         /* A pool of coroutines that run the callback on the backfill chunks. */
         coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
-
-        /* If something goes wrong, we'd like to inform the backfiller that it
-        it has gone wrong, so it doesn't just keep blindly sending us chunks.
-        `backfiller_notifier` notifies the backfiller in its destructor. If
-        everything goes right, we'll explicitly disarm it. */
-        death_runner_t backfiller_notifier;
-        {
-            /* We have to cast `send()` to the correct type before we pass
-            it to `boost::bind()`, or else C++ can't figure out which
-            overload to use. */
-            void (*send_cast_to_correct_type)(
-                mailbox_manager_t *,
-                typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t::address_t,
-                const backfill_session_id_t &) = &send;
-            backfiller_notifier.fun = boost::bind(
-                send_cast_to_correct_type, mailbox_manager,
-                backfiller.access().cancel_backfill_mailbox,
-                backfill_session_id);
-        }
 
         /* Wait until we get a message in `end_point_mailbox`. */
         {
@@ -280,9 +276,6 @@ void backfillee(
 
         /* All went well, so don't send a cancel message to the backfiller */
         backfiller_notifier.fun = 0;
-
-        /* `drainer` destructor is run here; we block until all the chunks are
-        done being applied. */
     }
 
     /* Update the metadata to indicate that the backfill occurred */

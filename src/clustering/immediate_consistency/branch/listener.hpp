@@ -6,9 +6,10 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/semantic_checking.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/registrant.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/promise.hpp"
-#include "containers/disk_backed_queue.hpp"
+#include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "serializer/types.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
@@ -72,8 +73,6 @@ public:
             broadcaster_t<protocol_t> *broadcaster,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    ~listener_t();
-
     /* Returns a signal that is pulsed if the mirror is not in contact with the
     master. */
     signal_t *get_broadcaster_lost_signal();
@@ -89,6 +88,17 @@ private:
         typename listener_business_card_t<protocol_t>::upgrade_mailbox_t::address_t upgrade_mailbox;
         typename listener_business_card_t<protocol_t>::downgrade_mailbox_t::address_t downgrade_mailbox;
         state_timestamp_t broadcaster_begin_timestamp;
+    };
+
+    class write_queue_entry_t {
+    public:
+        write_queue_entry_t() { }
+        write_queue_entry_t(const typename protocol_t::write_t &w, transition_timestamp_t tt, fifo_enforcer_write_token_t ft) :
+            write(w), transition_timestamp(tt), fifo_token(ft) { }
+        typename protocol_t::write_t write;
+        transition_timestamp_t transition_timestamp;
+        fifo_enforcer_write_token_t fifo_token;
+        RDB_MAKE_ME_SERIALIZABLE_3(write, transition_timestamp, fifo_token);
     };
 
     // TODO: What the fuck is this boost optional boost optional shit?
@@ -111,17 +121,18 @@ private:
     void on_write(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
             fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void(listener_write_ack_t)> ack_addr)
+            mailbox_addr_t<void()> ack_addr)
 	THROWS_NOTHING;
 
-    void perform_write(typename protocol_t::write_t write,
+    void enqueue_write(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
             fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void(listener_write_ack_t)> ack_addr)
+            mailbox_addr_t<void()> ack_addr,
+            auto_drainer_t::lock_t keepalive)
 	THROWS_NOTHING;
 
-    void perform_backlogged_write(std::pair<typename protocol_t::write_t, transition_timestamp_t> serialized_write) 
-        THROWS_NOTHING;
+    void perform_enqueued_write(const write_queue_entry_t &serialized_write, state_timestamp_t backfill_end_timestamp, signal_t *interruptor) 
+        THROWS_ONLY(interrupted_exc_t);
 
     /* See the note at the place where `writeread_mailbox` is declared for an
     explanation of why `on_writeread()` and `on_read()` are here. */
@@ -135,11 +146,12 @@ private:
     void perform_writeread(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
             fifo_enforcer_write_token_t fifo_token,
-            mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
+            mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
+            auto_drainer_t::lock_t keepalive)
 	THROWS_NOTHING;
 
     void on_read(typename protocol_t::read_t read,
-            DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+            state_timestamp_t expected_timestamp,
             fifo_enforcer_read_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
 	THROWS_NOTHING;
@@ -147,14 +159,13 @@ private:
     void perform_read(typename protocol_t::read_t read,
             DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
             fifo_enforcer_read_token_t fifo_token,
-            mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
+            mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
+            auto_drainer_t::lock_t keepalive)
 	THROWS_NOTHING;
 
     void wait_for_version(state_timestamp_t timestamp, signal_t *interruptor);
 
     void advance_current_timestamp_and_pulse_waiters(transition_timestamp_t timestamp);
-
-
 
     mailbox_manager_t *mailbox_manager;
 
@@ -170,26 +181,18 @@ private:
     gets pulsed when we successfully register. */
     promise_t<intro_t> registration_done_cond;
 
-    /* If the backfill succeeds, `backfill_done_cond` will be pulsed with the
-    point that the backfill brought us to. If the backfill fails, the
-    `listener_t` constructor will throw an exception, so there's no equivalent
-    to `registration_failed_cond`. */
-    promise_t<state_timestamp_t> backfill_done_cond;
-
-    cond_t queue_drained_cond;
+    fifo_enforcer_sink_t write_queue_entrance_sink;
+    disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue;
+    boost::scoped_ptr<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback;
+    boost::scoped_ptr<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool;
+    adjustable_semaphore_t write_queue_semaphore;
+    cond_t write_queue_has_drained;
 
     state_timestamp_t current_timestamp;
 
-    fifo_enforcer_sink_t fifo_sink;
-    perfmon_counter_t pm_q_reads, pm_q_writes;
-    fifo_enforcer_queue_t<boost::function<void()> > fifo_queue;
+    fifo_enforcer_sink_t store_entrance_sink;
 
-    cond_t on_destruct;
-
-    calling_callback_t coro_pool_callback;
-
-    coro_pool_t<boost::function<void()> > coro_pool;
-
+    auto_drainer_t drainer;
 
     typename listener_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
 
@@ -209,16 +212,6 @@ private:
      * this right now is the replier_t who needs to be able to tell backfillees
      * how up to date s/he is. */
     std::multimap<state_timestamp_t, cond_t *> synchronize_waiters;
-
-    enum { DONT_SERIALIZE_WRITES, 
-           DO_SERIALIZE_WRITES, 
-           THROTTLINGLY_SERIALIZE_WRITES }
-    what_to_do_with_writes;
-
-    typedef disk_backed_write_queue_t<std::pair<typename protocol_t::write_t, transition_timestamp_t> > write_queue_t;
-    boost::scoped_ptr<write_queue_t> write_queue;
-
-    boost::scoped_ptr<semaphore_t> write_semaphore;
 
     DISABLE_COPYING(listener_t);
 };
