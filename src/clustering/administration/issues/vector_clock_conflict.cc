@@ -57,7 +57,6 @@ std::list<clone_ptr_t<vector_clock_conflict_issue_t> > vector_clock_conflict_iss
         if (!it->second.is_deleted()) {
             check("machine", it->first, "datacenter", it->second.get().datacenter, &issues);
             check("machine", it->first, "name", it->second.get().name, &issues);
-            DEBUG_ONLY_CODE(check("machine", it->first, "port_offset", it->second.get().port_offset, &issues););
         }
     }
 
