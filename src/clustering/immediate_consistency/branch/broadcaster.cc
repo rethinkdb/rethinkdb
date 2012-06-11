@@ -212,7 +212,6 @@ private:
     boost::shared_ptr<incomplete_write_t> write;
 };
 
-
 /* The `registrar_t` constructs a `dispatchee_t` for every mirror that
    connects to us. */
 
@@ -236,6 +235,11 @@ public:
        network layer reorders the messages. */
     fifo_enforcer_source_t fifo_source;
 
+    perfmon_counter_t queue_count;
+    unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
+    calling_callback_t background_write_caller;
+    coro_pool_t<boost::function<void()> > background_write_workers;
+
 private:
     /* The constructor spawns `send_intro()` in the background. */
     void send_intro(
@@ -258,8 +262,6 @@ private:
     typename listener_business_card_t<protocol_t>::upgrade_mailbox_t upgrade_mailbox;
     typename listener_business_card_t<protocol_t>::downgrade_mailbox_t downgrade_mailbox;
 };
-
-
 
 /* Functions to send a read or write to a mirror and wait for a response.
 Important: These functions must send the message before responding to
@@ -444,11 +446,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
             /* Dispatch the write to all the dispatchees */
             for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = writers.begin(); it != writers.end(); it++) {
-                if (!std_contains(coro_pools, it->first)) {
-                    dispatchee_t *tmp = it->first;
-                    coro_pools.insert(tmp, new queue_and_pool_t(uuid_to_str(tmp->get_peer().get_uuid()), &broadcaster_collection));
-                }
-                coro_pools.find(it->first)->second->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
+                it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
                     (*it).first, (*it).second, write_ref, enforcer_tokens[(*it).first]));
             }
         }
@@ -464,7 +462,12 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
 template<class protocol_t>
 broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener_business_card_t<protocol_t> d) THROWS_NOTHING :
-    write_mailbox(d.write_mailbox), is_readable(false), controller(c),
+    write_mailbox(d.write_mailbox), is_readable(false),
+    queue_count(uuid_to_str(d.write_mailbox.get_peer().get_uuid()) + "_broadcast_queue_count", &c->broadcaster_collection),
+    background_write_queue(&queue_count),
+    // TODO magic constant
+    background_write_workers(100, &background_write_queue, &background_write_caller),
+    controller(c),
     upgrade_mailbox(controller->mailbox_manager,
         boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
     downgrade_mailbox(controller->mailbox_manager,

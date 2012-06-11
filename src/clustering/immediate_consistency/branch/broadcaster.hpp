@@ -108,22 +108,6 @@ private:
 
     perfmon_collection_t broadcaster_collection;
 
-    struct queue_and_pool_t {
-        queue_and_pool_t(std::string id, perfmon_collection_t *collection)
-            : queue_count(id + "_broadcast_queue_count", collection),
-              background_write_queue(&queue_count),
-              background_write_workers(100, &background_write_queue, &cb)
-        { }
-        perfmon_counter_t queue_count;
-        unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
-        calling_callback_t cb;
-        coro_pool_t<boost::function<void()> > background_write_workers;
-    };
-
-    /* TODO this map could really be merged with the dispatchees map above to
-     * avoid an extra look up. */
-    boost::ptr_map<dispatchee_t *, queue_and_pool_t> coro_pools;
-
     DISABLE_COPYING(broadcaster_t);
 };
 
