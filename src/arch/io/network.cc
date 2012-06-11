@@ -85,7 +85,8 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     write_handler(this),
     write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
     write_coro_pool(1, &write_queue, &write_handler),
-    current_write_buffer(get_write_buffer())
+    current_write_buffer(get_write_buffer()),
+    drainer(new auto_drainer_t)
 {
     rassert(sock.get() != INVALID_FD);
 
@@ -541,10 +542,10 @@ void linux_tcp_conn_t::set_keepalive() {
 linux_tcp_conn_t::~linux_tcp_conn_t() {
     assert_thread();
 
-    drainer.reset();
-
     if (is_read_open()) shutdown_read();
     if (is_write_open()) shutdown_write();
+
+    drainer.reset();
 
     delete event_watcher;
     event_watcher = NULL;
