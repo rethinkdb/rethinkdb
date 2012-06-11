@@ -62,7 +62,8 @@ module 'NamespaceView', ->
             
             stats = @model.get_stats_for_performance
             @performance_graph = new Vis.OpsPlot(stats)
-            @stats_panel = new Vis.StatsPanel(stats)
+
+            @stats_panel = new NamespaceView.StatsPanel(model: @model)
 
             # fill the title of this page
             @.$('.main_title').html @title.render().$el
@@ -72,7 +73,7 @@ module 'NamespaceView', ->
             @.$('.performance-graph').html @performance_graph.render().$el
 
             # display the data on the machines
-            @.$('.namespace-stats').html @stats_panel.render().$el
+            @.$('.section.namespace-stats').html @stats_panel.render().el
 
             # Display the replicas
             @.$('.section.replication').html @replicas.render().el
@@ -136,4 +137,53 @@ module 'NamespaceView', ->
             @.$el.html @template json
 
             return @
+
+
+    class @StatsPanel extends Backbone.View
+        className: 'namespace-stats'
+
+        template: Handlebars.compile $('#namespace_stats-template').html()
+
+        history_opsec: []
+
+        initialize: ->
+            @model.on 'all', @render
+            machines.on 'all', @render
+            # Initialize history
+            for i in [0..40]
+                @history_opsec.push 0
+
+        render: =>
+            data_in_memory = 0
+            data_total = 0
+            for machine in machines.models
+                if machine.get('stats')? and @model.get('id') of machine.get('stats')
+                    data_in_memory += machine.get('stats')[@model.get('id')].cache.block_size*machine.get('stats')[@model.get('id')].cache.blocks_in_memory
+                    data_total += machine.get('stats')[@model.get('id')].cache.block_size*machine.get('stats')[@model.get('id')].cache.blocks_total
+
+            json =
+                data_in_memory_percent: Math.floor(data_in_memory/data_total*100)
+                data_in_memory: human_readable_units(data_in_memory, units_space)
+                data_total: human_readable_units(data_total, units_space)
+
+            @update_history_opsec()
+            sparkline_attr =
+                fillColor: false
+                spotColor: false
+                minSpotColor: false
+                maxSpotColor: false
+                chartRangeMin: 0
+                width: '75px'
+                height: '15px'
+
+            @.$el.html @template json
+
+            @.$('.opsec_sparkline').sparkline @history_opsec, sparkline_attr
+
+            return @
+
+        update_history_opsec: =>
+            @history_opsec.shift()
+            @history_opsec.push @model.get_stats().keys_read + @model.get_stats().keys_set
+
 

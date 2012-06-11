@@ -2,7 +2,7 @@
 
 /* Colors */
 @riak_color: #1693A5;
-@memcached_color: #44AA55;
+@memcached_color: #CCCCCC;
 @selected_color: #FCFBE3;
 @link_color: #0069D6;
 @light_red: #FFDEDB;
@@ -536,7 +536,7 @@
         margin-bottom: 0;
         border: 0;
         td + td { border-left: 0; }
-        td { vertical-align: middle; }
+        td { vertical-align: top; }
 
         tr.machine-element {
             &.selected td {
@@ -558,7 +558,6 @@
                 margin-left: 10px; 
             }
         }
-
         .details {
             padding: 5px;
 
@@ -572,7 +571,90 @@
         }
     }
 }
+.namespace-list {
+    margin-top: 20px;
 
+    .datacenter_list{
+        padding: 0px;
+        margin: 10px;
+        border-left: 1px solid #ccc;
+        td {
+            border: 0px;
+            padding: 2px;
+            margin: 2px;
+        }
+        .role{
+            max-width: 260px;
+            font-weight: bold;
+            padding: 0px 20px 0px 20px;
+        }
+        .datacenter_name{
+            padding: 0px 40px 0px 0px;
+            max-width: 200px;
+            overflow: hidden;
+        }
+    }
+    .quick_info{
+        text-transform: uppercase;
+    }
+    .label-namespace{
+        background: #6C4005;
+        margin: 0px 10px 0px 0px;
+    }
+    .namespace_replication_status{
+        font-size: 13px;
+        font-weight: normal;
+    }
+    .toolbar{
+        float: right;
+        margin: 0px 10px 0px 0px;
+    }
+    .quick_info{
+        margin: 0px;
+        text-transform: uppercase;
+        font-size: 11px;
+    }
+    .contains{
+        margin: 0px;
+    }
+    .list_stats {
+        margin: 0px 30px 0px 0px;
+        float: left;
+        list-style: none;
+        li {
+            display: inline-block;
+        }
+        .stat_name{
+            width: 80px;
+        }
+        .minichart{
+            width: 110px;
+            margin-right: 10px;
+        }
+        .sparkline_container{
+            height: 15px;
+            width: 75px;
+            margin: 0px 5px 0px 5px;
+            padding: 0px;
+        }
+        .progress{
+            height: 10px;
+            width: 75px;
+            margin: 0px 5px 0px 5px;
+            padding: 0px;
+        }
+        canvas{
+            border-bottom: 1px solid #ddd;
+            border-left: 1px solid #ddd;
+        }
+        .bar{
+            background: #a0b0b8;
+        }
+        .bar-alert{
+            background: #E62E2E;
+        }
+    }
+}
 .server-list {
     margin-top: 20px;
     .label.element-type {
@@ -694,25 +776,7 @@
     }
 }
 
-.namespace-list {
-    margin-top: 20px;
 
-    div.toolbar {
-        float: right;
-        margin-top: -8em;
-    }
-    span.protocol {
-        background: @gray;
-        color: @white;
-        font-size: 0.8em;
-        padding: 0.4em;
-        text-transform: uppercase;
-        font-weight: bold;
-
-        &.riak { background-color: @riak_color; }
-        &.memcached {  background-color: @memcached_color;  }
-    }
-}
 
 .modal {
     display: none;
@@ -846,6 +910,7 @@
             }
         }
     }
+
 }
 
 /*
@@ -892,7 +957,6 @@
     }
     /* End override */
     .list_stats {
-        float: left;
         list-style: none;
         li {
             display: inline-block;
@@ -911,7 +975,7 @@
             }
         }
         .value{
-            width: 140px;
+            width: 160px;
         }
     }
     .machine-stats{
