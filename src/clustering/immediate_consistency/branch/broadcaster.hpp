@@ -40,11 +40,15 @@ public:
         virtual ~ack_callback_t() { }
     };
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
+    typename protocol_t::write_response_t write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t tok, signal_t *interruptor, boost::function<void()> write_complete_cb) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
     branch_id_t get_branch_id();
 
     broadcaster_business_card_t<protocol_t> get_business_card();
+
+    int num_incomplete_writes() {
+        return incomplete_writes.size();
+    }
 
 private:
     friend class listener_t<protocol_t>;
@@ -102,15 +106,22 @@ private:
 
     registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
 
+    perfmon_collection_t broadcaster_collection;
+
     struct queue_and_pool_t {
-        queue_and_pool_t()
-            : background_write_workers(5000, &background_write_queue, &cb)
+        queue_and_pool_t(std::string id, perfmon_collection_t *collection)
+            : queue_count(id + "_broadcast_queue_count", collection),
+              background_write_queue(&queue_count),
+              background_write_workers(100, &background_write_queue, &cb)
         { }
+        perfmon_counter_t queue_count;
         unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
         calling_callback_t cb;
         coro_pool_t<boost::function<void()> > background_write_workers;
     };
 
+    /* TODO this map could really be merged with the dispatchees map above to
+     * avoid an extra look up. */
     boost::ptr_map<dispatchee_t *, queue_and_pool_t> coro_pools;
 
     DISABLE_COPYING(broadcaster_t);

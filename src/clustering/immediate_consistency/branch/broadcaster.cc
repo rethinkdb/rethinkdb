@@ -6,6 +6,7 @@
 #include "concurrency/coro_fifo.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
+#include "containers/uuid.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
@@ -17,7 +18,8 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
-      registrar(mailbox_manager, this)
+      registrar(mailbox_manager, this),
+      broadcaster_collection("broadcaster", NULL, true, true)
 {
 
     /* Snapshot the starting point of the store; we'll need to record this
@@ -96,10 +98,12 @@ class broadcaster_t<protocol_t>::incomplete_write_t : public home_thread_mixin_t
 public:
     incomplete_write_t(broadcaster_t *p,
                        typename protocol_t::write_t w, transition_timestamp_t ts,
-                       ack_callback_t *cb) :
+                       ack_callback_t *cb,
+                       boost::function<void()> _completion_cb) :
         write(w), timestamp(ts),
         parent(p), incomplete_count(0),
-        ack_callback(cb)
+        ack_callback(cb),
+        completion_cb(_completion_cb)
     {
         rassert(ack_callback);
     }
@@ -155,6 +159,8 @@ private:
     int incomplete_count;
     ack_callback_t *ack_callback;
     boost::optional<typename protocol_t::write_response_t> resp;
+public:
+    boost::function<void()> completion_cb;
 
     DISABLE_COPYING(incomplete_write_t);
 };
@@ -363,7 +369,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token, signal_t *interruptor, boost::function<void()> completion_cb) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
     /* We'll fill `write_wrapper` with the write that we start; we hold it in a
     shared pointer so that it stays alive while we check its `done_promise`. */
     boost::shared_ptr<incomplete_write_t> write_wrapper;
@@ -401,7 +407,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             order_sink.check_out(order_token);
 
             write_wrapper = boost::make_shared<incomplete_write_t>(
-                this, write, timestamp, cb);
+                this, write, timestamp, cb, completion_cb);
             incomplete_writes.push_back(write_wrapper);
 
             /* If there's an exception, this will make sure that the
@@ -440,9 +446,9 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = writers.begin(); it != writers.end(); it++) {
                 if (!std_contains(coro_pools, it->first)) {
                     dispatchee_t *tmp = it->first;
-                    coro_pools.insert(tmp, new queue_and_pool_t);
+                    coro_pools.insert(tmp, new queue_and_pool_t(uuid_to_str(tmp->get_peer().get_uuid()), &broadcaster_collection));
                 }
-                coro_pools[it->first].background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
+                coro_pools.find(it->first)->second->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
                     (*it).first, (*it).second, write_ref, enforcer_tokens[(*it).first]));
             }
         }
@@ -570,8 +576,6 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
             listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
                     write_ref.get()->write, write_ref.get()->timestamp, token,
                     mirror_lock.get_drain_signal());
-
-            write_ref.get()->notify_acked(mirror->get_peer());
         }
     } catch (interrupted_exc_t) {
         return;
@@ -598,6 +602,9 @@ void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> 
     any given call. */
     while (newest_complete_timestamp < write->timestamp.timestamp_after()) {
         boost::shared_ptr<incomplete_write_t> removed_write = incomplete_writes.front();
+        if (incomplete_writes.front()->completion_cb) {
+            incomplete_writes.front()->completion_cb();
+        }
         incomplete_writes.pop_front();
         rassert(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
         newest_complete_timestamp = removed_write->timestamp.timestamp_after();

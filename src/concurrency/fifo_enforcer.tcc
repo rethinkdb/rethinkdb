@@ -5,7 +5,14 @@
 
 template <class T>
 fifo_enforcer_queue_t<T>::fifo_enforcer_queue_t()
-    : passive_producer_t<T>(&control), state(state_timestamp_t::zero(), 0)
+    : passive_producer_t<T>(&control), state(state_timestamp_t::zero(), 0),
+      read_counter(NULL), write_counter(NULL)
+{ }
+
+template <class T>
+fifo_enforcer_queue_t<T>::fifo_enforcer_queue_t(perfmon_counter_t *_read_counter, perfmon_counter_t *_write_counter)
+    : passive_producer_t<T>(&control), state(state_timestamp_t::zero(), 0),
+      read_counter(_read_counter), write_counter(_write_counter)
 { }
 
 template <class T>
@@ -13,6 +20,8 @@ fifo_enforcer_queue_t<T>::~fifo_enforcer_queue_t() { }
 
 template <class T>
 void fifo_enforcer_queue_t<T>::push(fifo_enforcer_read_token_t token, const T &t) {
+    if (read_counter) { ++(*read_counter); }
+
     assert_thread();
     mutex_assertion_t::acq_t acq(&lock);
 
@@ -22,6 +31,8 @@ void fifo_enforcer_queue_t<T>::push(fifo_enforcer_read_token_t token, const T &t
 
 template <class T>
 void fifo_enforcer_queue_t<T>::finish_read(DEBUG_ONLY_VAR fifo_enforcer_read_token_t read_token) {
+    if (read_counter) { --(*read_counter); }
+
     assert_thread();
 
     rassert(state.timestamp == read_token.timestamp);
@@ -32,6 +43,8 @@ void fifo_enforcer_queue_t<T>::finish_read(DEBUG_ONLY_VAR fifo_enforcer_read_tok
 
 template <class T>
 void fifo_enforcer_queue_t<T>::push(fifo_enforcer_write_token_t token, const T &t) {
+    if (write_counter) { ++(*write_counter); }
+
     assert_thread();
     mutex_assertion_t::acq_t acq(&lock);
 
@@ -41,6 +54,8 @@ void fifo_enforcer_queue_t<T>::push(fifo_enforcer_write_token_t token, const T &
 
 template <class T>
 void fifo_enforcer_queue_t<T>::finish_write(fifo_enforcer_write_token_t write_token) {
+    if (write_counter) { --(*write_counter); }
+
     assert_thread();
 
     rassert(state.timestamp == write_token.timestamp.timestamp_before());

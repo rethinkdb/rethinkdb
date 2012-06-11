@@ -601,7 +601,7 @@ class ClusterAccess(object):
             for shard_range, shard_role in shards.iteritems():
                 for act_id, (act_range, act_info) in reactor_bcard["activity_map"].iteritems():
                     if act_range == shard_range:
-                        if shard_role == "role_primary" and act_info["type"] == "primary":
+                        if shard_role == "role_primary" and act_info["type"] == "primary" and act_info["replier_present"] is True:
                             break
                         elif shard_role == "role_secondary" and act_info["type"] == "secondary_up_to_date":
                             break

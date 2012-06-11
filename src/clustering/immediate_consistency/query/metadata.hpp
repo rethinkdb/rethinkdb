@@ -7,6 +7,7 @@
 #include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
+#include "concurrency/fifo_enforcer.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 typedef boost::uuids::uuid master_id_t;
@@ -16,15 +17,19 @@ typedef boost::uuids::uuid namespace_interface_id_t;
 Parsers use it to find the master. */
 
 struct namespace_interface_business_card_t {
-    typedef mailbox_t<void ()> ack_mailbox_type;
+    typedef mailbox_t<void()> ack_mailbox_type;
+    typedef mailbox_t<void(int)> allocation_mailbox_t;
 
-    namespace_interface_business_card_t(namespace_interface_id_t niid, const ack_mailbox_type::address_t &_ack_address)
-        : namespace_interface_id(niid), ack_address(_ack_address) { }
+    namespace_interface_business_card_t(namespace_interface_id_t niid, const ack_mailbox_type::address_t &_ack_address,
+                                        const allocation_mailbox_t::address_t &_allocation_address)
+        : namespace_interface_id(niid), ack_address(_ack_address), allocation_address(_allocation_address) 
+    { }
     namespace_interface_business_card_t() { }
 
     namespace_interface_id_t namespace_interface_id;
     ack_mailbox_type::address_t ack_address;
-    RDB_MAKE_ME_SERIALIZABLE_2(namespace_interface_id, ack_address);
+    allocation_mailbox_t::address_t allocation_address;
+    RDB_MAKE_ME_SERIALIZABLE_3(namespace_interface_id, ack_address, allocation_address);
 };
 
 template<class protocol_t>

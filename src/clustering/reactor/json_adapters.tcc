@@ -54,9 +54,10 @@ void on_subfield_change(primary_when_safe_t<protocol_t> *, const ctx_t &) { }
 
 //json adapter for primary
 template <class protocol_t, class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(primary_t<protocol_t> *, const ctx_t &) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(primary_t<protocol_t> *target, const ctx_t &) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;
     res["type"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<std::string, ctx_t>("primary"));
+    res["replier_present"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<bool, ctx_t>(target->replier.is_initialized()));
     //res["broadcaster"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<broadcaster_business_card_t<protocol_t>, ctx_t>(&target->broadcaster));
     //res["replier"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<boost::optional<replier_business_card_t<protocol_t> >, ctx_t>(&target->replier));
     return res;

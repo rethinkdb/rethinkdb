@@ -121,17 +121,19 @@ class SplitOrContinuousWorkload(object):
             self.continuous_workload.start()
             if self.opts["extra-before"] != 0:
                 print "Letting %r run for %d seconds..." % (self.opts["workload-during"], self.opts["extra-before"])
-                time.sleep(self.opts["extra-before"])
-                self.continuous_workload.check()
+                for i in xrange(self.opts["extra-before"]):
+                    time.sleep(1)
+                    self.continuous_workload.check()
     def check(self):
         if self.opts["workload-during"] is not None:
             self.continuous_workload.check()
     def step2(self):
         if self.opts["workload-during"] is not None:
             if self.opts["extra-after"] != 0:
-                self.continuous_workload.check()
                 print "Letting %r run for %d seconds..." % (self.opts["workload-during"], self.opts["extra-after"])
-                time.sleep(self.opts["extra-after"])
+                for i in xrange(self.opts["extra-after"]):
+                    self.continuous_workload.check()
+                    time.sleep(1)
             self.continuous_workload.stop()
         if self.opts["workload-after"] is not None:
             run(self.opts["workload-after"], self.host, self.port, self.opts["timeout-after"])
