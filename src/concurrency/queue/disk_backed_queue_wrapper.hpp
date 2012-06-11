@@ -31,10 +31,12 @@ public:
         passive_producer_t<T>(&available_control),
         disk_queue(filename), disk_queue_in_use(false),
         memory_queue(memory_queue_capacity),
-        notify_when_room_in_memory_queue(NULL) { }
+        notify_when_room_in_memory_queue(NULL),
+        items_in_queue(0) { }
 
     void push(const T &value) {
         mutex_t::acq_t acq(&push_mutex);
+        items_in_queue++;
         if (disk_queue_in_use) {
             disk_queue.push(value);
         } else {
@@ -52,10 +54,17 @@ public:
         }
     }
 
+    /* Warning: the `passive_producer_t` may be unavailable even when `size()`
+    returns nonzero. */
+    size_t size() {
+        return items_in_queue;
+    }
+
 private:
     T produce_next_value() {
         T value = memory_queue.front();
         memory_queue.pop_front();
+        items_in_queue--;
         if (memory_queue.empty()) {
             available_control.set_available(false);
         }
@@ -92,6 +101,7 @@ private:
     bool disk_queue_in_use;
     boost::circular_buffer<T> memory_queue;
     cond_t *notify_when_room_in_memory_queue;
+    size_t items_in_queue;
     auto_drainer_t drainer;
 };
 

@@ -188,7 +188,6 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4),
         mailbox_callback_mode_inline)
 {
-    debugf("listener_t() begin\n");
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
@@ -218,7 +217,6 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
         store->get_metainfo(read_token, interruptor);
 #endif
 
-    debugf("listener_t() about to try_start_receiving_writes()\n");
     /* Attempt to register for writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
     rassert(registration_done_cond.get_ready_signal()->is_pulsed());
@@ -231,8 +229,6 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     rassert(expected_initial_metainfo == initial_metainfo);
 #endif
 
-    debugf("listener_t() about to create coro pool\n");
-
     /* Start streaming, just like we do after we finish a backfill */
     current_timestamp = registration_done_cond.get_value().broadcaster_begin_timestamp;
     write_queue_coro_pool_callback.reset(
@@ -243,8 +239,6 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
         new coro_pool_t<write_queue_entry_t>(
             OPERATION_CORO_POOL_SIZE, &write_queue, write_queue_coro_pool_callback.get()
         ));
-
-    debugf("listener_t() about to return\n");
 }
 
 template <class protocol_t>
@@ -350,7 +344,6 @@ void listener_t<protocol_t>::enqueue_write(typename protocol_t::write_t write,
     try {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink, fifo_token);
         wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
-        debugf("enqueue_write() region=%s timestamp=%d\n", region_to_debug_str(write.get_region()).c_str(), int(transition_timestamp.numeric_representation()));
         write_queue_semaphore.co_lock();
         write_queue.push(write_queue_entry_t(write, transition_timestamp, fifo_token));
         send(mailbox_manager, ack_addr);
@@ -371,11 +364,9 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink, qe.fifo_token);
         if (qe.transition_timestamp.timestamp_before() < backfill_end_timestamp) {
-            debugf("perform_enqueued_write() region=%s timestamp=%d abort\n", region_to_debug_str(qe.write.get_region()).c_str(), int(qe.transition_timestamp.numeric_representation()));
             return;
         }
         wait_interruptible(&fifo_exit, interruptor);
-        debugf("perform_enqueued_write() region=%s timestamp=%d ok\n", region_to_debug_str(qe.write.get_region()).c_str(), int(qe.transition_timestamp.numeric_representation()));
         advance_current_timestamp_and_pulse_waiters(qe.transition_timestamp);
         store->new_write_token(token);
     }
@@ -428,7 +419,6 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 
             fifo_enforcer_sink_t::exit_write_t fifo_exit_2(&store_entrance_sink, fifo_token);
             wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
-            debugf("perform_writeread() region=%s timestamp=%d\n", region_to_debug_str(write.get_region()).c_str(), int(transition_timestamp.numeric_representation()));
 
             advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
@@ -488,8 +478,6 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
 
             fifo_enforcer_sink_t::exit_read_t fifo_exit_2(&store_entrance_sink, fifo_token);
             wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
-
-            debugf("perform_read() region=%s timestamp=%d\n", region_to_debug_str(read.get_region()).c_str(), int(expected_timestamp.numeric_representation()));
 
             rassert(current_timestamp == expected_timestamp);
 

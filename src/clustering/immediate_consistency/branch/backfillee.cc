@@ -160,13 +160,15 @@ void backfillee(
             chunk_callback_t(store_view_t<protocol_t> *_store, signal_t *_dont_go_until, 
                              signal_t *_interruptor, chunk_queue_t *_chunk_queue,
                              cond_t *_done_cond, mailbox_manager_t *_mbox_manager, 
-                             mailbox_addr_t<void(int)> _allocation_mailbox)
+                             mailbox_addr_t<void(int)> _allocation_mailbox,
+                             auto_drainer_t *_drainer)
                 : store(_store), dont_go_until(_dont_go_until), interruptor(_interruptor), 
                   chunk_queue(_chunk_queue), done_cond(_done_cond), mbox_manager(_mbox_manager),
-                  allocation_mailbox(_allocation_mailbox), unacked_chunks(0)
+                  allocation_mailbox(_allocation_mailbox), unacked_chunks(0), drainer(_drainer)
             { }
             void coro_pool_callback(std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> chunk, UNUSED signal_t *interruptor) {
                 assert_thread();
+                auto_drainer_t::lock_t keepalive(drainer);
                 if (chunk.first.first) {
                     on_receive_backfill_chunk(store, dont_go_until, chunk.first.second, interruptor, chunk.second, chunk_queue);
                     int chunks_to_send_out = 0;
@@ -199,10 +201,13 @@ void backfillee(
             mailbox_manager_t *mbox_manager;
             mailbox_addr_t<void(int)> allocation_mailbox;
             int unacked_chunks;
+            auto_drainer_t *drainer;
         };
 
+        boost::scoped_ptr<auto_drainer_t> chunk_drainer(new auto_drainer_t);
+
         /* The callback. */
-        chunk_callback_t chunk_callback(store, &dont_go_until, interruptor, &chunk_queue, &done_cond, mailbox_manager, allocation_mailbox);
+        chunk_callback_t chunk_callback(store, &dont_go_until, interruptor, &chunk_queue, &done_cond, mailbox_manager, allocation_mailbox, chunk_drainer.get());
 
         /* A pool of coroutines that run the callback on the backfill chunks. */
         coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
@@ -276,6 +281,9 @@ void backfillee(
 
         /* All went well, so don't send a cancel message to the backfiller */
         backfiller_notifier.fun = 0;
+
+        /* Wait for all chunks to be completed */
+        chunk_drainer.reset();
     }
 
     /* Update the metadata to indicate that the backfill occurred */
