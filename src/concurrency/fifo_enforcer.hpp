@@ -187,7 +187,6 @@ private:
     DISABLE_COPYING(fifo_enforcer_sink_t);
 };
 
-//TODO no reason for this to be a template. Make it in to a boost::function
 template <class T>
 class fifo_enforcer_queue_t : public passive_producer_t<T>, public home_thread_mixin_t {
 public:
