@@ -84,8 +84,9 @@ set_directory = (attributes_from_server) ->
     # Convert directory representation from RethinkDB into backbone friendly one
     dir_machines = []
     for key, value of attributes_from_server
-        value['id'] = key
-        dir_machines[dir_machines.length] = value
+        if value.peer_type is 'server'
+            value['id'] = key
+            dir_machines[dir_machines.length] = value
     directory.reset(dir_machines)
 
 set_last_seen = (last_seen) ->
