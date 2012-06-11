@@ -102,7 +102,7 @@ class Namespace extends Backbone.Model
         # CPU, mem, disk
         num_machines_in_namespace = 0
         for machine in machines.models
-            if machine.get('stats')? and  @get('id') of machine.get('stats') and machine.is_reachable
+            if machine.get('stats')? and @get('id') of machine.get('stats') and machine.is_reachable
                 num_machines_in_namespace++
                 mstats = machine.get_stats().proc
                 __s.global_cpu_util.avg += if mstats.global_cpu_util? then parseFloat(mstats.global_cpu_util.avg) else 0
@@ -749,55 +749,6 @@ module 'DataUtils', ->
 
         return json
 
-
-    @get_namespace_status = (namespace_uuid, datacenter_uuid) ->
-        namespace = namespaces.get(namespace_uuid)
-        json =
-            nshards: 0
-            nreplicas: 0
-            nashards: 0
-            nareplicas: 0
-
-        # If we can't see the namespace...
-        if not namespace?
-            return null
-
-        # machine and datacenter counts
-        _machines = []
-        _datacenters = []
-
-        for machine_uuid, role of namespace.get('blueprint').peers_roles
-            if datacenter_uuid? and
-               machines.get(machine_uuid) and
-               machines.get(machine_uuid).get('datacenter_uuid') isnt datacenter_uuid
-                continue
-            peer_accessible = directory.get(machine_uuid)
-            machine_active_for_namespace = false
-            for shard, role_name of role
-                if role_name is 'role_primary'
-                    machine_active_for_namespace = true
-                    json.nshards += 1
-                    if peer_accessible?
-                        json.nashards += 1
-                if role_name is 'role_secondary'
-                    machine_active_for_namespace = true
-                    json.nreplicas += 1
-                    if peer_accessible?
-                        json.nareplicas += 1
-            if machine_active_for_namespace
-                _machines[_machines.length] = machine_uuid
-                _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
-
-        json.nmachines = _.uniq(_machines).length
-        json.ndatacenters = _.uniq(_datacenters).length
-        if json.nshards is json.nashards
-            json.reachability = 'Live'
-        else
-            json.reachability = 'Down'
-
-        json.backfill_progress = @get_backfill_progress_agg(namespace_uuid, datacenter_uuid)
-
-        return json
 
     @is_integer = (data) ->
         return data.search(/^\d+$/) isnt -1

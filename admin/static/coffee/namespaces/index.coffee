@@ -64,18 +64,71 @@ module 'NamespaceView', ->
     class @NamespaceListElement extends UIComponents.CheckboxListElement
         template: Handlebars.compile $('#namespace_list_element-template').html()
 
+        history_opsec: []
+
         events: ->
             _.extend super,
                 'click a.rename-namespace': 'rename_namespace'
+                'mouseenter .contains_info': 'display_popover'
+                'mouseleave .contains_info': 'hide_popover'
+
+        hide_popover: ->
+            $('.tooltip').remove()
+
+        display_popover: (event) ->
+            $(event.currentTarget).tooltip('show')
 
         initialize: ->
             log_initial '(initializing) list view: namespace'
             @model.on 'change', @render
             super @template
 
+            # Initialize history
+            for i in [0..40]
+                @history_opsec.push 0
+
+            @model.on 'change', @render
+            machines.on 'all', @render
+
+        update_history_opsec: =>
+            @history_opsec.shift()
+            @history_opsec.push @model.get_stats().keys_read + @model.get_stats().keys_set
+
+
         json_for_template: =>
             json = _.extend super(), DataUtils.get_namespace_status(@model.get('id'))
+            json.nreplicas += json.nshards
+
+            data_in_memory = 0
+            data_total = 0
+            for machine in machines.models
+                if machine.get('stats')? and @model.get('id') of machine.get('stats')
+                    data_in_memory += machine.get('stats')[@model.get('id')].cache.block_size*machine.get('stats')[@model.get('id')].cache.blocks_in_memory
+                    data_total += machine.get('stats')[@model.get('id')].cache.block_size*machine.get('stats')[@model.get('id')].cache.blocks_total
+            json.data_in_memory_percent = Math.floor(data_in_memory/data_total*100)
+            json.data_in_memory = human_readable_units(data_in_memory, units_space)
+            json.data_total = human_readable_units(data_total, units_space)
+            
+            @update_history_opsec()
+            json.opsec = @history_opsec[@history_opsec.length-1]
+
             return json
+
+        render: =>
+            super()
+
+            sparkline_attr =
+                fillColor: false
+                spotColor: false
+                minSpotColor: false
+                maxSpotColor: false
+                chartRangeMin: 0
+                width: '75px'
+                height: '15px'
+
+            @.$('.opsec_sparkline').sparkline @history_opsec, sparkline_attr
+
+            return @
 
         rename_namespace: (event) ->
             event.preventDefault()

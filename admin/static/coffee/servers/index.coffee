@@ -119,8 +119,8 @@ module 'ServerView', ->
         events: ->
             _.extend super,
                 'click a.rename-machine': 'rename_machine'
-                'mouseenter .progress': 'display_popover'
-                'mouseleave .progress': 'hide_popover'
+                'mouseenter .contains_info': 'display_popover'
+                'mouseleave .contains_info': 'hide_popover'
 
         hide_popover: ->
             $('.tooltip').remove()
