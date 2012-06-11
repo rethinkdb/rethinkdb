@@ -137,11 +137,12 @@ module 'NamespaceView', ->
             @.$('.btn-compute-shards-suggestion').button('loading')
 
             # Make sure their input aint crazy
-            @desired_shards = parseInt(form_data_as_object($('form', @.el)).num_shards)
-            if isNaN(@desired_shards)
+            if DataUtils.is_integer(form_data_as_object($('form', @.el)).num_shards) is false
                 @error_msg = "The number of shards must be an integer."
+                @desired_shards = form_data_as_object($('form', @.el)).num_shards
                 @render()
                 return
+            @desired_shards = parseInt(form_data_as_object($('form', @.el)).num_shards) #It's safe to use parseInt now
             if @desired_shards < 1 or @desired_shards > MAX_SHARD_COUNT
                 @error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
                 @render()
@@ -232,9 +233,14 @@ module 'NamespaceView', ->
                 unsaved_settings: user_made_changes
                 error_msg: @error_msg
             @error_msg = null
+
+            shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
             @.$el.html(@template json)
             
             @render_only_shards
+
+            @.$('.shards tbody').html ''
+            @.$('.shards tbody').append view.render().el for view in shard_views
 
             # Control the suggest button
             @.$('.btn-compute-shards-suggestion').button()
@@ -248,8 +254,8 @@ module 'NamespaceView', ->
             return @
 
         render_only_shards: =>
-            @.$('.shards tbody').html ''
             shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
+            @.$('.shards tbody').html ''
             @.$('.shards tbody').append view.render().el for view in shard_views
 
 

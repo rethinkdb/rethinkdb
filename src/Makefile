@@ -68,7 +68,6 @@ TIMEBOMB?=0
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
 SOURCE_DIR:=.
-EXTERNAL_SOURCE_DIR:=/usr/src/rethinkdb_lib_external
 BUILD_ROOT_DIR:=../build
 ifeq (${DEBUG},1)
 BUILD_DIR:=$(BUILD_ROOT_DIR)/debug
@@ -78,10 +77,8 @@ endif
 
 ifeq ($(COMPILER), CLANG)
 BUILD_DIR:=$(BUILD_DIR)_clang
-else
-ifeq ($(COMPILER), INTEL)
+else ifeq ($(COMPILER), INTEL)
 BUILD_DIR:=$(BUILD_DIR)_intel
-endif
 endif
 
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
@@ -96,23 +93,20 @@ else ifeq ($(COMPILER),INTEL)
 CXX:=icc
 endif
 
-
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lstdc++ -lm -lcurl
-else
-ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lQtCore -lstdc++ -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lcurl
+else ifeq ($(COMPILER),INTEL)
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lcurl
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lcurl
-endif
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lcurl
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore -pthread
+CXXFLAGS+=-I$(SOURCE_DIR) -pthread
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -125,12 +119,10 @@ CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
 
 ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
-else
-ifeq ($(COMPILER), CLANG)
+else ifeq ($(COMPILER), CLANG)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration
 else
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
-endif
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
@@ -255,7 +247,7 @@ STATIC_LIBRARIES+=tcmalloc_minimal
 endif
 
 # look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
 #  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 
@@ -727,6 +719,7 @@ tags:
 	$(QUIET) ctags $(TAGFLAGS) -f $(TAGS)
 
 etags:
+	$(QUIET) rm -f $(ETAGS)
 	$(QUIET) ctags -e $(TAGFLAGS) -f $(ETAGS)
 
 cscope:
@@ -736,7 +729,7 @@ analyze: $(SOURCES)
 	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
 
 style:
-	$(QUIET) find . -name \*.cc -o -name \*.hpp -o -name \*.tcc | xargs -d\\n ../scripts/cpplint --verbose 5 --basedir=. --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,+build/include_order,-whitespace/labels,-runtime/references,-whitespace/blank_line,-readability/function,-build/include_order 2>&1 | grep -v Done\ processing
+	$(QUIET) ../scripts/check_style.sh 
 
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null

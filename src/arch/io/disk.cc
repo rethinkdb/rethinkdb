@@ -16,7 +16,7 @@
 #include "arch/runtime/system_event/eventfd.hpp"
 #include "arch/io/arch.hpp"
 #include "config/args.hpp"
-#include "utils.hpp"
+#include "backtrace.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/io/disk/aio.hpp"
 #include "arch/io/disk/pool.hpp"

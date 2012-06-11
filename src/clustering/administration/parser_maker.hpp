@@ -1,16 +1,15 @@
 #ifndef CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 #define CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 
+#include "errors.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 
 template<class protocol_t, class parser_t>
 class parser_maker_t {
 public:
-    explicit parser_maker_t(mailbox_manager_t *,
+    parser_maker_t(mailbox_manager_t *,
                             boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > >,
-#ifndef NDEBUG
-                            boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> >,
-#endif
+                            DEBUG_ONLY(int port_offset,)
                             namespace_repo_t<protocol_t> *repo,
                             perfmon_collection_repo_t *_perfmon_collection_repo);
 
@@ -28,7 +27,7 @@ private:
     mailbox_manager_t *mailbox_manager;
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_semilattice_metadata;
 #ifndef NDEBUG
-    boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t > > machine_semilattice_metadata;
+    int port_offset;
 #endif
     namespace_repo_t<protocol_t> *repo;
 
@@ -37,9 +36,6 @@ private:
     auto_drainer_t drainer;
 
     typename semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> >::subscription_t namespaces_subscription;
-#ifndef NDEBUG
-    semilattice_read_view_t<machine_semilattice_metadata_t>::subscription_t machine_subscription;
-#endif
     perfmon_collection_repo_t *perfmon_collection_repo;
 };
 

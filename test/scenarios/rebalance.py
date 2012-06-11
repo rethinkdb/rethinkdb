@@ -31,7 +31,7 @@ with driver.Metacluster() as metacluster:
     http.add_namespace_shard(ns, "j")
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
-    host, port = http.get_namespace_host(ns)
+    host, port = driver.get_namespace_host(ns, processes)
     workload_runner.run(opts["workload1"], host, port, opts["timeout"])
     cluster.check()
     print "Rebalancing..."

@@ -191,7 +191,7 @@ private:
 template <class T>
 class fifo_enforcer_queue_t : public passive_producer_t<T>, public home_thread_mixin_t {
 public:
-    explicit fifo_enforcer_queue_t();
+    fifo_enforcer_queue_t();
     fifo_enforcer_queue_t(perfmon_counter_t *_read_counter, perfmon_counter_t *_write_counter);
     ~fifo_enforcer_queue_t();
 

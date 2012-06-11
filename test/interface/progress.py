@@ -19,7 +19,7 @@ with driver.Metacluster() as metacluster:
         http.move_server_to_datacenter(machine_id, dc)
     ns = http.add_namespace(protocol = "memcached", primary = dc)
     time.sleep(10)
-    host, port = http.get_namespace_host(ns)
+    host, port = driver.get_namespace_host(ns, processes)
 
     with MemcacheConnection(host, port) as mc:
         for i in range(10000):
@@ -35,6 +35,6 @@ with driver.Metacluster() as metacluster:
             for activity_id, temp3 in temp2.iteritems():
                 for region, progress_val in temp3.iteritems():
                     assert(progress_val[0] != "Timeout")
-                    assert(progress_val[0] < progress_val[1])
+                    assert(progress_val[0][0] <= progress_val[0][1])
 
     cluster.check_and_stop()

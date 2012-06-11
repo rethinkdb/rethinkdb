@@ -42,7 +42,7 @@ public:
     static void create(cache_t *cache);
 
     // Blocks
-    explicit btree_slice_t(cache_t *cache, perfmon_collection_t *parent);
+    btree_slice_t(cache_t *cache, perfmon_collection_t *parent);
 
     // Blocks
     ~btree_slice_t();

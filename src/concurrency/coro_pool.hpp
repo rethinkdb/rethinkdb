@@ -26,7 +26,7 @@ public:
 
     class boost_function_callback_t : public callback_t {
     public:
-        boost_function_callback_t(boost::function<void(T, signal_t *)> _f)
+        explicit boost_function_callback_t(boost::function<void(T, signal_t *)> _f)
             : f(_f)
         { }
         void coro_pool_callback(T t, signal_t *interruptor) {

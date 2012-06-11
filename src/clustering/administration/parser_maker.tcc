@@ -6,21 +6,14 @@
 template<class protocol_t, class parser_t>
 parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox_manager,
                                boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_semilattice_metadata,
-#ifndef NDEBUG
-                               boost::shared_ptr<semilattice_read_view_t<machine_semilattice_metadata_t> > _machine_semilattice_metadata,
-#endif
+                               DEBUG_ONLY(int _port_offset,)
                                namespace_repo_t<protocol_t> *_repo,
                                perfmon_collection_repo_t *_perfmon_collection_repo)
     : mailbox_manager(_mailbox_manager),
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
-#ifndef NDEBUG
-      machine_semilattice_metadata(_machine_semilattice_metadata),
-#endif
+      DEBUG_ONLY(port_offset(_port_offset),)
       repo(_repo),
       namespaces_subscription(boost::bind(&parser_maker_t::on_change, this), namespaces_semilattice_metadata),
-#ifndef NDEBUG
-      machine_subscription(boost::bind(&parser_maker_t::on_change, this), machine_semilattice_metadata),
-#endif
       perfmon_collection_repo(_perfmon_collection_repo)
 {
     on_change();
@@ -28,13 +21,13 @@ parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox
 
 template<class protocol_t>
 int get_port(const namespace_semilattice_metadata_t<protocol_t> &ns
-             DEBUG_ONLY(, const machine_semilattice_metadata_t &us)
+             DEBUG_ONLY(, int port_offset)
             ) {
 #ifndef NDEBUG
     if (ns.port.get() == 0)
         return 0;
 
-    return ns.port.get() + us.port_offset.get();
+    return ns.port.get() + port_offset;
 #else
     return ns.port.get();
 #endif
@@ -47,9 +40,6 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
     ASSERT_NO_CORO_WAITING;
 
     namespaces_semilattice_metadata_t<protocol_t> snapshot = namespaces_semilattice_metadata->get();
-#ifndef NDEBUG
-    machine_semilattice_metadata_t machine_metadata_snapshot = machine_semilattice_metadata->get();
-#endif
 
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::iterator it  = snapshot.namespaces.begin();
                                                                                            it != snapshot.namespaces.end();
@@ -62,8 +52,7 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
                           it->second.is_deleted() ||
                           it->second.get().port.in_conflict() ||
                           handled_ns->second->port != get_port(it->second.get()
-                                                               DEBUG_ONLY(, machine_metadata_snapshot)
-                                                              )
+                                                               DEBUG_ONLY(, port_offset))
                           )) {
 
             if (!handled_ns->second->stopper.is_pulsed()) {
@@ -78,7 +67,7 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
             std::string ns_name(v_ns_name.in_conflict() ? ns_name_in_conflict : v_ns_name.get());
 
             int port = get_port(it->second.get()
-                                DEBUG_ONLY(, machine_metadata_snapshot)
+                                DEBUG_ONLY(, port_offset)
                                );
             namespace_id_t tmp = it->first;
             namespaces_being_handled.insert(tmp, new ns_record_t(port));

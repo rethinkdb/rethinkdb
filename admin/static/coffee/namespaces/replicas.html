@@ -67,7 +67,11 @@
   <form class="form">
     <div class="replica-attributes">
       {{#if error_msg}}
-      <p class="server-error alert alert-error"> {{error_msg}} </p>
+        <div class="server-error alert alert-error">
+          {{#each error_msg}}
+            <p>{{this}}</p>
+          {{/each}}
+        </div>
       {{/if}}
       <div class="info">
         <p>You can specify the <strong>number of replicas</strong> to use per shard for this datacenter.</p>
@@ -80,7 +84,7 @@
             <h4>Number of replicas:</h4>
           </label>
           <div class="input">
-            <input class="xlarge" name="num_replicas" type="text" value="{{num_replicas}}"/>
+              <input class="xlarge" name="num_replicas" type="text" value="{{#if nreplicas_input}}{{nreplicas_input}}{{else}}{{num_replicas}}{{/if}}"/>
             <p class="current">Current replicas: {{num_replicas}}</p>
             <p class="max">Max replicas: {{total_machines}}</p>
           </div>
@@ -91,7 +95,7 @@
             <h4>Number of acks:</h4>
           </label>
           <div class="input">
-            <input class="xlarge" name="num_acks" type="text" value="{{num_acks}}"/>
+              <input class="xlarge" name="num_acks" type="text" value="{{#if nacks_input}}{{nacks_input}}{{else}}{{num_acks}}{{/if}}"/>
             <p class="current">Current acks: {{num_acks}}</p>
           </div>
       </fieldset>

@@ -59,7 +59,7 @@ Handlebars.registerHelper 'ifequal', (val_a, val_b, if_block, else_block) ->
 
 # Helpers for pluralization of nouns and verbs
 Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
-    if num is 1
+    if num is 1 or num is 0
         result = noun
     else
         if noun.substr(-1) is 'y' and (noun isnt 'key')
@@ -120,6 +120,37 @@ Handlebars.registerHelper 'humanize_namespace_reachability', (reachability) ->
         result = "<span class='label label-important'>Down</span>"
 
     return new Handlebars.SafeString(result);
+
+
+Handlebars.registerHelper 'display_datacenter_in_namespace', (datacenter, role) ->
+    result = '<tr>'
+    result += '<td class="role">'+role+'</td>'
+    result += '<td class="datacenter_name"><a href="#datacenters/'+datacenter.id+'">'+datacenter.name+'</a></td>'
+    result += '<td>Replicas: '+datacenter.replicas+'</td>'
+    result += '<td>/</td>'
+    result += '<td>Machines '+datacenter.total_machines+'</td>'
+    result += '</tr>'
+    return new Handlebars.SafeString(result)
+
+
+
+Handlebars.registerHelper 'display_primary_and_secondaries', (primary, secondaries) ->
+    result = '<table class="datacenter_list">'
+    if primary.id? and primary.id isnt ''
+        result += new Handlebars.helpers.display_datacenter_in_namespace(primary, "Primary")
+    else
+        result += '<tr><td class="role" colspan="5">No primary was found</td></tr>'
+    display_role = true
+    for secondary in secondaries
+        if display_role
+            display_role = false
+            result += new Handlebars.helpers.display_datacenter_in_namespace(secondary, "Secondaries")
+        else
+            result += new Handlebars.helpers.display_datacenter_in_namespace(secondary, "")
+
+    result += '</table>'
+
+    return new Handlebars.SafeString(result)
 
 Handlebars.registerHelper 'display_truncated_machines', (data) ->
     machines = data.machines

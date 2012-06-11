@@ -14,23 +14,44 @@
 </script>
 
 <script id="namespace_list_element-template" type="text/x-handlebars-template">
-  <td>
-    <input type="checkbox"></input>
-  </td>
-  <td>
-    <div class="details">
-      <h3 class="name"><a href="#namespaces/{{id}}">{{name}}</a></h3>
-      <p><span class="status">Status: {{reachability}} ({{nashards}} of {{nshards}} masters live; {{nareplicas}} of {{nreplicas}} replicas live)</span></p>
-      <p><span class="contains">Contains: {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}</span></p>
-      <p><span class="replication">Replication: {{> backfill_progress_summary}}</span></p>
-      <div class="toolbar">
-        <p><span class="protocol {{protocol}}">{{protocol}}</span></p>
-        <p><a href="#" class="rename-namespace">rename</a></p>
-      </div>
-    </div>
-    <div class="clearboth"></div>
-  </td>
+    <td>
+        <input type="checkbox"></input>
+    </td>
+    <td>
+    <div class="namespace details">
+        <div class="toolbar">
+            <p class="actions"><a href="#" class="rename-machine">rename</a></p>
+        </div>
+        <h3 class="name">
+            <span class="label label-namespace" style="float:left">Namespace</span>
+            <a href="#namespaces/{{id}}">{{name}}</a>
+            <span class="status">{{humanize_namespace_reachability reachability}}</span>
+            <span class="namespace_replication_status">Replication: {{> backfill_progress_summary}}<span>
+        </h3>
+        {{#if unassigned_machine}}
+        <p class="contains">Not assigned to any datacenter</p>
+        {{else}}
+        <p class="quick_info">
+        Protocol: {{protocol}}, {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}
+        </p>
+        {{/if}}
+        <ul class="list_stats">
+            <li class="stat_name">Total op/sec</li>
+            <li class="opsec_sparkline sparkline_container contains_info" title="{{opsec}} {{pluralize_noun "operation" opsec}} per second"></li>
+        </ul>
+        <ul class="list_stats">
+            <li class="stat_name">Data in RAM</li>
+            <li class="data_in_ram">
+                <div class="progress contains_info" title="Data in ram: {{data_in_memory}} - Data in disk: {{data_total}}">
+                    <div class="bar" style="width: {{data_in_memory_percent}}%;"></div>
+                </div>
+            </li>
+        </ul>
+    </td>
 </script>
+
+
+
 <script id="add_namespace-modal-template" type="text/x-handlebars-template">
   <form class="form">
     <fieldset>
@@ -44,7 +65,7 @@
       <div class="clearfix">
         <label for="port">Port</label>
         <div class="input">
-          <input class="xlarge" name="port" size="5" type="text" />
+          <input class="xlarge" name="port" size="5" type="text" value="{{default_port}}"/>
         </div>
       </div>
       <div class="clearfix">
@@ -52,9 +73,7 @@
         <div class="input">
           <select class="protocol" name="protocol">
             <option>Memcached</option>
-            <option>Redis</option>
-            <option>Riak</option>
-            <option>MongoDB</option>
+            <!-- <option>RethinkDB/option>-->
           </select>
         </div>
       </div>
@@ -97,6 +116,13 @@
   <div class="alert" data-alert="alert">
     <a class="close" href="#">&times;</a>
     <p>You removed namespace <span class="name">{{name}}</span>.</p>
+  </div>
+</script>
+
+<script id="error_adding_namespace-template" type="text/x-handlebars-template">
+  <div class="alert alert-error" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You cannot create a new namespace without first creating a new datacenter. <a href="#servers">Create one</a></p>
   </div>
 </script>
 
