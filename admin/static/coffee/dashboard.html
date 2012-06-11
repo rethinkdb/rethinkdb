@@ -41,7 +41,7 @@
           <td class="no-problems-detected cpu_distro">
               <h3>CPU distribution</h3>
               <p class="message">No CPU problems detected</p>
-              <p class="details">{{num_machines}} of {{num_machines}} machines utilize less than {{threshold_cpu}}% of their CPU</p>
+              <p class="details">{{num_machines}} of {{num_machines}} machines use less than {{threshold_cpu}}% of their CPU</p>
           </td>
           {{/if}}
 
@@ -105,7 +105,7 @@
 
               <p class="details">
                 {{num_machines_with_disk_problems}} of {{num_machines}} 
-                <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "machine" num_machines_with_disk_problems}} {{pluralize_verb_to_have num_machines_with_disk_problems}} problems: {{links_to_machines machines_with_disk_problems}}" data-title="Persistence problems">
+                <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "machine" num_machines_with_disk_problems}} can't write logs: {{links_to_machines machines_with_disk_problems}}" data-title="Log file write problems">
                   {{pluralize_noun "machine" num_machines}}
                 </a>
                 have disk problems
