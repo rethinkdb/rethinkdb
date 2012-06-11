@@ -22,6 +22,8 @@ void actually_call_receive_backfill(multistore_ptr_t<protocol_t> *svs,
                                     signal_t *interruptor,
                                     int i) {
     try {
+        rassert(write_tokens[i].get() != NULL);
+        rassert(interruptor != NULL);
         svs->get_store_view((*indices)[i])->receive_backfill((*sharded_chunks)[i], write_tokens[i], interruptor);
     } catch (interrupted_exc_t&) {
         // we check if the thing was pulsed after pmap.

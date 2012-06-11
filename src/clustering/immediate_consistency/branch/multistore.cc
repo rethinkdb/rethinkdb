@@ -76,7 +76,7 @@ void multistore_ptr_t<protocol_t>::new_particular_write_tokens(int *indices, int
     for (int j = 0; j < num_indices; ++j) {
         int index = indices[j];
         rassert(index >= 0 && index < num_stores());
-        store_views[index]->new_write_token(write_tokens[index]);
+        store_views[index]->new_write_token(write_tokens[j]);
     }
 }
 
