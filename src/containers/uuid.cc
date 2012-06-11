@@ -3,7 +3,8 @@
 #include "errors.hpp"
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <boost/lexical_cast.hpp>
+
+#include "containers/printf_buffer.hpp"
 
 #include "utils.hpp"
 
@@ -22,6 +23,11 @@ boost::uuids::uuid generate_uuid() {
 boost::uuids::uuid nil_uuid() {
     return boost::uuids::nil_generator()();
 }
+
+void debug_print(append_only_printf_buffer_t *buf, const boost::uuids::uuid& id) {
+    buf->appendf("%s", boost::uuids::to_string(id).c_str());
+}
+
 
 std::string uuid_to_str(boost::uuids::uuid id) {
     // Heh.

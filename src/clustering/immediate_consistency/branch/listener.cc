@@ -174,9 +174,12 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
                                                                          version_range_t(version_t(branch_id, backfill_end_timestamp)));
 #endif
 
-    rassert(backfill_end_point == expected_backfill_endpoint);
+    // debugf_print("expected_backfill_endpoint", expected_backfill_endpoint);
+    // debugf_print("backfill_end_point", backfill_end_point);
 
-    rassert(backfill_end_timestamp >= streaming_begin_point);
+    guarantee(backfill_end_point == expected_backfill_endpoint);
+
+    guarantee(backfill_end_timestamp >= streaming_begin_point);
 
     current_timestamp = backfill_end_timestamp;
     backfill_done_cond.pulse(backfill_end_timestamp);

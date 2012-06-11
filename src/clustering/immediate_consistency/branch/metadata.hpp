@@ -3,15 +3,14 @@
 
 #include <map>
 
-#include "errors.hpp"
-#include <boost/uuid/uuid.hpp>
-
 #include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/printf_buffer.hpp"
+#include "containers/uuid.hpp"
 #include "protocol_api.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/joins/map.hpp"
@@ -47,6 +46,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_2(branch, timestamp);
 };
 
+inline void debug_print(append_only_printf_buffer_t *buf, const version_t& v) {
+    buf->appendf("v{");
+    debug_print(buf, v.branch);
+    buf->appendf(", ");
+    debug_print(buf, v.timestamp);
+    buf->appendf("}");
+}
+
 /* `version_range_t` is a pair of `version_t`s. It's used to keep track of
 backfills; when a backfill is interrupted, the state of the individual keys is
 unknown and all we know is that they lie within some range of versions. */
@@ -73,6 +80,14 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_2(earliest, latest);
 };
+
+inline void debug_print(append_only_printf_buffer_t *buf, const version_range_t& vr) {
+    buf->appendf("vr{earliest=");
+    debug_print(buf, vr.earliest);
+    buf->appendf(", latest=");
+    debug_print(buf, vr.latest);
+    buf->appendf("}");
+}
 
 /* Every `listener_t` constructs a `listener_business_card_t` and sends it to
 the `broadcaster_t`. */
