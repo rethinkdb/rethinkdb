@@ -64,6 +64,13 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
             }
             break;
 
+            // TODO: Merge this properly or fix this...
+        case HEAD:
+        case DELETE:
+        case TRACE:
+        case OPTIONS:
+        case CONNECT:
+        case PATCH:
         default:
             return http_res_t(400);
         }
