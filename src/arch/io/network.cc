@@ -26,15 +26,15 @@
 /* Network connection object */
 
 linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t) :
-    write_perfmon(NULL),
-    sock(socket(AF_INET, SOCK_STREAM, 0)),
-    event_watcher(new linux_event_watcher_t(sock.get(), this)),
-    read_in_progress(false), write_in_progress(false),
-    write_handler(this),
-    write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
-    write_coro_pool(1, &write_queue, &write_handler),
-    current_write_buffer(get_write_buffer()),
-    drainer(new auto_drainer_t) {
+        write_perfmon(NULL),
+        sock(socket(AF_INET, SOCK_STREAM, 0)),
+        event_watcher(new linux_event_watcher_t(sock.get(), this)),
+        read_in_progress(false), write_in_progress(false),
+        write_handler(this),
+        write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
+        write_coro_pool(1, &write_queue, &write_handler),
+        current_write_buffer(get_write_buffer()),
+        drainer(new auto_drainer_t) {
 
     struct sockaddr_in addr;
     if (local_port != 0) {
@@ -137,7 +137,6 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
         ssize_t res = ::read(sock.get(), buffer, size);
 
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-
             read_in_progress = true;
 
             /* There's no data available right now, so we must wait for a notification from the
@@ -178,7 +177,6 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 }
 
 size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
-
     assert_thread();
     rassert(size > 0);
     rassert(!read_in_progress);
@@ -197,7 +195,6 @@ size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::read(void *buf, size_t size) {
-
     assert_thread();
     rassert(!read_in_progress);   // Is there a read already in progress?
     if (read_closed.is_pulsed()) throw read_closed_exc_t();
@@ -219,7 +216,6 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::read_more_buffered() {
-
     assert_thread();
     rassert(!read_in_progress);
     if (read_closed.is_pulsed()) throw read_closed_exc_t();
@@ -232,7 +228,6 @@ void linux_tcp_conn_t::read_more_buffered() {
 }
 
 const_charslice linux_tcp_conn_t::peek() const {
-
     assert_thread();
     rassert(!read_in_progress);   // Is there a read already in progress?
     if (read_closed.is_pulsed()) throw read_closed_exc_t();
@@ -246,7 +241,6 @@ const_charslice linux_tcp_conn_t::peek(size_t size) {
 }
 
 void linux_tcp_conn_t::pop(size_t len) {
-
     assert_thread();
     rassert(!read_in_progress);
     if (read_closed.is_pulsed()) throw read_closed_exc_t();
@@ -302,7 +296,6 @@ void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *ope
 }
 
 void linux_tcp_conn_t::internal_flush_write_buffer() {
-
     write_queue_op_t *op = get_write_queue_op();
     assert_thread();
     rassert(write_in_progress);
@@ -339,7 +332,6 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
         int res = ::write(sock.get(), buf, size);
 
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-
             /* Wait for a notification from the event queue, or for an order to
             shut down */
             linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
@@ -384,7 +376,6 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::write(const void *buf, size_t size) {
-
     write_queue_op_t op;
     cond_t to_signal_when_done;
     assert_thread();
@@ -415,7 +406,6 @@ void linux_tcp_conn_t::write(const void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size) {
-
     assert_thread();
     rassert(!write_in_progress);
     write_in_progress = true;
@@ -453,7 +443,6 @@ void linux_tcp_conn_t::writef(const char *format, ...) {
 }
 
 void linux_tcp_conn_t::flush_buffer() {
-
     assert_thread();
     rassert(!write_in_progress);
     write_in_progress = true;
@@ -480,7 +469,6 @@ void linux_tcp_conn_t::flush_buffer() {
 }
 
 void linux_tcp_conn_t::flush_buffer_eventually() {
-
     assert_thread();
     rassert(!write_in_progress);
     write_in_progress = true;
@@ -494,7 +482,6 @@ void linux_tcp_conn_t::flush_buffer_eventually() {
 }
 
 void linux_tcp_conn_t::shutdown_write() {
-
     assert_thread();
 
     int res = ::shutdown(sock.get(), SHUT_WR);
@@ -567,7 +554,6 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
 }
 
 void linux_tcp_conn_t::rethread(int new_thread) {
-
     if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
         rassert(!read_in_progress);
         rassert(!write_in_progress);
@@ -612,7 +598,6 @@ int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
 }
 
 void linux_tcp_conn_t::on_event(int events) {
-
     assert_thread();
 
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
@@ -624,7 +609,6 @@ void linux_tcp_conn_t::on_event(int events) {
     /* Nobody seems to understand this particular bit of code. */
 
     if (events == (poll_event_err | poll_event_hup) || events == poll_event_hup) {
-
         /* HEY: What's the significance of these 'if' statements? Do they actually make
         any sense? Why don't we just close both halves of the socket? */
 
@@ -804,13 +788,11 @@ void linux_tcp_listener_t::initialize_internal() {
 }
 
 void linux_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
-
     static const int initial_backoff_delay_ms = 10;   // Milliseconds
     static const int max_backoff_delay_ms = 160;
     int backoff_delay_ms = initial_backoff_delay_ms;
 
     while (!lock.get_drain_signal()->is_pulsed()) {
-
         fd_t new_sock = accept(sock.get(), NULL, NULL);
 
         if (new_sock != INVALID_FD) {
@@ -860,7 +842,6 @@ void linux_tcp_listener_t::handle(fd_t socket) {
 }
 
 linux_tcp_listener_t::~linux_tcp_listener_t() {
-
     /* Interrupt the accept loop */
     accept_loop_drainer.reset();
 
@@ -873,7 +854,6 @@ linux_tcp_listener_t::~linux_tcp_listener_t() {
 }
 
 void linux_tcp_listener_t::on_event(int events) {
-
     /* This is only called in cases of error; normal input events are recieved
     via event_listener.watch(). */
 
