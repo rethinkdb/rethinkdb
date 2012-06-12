@@ -81,18 +81,17 @@ module 'DashboardView', ->
 
                 for issue in issues.models
                     switch issue.get("type")
-                        when "PERSISTENCE_ISSUE"
+                        when "LOGFILE_WRITE_ERROR"
                             new_machine = 
                                 uid: issue.get('location')
                                 name: machines.get(issue.get('location')).get('name')
                             status.machines_with_disk_problems.push(new_machine)
                         when "MACHINE_DOWN"
-                            if issue.get('victim') of masters
-                                status.masters_offline.push 
-                                    machine_id: issue.get('victim')
-                                    machine_name: machines.get(issue.get('victim')).get('name')
-                                    namespace_name: masters[issue.get('victim')].name
-                                    namespace_id: masters[issue.get('victim')].id
+                            status.masters_offline.push 
+                                machine_id: issue.get('victim')
+                                machine_name: machines.get(issue.get('victim')).get('name')
+                                namespace_name: masters[issue.get('victim')].name
+                                namespace_id: masters[issue.get('victim')].id
                         when "NAME_CONFLICT_ISSUE"
                             status.num_conflicts_name++
                         when "VCLOCK_CONFLICT"
