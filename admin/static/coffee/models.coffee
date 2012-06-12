@@ -1,6 +1,5 @@
 # Models for Backbone.js
 class Namespace extends Backbone.Model
-    urlRoot: '/ajax/namespaces'
     initialize: ->
         log_initial '(initializing) namespace model'
         super
@@ -213,12 +212,12 @@ class Machine extends Backbone.Model
                 avg: if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
             global_net_sent_persec:
                 avg: if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
-        
+
         for namespace in namespaces.models
             _s = namespace.get_stats()
             if not _s?
                 continue
-            
+
             if namespace.get('id') of stats_full
                 __s.keys_read += _s.keys_read
                 __s.keys_set += _s.keys_set
@@ -390,7 +389,7 @@ class IssuesRedundancy extends Backbone.Collection
                             for activity in directory_by_namespaces[namespace_id][machine_id]
                                 if key is activity[0] and @convert_activity[value] is activity[1].type
                                     found_activity = true
-                            
+
                             if found_activity is false
                                 issue_redundancy_param =
                                     machine_id: machine_id
@@ -400,8 +399,8 @@ class IssuesRedundancy extends Backbone.Collection
                                 issues_redundancy.push new IssueRedundancy issue_redundancy_param
         if issues_redundancy.length > 0 or issues_redundancy.length isnt @.length
             @.reset(issues_redundancy)
-        
-        
+
+
 
 class ProgressList extends Backbone.Collection
     model: Progress

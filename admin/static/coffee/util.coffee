@@ -23,7 +23,7 @@ Handlebars.registerHelper 'html_list', (context) ->
     for i in [0...context.length]
         out += '<li>'+context[i]+'</li>'
     out += '</ul>'
-    return new Handlebars.SafeString(out);
+    return new Handlebars.SafeString(out)
 
 # Returns a list to links to machine
 Handlebars.registerHelper 'links_to_machines', (machines) ->
@@ -69,7 +69,7 @@ Handlebars.registerHelper 'pluralize_noun', (noun, num, capitalize) ->
         else
             result = noun + "s"
     if capitalize is true
-        result = result.charAt(0).toUpperCase() + result.slice(1);
+        result = result.charAt(0).toUpperCase() + result.slice(1)
     return result
 
 Handlebars.registerHelper 'pluralize_verb_to_be', (num) -> if num is 1 then 'is' else 'are'
@@ -98,7 +98,7 @@ Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
             _last_seen = if status.last_seen? then status.last_seen else 'unknown'
             result = "<span class='label label-important'>Unreachable</span>
                 <br/><span class='timeago' title='#{_last_seen}'>since #{_last_seen}</span>"
-    return new Handlebars.SafeString(result);
+    return new Handlebars.SafeString(result)
 
 Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
     if status.reachable > 0
@@ -111,15 +111,15 @@ Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->
     if status.reachable == 0 and status.total > 0
         result += "<br/><span class='timeago' title='#{status.last_seen}'>since #{status.last_seen}</abbr>"
 
-    return new Handlebars.SafeString(result);
+    return new Handlebars.SafeString(result)
 
 Handlebars.registerHelper 'humanize_namespace_reachability', (reachability) ->
-    if reachability 
+    if reachability
         result = "<span class='label label-success'>Live</span>"
     else
         result = "<span class='label label-important'>Down</span>"
 
-    return new Handlebars.SafeString(result);
+    return new Handlebars.SafeString(result)
 
 
 Handlebars.registerHelper 'display_datacenter_in_namespace', (datacenter, role) ->
@@ -166,9 +166,9 @@ Handlebars.registerHelper 'display_truncated_machines', (data) ->
         if more_link_should_be_displayed is true and num_displayed_machine > 6
             more_link_should_be_displayed = false
             out += '<li class="more_machines"><a href="#" class="display_more_machines">» More</a></li>'
- 
 
-    return new Handlebars.SafeString(out);
+
+    return new Handlebars.SafeString(out)
 
 # Safe string
 Handlebars.registerHelper 'print_safe', (str) ->
@@ -321,10 +321,10 @@ bind_dev_tools = ->
 ###
 
 @module = (names, fn) ->
-  names = names.split '.' if typeof names is 'string'
-  space = @[names.shift()] ||= {}
-  space.module ||= @module
-  if names.length
-    space.module names, fn
-  else
-    fn.call space
+    names = names.split '.' if typeof names is 'string'
+    space = @[names.shift()] ||= {}
+    space.module ||= @module
+    if names.length
+        space.module names, fn
+    else
+        fn.call space

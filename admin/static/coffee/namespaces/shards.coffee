@@ -202,7 +202,7 @@ module 'NamespaceView', ->
             if (0 <= index || index < @shard_set.length)
                 json_repr = $.parseJSON(@shard_set[index])
                 if (splitpoint <= json_repr[0] || (splitpoint >= json_repr[1] && json_repr[1] != null))
-                    throw "Error invalid splitpoint"
+                    throw new Error("Error invalid splitpoint")
 
                 @shard_set.splice(index, 1, JSON.stringify([json_repr[0], splitpoint]), JSON.stringify([splitpoint, json_repr[1]]))
                 @render()
@@ -211,7 +211,7 @@ module 'NamespaceView', ->
 
         merge_shard: (index) =>
             if (index < 0 || index + 1 >= @shard_set.length)
-                throw "Error invalid index"
+                throw new Error("Error invalid index")
 
             newshard = JSON.stringify([$.parseJSON(@shard_set[index])[0], $.parseJSON(@shard_set[index+1])[1]])
             @shard_set.splice(index, 2, newshard)
@@ -236,7 +236,7 @@ module 'NamespaceView', ->
 
             shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
             @.$el.html(@template json)
-            
+
             @render_only_shards
 
             @.$('.shards tbody').html ''
@@ -275,7 +275,7 @@ module 'NamespaceView', ->
             # TODO detect when there are no changes.
             $.ajax
                 processData: false
-                url: "/ajax/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
+                url: "/ajax/semilattice/#{@namespace.attributes.protocol}_namespaces/#{@namespace.id}"
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify(json)
@@ -333,7 +333,7 @@ module 'NamespaceView', ->
             # TODO validate splitpoint
             e.preventDefault()
 
-            @parent.insert_splitpoint(@shard.index, splitpoint);
+            @parent.insert_splitpoint(@shard.index, splitpoint)
 
         merge: (e) =>
             @.$el.html @editable_tmpl

@@ -44,7 +44,8 @@ reset_collections = () ->
     issues.reset()
     directory.reset()
 
-# Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
+# Process updates from the server and apply the diffs to our view of the data.
+# Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
     declare_client_connected()
 
@@ -89,12 +90,12 @@ set_directory = (attributes_from_server) ->
             dir_machines[dir_machines.length] = value
     directory.reset(dir_machines)
 
-set_last_seen = (last_seen) ->
+set_last_seen = (last_seen_from_server) ->
     # Expand machines model with this data
-    for machine_uuid, timestamp of last_seen
+    for machine_uuid, timestamp of last_seen_from_server
         _m = machines.get machine_uuid
         if _m
-            _m.set('last_seen', timestamp)
+            _m.set('last_seen_from_server', timestamp)
 
 set_log_entries = (log_data_from_server) ->
     all_log_entries = []
@@ -158,7 +159,10 @@ $ ->
                     delete window.is_disconnected
                     window.location.reload(true)
 
-                apply_diffs(updates)
+                apply_diffs updates.semilattice
+                set_issues updates.issues
+                set_directory updates.directory
+                set_last_seen updates.last_seen
                 optional_callback() if optional_callback
             error: ->
                 if window.is_disconnected?
@@ -166,10 +170,7 @@ $ ->
                 else
                     window.is_disconnected = new IsDisconnected
         })
-        $.getJSON('/ajax/issues', set_issues)
         $.getJSON('/ajax/progress', set_progress)
-        $.getJSON('/ajax/directory', set_directory)
-        $.getJSON('/ajax/last_seen', set_last_seen)
         $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
     collect_stat_data = (optional_callback) =>
         $.getJSON('/ajax/stat', set_stats)
@@ -207,6 +208,3 @@ $ ->
     # Populate collection for the first time
     collect_server_data(collections_ready)
     collect_stat_data()
-
-
-
