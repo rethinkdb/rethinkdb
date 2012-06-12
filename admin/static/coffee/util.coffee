@@ -219,6 +219,7 @@ form_data_as_object = (form) ->
         formdata[x.name] = x.value
     return formdata
 
+# TODO: This should be a handlebars helper, please only use for templates!
 # Shards aren't pretty to print, let's change that
 human_readable_shard = (shard) ->
     # Shard may be null, in which case we need to return the empty

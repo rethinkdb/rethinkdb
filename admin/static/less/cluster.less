@@ -1,5 +1,9 @@
 @import "bootstrap/bootstrap.less";
 
+/* Bootstrap variables override */
+@iconSpritePath: "/images/glyphicons-halflings.png";
+@iconWhiteSpritePath: "/images/glyphicons-halflings-white.png";
+
 /* Colors */
 @riak_color: #1693A5;
 @memcached_color: #CCCCCC;
@@ -601,6 +605,15 @@
         background: #6C4005;
         margin: 0px 10px 0px 0px;
     }
+    
+    .label {
+        display: inline-block;
+        margin-right: 5px;
+
+        /* Ugly hack to make labels align with inline text. */
+        position: relative;
+        bottom: 1px;
+    }
     .namespace_replication_status{
         font-size: 13px;
         font-weight: normal;
@@ -742,10 +755,10 @@
         height: 16px;
         float: left;
         &.collapsed {
-            background: url('/images/mini_right-arrow.png') no-repeat center top;
+            background: url('/images/right-arrow_16x16.png') no-repeat center top;
         }
         &.expanded {
-            background: url('/images/mini_down-arrow.png') no-repeat center top;
+            background: url('/images/down-arrow_16x16.png') no-repeat center top;
             margin-top: 3px;
         }
     }
@@ -939,11 +952,98 @@
             &.name {
                 width: 15%;
             }
-        } 
+        }
+        td.summary {
+            width: 130px;
+        }
         div.progress {
             width: 200px;
         }
     }
+
+    table.shards .datacenter-list {
+        .arrow {
+            width: 12px;
+            height: 12px;
+            float: left;
+            &.collapsed {
+                background: url('/images/right-arrow_12x12.png') no-repeat center top;
+            }
+            &.expanded {
+                background: url('/images/down-arrow_12x12.png') no-repeat center top;
+                margin-top: 3px;
+            }
+        }
+        h4.datacenter.name { 
+            line-height: 1em;
+            margin-left: 24px;
+            .label {
+                margin-right: 10px;
+            }
+        }
+
+        .label {
+            display: inline-block;
+            font-size: 9px;
+            margin-right: 5px;
+            text-transform: uppercase;
+            &.secondary {
+                .opacity(50);
+            }
+
+            /* Ugly hack to make labels align with inline text. */
+            position: relative;
+            bottom: 1px;
+        }
+
+        p.status {
+            float: right;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 0;
+        }
+
+        .divider {
+           margin-top: 20px;
+           margin-bottom: 20px;
+           border-bottom: 1px solid #DDD;
+        }
+
+        .machine-list {
+            margin: 10px 0;
+
+            li {
+                list-style-type: none;
+                padding: 7px 7px 9px;
+                background: #F9F9F9;
+                border-color: #DDD;
+                border-top: thin solid #DDD;
+                border-left: thin solid #DDD;
+                border-right: thin solid #DDD;
+                &:last-child { border-bottom: thin solid #DDD; }
+                .status { text-align: right; }
+                a.machine.name { 
+                    display: block-inline;
+                    margin-right: 5px; 
+                }
+
+                .progress {
+                    margin-bottom: 2px;
+                    margin-top: 10px;
+                }
+
+                p.backfill-status {
+                    font-size: 11px;
+                    text-transform: uppercase;
+                }
+            }
+
+            /* Bootstrap override */
+            ul { margin: 0; }
+            /* End Bootstrap override */
+        }
+    }
+    
 
     /* Override Bootstrap */
     table {
@@ -962,32 +1062,44 @@
             display: inline-block;
             padding: 5px 0px 0px 0px;
         }
-        .title{
+        .title {
             width: 90px;
         }
-        .minichart{
+        .minichart {
             width: 80px;
-            .progress{
+            .progress {
                 height: 15px;
                 width: 75px;
                 margin: 0px 0px -3px 0px;
                 padding: 0px;
             }
         }
-        .value{
+        .value {
             width: 160px;
         }
     }
-    .machine-stats{
+    .machine-stats {
         overflow: hidden;
     }
-    .label{
-        position: relative;
-        bottom: 3px;
-        left: 3px;
+
+    .namespace-profile {
+        .label {
+            display: inline-block;
+            margin-right: 5px;
+
+            /* Ugly hack to make labels align with inline text. */
+            position: relative;
+            bottom: 1px;
+        }
     }
 }
 
+.popover {
+    .popover-inner { overflow: visible; }
+    .namespace-shard-assign-machine {
+        .chzn-container { margin-bottom: 10px; }
+    }
+}
 
 /*
     ----------------------------
@@ -1206,7 +1318,7 @@
 
 /*
     -----------------------------------------------
-    ModifyShardsModal: replication for namespaces
+    RemoveNamespaceDialog
     -----------------------------------------------
 */
 

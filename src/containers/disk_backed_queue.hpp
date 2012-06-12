@@ -76,7 +76,7 @@ public:
         wm << t;
         vector_stream_t stream;
         int res = send_write_message(&stream, &wm);
-        rassert(res == 0);
+        guarantee(res == 0);
 
         char buffer[MAX_REF_SIZE];
         bzero(buffer, MAX_REF_SIZE);

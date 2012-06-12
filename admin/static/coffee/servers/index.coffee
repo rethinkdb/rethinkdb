@@ -1,5 +1,12 @@
-
 # Index view of datacenters and machines
+# The server index view consists of several lists. Here's the hierarchy:
+#   @DatacenterList
+#   |-- @DatacenterListElement: a datacenter
+#   |   `-- @MachineList: machines for that datacenter
+#   |      `-- @MachinesListElement: individual machine in the datacenter
+#   |-- @UnassignedMachineListElement: grouping for unassigned machines
+#   |   `-- @MachineList: machines that are unassigned
+#   |      `-- @MachinesListElement: individual unassigned machine
 module 'ServerView', ->
     class @DatacenterList extends UIComponents.AbstractList
         # Use a datacenter-specific template for the datacenter list
@@ -19,7 +26,6 @@ module 'ServerView', ->
 
             @unassigned_machines = new ServerView.UnassignedMachinesListElement()
             @unassigned_machines.register_machine_callbacks @get_callbacks()
-
 
         render: =>
             super
@@ -78,7 +84,8 @@ module 'ServerView', ->
 
         initialize: (datacenter_uuid) ->
             @callbacks = []
-            super machines, ServerView.MachineListElement, 'tbody.list', (model) -> model.get('datacenter_uuid') is datacenter_uuid
+            super machines, ServerView.MachineListElement, 'tbody.list',
+                filter: (model) -> model.get('datacenter_uuid') is datacenter_uuid
 
             machines.on 'change:datacenter_uuid', (machine, new_datacenter_uuid) =>
                 num_elements_removed = @remove_elements machine
