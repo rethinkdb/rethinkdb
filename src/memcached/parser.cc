@@ -224,9 +224,10 @@ public:
         rassert(state_ == has_begun_write);
         DEBUG_ONLY_CODE(state_ = has_ended_write);
 
-        block_pm_duration flush_timer(&pipeliner_->rh_->stats->pm_conns_writing);
-        pipeliner_->rh_->flush_buffer();
-        flush_timer.end();
+        {
+            block_pm_duration flush_timer(&pipeliner_->rh_->stats->pm_conns_writing); // FIXME: race condition here
+            pipeliner_->rh_->flush_buffer();
+        }
 
         mutex_acq_.reset();
         pipeliner_->requests_out_sem.unlock();
