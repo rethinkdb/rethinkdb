@@ -19,8 +19,8 @@ struct rdb_protocol_t {
     struct temporary_cache_t { };
 
     struct point_read_response_t {
-        clone_ptr_t<cJSON> data;
-        point_read_response_t(clone_ptr_t<cJSON> _data) 
+        copyable_cJSON_t data;
+        point_read_response_t(copyable_cJSON_t _data) 
             : data(_data)
         { }
 
@@ -76,7 +76,7 @@ struct rdb_protocol_t {
 
     struct point_write_t {
         store_key_t key;
-        clone_ptr_t<cJSON> data;
+        copyable_cJSON_t data;
 
         RDB_MAKE_ME_SERIALIZABLE_2(key, data);
     };

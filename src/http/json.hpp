@@ -6,6 +6,7 @@
 
 #include "errors.hpp"
 #include "http/json/cJSON.hpp"
+#include "containers/archive/archive.hpp"
 
 class scoped_cJSON_t {
 private:
@@ -17,6 +18,19 @@ public:
     cJSON *get() const;
     cJSON *release();
     void reset(cJSON *);
+};
+
+class copyable_cJSON_t {
+private:
+    cJSON *val;
+public:
+    explicit copyable_cJSON_t(cJSON *);
+    copyable_cJSON_t(const copyable_cJSON_t &);
+    ~copyable_cJSON_t();
+    cJSON *get() const;
+
+    write_message_t &operator<<(write_message_t &msg);
+    MUST_USE archive_result_t deserialize(read_stream_t *s);
 };
 
 class json_iterator_t {
@@ -46,4 +60,7 @@ void project(cJSON *json, std::set<std::string> keys);
 //Merge two cJSON objects, crashes if there are overlapping keys
 cJSON *merge(cJSON *, cJSON *);
 
+/* Json serialization */
+write_message_t &operator<<(write_message_t &msg, const cJSON &cjson);
+MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson);
 #endif /* HTTP_JSON_HPP_ */

@@ -2,10 +2,13 @@
 #include <stdlib.h>
 #include <vector>
 
+#include <string.h>
+
 
 #include "http/json.hpp"
 #include "stl_utils.hpp"
 #include "utils.hpp"
+#include "containers/archive/stl_types.hpp"
 
 scoped_cJSON_t::scoped_cJSON_t(cJSON *_val)
     : val(_val)
@@ -33,6 +36,26 @@ void scoped_cJSON_t::reset(cJSON *v) {
     }
     val = v;
 }
+
+copyable_cJSON_t::copyable_cJSON_t(cJSON *_val)
+    : val(_val)
+{ }
+
+copyable_cJSON_t::copyable_cJSON_t(const copyable_cJSON_t &other) 
+    : val(cJSON_DeepCopy(other.val))
+{ }
+
+copyable_cJSON_t::~copyable_cJSON_t() {
+    cJSON_Delete(val);
+}
+
+cJSON *copyable_cJSON_t::get() const {
+    return val;
+}
+
+write_message_t &copyable_cJSON_t::operator<<(write_message_t &msg) {
+}
+    MUST_USE archive_result_t deserialize(read_stream_t *s);
 
 json_iterator_t::json_iterator_t(cJSON *target) {
     node = target->child;
@@ -126,4 +149,106 @@ cJSON *merge(cJSON *x, cJSON *y) {
     }
 
     return res;
+}
+
+write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
+    msg << cjson.type;
+
+    switch(cjson.type) {
+    case cJSON_False:
+        break;
+    case cJSON_True:
+        break;
+    case cJSON_NULL:
+        break;
+    case cJSON_Number:
+        msg << cjson.valuedouble;
+        break;
+    case cJSON_String:
+        {
+            std::string s(cjson.valuestring);
+            msg << s;
+        }
+        break;
+    case cJSON_Array:
+    case cJSON_Object:
+        {
+            msg << cJSON_GetArraySize(&cjson);
+
+            cJSON *hd = cjson.child;
+            while (hd) { 
+                msg << *hd;
+                hd = hd->next; 
+            }
+        }
+        break;
+    default:
+        crash("Unreachable");
+        break;
+    }
+    return msg;
+}
+
+#define CHECK_RES(res) if (res != ARCHIVE_SUCCESS) {\
+                           return res;\
+                       }
+
+
+MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
+    archive_result_t res = deserialize(s, &cjson->type);
+    CHECK_RES(res);
+    
+    switch (cjson->type) {
+    case cJSON_False:
+    case cJSON_True:
+    case cJSON_NULL:
+        return ARCHIVE_SUCCESS;
+        break;
+    case cJSON_Number:
+        res = deserialize(s, &cjson->valuedouble);
+        CHECK_RES(res);
+        cjson->valueint = int(cjson->valuedouble);
+        return ARCHIVE_SUCCESS;
+        break;
+    case cJSON_String:
+        {
+            std::string str;
+            res = deserialize(s, &str);
+            CHECK_RES(res);
+            cjson->valuestring = strdup(str.c_str());
+            return ARCHIVE_SUCCESS;
+        }
+        break;
+    case cJSON_Array:
+        {
+            int size;
+            res = deserialize(s, &size);
+            CHECK_RES(res);
+            for (int i = 0; i < size; ++i) {
+                cJSON *item = cJSON_CreateBlank();
+                res = deserialize(s, item);
+                CHECK_RES(res);
+                cJSON_AddItemToArray(cjson, item);
+            }
+            return ARCHIVE_SUCCESS;
+        }
+        break;
+    case cJSON_Object:
+        {
+            int size;
+            res = deserialize(s, &size);
+            CHECK_RES(res);
+            for (int i = 0; i < size; ++i) {
+                cJSON *item = cJSON_CreateBlank();
+                res = deserialize(s, item);
+                CHECK_RES(res);
+                cJSON_AddItemToObject(cjson, item->string, item);
+            }
+            return ARCHIVE_SUCCESS;
+        }
+        break;
+    default:
+        crash("Unreachable");
+        break;
+    }
 }
