@@ -646,8 +646,8 @@ memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(
 class memcached_backfill_callback_t : public backfill_callback_t {
     typedef memcached_protocol_t::backfill_chunk_t chunk_t;
 public:
-    explicit memcached_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun, uint64_t hash_interval_beg, uint64_t hash_interval_end)
-        : chunk_fun_(chunk_fun), hash_interval_beg_(hash_interval_beg), hash_interval_end_(hash_interval_end) { }
+    explicit memcached_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun)
+        : chunk_fun_(chunk_fun) { }
 
     void on_delete_range(const key_range_t &range) {
         chunk_fun_(chunk_t::delete_range(hash_region_t<key_range_t>(range)));
@@ -669,8 +669,6 @@ protected:
 
 private:
     const boost::function<void(chunk_t)> &chunk_fun_;
-    const uint64_t hash_interval_beg_;
-    const uint64_t hash_interval_end_;
 
     DISABLE_COPYING(memcached_backfill_callback_t);
 };
@@ -719,13 +717,14 @@ private:
 };
 
 static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<hash_region_t<key_range_t>, state_timestamp_t> > &regions,
-        backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress) {
+        memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress) {
     traversal_progress_t *p = new traversal_progress_t;
     progress->add_constituent(p);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p);
 }
 
+// TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
 bool memcached_protocol_t::store_t::send_backfill(
         const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
         const boost::function<bool(const metainfo_t&)> &should_backfill,
@@ -743,18 +742,16 @@ bool memcached_protocol_t::store_t::send_backfill(
     if (should_backfill(metainfo)) {
         std::vector<std::pair<hash_region_t<key_range_t>, state_timestamp_t> > regions(start_point.begin(), start_point.end());
 
-        // Make sure all hash regions have the same hash-range.
-        for (int i = 1, e = regions.size(); i < e; ++i) {
-            guarantee(regions[i].first.beg == regions[0].first.beg
-                      && regions[i].first.end == regions[0].first.end);
-        }
-
         // TODO(sam): I don't know if regions could be empty.  I think not.
         rassert(regions.size() > 0);
 
         if (regions.size() > 0) {
-            memcached_backfill_callback_t callback(chunk_fun, regions[0].first.beg, regions[0].first.end);
+            memcached_backfill_callback_t callback(chunk_fun);
 
+            // pmapping by regions.size() is now the arguably wrong
+            // thing to do, because regions are not separate key
+            // ranges.  On the other hand it's harmless, because
+            // caching is basically perfect.
             refcount_superblock_t refcount_wrapper(superblock.get(), regions.size());
             pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
                                              btree.get(), regions, &callback, txn.get(), &refcount_wrapper, progress));

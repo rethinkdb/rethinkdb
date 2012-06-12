@@ -165,19 +165,13 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     /* Make sure the region is not empty. */
     rassert(backfill_end_point.begin() != backfill_end_point.end());
 
+    // The end timestamp is the maximum of the timestamps we've seen.
     state_timestamp_t backfill_end_timestamp = backfill_end_point.begin()->second.earliest.timestamp;
-
-    /* Make sure the backfiller put us in a coherent position on the right
-     * branch. */
-#ifndef NDEBUG
-    region_map_t<protocol_t, version_range_t> expected_backfill_endpoint(svs->get_multistore_joined_region(),
-                                                                         version_range_t(version_t(branch_id, backfill_end_timestamp)));
-#endif
-
-    // debugf_print("expected_backfill_endpoint", expected_backfill_endpoint);
-    // debugf_print("backfill_end_point", backfill_end_point);
-
-    guarantee(backfill_end_point == expected_backfill_endpoint);
+    for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = backfill_end_point.begin();
+         it != backfill_end_point.end();
+         ++it) {
+        backfill_end_timestamp = std::max(backfill_end_timestamp, it->second.earliest.timestamp);
+    }
 
     guarantee(backfill_end_timestamp >= streaming_begin_point);
 

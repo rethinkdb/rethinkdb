@@ -44,8 +44,9 @@ public:
         // get a database in an invalid startup state.
 
         // TODO: Obviously, the hard-coded numeric constant here might
-        // be regarded as a problem.
-        const int num_stores = 4;
+        // be regarded as a problem.  Randomly choosing between 4 or 5
+        // is pretty cool though.
+        const int num_stores = 4 + randint(2);
         const std::string file_name_base = file_path_ + "/" + uuid_to_str(namespace_id);
 
         // TODO: This is quite suspicious in that we check if the file
