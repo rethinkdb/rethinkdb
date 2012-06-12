@@ -605,6 +605,15 @@
         background: #6C4005;
         margin: 0px 10px 0px 0px;
     }
+    
+    .label {
+        display: inline-block;
+        margin-right: 5px;
+
+        /* Ugly hack to make labels align with inline text. */
+        position: relative;
+        bottom: 1px;
+    }
     .namespace_replication_status{
         font-size: 13px;
         font-weight: normal;
@@ -968,17 +977,23 @@
         h4.datacenter.name { 
             line-height: 1em;
             margin-left: 24px;
+            .label {
+                margin-right: 10px;
+            }
         }
 
         .label {
             display: inline-block;
-            vertical-align: baseline;
             font-size: 9px;
             margin-right: 5px;
             text-transform: uppercase;
             &.secondary {
                 .opacity(50);
             }
+
+            /* Ugly hack to make labels align with inline text. */
+            position: relative;
+            bottom: 1px;
         }
 
         p.status {
@@ -1047,29 +1062,35 @@
             display: inline-block;
             padding: 5px 0px 0px 0px;
         }
-        .title{
+        .title {
             width: 90px;
         }
-        .minichart{
+        .minichart {
             width: 80px;
-            .progress{
+            .progress {
                 height: 15px;
                 width: 75px;
                 margin: 0px 0px -3px 0px;
                 padding: 0px;
             }
         }
-        .value{
+        .value {
             width: 160px;
         }
     }
-    .machine-stats{
+    .machine-stats {
         overflow: hidden;
     }
-    .label{
-        position: relative;
-        bottom: 3px;
-        left: 3px;
+
+    .namespace-profile {
+        .label {
+            display: inline-block;
+            margin-right: 5px;
+
+            /* Ugly hack to make labels align with inline text. */
+            position: relative;
+            bottom: 1px;
+        }
     }
 }
 
