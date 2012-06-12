@@ -55,15 +55,25 @@ void apply_json_to(cJSON *change, cluster_semilattice_metadata_t *target, const 
 template <class ctx_t>
 void on_subfield_change(cluster_semilattice_metadata_t *, const ctx_t &) { }
 
+enum cluster_directory_peer_type_t {
+    ADMIN_PEER,
+    SERVER_PEER,
+    PROXY_PEER
+};
+
+ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(cluster_directory_peer_type_t);
+
 class cluster_directory_metadata_t {
 public:
+
     cluster_directory_metadata_t() { }
     cluster_directory_metadata_t(
             machine_id_t mid,
             const std::vector<std::string> &_ips,
             const get_stats_mailbox_address_t& _stats_mailbox,
-            const log_server_business_card_t &lmb) :
-        machine_id(mid), ips(_ips), get_stats_mailbox_address(_stats_mailbox),log_mailbox(lmb) { }
+            const log_server_business_card_t &lmb,
+            cluster_directory_peer_type_t _peer_type) :
+        machine_id(mid), ips(_ips), get_stats_mailbox_address(_stats_mailbox),log_mailbox(lmb),peer_type(_peer_type) { }
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
@@ -76,9 +86,10 @@ public:
 
     get_stats_mailbox_address_t get_stats_mailbox_address;
     log_server_business_card_t log_mailbox;
-    std::list<clone_ptr_t<local_issue_t> > local_issues;
+    std::list<local_issue_t> local_issues;
+    cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_7(dummy_namespaces, memcached_namespaces, machine_id, ips, get_stats_mailbox_address, log_mailbox, local_issues);
+    RDB_MAKE_ME_SERIALIZABLE_8(dummy_namespaces, memcached_namespaces, machine_id, ips, get_stats_mailbox_address, log_mailbox, local_issues, peer_type);
 };
 
 // json adapter concept for directory_echo_wrapper_t
@@ -110,6 +121,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_directory_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
     res["machine_id"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machine_id_t, ctx_t>(&target->machine_id)); // TODO: should be 'me'?
     res["ips"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<std::vector<std::string>, ctx_t>(&target->ips));
+    res["peer_type"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<cluster_directory_peer_type_t, ctx_t>(&target->peer_type));
     return res;
 }
 
@@ -125,5 +137,36 @@ void apply_json_to(cJSON *change, cluster_directory_metadata_t *target, const ct
 
 template <class ctx_t>
 void on_subfield_change(cluster_directory_metadata_t *, const ctx_t &) { }
+
+// json adapter for cluster_directory_peer_type_t
+template <class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster_directory_peer_type_t *, const ctx_t &)
+{
+    return std::map<std::string, boost::shared_ptr<json_adapter_if_t<ctx_t> > >();
+}
+
+template <class ctx_t>
+cJSON *render_as_json(cluster_directory_peer_type_t *peer_type, const ctx_t &)
+{
+    switch (*peer_type) {
+    case ADMIN_PEER:
+        return cJSON_CreateString("admin");
+    case SERVER_PEER:
+        return cJSON_CreateString("server");
+    case PROXY_PEER:
+        return cJSON_CreateString("proxy");
+    default:
+        break;
+    }
+    return cJSON_CreateString("unknown");
+}
+
+template <class ctx_t>
+void apply_json_to(cJSON *, cluster_directory_peer_type_t *, const ctx_t &)
+{ }
+
+template <class ctx_t>
+void  on_subfield_change(cluster_directory_peer_type_t *, const ctx_t &)
+{ }
 
 #endif  // CLUSTERING_ADMINISTRATION_METADATA_HPP_

@@ -29,6 +29,7 @@ apply_to_collection = (collection, collection_data) ->
             if collection.get(id)
                 collection.remove(id)
 
+
 add_protocol_tag = (data, tag) ->
     f = (unused,id) ->
         if (data[id])
@@ -83,8 +84,9 @@ set_directory = (attributes_from_server) ->
     # Convert directory representation from RethinkDB into backbone friendly one
     dir_machines = []
     for key, value of attributes_from_server
-        value['id'] = key
-        dir_machines[dir_machines.length] = value
+        if value.peer_type is 'server'
+            value['id'] = key
+            dir_machines[dir_machines.length] = value
     directory.reset(dir_machines)
 
 set_last_seen = (last_seen) ->
@@ -112,7 +114,8 @@ set_log_entries = (log_data_from_server) ->
 
 set_stats = (stat_data) ->
     for machine_id, data of stat_data
-        machines.get(machine_id).set('stats', data)
+        if machines.get(machine_id)? #if the machines are not ready, we just skip the current stats
+            machines.get(machine_id).set('stats', data)
 
 collections_ready = ->
     # Data is now ready, let's get rockin'!
@@ -132,6 +135,7 @@ $ ->
     window.progress_list = new ProgressList
     window.directory = new Directory
     window.recent_log_entries = new LogEntries
+    window.issues_redundancy = new IssuesRedundancy
     window.connection_status = new ConnectionStatus
     window.computed_cluster = new ComputedCluster
 
@@ -145,11 +149,23 @@ $ ->
     # routes. TODO: somebody fix this in the server for heaven's
     # sakes!!!
     #   - an optional callback can be provided. Currently this callback will only be called after the /ajax route (metadata) is collected
-    window.collect_server_data = (optional_callback) =>
-        $.getJSON('/ajax', (updates) ->
-            apply_diffs(updates)
-            optional_callback() if optional_callback
-        )
+    collect_server_data = (optional_callback) =>
+        $.ajax({
+            url: '/ajax'
+            dataType: 'json'
+            success: (updates) ->
+                if window.is_disconnected?
+                    delete window.is_disconnected
+                    window.location.reload(true)
+
+                apply_diffs(updates)
+                optional_callback() if optional_callback
+            error: ->
+                if window.is_disconnected?
+                    window.is_disconnected.display_fail()
+                else
+                    window.is_disconnected = new IsDisconnected
+        })
         $.getJSON('/ajax/issues', set_issues)
         $.getJSON('/ajax/progress', set_progress)
         $.getJSON('/ajax/directory', set_directory)
@@ -191,3 +207,6 @@ $ ->
     # Populate collection for the first time
     collect_server_data(collections_ready)
     collect_stat_data()
+
+
+

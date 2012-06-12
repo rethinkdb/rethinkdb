@@ -1,11 +1,22 @@
-# Each workload is a pair of two command-line strings. The first one will be run
-# once; the next one will be run one or more times.
 workloads = [
-    ("$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d 10000q", "true"),
+    ("$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d 10000q",
+     "true"),
+    ("$RETHINKDB/test/workloads/many_keys.py $HOST:$PORT --phase w",
+     "$RETHINKDB/test/workloads/many_keys.py $HOST:$PORT --phase r"),
+    ("$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT --save values",
+     "$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT --load values"),
+    ("$RETHINKDB/test/workloads/multi_serial_mix.py $HOST:$PORT --save values",
+     "$RETHINKDB/test/workloads/multi_serial_mix.py $HOST:$PORT --load values"),
     ]
 
 scenarios = [
     "$RETHINKDB/test/scenarios/rebalance.py '%(workload1)s' '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/change_primary.py --workload-before '%(workload1)s' --workload-after '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/failover_to_secondary.py --workload-before '%(workload1)s' --workload-after '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --more --workload-before '%(workload1)s' --workload-after '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --less --workload-before '%(workload1)s' --workload-after '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/kill_secondary.py --workload-before '%(workload1)s' --workload-after '%(workload2)s'",
+    "$RETHINKDB/test/scenarios/transfer.py '%(workload1)s' '%(workload2)s'",
     ]
 
 for scenario in scenarios:

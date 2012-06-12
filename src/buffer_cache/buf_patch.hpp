@@ -1,5 +1,5 @@
-#ifndef BUF_PATCH_HPP_
-#define BUF_PATCH_HPP_
+#ifndef BUFFER_CACHE_BUF_PATCH_HPP_
+#define BUFFER_CACHE_BUF_PATCH_HPP_
 
 #include <string>
 
@@ -161,5 +161,5 @@ private:
     uint16_t n;
 };
 
-#endif /* BUF_PATCH_HPP_ */
+#endif /* BUFFER_CACHE_BUF_PATCH_HPP_ */
 

@@ -6,12 +6,12 @@
 
 class proc_stats_collector_t : public home_thread_mixin_t {
 public:
-    proc_stats_collector_t(perfmon_collection_t *stats);
+    explicit proc_stats_collector_t(perfmon_collection_t *stats);
 
 private:
     class instantaneous_stats_collector_t : public perfmon_t {
     public:
-        instantaneous_stats_collector_t(perfmon_collection_t *stats);
+        explicit instantaneous_stats_collector_t(perfmon_collection_t *stats);
         void *begin_stats();
         void visit_stats(void *);
         void end_stats(void *, perfmon_result_t *);

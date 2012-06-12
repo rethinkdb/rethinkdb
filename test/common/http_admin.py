@@ -6,6 +6,7 @@ import time
 import socket
 import random
 from httplib import HTTPConnection
+import urllib   # for `quote()` and `unquote()`
 
 """ The `http_admin.py` module is a Python wrapper around the HTTP interface to
 RethinkDB. It is not responsible for starting and stopping RethinkDB processes;
@@ -82,7 +83,7 @@ class Blueprint(object):
         return { u"peers_roles": self.peers_roles }
 
     def __str__(self):
-        return "Blueprint()"
+        return "Blueprint(%r)" % self.to_json()
 
 class Namespace(object):
     def __init__(self, uuid, json_data):
@@ -191,9 +192,9 @@ class MemcachedNamespace(Namespace):
         shard_json = []
         last_split = u""
         for split in self.shards:
-            shard_json.append(u"[\"%s\", \"%s\"]" % (last_split, split))
+            shard_json.append(json.dumps([urllib.quote(last_split), urllib.quote(split)]))
             last_split = split
-        shard_json.append(u"[\"%s\", null]" % (last_split))
+        shard_json.append(json.dumps([urllib.quote(last_split), None]))
         return shard_json
 
     def parse_shards(self, shards):
@@ -201,17 +202,20 @@ class MemcachedNamespace(Namespace):
         splits = [ ]
         last_split = u""
         matches = None
+        parsed_shards = [ ]
         for shard in shards:
-            matches = re.match(u"^\[\"(\w*)\", \"(\w*)\"\]$|^\[\"(\w*)\", null\]$", shard)
-            assert matches is not None
-            if matches.group(3) is None:
-                assert matches.group(1) == last_split
-                splits.append(matches.group(2))
-                last_split = matches.group(2)
-            else:
-                assert matches.group(3) == last_split
-        if matches is not None:
-            assert matches.group(3) is not None
+            left, right = json.loads(shard)
+            assert isinstance(left, basestring)
+            assert right is None or isinstance(right, basestring)
+            parsed_shards.append((urllib.unquote(left), urllib.unquote(right) if right is not None else None))
+        parsed_shards.sort()
+        last_split = u""
+        for left, right in parsed_shards:
+            assert left == last_split
+            if right is not None:
+                splits.append(right)
+            last_split = right
+        assert last_split is None
         assert sorted(splits) == splits
         return splits
 
@@ -236,16 +240,15 @@ class Machine(object):
         self.uuid = validate_uuid(uuid)
         self.datacenter_uuid = json_data[u"datacenter_uuid"]
         self.name = json_data[u"name"]
-        self.port_offset = json_data[u"port_offset"]
 
     def check(self, data):
-        return data[u"datacenter_uuid"] == self.datacenter_uuid and data[u"name"] == self.name and data[u"port_offset"] == self.port_offset
+        return data[u"datacenter_uuid"] == self.datacenter_uuid and data[u"name"] == self.name
 
     def to_json(self):
-        return { u"datacenter_uuid": self.datacenter_uuid, u"name": self.name, u"port_offset": self.port_offset }
+        return { u"datacenter_uuid": self.datacenter_uuid, u"name": self.name }
 
     def __str__(self):
-        return "Server(uuid:%s, name:%s, datacenter:%s, port_offset:%d)" % (self.uuid, self.name, self.datacenter_uuid, self.port_offset)
+        return "Server(uuid:%s, name:%s, datacenter:%s)" % (self.uuid, self.name, self.datacenter_uuid)
 
 class ClusterAccess(object):
     def __init__(self, addresses = []):
@@ -405,12 +408,26 @@ class ClusterAccess(object):
         aff_dict = { }
         for datacenter, count in affinities.iteritems():
             aff_dict[self.find_datacenter(datacenter).uuid] = count
-        namespace.replica_affinities = aff_dict
+        namespace.replica_affinities.update(aff_dict)
         if isinstance(namespace, MemcachedNamespace):
             name = "memcached_namespaces"
         else:
             name = "dummy_namespaces"
         self.do_query("POST", "/ajax/%s/%s/replica_affinities" % (name, namespace.uuid), aff_dict)
+        self.wait_for_propagation()
+        self.update_cluster_data()
+
+    def set_namespace_ack_expectations(self, namespace, ack_expectations = { }):
+        namespace = self.find_namespace(namespace)
+        ae_dict = { }
+        for datacenter, count in ack_expectations.iteritems():
+            ae_dict[self.find_datacenter(datacenter).uuid] = count
+        namespace.ack_expectations.update(ae_dict)
+        if isinstance(namespace, MemcachedNamespace):
+            name = "memcached_namespaces"
+        else:
+            name = "dummy_namespaces"
+        self.do_query("POST", "/ajax/%s/%s/ack_expectations" % (name, namespace.uuid), ae_dict)
         self.wait_for_propagation()
         self.update_cluster_data()
 
@@ -467,6 +484,7 @@ class ClusterAccess(object):
         self.update_cluster_data()
 
     def add_namespace_shard(self, namespace, split_point):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -477,6 +495,7 @@ class ClusterAccess(object):
         self.update_cluster_data()
 
     def remove_namespace_shard(self, namespace, split_point):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -487,6 +506,7 @@ class ClusterAccess(object):
         self.update_cluster_data()
 
     def change_namespace_shards(self, namespace, adds=[], removes=[]):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         type_protocols = { MemcachedNamespace: "memcached", DummyNamespace: "dummy" }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -505,6 +525,7 @@ class ClusterAccess(object):
         return namespace.port + machine.port_offset
 
     def get_namespace_host(self, namespace, selector = None):
+        namespace = self.find_namespace(namespace)
         # selector may be a specific machine or datacenter to use, none will take any
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
@@ -525,6 +546,7 @@ class ClusterAccess(object):
         return ("localhost", self.compute_port(namespace, machine))
 
     def get_datacenter_in_namespace(self, namespace, primary = None):
+        namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
         assert type_namespaces[type(namespace)][namespace.uuid] is namespace
         if primary is not None:
@@ -537,7 +559,7 @@ class ClusterAccess(object):
         return random.choice(datacenters)
 
     def get_machine_in_datacenter(self, datacenter):
-        assert self.datacenters[datacenter.uuid] is datacenter
+        datacenter = self.find_datacenter(datacenter)
         # Build a list of machines in the given datacenter
         machines = [ ]
         for serv in self.machines.itervalues():
@@ -562,6 +584,39 @@ class ClusterAccess(object):
     def get_distribution(self, namespace, depth = 1):
         return self.do_query("GET", "/ajax/distribution?namespace=%s&depth=%d" % (namespace.uuid, depth))
 
+    def is_blueprint_satisfied(self, namespace):
+        namespace = self.find_namespace(namespace)
+        key_name = { MemcachedNamespace: "memcached_namespaces", DummyNamespace: "dummy_namespaces" }[type(namespace)]
+        directory = self.do_query("GET", "/ajax/directory/_")
+        blueprint = self.do_query("GET", "/ajax/%s/%s/blueprint" % (key_name, namespace.uuid))
+        for peer, shards in blueprint["peers_roles"].iteritems():
+            if peer in directory:
+                subdirectory = directory[peer]
+            else:
+                return False
+            if namespace.uuid in subdirectory[key_name]["reactor_bcards"]:
+                reactor_bcard = subdirectory[key_name]["reactor_bcards"][namespace.uuid]
+            else:
+                return False
+            for shard_range, shard_role in shards.iteritems():
+                for act_id, (act_range, act_info) in reactor_bcard["activity_map"].iteritems():
+                    if act_range == shard_range:
+                        if shard_role == "role_primary" and act_info["type"] == "primary" and act_info["replier_present"] is True:
+                            break
+                        elif shard_role == "role_secondary" and act_info["type"] == "secondary_up_to_date":
+                            break
+                        elif shard_role == "role_nothing" and act_info["type"] == "nothing":
+                            break
+                else:
+                    return False
+        return True
+
+    def wait_until_blueprint_satisfied(self, namespace, timeout = 60):
+        start_time = time.time()
+        while not self.is_blueprint_satisfied(namespace):
+            time.sleep(1)
+            if time.time() - start_time > timeout:
+                raise RuntimeError("Blueprint still not satisfied after %d seconds." % timeout)
 
     def _pull_cluster_data(self, cluster_data, local_data, data_type):
         for uuid in cluster_data.iterkeys():

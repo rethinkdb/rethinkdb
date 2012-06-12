@@ -52,7 +52,7 @@ private:
     }
 
     friend class archive_deserializer_t;
-    int rdb_deserialize(read_stream_t *s) {
+    archive_result_t rdb_deserialize(read_stream_t *s) {
         rassert(!object);
         delete object;
         object = NULL;

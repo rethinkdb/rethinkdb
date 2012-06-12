@@ -1,18 +1,24 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_NAMESPACE_INTERFACE_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_NAMESPACE_INTERFACE_HPP_
 
+#include <math.h>
+#include <algorithm>
+
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
-#include "concurrency/fifo_enforcer.hpp"
-#include "concurrency/pmap.hpp"
+#include "arch/timing.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/registrant.hpp"
+#include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "protocol_api.hpp"
+
+#define THROTTLE_THRESHOLD 200
 
 
 template <class fifo_enforcer_token_type> fifo_enforcer_token_type get_fifo_enforcer_token(fifo_enforcer_source_t *source);
@@ -77,19 +83,48 @@ public:
             w, order_token, interruptor);
     }
 
+    std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
+        std::vector<typename protocol_t::region_t> s;
+        for (typename std::map<master_id_t, master_connection_t *>::const_iterator it = open_connections.begin(); it != open_connections.end(); it++) {
+            s.push_back(it->second->region);
+        }
+        typename protocol_t::region_t whole;
+        region_join_result_t res = region_join(s, &whole);
+        if (res != REGION_JOIN_OK || whole != protocol_t::region_t::universe()) {
+            throw cannot_perform_query_exc_t("cannot compute sharding scheme because masters are missing or duplicate");
+        }
+        return std::set<typename protocol_t::region_t>(s.begin(), s.end());
+    }
+
 private:
     class master_connection_t {
     public:
         master_connection_t(peer_id_t p,
                 const typename protocol_t::region_t &r,
                 const typename master_business_card_t<protocol_t>::read_mailbox_t::address_t &rm,
-                const typename master_business_card_t<protocol_t>::write_mailbox_t::address_t &wm) :
-            peer_id(p), region(r), read_mailbox(rm), write_mailbox(wm) { }
+                const typename master_business_card_t<protocol_t>::write_mailbox_t::address_t &wm,
+                mailbox_manager_t *_mbox_manager)
+            : peer_id(p), region(r), 
+              read_mailbox(rm), write_mailbox(wm),
+              allocation_mailbox(_mbox_manager, boost::bind(&master_connection_t::recv_allocation, this, _1), mailbox_callback_mode_inline),
+              allocated_writes(0),
+              mbox_manager(_mbox_manager)
+        { }
+
+        void recv_allocation(int amount) {
+            allocated_writes += amount;
+        }
+
+
         peer_id_t peer_id;
         fifo_enforcer_source_t fifo_enforcer_source;
         typename protocol_t::region_t region;
         typename master_business_card_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
         typename master_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
+        mailbox_t<void(int)> allocation_mailbox;
+
+        int allocated_writes;
+        mailbox_manager_t *mbox_manager;
         auto_drainer_t drainer;
     };
 
@@ -178,10 +213,13 @@ private:
 
         fifo_enforcer_token_type enforcement_token = master_to_contact.enforcement_token;
 
-        send(mailbox_manager, query_address,
-             self_id, shard, order_token, enforcement_token, result_or_failure_mailbox.get_address());
+        get_throttled(shard, master_to_contact.master->allocated_writes);
 
         try {
+            master_to_contact.master->allocated_writes--;
+            send(mailbox_manager, query_address,
+                    self_id, shard, order_token, enforcement_token, result_or_failure_mailbox.get_address());
+
             wait_any_t waiter(result_or_failure.get_ready_signal(), master_to_contact.keepalive.get_drain_signal());
             wait_interruptible(&waiter, interruptor);
 
@@ -196,6 +234,14 @@ private:
             /* Ignore `interrupted_exc_t` and just return immediately.
             `generic_dispatch()` will notice the interruptor has been pulsed and
             won't try to access our result. */
+        }
+    }
+
+    void get_throttled(typename protocol_t::read_t, int) { }
+
+    void get_throttled(typename protocol_t::write_t, int allocated_writes) {
+        if (allocated_writes < THROTTLE_THRESHOLD) {
+            nap(std::min(1000.0, pow(2, -(float(allocated_writes)/100.0))));
         }
     }
 
@@ -284,6 +330,13 @@ private:
 
     void registrant_coroutine(peer_id_t peer_id, master_id_t master_id, master_business_card_t<protocol_t> initial_bcard, bool is_start, auto_drainer_t::lock_t lock) {
         // this function is responsible for removing master_id from handled_master_ids before it returns.
+        master_connection_t connection(
+            peer_id,
+            initial_bcard.region,
+            initial_bcard.read_mailbox,
+            initial_bcard.write_mailbox,
+            mailbox_manager
+            );
 
         cond_t ack_signal;
         namespace_interface_business_card_t::ack_mailbox_type ack_mailbox(
@@ -294,7 +347,7 @@ private:
         registrant_t<namespace_interface_business_card_t>
             registrant(mailbox_manager,
                        masters_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_registrar_business_card, _1, peer_id, master_id)),
-                       namespace_interface_business_card_t(self_id, ack_mailbox.get_address()));
+                       namespace_interface_business_card_t(self_id, ack_mailbox.get_address(), connection.allocation_mailbox.get_address()));
 
         signal_t *drain_signal = lock.get_drain_signal();
         signal_t *failed_signal = registrant.get_failed_signal();
@@ -313,12 +366,6 @@ private:
         }
 
         if (ack_signal.is_pulsed()) {
-            master_connection_t connection(
-                peer_id,
-                initial_bcard.region,
-                initial_bcard.read_mailbox,
-                initial_bcard.write_mailbox
-                );
             map_insertion_sentry_t<master_id_t, master_connection_t *> map_insertion(
                 &open_connections, master_id, &connection);
 

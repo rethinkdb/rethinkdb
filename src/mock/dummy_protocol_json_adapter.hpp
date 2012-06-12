@@ -21,4 +21,4 @@ void  on_subfield_change(dummy_protocol_t::region_t *, const ctx_t &);
 
 #include "mock/dummy_protocol_json_adapter.tcc"
 
-#endif
+#endif /* MOCK_DUMMY_PROTOCOL_JSON_ADAPTER_HPP_ */

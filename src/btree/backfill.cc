@@ -20,28 +20,38 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         rassert(*population_change_out == 0);
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
+        key_range_t clipped_range(
+            left_exclusive_or_null ? key_range_t::open : key_range_t::none,
+            left_exclusive_or_null ? store_key_t(left_exclusive_or_null) : store_key_t(),
+            right_inclusive_or_null ? key_range_t::closed : key_range_t::none,
+            right_inclusive_or_null ? store_key_t(right_inclusive_or_null) : store_key_t()
+            );
+        clipped_range = clipped_range.intersection(key_range_);
+
         struct : public leaf::entry_reception_callback_t {
             void lost_deletions() {
-                cb->on_delete_range(left_exclusive_or_null, right_inclusive_or_null);
+                cb->on_delete_range(range);
             }
 
             void deletion(const btree_key_t *k, repli_timestamp_t tstamp) {
-                cb->on_deletion(k, tstamp);
+                if (range.contains_key(k->contents, k->size)) {
+                    cb->on_deletion(k, tstamp);
+                }
             }
 
             void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) {
-                cb->on_pair(txn, tstamp, k, value);
+                if (range.contains_key(k->contents, k->size)) {
+                    cb->on_pair(txn, tstamp, k, value);
+                }
             }
 
             agnostic_backfill_callback_t *cb;
             transaction_t *txn;
-            const btree_key_t *left_exclusive_or_null;
-            const btree_key_t *right_inclusive_or_null;
+            key_range_t range;
         } x;
         x.cb = callback_;
         x.txn = txn;
-        x.left_exclusive_or_null = left_exclusive_or_null;
-        x.right_inclusive_or_null = right_inclusive_or_null;
+        x.range = clipped_range;
 
         leaf::dump_entries_since_time(sizer_, data, since_when_, leaf_node_buf->get_recency(), &x);
     }
@@ -121,7 +131,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         // the case where x_left + 1 == y_right.  Then we don't have
         // overlap.  Our keys are like integers.
 
-        if (!(x_right == NULL || sized_strcmp(y_left.contents, y_left.size, x_right->contents, x_right->size) <= 0)) {
+        if (!(x_right == NULL || sized_strcmp(y_left.contents(), y_left.size(), x_right->contents, x_right->size) <= 0)) {
             return false;
         }
 
@@ -134,7 +144,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             }
 
             // Now it's [x_left_copy, x_right] intersecting [y_left, y_right).
-            return sized_strcmp(x_left_copy.contents, x_left_copy.size, y_right.key.contents, y_right.key.size) < 0;
+            return sized_strcmp(x_left_copy.contents(), x_left_copy.size(), y_right.key.contents(), y_right.key.size()) < 0;
         }
     }
 

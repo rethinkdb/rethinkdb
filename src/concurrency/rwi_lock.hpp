@@ -1,5 +1,5 @@
-#ifndef RWI_LOCK_HPP_
-#define RWI_LOCK_HPP_
+#ifndef CONCURRENCY_RWI_LOCK_HPP_
+#define CONCURRENCY_RWI_LOCK_HPP_
 
 #include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"
@@ -146,5 +146,5 @@ inline void swap(rwi_lock_t::write_acq_t &a1, rwi_lock_t::write_acq_t &a2) {
     a2.lock = tmp;
 }
 
-#endif // RWI_LOCK_HPP_
+#endif // CONCURRENCY_RWI_LOCK_HPP_
 

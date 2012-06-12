@@ -168,4 +168,4 @@ void apply_json_to(cJSON *change, namespaces_directory_metadata_t<protocol_t> *t
 template <class ctx_t, class protocol_t>
 void on_subfield_change(UNUSED namespaces_directory_metadata_t<protocol_t> *target, UNUSED const ctx_t &ctx) { }
 
-#endif /* CLUSTERING_ARCHITECT_METADATA_HPP_ */
+#endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_ */

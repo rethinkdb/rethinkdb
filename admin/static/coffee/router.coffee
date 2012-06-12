@@ -21,7 +21,7 @@ class BackboneCluster extends Backbone.Router
 
         @namespace_list = new NamespaceView.NamespaceList
         @server_list = new ServerView.DatacenterList
-        @dashboard = new DashboardView
+        @dashboard = new DashboardView.Container
         @navbar = new NavBarView
 
         # Add and render the sidebar (visible across all views)
@@ -74,6 +74,19 @@ class BackboneCluster extends Backbone.Router
 
         # Return the existing namespace from the collection if it exists
         return build_namespace_view id
+
+    sharding_scheme: (id) ->
+        log_router '/namespaces/' + id + '/sharding_scheme'
+        clear_modals()
+        window.scrollTo(0,0); # Scroll to top
+
+        # Helper function to build the namespace view
+        build_sharding_scheme_view = (id) =>
+            sharding_scheme_view = new NamespaceView.ModifyShards(id)
+            @$container.html sharding_scheme_view.render().el
+
+        # Return the existing namespace from the collection if it exists
+        return build_sharding_scheme_view id
 
     datacenter: (id) ->
         log_router '/datacenters/' + id

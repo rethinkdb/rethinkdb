@@ -141,4 +141,4 @@ void on_subfield_change(reactor_business_card_t<protocol_t> *, const ctx_t &);
 
 #include "clustering/reactor/json_adapters.tcc"
 
-#endif  // CLUSTERING_REACTOR_JSON_ADAPTERS_HPP_
+#endif /* CLUSTERING_REACTOR_JSON_ADAPTERS_HPP_ */

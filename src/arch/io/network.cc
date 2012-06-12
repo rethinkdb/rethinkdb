@@ -33,7 +33,8 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
     write_handler(this),
     write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
     write_coro_pool(1, &write_queue, &write_handler),
-    current_write_buffer(get_write_buffer()) {
+    current_write_buffer(get_write_buffer()),
+    drainer(new auto_drainer_t) {
 
     struct sockaddr_in addr;
     if (local_port != 0) {
@@ -84,7 +85,8 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     write_handler(this),
     write_queue_limiter(WRITE_QUEUE_MAX_SIZE),
     write_coro_pool(1, &write_queue, &write_handler),
-    current_write_buffer(get_write_buffer())
+    current_write_buffer(get_write_buffer()),
+    drainer(new auto_drainer_t)
 {
     rassert(sock.get() != INVALID_FD);
 
@@ -122,6 +124,7 @@ void linux_tcp_conn_t::release_write_buffer(write_buffer_t *buffer) {
 }
 
 void linux_tcp_conn_t::release_write_queue_op(write_queue_op_t *op) {
+    op->keepalive = auto_drainer_t::lock_t();
     unused_write_queue_ops.push_front(op);
 }
 
@@ -281,7 +284,7 @@ linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *parent_) :
     parent(parent_)
 { }
 
-void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *operation) {
+void linux_tcp_conn_t::write_handler_t::coro_pool_callback(write_queue_op_t *operation, UNUSED signal_t *interruptor) {
     if (operation->buffer != NULL) {
         parent->perform_write(operation->buffer, operation->size);
         if (operation->dealloc != NULL) {
@@ -310,6 +313,7 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
     op->size = current_write_buffer->size;
     op->dealloc = current_write_buffer;
     op->cond = NULL;
+    op->keepalive = auto_drainer_t::lock_t(drainer.get());
     current_write_buffer = get_write_buffer();
 
     /* Acquire the write semaphore so the write queue doesn't get too long
@@ -541,6 +545,8 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
     if (is_read_open()) shutdown_read();
     if (is_write_open()) shutdown_write();
 
+    drainer.reset();
+
     delete event_watcher;
     event_watcher = NULL;
 
@@ -587,7 +593,23 @@ void linux_tcp_conn_t::rethread(int new_thread) {
     write_coro_pool.rethread(new_thread);
 }
 
+int linux_tcp_conn_t::getsockname(ip_address_t *ip) {
+    struct sockaddr_in addr;
+    socklen_t len = sizeof addr;
+    int res = ::getsockname(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), &len);
+    if (!res)
+        ip->addr = addr.sin_addr;
+    return res;
+}
 
+int linux_tcp_conn_t::getpeername(ip_address_t *ip) {
+    struct sockaddr_in addr;
+    socklen_t len = sizeof addr;
+    int res = ::getpeername(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), &len);
+    if (!res)
+        ip->addr = addr.sin_addr;
+    return res;
+}
 
 void linux_tcp_conn_t::on_event(int events) {
 
@@ -707,6 +729,14 @@ linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
     port(_port)
 {
     bind_socket(sock_fd, port);
+    if (port == 0) {
+        // Determine the port that was assigned
+        struct sockaddr_in sa;
+        socklen_t sa_len(sizeof(sa));
+        int res = getsockname(sock_fd, (struct sockaddr*)&sa, &sa_len);
+        guarantee_err(res != -1, "Could not determine socket local port number");
+        port = ntohs(sa.sin_port);
+    }
 }
 
 linux_tcp_bound_socket_t::~linux_tcp_bound_socket_t()

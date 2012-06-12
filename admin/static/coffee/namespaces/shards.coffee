@@ -302,7 +302,7 @@ module 'NamespaceView', ->
             @suggest_shards_view = false
 
             # We should rerender on key distro updates
-            @namespace.on 'all', @render
+            @namespace.on 'all', @render_only_shards
 
             super
 
@@ -328,17 +328,19 @@ module 'NamespaceView', ->
             @suggest_shards_view = true
             @render()
 
+
         compute_shards_suggestion: (e) =>
             # Do the bullshit event crap
             e.preventDefault()
             @.$('.btn-compute-shards-suggestion').button('loading')
 
             # Make sure their input aint crazy
-            @desired_shards = parseInt(form_data_as_object($('form', @.el)).num_shards)
-            if isNaN(@desired_shards)
+            if DataUtils.is_integer(form_data_as_object($('form', @.el)).num_shards) is false
                 @error_msg = "The number of shards must be an integer."
+                @desired_shards = form_data_as_object($('form', @.el)).num_shards
                 @render()
                 return
+            @desired_shards = parseInt(form_data_as_object($('form', @.el)).num_shards) #It's safe to use parseInt now
             if @desired_shards < 1 or @desired_shards > MAX_SHARD_COUNT
                 @error_msg = "The number of shards must be beteen 1 and " + MAX_SHARD_COUNT + "."
                 @render()
@@ -414,6 +416,7 @@ module 'NamespaceView', ->
             @render()
 
         render: =>
+
             log_render '(rendering) ModifyShards'
 
             # TODO render "touched" shards (that have been split or merged within this view) a bit differently
@@ -428,9 +431,13 @@ module 'NamespaceView', ->
                 unsaved_settings: user_made_changes
                 error_msg: @error_msg
             @error_msg = null
-            @.$el.html(@template json)
 
             shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
+            @.$el.html(@template json)
+            
+            @render_only_shards
+
+            @.$('.shards tbody').html ''
             @.$('.shards tbody').append view.render().el for view in shard_views
 
             # Control the suggest button
@@ -443,6 +450,12 @@ module 'NamespaceView', ->
                 @reset_button_disable()
 
             return @
+
+        render_only_shards: =>
+            shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
+            @.$('.shards tbody').html ''
+            @.$('.shards tbody').append view.render().el for view in shard_views
+
 
         on_submit: (e) =>
             e.preventDefault()

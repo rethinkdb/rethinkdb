@@ -12,30 +12,26 @@
 
 class local_issue_t {
 public:
-    virtual std::string get_description() const = 0;
-    virtual cJSON *get_json_description() const = 0;
-
-    virtual ~local_issue_t() { }
-    virtual local_issue_t *clone() const = 0;
-
-    // Remember to include your subclass in the deserialize function below!
-    enum serialization_code_t { PERSISTENCE_ISSUE_CODE };
-    virtual void rdb_serialize(UNUSED write_message_t &msg) const = 0;
-
     local_issue_t() { }
-private:
-    DISABLE_COPYING(local_issue_t);
-};
+    local_issue_t(const std::string& type, bool critical, const std::string& description);
 
-int deserialize(read_stream_t *s, local_issue_t **issue_ptr);
+    local_issue_t *clone() const;
+
+    std::string type;
+    bool critical;
+    std::string description;
+    int64_t timestamp;
+
+    RDB_MAKE_ME_SERIALIZABLE_4(type, critical, description, timestamp);
+};
 
 class local_issue_tracker_t {
 public:
-    local_issue_tracker_t() : issues_watchable(std::list<clone_ptr_t<local_issue_t> >()) { }
+    local_issue_tracker_t() : issues_watchable(std::list<local_issue_t>()) { }
 
     class entry_t {
     public:
-        entry_t(local_issue_tracker_t *p, const clone_ptr_t<local_issue_t> &d) :
+        entry_t(local_issue_tracker_t *p, const local_issue_t &d) :
             parent(p), issue(d)
         {
             parent->issues.insert(this);
@@ -48,18 +44,18 @@ public:
     private:
         friend class local_issue_tracker_t;
         local_issue_tracker_t *parent;
-        clone_ptr_t<local_issue_t> issue;
+        local_issue_t issue;
 
         DISABLE_COPYING(entry_t);
     };
 
-    clone_ptr_t<watchable_t<std::list<clone_ptr_t<local_issue_t> > > > get_issues_watchable() {
+    clone_ptr_t<watchable_t<std::list<local_issue_t> > > get_issues_watchable() {
         return issues_watchable.get_watchable();
     }
 
 private:
     void recompute() {
-        std::list<clone_ptr_t<local_issue_t> > l;
+        std::list<local_issue_t> l;
         for (std::set<entry_t *>::iterator it = issues.begin(); it != issues.end(); it++) {
             l.push_back((*it)->issue);
         }
@@ -67,7 +63,7 @@ private:
     }
 
     std::set<entry_t *> issues;
-    watchable_variable_t<std::list<clone_ptr_t<local_issue_t> > > issues_watchable;
+    watchable_variable_t<std::list<local_issue_t> > issues_watchable;
 
     DISABLE_COPYING(local_issue_tracker_t);
 };

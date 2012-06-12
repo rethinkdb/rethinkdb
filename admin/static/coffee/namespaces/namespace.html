@@ -1,30 +1,61 @@
 <script id="namespace_view-container-template" type="text/x-handlebars-template">
-  <div class="profile-holder"></div>
-  <h3 class="title">Replication settings</h3>
-  <div class="section replication"></div>
-  <div class="section sharding"></div>
+    <div class="full_profile">
+        <div class="main_title"></div>
+        <dIv id="user-alert-space">{{print_safe old_alert_html}}</div>
+        <div class="two-panel-section">
+            <div class="panel-left-unbalanced profile">
+        </div>
+        <div class="panel-right-unbalanced">
+            <h3 class="title">Performance</h3>
+            <div class="performance-graph"></div>
+        </div>
+      </div>
+
+    <h3 class="title">Statistics</h3>
+    <div class="section namespace-stats">
+    </div>
+
+    <h3 class="title">Replication settings</h3>
+    <div class="section replication"></div>
+
+    <h3 class="title">Sharding settings</h3>
+    <div class="section sharding"></div>
 </script>
 
+<script id="namespace_view_title-template" type="text/x-handlebars-template">
+    <h1>Namespace overview for {{name}}</h1> (<a href="#" class="rename-namespace">rename</a>)
+</script>
+
+
 <script id="namespace_view-profile-template" type="text/x-handlebars-template">
-  <h1>Namespace overview for {{name}}</h1> (<a href="#" class="rename-namespace">rename</a>)
-  <div id="user-alert-space">{{print_safe old_alert_html}}</div>
-  <div class="two-panel-section">
-    <div class="panel-left">
-      <h3 class="title">Namespace profile</h3>
-      <div class="section summary">
+    <h3 class="title">Namespace profile</h3>
+    <div class="section summary">
         <p class="protocol">Protocol: {{protocol}}</p>
         <p class="port">Port: {{port}}</p>
-      </div>
     </div>
-    <div class="panel-right">
-      <h3 class="title">Namespace status</h3>
-      <div class="section summary">
-        <p>Status: {{reachability}}</p>
+
+    <div class="section summary">
+        <p>Status: {{humanize_namespace_reachability reachability}}</p>
         <p>Masters: {{nashards}} of {{nshards}} reachable</p>
         <p>Replicas: {{nareplicas}} of {{nreplicas}} reachable</p>
         <p>Replication: {{> backfill_progress_summary}}</p>
-      </div>
     </div>
-    <div class="two-panel-clear"></div>
-  </div>
+</script>
+
+
+<script id="namespace_stats-template" type="text/x-handlebars-template">
+    <ul class="list_stats total_ops_sec">
+        <li class="title"><span>Total ops/sec:</span></td>
+        <li class="opsec_sparkline">Loading...</td>
+        <li class="value"><span>{{total_ops_sec}}</span></td>
+    </ul>
+    <ul class="list_stats ram_usage">
+        <li class="title"><span>Ram usage:</span></td>
+        <li class="minichart">
+            <div class="progress contains_info">
+                <div class="bar" style="width: {{data_in_memory_percent}}%;"></div>
+            </div>
+        </li>
+        <li class="value"><span>{{data_in_memory}} of {{data_total}} in RAM</span></td>
+    </ul>
 </script>

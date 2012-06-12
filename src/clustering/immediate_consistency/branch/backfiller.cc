@@ -2,8 +2,11 @@
 
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/semaphore.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
+
+#define MAX_CHUNKS_OUT 5000 
 
 inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_range_t &vr) {
     return vr.earliest.timestamp;
@@ -16,7 +19,7 @@ backfiller_t<protocol_t>::backfiller_t(mailbox_manager_t *mm,
     : mailbox_manager(mm), branch_history(bh),
       store(s),
       backfill_mailbox(mailbox_manager,
-		       boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
+		       boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, _6, auto_drainer_t::lock_t(&drainer))),
       cancel_backfill_mailbox(mailbox_manager,
 			      boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer))),
       request_progress_mailbox(mailbox_manager,
@@ -69,7 +72,9 @@ template <class protocol_t>
 void send_chunk(mailbox_manager_t *mbox_manager, 
                 mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_addr,
                 const typename protocol_t::backfill_chunk_t &chunk,
-                fifo_enforcer_source_t *fifo_src) {
+                fifo_enforcer_source_t *fifo_src,
+                semaphore_t *chunk_semaphore) {
+    chunk_semaphore->co_lock();
     send(mbox_manager, chunk_addr, chunk, fifo_src->enter_write());
 }
 
@@ -80,6 +85,7 @@ void backfiller_t<protocol_t>::on_backfill(
 					   mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>)> end_point_cont,
 					   mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
 					   mailbox_addr_t<void(fifo_enforcer_write_token_t)> done_cont,
+                       mailbox_addr_t<void(mailbox_addr_t<void(int)>)> allocation_registration_box,
 					   auto_drainer_t::lock_t keepalive) {
 
     assert_thread();
@@ -99,6 +105,10 @@ void backfiller_t<protocol_t>::on_backfill(
        wait on that cond yet. */
     wait_any_t interrupted(&local_interruptor, keepalive.get_drain_signal());
 
+    semaphore_t chunk_semaphore(MAX_CHUNKS_OUT);
+    mailbox_t<void(int)> receive_allocations_mbox(mailbox_manager, boost::bind(&semaphore_t::unlock, &chunk_semaphore, _1), mailbox_callback_mode_inline);
+    send(mailbox_manager, allocation_registration_box, receive_allocations_mbox.get_address());
+
     try {
         fifo_enforcer_source_t fifo_src;
 
@@ -112,7 +122,7 @@ void backfiller_t<protocol_t>::on_backfill(
                                                       &get_earliest_timestamp_of_version_range
                                                       ),
                      boost::bind(&backfiller_t<protocol_t>::confirm_and_send_metainfo, this, _1, start_point, end_point_cont),
-                     boost::bind(send_chunk<protocol_t>, mailbox_manager, chunk_cont, _1, &fifo_src),
+                     boost::bind(send_chunk<protocol_t>, mailbox_manager, chunk_cont, _1, &fifo_src, &chunk_semaphore),
                      local_backfill_progress[session_id],
                      send_backfill_token,
                      &interrupted

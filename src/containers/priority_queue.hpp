@@ -1,5 +1,5 @@
-#ifndef PRIORITY_QUEUE_HPP_
-#define PRIORITY_QUEUE_HPP_
+#ifndef CONTAINERS_PRIORITY_QUEUE_HPP_
+#define CONTAINERS_PRIORITY_QUEUE_HPP_
 
 #include <deque>
 #include <functional>
@@ -61,4 +61,4 @@ private:
 };
 
 #include "containers/priority_queue.tcc"
-#endif
+#endif /* CONTAINERS_PRIORITY_QUEUE_HPP_ */

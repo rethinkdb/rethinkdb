@@ -494,5 +494,4 @@ std::string render_as_json_string(const T &t) {
 
 #include "http/json/json_adapter.tcc"
 
-#endif
-
+#endif /* HTTP_JSON_JSON_ADAPTER_HPP_ */

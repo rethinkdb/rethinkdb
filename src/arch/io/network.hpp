@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
-#include <netinet/in.h> 
+#include <netinet/in.h>
 
 #include <vector>
 #include <stdexcept>
@@ -15,6 +15,7 @@
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 
+#include "config/args.hpp"
 #include "arch/address.hpp"
 #include "arch/io/event_watcher.hpp"
 #include "arch/io/io_utils.hpp"
@@ -38,7 +39,7 @@ public:
 
     class connect_failed_exc_t : public std::exception {
     public:
-        connect_failed_exc_t(int en) : error(en) { }
+        explicit connect_failed_exc_t(int en) : error(en) { }
         const char *what() const throw () {
             return strprintf("Could not make connection: %s", strerror(error)).c_str();
         }
@@ -46,6 +47,7 @@ public:
         int error;
     };
 
+    // NB. interruptor cannot be NULL.
     linux_tcp_conn_t(const ip_address_t &host, int port, signal_t *interruptor, int local_port = 0) THROWS_ONLY(connect_failed_exc_t, interrupted_exc_t);
 
     /* Reading */
@@ -130,13 +132,16 @@ public:
     transmitted over the network. */
     perfmon_rate_monitor_t *write_perfmon;
 
-    /* Note that is_read_open() and is_write_open() must both be false1 before the socket is
+    /* Note that is_read_open() and is_write_open() must both be false before the socket is
     destroyed. */
     ~linux_tcp_conn_t();
 
 public:
 
     void rethread(int);
+
+    int getsockname(ip_address_t *addr);
+    int getpeername(ip_address_t *addr);
 
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
@@ -181,6 +186,7 @@ private:
         const void *buffer;
         size_t size;
         cond_t *cond;
+        auto_drainer_t::lock_t keepalive;
     };
 
     class write_handler_t :
@@ -189,7 +195,7 @@ private:
         explicit write_handler_t(linux_tcp_conn_t *parent_);
     private:
         linux_tcp_conn_t *parent;
-        void coro_pool_callback(write_queue_op_t *operation);
+        void coro_pool_callback(write_queue_op_t *operation, signal_t *interruptor);
     } write_handler;
 
     /* Lists of unused buffers, new buffers will be put on this list until needed again, reducing
@@ -239,6 +245,8 @@ private:
     the length of popped bytes in popped_bytes. */
     static const size_t POP_THRESHOLD = 1024;
     size_t popped_bytes;
+
+    boost::scoped_ptr<auto_drainer_t> drainer;
 };
 
 class linux_nascent_tcp_conn_t {
@@ -266,7 +274,7 @@ private:
 
 class linux_tcp_bound_socket_t {
 public:
-    linux_tcp_bound_socket_t(int _port);
+    explicit linux_tcp_bound_socket_t(int _port);
     ~linux_tcp_bound_socket_t();
     int get_port();
     fd_t get_fd();

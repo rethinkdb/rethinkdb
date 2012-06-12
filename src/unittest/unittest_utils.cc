@@ -7,6 +7,7 @@
 
 #include "do_on_thread.hpp"
 #include "arch/arch.hpp"
+#include "utils.hpp"            // randint
 
 namespace unittest {
 
@@ -26,6 +27,10 @@ temp_file_t::~temp_file_t() {
 
 void let_stuff_happen() {
     nap(100);
+}
+
+int randport() {
+    return 10000 + randint(20000);
 }
 
 }  // namespace unittest

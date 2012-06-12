@@ -25,7 +25,7 @@ with driver.Metacluster() as metacluster:
         http.move_server_to_datacenter(machine_id, dc)
     ns = http.add_namespace(protocol = "memcached", primary = dc)
     time.sleep(3)
-    host, port = http.get_namespace_host(ns)
+    host, port = driver.get_namespace_host(ns, processes)
     cluster.check()
 
     print "Increasing replication factor..."
@@ -55,4 +55,7 @@ with driver.Metacluster() as metacluster:
     else:
         raise RuntimeError("Never detected a backfill happening")
 
-    cluster.check_and_close()
+    cluster.check()
+    # Don't call `check_and_stop()` because it expects the server to shut down
+    # in some reasonable period of time, but since the server has a lot of data
+    # to flush to disk, it might not.

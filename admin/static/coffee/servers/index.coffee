@@ -16,6 +16,7 @@ module 'ServerView', ->
         events:
             'click a.btn.add-datacenter': 'add_datacenter'
             'click a.btn.set-datacenter': 'set_datacenter'
+            'click .close': 'remove_parent_alert'
 
         initialize: ->
             @add_datacenter_dialog = new ServerView.AddDatacenterModal
@@ -32,6 +33,11 @@ module 'ServerView', ->
             @update_toolbar_buttons()
 
             return @
+
+        remove_parent_alert: (event) ->
+            event.preventDefault()
+            element = $(event.target).parent()
+            element.slideUp 'fast', -> element.remove()
 
         add_datacenter: (event) =>
             log_action 'add datacenter button clicked'
@@ -91,6 +97,7 @@ module 'ServerView', ->
 
             return @
 
+
         add_element: (element) =>
             machine_list_element = super element
             @bind_callbacks_to_machine machine_list_element
@@ -108,14 +115,31 @@ module 'ServerView', ->
     class @MachineListElement extends UIComponents.CheckboxListElement
         template: Handlebars.compile $('#machine_list_element-template').html()
         summary_template: Handlebars.compile $('#machine_list_element-summary-template').html()
-        className: 'machine element'
+        className: 'machine-element'
+
+        threshold_alert: 90
+        history:
+            cpu: []
+            traffic_sent: []
+            traffic_recv: []
 
         events: ->
             _.extend super,
                 'click a.rename-machine': 'rename_machine'
+                'mouseenter .contains_info': 'display_popover'
+                'mouseleave .contains_info': 'hide_popover'
 
-        initialize: ->
+        hide_popover: ->
+            $('.tooltip').remove()
+
+        initialize: =>
             log_initial '(initializing) list view: machine'
+
+            #initialize history
+            for i in [0..12]
+                @history.cpu.push 0
+                @history.traffic_sent.push 0
+                @history.traffic_recv.push 0
 
             @model.on 'change', @render_summary
             directory.on 'all', @render_summary
@@ -123,10 +147,12 @@ module 'ServerView', ->
             # Load abstract list element view with the machine template
             super @template
 
+
         render: =>
             super
             @render_summary()
             return @
+
 
         render_summary: =>
             json = _.extend @model.toJSON(),
@@ -154,23 +180,140 @@ module 'ServerView', ->
 
             if not @model.get('datacenter_uuid')?
                 json.unassigned_machine = true
-            # Stats, jiga
-            json = _.extend json,
-                # TODO: add a helper to upgrade/downgrade units dynamically depending on the values
-                global_cpu_util: Math.floor(@model.get_stats().proc.global_cpu_util_avg * 100)
-                global_mem_total: human_readable_units(@model.get_stats().proc.global_mem_total * 1024, units_space)
-                global_mem_used: human_readable_units(@model.get_stats().proc.global_mem_used * 1024, units_space)
-                global_net_sent: human_readable_units(@model.get_stats().proc.global_net_sent_persec_avg, units_space)
-                global_net_recv: human_readable_units(@model.get_stats().proc.global_net_recv_persec_avg, units_space)
-                machine_disk_space: human_readable_units(@model.get_used_disk_space(), units_space)
+            # Stats
+            # Compute main traffic
+            total_traffic =
+                recv: 0
+                sent: 0
 
-            # Whooo
-            @.$('.machine.summary').html @summary_template json
+            total_data = 0
+
+            max_traffic = 
+                recv: 0
+                sent: 0
+
+            num_machine_in_datacenter = 0
+            all_machine_in_datacenter_ready = true
+
+            for machine in machines.models
+                if machine.get('datacenter_uuid') is @model.get('datacenter_uuid')
+                    if machine.get_stats().proc.global_net_recv_persec?
+                        num_machine_in_datacenter++
+
+                        new_traffic_recv = parseFloat machine.get_stats().proc.global_net_recv_persec.avg
+                        total_traffic.recv += new_traffic_recv
+                        if !isNaN(new_traffic_recv) and new_traffic_recv > max_traffic.recv
+                            max_traffic.recv = new_traffic_recv
+
+                        new_traffic_sent = parseFloat machine.get_stats().proc.global_net_sent_persec.avg
+                        total_traffic.sent += new_traffic_sent
+                        if !isNaN(new_traffic_sent) and new_traffic_sent > max_traffic.sent
+                            max_traffic.sent = new_traffic_sent
+
+                        total_data += parseFloat machine.get_used_disk_space()
+                    else
+                        all_machine_in_datacenter_ready = false
+
+            # Generate data for bars and popover
+            if @model.get_stats().proc.global_cpu_util?
+                json = _.extend json,
+                    # TODO: add a helper to upgrade/downgrade units dynamically depending on the values
+                    global_cpu_util: Math.floor(@model.get_stats().proc.global_cpu_util.avg * 100)
+                    mem_used: human_readable_units(@model.get_stats().proc.global_mem_used*1024, units_space)
+                    mem_available: human_readable_units(@model.get_stats().proc.global_mem_total*1024, units_space)
+                    global_net_sent: human_readable_units(@model.get_stats().proc.global_net_sent_persec.avg, units_space)
+                    global_total_net_sent: human_readable_units(total_traffic.sent, units_space)
+                    global_net_recv: human_readable_units(@model.get_stats().proc.global_net_recv_persec.avg, units_space)
+                    global_total_net_recv: human_readable_units(total_traffic.recv, units_space)
+                    machine_disk_space: human_readable_units(@model.get_used_disk_space(), units_space)
+                    total_data: human_readable_units(total_data, units_space)
+                    machine_disk_available: human_readable_units(@model.get_used_disk_space()*3, units_space) #TODO replace with real value
+                # Test if a problem exist
+
+                if @model.get_stats().proc.global_mem_total isnt 0
+                    json.mem_used_percent = Math.floor @model.get_stats().proc.global_mem_used/@model.get_stats().proc.global_mem_total*100
+                    json.mem_used_has_problem = true if json.mem_used_percent > @threshold_alert
+                else
+                    json.mem_used_percent = 0
+
+                if total_data isnt 0 and all_machine_in_datacenter_ready
+                    json.machine_data_percent = Math.floor @model.get_used_disk_space()/total_data*100
+                    json.machine_data_has_problem = true if (json.machine_data_percent > @threshold_alert) and num_machine_in_datacenter>1 and @model.get_used_disk_space() isnt 0 
+                else
+                    json.machine_data_percent = 0
+
+                if json.machine_disk_available isnt 0 
+                    json.machine_disk_percent = Math.floor @model.get_used_disk_space()/(@model.get_used_disk_space()*3)*100 #TODO replace with real values
+                    json.machine_disk_has_problem = true if (json.machine_disk_data_percent>@threshold_alert) and @model.get_used_disk_space() isnt 0 
+                else
+                    json.machine_disk_percent = 0
+
+
+                # Displays bars and text in the popover
+                @.$('.machine.summary').html @summary_template json
+
+
+                # Update data for the sparklines
+                if !isNaN(json.global_cpu_util)
+                    @history.cpu.shift()
+                    @history.cpu.push json.global_cpu_util
+
+                global_net_sent_percentage = parseInt(@model.get_stats().proc.global_net_sent_persec.avg)
+                if !isNaN(global_net_sent_percentage)
+                    @history.traffic_sent.shift()
+                    @history.traffic_sent.push global_net_sent_percentage
+
+                global_net_recv_percentage = parseInt(@model.get_stats().proc.global_net_recv_persec.avg)
+                if !isNaN(global_net_recv_percentage)
+                    @history.traffic_recv.shift()
+                    @history.traffic_recv.push global_net_recv_percentage
+
+
+                sparkline_attr =
+                    fillColor: false
+                    spotColor: false
+                    minSpotColor: false
+                    maxSpotColor: false
+                    chartRangeMin: 0
+                    width: '75px'
+                    height: '15px'
+
+                # Add some parameters for the CPU sparkline and display it
+                sparkline_attr_cpu =
+                    chartRangeMax: 100
+                if json.global_cpu_util > @threshold_alert
+                    sparkline_attr_cpu.lineColor = 'red'
+                _.extend sparkline_attr_cpu, sparkline_attr
+                @.$('.cpu_sparkline').sparkline @history.cpu, sparkline_attr_cpu
+                
+                 # Add some parameters for the traffic sent sparkline and display it         
+                sparkline_attr_traffic_sent =
+                    chartRangeMax: human_readable_units(max_traffic.sent, units_space)
+                if total_traffic.sent isnt 0 and num_machine_in_datacenter>1 and @model.get_stats().proc.global_net_sent_persec_avg/total_traffic.sent*100>@threshold_alert
+                    sparkline_attr_traffic_sent.lineColor = 'red'
+                _.extend sparkline_attr_traffic_sent, sparkline_attr
+                @.$('.traffic_sent_sparkline').sparkline @history.traffic_sent, sparkline_attr_traffic_sent
+               
+                
+
+                # Add some parameters for the traffic recv sparkline and display it         
+                sparkline_attr_traffic_recv =
+                    chartRangeMax: human_readable_units(max_traffic.recv, units_space)
+                if total_traffic.sent isnt 0 and num_machine_in_datacenter>1 and @model.get_stats().proc.global_net_recv_persec_avg/total_traffic.recv*100>@threshold_alert
+                    sparkline_attr_traffic_sent.lineColor = 'red'
+                _.extend sparkline_attr_traffic_recv, sparkline_attr
+                @.$('.traffic_recv_sparkline').sparkline @history.traffic_recv, sparkline_attr_traffic_recv
+
+
+            @.delegateEvents()
 
         rename_machine: (event) ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'machine'
             rename_modal.render()
+
+        display_popover: (event) ->
+            $(event.currentTarget).tooltip('show')
 
     # Datacenter list element
     class @DatacenterListElement extends UIComponents.CollapsibleListElement
@@ -317,6 +460,8 @@ module 'ServerView', ->
     class @AddDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_datacenter-alert-template').html()
+        error_template: Handlebars.compile $('#error_input-template').html()
+
         class: 'add-datacenter'
 
         initialize: ->
@@ -333,13 +478,32 @@ module 'ServerView', ->
             super
             @formdata = form_data_as_object($('form', @$modal))
 
-            $.ajax
-                processData: false
-                url: '/ajax/datacenters/new'
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify({"name" : @formdata.name})
-                success: @on_success
+            no_error = true
+            if @formdata.name is ''
+                no_error = false
+                template_error =
+                    datacenter_is_empty: true
+                $('.alert_modal').html @error_template template_error
+                $('.alert_modal').alert()
+                @reset_buttons()
+            else
+                for datacenter in datacenters.models
+                    if datacenter.get('name') is @formdata.name
+                        no_error = false
+                        template_error =
+                            datacenter_exists: true
+                        $('.alert_modal').html @error_template template_error
+                        $('.alert_modal').alert()
+                        @reset_buttons()
+                        break
+            if no_error is true
+                $.ajax
+                    processData: false
+                    url: '/ajax/datacenters/new'
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify({"name" : @formdata.name})
+                    success: @on_success
 
         on_success: (response) ->
             super

@@ -6,7 +6,7 @@
 
 /* Colors */
 @riak_color: #1693A5;
-@memcached_color: #44AA55;
+@memcached_color: #CCCCCC;
 @selected_color: #FCFBE3;
 @link_color: #0069D6;
 @light_red: #FFDEDB;
@@ -464,16 +464,37 @@
     h1.performance, h1.sharding-replication-settings {
         margin-top: 1em;
     }
+    .list_stats {
+        list-style: none;
+        li {
+            display: inline-block;
+            padding: 5px 0px 0px 0px;
+        }
+        .title{
+            width: 90px;
+        }
+        .minichart{
+            width: 80px;
+            .progress{
+                height: 15px;
+                width: 75px;
+                margin: 0px 0px -3px 0px;
+                padding: 0px;
+            }
+        }
+        .value{
+            width: 140px;
+        }
+    }
 }
+
 
 .dashboard-view table.status {
     width: 100%;
     td {
         width: 33%;
         vertical-align: top;
-    }
-    td.redundancy, td.ram, td.persistence {
-        padding-top: 1em;
+        padding: 5px 10px 15px 0px;
     }
     td.no-problems-detected h3 {
         border-left: solid 5px green;
@@ -519,8 +540,16 @@
         margin-bottom: 0;
         border: 0;
         td + td { border-left: 0; }
-        td { vertical-align: middle; }
+        td { vertical-align: top; }
 
+        tr.machine-element {
+            &.selected td {
+                background: @selected_color;
+            }
+            &.last-child td {
+                border-bottom: 0;
+            }
+        }
         tr.element {
             &.selected td {
                 background: @selected_color;
@@ -533,7 +562,6 @@
                 margin-left: 10px; 
             }
         }
-
         .details {
             padding: 5px;
 
@@ -547,10 +575,92 @@
         }
     }
 }
-
-.server-list {
+.namespace-list {
     margin-top: 20px;
 
+    .datacenter_list{
+        padding: 0px;
+        margin: 10px;
+        border-left: 1px solid #ccc;
+        td {
+            border: 0px;
+            padding: 2px;
+            margin: 2px;
+        }
+        .role{
+            max-width: 260px;
+            font-weight: bold;
+            padding: 0px 20px 0px 20px;
+        }
+        .datacenter_name{
+            padding: 0px 40px 0px 0px;
+            max-width: 200px;
+            overflow: hidden;
+        }
+    }
+    .quick_info{
+        text-transform: uppercase;
+    }
+    .label-namespace{
+        background: #6C4005;
+        margin: 0px 10px 0px 0px;
+    }
+    .namespace_replication_status{
+        font-size: 13px;
+        font-weight: normal;
+    }
+    .toolbar{
+        float: right;
+        margin: 0px 10px 0px 0px;
+    }
+    .quick_info{
+        margin: 0px;
+        text-transform: uppercase;
+        font-size: 11px;
+    }
+    .contains{
+        margin: 0px;
+    }
+    .list_stats {
+        margin: 0px 30px 0px 0px;
+        float: left;
+        list-style: none;
+        li {
+            display: inline-block;
+        }
+        .stat_name{
+            width: 80px;
+        }
+        .minichart{
+            width: 110px;
+            margin-right: 10px;
+        }
+        .sparkline_container{
+            height: 15px;
+            width: 75px;
+            margin: 0px 5px 0px 5px;
+            padding: 0px;
+        }
+        .progress{
+            height: 10px;
+            width: 75px;
+            margin: 0px 5px 0px 5px;
+            padding: 0px;
+        }
+        canvas{
+            border-bottom: 1px solid #ddd;
+            border-left: 1px solid #ddd;
+        }
+        .bar{
+            background: #a0b0b8;
+        }
+        .bar-alert{
+            background: #E62E2E;
+        }
+    }
+}
+.server-list {
+    margin-top: 20px;
     .label.element-type {
         text-transform: uppercase;
         font-size: 10px;
@@ -571,7 +681,44 @@
         font-size: 10px;
         margin-right: 5px;
     }
-
+    
+    .list_stats {
+        margin: 0px 0px 0px 0px;
+        float: left;
+        list-style: none;
+        li {
+            display: inline-block;
+        }
+        .stat_name{
+            width: 80px;
+        }
+        .minichart{
+            width: 110px;
+            margin-right: 10px;
+        }
+        .sparkline_container{
+            height: 15px;
+            width: 75px;
+            margin: 0px 5px 0px 5px;
+            padding: 0px;
+        }
+        .progress{
+            height: 10px;
+            width: 75px;
+            margin: 0px 5px 0px 5px;
+            padding: 0px;
+        }
+        canvas{
+            border-bottom: 1px solid #ddd;
+            border-left: 1px solid #ddd;
+        }
+        .bar{
+            background: #a0b0b8;
+        }
+        .bar-alert{
+            background: #E62E2E;
+        }
+    }
     .machine.details {
         div.toolbar {
             float: right;
@@ -633,25 +780,7 @@
     }
 }
 
-.namespace-list {
-    margin-top: 20px;
 
-    div.toolbar {
-        float: right;
-        margin-top: -8em;
-    }
-    span.protocol {
-        background: @gray;
-        color: @white;
-        font-size: 0.8em;
-        padding: 0.4em;
-        text-transform: uppercase;
-        font-weight: bold;
-
-        &.riak { background-color: @riak_color; }
-        &.memcached {  background-color: @memcached_color;  }
-    }
-}
 
 .modal {
     display: none;
@@ -663,7 +792,22 @@
         margin-bottom: 0 !important;
         span.help-inline { padding-left: 15px; }
     }
-
+    .alert_modal{
+        margin: 0px 15px;
+    }
+    .close_error{
+        position: relative;
+        top: -2px;
+        right: -21px;
+        float: right;
+        font-size: 20px;
+        font-weight: bold;
+        line-height: 18px;
+        color: black;
+        text-shadow: 0 1px 0 white;
+        opacity: 0.2;
+        text-decoration: none;
+    }
     .user-tip {
         color: grey;
     }
@@ -684,12 +828,22 @@
         padding-bottom: 10px;
         margin-bottom: 10px;
         width: 100%;
+        overflow: hidden;
         .panel-left {
             float: left;
             width: 50%;
         }
         .panel-right {
             float: left;
+        }
+        .panel-left-unbalanced {
+            float: left;
+            width: 320px;
+        }
+        .panel-right-unbalanced {
+            float: right;
+            width: 380px;
+            
         }
         .two-panel-clear {
             clear: both;
@@ -700,11 +854,17 @@
             margin-bottom: 0;
         }
     }
-    
+    .two-panel-section-no-border {
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        width: 100%;
+        overflow: hidden;   
+    }
     .section {
         border-bottom: thin solid #CCC;
         padding-bottom: 10px;
         margin-bottom: 10px;
+        overflow:hidden;
     }
 
     h3.title {
@@ -754,6 +914,7 @@
             }
         }
     }
+
 }
 
 /*
@@ -880,6 +1041,36 @@
         }
     }
     /* End override */
+    .list_stats {
+        list-style: none;
+        li {
+            display: inline-block;
+            padding: 5px 0px 0px 0px;
+        }
+        .title{
+            width: 90px;
+        }
+        .minichart{
+            width: 80px;
+            .progress{
+                height: 15px;
+                width: 75px;
+                margin: 0px 0px -3px 0px;
+                padding: 0px;
+            }
+        }
+        .value{
+            width: 160px;
+        }
+    }
+    .machine-stats{
+        overflow: hidden;
+    }
+    .label{
+        position: relative;
+        bottom: 3px;
+        left: 3px;
+    }
 }
 
 .popover {
@@ -896,6 +1087,87 @@
 */
 
 .machine-view {
+    .list_stats {
+        float: left;
+        list-style: none;
+        li {
+            display: inline-block;
+            padding: 5px 0px 0px 0px;
+        }
+        .title{
+            width: 90px;
+        }
+        .minichart{
+            width: 80px;
+            .progress{
+                height: 15px;
+                width: 75px;
+                margin: 0px 0px -3px 0px;
+                padding: 0px;
+            }
+        }
+        .value{
+            width: 140px;
+        }
+    }
+    .machine-stats{
+        overflow: hidden;
+    }
+    .label{
+        position: relative;
+        bottom: 3px;
+        left: 3px;
+    }
+}
+
+/*
+    ----------------------------
+    Datacenter view
+    ----------------------------
+*/
+
+.datacenter-view {
+    .profile-expandable{
+        height: 285px;
+        .more_machines{
+            list-style: none;
+            margin: 3px 0px 60px 20px;
+        }
+    }
+    .list_stats {
+        float: left;
+        list-style: none;
+        li {
+            display: inline-block;
+            padding: 5px 0px 0px 0px;
+        }
+        .title{
+            width: 90px;
+        }
+        .minichart{
+            width: 80px;
+            .progress{
+                height: 15px;
+                width: 75px;
+                margin: 0px 0px -3px 0px;
+                padding: 0px;
+            }
+        }
+        .value{
+            width: 140px;
+        }
+    }
+    .machine-stats{
+        overflow: hidden;
+    }
+    .timeago{
+        margin-left: 15px;
+    }
+    .label{
+        position: relative;
+        bottom: 3px;
+        left: 3px;
+    }
 }
 
 /*
@@ -1304,5 +1576,12 @@
         width: 75px;
         padding-left: 5px;
         padding-right: 5px;
+    }
+}
+
+.statistics_horizontal{
+    width: 100%;
+    .title-moved{
+        margin-left: 30px;
     }
 }

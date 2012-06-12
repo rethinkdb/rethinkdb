@@ -88,7 +88,7 @@ public:
     public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
-        explicit store_t();
+        store_t();
         store_t(const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
         ~store_t();
 
@@ -126,7 +126,7 @@ public:
 
 dummy_protocol_t::region_t a_thru_z_region();
 
-std::string to_string(dummy_protocol_t::region_t);
+std::string region_to_debug_str(dummy_protocol_t::region_t);
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);
 dummy_protocol_t::region_t region_intersection(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b);

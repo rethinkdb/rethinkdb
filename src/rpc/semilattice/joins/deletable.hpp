@@ -1,5 +1,5 @@
-#ifndef RPC_SEMILATTICE_JOINS_DELETABLE_WRAPPER_HPP_
-#define RPC_SEMILATTICE_JOINS_DELETABLE_WRAPPER_HPP_
+#ifndef RPC_SEMILATTICE_JOINS_DELETABLE_HPP_
+#define RPC_SEMILATTICE_JOINS_DELETABLE_HPP_
 
 #include "rpc/serialize_macros.hpp"
 
@@ -69,4 +69,4 @@ T &deletable_getter(deletable_t<T> &target);
 
 #include "rpc/semilattice/joins/deletable.tcc"
 
-#endif
+#endif /* RPC_SEMILATTICE_JOINS_DELETABLE_HPP_ */

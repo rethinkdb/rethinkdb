@@ -9,6 +9,7 @@
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "repli_timestamp.hpp"
 
 class btree_slice_t;
 

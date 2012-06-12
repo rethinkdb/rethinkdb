@@ -21,7 +21,7 @@ struct backfill_atom_t {
 // on_keyvalue calls for keys within that range.
 class backfill_callback_t {
 public:
-    virtual void on_delete_range(const btree_key_t *left_exclusive, const btree_key_t *right_inclusive) = 0;
+    virtual void on_delete_range(const key_range_t &range) = 0;
     virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency) = 0;
     virtual void on_keyvalue(const backfill_atom_t& atom) = 0;
 protected:

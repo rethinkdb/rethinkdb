@@ -34,6 +34,7 @@ SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
 TAGS:=.tags
+ETAGS:=TAGS
 CSCOPE_XREF:=.cscope
 RUN_PORT?=11211
 RUN_FLAGS?=-s 3 -c 2 -m 10
@@ -67,7 +68,6 @@ TIMEBOMB?=0
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
 SOURCE_DIR:=.
-EXTERNAL_SOURCE_DIR:=/usr/src/rethinkdb_lib_external
 BUILD_ROOT_DIR:=../build
 ifeq (${DEBUG},1)
 BUILD_DIR:=$(BUILD_ROOT_DIR)/debug
@@ -77,10 +77,8 @@ endif
 
 ifeq ($(COMPILER), CLANG)
 BUILD_DIR:=$(BUILD_DIR)_clang
-else
-ifeq ($(COMPILER), INTEL)
+else ifeq ($(COMPILER), INTEL)
 BUILD_DIR:=$(BUILD_DIR)_intel
-endif
 endif
 
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
@@ -95,23 +93,20 @@ else ifeq ($(COMPILER),INTEL)
 CXX:=icc
 endif
 
-
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lstdc++ -lm -lcurl
-else
-ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lQtCore -lstdc++ -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lcurl
+else ifeq ($(COMPILER),INTEL)
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lcurl
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lcurl
-endif
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lcurl
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore -pthread
+CXXFLAGS+=-I$(SOURCE_DIR) -pthread
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -124,12 +119,10 @@ CXXFLAGS+=-Wall -Wextra -Werror -Wnon-virtual-dtor
 
 ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
-else
-ifeq ($(COMPILER), CLANG)
+else ifeq ($(COMPILER), CLANG)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration
 else
-CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
-endif
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
@@ -254,7 +247,7 @@ STATIC_LIBRARIES+=tcmalloc_minimal
 endif
 
 # look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
 #  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 
@@ -349,7 +342,7 @@ CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags unit valgrind web-assets
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags etags unit valgrind web-assets
 
 # High level build targets
 
@@ -721,8 +714,13 @@ callgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 endif
 
+TAGFLAGS:=-R --c++-kinds=+p --fields=+iaS --extra=+q --langmap="c++:.cc.tcc.hpp"
 tags:
-	$(QUIET) ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
+	$(QUIET) ctags $(TAGFLAGS) -f $(TAGS)
+
+etags:
+	$(QUIET) rm -f $(ETAGS)
+	$(QUIET) ctags -e $(TAGFLAGS) -f $(ETAGS)
 
 cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)
@@ -731,7 +729,7 @@ analyze: $(SOURCES)
 	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
 
 style:
-	$(QUIET) find . -name \*.cc -o -name \*.hpp -o -name \*.tcc | xargs ../scripts/cpplint --verbose 2 --filter=-whitespace/end_of_line,-whitespace/parens,-whitespace/line_length,-readability/casting,-whitespace/braces,-readability/todo,-legal/copyright,-whitespace/comments,-build/include,+build/include_order,-whitespace/labels,-runtime/references,-whitespace/blank_line,-readability/function 2>&1 | grep -v Done\ processing
+	$(QUIET) ../scripts/check_style.sh 
 
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null
@@ -746,12 +744,9 @@ clean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM *~"
 	@echo "    RM -r $(BUILD_ROOT_DIR)"
-#	@echo "    RM $(TAGS)"
-#	@echo "    RM $(CSCOPE_XREF)"
 endif
 	$(QUIET) find -name '*~' -exec rm {} \;
 	$(QUIET) rm -rf $(BUILD_ROOT_DIR)
-#	$(QUIET) rm -f $(TAGS) $(CSCOPE_XREF)
 
 # Directories
 $(BUILD_DIR):
@@ -789,7 +784,7 @@ endif
 # bug in GNU Make, possibly a bug in our Makefile.
 .SECONDARY: $(PROTO_HEADERS)
 
-NO_DEPS_TARGETS:=clean depclean tags analyze cscope style
+NO_DEPS_TARGETS:=clean depclean tags etags analyze cscope style
 # Include the dependencies into the makefile so that they take effect
 ifneq (,$(if $(MAKECMDGOALS),$(filter-out $(NO_DEPS_TARGETS),$(MAKECMDGOALS)),non-empty-placeholder))
 -include $(DEPS)

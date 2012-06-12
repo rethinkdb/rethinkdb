@@ -1,32 +1,52 @@
 <script id="datacenter_view-container-template" type="text/x-handlebars-template">
-  <h1>Datacenter overview for {{name}}</h1> (<a href="#" class="rename-datacenter">rename</a>)
-  <div class="two-panel-section">
-    <div class="panel-left">
-      <h3 class="title">Datacenter profile</h3>
-      <div class="section summary">
-        <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
-      </div>
+  <div class="main_title"></div>
+  <div id="user-alert-space"></div>
+
+  <div class="two-panel-section profile-expandable">
+    <div class="panel-left-unbalanced profile">
+    </div>   
+
+    <div class="panel-right-unbalanced performance">
+      <h3 class="title">Performance</h3>
+      <div class="performance-graph"></div>
     </div>
-    <div class="panel-right">
-      <h3 class="title">Datacenter resources</h3>
-      <div class="section system-resources">
-        <p class="cpu">CPU: {{global_cpu_util}}%</p>
-        <p class="ram">RAM: {{global_mem_used}} of {{global_mem_total}}</p>
-        <p class="disk">Disk data: {{dc_disk_space}}</p>
-      </div>
-    </div>
-    <div class="two-panel-clear"></div>
   </div>
-  <h3 class="title">Machines</h3>
-  <div class="section dc-machine-list">
-    <ul>
-      {{#each machines}}
-      <li><a href='#machines/{{id}}'>{{name}}</a> {{humanize_machine_reachability status}}</li>
-      {{/each}}
-    </ul>
-  </div>
+
+  <h3 class="title">Statistics</h3>
+  <div class="section datacenter-stats"></div>
+
   <h3 class="title">Data in this datacenter</h3>
-  <div class="section data">
+  <div class="section data"></div>
+
+
+  <h3 class="title">Recent log entries for this datacenter</h3>
+  <div class="section recent-log-entries"></div>
+</script>
+
+
+<script id="datacenter_view_title-template" type="text/x-handlebars-template">
+  <h1>Datacenter overview for {{name}}</h1> (<a href="#" class="rename-datacenter">rename</a>)
+</script>
+
+
+
+<script id="datacenter_view_profile-template" type="text/x-handlebars-template">
+
+    <h3 class="title">Datacenter profile</h3>
+    <div class="section summary">
+      <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
+      <p class="status">Machines: {{status.reachable}} of {{status.total}} reachable</p>
+    </div>
+    <h3 class="title">Machines</h3>
+    <div class="section dc-machine-list">
+      <ul>
+      {{display_truncated_machines list_machines}}
+      </ul>
+    </div>
+  </div>
+</script>
+
+<script id="datacenter_view_data-template" type="text/x-handlebars-template">
     {{#unless data.namespaces}}
     <p>No data found in this datacenter.</p>
     {{/unless}}
@@ -41,11 +61,6 @@
       </ul>
     </div>
     {{/each}}
-  </div>
-  <h3 class="title">Performance</h3>
-  <div class="section performance-graph"></div>
-  <h3 class="title">Recent log entries for this datacenter</h3>
-  <div class="section recent-log-entries"></div>
 </script>
 
 <script id="datacenter_view-recent_log_entry-template" type="text/x-handlebars-template">

@@ -22,4 +22,4 @@ boost::shared_ptr<semilattice_readwrite_view_t<inner_t> > metadata_function(
 
 #include "rpc/semilattice/view/function.tcc"
 
-#endif
+#endif /* RPC_SEMILATTICE_VIEW_FUNCTION_HPP_ */

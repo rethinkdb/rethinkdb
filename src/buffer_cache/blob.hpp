@@ -10,7 +10,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
-#include "buffer_cache/types.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/access.hpp"
 #include "containers/buffer_group.hpp"
 
@@ -135,6 +135,9 @@ bool deep_fsck(block_getter_t *getter, block_size_t bs, const char *ref, int max
 
 class blob_t {
 public:
+    //TODO this is a really confusing api. In order for this to create a new
+    //blob you need to manually bzero ref otherwise it will interpret the
+    //garbage data as a valid ref.
     // maxreflen must be less than the block size minus 4 bytes.
     blob_t(char *ref, int maxreflen);
 

@@ -31,6 +31,7 @@ private:
             mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>)> end_point_cont,
             mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
             mailbox_addr_t<void(fifo_enforcer_write_token_t)> done_cont,
+            mailbox_addr_t<void(mailbox_addr_t<void(int)>)> allocation_registration_box,
             auto_drainer_t::lock_t keepalive);
 
     void on_cancel_backfill(backfill_session_id_t session_id, UNUSED auto_drainer_t::lock_t);

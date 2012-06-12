@@ -1,5 +1,5 @@
-#ifndef MIRRORED_CACHE_HPP_
-#define MIRRORED_CACHE_HPP_
+#ifndef BUFFER_CACHE_MIRRORED_MIRRORED_HPP_
+#define BUFFER_CACHE_MIRRORED_MIRRORED_HPP_
 
 #include <map>
 
@@ -22,6 +22,7 @@
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
 #include "buffer_cache/mirrored/stats.hpp"
+#include "repli_timestamp.hpp"
 
 #include "buffer_cache/mirrored/writeback.hpp"
 
@@ -440,4 +441,4 @@ private:
     DISABLE_COPYING(mc_cache_t);
 };
 
-#endif // MIRRORED_CACHE_HPP_
+#endif // BUFFER_CACHE_MIRRORED_MIRRORED_HPP_

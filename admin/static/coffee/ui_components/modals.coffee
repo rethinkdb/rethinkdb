@@ -10,6 +10,13 @@ module 'UIComponents', ->
             'click .cancel': 'cancel_modal'
             'click .close': 'cancel_modal'
             'click .btn-primary': 'abstract_submit'
+            'keypress .input': 'check_keypress_is_enter'
+            'click .close_error': 'close_error'
+
+        close_error: (event) ->
+            event.preventDefault()
+            $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
+
 
         initialize: ->
             @$container = $('#modal-dialog')
@@ -54,6 +61,11 @@ module 'UIComponents', ->
         cancel_modal: (e) ->
             @.hide_modal()
             e.preventDefault()
+
+        check_keypress_is_enter: (event) =>
+            if event.which is 13
+                event.preventDefault()
+                @abstract_submit(event)
 
         abstract_submit: (event) ->
             event.preventDefault()
@@ -121,6 +133,7 @@ module 'UIComponents', ->
     class @RenameItemModal extends @AbstractModal
         template: Handlebars.compile $('#rename_item-modal-template').html()
         alert_tmpl: Handlebars.compile $('#renamed_item-alert-template').html()
+        error_template: Handlebars.compile $('#error_input-template').html()
         class: 'rename-item-modal'
 
         initialize: (uuid, type, on_success) ->
@@ -157,13 +170,73 @@ module 'UIComponents', ->
             super
             @old_name = @get_item_object().get('name')
             @formdata = form_data_as_object($('form', @$modal))
-            $.ajax
-                processData: false
-                url: "/ajax/" + @get_item_url() + "/#{@item_uuid}/name"
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify(@formdata.new_name)
-                success: @on_success
+
+            no_error = true
+            if @item_type is 'namespace'
+                if @formdata.new_name is ''
+                    no_error = false
+                    template_error =
+                        namespace_is_empty: true
+                    $('.alert_modal').html @error_template template_error
+                    $('.alert_modal').alert()
+                    @reset_buttons()
+                else
+                    for namespace in namespaces.models
+                        if namespace.get('name') is @formdata.new_name
+                            no_error = false
+                            template_error =
+                                namespace_exists: true
+                            $('.alert_modal').html @error_template template_error
+                            $('.alert_modal').alert()
+                            @reset_buttons()
+                            break
+
+            if @item_type is 'datacenter'
+                if @formdata.new_name is ''
+                    no_error = false
+                    template_error =
+                        datacenter_is_empty: true
+                    $('.alert_modal').html @error_template template_error
+                    $('.alert_modal').alert()
+                    @reset_buttons()
+                else
+                    for datacenter in datacenters.models
+                        if datacenter.get('name') is @formdata.new_name
+                            no_error = false
+                            template_error =
+                                datacenter_exists: true
+                            $('.alert_modal').html @error_template template_error
+                            $('.alert_modal').alert()
+                            @reset_buttons()
+                            break
+
+            if @item_type is 'machine'
+                if @formdata.new_name is ''
+                    no_error = false
+                    template_error =
+                        machine_is_empty: true
+                    $('.alert_modal').html @error_template template_error
+                    $('.alert_modal').alert()
+                    @reset_buttons()
+                else
+                    for machine in machines.models
+                        if machine.get('name') is @formdata.new_name
+                            no_error = false
+                            template_error =
+                                machine_exists: true
+                            $('.alert_modal').html @error_template template_error
+                            $('.alert_modal').alert()
+                            @reset_buttons()
+                            break
+
+            if no_error is true
+                $.ajax
+                    processData: false
+                    url: "/ajax/" + @get_item_url() + "/#{@item_uuid}/name"
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify(@formdata.new_name)
+                    success: @on_success
 
         on_success: (response) ->
             super

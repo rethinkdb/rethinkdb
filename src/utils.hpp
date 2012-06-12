@@ -13,38 +13,6 @@
 
 class append_only_printf_buffer_t;
 
-/* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
-counter. */
-
-// for safety
-class repli_timestamp_t {
-public:
-    uint32_t time;
-
-    bool operator==(repli_timestamp_t t) const { return time == t.time; }
-    bool operator!=(repli_timestamp_t t) const { return time != t.time; }
-    bool operator<(repli_timestamp_t t) const { return time < t.time; }
-    bool operator>(repli_timestamp_t t) const { return time > t.time; }
-    bool operator<=(repli_timestamp_t t) const { return time <= t.time; }
-    bool operator>=(repli_timestamp_t t) const { return time >= t.time; }
-
-    repli_timestamp_t next() const {
-        repli_timestamp_t t;
-        t.time = time + 1;
-        return t;
-    }
-
-    static const repli_timestamp_t distant_past;
-    static const repli_timestamp_t invalid;
-};
-
-class write_message_t;
-write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp);
-
-class read_stream_t;
-int deserialize(read_stream_t *s, repli_timestamp_t *tstamp);
-
-
 struct const_charslice {
     const char *beg, *end;
     const_charslice(const char *beg_, const char *end_) : beg(beg_), end(end_) { }
@@ -63,10 +31,6 @@ public:
         return "interrupted";
     }
 };
-
-// Like std::max, except it's technically not associative.
-repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y);
-
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
 
@@ -144,15 +108,6 @@ MUST_USE bool strtou64_strict(const std::string &str, int base, uint64_t *out_re
 std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 std::string vstrprintf(const char *format, va_list ap);
 
-/* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
-succeeds, it returns the result as a `std::string`. If it fails, it throws
-`demangle_failed_exc_t`. */
-struct demangle_failed_exc_t : public std::exception {
-    const char *what() const throw () {
-        return "Could not demangle C++ name.";
-    }
-};
-std::string demangle_cpp_name(const char *mangled_name);
 
 // formatted time:
 // yyyy-mm-ddThh:mm:ss.nnnnnnnnn   (29 characters)
@@ -169,7 +124,7 @@ void print_hd(const void *buf, size_t offset, size_t length);
 
 // Fast string compare
 
-int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
+int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2);
 
 
 /* The home thread mixin is a mixin for objects that can only be used
@@ -220,7 +175,6 @@ public:
     ~on_thread_t();
 };
 
-void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 
 template <class InputIterator, class UnaryPredicate>
 bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {
@@ -238,6 +192,10 @@ bool all_in_container_match_predicate (const T &container, UnaryPredicate f) {
 
 bool notf(bool x);
 
+/* Translates to and from `0123456789ABCDEF`. */
+bool hex_to_int(char c, int *out);
+char int_to_hex(int i);
+
 std::string read_file(const char *path);
 
 struct path_t {
@@ -254,5 +212,20 @@ template <class T>
 void delete_a_thing(T *thing_to_delete) {
     delete thing_to_delete;
 }
+
+template <class T>
+class assignment_sentry_t {
+public:
+    assignment_sentry_t(T *v, const T &value) :
+        var(v), old_value(*var) {
+        *var = value;
+    }
+    ~assignment_sentry_t() {
+        *var = old_value;
+    }
+private:
+    T *var;
+    T old_value;
+};
 
 #endif // UTILS_HPP_

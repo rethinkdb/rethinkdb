@@ -1,5 +1,5 @@
-#ifndef HTPP_HTPP_HPP_
-#define HTPP_HTPP_HPP_
+#ifndef HTTP_HTTP_HPP_
+#define HTTP_HTTP_HPP_
 
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
@@ -147,4 +147,4 @@ std::string percent_escaped_string(const std::string &s);
 
 std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runtime_error);
 
-#endif
+#endif /* HTTP_HTTP_HPP_ */

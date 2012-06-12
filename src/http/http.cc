@@ -391,26 +391,14 @@ bool tcp_http_msg_parser_t::header_line_parser_t::parse(std::string &src) {
 }
 
 bool is_safe(char c) {
-    return strchr("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                  "abcdefghijklmnopqrstuvwxyz"
-                  "0123456789-_.~", c) != NULL;
-}
-
-int to_hex(char c) THROWS_ONLY(std::runtime_error) {
-    if ('0' <= c && c <= '9') {
-        return c - '0';
-    } else if ('a' <= c && c <= 'f') {
-        return 10 + c - 'a';
-    } else if ('A' <= c && c <= 'F') {
-        return 10 + c - 'A';
-    } else {
-        throw std::runtime_error("Bad hex char");
-    }
+    return (c >= 'a' && c <= 'z') ||
+        (c >= 'A' && c <= 'Z') ||
+        (c >= '0' && c <= '9') ||
+        c == '-' || c == '_' || c == '.' || c == '~';
 }
 
 std::string percent_escaped_string(const std::string &s) {
     std::string res;
-    const char *hex = "0123456789ABCDEF";
     for (std::string::const_iterator it =  s.begin();
                                      it != s.end();
                                      it++) {
@@ -418,8 +406,8 @@ std::string percent_escaped_string(const std::string &s) {
             res.push_back(*it);
         } else {
             res.push_back('%');
-            res.push_back(hex[((*it)>>4) & 0x0f]);
-            res.push_back(hex[(*it) & 0x0f]);
+            res.push_back(int_to_hex(((*it)>>4) & 0x0f));
+            res.push_back(int_to_hex((*it) & 0x0f));
         }
     }
 
@@ -437,13 +425,19 @@ std::string percent_unescaped_string(const std::string &s) THROWS_ONLY(std::runt
             if (it == s.end()) {
                 throw std::runtime_error("Bad escape sequence % with nothing after it.");
             }
-            int digit1 = to_hex(*it);
+            int digit1;
+            if (!hex_to_int(*it, &digit1)) {
+                throw std::runtime_error("Bad hex char.");
+            }
 
             it++;
             if (it == s.end()) {
                 throw std::runtime_error("Bad escaped sequence % with only one digit after it.");
             }
-            int digit2 = to_hex(*it);
+            int digit2;
+            if (!hex_to_int(*it, &digit2)) {
+                throw std::runtime_error("Bad hex char.");
+            }
 
             res.push_back(char((digit1 << 4) + digit2));
         } else {

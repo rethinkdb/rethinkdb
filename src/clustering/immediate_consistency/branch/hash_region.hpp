@@ -1,5 +1,5 @@
-#ifndef HASH_REGION_HPP_
-#define HASH_REGION_HPP_
+#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_
+#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_
 
 #include <stdint.h>
 
@@ -168,4 +168,4 @@ bool operator!=(const hash_region_t<inner_region_t> &r1,
 }
 
 
-#endif  // HASH_REGION_HPP_
+#endif  // CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_

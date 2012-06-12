@@ -1,56 +1,132 @@
 <script id="dashboard_view-template" type="text/x-handlebars-template">
+  <div id="cluster_status_container"></div>
+  <div id="cluster_performance_container" class="dashboard-view"></div>
+</script>
+
+
+<script id="cluster_status-template" type="text/x-handlebars-template">
   <h1 class="title status">Cluster status</h1>
   <table class="status">
       <tr>
+          {{#if has_availability_problems}}
+          <td class="problems-detected availability">
+              <h3>Availability</h3>
+              <p class="message">
+               <a href="#" class="json" rel="dashboard_details" data-content="{{pluralize_noun "namespace" num_master_offline}} not available: {{links_to_masters_and_namespaces masters_offline}}" data-title="Availability problems">
+                Availability issues
+              </a>             
+              detected
+              </p>
+              <p class="details">{{num_masters_offline}} of {{num_masters}} {{pluralize_noun "master" num_masters_offline}} {{pluralize_verb_to_be num_masters_online}} not available</p>
+          </td>
+          {{else}}
           <td class="no-problems-detected availability">
               <h3>Availability</h3>
               <p class="message">No availability issues detected</p>
-              <p class="details">N of M masters are online</p>
+              <p class="details">{{num_masters}} of {{num_masters}} {{pluralize_noun "master" num_masters}} are online</p>
           </td>
+          {{/if}}
+
+          {{#if has_cpu_problems}}
           <td class="problems-detected cpu_distro">
               <h3>CPU distribution</h3>
+              <p class="details">
+                {{num_machines_with_cpu_problems}} of {{num_machines}} 
+                <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "machine" num_machines_with_disk_problems}} {{pluralize_verb_to_have num_machines_with_disk_problems}} use too much cpu: {{links_to_machines machines_with_cpu_problems}}" data-title="CPU problems">
+                  {{pluralize_noun "machine" num_machines}}
+                </a>
+                use more than {{threshold_cpu}}% of CPU power
+              </p> 
+          {{else}}
+          <td class="no-problems-detected cpu_distro">
+              <h3>CPU distribution</h3>
               <p class="message">No CPU problems detected</p>
-              <p class="details">N of M machines utilize less<br />than N% of CPU power</p>
+              <p class="details">{{num_machines}} of {{num_machines}} machines utilize less than {{threshold_cpu}}% of their CPU</p>
           </td>
+          {{/if}}
+
+          {{#if has_conflicts_problems}}
+          <td class="problems-detected conflicts">
+              <h3>Conflicts</h3>
+              <p class="message">{{num_conflicts}} {{pluralize_noun "conflict" num_conflicts}} detected</p>
+              <p class="details"><a href="#resolve_issues">Resolve issues</a></p>
+          </td>
+ 
+          {{else}}
           <td class="no-problems-detected conflicts">
               <h3>Conflicts</h3>
               <p class="message">No conflicts detected</p>
-              <p class="details">N of M namespaces are operating correctly</p>
+              <p class="details">{{num_namespaces}} of {{num_namespaces}} namespaces are operating correctly</p>
           </td>
+          {{/if}}
       </tr>
       <tr>
-          <td class="no-problems-detected redundancy">
+          {{#if has_redundancy_problems}}
+          <td class="problems-detected redundancy">
               <h3>Redundancy</h3>
-              <p class="message">No redundancy issues detected</p>
-              <p class="details">N of M replicas are online</p>
+              <p class="message">Redundancy issues detected</p>
+              <p class="details">{{num_replicas_offline}} of {{num_replicas}}
+              <a href="#" class="json" rel="dashboard_details" data-content="{{pluralize_noun "replica" num_master_offline}} having problems: {{links_to_replicas_and_namespaces replicas_offline}}" data-title="Redundancy problems">
+                 {{pluralize_noun "replica" num_replicas_offline}}
+              </a>    
+              {{pluralize_verb_to_be num_replicas_offline}} offline</p>
           </td>
+          {{else}}
+            <td class="no-problems-detected redundancy">
+                <h3>Redundancy</h3>
+                <p class="message">No redundancy issues detected</p>
+                <p class="details">{{num_replicas}} of {{num_replicas}} replicas are online</p>
+            </td>
+          {{/if}}
+
+          {{#if has_ram_problems}}
+          <td class="problems-detected ram">
+              <h3>RAM</h3>
+              <p class="details">
+                {{num_machines_with_ram_problems}} of {{num_machines}} 
+                <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "machine" num_machines_with_disk_problems}} {{pluralize_verb_to_have num_machines_with_disk_problems}} use too much memory: {{links_to_machines machines_with_ram_problems}}" data-title="RAM problems">
+                  {{pluralize_noun "machine" num_machines}}
+                </a>
+                use more than {{threshold_ram}}% of their memory
+              </p> 
+          {{else}}
           <td class="no-problems-detected ram">
               <h3>RAM</h3>
               <p class="message">No memory problems detected</p>
-              <p class="details">N of M machines utilize less<br />than N% of available RAM</p>
+              <p class="details">{{num_machines}} of {{num_machines}} machines utilize less than {{threshold_ram}}% of their memory</p>
           </td>
+          {{/if}}
+
+
+          {{#if has_persistence_problems}}
           <td class="problems-detected persistence">
               <h3>Persistence</h3>
+              <p class="message">Disk problems detected</p>
+
+              <p class="details">
+                {{num_machines_with_disk_problems}} of {{num_machines}} 
+                <a href="#" class="json" rel="dashboard_details" data-content="The following {{pluralize_noun "machine" num_machines_with_disk_problems}} {{pluralize_verb_to_have num_machines_with_disk_problems}} problems: {{links_to_machines machines_with_disk_problems}}" data-title="Persistence problems">
+                  {{pluralize_noun "machine" num_machines}}
+                </a>
+                have disk problems
+              </p> 
+
+              <p class="details"><a href="#resolve_issues">Resolve issues</a></p>
+          {{else}}
+          <td class="no-problems-detected persistence">
+              <h3>Persistence</h3>
               <p class="message">No disk problems detected</p>
-              <p class="details">N of M machines have working disks</p>
+              <p class="details">{{num_machines}} of {{num_machines}} {{pluralize_noun "machine" num_machines}} {{pluralize_verb_to_have num_machines}} working disks</p>
           </td>
+          {{/if}}
       </tr>
   </table>
-    
+</script>
+
+
+<script id="cluster_performance-template" type="text/x-handlebars-template">
   <h1 class="title performance">Cluster performance</h1>
-  <div class="cluster_performance_panel_placeholder"></div>
-  
-  <h1 class="title sharding-replication-settings">Sharding and replication</h1>
-  <li class="dropdown" id="sharding-settings-dropdown">
-      <a class="dropdown-toggle" data-toggle="dropdown" href="#sharding-settings-dropdown">
-          Configure sharding and replication
-          <b class="caret"></b>
-      </a>
-      <ul class="dropdown-menu">
-          {{#each namespaces}}
-          <li><a href="/#namespaces/{{this.id}}">{{this.name}}</a></li>
-          {{/each}}
-      </ul>
-  </li>
+  <div id="cluster_performance_panel_placeholder"></div>
+
 </script>
 

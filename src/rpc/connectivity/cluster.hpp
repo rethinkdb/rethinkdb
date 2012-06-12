@@ -14,6 +14,8 @@
 #include "rpc/connectivity/messages.hpp"
 #include "containers/uuid.hpp"
 
+extern const char *const cluster_proto_header;
+
 class peer_address_t {
 public:
     peer_address_t(ip_address_t i, int p) : ip(i), port(p) { }
@@ -54,6 +56,7 @@ public:
         cluster. May only be called on home thread. Returns immediately (it does
         its work in the background). */
         void join(peer_address_t) THROWS_NOTHING;
+        int get_port();
 
     private:
         friend class connectivity_cluster_t;

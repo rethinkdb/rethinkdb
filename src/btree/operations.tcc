@@ -19,7 +19,7 @@
 // relevant.
 
 template <class Value>
-void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority, btree_stats_t *stats) {
+void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblock, const btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority, btree_stats_t *stats) {
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
 
     keyvalue_location_out->superblock = superblock;
@@ -80,7 +80,7 @@ void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblo
 }
 
 template <class Value>
-void find_keyvalue_location_for_read(transaction_t *txn, superblock_t *superblock, btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t root_eviction_priority, btree_stats_t *stats) {
+void find_keyvalue_location_for_read(transaction_t *txn, superblock_t *superblock, const btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t root_eviction_priority, btree_stats_t *stats) {
     stats->pm_keys_read.record();
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
 
@@ -128,7 +128,7 @@ void find_keyvalue_location_for_read(transaction_t *txn, superblock_t *superbloc
 }
 
 template <class Value>
-void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, btree_key_t *key, repli_timestamp_t tstamp, bool expired, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority) {
+void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key, repli_timestamp_t tstamp, bool expired, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority) {
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
 
     key_modification_proof_t km_proof = km_callback->value_modification(txn, kv_loc, key);

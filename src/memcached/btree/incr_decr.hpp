@@ -9,4 +9,4 @@ class superblock_t;
 
 incr_decr_result_t memcached_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock);
 
-#endif // MEMCACHED_BTREE_SET_HPP_
+#endif // MEMCACHED_BTREE_INCR_DECR_HPP_

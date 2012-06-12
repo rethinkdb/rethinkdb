@@ -71,8 +71,8 @@ struct mirrored_cache_config_t {
         msg << io_priority_writes;
     }
 
-    int rdb_deserialize(read_stream_t *s) {
-        int res = 0;
+    archive_result_t rdb_deserialize(read_stream_t *s) {
+        archive_result_t res = ARCHIVE_SUCCESS;
         res = deserialize(s, &max_size);
         if (res) { return res; }
         res = deserialize(s, &wait_for_flush);
@@ -106,5 +106,4 @@ struct mirrored_cache_static_config_t {
     int32_t n_patch_log_blocks;
 };
 
-#endif
-
+#endif /* BUFFER_CACHE_MIRRORED_CONFIG_HPP_ */

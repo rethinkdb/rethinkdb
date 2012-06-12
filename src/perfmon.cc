@@ -10,6 +10,15 @@
 #include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
 
+static const char * stat_avg = "avg";
+static const char * stat_min = "min";
+static const char * stat_max = "max";
+static const char * stat_per_sec = "per_sec";
+static const char * stat_count = "count";
+static const char * stat_mean = "mean";
+static const char * stat_std_dev = "std_dev";
+static const char * no_value = "-";
+
 perfmon_result_t::perfmon_result_t() {
     type = type_value;
 }
@@ -33,8 +42,12 @@ perfmon_result_t::perfmon_result_t(const std::map<std::string, perfmon_result_t 
 }
 
 perfmon_result_t::~perfmon_result_t() {
-    for (internal_map_t::iterator it = map_.begin(); it != map_.end(); ++it) {
-        delete it->second;
+    if (type == type_map) {
+        for (internal_map_t::iterator it = map_.begin(); it != map_.end(); ++it) {
+            delete it->second;
+        }
+    } else {
+        rassert(map_.empty());
     }
 }
 
@@ -203,17 +216,21 @@ perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(stats_t *stats) {
 }
 
 void perfmon_sampler_t::output_stat(const stats_t &aggregated, perfmon_result_t *dest) {
+    perfmon_result_t *stat;
+    perfmon_result_t::alloc_map_result(&stat);
+    dest->insert(name, stat);
+
     if (aggregated.count > 0) {
-        dest->insert(name + "_avg", new perfmon_result_t(strprintf("%.8f", aggregated.sum / aggregated.count)));
-        dest->insert(name + "_min", new perfmon_result_t(strprintf("%.8f", aggregated.min)));
-        dest->insert(name + "_max", new perfmon_result_t(strprintf("%.8f", aggregated.max)));
+        stat->insert(stat_avg, new perfmon_result_t(strprintf("%.8f", aggregated.sum / aggregated.count)));
+        stat->insert(stat_min, new perfmon_result_t(strprintf("%.8f", aggregated.min)));
+        stat->insert(stat_max, new perfmon_result_t(strprintf("%.8f", aggregated.max)));
     } else {
-        dest->insert(name + "_avg", new perfmon_result_t("-"));
-        dest->insert(name + "_min", new perfmon_result_t("-"));
-        dest->insert(name + "_max", new perfmon_result_t("-"));
+        stat->insert(stat_avg, new perfmon_result_t(no_value));
+        stat->insert(stat_min, new perfmon_result_t(no_value));
+        stat->insert(stat_max, new perfmon_result_t(no_value));
     }
     if (include_rate) {
-        dest->insert(name + "_persec", new perfmon_result_t(strprintf("%.8f", aggregated.count / ticks_to_secs(length))));
+        stat->insert(stat_per_sec, new perfmon_result_t(strprintf("%.8f", aggregated.count / ticks_to_secs(length))));
     }
 }
 
@@ -293,15 +310,19 @@ stddev_t perfmon_stddev_t::combine_stats(stddev_t *stats) {
     return stddev_t::combine(get_num_threads(), stats);
 }
 
-void perfmon_stddev_t::output_stat(const stddev_t &stat, perfmon_result_t *dest) {
-    dest->insert(name + "_count", new perfmon_result_t(strprintf("%zu", stat.datapoints())));
-    if (stat.datapoints()) {
-        dest->insert(name + "_mean", new perfmon_result_t(strprintf("%.8f", stat.mean())));
-        dest->insert(name + "_stddev", new perfmon_result_t(strprintf("%.8f", stat.standard_deviation())));
+void perfmon_stddev_t::output_stat(const stddev_t &stat_data, perfmon_result_t *dest) {
+    perfmon_result_t *stat;
+    perfmon_result_t::alloc_map_result(&stat);
+    dest->insert(name, stat);
+
+    stat->insert(stat_count, new perfmon_result_t(strprintf("%zu", stat_data.datapoints())));
+    if (stat_data.datapoints()) {
+        stat->insert(stat_mean, new perfmon_result_t(strprintf("%.8f", stat_data.mean())));
+        stat->insert(stat_std_dev, new perfmon_result_t(strprintf("%.8f", stat_data.standard_deviation())));
     } else {
         // No stats
-        dest->insert(name + "_mean", new perfmon_result_t("-"));
-        dest->insert(name + "_stddev", new perfmon_result_t("-"));
+        stat->insert(stat_mean, new perfmon_result_t(no_value));
+        stat->insert(stat_std_dev, new perfmon_result_t(no_value));
     }
 }
 
@@ -401,4 +422,35 @@ void perfmon_function_t::end_stats(void *data, perfmon_result_t *dest) {
         dest->insert(name, new perfmon_result_t("N/A"));
     }
     delete string;
+}
+
+perfmon_duration_sampler_t::perfmon_duration_sampler_t(const std::string& name, ticks_t length, perfmon_collection_t *parent, bool _ignore_global_full_perfmon)
+    : stat(name, parent, true, true), active("active_count", &stat), total("total", &stat),
+      recent("recent_duration", length, true, &stat), ignore_global_full_perfmon(_ignore_global_full_perfmon)
+{ }
+
+void perfmon_duration_sampler_t::begin(ticks_t *v) {
+    ++active;
+    ++total;
+    if (global_full_perfmon || ignore_global_full_perfmon) {
+        *v = get_ticks();
+    } else {
+        *v = 0;
+    }
+}
+
+void perfmon_duration_sampler_t::end(ticks_t *v) {
+    --active;
+    if (*v != 0) {
+        recent.record(ticks_to_secs(get_ticks() - *v));
+    }
+}
+
+std::string perfmon_duration_sampler_t::call(UNUSED int argc, UNUSED char **argv) {
+    ignore_global_full_perfmon = !ignore_global_full_perfmon;
+    if (ignore_global_full_perfmon) {
+        return "Enabled\n";
+    } else {
+        return "Disabled\n";
+    }
 }

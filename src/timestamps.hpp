@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "repli_timestamp.hpp"
 #include "rpc/serialize_macros.hpp"
 
 /* These are the timestamp types used by the clustering code.
@@ -27,6 +28,11 @@ public:
         state_timestamp_t t;
         t.num = 0;
         return t;
+    }
+
+    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
+    uint64_t numeric_representation() const {
+        return num;
     }
 
     // TODO get rid of this. This is only for a hack until we know what to do with timestamps
@@ -57,11 +63,11 @@ public:
         return t;
     }
 
-    state_timestamp_t timestamp_before() {
+    state_timestamp_t timestamp_before() const {
         return before;
     }
 
-    state_timestamp_t timestamp_after() {
+    state_timestamp_t timestamp_after() const {
         state_timestamp_t after;
         after.num = before.num + 1;
         guarantee(after > before, "timestamp counter overflowed");
@@ -69,7 +75,7 @@ public:
     }
 
     // TODO get rid of this. This is only for a hack until we know what to do with timestamps
-    uint64_t numeric_representation() {
+    uint64_t numeric_representation() const {
         return before.num;
     }
 

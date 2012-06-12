@@ -14,6 +14,7 @@
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "containers/segmented_vector.hpp"
+#include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 #include "utils.hpp"
 

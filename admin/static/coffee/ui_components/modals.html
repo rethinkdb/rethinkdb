@@ -5,6 +5,7 @@
       <button class="close" data-dismiss="modal">&times;</button>
       <h3>{{modal_title}}</h3>
     </div>
+    <div class="alert_modal"></div>
     <div class="modal-body">
     </div>
     <div class="modal-footer">
@@ -32,8 +33,9 @@
       <legend>Rename {{capitalize type}} from {{old_name}} to:</legend>
       <div class="clearfix">
         <label for="new_name">New name</label>
+
         <div class="input">
-          <input class="xlarge" name="new_name" size="30" type="text" />
+            <input class="xlarge" name="new_name" size="30" type="text" />
         </div>
       </div>
     </fieldset>
@@ -48,3 +50,34 @@
   </div>
 </script>
 
+
+
+<script id="error_input-template" type="text/x-handlebars-template">
+  <div class="alert alert-error" data-alert="alert">
+      <a class="close_error" href="#">&times;</a>
+    {{#if port_is_used}}
+        <p>Sorry the port you have chosen is already used.<p>
+    {{/if}}
+    {{#if port_isnt_integer}}
+        <p>Please enter an integer.</p>
+    {{/if}}
+    {{#if namespace_is_empty}}
+        <p>Please do not use an empty namespace.</p>
+    {{/if}}
+    {{#if namespace_exists}}
+        <p>The chosen namespace is already being used. Please choose another one.</p>
+    {{/if}}
+    {{#if datacenter_is_empty}}
+        <p>Please do not use an empty name for a datacenter.</p>
+    {{/if}}
+    {{#if datacenter_exists}}
+        <p>The chosen datacenter's name is already being used. please choose another one.</p>
+    {{/if}}
+    {{#if machine_is_empty}}
+        <p>Please do not use an empty name for a server.</p>
+    {{/if}}
+    {{#if machine_exists}}
+        <p>The chosen server's name is already being used. please choose another one.</p>
+    {{/if}}
+  </div>
+</script>
