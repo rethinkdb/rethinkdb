@@ -176,7 +176,7 @@ bool operator!=(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {
     return !(a == b);
 }
 
-dummy_protocol_t::region_t dummy_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
+dummy_protocol_t::region_t dummy_protocol_t::cpu_sharding_subspace(int subregion_number, DEBUG_ONLY_VAR int num_cpu_shards) {
     rassert(subregion_number >= 0);
     rassert(subregion_number < num_cpu_shards);
 
