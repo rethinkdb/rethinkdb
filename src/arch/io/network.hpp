@@ -15,6 +15,7 @@
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 
+#include "config/args.hpp"
 #include "arch/address.hpp"
 #include "arch/io/event_watcher.hpp"
 #include "arch/io/io_utils.hpp"
@@ -131,7 +132,7 @@ public:
     transmitted over the network. */
     perfmon_rate_monitor_t *write_perfmon;
 
-    /* Note that is_read_open() and is_write_open() must both be false1 before the socket is
+    /* Note that is_read_open() and is_write_open() must both be false before the socket is
     destroyed. */
     ~linux_tcp_conn_t();
 
@@ -185,6 +186,7 @@ private:
         const void *buffer;
         size_t size;
         cond_t *cond;
+        auto_drainer_t::lock_t keepalive;
     };
 
     class write_handler_t :
@@ -193,7 +195,7 @@ private:
         explicit write_handler_t(linux_tcp_conn_t *parent_);
     private:
         linux_tcp_conn_t *parent;
-        void coro_pool_callback(write_queue_op_t *operation);
+        void coro_pool_callback(write_queue_op_t *operation, signal_t *interruptor);
     } write_handler;
 
     /* Lists of unused buffers, new buffers will be put on this list until needed again, reducing
@@ -243,6 +245,8 @@ private:
     the length of popped bytes in popped_bytes. */
     static const size_t POP_THRESHOLD = 1024;
     size_t popped_bytes;
+
+    boost::scoped_ptr<auto_drainer_t> drainer;
 };
 
 class linux_nascent_tcp_conn_t {

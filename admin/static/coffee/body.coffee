@@ -18,8 +18,13 @@ class @IsDisconnected extends Backbone.View
             @render()
 
         render: =>
+            @.$('#modal-dialog > .modal').css('z-index', '1')
+            @.$('.modal-backdrop').remove()
             @.$el.append @template
-            @.$('.is_disconnected').modal('show')
+            @.$('.is_disconnected').modal(
+                'show': true
+                'backdrop': 'static'
+            )
             @animate_loading()
             
         animate_loading: =>

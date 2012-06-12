@@ -1,10 +1,10 @@
 # Models for Backbone.js
 class Namespace extends Backbone.Model
-    urlRoot: '/ajax/namespaces'
     initialize: ->
-        log_initial '(initializing) namespace model'
-        super
         @load_key_distr()
+
+        # Add a computed shards property for convenience and metadata
+        @.set 'computed_shards', new DataUtils.Shards [],@
 
     # Cache key distribution info.
     load_key_distr: =>
@@ -102,7 +102,7 @@ class Namespace extends Backbone.Model
         # CPU, mem, disk
         num_machines_in_namespace = 0
         for machine in machines.models
-            if machine.get('stats')? and  @get('id') of machine.get('stats') and machine.is_reachable
+            if machine.get('stats')? and @get('id') of machine.get('stats') and machine.is_reachable
                 num_machines_in_namespace++
                 mstats = machine.get_stats().proc
                 __s.global_cpu_util.avg += if mstats.global_cpu_util? then parseFloat(mstats.global_cpu_util.avg) else 0
@@ -415,6 +415,57 @@ class Directory extends Backbone.Collection
 # This module contains utility functions that compute and massage
 # commonly used data.
 module 'DataUtils', ->
+    # The equivalent of a database view, but for our Backbone models.
+    # Our models and collections have direct representations on the server. For
+    # convenience, it's useful to pick data from several of these models: these
+    # are computed models (and computed collections).
+    class @ComputedModel extends Backbone.Model
+    class @ComputedCollection extends Backbone.Collection
+
+    # Computed shard for a particular namespace: computed for convenience and for extra metadata
+    # Arguments:
+    #   shard: element of the namespace shards list: Namespace.get('shards')
+    #   namespace: namespace that this shard belongs to
+    # Computed attributes of a shard:
+    #   shard_boundaries: JSON string representing the shard boundaries
+    #   primary_uuid: machine uuid that is the master for this shard
+    #   secondary_uuids: list of machine_uuids that are the secondaries for this shard
+    class @Shard extends @ComputedModel
+        get_primary_uuid: => DataUtils.get_shard_primary_uuid @namespace.get('id'), @shard
+        get_secondary_uuids: => DataUtils.get_shard_secondary_uuids @namespace.get('id'), @shard
+
+        initialize: (shard, namespace) ->
+            @shard = shard
+            @namespace = namespace
+
+            @.set 'shard_boundaries', @shard
+            @.set 'primary_uuid', @get_primary_uuid()
+            @.set 'secondary_uuids',  @get_secondary_uuids()
+
+            namespace.on 'change:blueprint', =>
+                new_primary_uuid = @get_primary_uuid()
+                new_secondary_uuids = @get_secondary_uuids()
+                @.set 'primary_uuid', new_primary_uuid if @.get('primary_uuid') isnt new_primary_uuid
+                @.set 'secondary_uuids', new_secondary_uuids if not _.isEqual @.get('secondary_uuids'), new_secondary_uuids
+            
+    # The Shards collection maintains the computed shards for a given namespace.
+    # It will observe for any changes in the sharding scheme (or if the
+    # namespace has just been added) and maintains the list of computed shards,
+    # rebuilding if necessary.
+    class @Shards extends @ComputedCollection
+        model: DataUtils.Shard
+
+        initialize: (models, namespace) ->
+            @namespace = namespace
+            @namespace.on 'change:shards', => @compute_shards @namespace.get('shards')
+            @namespace.on 'add', => @compute_shards @namespace.get('shards')
+
+        compute_shards: (shards) =>
+            new_shards = []
+            for shard in shards
+                new_shards.push new DataUtils.Shard shard, @namespace
+            @.reset new_shards
+
     @get_machine_reachability = (machine_uuid) ->
         reachable = directory.get(machine_uuid)?
         if not reachable
@@ -749,55 +800,6 @@ module 'DataUtils', ->
 
         return json
 
-
-    @get_namespace_status = (namespace_uuid, datacenter_uuid) ->
-        namespace = namespaces.get(namespace_uuid)
-        json =
-            nshards: 0
-            nreplicas: 0
-            nashards: 0
-            nareplicas: 0
-
-        # If we can't see the namespace...
-        if not namespace?
-            return null
-
-        # machine and datacenter counts
-        _machines = []
-        _datacenters = []
-
-        for machine_uuid, role of namespace.get('blueprint').peers_roles
-            if datacenter_uuid? and
-               machines.get(machine_uuid) and
-               machines.get(machine_uuid).get('datacenter_uuid') isnt datacenter_uuid
-                continue
-            peer_accessible = directory.get(machine_uuid)
-            machine_active_for_namespace = false
-            for shard, role_name of role
-                if role_name is 'role_primary'
-                    machine_active_for_namespace = true
-                    json.nshards += 1
-                    if peer_accessible?
-                        json.nashards += 1
-                if role_name is 'role_secondary'
-                    machine_active_for_namespace = true
-                    json.nreplicas += 1
-                    if peer_accessible?
-                        json.nareplicas += 1
-            if machine_active_for_namespace
-                _machines[_machines.length] = machine_uuid
-                _datacenters[_datacenters.length] = machines.get(machine_uuid).get('datacenter_uuid')
-
-        json.nmachines = _.uniq(_machines).length
-        json.ndatacenters = _.uniq(_datacenters).length
-        if json.nshards is json.nashards
-            json.reachability = 'Live'
-        else
-            json.reachability = 'Down'
-
-        json.backfill_progress = @get_backfill_progress_agg(namespace_uuid, datacenter_uuid)
-
-        return json
 
     @is_integer = (data) ->
         return data.search(/^\d+$/) isnt -1

@@ -1,54 +1,91 @@
-<script id="shard_name_td-partial" type="text/x-handlebars-template">
-  <td class="name">
+<script id="shard_name-partial" type="text/x-handlebars-template">
     <h4>{{name}}</h4>
     About {{shard_stats.rows_approx}} {{pluralize_noun "key" shard_stats.rows_approx}}
-  </td>
 </script>
 
 <script id="namespace_view-sharding-template" type="text/x-handlebars-template">
-  <table class="shards table">
-    <tbody>
-      {{#each shards}}
-      <tr>
-        {{> shard_name_td}}
-        <td class="status">
-          <p>
-            <strong>Master:</strong> <a href="/#machines/{{primary.uuid}}">{{primary.name}}</a> {{humanize_machine_reachability primary.status}}{{#if primary.status.reachable}}{{> backfill_progress_summary primary}}{{/if}}</span>
-<br />
-{{> backfill_progress_details primary}}
-<a id="assign_master_{{index}}" href="#">Assign master</a>
-</p>
-{{#if secondaries}}
-{{#each secondaries}}
-<p><strong>Replicas in datacenter <a href="/#datacenters/{{datacenter_uuid}}">{{datacenter_name}}</a>:</strong></p>
-<ul>
-  {{#each machines}}
-  <li>
-    <p>
-      <a href="/#machines/{{uuid}}">{{name}}</a>
-      <span>{{humanize_machine_reachability status}}{{#if status.reachable}}{{> backfill_progress_summary}}{{/if}}</span>
+    <div class="sharding">
+        <h3 class="title">Sharding settings</h3>
+        <table class="shards table">
+            <tbody>
+            </tbody>
+        </table>
+        <p><a class="change-sharding-scheme" href="#">Change sharding scheme</a></p>
+    </div>
+    <div class="change-shards"></div>
+</script>
+
+<script id="namespace_view-shard-template" type="text/x-handlebars-template">
+    <td class="shard summary"></td>
+    <td class="status">
+        <div class="datacenter-list"></div>
+    </td>
+</script>
+
+<script id="namespace_view-shard-summary-template" type="text/x-handlebars-template">
+    {{> shard_name}}
+</script>
+
+<script id="namespace_view-shard_datacenter_list-template" type="text/x-handlebars-template">
+    <div class="datacenters"></div>
+</script>
+
+<script id="namespace_view-shard_datacenter-template" type="text/x-handlebars-template">
+    <div class="row header">
+        <div class="expanded arrow"></div>
+        <div class="datacenter summary"></div>
+    </div>
+    <div class="machine-list"></div>
+    <div class="divider"></div>
+</script>
+
+<script id="namespace_view-shard_datacenter-summary-template" type="text/x-handlebars-template">
+    <p class="status">{{humanize_datacenter_reachability status}}</p>
+    <h4 class="datacenter name"><span class="element-type label label-inverse">Datacenter</span><a href="#datacenters/{{id}}">{{name}}</a></h4>
+</script>
+
+<script id="namespace_view-shard_machine_list-template" type="text/x-handlebars-template">
+    <ul class="machines"></ul>
+</script>
+
+<script id="namespace_view-shard_machine-template" type="text/x-handlebars-template">
+    {{#if is_master}}
+        <span class="master label label-info">Master machine</span>
+    {{else}}
+        <span class="secondary label label-info">Secondary machine</span>
+    {{/if}}
+    <a class="machine name" href="#machines/{{id}}">{{name}}</a>
+    {{#unless is_master}}
+        {{#unless no_available_machines}} 
+            <a class="change-machine" href="#" rel="popover" data-title="Change machine for this shard"><i class="icon-edit"></i></a>
+        {{/unless}}
+        {{#unless cannot_be_master}}
+            <a class="make-master" data-loading-text="changing master..." href="#">make master</a>
+        {{/unless}}
+    {{/unless}}
+    <p class="status">
+        {{humanize_machine_reachability status}}{{#if status.reachable}}{{! > backfill_progress_summary}}{{/if}}
+        {{#if status.reachable}}
+            {{> backfill_progress_summary}}
+        {{/if}}
     </p>
     {{> backfill_progress_details}}
-  </li>
-  {{/each}}
-</ul>
-<a id="assign_machines_{{../index}}_{{datacenter_uuid}}" href="#">Assign machines</a>
-<hr />
-{{/each}}
-{{else}}
-This shard has no replicas.
-{{/if}}
-</td>
-</tr>
-{{/each}}
-</tbody>
-</table>
-<p><a class="edit" href="/#namespaces/{{namespace_uuid}}/sharding_scheme">Change sharding scheme</a></p>
+</script>
+<script id="namespace_view-shard_machine-assign_machine_popover-template" type="text/x-handlebars-template">
+    <div class="namespace-shard-assign-machine">
+        <select class="chosen-dropdown" data-placeholder="Choose a different machine">
+            <option></option>
+            {{#each available_machines}}
+                <option value="{{id}}">{{name}}</option>
+            {{/each}}
+        </select>
+        <a class="btn btn-primary change-machine" data-loading-text="Loading..." href="#">Change machine</a>
+    </div>
 </script>
 
 <script id="modify_shards-template" type="text/x-handlebars-template">
     <div class="modify-shards">
-        <h1>Change sharding settings for <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a>:</h1>
+        <h3 class="title">Change sharding settings for <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a>:</h3>
         {{#if unsaved_settings}}
         <div class="unsaved-settings-warning">You have unsaved changes. Please click "Commit settings" for them to take effect.</div>
         {{/if}}
@@ -78,6 +115,7 @@ This shard has no replicas.
             </div>
             <div class="sharding-plan"></div>
             <div class="btn-footer">
+                <button class="btn btn-cancel" data-loading-text="Cancel">Cancel</button>
                 <button class="btn btn-reset" data-loading-text="Reset">Reset</button>
                 <button class="btn btn-primary" data-loading-text="Saving...">Commit settings</button>
             </div>
@@ -86,29 +124,33 @@ This shard has no replicas.
 </script>
 
 <script id="modify_shards-alert-template" type="text/x-handlebars-template">
-  <div class="alert" data-alert="alert">
-    <a class="close" href="#">&times;</a>
-    <p>You successfully modified the shard plan. Machine assignments for this namespace have been reset.</p>
-  </div>
+    <div class="alert" data-alert="alert">
+        <a class="close" href="#">&times;</a>
+        <p>You successfully modified the shard plan. Machine assignments for this namespace have been reset.</p>
+    </div>
 </script>
 
 <script id="modify_shards-view_shard-template" type="text/x-handlebars-template">
   {{#with shard}}
-  {{> shard_name_td}}
-  <td class="actions">
-    <p>
-      (<a href="#" class="split" data-index="{{index}}">split</a>)
-      {{#if notlast}}
-      (<a href="#" class="merge" data-index="{{index}}">merge with next</a>)
-      {{/if}}
-    </p>
-  </td>
+    <td class="name">
+        {{> shard_name}}
+    </td>
+    <td class="actions">
+        <p>
+            (<a href="#" class="split" data-index="{{index}}">split</a>)
+            {{#if notlast}}
+                (<a href="#" class="merge" data-index="{{index}}">merge with next</a>)
+            {{/if}}
+        </p>
+    </td>
   {{/with}}
 </script>
 
 <script id="modify_shards-edit_shard-template" type="text/x-handlebars-template">
   {{#with shard}}
-  {{> shard_name_td}}
+    <td class="name">
+        {{> shard_name}}
+    </td>
   {{/with}}
   <td class="status">
     <div class="action">

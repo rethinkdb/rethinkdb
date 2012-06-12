@@ -240,16 +240,15 @@ class Machine(object):
         self.uuid = validate_uuid(uuid)
         self.datacenter_uuid = json_data[u"datacenter_uuid"]
         self.name = json_data[u"name"]
-        self.port_offset = json_data[u"port_offset"]
 
     def check(self, data):
-        return data[u"datacenter_uuid"] == self.datacenter_uuid and data[u"name"] == self.name and data[u"port_offset"] == self.port_offset
+        return data[u"datacenter_uuid"] == self.datacenter_uuid and data[u"name"] == self.name
 
     def to_json(self):
-        return { u"datacenter_uuid": self.datacenter_uuid, u"name": self.name, u"port_offset": self.port_offset }
+        return { u"datacenter_uuid": self.datacenter_uuid, u"name": self.name }
 
     def __str__(self):
-        return "Server(uuid:%s, name:%s, datacenter:%s, port_offset:%d)" % (self.uuid, self.name, self.datacenter_uuid, self.port_offset)
+        return "Server(uuid:%s, name:%s, datacenter:%s)" % (self.uuid, self.name, self.datacenter_uuid)
 
 class ClusterAccess(object):
     def __init__(self, addresses = []):
@@ -602,7 +601,7 @@ class ClusterAccess(object):
             for shard_range, shard_role in shards.iteritems():
                 for act_id, (act_range, act_info) in reactor_bcard["activity_map"].iteritems():
                     if act_range == shard_range:
-                        if shard_role == "role_primary" and act_info["type"] == "primary":
+                        if shard_role == "role_primary" and act_info["type"] == "primary" and act_info["replier_present"] is True:
                             break
                         elif shard_role == "role_secondary" and act_info["type"] == "secondary_up_to_date":
                             break

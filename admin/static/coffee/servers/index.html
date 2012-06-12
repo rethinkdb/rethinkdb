@@ -45,7 +45,7 @@
      <ul class="list_stats">
           <li class="stat_name">RAM</li>
           <li class="minichart">
-          <div class="progress" title="Ram used: {{mem_used}} of {{mem_available}}">
+          <div class="progress contains_info" title="Ram used: {{mem_used}} of {{mem_available}}">
               <div class="bar {{#if mem_used_has_problem}} bar-alert {{/if}}" style="width: {{mem_used_percent}}%;"></div>
             </div>
           </li>
@@ -53,7 +53,7 @@
       <ul class="list_stats">
         <li class="stat_name">Disk</li>
         <li class="minichart">
-          <div class="progress" title="Data on the disk {{machine_disk_space}} of {{machine_disk_available}}">
+          <div class="progress contains_info" title="Data on the disk {{machine_disk_space}} of {{machine_disk_available}}">
             <div class="bar {{#if machine_disk_has_problem}} bar-alert {{/if}}" style="width: {{machine_disk_percent}}%;"></div>
           </div>
         </li>
@@ -61,7 +61,7 @@
       <ul class="list_stats">
         <li class="stat_name">Data</li>
         <li class="minichart">
-          <div class="progress" title="Data distribution {{machine_disk_space}} of {{total_data}}">
+          <div class="progress contains_info" title="Data distribution {{machine_disk_space}} of {{total_data}}">
             <div class="bar {{#if machine_data_has_problem}} bar-alert {{/if}}" style="width: {{machine_data_percent}}%;"></div>
           </div>
         </li>
@@ -69,21 +69,21 @@
       <ul class="list_stats">
           <li class="stat_name">CPU</li>
           <li class="minichart">
-            <div  title="CPU used: {{global_cpu_util}}%" class="cpu_sparkline sparkline_container">
+            <div  title="CPU used: {{global_cpu_util}}%" class="cpu_sparkline sparkline_container contains_info">
             </div>
           </li>
       </ul>
       <ul class="list_stats">
         <li class="stat_name">Traffic Out</li>
         <li class="minichart">
-          <div title="Data received {{global_net_recv}}/s of {{global_total_net_recv}}/s" class="traffic_recv_sparkline sparkline_container">
+          <div title="Data received {{global_net_recv}}/s of {{global_total_net_recv}}/s" class="traffic_recv_sparkline sparkline_container contains_info">
           </div>
         </li>
       </ul>
       <ul class="list_stats">
         <li class="stat_name">Traffic In</li>
         <li class="minichart">
-          <div title="Data sent {{global_net_sent}}/s of {{global_total_net_sent}}/s" class="traffic_sent_sparkline sparkline_container">
+          <div title="Data sent {{global_net_sent}}/s of {{global_total_net_sent}}/s" class="traffic_sent_sparkline sparkline_container contains_info">
           </div>
         </li>
       </ul>

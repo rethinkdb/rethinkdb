@@ -36,8 +36,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
         clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
-        global_issue_tracker_t *_issue_tracker,
-        last_seen_tracker_t *_last_seen_tracker,
+        admin_tracker_t *_admin_tracker,
         boost::uuids::uuid _us,
         std::string path)
 {
@@ -72,21 +71,28 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/jquery.validate.min.js");
     white_list.insert("/js/underscore-min.js");
     white_list.insert("/js/xdate.js");
+    white_list.insert("/js/chosen/chosen.jquery.min.js");
+    white_list.insert("/js/chosen/chosen.css");
+    white_list.insert("/js/chosen/chosen-sprite.png");
     white_list.insert("/js/jquery.ba-outside-events.min.js");
     white_list.insert("/images/alert-icon_small.png");
     white_list.insert("/images/critical-issue_small.png");
     white_list.insert("/images/information-icon_small.png");
-    white_list.insert("/images/mini_right-arrow.png");
-    white_list.insert("/images/mini_down-arrow.png");
+    white_list.insert("/images/right-arrow_16x16.png");
+    white_list.insert("/images/right-arrow_12x12.png");
+    white_list.insert("/images/down-arrow_16x16.png");
+    white_list.insert("/images/down-arrow_12x12.png");
+    white_list.insert("/images/glyphicons-halflings.png");
+    white_list.insert("/images/glyphicons-halflings-white.png");
     white_list.insert("/images/loading.gif");
     white_list.insert("/index.html");
     file_app.reset(new file_http_app_t(white_list, path));
 
     semilattice_app.reset(new semilattice_http_app_t(_semilattice_metadata, _directory_metadata, _us));
     directory_app.reset(new directory_http_app_t(_directory_metadata));
-    issues_app.reset(new issues_http_app_t(_issue_tracker));
+    issues_app.reset(new issues_http_app_t(&_admin_tracker->issue_aggregator));
     stat_app.reset(new stat_http_app_t(mbox_manager, _directory_metadata));
-    last_seen_app.reset(new last_seen_http_app_t(_last_seen_tracker));
+    last_seen_app.reset(new last_seen_http_app_t(&_admin_tracker->last_seen_tracker));
     log_app.reset(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),
         _directory_metadata->subview(&get_machine_id)

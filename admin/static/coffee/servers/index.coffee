@@ -1,5 +1,12 @@
-
 # Index view of datacenters and machines
+# The server index view consists of several lists. Here's the hierarchy:
+#   @DatacenterList
+#   |-- @DatacenterListElement: a datacenter
+#   |   `-- @MachineList: machines for that datacenter
+#   |      `-- @MachinesListElement: individual machine in the datacenter
+#   |-- @UnassignedMachineListElement: grouping for unassigned machines
+#   |   `-- @MachineList: machines that are unassigned
+#   |      `-- @MachinesListElement: individual unassigned machine
 module 'ServerView', ->
     class @DatacenterList extends UIComponents.AbstractList
         # Use a datacenter-specific template for the datacenter list
@@ -19,7 +26,6 @@ module 'ServerView', ->
 
             @unassigned_machines = new ServerView.UnassignedMachinesListElement()
             @unassigned_machines.register_machine_callbacks @get_callbacks()
-
 
         render: =>
             super
@@ -78,7 +84,8 @@ module 'ServerView', ->
 
         initialize: (datacenter_uuid) ->
             @callbacks = []
-            super machines, ServerView.MachineListElement, 'tbody.list', (model) -> model.get('datacenter_uuid') is datacenter_uuid
+            super machines, ServerView.MachineListElement, 'tbody.list',
+                filter: (model) -> model.get('datacenter_uuid') is datacenter_uuid
 
             machines.on 'change:datacenter_uuid', (machine, new_datacenter_uuid) =>
                 num_elements_removed = @remove_elements machine
@@ -119,8 +126,8 @@ module 'ServerView', ->
         events: ->
             _.extend super,
                 'click a.rename-machine': 'rename_machine'
-                'mouseenter .progress': 'display_popover'
-                'mouseleave .progress': 'hide_popover'
+                'mouseenter .contains_info': 'display_popover'
+                'mouseleave .contains_info': 'hide_popover'
 
         hide_popover: ->
             $('.tooltip').remove()
@@ -453,6 +460,8 @@ module 'ServerView', ->
     class @AddDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()
         alert_tmpl: Handlebars.compile $('#added_datacenter-alert-template').html()
+        error_template: Handlebars.compile $('#error_input-template').html()
+
         class: 'add-datacenter'
 
         initialize: ->
@@ -469,13 +478,32 @@ module 'ServerView', ->
             super
             @formdata = form_data_as_object($('form', @$modal))
 
-            $.ajax
-                processData: false
-                url: '/ajax/datacenters/new'
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify({"name" : @formdata.name})
-                success: @on_success
+            no_error = true
+            if @formdata.name is ''
+                no_error = false
+                template_error =
+                    datacenter_is_empty: true
+                $('.alert_modal').html @error_template template_error
+                $('.alert_modal').alert()
+                @reset_buttons()
+            else
+                for datacenter in datacenters.models
+                    if datacenter.get('name') is @formdata.name
+                        no_error = false
+                        template_error =
+                            datacenter_exists: true
+                        $('.alert_modal').html @error_template template_error
+                        $('.alert_modal').alert()
+                        @reset_buttons()
+                        break
+            if no_error is true
+                $.ajax
+                    processData: false
+                    url: '/ajax/datacenters/new'
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify({"name" : @formdata.name})
+                    success: @on_success
 
         on_success: (response) ->
             super

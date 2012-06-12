@@ -68,7 +68,6 @@ TIMEBOMB?=0
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
 SOURCE_DIR:=.
-EXTERNAL_SOURCE_DIR:=/usr/src/rethinkdb_lib_external
 BUILD_ROOT_DIR:=../build
 ifeq (${DEBUG},1)
 BUILD_DIR:=$(BUILD_ROOT_DIR)/debug
@@ -95,19 +94,19 @@ CXX:=icc
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lstdc++ -lm -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lcurl
 else ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lQtCore -lstdc++ -lcurl
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lcurl
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lQtCore -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lcurl
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I/usr/include/qt4 -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore/ForwardingHeaders -I$(EXTERNAL_SOURCE_DIR)/WebKit/Source/JavaScriptCore -pthread
+CXXFLAGS+=-I$(SOURCE_DIR) -pthread
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -248,7 +247,7 @@ STATIC_LIBRARIES+=tcmalloc_minimal
 endif
 
 # look for the static library in the same directory as the .so file
-STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }')) $(EXTERNAL_SOURCE_DIR)/WebKit/WebKitBuild/Release/JavaScriptCore/release/libjscore.a
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
 #  /usr/lib/x86_64-linux-gnu/libQtCore.so.4
 

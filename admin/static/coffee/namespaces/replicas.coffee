@@ -213,8 +213,7 @@ module 'NamespaceView', ->
 
             # No error, we can save the change on replicas/acks
             @nreplicas = nreplicas_input
-            @acks = nacks_input
-
+            @nacks = nacks_input
             # Generate json
             replica_affinities_to_send = {}
             replica_affinities_to_send[formdata.datacenter] = @adjustReplicaCount(@nreplicas, false)

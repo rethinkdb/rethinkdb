@@ -53,10 +53,6 @@ cJSON *copyable_cJSON_t::get() const {
     return val;
 }
 
-write_message_t &copyable_cJSON_t::operator<<(write_message_t &msg) {
-}
-    MUST_USE archive_result_t deserialize(read_stream_t *s);
-
 json_iterator_t::json_iterator_t(cJSON *target) {
     node = target->child;
 }
