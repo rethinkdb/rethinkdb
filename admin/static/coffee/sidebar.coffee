@@ -154,9 +154,11 @@ module 'Sidebar', ->
             MAX_LOG_MSG_DISPLAY_LENGTH = 25
             if typeof(json.formatted_message) is 'string' and json.formatted_message.length > MAX_LOG_MSG_DISPLAY_LENGTH
                 json.formatted_message = json.formatted_message.slice(0, MAX_LOG_MSG_DISPLAY_LENGTH) + "..."
-            @.$el.html @template _.extend json,
-                machine_name: machines.get(@model.get('machine_uuid')).get('name')
-                timeago_timestamp: @model.get_iso_8601_timestamp()
+
+            if machines? and machines.get(@model.get('machine_uuid'))
+                @.$el.html @template _.extend json,
+                    machine_name: machines.get(@model.get('machine_uuid')).get('name')
+                    timeago_timestamp: @model.get_iso_8601_timestamp()
 
             @.$('abbr.timeago').timeago()
             @.$('a[rel=popover]').popover

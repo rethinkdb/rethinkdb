@@ -1,8 +1,12 @@
 @import "bootstrap/bootstrap.less";
 
+/* Bootstrap variables override */
+@iconSpritePath: "/images/glyphicons-halflings.png";
+@iconWhiteSpritePath: "/images/glyphicons-halflings-white.png";
+
 /* Colors */
 @riak_color: #1693A5;
-@memcached_color: #44AA55;
+@memcached_color: #CCCCCC;
 @selected_color: #FCFBE3;
 @link_color: #0069D6;
 @light_red: #FFDEDB;
@@ -536,7 +540,7 @@
         margin-bottom: 0;
         border: 0;
         td + td { border-left: 0; }
-        td { vertical-align: middle; }
+        td { vertical-align: top; }
 
         tr.machine-element {
             &.selected td {
@@ -558,7 +562,6 @@
                 margin-left: 10px; 
             }
         }
-
         .details {
             padding: 5px;
 
@@ -572,7 +575,99 @@
         }
     }
 }
+.namespace-list {
+    margin-top: 20px;
 
+    .datacenter_list{
+        padding: 0px;
+        margin: 10px;
+        border-left: 1px solid #ccc;
+        td {
+            border: 0px;
+            padding: 2px;
+            margin: 2px;
+        }
+        .role{
+            max-width: 260px;
+            font-weight: bold;
+            padding: 0px 20px 0px 20px;
+        }
+        .datacenter_name{
+            padding: 0px 40px 0px 0px;
+            max-width: 200px;
+            overflow: hidden;
+        }
+    }
+    .quick_info{
+        text-transform: uppercase;
+    }
+    .label-namespace{
+        background: #6C4005;
+        margin: 0px 10px 0px 0px;
+    }
+    
+    .label {
+        display: inline-block;
+        margin-right: 5px;
+
+        /* Ugly hack to make labels align with inline text. */
+        position: relative;
+        bottom: 1px;
+    }
+    .namespace_replication_status{
+        font-size: 13px;
+        font-weight: normal;
+    }
+    .toolbar{
+        float: right;
+        margin: 0px 10px 0px 0px;
+    }
+    .quick_info{
+        margin: 0px;
+        text-transform: uppercase;
+        font-size: 11px;
+    }
+    .contains{
+        margin: 0px;
+    }
+    .list_stats {
+        margin: 0px 30px 0px 0px;
+        float: left;
+        list-style: none;
+        li {
+            display: inline-block;
+        }
+        .stat_name{
+            width: 80px;
+        }
+        .minichart{
+            width: 110px;
+            margin-right: 10px;
+        }
+        .sparkline_container{
+            height: 15px;
+            width: 75px;
+            margin: 0px 5px 0px 5px;
+            padding: 0px;
+        }
+        .progress{
+            height: 10px;
+            width: 75px;
+            margin: 0px 5px 0px 5px;
+            padding: 0px;
+        }
+        canvas{
+            border-bottom: 1px solid #ddd;
+            border-left: 1px solid #ddd;
+        }
+        .bar{
+            background: #a0b0b8;
+        }
+        .bar-alert{
+            background: #E62E2E;
+        }
+    }
+}
 .server-list {
     margin-top: 20px;
     .label.element-type {
@@ -660,10 +755,10 @@
         height: 16px;
         float: left;
         &.collapsed {
-            background: url('/images/mini_right-arrow.png') no-repeat center top;
+            background: url('/images/right-arrow_16x16.png') no-repeat center top;
         }
         &.expanded {
-            background: url('/images/mini_down-arrow.png') no-repeat center top;
+            background: url('/images/down-arrow_16x16.png') no-repeat center top;
             margin-top: 3px;
         }
     }
@@ -694,25 +789,7 @@
     }
 }
 
-.namespace-list {
-    margin-top: 20px;
 
-    div.toolbar {
-        float: right;
-        margin-top: -8em;
-    }
-    span.protocol {
-        background: @gray;
-        color: @white;
-        font-size: 0.8em;
-        padding: 0.4em;
-        text-transform: uppercase;
-        font-weight: bold;
-
-        &.riak { background-color: @riak_color; }
-        &.memcached {  background-color: @memcached_color;  }
-    }
-}
 
 .modal {
     display: none;
@@ -846,6 +923,7 @@
             }
         }
     }
+
 }
 
 /*
@@ -874,11 +952,98 @@
             &.name {
                 width: 15%;
             }
-        } 
+        }
+        td.summary {
+            width: 130px;
+        }
         div.progress {
             width: 200px;
         }
     }
+
+    table.shards .datacenter-list {
+        .arrow {
+            width: 12px;
+            height: 12px;
+            float: left;
+            &.collapsed {
+                background: url('/images/right-arrow_12x12.png') no-repeat center top;
+            }
+            &.expanded {
+                background: url('/images/down-arrow_12x12.png') no-repeat center top;
+                margin-top: 3px;
+            }
+        }
+        h4.datacenter.name { 
+            line-height: 1em;
+            margin-left: 24px;
+            .label {
+                margin-right: 10px;
+            }
+        }
+
+        .label {
+            display: inline-block;
+            font-size: 9px;
+            margin-right: 5px;
+            text-transform: uppercase;
+            &.secondary {
+                .opacity(50);
+            }
+
+            /* Ugly hack to make labels align with inline text. */
+            position: relative;
+            bottom: 1px;
+        }
+
+        p.status {
+            float: right;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 0;
+        }
+
+        .divider {
+           margin-top: 20px;
+           margin-bottom: 20px;
+           border-bottom: 1px solid #DDD;
+        }
+
+        .machine-list {
+            margin: 10px 0;
+
+            li {
+                list-style-type: none;
+                padding: 7px 7px 9px;
+                background: #F9F9F9;
+                border-color: #DDD;
+                border-top: thin solid #DDD;
+                border-left: thin solid #DDD;
+                border-right: thin solid #DDD;
+                &:last-child { border-bottom: thin solid #DDD; }
+                .status { text-align: right; }
+                a.machine.name { 
+                    display: block-inline;
+                    margin-right: 5px; 
+                }
+
+                .progress {
+                    margin-bottom: 2px;
+                    margin-top: 10px;
+                }
+
+                p.backfill-status {
+                    font-size: 11px;
+                    text-transform: uppercase;
+                }
+            }
+
+            /* Bootstrap override */
+            ul { margin: 0; }
+            /* End Bootstrap override */
+        }
+    }
+    
 
     /* Override Bootstrap */
     table {
@@ -892,38 +1057,49 @@
     }
     /* End override */
     .list_stats {
-        float: left;
         list-style: none;
         li {
             display: inline-block;
             padding: 5px 0px 0px 0px;
         }
-        .title{
+        .title {
             width: 90px;
         }
-        .minichart{
+        .minichart {
             width: 80px;
-            .progress{
+            .progress {
                 height: 15px;
                 width: 75px;
                 margin: 0px 0px -3px 0px;
                 padding: 0px;
             }
         }
-        .value{
-            width: 140px;
+        .value {
+            width: 160px;
         }
     }
-    .machine-stats{
+    .machine-stats {
         overflow: hidden;
     }
-    .label{
-        position: relative;
-        bottom: 3px;
-        left: 3px;
+
+    .namespace-profile {
+        .label {
+            display: inline-block;
+            margin-right: 5px;
+
+            /* Ugly hack to make labels align with inline text. */
+            position: relative;
+            bottom: 1px;
+        }
     }
 }
 
+.popover {
+    .popover-inner { overflow: visible; }
+    .namespace-shard-assign-machine {
+        .chzn-container { margin-bottom: 10px; }
+    }
+}
 
 /*
     ----------------------------
@@ -1142,7 +1318,7 @@
 
 /*
     -----------------------------------------------
-    ModifyShardsModal: replication for namespaces
+    RemoveNamespaceDialog
     -----------------------------------------------
 */
 

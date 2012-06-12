@@ -9,9 +9,9 @@
     <div class="bar"
          style="width: {{backfill_progress.percentage}}%;"></div>
   </div>
-  <p>{{backfill_progress.percentage}}%{{#if backfill_progress.block_info_available}}, {{backfill_progress.replicated_blocks}} of {{backfill_progress.total_blocks}} blocks remaining{{/if}}</p>
+  <p class="backfill-status">{{backfill_progress.percentage}}%{{#if backfill_progress.block_info_available}}, {{backfill_progress.replicated_blocks}} of {{backfill_progress.total_blocks}} blocks remaining{{/if}}</p>
   {{else}}
-  <p>Replication progress information is unavailable.</p>
+  <p class="backfill-status">Replication progress information is unavailable.</p>
   {{/if}}
   {{/if}}
 </script>

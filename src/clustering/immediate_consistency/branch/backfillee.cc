@@ -9,78 +9,7 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/death_runner.hpp"
 
-/* TODO: What if the backfill chunks on the network get reordered in transit?
-Even if the `protocol_t` can tolerate backfill chunks being reordered, it's
-clearly not OK for the end-of-backfill message to be processed before the last
-of the backfill chunks are. Consider using a FIFO enforcer or something. */
-
-template <class protocol_t>
-void actually_call_receive_backfill(multistore_ptr_t<protocol_t> *svs,
-                                    std::vector<int> *indices,
-                                    std::vector<typename protocol_t::backfill_chunk_t> *sharded_chunks,
-                                    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                    signal_t *interruptor,
-                                    int i) {
-    try {
-        rassert(write_tokens[i].get() != NULL);
-        rassert(interruptor != NULL);
-        svs->get_store_view((*indices)[i])->receive_backfill((*sharded_chunks)[i], write_tokens[i], interruptor);
-    } catch (interrupted_exc_t&) {
-        // we check if the thing was pulsed after pmap.
-    }
-}
-
-template<class protocol_t>
-void on_receive_backfill_chunk(
-        multistore_ptr_t<protocol_t> *svs,
-        signal_t *dont_go_until,
-        typename protocol_t::backfill_chunk_t chunk,
-        signal_t *interruptor,
-        fifo_enforcer_write_token_t tok,
-        fifo_enforcer_queue_t<std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> > *queue
-        )
-        THROWS_NOTHING
-{
-    {
-        wait_any_t waiter(dont_go_until, interruptor);
-        waiter.wait_lazily_unordered();
-        if (interruptor->is_pulsed()) {
-            return;
-        }
-    }
-
-    try {
-        const int num_stores = svs->num_stores();
-
-        std::vector<int> indices;
-        std::vector<typename protocol_t::backfill_chunk_t> sharded_chunks;
-
-        typename protocol_t::region_t chunk_region = chunk.get_region();
-
-        for (int i = 0, e = num_stores; i < e; ++i) {
-            typename protocol_t::region_t region = svs->get_region(i);
-
-            typename protocol_t::region_t intersection = region_intersection(region, chunk_region);
-            if (!region_is_empty(intersection)) {
-                indices.push_back(i);
-                sharded_chunks.push_back(chunk.shard(intersection));
-            }
-        }
-
-        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[indices.size()]);
-        svs->new_particular_write_tokens(indices.data(), indices.size(), write_tokens.get());
-        queue->finish_write(tok);
-
-        pmap(indices.size(), boost::bind(&actually_call_receive_backfill<protocol_t>, svs, &indices, &sharded_chunks, write_tokens.get(), interruptor, _1));
-
-        if (interruptor->is_pulsed()) {
-            throw interrupted_exc_t();
-        }
-
-    } catch (interrupted_exc_t) {
-        return;
-    }
-};
+#define ALLOCATION_CHUNK 50
 
 template <class backfill_chunk_t>
 void push_chunk_on_queue(fifo_enforcer_queue_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > *queue, backfill_chunk_t chunk, fifo_enforcer_write_token_t token) {
@@ -92,6 +21,137 @@ void push_finish_on_queue(fifo_enforcer_queue_t<std::pair<std::pair<bool, backfi
     queue->push(token, std::make_pair(std::make_pair(false, backfill_chunk_t()), token));
 }
 
+
+/* Now that the metadata indicates that the backfill is happening, it's
+   time to start actually performing backfill chunks */
+template <class protocol_t>
+class chunk_callback_t : public coro_pool_t<std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> >::callback_t,
+                         public home_thread_mixin_t {
+public:
+    chunk_callback_t(multistore_ptr_t<protocol_t> *_svs,
+                     fifo_enforcer_queue_t<std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> > *_chunk_queue, mailbox_manager_t *_mbox_manager,
+                     mailbox_addr_t<void(int)> _allocation_mailbox) :
+        svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
+        allocation_mailbox(_allocation_mailbox), unacked_chunks(0),
+        done_message_arrived(false), num_outstanding_chunks(0)
+    { }
+
+    void actually_call_receive_backfill(const std::vector<int> *indices,
+                                        const std::vector<typename protocol_t::backfill_chunk_t> *sharded_chunks,
+                                        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                        signal_t *interruptor,
+                                        int i) {
+        try {
+            rassert(write_tokens[i].get() != NULL);
+            rassert(interruptor != NULL);
+
+            svs->get_store_view((*indices)[i])->receive_backfill((*sharded_chunks)[i], write_tokens[i], interruptor);
+        } catch (interrupted_exc_t&) {
+            // We check if the thing was pulsed after pmap returns.
+        }
+    }
+
+    void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
+        const int num_stores = svs->num_stores();
+
+        std::vector<int> indices;
+        std::vector<typename protocol_t::backfill_chunk_t> sharded_chunks;
+
+        typename protocol_t::region_t chunk_region = chunk.get_region();
+
+        for (int i = 0; i < num_stores; ++i) {
+            typename protocol_t::region_t region = svs->get_region(i);
+
+            typename protocol_t::region_t intersection = region_intersection(region, chunk_region);
+            if (!region_is_empty(intersection)) {
+                indices.push_back(i);
+                sharded_chunks.push_back(chunk.shard(intersection));
+            }
+        }
+
+        boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[indices.size()]);
+        svs->new_particular_write_tokens(indices.data(), indices.size(), write_tokens.get());
+        chunk_queue->finish_write(chunk_token);
+
+        pmap(indices.size(), boost::bind(&chunk_callback_t::actually_call_receive_backfill, this, &indices, &sharded_chunks, write_tokens.get(), interruptor, _1));
+
+        if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
+        }
+    }
+
+    // TODO: Don't pass a std::pair of std::pair.
+    void coro_pool_callback(std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> chunk, signal_t *interruptor) {
+        assert_thread();
+        try {
+            if (chunk.first.first) {
+                /* This is an actual backfill chunk */
+
+                /* Before letting the next thing go, increment
+                   `num_outstanding_chunks` and acquire a write token. The
+                   former is so that if the next thing is a done message,
+                   it won't pulse `done_cond` while we're still going. The
+                   latter is so that the backfill chunks acquire the
+                   superblock in the correct order. */
+                num_outstanding_chunks++;
+
+                // We acquire the write token in apply_backfill_chunk.
+                apply_backfill_chunk(chunk.second, chunk.first.second, interruptor);
+
+                /* Allow the backfiller to send us more data */
+                int chunks_to_send_out = 0;
+                {
+                    /* Notice it's important that we don't wait while we're
+                     * modifying unacked chunks, otherwise another callback may
+                     * decided to send out an allocation as well. */
+                    ASSERT_NO_CORO_WAITING;
+                    ++unacked_chunks;
+                    rassert(unacked_chunks <= ALLOCATION_CHUNK);
+                    if (unacked_chunks == ALLOCATION_CHUNK) {
+                        unacked_chunks = 0;
+                        chunks_to_send_out = ALLOCATION_CHUNK;
+                    }
+                }
+                if (chunks_to_send_out != 0) {
+                    send(mbox_manager, allocation_mailbox, chunks_to_send_out);
+                }
+
+                num_outstanding_chunks--;
+
+            } else {
+                /* This is a fake backfill "chunk" that just indicates
+                   that the backfill is over */
+                rassert(!done_message_arrived);
+                done_message_arrived = true;
+                chunk_queue->finish_write(chunk.second);
+            }
+
+            if (done_message_arrived && num_outstanding_chunks == 0) {
+                done_cond.pulse_if_not_already_pulsed();
+            }
+
+        } catch (interrupted_exc_t) {
+            /* This means that the `coro_pool_t` is being destroyed
+               before the queue drains. That can only happen if we are
+               being interrupted or if we lost contact with the backfiller.
+               In either case, abort; the store will be left in a
+               half-backfilled state. */
+        }
+    }
+
+    cond_t done_cond;
+
+private:
+    multistore_ptr_t<protocol_t> *svs;
+    fifo_enforcer_queue_t<std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> > *chunk_queue;
+    mailbox_manager_t *mbox_manager;
+    mailbox_addr_t<void(int)> allocation_mailbox;
+    int unacked_chunks;
+    bool done_message_arrived;
+    int num_outstanding_chunks;
+
+    DISABLE_COPYING(chunk_callback_t);
+};
 
 template<class protocol_t>
 void backfillee(
@@ -126,10 +186,6 @@ void backfillee(
         boost::bind(&promise_t<region_map_t<protocol_t, version_range_t> >::pulse, &end_point_cond, _1),
         mailbox_callback_mode_inline);
 
-    /* `dont_go_until` prevents any backfill chunks from being applied before we
-    update the store metadata to indicate that the backfill is in progress. */
-    cond_t dont_go_until;
-
     {
         typedef typename protocol_t::backfill_chunk_t backfill_chunk_t;
 
@@ -142,55 +198,21 @@ void backfillee(
 
         /* The backfiller will notify `done_mailbox` when the backfill is all over
         and the version described in `end_point_mailbox` has been achieved. */
-        cond_t done_cond;
         mailbox_t<void(fifo_enforcer_write_token_t)> done_mailbox(
             mailbox_manager,
             boost::bind(&push_finish_on_queue<backfill_chunk_t>, &chunk_queue, _1),
             mailbox_callback_mode_inline);
 
-
-        struct chunk_callback_t : public coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> >::callback_t {
-            chunk_callback_t(multistore_ptr_t<protocol_t> *_svs, signal_t *_dont_go_until, 
-                             signal_t *_interruptor, chunk_queue_t *_chunk_queue,
-                             cond_t *_done_cond)
-                : svs(_svs), dont_go_until(_dont_go_until), interruptor(_interruptor), 
-                  chunk_queue(_chunk_queue), done_cond(_done_cond)
-            { }
-
-            void coro_pool_callback(std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> chunk) {
-                if (chunk.first.first) {
-                    on_receive_backfill_chunk(svs, dont_go_until, chunk.first.second, interruptor, chunk.second, chunk_queue);
-                } else {
-                    rassert(!done_cond->is_pulsed());
-                    done_cond->pulse();
-                }
-            }
-            multistore_ptr_t<protocol_t> *svs;
-            signal_t *dont_go_until;
-            signal_t *interruptor;
-            chunk_queue_t *chunk_queue;
-            cond_t *done_cond;
-        };
-
-        chunk_callback_t chunk_callback(svs, &dont_go_until, interruptor, &chunk_queue, &done_cond);
-        /* A callback, this function will be called on backfill_chunk_ts as
-         * they are popped off the queue. */
-        //typename coro_pool_t<std::pair<backfill_chunk_t, auto_drainer_t::lock_t> >::boost_function_callback_t 
-        //    chunk_callback(boost::bind(&on_receive_backfill_chunk<protocol_t>,
-        //        store, &dont_go_until, boost::bind(&std::pair::first, _1), interruptor, boost::bind(&std::pair::second, _1)
-        //        ));
-
-        coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
-
-        /* Use an `auto_drainer_t` to wait for all the bits of the backfill to
-        finish being applied. Construct it before `chunk_mailbox` so that we
-        don't get any chunks after `drainer` is destroyed. */
-        auto_drainer_t drainer;
-
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
         mailbox_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_mailbox(
             mailbox_manager, boost::bind(&push_chunk_on_queue<backfill_chunk_t>, &chunk_queue, _1, _2));
+
+        /* The backfiller will register for allocations on the allocation
+         * registration box. */
+        promise_t<mailbox_addr_t<void(int)> > alloc_mailbox_promise;
+        mailbox_t<void(mailbox_addr_t<void(int)>)>  alloc_registration_mbox(
+                mailbox_manager, boost::bind(&promise_t<mailbox_addr_t<void(int)> >::pulse, &alloc_mailbox_promise, _1), mailbox_callback_mode_inline);
 
         /* Send off the backfill request */
         send(mailbox_manager,
@@ -199,7 +221,8 @@ void backfillee(
             start_point,
             end_point_mailbox.get_address(),
             chunk_mailbox.get_address(),
-            done_mailbox.get_address()
+            done_mailbox.get_address(),
+            alloc_registration_mbox.get_address()
             );
 
         /* If something goes wrong, we'd like to inform the backfiller that it
@@ -220,6 +243,11 @@ void backfillee(
                 backfiller.access().cancel_backfill_mailbox,
                 backfill_session_id);
         }
+
+        /* Wait to get an allocation mailbox */
+        wait_interruptible(alloc_mailbox_promise.get_ready_signal(), interruptor);
+
+        mailbox_addr_t<void(int)> allocation_mailbox = alloc_mailbox_promise.get_value();
 
         /* Wait until we get a message in `end_point_mailbox`. */
         {
@@ -279,25 +307,23 @@ void backfillee(
             interruptor
             );
 
-        /* Now that the metadata indicates that the backfill is happening, it's
-        OK for backfill chunks to be applied */
-        dont_go_until.pulse();
+        chunk_callback_t<protocol_t> chunk_callback(svs, &chunk_queue, mailbox_manager, allocation_mailbox);
+
+        coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
 
         /* Now wait for the backfill to be over */
         {
-            wait_any_t waiter(&done_cond, backfiller.get_failed_signal());
+            wait_any_t waiter(&chunk_callback.done_cond, backfiller.get_failed_signal());
             wait_interruptible(&waiter, interruptor);
 
             /* Throw an exception if backfiller died */
             backfiller.access();
-            rassert(done_cond.is_pulsed());
+
+            rassert(chunk_callback.done_cond.is_pulsed());
         }
 
         /* All went well, so don't send a cancel message to the backfiller */
         backfiller_notifier.fun = 0;
-
-        /* `drainer` destructor is run here; we block until all the chunks are
-        done being applied. */
     }
 
     /* Update the metadata to indicate that the backfill occurred */
@@ -324,7 +350,7 @@ void backfillee(
 template void backfillee<mock::dummy_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<mock::dummy_protocol_t> > > branch_history,
-        multistore_ptr_t<mock::dummy_protocol_t> *store,
+        multistore_ptr_t<mock::dummy_protocol_t> *svs,
         mock::dummy_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<mock::dummy_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
@@ -334,7 +360,7 @@ template void backfillee<mock::dummy_protocol_t>(
 template void backfillee<memcached_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<memcached_protocol_t> > > branch_history,
-        multistore_ptr_t<memcached_protocol_t> *store,
+        multistore_ptr_t<memcached_protocol_t> *svs,
         memcached_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<memcached_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,

@@ -50,15 +50,16 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
                                                                                               kt++) {
                 if (jt->first == kt->second.first) {
                     if (jt->second == blueprint_details::role_primary &&
-                        boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&kt->second.second)) {
+                            boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&kt->second.second) &&
+                            boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(kt->second.second).replier.is_initialized()) {
                         found = true;
                         break;
-                    } else if (jt->second == blueprint_details::role_secondary&&
-                        boost::get<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t>(&kt->second.second)) {
+                    } else if (jt->second == blueprint_details::role_secondary &&
+                            boost::get<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t>(&kt->second.second)) {
                         found = true;
                         break;
-                    } else if (jt->second == blueprint_details::role_nothing&&
-                        boost::get<typename reactor_business_card_t<protocol_t>::nothing_t>(&kt->second.second)) {
+                    } else if (jt->second == blueprint_details::role_nothing &&
+                            boost::get<typename reactor_business_card_t<protocol_t>::nothing_t>(&kt->second.second)) {
                         found = true;
                         break;
                     } else {
@@ -305,18 +306,13 @@ public:
 
     void wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp) {
         try {
-#ifdef VALGRIND
-        const int timeout = 8000;
-#else
-        const int timeout = 2000;
-#endif
-
-            signal_timer_t timer(timeout);
+            const int timeout_ms = 60000;
+            signal_timer_t timer(timeout_ms);
             test_clusters[0].directory_read_manager.get_root_view()
                 ->subview(&test_cluster_group_t<protocol_t>::extract_reactor_business_cards)
                     ->run_until_satisfied(boost::bind(&is_blueprint_satisfied<protocol_t>, bp, _1), &timer);
         } catch (interrupted_exc_t) {
-            ADD_FAILURE() << "The blueprint took too long to be satisfied, this is probably an error but you could try increasing the timeout. Heres the blueprint:";
+            ADD_FAILURE() << "The blueprint took too long to be satisfied, this is probably an error but you could try increasing the timeout.";
         }
 
         nap(100);

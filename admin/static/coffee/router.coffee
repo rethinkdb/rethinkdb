@@ -5,7 +5,6 @@ class BackboneCluster extends Backbone.Router
         '': 'dashboard'
         'namespaces': 'index_namespaces'
         'namespaces/:id': 'namespace'
-        'namespaces/:id/sharding_scheme': 'sharding_scheme'
         'servers': 'index_servers'
         'datacenters/:id': 'datacenter'
         'machines/:id': 'machine'

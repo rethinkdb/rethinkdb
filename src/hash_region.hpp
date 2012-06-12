@@ -12,7 +12,7 @@
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
-class key_range_t;
+struct key_range_t;
 
 // Returns a value in [0, HASH_REGION_HASH_SIZE).
 const uint64_t HASH_REGION_HASH_SIZE = 1ULL << 63;

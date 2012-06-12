@@ -126,7 +126,7 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
             }
         } ack_callback;
         cond_t non_interruptor;
-        (*broadcaster)->write(w, &exiter, &ack_callback, order_source.check_in("unittest::run_read_write_test(write)"), &non_interruptor);
+        (*broadcaster)->write(w, &exiter, &ack_callback, order_source.check_in("unittest::run_read_write_test(write)"), &non_interruptor, NULL);
     }
 
     /* Now send some reads */
@@ -163,7 +163,7 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
         }
     } ack_callback;
     cond_t non_interruptor;
-    broadcaster->write(w, &exiter, &ack_callback, otok, &non_interruptor);
+    broadcaster->write(w, &exiter, &ack_callback, otok, &non_interruptor, NULL);
 }
 
 void run_backfill_test(simple_mailbox_cluster_t *cluster,

@@ -95,16 +95,16 @@
     </ul>
   </div>
 </script>
-<script id="resolve_issues-persistence-template" type="text/x-handlebars-template">
+<script id="resolve_issues-logfile_write-template" type="text/x-handlebars-template">
   <div class="issue {{#if critical }}critical{{/if}}">
     <div class="header">
-      <h3 class="title">Persistence has been lost.</h3>
+      <h3 class="title">Can't write logs.</h3>
       {{#if datetime}}
       <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
       {{/if}}
     </div>
     <hr />
-    <p>Disk is inaccessible on machine <a href="/#machines/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the machine, or declare it dead.<p>
+    <p>Log file is inaccessible on machine <a href="/#machines/{{machine_uuid}}">{{machine_name}}</a>. Please resolve the issue on the machine, or declare it dead.<p>
     <p><a class="btn large danger">Declare Dead</a></p>
   </div>
 </script>

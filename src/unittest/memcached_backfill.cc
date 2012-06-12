@@ -78,6 +78,8 @@ void run_in_thread_pool_with_broadcaster(
 
 /* `PartialBackfill` backfills only in a specific sub-region. */
 
+static void do_nothing() { }
+
 void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
     sarc_mutation_t set;
     set.key = store_key_t(key);
@@ -97,7 +99,7 @@ void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, cons
         }
     } ack_callback;
     cond_t non_interruptor;
-    broadcaster->write(write, &exiter, &ack_callback, otok, &non_interruptor);
+    broadcaster->write(write, &exiter, &ack_callback, otok, &non_interruptor, &do_nothing);
 }
 
 void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,

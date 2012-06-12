@@ -35,6 +35,11 @@ public:
     }
 
     // TODO get rid of this. This is only for a hack until we know what to do with timestamps
+    uint64_t numeric_representation() const {
+        return num;
+    }
+
+    // TODO get rid of this. This is only for a hack until we know what to do with timestamps
     repli_timestamp_t to_repli_timestamp() const {
         repli_timestamp_t ts;
         ts.time = static_cast<uint32_t>(num);   // FIXME Aaaargh!!! We're losing precision here
@@ -70,11 +75,11 @@ public:
         return t;
     }
 
-    state_timestamp_t timestamp_before() {
+    state_timestamp_t timestamp_before() const {
         return before;
     }
 
-    state_timestamp_t timestamp_after() {
+    state_timestamp_t timestamp_after() const {
         state_timestamp_t after;
         after.num = before.num + 1;
         guarantee(after > before, "timestamp counter overflowed");
@@ -82,7 +87,7 @@ public:
     }
 
     // TODO get rid of this. This is only for a hack until we know what to do with timestamps
-    uint64_t numeric_representation() {
+    uint64_t numeric_representation() const {
         return before.num;
     }
 

@@ -6,6 +6,7 @@
 #include "concurrency/coro_fifo.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
+#include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -18,7 +19,8 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
-      registrar(mailbox_manager, this)
+      registrar(mailbox_manager, this),
+      broadcaster_collection("broadcaster", NULL, true, true)
 {
 
     order_checkpoint.set_tagappend("broadcaster_t");
@@ -98,10 +100,12 @@ class broadcaster_t<protocol_t>::incomplete_write_t : public home_thread_mixin_t
 public:
     incomplete_write_t(broadcaster_t *p,
                        typename protocol_t::write_t w, transition_timestamp_t ts,
-                       ack_callback_t *cb) :
+                       ack_callback_t *cb,
+                       boost::function<void()> _completion_cb) :
         write(w), timestamp(ts),
         parent(p), incomplete_count(0),
-        ack_callback(cb)
+        ack_callback(cb),
+        completion_cb(_completion_cb)
     {
         rassert(ack_callback);
     }
@@ -157,6 +161,8 @@ private:
     int incomplete_count;
     ack_callback_t *ack_callback;
     boost::optional<typename protocol_t::write_response_t> resp;
+public:
+    boost::function<void()> completion_cb;
 
     DISABLE_COPYING(incomplete_write_t);
 };
@@ -208,15 +214,57 @@ private:
     boost::shared_ptr<incomplete_write_t> write;
 };
 
-
 /* The `registrar_t` constructs a `dispatchee_t` for every mirror that
    connects to us. */
 
 template <class protocol_t>
 class broadcaster_t<protocol_t>::dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
 public:
-    dispatchee_t(broadcaster_t *c, listener_business_card_t<protocol_t> d) THROWS_NOTHING;
-    ~dispatchee_t() THROWS_NOTHING;
+    dispatchee_t(broadcaster_t *c, listener_business_card_t<protocol_t> d) THROWS_NOTHING :
+        write_mailbox(d.write_mailbox), is_readable(false),
+        queue_count(uuid_to_str(d.write_mailbox.get_peer().get_uuid()) + "_broadcast_queue_count", &c->broadcaster_collection),
+        background_write_queue(&queue_count),
+        // TODO magic constant
+        background_write_workers(100, &background_write_queue, &background_write_caller),
+        controller(c),
+        upgrade_mailbox(controller->mailbox_manager,
+            boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
+        downgrade_mailbox(controller->mailbox_manager,
+            boost::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)))
+    {
+        controller->assert_thread();
+        controller->sanity_check();
+
+        /* Grab mutex so we don't race with writes that are starting or finishing.
+        If we don't do this, bad things could happen: for example, a write might get
+        dispatched to us twice if it starts after we're in `controller->dispatchees`
+        but before we've iterated over `incomplete_writes`. */
+        mutex_assertion_t::acq_t acq(&controller->mutex);
+        ASSERT_FINITE_CORO_WAITING;
+
+        controller->dispatchees[this] = auto_drainer_t::lock_t(&drainer);
+
+        /* This coroutine will send an intro message to the newly-registered
+        listener. It needs to be a separate coroutine so that we don't block while
+        holding `controller->mutex`. */
+        coro_t::spawn_sometime(boost::bind(&dispatchee_t::send_intro, this,
+            d, controller->newest_complete_timestamp, auto_drainer_t::lock_t(&drainer)));
+
+        for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
+                it != controller->incomplete_writes.end(); it++) {
+
+            coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, controller,
+                                               this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), order_token_t::ignore /* TODO */, fifo_source.enter_write()));
+        }
+    }
+
+    ~dispatchee_t() THROWS_NOTHING {
+        mutex_assertion_t::acq_t acq(&controller->mutex);
+        ASSERT_FINITE_CORO_WAITING;
+        if (is_readable) controller->readable_dispatchees.remove(this);
+        controller->dispatchees.erase(this);
+        controller->assert_thread();
+    }
 
     peer_id_t get_peer() {
         return write_mailbox.get_peer();
@@ -232,21 +280,53 @@ public:
        network layer reorders the messages. */
     fifo_enforcer_source_t fifo_source;
 
+    perfmon_counter_t queue_count;
+    unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
+    calling_callback_t background_write_caller;
+    coro_pool_t<boost::function<void()> > background_write_workers;
+
 private:
     /* The constructor spawns `send_intro()` in the background. */
     void send_intro(
                     listener_business_card_t<protocol_t> to_send_intro_to,
                     state_timestamp_t intro_timestamp,
-                    auto_drainer_t::lock_t)
-        THROWS_NOTHING;
+                    auto_drainer_t::lock_t keepalive)
+            THROWS_NOTHING {
+        keepalive.assert_is_holding(&drainer);
+        send(controller->mailbox_manager, to_send_intro_to.intro_mailbox,
+            intro_timestamp,
+            upgrade_mailbox.get_address(),
+            downgrade_mailbox.get_address()
+            );
+    }
 
     /* `upgrade()` and `downgrade()` are mailbox callbacks. */
     void upgrade(
-                 typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t,
-                 typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t,
+                 typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t wrm,
+                 typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t rm,
                  auto_drainer_t::lock_t)
-        THROWS_NOTHING;
-    void downgrade(mailbox_addr_t<void()>, auto_drainer_t::lock_t) THROWS_NOTHING;
+            THROWS_NOTHING {
+        mutex_assertion_t::acq_t acq(&controller->mutex);
+        ASSERT_FINITE_CORO_WAITING;
+        rassert(!is_readable);
+        is_readable = true;
+        writeread_mailbox = wrm;
+        read_mailbox = rm;
+        controller->readable_dispatchees.push_back(this);
+    }
+
+    void downgrade(mailbox_addr_t<void()> ack_addr, auto_drainer_t::lock_t) THROWS_NOTHING {
+        {
+            mutex_assertion_t::acq_t acq(&controller->mutex);
+            ASSERT_FINITE_CORO_WAITING;
+            rassert(is_readable);
+            is_readable = false;
+            controller->readable_dispatchees.remove(this);
+        }
+        if (!ack_addr.is_nil()) {
+            send(controller->mailbox_manager, ack_addr);
+        }
+    }
 
     broadcaster_t *controller;
     auto_drainer_t drainer;
@@ -254,8 +334,6 @@ private:
     typename listener_business_card_t<protocol_t>::upgrade_mailbox_t upgrade_mailbox;
     typename listener_business_card_t<protocol_t>::downgrade_mailbox_t downgrade_mailbox;
 };
-
-
 
 /* Functions to send a read or write to a mirror and wait for a response.
 Important: These functions must send the message before responding to
@@ -368,7 +446,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token, signal_t *interruptor, boost::function<void()> completion_cb) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
     /* We'll fill `write_wrapper` with the write that we start; we hold it in a
     shared pointer so that it stays alive while we check its `done_promise`. */
     boost::shared_ptr<incomplete_write_t> write_wrapper;
@@ -406,7 +484,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             order_token = order_checkpoint.check_through(order_token);
 
             write_wrapper = boost::make_shared<incomplete_write_t>(
-                this, write, timestamp, cb);
+                this, write, timestamp, cb, completion_cb);
             incomplete_writes.push_back(write_wrapper);
 
             /* If there's an exception, this will make sure that the
@@ -443,12 +521,7 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
 
             /* Dispatch the write to all the dispatchees */
             for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = writers.begin(); it != writers.end(); it++) {
-                if (!std_contains(coro_pools, it->first)) {
-                    dispatchee_t *tmp = it->first;
-                    coro_pools.insert(tmp, new queue_and_pool_t);
-                }
-                coro_pools[it->first].background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
-                                                                              (*it).first, (*it).second, write_ref, order_token, enforcer_tokens[(*it).first]));
+                it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this, it->first, it->second, write_ref, order_token, enforcer_tokens[it->first]));
             }
         }
     }
@@ -459,89 +532,6 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
     }
 
     return write_wrapper->get_resp();
-}
-
-template<class protocol_t>
-broadcaster_t<protocol_t>::dispatchee_t::dispatchee_t(broadcaster_t *c, listener_business_card_t<protocol_t> d) THROWS_NOTHING :
-    write_mailbox(d.write_mailbox), is_readable(false), controller(c),
-    upgrade_mailbox(controller->mailbox_manager,
-        boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
-    downgrade_mailbox(controller->mailbox_manager,
-        boost::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)))
-{
-    controller->assert_thread();
-    controller->sanity_check();
-
-    /* Grab mutex so we don't race with writes that are starting or finishing.
-    If we don't do this, bad things could happen: for example, a write might get
-    dispatched to us twice if it starts after we're in `controller->dispatchees`
-    but before we've iterated over `incomplete_writes`. */
-    mutex_assertion_t::acq_t acq(&controller->mutex);
-    ASSERT_FINITE_CORO_WAITING;
-
-    controller->dispatchees[this] = auto_drainer_t::lock_t(&drainer);
-
-    /* This coroutine will send an intro message to the newly-registered
-    listener. It needs to be a separate coroutine so that we don't block while
-    holding `controller->mutex`. */
-    coro_t::spawn_sometime(boost::bind(&dispatchee_t::send_intro, this,
-        d, controller->newest_complete_timestamp, auto_drainer_t::lock_t(&drainer)));
-
-    for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
-            it != controller->incomplete_writes.end(); it++) {
-        coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, controller,
-                                           this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it),
-                                           controller->order_checkpoint.checkpoint_raw_check_in(), fifo_source.enter_write()));
-    }
-}
-
-template<class protocol_t>
-broadcaster_t<protocol_t>::dispatchee_t::~dispatchee_t() THROWS_NOTHING {
-    mutex_assertion_t::acq_t acq(&controller->mutex);
-    ASSERT_FINITE_CORO_WAITING;
-    if (is_readable) controller->readable_dispatchees.remove(this);
-    controller->dispatchees.erase(this);
-    controller->assert_thread();
-}
-
-template<class protocol_t>
-void broadcaster_t<protocol_t>::dispatchee_t::send_intro(listener_business_card_t<protocol_t> to_send_intro_to, state_timestamp_t intro_timestamp, auto_drainer_t::lock_t lock) THROWS_NOTHING {
-    lock.assert_is_holding(&drainer);
-    send(controller->mailbox_manager, to_send_intro_to.intro_mailbox,
-        intro_timestamp,
-        upgrade_mailbox.get_address(),
-        downgrade_mailbox.get_address()
-        );
-}
-
-template<class protocol_t>
-void broadcaster_t<protocol_t>::dispatchee_t::upgrade(
-        typename listener_business_card_t<protocol_t>::writeread_mailbox_t::address_t wrm,
-        typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t rm,
-        auto_drainer_t::lock_t)
-        THROWS_NOTHING
-{
-    mutex_assertion_t::acq_t acq(&controller->mutex);
-    ASSERT_FINITE_CORO_WAITING;
-    rassert(!is_readable);
-    is_readable = true;
-    writeread_mailbox = wrm;
-    read_mailbox = rm;
-    controller->readable_dispatchees.push_back(this);
-}
-
-template<class protocol_t>
-void broadcaster_t<protocol_t>::dispatchee_t::downgrade(mailbox_addr_t<void()> ack_addr, auto_drainer_t::lock_t) THROWS_NOTHING {
-    {
-        mutex_assertion_t::acq_t acq(&controller->mutex);
-        ASSERT_FINITE_CORO_WAITING;
-        rassert(is_readable);
-        is_readable = false;
-        controller->readable_dispatchees.remove(this);
-    }
-    if (!ack_addr.is_nil()) {
-        send(controller->mailbox_manager, ack_addr);
-    }
 }
 
 template<class protocol_t>
@@ -574,9 +564,8 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
             write_ref.get()->notify_acked(mirror->get_peer(), resp);
         } else {
             listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
-                                       write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
-                                       mirror_lock.get_drain_signal());
-            write_ref.get()->notify_acked(mirror->get_peer());
+                    write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
+                    mirror_lock.get_drain_signal());
         }
     } catch (interrupted_exc_t) {
         return;
@@ -603,6 +592,9 @@ void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> 
     any given call. */
     while (newest_complete_timestamp < write->timestamp.timestamp_after()) {
         boost::shared_ptr<incomplete_write_t> removed_write = incomplete_writes.front();
+        if (incomplete_writes.front()->completion_cb) {
+            incomplete_writes.front()->completion_cb();
+        }
         incomplete_writes.pop_front();
         rassert(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
         newest_complete_timestamp = removed_write->timestamp.timestamp_after();

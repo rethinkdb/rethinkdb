@@ -230,4 +230,19 @@ void delete_a_thing(T *thing_to_delete) {
     delete thing_to_delete;
 }
 
+template <class T>
+class assignment_sentry_t {
+public:
+    assignment_sentry_t(T *v, const T &value) :
+        var(v), old_value(*var) {
+        *var = value;
+    }
+    ~assignment_sentry_t() {
+        *var = old_value;
+    }
+private:
+    T *var;
+    T old_value;
+};
+
 #endif // UTILS_HPP_

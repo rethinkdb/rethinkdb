@@ -18,8 +18,8 @@ template <class> class multistore_ptr_t;
 struct mailbox_manager_t;
 
 
-/* The implementation of `broadcaster_t` is a mess, but the interface is
-very clean. */
+
+template <class> class background_writer_t;
 
 template<class protocol_t>
 class broadcaster_t : public home_thread_mixin_t {
@@ -41,14 +41,20 @@ public:
         virtual ~ack_callback_t() { }
     };
 
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
+    typename protocol_t::write_response_t write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t tok, signal_t *interruptor, boost::function<void()> write_complete_cb) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
     branch_id_t get_branch_id();
 
     broadcaster_business_card_t<protocol_t> get_business_card();
 
+    int num_incomplete_writes() {
+        return incomplete_writes.size();
+    }
+
 private:
     friend class listener_t<protocol_t>;
+
+    friend class background_writer_t<protocol_t>;
 
     class incomplete_write_t;
 
@@ -104,16 +110,7 @@ private:
 
     registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
 
-    struct queue_and_pool_t {
-        queue_and_pool_t()
-            : background_write_workers(5000, &background_write_queue, &cb)
-        { }
-        unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
-        calling_callback_t cb;
-        coro_pool_t<boost::function<void()> > background_write_workers;
-    };
-
-    boost::ptr_map<dispatchee_t *, queue_and_pool_t> coro_pools;
+    perfmon_collection_t broadcaster_collection;
 
     DISABLE_COPYING(broadcaster_t);
 };
