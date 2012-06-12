@@ -20,6 +20,13 @@ declare_client_connected = ->
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data
+            if collection is namespaces # We check that the machines in the blueprint do exist
+                if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
+                    for machine_uuid of collection_data[id].blueprint.peers_roles
+                        if !machines.get(machine_uuid)?
+                            delete collection_data[id].blueprint.peers_roles[machine_uuid]
+    
+
             if collection.get(id)
                 collection.get(id).set(data)
             else
@@ -28,7 +35,6 @@ apply_to_collection = (collection, collection_data) ->
         else
             if collection.get(id)
                 collection.remove(id)
-
 
 add_protocol_tag = (data, tag) ->
     f = (unused,id) ->

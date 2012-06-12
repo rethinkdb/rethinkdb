@@ -469,6 +469,9 @@ module 'DataUtils', ->
         # We're organizing secondaries per datacenter
         secondaries = {}
         for machine_uuid, peers_roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+            if !machines.get(machine_uuid)? # In case the machine is dead
+                continue
+
             datacenter_uuid = machines.get(machine_uuid).get('datacenter_uuid')
             for _shard, role of peers_roles
                 if shard.toString() is _shard.toString() and role is 'role_secondary'
@@ -717,6 +720,8 @@ module 'DataUtils', ->
         _datacenters = []
 
         for machine_uuid, role of namespace.get('blueprint').peers_roles
+            if !machines.get(machine_uuid)? # If the machine is dead
+                continue
             if datacenter_uuid? and
                machines.get(machine_uuid) and
                machines.get(machine_uuid).get('datacenter_uuid') isnt datacenter_uuid

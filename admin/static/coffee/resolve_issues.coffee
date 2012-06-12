@@ -63,18 +63,29 @@ module 'ResolveIssuesView', ->
             if (response)
                 throw "Received a non null response to a delete... this is incorrect"
 
+
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
                 success: set_issues
                 async: false
-
+            
+            ### resolve_issues_view doesn't exist
             # rerender issue view (just the issues, not the whole thing)
-            window.app.resolve_issues_view.render_issues()
-
+            #window.app.resolve_issues_view.render_issues()
+            ###
+            
             # notify the user that we succeeded
             $('#user-alert-space').append @alert_tmpl
                 machine_name: @machine_to_kill.get("name")
+
+
+            # remove from bluprints
+            for namespace in namespaces.models
+                blueprint = namespace.get('blueprint')
+                if @machine_to_kill.get("id") of blueprint.peers_roles
+                    delete blueprint.peers_roles[@machine_to_kill.get('id')]
+                    namespace.set('blueprint', blueprint)
 
             # remove the dead machine from the models (this must be last)
             machines.remove(@machine_to_kill.id)
