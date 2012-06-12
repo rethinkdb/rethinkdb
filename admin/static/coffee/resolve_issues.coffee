@@ -127,7 +127,7 @@ module 'ResolveIssuesView', ->
         templates:
             'MACHINE_DOWN': Handlebars.compile $('#resolve_issues-machine_down-template').html()
             'NAME_CONFLICT_ISSUE': Handlebars.compile $('#resolve_issues-name_conflict-template').html()
-            'PERSISTENCE_ISSUE': Handlebars.compile $('#resolve_issues-persistence-template').html()
+            'LOGFILE_WRITE_ERROR': Handlebars.compile $('#resolve_issues-logfile_write-template').html()
             'VCLOCK_CONFLICT': Handlebars.compile $('#resolve_issues-vclock_conflict-template').html()
 
         unknown_issue_template: Handlebars.compile $('#resolve_issues-unknown-template').html()
@@ -204,7 +204,7 @@ module 'ResolveIssuesView', ->
                     rename_modal.render()
             )
 
-        render_persistence_issue: (_template) ->
+        render_logfile_write_issue: (_template) ->
             json =
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')
@@ -263,8 +263,8 @@ module 'ResolveIssuesView', ->
                     @render_machine_down _template
                 when 'NAME_CONFLICT_ISSUE'
                     @render_name_conflict_issue _template
-                when 'PERSISTENCE_ISSUE'
-                    @render_persistence_issue _template
+                when 'LOGFILE_WRITE_ERROR'
+                    @render_logfile_write_issue _template
                 when 'VCLOCK_CONFLICT'
                     @render_vclock_conflict _template
                 else
