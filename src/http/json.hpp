@@ -5,6 +5,8 @@
 #include <set>
 
 #include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
 #include "http/json/cJSON.hpp"
 #include "containers/archive/archive.hpp"
 
@@ -63,4 +65,8 @@ cJSON *merge(cJSON *, cJSON *);
 /* Json serialization */
 write_message_t &operator<<(write_message_t &msg, const cJSON &cjson);
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson);
+
+write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<scoped_cJSON_t> &cjson);
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::shared_ptr<scoped_cJSON_t> *cjson);
+
 #endif /* HTTP_JSON_HPP_ */

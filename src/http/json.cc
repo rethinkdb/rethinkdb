@@ -1,9 +1,10 @@
 #include <set>
 #include <stdlib.h>
 #include <vector>
-
 #include <string.h>
 
+#include "errors.hpp"
+#include <boost/make_shared.hpp>
 
 #include "http/json.hpp"
 #include "stl_utils.hpp"
@@ -247,4 +248,20 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
         crash("Unreachable");
         break;
     }
+}
+
+write_message_t &operator<<(write_message_t &msg, const boost::shared_ptr<scoped_cJSON_t> &cjson) {
+    msg << *cjson->get();
+    return msg;
+}
+
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::shared_ptr<scoped_cJSON_t> *cjson) {
+    cJSON *data = cJSON_CreateBlank();
+
+    archive_result_t res = deserialize(s, data);
+    CHECK_RES(res);
+
+    *cjson = boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(data));
+
+    return ARCHIVE_SUCCESS;
 }

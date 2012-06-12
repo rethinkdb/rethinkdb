@@ -2,12 +2,13 @@
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
 #include "utils.hpp"
-#include "boost/shared_ptr.hpp"
-#include "boost/variant.hpp"
+#include <boost/shared_ptr.hpp>
+#include <boost/variant.hpp>
+#include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "http/json.hpp"
-#include <boost/variant.hpp>
 #include "http/json/cJSON.hpp"
 
 enum point_write_result_t {
@@ -24,6 +25,7 @@ struct rdb_protocol_t {
 
     struct point_read_response_t {
         boost::shared_ptr<scoped_cJSON_t> data;
+        point_read_response_t() { }
         point_read_response_t(boost::shared_ptr<scoped_cJSON_t> _data)
             : data(_data)
         { }
@@ -43,8 +45,8 @@ struct rdb_protocol_t {
     };
 
     struct point_read_t {
-        point_read_t() {};
-        explicit point_read_t(const store_key_t& key_) : key(key_) { };
+        point_read_t() {}
+        explicit point_read_t(const store_key_t& key_) : key(key_) { }
 
         store_key_t key;
 
@@ -89,6 +91,8 @@ struct rdb_protocol_t {
         store_key_t key;
 
         boost::shared_ptr<scoped_cJSON_t> data;
+
+        RDB_MAKE_ME_SERIALIZABLE_2(key, data);
     };
 
     struct write_t {
