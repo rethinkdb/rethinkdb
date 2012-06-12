@@ -124,15 +124,12 @@ module 'NamespaceView', ->
         render: =>
             data_in_memory = 0
             data_total = 0
+            #TODO These are being calculated incorrectly. As they stand, data_in_memory is correct, but data_total is measuring the disk space used by this namespace. Issue filed.
             for machine in machines.models
                 if machine.get('stats')? and @model.get('id') of machine.get('stats')
-                    debugger
                     stats = machine.get('stats')
                     data_in_memory += stats.cache.block_size * stats.cache.blocks_in_memory
                     data_total += stats.cache.block_size * stats.cache.blocks_total
-
-                    #data_in_memory += machine.get('stats')[@model.get('id')].cache.block_size*machine.get('stats')[@model.get('id')].cache.blocks_in_memory
-                    #data_total += machine.get('stats')[@model.get('id')].cache.block_size*machine.get('stats')[@model.get('id')].cache.blocks_total
 
             json =
                 data_in_memory_percent: Math.floor(data_in_memory/data_total*100)
