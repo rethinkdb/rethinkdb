@@ -51,7 +51,7 @@ with driver.Metacluster() as metacluster:
     http2.check_no_issues()
     http2.wait_until_blueprint_satisfied(ns.name)
 
-    host, port = driver.get_namespace_host(http2.get_namespace(ns.name).port, [process2])
+    host, port = driver.get_namespace_host(http2.find_namespace(ns.name).port, [process2])
     workload_runner.run(opts["workload2"], host, port, opts["timeout"])
 
     cluster.check_and_stop()
