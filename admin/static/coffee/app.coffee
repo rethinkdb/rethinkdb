@@ -25,8 +25,6 @@ apply_to_collection = (collection, collection_data) ->
                     for machine_uuid of collection_data[id].blueprint.peers_roles
                         if !machines.get(machine_uuid)?
                             delete collection_data[id].blueprint.peers_roles[machine_uuid]
-    
-
             if collection.get(id)
                 collection.get(id).set(data)
             else

@@ -586,7 +586,8 @@ module 'ServerView', ->
         on_success: (response) =>
             super
             for _m_uuid, _m of response
-                machines.get(_m_uuid).set(_m)
+                if machines.get(_m_uuid)? # In case the machine was declared dead
+                    machines.get(_m_uuid).set(_m)
 
             machine_names = _.map(@machines_list, (_m) -> name: _m.get('name'))
             $('#user-alert-space').append (@alert_tmpl
