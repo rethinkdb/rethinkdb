@@ -5,6 +5,7 @@ import http_admin, driver, workload_runner
 from vcoptparse import *
 
 op = OptParser()
+op["mode"] = StringFlag("--mode", "debug")
 op["workload1"] = PositionalArg()
 op["workload2"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
@@ -12,9 +13,10 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
+    executable_path = driver.find_rethinkdb_executable(opts["mode"])
     print "Starting cluster..."
     num_nodes = 3
-    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i), log_path = "serve-output-%d" % i)
+    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i), log_path = "serve-output-%d" % i, executable_path = executable_path)
         for i in xrange(num_nodes)]
     for process in processes:
         process.wait_until_started_up()

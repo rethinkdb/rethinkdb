@@ -4,11 +4,11 @@
 #include "clustering/administration/issues/global.hpp"
 #include "http/http.hpp"
 
-class issues_http_app_t : public http_app_t {
+class issues_http_app_t : public http_json_app_t {
 public:
     explicit issues_http_app_t(global_issue_tracker_t *_issue_tracker);
-
     http_res_t handle(const http_req_t &req);
+    void get_root(scoped_cJSON_t *json_out);
 
 private:
     global_issue_tracker_t *issue_tracker;

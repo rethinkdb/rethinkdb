@@ -3,14 +3,17 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
+#include "http/json.hpp"
 
-class semilattice_http_app_t : public http_app_t {
+class semilattice_http_app_t : public http_json_app_t {
 public:
     semilattice_http_app_t(
         const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         boost::uuids::uuid _us);
     http_res_t handle(const http_req_t &);
+    void get_root(scoped_cJSON_t *json_out);
+
 private:
     void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata);
 

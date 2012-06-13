@@ -5,7 +5,7 @@ import http_admin, driver, workload_runner
 from vcoptparse import *
 
 op = OptParser()
-op["mode"] = IntFlag("--mode", "debug")
+op["mode"] = StringFlag("--mode", "debug")
 op["workload"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)

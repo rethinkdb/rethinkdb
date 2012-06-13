@@ -53,7 +53,7 @@ module 'ResolveIssuesView', ->
         on_submit: ->
             super
             $.ajax
-                url: "/ajax/machines/#{@machine_to_kill.id}"
+                url: "/ajax/semilattice/machines/#{@machine_to_kill.id}"
                 type: 'DELETE'
                 contentType: 'application/json'
                 success: @on_success
@@ -61,7 +61,7 @@ module 'ResolveIssuesView', ->
         on_success: (response) ->
             super
             if (response)
-                throw "Received a non null response to a delete... this is incorrect"
+                throw new Error("Received a non null response to a delete... this is incorrect")
 
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
@@ -179,8 +179,8 @@ module 'ResolveIssuesView', ->
                 type: @model.get('contested_type')
                 num_contestants: @model.get('contestants').length
                 contestants: _.map(@model.get('contestants'), (uuid) =>
-                   uuid: uuid
-                   type: @model.get('contested_type')
+                    uuid: uuid
+                    type: @model.get('contested_type')
                 )
                 datetime: iso_date_from_unix_time @model.get('time')
                 critical: @model.get('critical')

@@ -5,10 +5,11 @@
 #include "http/http.hpp"
 #include "http/json/cJSON.hpp"
 
-class last_seen_http_app_t : public http_app_t {
+class last_seen_http_app_t : public http_json_app_t {
 public:
     explicit last_seen_http_app_t(last_seen_tracker_t *last_seen_tracker);
     http_res_t handle(const http_req_t &);
+    void get_root(scoped_cJSON_t *json_out);
 
 private:
     last_seen_tracker_t *last_seen_tracker;

@@ -13,7 +13,7 @@ module 'NamespaceView', ->
             'click a.btn.add-namespace': 'add_namespace'
             'click a.btn.remove-namespace': 'remove_namespace'
             'click .close': 'remove_parent_alert'
-            
+
         initialize: ->
             log_initial '(initializing) namespace list view'
 
@@ -108,7 +108,7 @@ module 'NamespaceView', ->
             json.data_in_memory_percent = Math.floor(data_in_memory/data_total*100)
             json.data_in_memory = human_readable_units(data_in_memory, units_space)
             json.data_total = human_readable_units(data_total, units_space)
-            
+
             @update_history_opsec()
             json.opsec = @history_opsec[@history_opsec.length-1]
 
@@ -165,9 +165,9 @@ module 'NamespaceView', ->
 
         on_submit: =>
             super
-            
+
             formdata = form_data_as_object($('form', @$modal))
-            
+
             template_error = {}
             input_error = false
 
@@ -192,7 +192,7 @@ module 'NamespaceView', ->
                         input_error = true
                         template_error.namespace_exists = true
                         break
-                    
+
             if input_error is true
                 $('.alert_modal').html @error_template template_error
                 $('.alert_modal').alert()
@@ -200,7 +200,7 @@ module 'NamespaceView', ->
             else
                 $.ajax
                     processData: false
-                    url: '/ajax/memcached_namespaces/new'
+                    url: '/ajax/semilattice/memcached_namespaces/new'
                     type: 'POST'
                     contentType: 'application/json'
                     data: JSON.stringify(
@@ -251,7 +251,7 @@ module 'NamespaceView', ->
             # multiple items with one http request.
             for namespace in @namespaces_to_delete
                 $.ajax
-                    url: "/ajax/#{namespace.get("protocol")}_namespaces/#{namespace.id}"
+                    url: "/ajax/semilattice/#{namespace.get("protocol")}_namespaces/#{namespace.id}"
                     type: 'DELETE'
                     contentType: 'application/json'
                     success: @on_success
@@ -266,7 +266,7 @@ module 'NamespaceView', ->
             super
 
             if (response)
-                throw "Received a non null response to a delete... this is incorrect"
+                throw new Error("Received a non null response to a delete... this is incorrect")
 
             # TODO: hook this up once we have support for deleting
             # multiple items with one http request.
