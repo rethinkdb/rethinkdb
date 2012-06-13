@@ -36,8 +36,8 @@ def find_rethinkdb_executable(mode = "debug"):
             return path
     raise RuntimeError("Can't find RethinkDB executable. Tried these paths: %s" % paths)
 
-def get_namespace_host(ns, processes):
-    return 'localhost', ns.port + random.choice(processes).port_offset
+def get_namespace_host(port, processes):
+    return 'localhost', port + random.choice(processes).port_offset
 
 class Metacluster(object):
     """A `Metacluster` is a group of clusters. It's responsible for maintaining

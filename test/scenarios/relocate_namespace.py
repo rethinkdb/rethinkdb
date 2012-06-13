@@ -29,7 +29,7 @@ with driver.Metacluster() as metacluster:
     time.sleep(10)
     cluster.check()
     http.check_no_issues()
-    host, port = http.get_namespace_host(ns)
+    host, port = driver.get_namespace_host(ns.port, processes)
     workload_runner.run(opts["workload1"], host, port, opts["timeout"])
     cluster.check()
     http.check_no_issues()

@@ -519,32 +519,6 @@ class ClusterAccess(object):
         self.wait_for_propagation()
         self.update_cluster_data()
 
-    def compute_port(self, namespace, machine):
-        namespace = self.find_namespace(namespace)
-        machine = self.find_machine(machine)
-        return namespace.port + machine.port_offset
-
-    def get_namespace_host(self, namespace, selector = None):
-        namespace = self.find_namespace(namespace)
-        # selector may be a specific machine or datacenter to use, none will take any
-        type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
-        assert type_namespaces[type(namespace)][namespace.uuid] is namespace
-        if selector is None:
-            machines = [ ]
-            for serv in self.machines.itervalues():
-                machines.append(serv)
-            machine = random.choice(machines)
-        elif isinstance(selector, Datacenter):
-            # Take any machine from the specified datacenter
-            machine = self.get_machine_in_datacenter(selector)
-        elif isinstance(selector, Server):
-            # Use the given server directly
-            machine = selector
-
-        # TODO: Fetch actual IP address from machine instead of hard-coding
-        # "localhost"
-        return ("localhost", self.compute_port(namespace, machine))
-
     def get_datacenter_in_namespace(self, namespace, primary = None):
         namespace = self.find_namespace(namespace)
         type_namespaces = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces }
