@@ -19,6 +19,7 @@ class progress_app_t;
 class stat_manager_t;
 class distribution_app_t;
 class cyanide_http_app_t;
+class combining_http_app_t;
 
 class administrative_http_server_manager_t {
 
@@ -44,6 +45,7 @@ private:
     boost::scoped_ptr<log_http_app_t> log_app;
     boost::scoped_ptr<progress_app_t> progress_app;
     boost::scoped_ptr<distribution_app_t> distribution_app;
+    boost::scoped_ptr<combining_http_app_t> combining_app;
 #ifndef NDEBUG
     boost::scoped_ptr<cyanide_http_app_t> cyanide_app;
 #endif

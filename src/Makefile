@@ -342,7 +342,7 @@ CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags etags unit valgrind web-assets
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags etags unit valgrind web-assets coffeelint
 
 # High level build targets
 
@@ -728,8 +728,11 @@ cscope:
 analyze: $(SOURCES)
 	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
 
-style:
-	$(QUIET) ../scripts/check_style.sh 
+coffeelint:
+	coffeelint -f ../scripts/coffeelint.json -r ../admin/
+
+style: coffeelint
+	$(QUIET) ../scripts/check_style.sh
 
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null

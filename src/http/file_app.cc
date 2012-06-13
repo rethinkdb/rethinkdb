@@ -44,9 +44,25 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
     return res;
 }
 
+bool ends_with(const std::string& str, const std::string& end) {
+    return str.rfind(end) == str.length() - end.length();
+}
+
 void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out) {
     // FIXME: make sure that we won't walk out of our sandbox! Check symbolic links, etc.
     std::ifstream f((asset_dir + filename).c_str());
+
+    // TODO more robust mimetype detection?
+    std::string mimetype = "text/plain";
+    if (ends_with(filename, ".js")) {
+        mimetype = "text/javascript";
+    } else if (ends_with(filename, ".css")) {
+        mimetype = "text/css";
+    } else if (ends_with(filename, ".html")) {
+        mimetype = "text/html";
+    }
+
+    res_out->add_header_line("Content-Type", mimetype);
 
     if (f.fail()) {
         res_out->code = 404;

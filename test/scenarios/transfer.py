@@ -5,7 +5,7 @@ import http_admin, driver, workload_runner
 from vcoptparse import *
 
 op = OptParser()
-op["mode"] = IntFlag("--mode", "debug")
+op["mode"] = StringFlag("--mode", "debug")
 op["workload1"] = PositionalArg()
 op["workload2"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
@@ -16,7 +16,8 @@ with driver.Metacluster() as metacluster:
 
     print "Starting cluster..."
     files1 = driver.Files(metacluster, db_path = "db-first")
-    process1 = driver.Process(cluster, files1, log_path = "serve-output-first", executable_path = driver.find_rethinkdb_executable(opts["mode"]))
+    executable_path = driver.find_rethinkdb_executable(opts["mode"])
+    process1 = driver.Process(cluster, files1, log_path = "serve-output-first", executable_path = executable_path)
     process1.wait_until_started_up()
 
     print "Creating namespace..."
@@ -31,7 +32,7 @@ with driver.Metacluster() as metacluster:
 
     print "Bringing up new server..."
     files2 = driver.Files(metacluster, db_path = "db-second")
-    process2 = driver.Process(cluster, files2, log_path = "serve-output-second", executable_path = driver.find_rethinkdb_executable(opts["mode"]))
+    process2 = driver.Process(cluster, files2, log_path = "serve-output-second", executable_path = executable_path)
     process2.wait_until_started_up()
     http1.update_cluster_data()
     http1.move_server_to_datacenter(files2.machine_name, dc)

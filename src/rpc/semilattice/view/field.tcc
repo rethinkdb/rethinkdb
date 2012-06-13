@@ -15,7 +15,17 @@ public:
         field(f), outer(o) { }
 
     inner_t get() {
-        return ((outer->get()).*field);
+        /* TODO: revert this when clang gets fixed. it is brittle, dangerous, and disgusting to
+         * have to work around compiler bugs in this fashion.
+         *
+         * The following commented-out code appears to trigger a bug in clang, leading to premature
+         * destruction of an object and memory corruption. */
+        //return ((outer->get()).*field);
+
+        /* This code has the same effect but appears not to trigger the bug. */
+        outer_t outerval = outer->get();
+        inner_t fieldval = outerval.*field;
+        return fieldval;
     }
 
     void sync_from(peer_id_t peer, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, sync_failed_exc_t) {
