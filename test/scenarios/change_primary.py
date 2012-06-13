@@ -6,13 +6,15 @@ from vcoptparse import *
 
 op = OptParser()
 workload_runner.prepare_option_parser_for_split_or_continuous_workload(op)
+op["mode"] = StringFlag("--mode", "debug")
 opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
-    process1 = driver.Process(cluster, driver.Files(metacluster, db_path = "db-1"), log_path = "serve-output-1")
-    process2 = driver.Process(cluster, driver.Files(metacluster, db_path = "db-2"), log_path = "serve-output-2")
+    executable_path = driver.find_rethinkdb_executable(opts["mode"])
+    process1 = driver.Process(cluster, driver.Files(metacluster, db_path = "db-1"), log_path = "serve-output-1", executable_path = executable_path)
+    process2 = driver.Process(cluster, driver.Files(metacluster, db_path = "db-2"), log_path = "serve-output-2", executable_path = executable_path)
     process1.wait_until_started_up()
     process2.wait_until_started_up()
 

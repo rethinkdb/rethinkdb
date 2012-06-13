@@ -1,0 +1,82 @@
+# just some quickly thrown together suppressions for python so you can run valgrind on the tests without it spamming too much
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:_PyObject_GC_Malloc
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:PyObject_Free
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PyString_FromString
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:realloc
+   fun:_PyObject_GC_Resize
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   obj:/usr/bin/python2.7
+   fun:PyString_InternInPlace
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PyString_FromStringAndSize
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr4
+   fun:PyObject_Free
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:PyObject_Free
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:PyObject_Realloc
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:PyObject_Realloc
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr4
+   fun:PyObject_Realloc
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   obj:/usr/bin/python2.7
+   obj:/usr/bin/python2.7
+   fun:PyObject_SetAttr
+}

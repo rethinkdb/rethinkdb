@@ -5,7 +5,7 @@ import http_admin, driver, workload_runner
 from vcoptparse import *
 
 op = OptParser()
-op["mode"] = IntFlag("--mode", "debug")
+op["mode"] = StringFlag("--mode", "debug")
 op["workload1"] = PositionalArg()
 op["workload2"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
@@ -13,9 +13,10 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
+    executable_path = driver.find_rethinkdb_executable(opts["mode"])
     print "Starting cluster..."
     files = driver.Files(metacluster)
-    process = driver.Process(cluster, files, executable_path = driver.find_rethinkdb_executable(opts["mode"]))
+    process = driver.Process(cluster, files, executable_path = executable_path)
     process.wait_until_started_up()
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", process.http_port)])

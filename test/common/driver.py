@@ -237,7 +237,7 @@ class _Process(object):
             self.cluster = cluster
             self.cluster.processes.add(self)
 
-    def wait_until_started_up(self, timeout = 15):
+    def wait_until_started_up(self, timeout = 30):
         time_limit = time.time() + timeout
         while time.time() < time_limit:
             self.check()
