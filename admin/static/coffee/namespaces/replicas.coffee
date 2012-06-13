@@ -38,7 +38,7 @@ module 'NamespaceView', ->
                 primary_uuid: new_dc.get('id')
                 replica_affinities: new_affinities
             modal.render("Are you sure you want to make datacenter " + new_dc.get('name') + " primary?",
-                "/ajax/memcached_namespaces/" + @model.get('id'),
+                "/ajax/semilattice/memcached_namespaces/" + @model.get('id'),
                 JSON.stringify(data),
                 (response) =>
                     clear_modals()
@@ -230,7 +230,7 @@ module 'NamespaceView', ->
 
             $.ajax
                 processData: false
-                url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                 type: 'POST'
                 data: JSON.stringify
                     replica_affinities: replica_affinities_to_send

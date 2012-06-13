@@ -112,7 +112,7 @@ module 'NamespaceView', ->
                 secondary_pinnings: output
             $.ajax
                 processData: false
-                url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                 type: 'POST'
                 data: JSON.stringify(output)
                 success: @on_success
@@ -153,9 +153,9 @@ module 'NamespaceView', ->
         compute_json: ->
             # compute all machines in the primary datacenter
             dc_machines = _.map DataUtils.get_datacenter_machines(@namespace.get('primary_uuid')), (m) =>
-                    machine_name: m.get('name')
-                    machine_uuid: m.get('id')
-                    selected: @master_uuid is m.get('id')
+                machine_name: m.get('name')
+                machine_uuid: m.get('id')
+                selected: @master_uuid is m.get('id')
             json =
                 modal_title: 'Master machine for shard ' + human_readable_shard(@shard) + ' in datacenter ' + datacenters.get(@namespace.get('primary_uuid')).get('name')
                 btn_primary_text: 'Commit'
@@ -201,7 +201,7 @@ module 'NamespaceView', ->
                 secondary_pinnings: output_secondaries
             $.ajax
                 processData: false
-                url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                 type: 'POST'
                 data: JSON.stringify(output)
                 success: @on_success

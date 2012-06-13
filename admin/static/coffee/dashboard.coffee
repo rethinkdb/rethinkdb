@@ -31,7 +31,7 @@ module 'DashboardView', ->
             @.$(event.currentTarget).popover('show')
             $popover = $('.popover')
 
-            $popover.on 'clickoutside', (e) -> 
+            $popover.on 'clickoutside', (e) ->
                 if e.target isnt event.target  # so we don't remove the popover when we click on the link
                     $(e.currentTarget).remove()
 
@@ -43,12 +43,12 @@ module 'DashboardView', ->
             @render()
 
 
-        # We could create a model to create issues because of CPU/RAM   
+        # We could create a model to create issues because of CPU/RAM
         threshold_cpu: 0.9
         threshold_ram: 0.9
 
         compute_status: ->
-            status = 
+            status =
                 has_availability_problems: false
                 has_cpu_problems: false
                 has_conflicts_problems : false
@@ -64,11 +64,11 @@ module 'DashboardView', ->
                 for machine_uuid, role_summary of namespace.get('blueprint').peers_roles
                     for shard, role of role_summary
                         if role is 'role_primary'
-                            masters[machine_uuid] = 
+                            masters[machine_uuid] =
                                 name: namespace.get('name')
                                 id: namespace.get('id')
                             status.num_masters++
-    
+
             if issues.length != 0
                 status.num_machines_with_disk_problems = 0
                 status.machines_with_disk_problems = []
@@ -82,12 +82,12 @@ module 'DashboardView', ->
                 for issue in issues.models
                     switch issue.get("type")
                         when "LOGFILE_WRITE_ERROR"
-                            new_machine = 
+                            new_machine =
                                 uid: issue.get('location')
                                 name: machines.get(issue.get('location')).get('name')
                             status.machines_with_disk_problems.push(new_machine)
                         when "MACHINE_DOWN"
-                            status.masters_offline.push 
+                            status.masters_offline.push
                                 machine_id: issue.get('victim')
                                 machine_name: machines.get(issue.get('victim')).get('name')
                                 namespace_name: masters[issue.get('victim')].name
@@ -114,9 +114,9 @@ module 'DashboardView', ->
                 status.has_redundancy_problems = true
                 status.num_replicas_offline = issues_redundancy.length
                 status.replicas_offline = issues_redundancy.models
-            
 
-            # checking for CPU and RAM prolems 
+
+            # checking for CPU and RAM prolems
             status.machines_with_cpu_problems = []
             status.machines_with_ram_problems = []
 
@@ -124,17 +124,17 @@ module 'DashboardView', ->
                 if machine.get('stats')?
                     cpu_used = machine.get('stats').proc.cpu_combined_avg
                     if cpu_used > @threshold_cpu
-                        new_machine = 
+                        new_machine =
                             uid: machine.get('id')
                             name: machine.get('name')
                         status.machines_with_cpu_problems.push new_machine
                     ram_used = machine.get('stats').proc.global_mem_used / machine.get('stats').proc.global_mem_total
                     if ram_used > @threshold_ram
-                        new_machine = 
+                        new_machine =
                             uid: machine.get('id')
                             name: machine.get('name')
                         status.machines_with_ram_problems.push new_machine
-                   
+
 
             if status.machines_with_cpu_problems.length > 0
                 status.has_cpu_problems = true
@@ -151,7 +151,7 @@ module 'DashboardView', ->
 
         render: =>
             log_render '(rendering) cluster status view'
-            
+
             @.$el.html @template(@compute_status())
             @.$('a[rel=dashboard_details]').popover
                 trigger: 'manual'
@@ -161,8 +161,8 @@ module 'DashboardView', ->
     class @ClusterPerformance extends Backbone.View
         className: 'dashboard-view'
         template: Handlebars.compile $('#cluster_performance-template').html()
-        
-        
+
+
         initialize: ->
             log_initial '(initializing) cluster performance view'
             $('#cluster_performance_container').html @template({})

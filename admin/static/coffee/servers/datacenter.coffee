@@ -8,7 +8,7 @@ module 'DatacenterView', ->
             'click a.rename-datacenter': 'rename_datacenter'
             'click .display_more_machines': 'expand_profile'
             'click .close': 'close_alert'
-            
+
         max_log_entries_to_render: 3
 
         initialize: (id) =>
@@ -50,14 +50,14 @@ module 'DatacenterView', ->
 
             if @wait_for_model() is false
                 return @render_empty()
-            
+
             @title = new DatacenterView.Title(@datacenter_uuid)
             @profile = new DatacenterView.Profile(@datacenter_uuid)
             @data = new DatacenterView.Data(@datacenter_uuid)
 
             stats = @model.get_stats_for_performance
             @performance_graph = new Vis.OpsPlot(stats)
-            
+
             @stats_panel = new Vis.StatsPanel(stats)
 
             @.$el.html @template
@@ -114,7 +114,7 @@ module 'DatacenterView', ->
             @uuid = uuid
             @name = datacenters.get(@uuid).get('name')
             datacenters.on 'all', @update
-        
+
         update: =>
             if @name isnt datacenters.get(@uuid).get('name')
                 @name = datacenters.get(@uuid).get('name')
@@ -178,7 +178,7 @@ module 'DatacenterView', ->
                         name: namespace.get('name')
                         uuid: namespace.id
 
-            # make sure than the list of machines return contains first the one not reachable            
+            # make sure than the list of machines return contains first the one not reachable
             machines_returned = []
             for machine in machines_in_datacenter
                 status = DataUtils.get_machine_reachability(machine.get('id'))
@@ -206,7 +206,7 @@ module 'DatacenterView', ->
                 global_mem_total: human_readable_units(stats.global_mem_total * 1024, units_space)
                 global_mem_used: human_readable_units(stats.global_mem_used * 1024, units_space)
                 dc_disk_space: human_readable_units(stats.dc_disk_space, units_space)
- 
+
             @.$el.html @template(json)
 
             return @
@@ -274,7 +274,7 @@ module 'DatacenterView', ->
                 global_mem_total: human_readable_units(stats.global_mem_total * 1024, units_space)
                 global_mem_used: human_readable_units(stats.global_mem_used * 1024, units_space)
                 dc_disk_space: human_readable_units(stats.dc_disk_space, units_space)
- 
+
             @.$el.html @template(json)
 
             return @

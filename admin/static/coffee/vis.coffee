@@ -76,7 +76,7 @@ module 'Vis', ->
 
             # Trim the cache
             if @values.length > @ndp
-               @values = @values.slice(-@ndp)
+                @values = @values.slice(-@ndp)
 
     class @OpsPlot extends Backbone.View
         className: 'ops_plot'
@@ -220,7 +220,7 @@ module 'Vis', ->
                     @values.push(value)
             # Trim the cache if there are too many values
             if @values.length > @ndp
-               @values = @values.slice(-@ndp)
+                @values = @values.slice(-@ndp)
 
         get: ->
             return @values
@@ -243,7 +243,7 @@ module 'Vis', ->
             log_initial '(initializing) stats panel'
             @stats_fn = _stats_fn
             @total_ops_cache = new Vis.SizeBoundedCache(@NUM_POINTS, ((stats) -> return stats['keys_read'] + stats['keys_set']))
-            @total_cpu_util_cache = new Vis.SizeBoundedCache(@NUM_POINTS, ((stats) -> 
+            @total_cpu_util_cache = new Vis.SizeBoundedCache(@NUM_POINTS, ((stats) ->
                 return parseInt((stats['global_cpu_util']['avg'] * 100).toFixed(0))
             ))
             @total_disk_space_cache = new Vis.SizeBoundedCache(@NUM_POINTS, 'global_disk_space')
@@ -270,7 +270,7 @@ module 'Vis', ->
                 disk_used: human_readable_units(stats.global_disk_space, units_space)
                 global_net_recv: human_readable_units(stats.global_net_recv_persec.avg, units_space) if stats.global_net_recv_persec?
                 global_net_sent: human_readable_units(stats.global_net_sent_persec.avg, units_space) if stats.global_net_sent_persec?
-            
+
 
 
             # Totals ops sparkline
