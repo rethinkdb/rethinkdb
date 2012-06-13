@@ -23,7 +23,7 @@ with driver.Metacluster() as metacluster:
     http.move_server_to_datacenter(http.machines.keys()[0], dc)
     ns = http.add_namespace(protocol = "memcached", primary = dc)
     http.wait_until_blueprint_satisfied(ns)
-    host, port = driver.get_namespace_host(ns, [process])
+    host, port = driver.get_namespace_host(ns.port, [process])
     workload_runner.run(opts["workload1"], host, port, opts["timeout"])
     print "Restarting server..."
     process.check_and_stop()
