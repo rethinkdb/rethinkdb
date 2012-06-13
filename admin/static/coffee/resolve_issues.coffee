@@ -80,6 +80,7 @@ module 'ResolveIssuesView', ->
                 machine_name: @machine_to_kill.get("name")
 
 
+            # We clean data now to have data fresher than if we were waiting for the next call to ajax/
             # remove from bluprints
             for namespace in namespaces.models
                 blueprint = namespace.get('blueprint')
@@ -89,7 +90,7 @@ module 'ResolveIssuesView', ->
 
             # remove the dead machine from the models (this must be last)
             machines.remove(@machine_to_kill.id)
-
+            
     class @ResolveVClockModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#resolve_vclock-modal-template').html()
         alert_tmpl: Handlebars.compile $('#resolved_vclock-alert-template').html()
