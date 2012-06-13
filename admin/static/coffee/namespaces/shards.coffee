@@ -171,6 +171,7 @@ module 'NamespaceView', ->
             directory.on 'all', @render_summary
             @namespace.on 'change:replica_affinities', @reset_list
             @namespace.on 'change:secondary_pinnings', @reset_list
+            @namespace.on 'change:blueprint', @reset_list
 
 
 
@@ -195,6 +196,7 @@ module 'NamespaceView', ->
                 status: DataUtils.get_datacenter_reachability(@model.get('id'))
 
             @.$('.datacenter.summary').html @summary_template json
+
 
     class @ShardMachineList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_machine_list-template').html()
