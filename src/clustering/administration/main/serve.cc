@@ -46,8 +46,6 @@ public:
         // TODO: Obviously, the hard-coded numeric constant here might
         // be regarded as a problem.  Randomly choosing between 4 or 5
         // is pretty cool though.
-        const int num_stores = 4 + randint(4);
-        debugf("creating %d hash-sharded stores\n", num_stores);
         const std::string file_name_base = file_path_ + "/" + uuid_to_str(namespace_id);
 
         // TODO: This is quite suspicious in that we check if the file
@@ -59,12 +57,22 @@ public:
         // TODO: We should use N slices on M serializers, not N slices
         // on N serializers.
 
-        stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
+        //        stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
 
         int res = access((file_name_base + "_" + strprintf("%d", 0)).c_str(), R_OK | W_OK);
         if (res == 0) {
+            int num_stores = 1;
+            while (0 == access((file_name_base + "_" + strprintf("%d", num_stores)).c_str(), R_OK | W_OK)) {
+                ++num_stores;
+            }
+
             // The files already exist, thus we don't create them.
             boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
+            stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
+
+            debugf("loading %d hash-sharded stores\n", num_stores);
+
+            // TODO: Exceptions?  Can exceptions happen, and then store_views' values would leak.
 
             // TODO: This should use pmap.
             for (int i = 0; i < num_stores; ++i) {
@@ -75,7 +83,13 @@ public:
 
             svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
         } else {
+            const int num_stores = 4 + randint(4);
+            debugf("creating %d hash-sharded stores\n", num_stores);
+            stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
+
             // TODO: How do we specify what the stores' regions are?
+
+            // TODO: Exceptions?  Can exceptions happen, and then store_views' values would leak.
 
             // The files do not exist, create them.
             // TODO: This should use pmap.

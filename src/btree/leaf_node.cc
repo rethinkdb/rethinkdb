@@ -1137,11 +1137,25 @@ bool lookup(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_key
     return false;
 }
 
+void assert_not_old_timestamp(DEBUG_ONLY_VAR leaf_node_t *node, DEBUG_ONLY_VAR repli_timestamp_t tstamp) {
+#ifndef NDEBUG
+    if (node->num_pairs > 0 && node->frontmost < node->tstamp_cutpoint) {
+        repli_timestamp_t old_tstamp = get_timestamp(node, node->frontmost);
+        // Timestamps aren't unique (because they're low-resolution)
+        // but they are in order.
+        rassert(tstamp >= old_tstamp, "tstamp = %u, old_tstamp = %u", tstamp.time, old_tstamp.time);
+    }
+#endif
+}
+
+
 // Inserts a key/value pair into the node.  Hopefully you've already
 // cleaned up the old value, if there is one.
 void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     rassert(!is_full(sizer, node, key, value));
     rassert(!km_proof.is_fake());
+
+    assert_not_old_timestamp(node, tstamp);
 
     if (offsetof(leaf_node_t, pair_offsets) + sizeof(uint16_t) * (node->num_pairs + 1) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value) > node->frontmost) {
         garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1);
@@ -1196,6 +1210,8 @@ void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
 // unnecessary binary search.
 void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     rassert(!km_proof.is_fake());
+    assert_not_old_timestamp(node, tstamp);
+
     int index;
     bool found = find_key(node, key, &index);
 
