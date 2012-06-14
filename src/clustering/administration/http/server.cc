@@ -59,6 +59,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/d3.v2.min.js");
     white_list.insert("/js/rdb_cubism.v1.js");
     white_list.insert("/js/date-en-US.js");
+    white_list.insert("/js/jquery.cookie.js");
     white_list.insert("/js/flot/jquery.flot.js");
     white_list.insert("/js/flot/jquery.flot.resize.js");
     white_list.insert("/js/handlebars-1.0.0.beta.6.js");
