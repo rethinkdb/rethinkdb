@@ -121,7 +121,7 @@ module 'DashboardView', ->
                             if role is 'role_primary'
                                 keys[key] = true
                             else
-                                if !keys.key? or keys.key isnt true
+                                if !keys[key]? or keys[key] isnt true
                                     keys[key] = false
                     for key of keys
                         if keys[key] is false
@@ -132,6 +132,7 @@ module 'DashboardView', ->
                     namespaces_without_masters.push
                         id: namespace.get('id')
                         name: namespace.get('name')
+                console.log keys
             if namespaces_without_masters.length > 0
                 status.has_availability_problems = true
                 status.has_namespaces_without_masters = true
