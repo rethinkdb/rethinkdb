@@ -1630,3 +1630,33 @@
         margin-left: 30px;
     }
 }
+
+/*
+    ----------------------------
+    Walkthrough
+    ----------------------------
+*/
+
+.walkthrough-popup {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    margin-right: 80px;
+    background: @infoBackground;
+    border: thin solid lighten(@infoText, 30%);
+    border-bottom: 0;
+    padding: 10px;
+    p {
+        margin-bottom: 0;
+        &.show-walkthrough {
+            a { color: darken(@infoText, 5%); }
+            margin-right: 20px;
+            font-size: 1.1em;
+        }
+        &.close {
+            font-size: 16px;
+            position: relative;
+            top: -9px;
+        }
+    }
+}

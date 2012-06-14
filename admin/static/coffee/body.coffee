@@ -1,4 +1,3 @@
-
 render_body = ->
     template = Handlebars.compile $('#body-structure-template').html()
     $('body').html(template())

@@ -35,8 +35,13 @@ class BackboneCluster extends Backbone.Router
         @resolve_issues = new ResolveIssuesView.Container
         @logs = new LogView.Container
 
+        if not $.cookie('rethinkdb-admin')?
+            #$.cookie('rethinkdb-admin', new Date())
+            @render_walkthrough_popup()
+
     render_sidebar: -> @$sidebar.html @sidebar.render().el
     render_navbar: -> $('#navbar-container').html @navbar.render().el
+    render_walkthrough_popup: -> $('.walkthrough-popup').html (new Walkthrough.Popup).render().el
 
     index_namespaces: ->
         log_router '/index_namespaces'
