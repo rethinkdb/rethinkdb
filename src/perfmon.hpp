@@ -389,7 +389,8 @@ class perfmon_collection_t : public perfmon_t {
 public:
     perfmon_collection_t(const std::string &_name, perfmon_collection_t *parent, bool insert, bool _create_submap)
         : perfmon_t(parent, insert), name(_name), create_submap(_create_submap)
-    { }
+    {
+    }
 
     /* Perfmon interface */
     void *begin_stats() {
@@ -417,6 +418,7 @@ public:
         perfmon_result_t *map;
         if (create_submap) {
             perfmon_result_t::alloc_map_result(&map);
+            rassert(result->get_map()->count(name) == 0);
             result->get_map()->insert(std::pair<std::string, perfmon_result_t *>(name, map));
         } else {
             map = result;
@@ -497,5 +499,7 @@ struct block_pm_duration {
         if (!ended) end();
     }
 };
+
+perfmon_collection_t &get_global_perfmon_collection();
 
 #endif /* PERFMON_HPP_ */

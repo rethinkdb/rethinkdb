@@ -37,6 +37,7 @@ void run_with_broadcaster(
             cluster.get_mailbox_manager(),
             branch_history_controller.get_view(),
             &initial_store.store,
+            &get_global_perfmon_collection(),
             &interruptor
         ));
 
@@ -49,6 +50,7 @@ void run_with_broadcaster(
             broadcaster_business_card_watchable_variable.get_watchable(),
             branch_history_controller.get_view(),
             broadcaster.get(),
+            &get_global_perfmon_collection(),
             &interruptor
         ));
 
@@ -138,6 +140,7 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
         &substore,
         replier_business_card_variable.get_watchable(),
         generate_uuid(),
+        &get_global_perfmon_collection(),
         &interruptor);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());

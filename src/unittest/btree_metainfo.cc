@@ -34,19 +34,19 @@ std::string vector_to_string(const std::vector<char> &v) {
 }
 
 void run_metainfo_test() {
-
     temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
 
     standard_serializer_t::create(
         standard_serializer_t::dynamic_config_t(),
         standard_serializer_t::private_dynamic_config_t(temp_file.name()),
-        standard_serializer_t::static_config_t()
+        standard_serializer_t::static_config_t(),
+        &get_global_perfmon_collection()
         );
 
     standard_serializer_t serializer(
         standard_serializer_t::dynamic_config_t(),
         standard_serializer_t::private_dynamic_config_t(temp_file.name()),
-        NULL
+        &get_global_perfmon_collection()
         );
 
     mirrored_cache_static_config_t cache_static_config;

@@ -497,7 +497,7 @@ void connectivity_cluster_t::run_t::handle(
 connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     me(peer_id_t(generate_uuid())),
     current_run(NULL),
-    connectivity_collection("connectivity", NULL, true, true)
+    connectivity_collection("connectivity", &get_global_perfmon_collection(), true, true)
     { }
 
 connectivity_cluster_t::~connectivity_cluster_t() THROWS_NOTHING {
