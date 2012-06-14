@@ -58,6 +58,7 @@ module 'NamespaceView', ->
             super @model.get('computed_shards'), NamespaceView.Shard, 'table.shards tbody',
                 element_args:
                     namespace: @model
+            @render()
 
             @check_has_unsatisfiable_goals()
             issues.on 'all', @check_has_unsatisfiable_goals
@@ -70,14 +71,23 @@ module 'NamespaceView', ->
                         found_unsatisfiable_goals = true
                 if found_unsatisfiable_goals is false
                     @has_unsatisfiable_goals = false
-                    @.$('.blackout').toggleClass('blackout-active')
                     @.$el.toggleClass('namespace-shards-blackout')
+                    @.$('.blackout').toggleClass('blackout-active')
             else
                 for issue in issues.models
                     if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id')
                         @has_unsatisfiable_goals = true
-                        @.$('.blackout').toggleClass('blackout-active')
                         @.$el.toggleClass('namespace-shards-blackout')
+                        @.$('.blackout').toggleClass('blackout-active')
+            
+        render: =>
+            super()
+
+            if @has_unsatisfiable_goals is true
+                @.$('.blackout').addClass('blackout-active')
+            else
+                @.$('.blackout').removeClass('blackout-active')
+            return @
 
         change_sharding_scheme: (event) =>
             event.preventDefault()
