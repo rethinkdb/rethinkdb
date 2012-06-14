@@ -176,6 +176,7 @@ module 'NamespaceView', ->
         render: ->
             log_render '(rendering) modify replicas dialog (outer)'
             super(@compute_json())
+            $('#focus_num_replicas').focus()
 
         on_submit: =>
             super

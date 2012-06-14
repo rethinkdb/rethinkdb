@@ -46,6 +46,7 @@ module 'NamespaceView', ->
             else
                 log_action 'add namespace button clicked'
                 @add_namespace_dialog.render()
+                $('#focus_namespace_name').focus()
 
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'

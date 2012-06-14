@@ -166,6 +166,9 @@ module 'UIComponents', ->
                 modal_title: 'Rename ' + @item_type
                 btn_primary_text: 'Rename'
 
+            $('#focus_new_name').focus()
+            
+
         on_submit: ->
             super
             @old_name = @get_item_object().get('name')

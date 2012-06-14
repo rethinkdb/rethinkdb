@@ -497,7 +497,7 @@ module 'NamespaceView', ->
                 @reset_button_enable()
             else
                 @reset_button_disable()
-
+            $('#focus_num_shards').focus()
             return @
 
         render_only_shards: =>
