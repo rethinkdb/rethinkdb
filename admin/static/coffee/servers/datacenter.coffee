@@ -1,5 +1,12 @@
 # Datacenter view
 module 'DatacenterView', ->
+    class @NotFound extends Backbone.View
+        template: Handlebars.compile $('#datacenter_view-not_found-template').html()
+        initialize: (id) -> @id = id
+        render: =>
+            @.$el.html @template id: @id
+            return @
+
     # Container
     class @Container extends Backbone.View
         className: 'datacenter-view'
@@ -11,9 +18,15 @@ module 'DatacenterView', ->
 
         max_log_entries_to_render: 3
 
-        initialize: (id) =>
+        initialize: =>
             log_initial '(initializing) datacenter view: container'
-            @datacenter_uuid = id
+
+            # Panels for datacenter view
+            @title = new DatacenterView.Title(model: @model)
+            @profile = new DatacenterView.Profile(model: @model)
+            @data = new DatacenterView.Data(model: @model)
+            @stats_panel = new Vis.StatsPanel(@model.get_stats_for_performance)
+            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
         rename_datacenter: (event) ->
             event.preventDefault()
@@ -21,44 +34,8 @@ module 'DatacenterView', ->
             rename_modal.render()
             @title.update()
 
-        wait_for_model_noop: ->
-            return true
-
-        wait_for_model: =>
-            @model = datacenters.get(@datacenter_uuid)
-            if not @model
-                datacenters.off 'all', @render
-                datacenters.on 'all', @render
-                return false
-
-            # Model is finally ready, bind necessary handlers
-            datacenters.off 'all', @render
-
-
-            # Everything has been set up, we don't need this logic any
-            # more
-            @wait_for_model = @wait_for_model_noop
-
-            return true
-
-        render_empty: =>
-            @.$el.text 'Datacenter ' + @datacenter_uuid + ' is not available.'
-            return @
-
         render: =>
             log_render('(rendering) datacenter view: container')
-
-            if @wait_for_model() is false
-                return @render_empty()
-
-            @title = new DatacenterView.Title(@datacenter_uuid)
-            @profile = new DatacenterView.Profile(@datacenter_uuid)
-            @data = new DatacenterView.Data(@datacenter_uuid)
-
-            stats = @model.get_stats_for_performance
-            @performance_graph = new Vis.OpsPlot(stats)
-
-            @stats_panel = new Vis.StatsPanel(stats)
 
             @.$el.html @template
 
@@ -92,15 +69,12 @@ module 'DatacenterView', ->
 
             return @
 
-
         expand_profile: (event) ->
             event.preventDefault()
             @profile.more_link_should_be_displayed = false
             @.$('.more_machines').remove()
             @.$('.profile-expandable').css('overflow', 'auto')
             @.$('.profile-expandable').css('height', 'auto')
-
-
 
         close_alert: (event) ->
             event.preventDefault()
@@ -110,34 +84,31 @@ module 'DatacenterView', ->
     class @Title extends Backbone.View
         className: 'datacenter-info-view'
         template: Handlebars.compile $('#datacenter_view_title-template').html()
-        initialize: (uuid) =>
-            @uuid = uuid
-            @name = datacenters.get(@uuid).get('name')
+        initialize: =>
+            @name = @model.get('name')
             datacenters.on 'all', @update
 
         update: =>
-            if @name isnt datacenters.get(@uuid).get('name')
-                @name = datacenters.get(@uuid).get('name')
+            if @name isnt @model.get('name')
+                @name = @model.get('name')
                 @render()
 
         render: =>
-            json =
+            @.$el.html @template
                 name: @name
-            @.$el.html @template(json)
             return @
+
     class @Profile extends Backbone.View
         className: 'datacenter-info-view'
 
         template: Handlebars.compile $('#datacenter_view_profile-template').html()
-        initialize: (id) =>
-            @model = datacenters.get(id)
+        initialize: =>
 
             @model.on 'all', @render
             machines.on 'all', @render
             directory.on 'all', @render
 
             @more_link_should_be_displayed = true
-
 
         render: =>
             # Filter all the machines for those belonging to this datacenter
@@ -211,24 +182,19 @@ module 'DatacenterView', ->
 
             return @
 
-
-
     class @Data extends Backbone.View
         className: 'datacenter-data-view'
 
         template: Handlebars.compile $('#datacenter_view_data-template').html()
-        initialize: (id) =>
-            @model = datacenters.get(id)
+
+        initialize: =>
             @model.on 'all', @render
             machines.on 'all', @render
             directory.on 'all', @render
 
-
         render: =>
             # Filter all the machines for those belonging to this datacenter
             machines_in_datacenter = machines.filter (machine) => return machine.get('datacenter_uuid') is @model.get('id')
-
-
 
             # Data residing on this lovely datacenter
             _namespaces = []
@@ -278,8 +244,6 @@ module 'DatacenterView', ->
             @.$el.html @template(json)
 
             return @
-
-
 
     # DatacenterView.RecentLogEntry
     class @RecentLogEntry extends Backbone.View

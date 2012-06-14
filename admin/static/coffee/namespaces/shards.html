@@ -13,6 +13,7 @@
         <p><a class="change-sharding-scheme" href="#">Change sharding scheme</a></p>
     </div>
     <div class="change-shards"></div>
+    <div class="blackout"></div>
 </script>
 
 <script id="namespace_view-shard-template" type="text/x-handlebars-template">
@@ -158,9 +159,9 @@
       <label for="splitpoint">
         <p>Split point:</p>
       </label>
-      <input class="small" name="splitpoint" type="text" />
-      <a href="#" class="btn commit_split primary">Split</a>
-      <a href="#" class="btn cancel_split secondary">Cancel</a>
+      <input class="small splitpoint_input" name="splitpoint" type="text" />
+      <a href="#" class="btn cancel_split btn-secondary">Cancel</a>
+      <a href="#" class="btn commit_split btn-primary">Split</a>
       {{/if}}
       {{#if merging}}
       <p>

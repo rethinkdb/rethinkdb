@@ -38,4 +38,11 @@ boost::uuids::uuid str_to_uuid(const std::string& uuid) {
     return boost::uuids::string_generator()(uuid);
 }
 
-
+bool is_uuid(const std::string& str) {
+    try {
+        str_to_uuid(str);
+    } catch (...) {
+        return false;
+    }
+    return true;
+}
