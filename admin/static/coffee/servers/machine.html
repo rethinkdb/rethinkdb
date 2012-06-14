@@ -22,6 +22,10 @@
   <div class="section recent-log-entries"></div>
 </script>
 
+<script id="machine_view-not_found-template" type="text/x-handlebars-template">
+    <p>Machine {{id}} could not be found.</p>
+</script>
+
 <script id="machine_view_profile-template" type="text/x-handlebars-template">
   <h3 class="title">Machine profile</h3>
   <div class="section summary">
@@ -42,7 +46,6 @@
 <script id="machine_view_title-template" type="text/x-handlebars-template">
   <h1>Machine overview for {{name}}</h1> (<a href="#" class="rename-machine">rename</a>)
 </script>
-
 
 <script id="machine_view_data-template" type="text/x-handlebars-template">
     {{#unless data.namespaces}}

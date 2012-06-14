@@ -1,4 +1,3 @@
-
 # Namespace view
 module 'NamespaceView', ->
     # Modifying replica machines

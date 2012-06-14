@@ -579,7 +579,7 @@ $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(COFFEE_SOURCES)
 ifeq ($(VERBOSE),0)
 	@echo "    COFFEE $@"
 endif
-	$(QUIET) cat $+ | coffee -bp --stdio > $@
+	$(QUIET) coffee_concatenated=`mktemp /tmp/cluster-min.XXX.coffee`; cat $+ > $$coffee_concatenated; (coffee -bp --stdio < $$coffee_concatenated > $@ && rm -f $$coffee_concatenated) || (rm -f $@; echo "COFFEE failed, inspect $$coffee_concatenated" >&2; false)
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
