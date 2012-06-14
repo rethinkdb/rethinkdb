@@ -90,6 +90,11 @@ struct rdb_protocol_t {
     struct point_write_response_t {
         point_write_result_t result;
 
+        point_write_response_t() { }
+        explicit point_write_response_t(point_write_result_t _result)
+            : result(_result)
+        { }
+
         RDB_MAKE_ME_SERIALIZABLE_1(result);
     };
 
