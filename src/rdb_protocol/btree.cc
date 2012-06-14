@@ -5,6 +5,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "btree/backfill.hpp"
+#include "btree/erase_range.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
 
@@ -129,3 +130,39 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t 
     apply_keyvalue_change(txn, &kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
     //                                                                     ^-- That means the key isn't expired.
 }
+
+void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
+                       bool left_key_supplied, const store_key_t& left_key_exclusive,
+                       bool right_key_supplied, const store_key_t& right_key_inclusive,
+                       transaction_t *txn, superblock_t *superblock) {
+
+    value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
+    value_sizer_t<void> *sizer = &rdb_sizer;
+
+    struct : public value_deleter_t {
+        void delete_value(transaction_t *txn, void *value) {
+            blob_t blob(static_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
+            blob.clear(txn);
+        }
+    } deleter;
+
+    btree_erase_range_generic(sizer, slice, tester, &deleter,
+        left_key_supplied ? left_key_exclusive.btree_key() : NULL,
+        right_key_supplied ? right_key_inclusive.btree_key() : NULL,
+        txn, superblock);
+}
+
+void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
+                       const key_range_t &keys,
+                       transaction_t *txn, superblock_t *superblock) {
+    store_key_t left_exclusive(keys.left);
+    store_key_t right_inclusive(keys.right.key);
+
+    bool left_key_supplied = left_exclusive.decrement();
+    bool right_key_supplied = !keys.right.unbounded;
+    if (right_key_supplied) {
+        right_inclusive.decrement();
+    }
+    rdb_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock);
+}
+
