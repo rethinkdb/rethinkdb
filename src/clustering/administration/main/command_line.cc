@@ -309,10 +309,23 @@ po::options_description get_rethinkdb_porcelain_options() {
     return desc;
 }
 
+int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
+    try {
+        po::store(po::parse_command_line(argc, argv, options), *vm);
+        po::notify(*vm);
+        return 0;
+    } catch (po::unknown_option& ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return 1;
+    }
+}
+
 int main_rethinkdb_create(int argc, char *argv[]) {
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, get_rethinkdb_create_options()), vm);
-    po::notify(vm);
+    int res = parse_commands(argc, argv, &vm, get_rethinkdb_create_options());
+    if (res) {
+        return res;
+    }
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string machine_name = vm["name"].as<std::string>();
@@ -325,8 +338,10 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
 int main_rethinkdb_serve(int argc, char *argv[]) {
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, get_rethinkdb_serve_options()), vm);
-    po::notify(vm);
+    int res = parse_commands(argc, argv, &vm, get_rethinkdb_serve_options());
+    if (res) {
+        return res;
+    }
 
     std::string filepath = vm["directory"].as<std::string>();
     std::vector<host_and_port_t> joins;
@@ -390,7 +405,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result));
 
     } catch (std::exception& ex) {
-        printf("%s\n", ex.what());
+        fprintf(stderr, "%s\n", ex.what());
         result = false;
     }
 
@@ -399,8 +414,10 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
 int main_rethinkdb_proxy(int argc, char *argv[]) {
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, get_rethinkdb_proxy_options()), vm);
-    po::notify(vm);
+    int res = parse_commands(argc, argv, &vm, get_rethinkdb_proxy_options());
+    if (res) {
+        return res;
+    }
 
     if (!vm.count("join")) {
         printf("No --join option(s) given. A proxy needs to connect to something!\n"
@@ -432,8 +449,10 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, get_rethinkdb_porcelain_options()), vm);
-    po::notify(vm);
+    int res = parse_commands(argc, argv, &vm, get_rethinkdb_porcelain_options());
+    if (res) {
+        return res;
+    }
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string machine_name = vm["name"].as<std::string>();
