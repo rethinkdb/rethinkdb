@@ -52,11 +52,42 @@ module 'NamespaceView', ->
 
         events: ->
             'click .change-sharding-scheme': 'change_sharding_scheme'
+        has_unsatisfiable_goals: false
 
         initialize: ->
             super @model.get('computed_shards'), NamespaceView.Shard, 'table.shards tbody',
                 element_args:
                     namespace: @model
+            @render()
+
+            @check_has_unsatisfiable_goals()
+            issues.on 'all', @check_has_unsatisfiable_goals
+
+        check_has_unsatisfiable_goals: =>
+            if @has_unsatisfiable_goals is true
+                found_unsatisfiable_goals = false
+                for issue in issues.models
+                    if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id')
+                        found_unsatisfiable_goals = true
+                if found_unsatisfiable_goals is false
+                    @has_unsatisfiable_goals = false
+                    @.$el.toggleClass('namespace-shards-blackout')
+                    @.$('.blackout').toggleClass('blackout-active')
+            else
+                for issue in issues.models
+                    if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id')
+                        @has_unsatisfiable_goals = true
+                        @.$el.toggleClass('namespace-shards-blackout')
+                        @.$('.blackout').toggleClass('blackout-active')
+            
+        render: =>
+            super()
+
+            if @has_unsatisfiable_goals is true
+                @.$('.blackout').addClass('blackout-active')
+            else
+                @.$('.blackout').removeClass('blackout-active')
+            return @
 
         change_sharding_scheme: (event) =>
             event.preventDefault()
@@ -74,15 +105,23 @@ module 'NamespaceView', ->
 
             @datacenter_list = new NamespaceView.ShardDatacenterList datacenters, NamespaceView.ShardDatacenter, 'div.datacenters',
                 filter: (datacenter) =>
+                    return true
+                ###
+                filter: (datacenter) =>
                     for datacenter_uuid of @model.get('secondary_uuids')
                         return true if datacenter.get('id') is datacenter_uuid
                     if @model.get('primary_uuid')
                         return true if datacenter.get('id') is machines.get(@model.get('primary_uuid')).get('datacenter_uuid')
+                ###
                 element_args:
                     shard: @model
                     namespace: @namespace
 
+              
+
             @namespace.on 'change:key_distr_sorted', @render_summary
+            
+            @namespace.on 'change:blueprint', @reset_datacenter_list #TODO bind to peers_roles
 
         render: =>
             @.$el.html @template({})
@@ -96,8 +135,12 @@ module 'NamespaceView', ->
                 shard_stats:
                     rows_approx: @namespace.compute_shard_rows_approximation(@model.get('shard_boundaries'))
 
+        reset_datacenter_list: =>
+            @datacenter_list.render()
+
     class @ShardDatacenterList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_datacenter_list-template').html()
+
             
 
     class @ShardDatacenter extends UIComponents.CollapsibleListElement
@@ -138,6 +181,10 @@ module 'NamespaceView', ->
             directory.on 'all', @render_summary
             @namespace.on 'change:replica_affinities', @reset_list
             @namespace.on 'change:secondary_pinnings', @reset_list
+            @namespace.on 'change:blueprint', @reset_list
+
+
+
 
         reset_list: =>
             @machine_list.reset_element_views()
@@ -145,9 +192,10 @@ module 'NamespaceView', ->
             @render()
 
         render: =>
-            @.$el.html @template({})
-            @render_summary()
-            @.$('.machine-list').html @machine_list.render().el
+            if @machine_list.element_views.length > 0 # We don't display empty datacenter here.
+                @.$el.html @template({})
+                @render_summary()
+                @.$('.machine-list').html @machine_list.render().el
 
             super
 
@@ -158,6 +206,7 @@ module 'NamespaceView', ->
                 status: DataUtils.get_datacenter_reachability(@model.get('id'))
 
             @.$('.datacenter.summary').html @summary_template json
+
 
     class @ShardMachineList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_machine_list-template').html()
