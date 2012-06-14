@@ -549,6 +549,7 @@ module 'NamespaceView', ->
             'click .merge': 'merge'
             'click .commit_merge': 'commit_merge'
             'click .cancel_merge': 'cancel_merge'
+            'keypress .splitpoint_input': 'check_if_enter_press'
 
         initialize: (namespace, shard, parent_modal) ->
             @namespace = namespace
@@ -560,6 +561,11 @@ module 'NamespaceView', ->
                 shard: @shard
 
             return @
+
+        check_if_enter_press: (event) =>
+            if event.which is 13
+                event.preventDefault()
+                @commit_split(event)
 
         split: (e) ->
             shard_index = $(e.target).data 'index'
