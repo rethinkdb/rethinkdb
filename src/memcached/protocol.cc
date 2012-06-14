@@ -135,6 +135,17 @@ memcached_protocol_t::read_t memcached_protocol_t::read_t::shard(const hash_regi
 
 /* `memcached_protocol_t::read_t::unshard()` */
 
+class key_with_data_buffer_less_t {
+public:
+    bool operator()(const key_with_data_buffer_t& x, const key_with_data_buffer_t& y) {
+        int cmp = x.key.compare(y.key);
+
+        // We should never have equal keys.
+        rassert(cmp != 0);
+        return cmp < 0;
+    }
+};
+
 struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
     std::vector<memcached_protocol_t::read_response_t> &bits;
 
@@ -144,6 +155,41 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
         return memcached_protocol_t::read_response_t(boost::get<get_result_t>(bits[0].result));
     }
     memcached_protocol_t::read_response_t operator()(rget_query_t rget) {
+        std::vector<key_with_data_buffer_t> pairs;
+        for (int i = 0; i < int(bits.size()); ++i) {
+            rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
+            pairs.insert(pairs.end(), bit->pairs.begin(), bit->pairs.end());
+        }
+
+        std::sort(pairs.begin(), pairs.end(), key_with_data_buffer_less_t());
+
+        size_t cumulative_size = 0;
+        int ix = 0;
+        for (int e = std::min<int>(rget.maximum, pairs.size());
+             ix < e && cumulative_size < rget_max_chunk_size;
+             ++ix) {
+            cumulative_size += estimate_rget_result_pair_size(pairs[ix]);
+        }
+
+        rget_result_t result;
+
+        // TODO: This truncated value is based on the code below, and,
+        // what if we also reached rget.maximum?  What if we reached
+        // the end of the pairs?  We shouldn't be truncated then, no?
+        result.truncated = (cumulative_size >= rget_max_chunk_size);
+
+        pairs.resize(ix);
+        result.pairs.swap(pairs);
+
+        return memcached_protocol_t::read_response_t(result);
+
+
+        // This code below was the pre-hash-sharding rget unsharding
+        // code.  Now we go with something quite simpler, and dumber, above.  If
+        // we split the unsharding code into separate hash and key
+        // unsharding functions, we will want this code back.
+
+#if 0  // pre-hash-sharding code.
         std::map<store_key_t, rget_result_t *> sorted_bits;
         for (int i = 0; i < int(bits.size()); i++) {
             rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
@@ -180,6 +226,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
             result.truncated = false;
         }
         return memcached_protocol_t::read_response_t(result);
+#endif  // 0, pre-hash-sharding-code.
     }
     memcached_protocol_t::read_response_t operator()(UNUSED distribution_get_query_t dget) {
         rassert(bits.size() > 0);
