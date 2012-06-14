@@ -33,6 +33,14 @@ Handlebars.registerHelper 'links_to_machines', (machines) ->
         out += ", " if i isnt machines.length-1
     return out
 
+#Returns a list of links to namespaces
+Handlebars.registerHelper 'links_to_namespaces', (namespaces) ->
+    out = ""
+    for i in [0...namespaces.length]
+        out += '<p><a href="#namespaces/'+namespaces[i].id+'">'+namespaces[i].name+'</a></p>'
+        out += ", " if i isnt namespaces.length-1
+    return out
+
 #Returns a list of links to machines and namespaces
 Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
     out = ""

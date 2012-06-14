@@ -128,8 +128,9 @@ module 'NamespaceView', ->
             for machine in machines.models
                 if machine.get('stats')? and @model.get('id') of machine.get('stats')
                     stats = machine.get('stats')
-                    data_in_memory += stats.cache.block_size * stats.cache.blocks_in_memory
-                    data_total += stats.cache.block_size * stats.cache.blocks_total
+                    if stats.cache?
+                        data_in_memory += stats.cache.block_size * stats.cache.blocks_in_memory
+                        data_total += stats.cache.block_size * stats.cache.blocks_total
 
             json =
                 data_in_memory_percent: Math.floor(data_in_memory/data_total*100)

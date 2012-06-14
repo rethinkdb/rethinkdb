@@ -19,7 +19,12 @@ declare_client_connected = ->
 
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
-        if data
+        if data isnt null
+            if data.protocol? and data.protocol is 'memcached'  # We check that the machines in the blueprint do exist
+                if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
+                    for machine_uuid of collection_data[id].blueprint.peers_roles
+                        if !machines.get(machine_uuid)?
+                            delete collection_data[id].blueprint.peers_roles[machine_uuid]
             if collection.get(id)
                 collection.get(id).set(data)
             else
@@ -28,7 +33,6 @@ apply_to_collection = (collection, collection_data) ->
         else
             if collection.get(id)
                 collection.remove(id)
-
 
 add_protocol_tag = (data, tag) ->
     f = (unused,id) ->
@@ -62,6 +66,14 @@ apply_diffs = (updates) ->
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "dummy"))
             when 'memcached_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "memcached"))
+                ###
+                for id, data of collection_data
+                    if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
+                        for machine_uuid of collection_data[id].blueprint.peers_roles
+                            if !machines.get(machine_uuid)?
+                                delete collection_data[id].blueprint.peers_roles[machine_uuid]
+                ###
+
             when 'datacenters'
                 apply_to_collection(datacenters, collection_data)
             when 'machines'

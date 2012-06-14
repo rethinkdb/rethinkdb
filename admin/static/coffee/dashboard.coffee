@@ -103,11 +103,42 @@ module 'DashboardView', ->
                 if status.masters_offline.length > 0
                     status.num_masters_offline = status.masters_offline.length
                     status.has_availability_problems = true
+                    status.has_masters_down = true
                 if status.num_conflicts_name or status.num_conflicts_vector > 0
                     status.num_conflicts = status.num_conflicts_name+status.num_conflicts_vector
                     status.has_conflicts_problems = true
 
 
+            # Check if a namespace doesn't have a master
+            namespaces_without_masters = []
+            for namespace in namespaces.models
+                peers = namespace.get('blueprint').peers_roles
+                if peers?
+                    keys = {}
+                    for peer_id of peers
+                        peer = peers[peer_id]
+                        for key, role of peer
+                            if role is 'role_primary'
+                                keys[key] = true
+                            else
+                                if !keys[key]? or keys[key] isnt true
+                                    keys[key] = false
+                    for key of keys
+                        if keys[key] is false
+                            namespaces_without_masters.push
+                                id: namespace.get('id')
+                                name: namespace.get('name')
+                else
+                    namespaces_without_masters.push
+                        id: namespace.get('id')
+                        name: namespace.get('name')
+                console.log keys
+            if namespaces_without_masters.length > 0
+                status.has_availability_problems = true
+                status.has_namespaces_without_masters = true
+                status.num_namespaces_without_masters = namespaces_without_masters.length
+                status.namespaces_without_masters = namespaces_without_masters
+ 
             # checking for redundancy
             status.num_replicas = issues_redundancy.num_replicas
             if issues_redundancy.length > 0
