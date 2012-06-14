@@ -99,7 +99,7 @@ bool serve_(
     admin_tracker_t admin_tracker(
         semilattice_manager_cluster.get_root_view(), directory_read_manager.get_root_view());
 
-    perfmon_collection_t proc_stats_collection("proc", NULL, true, true);
+    perfmon_collection_t proc_stats_collection("proc", &get_global_perfmon_collection(), true, true);
     proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
 
     boost::scoped_ptr<initial_joiner_t> initial_joiner;
@@ -112,7 +112,7 @@ bool serve_(
         }
     }
 
-    perfmon_collection_repo_t perfmon_repo(NULL);
+    perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
     // Reactor drivers
     boost::scoped_ptr<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!i_am_a_server ? NULL :

@@ -145,7 +145,7 @@ public:
         blueprint_watchable(initial_blueprint),
         reactor(&r->mailbox_manager, this,
               r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
-              r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), store_view),
+              r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), store_view, &get_global_perfmon_collection()),
         reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable),
         master_directory_copier(&test_cluster_directory_t<protocol_t>::master_directory, reactor.get_master_directory(), &r->our_directory_variable)
     {

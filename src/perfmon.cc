@@ -54,7 +54,7 @@ perfmon_result_t::~perfmon_result_t() {
 
 /* The var list keeps track of all of the perfmon_t objects. */
 
-perfmon_collection_t &get_global_collection() {
+perfmon_collection_t &get_global_perfmon_collection() {
     /* Getter function so that we can be sure that var_list is initialized before it is needed,
     as advised by the C++ FAQ. Otherwise, a perfmon_t might be initialized before the var list
     was initialized. */
@@ -81,17 +81,17 @@ perfmon_t objects while perfmon_get_stats is active. */
 
 void co_perfmon_visit(int thread, void *data) {
     on_thread_t moving(thread);
-    get_global_collection().visit_stats(data);
+    get_global_perfmon_collection().visit_stats(data);
 }
 
 void perfmon_get_stats(perfmon_result_t *dest) {
     void *data;
 
-    data = get_global_collection().begin_stats();
+    data = get_global_perfmon_collection().begin_stats();
 
     pmap(get_num_threads(), boost::bind(&co_perfmon_visit, _1, data));
 
-    get_global_collection().end_stats(data, dest);
+    get_global_perfmon_collection().end_stats(data, dest);
 }
 
 /* Constructor and destructor register and deregister the perfmon. */
@@ -105,7 +105,7 @@ perfmon_t::perfmon_t(perfmon_collection_t *_parent, bool _insert)
         // This should be investigated.
         spinlock_acq_t acq(&get_var_lock());
         if (!parent) {
-            get_global_collection().add(this);
+            crash("Parent can't be NULL when adding a perfmon to a collection");
         } else {
             parent->add(this);
         }
@@ -116,7 +116,7 @@ perfmon_t::~perfmon_t() {
     if (insert) {
         spinlock_acq_t acq(&get_var_lock());
         if (!parent) {
-            get_global_collection().remove(this);
+            crash("Parent can't be NULL when adding a perfmon to a collection");
         } else {
             parent->remove(this);
         }
