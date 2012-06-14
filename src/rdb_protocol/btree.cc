@@ -33,7 +33,7 @@ bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value
     return blob::ref_fits(bs, data_length, value->value_ref(), blob::btree_maxreflen);
 }
 
-point_read_response_t db_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock) {
+point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
 
@@ -116,4 +116,16 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_time
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range);
     value_sizer_t<rdb_value_t> sizer(slice->cache()->get_block_size());
     do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p);
+}
+
+void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
+    block_size_t block_size = slice->cache()->get_block_size();
+
+    keyvalue_location_t<rdb_value_t> kv_location;
+
+    find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
+    kv_location.value.reset();
+    null_key_modification_callback_t<rdb_value_t> null_cb;
+    apply_keyvalue_change(txn, &kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
+    //                                                                     ^-- That means the key isn't expired.
 }

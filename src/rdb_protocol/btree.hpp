@@ -113,7 +113,7 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_time
                     transaction_t *txn, superblock_t *superblock, traversal_progress_t *p);
 
 
-void rdb_delete(const store_key_t &key, bool dont_put_in_delete_queue, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock);
+void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock);
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                                  const key_range_t &keys,

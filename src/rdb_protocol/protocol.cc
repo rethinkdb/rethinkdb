@@ -461,7 +461,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
     receive_backfill_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, signal_t *interruptor_) : btree(btree_), txn(txn_), superblock(superblock_), interruptor(interruptor_) { }
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         // FIXME: we ignored delete_key.recency here. Should we use it in place of repli_timestamp_t::invalid?
-        rdb_delete(delete_key.key, true, btree, repli_timestamp_t::invalid, txn, superblock);
+        rdb_delete(delete_key.key, btree, repli_timestamp_t::invalid, txn, superblock);
     }
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         range_key_tester_t tester(delete_range.range);
