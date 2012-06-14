@@ -132,7 +132,7 @@ module 'DashboardView', ->
                     namespaces_without_masters.push
                         id: namespace.get('id')
                         name: namespace.get('name')
-                console.log keys
+
             if namespaces_without_masters.length > 0
                 status.has_availability_problems = true
                 status.has_namespaces_without_masters = true
