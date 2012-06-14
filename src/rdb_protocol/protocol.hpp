@@ -15,7 +15,7 @@
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/region.hpp"
+#include "memcached/region.hpp" //TODO move these to a common place
 
 enum point_write_result_t {
     STORED,
