@@ -70,10 +70,8 @@ module 'ResolveIssuesView', ->
                 success: set_issues
                 async: false
             
-            ### resolve_issues_view doesn't exist
             # rerender issue view (just the issues, not the whole thing)
-            #window.app.resolve_issues_view.render_issues()
-            ###
+            window.app.resolve_issues.render_issues()
             
             # notify the user that we succeeded
             $('#user-alert-space').append @alert_tmpl
@@ -127,7 +125,7 @@ module 'ResolveIssuesView', ->
                 async: false
 
             # rerender issue view (just the issues, not the whole thing)
-            window.app.resolve_issues_view.render_issues()
+            window.app.resolve_issues.render_issues()
 
             # notify the user that we succeeded
             $('#user-alert-space').append @alert_tmpl
