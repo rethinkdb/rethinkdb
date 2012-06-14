@@ -742,9 +742,6 @@ bool memcached_protocol_t::store_t::send_backfill(
     if (should_backfill(metainfo)) {
         std::vector<std::pair<hash_region_t<key_range_t>, state_timestamp_t> > regions(start_point.begin(), start_point.end());
 
-        // TODO(sam): I don't know if regions could be empty.  I think not.
-        rassert(regions.size() > 0);
-
         if (regions.size() > 0) {
             memcached_backfill_callback_t callback(chunk_fun);
 
