@@ -133,6 +133,64 @@ module 'ResolveIssuesView', ->
             $('#user-alert-space').append @alert_tmpl
                 final_value: @final_value
 
+
+    class @ResolveUnsatisfiableGoal extends UIComponents.AbstractModal
+        template: Handlebars.compile $('#resolve_unsatisfiable_goals_modal-template').html()
+        alert_tmpl: Handlebars.compile $('#resolved_issues_unsatisfiable_goals-template').html()
+        class: 'resolve-vclock-modal'
+
+        initialize: (namespace, datacenters_with_issues)->
+            log_initial '(initializing) modal dialog: resolve vclock'
+            @namespace = namespace
+            @datacenters_with_issues = datacenters_with_issues
+            super
+
+        render: (data)->
+            log_render '(rendering) resolve unsatisfiable goal'
+            super 
+                datacenters_with_issues: @datacenters_with_issues
+                modal_title: "Lower number of replicas"
+
+        on_submit: ->
+            super
+            replica_affinities_to_send = {}
+            ack_expectations_to_send = {}
+
+            for datacenter in @datacenters_with_issues
+                replica_affinities_to_send[datacenter.datacenter_id] = datacenter.num_machines
+   
+                ack_expectations_to_send[datacenter.datacenter_id] = @namespace.get('ack_expectations')[datacenter.datacenter_id]
+                if ack_expectations_to_send[datacenter.datacenter_id] > replica_affinities_to_send[datacenter.datacenter_id]
+                    ack_expectations_to_send[datacenter.datacenter_id] = replica_affinities_to_send[datacenter.datacenter_id]
+
+                if @namespace.get('primary_uuid') is datacenter.datacenter_id # Since primary is a replica, we lower it by 1 if we are dealing with the primary datacenter
+                    replica_affinities_to_send[datacenter.datacenter_id]--
+
+
+            $.ajax
+                processData: false
+                url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                type: 'POST'
+                data: JSON.stringify
+                    replica_affinities: replica_affinities_to_send
+                    ack_expectations: ack_expectations_to_send
+                success: @on_success
+
+
+        on_success: ->
+            super
+            # Grab the new set of issues (so we don't have to wait)
+            $.ajax
+                url: '/ajax/issues'
+                success: set_issues
+                async: false
+
+            # rerender issue view (just the issues, not the whole thing)
+            #window.app.resolve_issues_view.render_issues()
+
+            # notify the user that we succeeded
+            $('#user-alert-space').append @alert_tmpl
+
     # ResolveIssuesView.Issue
     class @Issue extends Backbone.View
         className: 'issue-container'
@@ -262,7 +320,7 @@ module 'ResolveIssuesView', ->
 
             # bind resolution events
             _.each @contestants, (contestant) =>
-                @.$('#resolve_' + contestant.contestant_id).off 'click'
+                @.$('#resolve_' + contestant.contestant_id).off 'click' #TODO turn off later?
                 @.$('#resolve_' + contestant.contestant_id).click (event) =>
                     event.preventDefault()
                     resolve_modal = new ResolveIssuesView.ResolveVClockModal
@@ -275,8 +333,51 @@ module 'ResolveIssuesView', ->
                 critical: @model.get('critical')
                 namespace_id: @model.get('namespace_id')
                 namespace_name: namespaces.get(@model.get('namespace_id')).get('name')
-            @.$el.html _template(json)
+                datacenters_with_issues: []
 
+            namespace = namespaces.get(@model.get('namespace_id'))
+            
+            # Check primary
+            num_replicas = namespace.get('replica_affinities')[namespace.get('primary_uuid')]
+            if not num_replicas? # replica affinities may be missing for new namespaces
+                num_replicas = 0
+            num_replicas++ # The master is also a replica
+            num_machines = DataUtils.get_datacenter_machines(namespace.get('primary_uuid')).length
+            if num_machines < num_replicas
+                json.datacenters_with_issues.push
+                    datacenter_id: namespace.get('primary_uuid')
+                    datacenter_name: datacenters.get(namespace.get('primary_uuid')).get('name')
+                    num_replicas: num_replicas
+                    num_machines: num_machines
+                primary_replica_count = namespace.get('replica_affinities')[namespace.get('primary_uuid')]
+                if not primary_replica_count? # Replica affinities may be missing for new namespaces
+                    primary_replica_count = 0
+
+                if json.datacenters_with_issues[json.datacenters_with_issues.length-1].num_machines > primary_replica_count-1 # -1 for the primary
+                    json.datacenters_with_issues[json.datacenters_with_issues.length-1].change_ack = true
+
+            # Check secondaries
+            secondary_affinities = {}
+            _.each namespace.get('replica_affinities'), (num_replicas, id) =>
+                if id != namespace.get('primary_uuid') and num_replicas > 0
+                    num_machines = DataUtils.get_datacenter_machines(id).length
+                    if num_machines < num_replicas
+                        json.datacenters_with_issues.push
+                            datacenter_id: id
+                            datacenter_name: datacenters.get(id).get('name')
+                            num_replicas: num_replicas
+                            num_machines: num_machines
+
+                        if DataUtils.get_ack_expectations(namespace.get('id'), id) > json.datacenters_with_issues[json.datacenters_with_issues.length-1].num_machines
+                            json.datacenters_with_issues[json.datacenters_with_issues.length-1].change_ack = true
+ 
+
+            @.$el.html _template(json)
+            # bind resolution events
+            @.$('.solve_unsatisfiable_goals').click (event) =>
+                event.preventDefault()
+                resolve_modal = new ResolveIssuesView.ResolveUnsatisfiableGoal namespace, json.datacenters_with_issues
+                resolve_modal.render()
 
         render_machine_ghost: (_template) ->
             # render

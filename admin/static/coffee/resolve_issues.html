@@ -35,6 +35,29 @@
   </div>
 </script>
 
+<script id="resolve_unsatisfiable_goals_modal-template" type="text/x-handlebars-template">
+    <p>Are you sure you want to lower the number of replicas for the datacenter</p>
+    <ul>
+    {{#each datacenters_with_issues}}
+    <li>
+        <a href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> from <strong>{{this.num_replicas}}</strong> to <strong>{{num_machines}}</strong>
+        {{#if this.change_ack}}
+        <br />Warning: The number of acks will be lowered too.
+        {{/if}}
+    </li>
+    {{/each}}
+    <ul>
+</script>
+
+
+<script id="resolved_issues_unsatisfiable_goals-template" type="text/x-handlebars-template">
+  <div class="alert" data-alert="alert">
+    <a class="close" href="#">&times;</a>
+    <p>You successfully solve the issue. This namespace has now satisfiable goals.<br/>Please verify that the number of acks has the good value.</p>
+  </div>
+</script>
+
+
 <script id="resolve_issues-machine_down-template" type="text/x-handlebars-template">
   <div class="issue {{#if critical }}critical{{/if}}">
     <div class="header">
@@ -137,6 +160,12 @@
         </div>
         <hr />
         <h4>The goals you have specified are impossible for the namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a></h4>
+        {{#each datacenters_with_issues}}
+        <p class="description">You have required {{this.num_replicas}} {{pluralize_noun "replica" this.num_replicas}} for the datacenter <a href="#datacenters/{{this.datacenter_id}}">{{this.datacenter_name}}</a> but you only have {{num_machines}} {{pluralize_noun "server" this.num_machines}} available.</p>
+        {{/each}}
+        <p class="description">To solve this issue, you can lower the number of replicas or connect a new machine to the datacenter.</p>
+
+        <p><a class="btn large danger solve_unsatisfiable_goals">Lower the nunber of replicas</a></p>
   </div>
 </script>
 
@@ -154,8 +183,6 @@
         <h4>A machine was declared dead, but is connected to the cluster.</h4>
         <p class="description">Machine's id: <a href="#machines/{{machine_id}}">{{machine_name}}</a><br/>
         Please manually remove it (by killing the rethinkDB instance for instance)</p>
-        
-        </h4>
   </div>
 </script>
 
