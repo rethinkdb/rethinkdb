@@ -1,5 +1,12 @@
 # Namespace view
 module 'NamespaceView', ->
+    class @NotFound extends Backbone.View
+        template: Handlebars.compile $('#namespace_view-not_found-template').html()
+        initialize: (id) -> @id = id
+        render: =>
+            @.$el.html @template id: @id
+            return @
+
     # Container for the entire namespace view
     class @Container extends Backbone.View
         className: 'namespace-view'
@@ -8,13 +15,11 @@ module 'NamespaceView', ->
             'click a.rename-namespace': 'rename_namespace'
             'click .close': 'close_alert'
 
-        initialize: (id) =>
+        initialize: ->
             log_initial '(initializing) namespace view: container'
-            @namespace_uuid = id
-            @model = namespaces.get(id)
 
             # Panels for namespace view
-            @title = new NamespaceView.Title(@namespace_uuid)
+            @title = new NamespaceView.Title(model: @model)
             @profile = new NamespaceView.Profile(model: @model)
             @replicas = new NamespaceView.Replicas(model: @model)
             @shards = new NamespaceView.Sharding(model: @model)
@@ -55,27 +60,23 @@ module 'NamespaceView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
-
     # NamespaceView.Title
     class @Title extends Backbone.View
         className: 'namespace-info-view'
         template: Handlebars.compile $('#namespace_view_title-template').html()
-        initialize: (uuid) =>
-            @uuid = uuid
-            @name = namespaces.get(@uuid).get('name')
+        initialize: ->
+            @name = @model.get('name')
             namespaces.on 'all', @update
         
         update: =>
-            if @name isnt namespaces.get(@uuid).get('name')
-                @name = namespaces.get(@uuid).get('name')
+            if @name isnt @model.get('name')
+                @name = @model.get('name')
                 @render()
 
         render: =>
-            json =
+            @.$el.html @template
                 name: @name
-            @.$el.html @template(json)
             return @
-
 
     # Profile view
     class @Profile extends Backbone.View
@@ -105,7 +106,6 @@ module 'NamespaceView', ->
             @.$el.html @template json
 
             return @
-
 
     class @StatsPanel extends Backbone.View
         className: 'namespace-stats'
