@@ -126,6 +126,41 @@
     </ul>
   </div>
 </script>
+
+<script id="resolve_issues-unsatisfiable_goals-template" type="text/x-handlebars-template">
+    <div class="issue {{#if critical }}critical{{/if}}">
+        <div class="header">
+            <h3 class="title">Unsatisfiable goals</h3>
+            {{#if datetime}}
+            <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+        {{/if}}
+        </div>
+        <hr />
+        <h4>The goals you have specified are impossible for the namespace <a href="#namespaces/{{namespace_id}}">{{namespace_name}}</a></h4>
+  </div>
+</script>
+
+
+
+<script id="resolve_issues-machine_ghost-template" type="text/x-handlebars-template">
+    <div class="issue {{#if critical }}critical{{/if}}">
+        <div class="header">
+            <h3 class="title">Dead machine is connected</h3>
+            {{#if datetime}}
+            <p class="datetime"><abbr class="timeago" title="{{datetime}}">on {{prettify_date datetime}}</abbr></p>
+        {{/if}}
+        </div>
+        <hr />
+        <h4>A machine was declared dead, but is connected to the cluster.</h4>
+        <p>Machine's id: <a href="#machines/{{machine_id}}">{{machine_name}}</a><br/>
+        Please manually remove it (by killing the rethinkDB instance for instance)</p>
+        
+        </h4>
+  </div>
+</script>
+
+
+
 <script id="resolve_issues-unknown-template" type="text/x-handlebars-template">
   <div class="issue {{#if critical }}critical{{/if}}">
     <div class="header">

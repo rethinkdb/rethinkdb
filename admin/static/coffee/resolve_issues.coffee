@@ -141,6 +141,8 @@ module 'ResolveIssuesView', ->
             'NAME_CONFLICT_ISSUE': Handlebars.compile $('#resolve_issues-name_conflict-template').html()
             'LOGFILE_WRITE_ERROR': Handlebars.compile $('#resolve_issues-logfile_write-template').html()
             'VCLOCK_CONFLICT': Handlebars.compile $('#resolve_issues-vclock_conflict-template').html()
+            'UNSATISFIABLE_GOALS': Handlebars.compile $('#resolve_issues-unsatisfiable_goals-template').html()
+            'MACHINE_GHOST': Handlebars.compile $('#resolve_issues-machine_ghost-template').html()
 
         unknown_issue_template: Handlebars.compile $('#resolve_issues-unknown-template').html()
 
@@ -229,6 +231,10 @@ module 'ResolveIssuesView', ->
                 declare_dead_modal = new ResolveIssuesView.DeclareMachineDeadModal
                 declare_dead_modal.render machines.get(@model.get('location'))
 
+            @.$el.html _template(json)
+
+
+
         render_vclock_conflict: (_template) ->
             get_resolution_url = =>
                 return @model.get('object_type') + 's/' + @model.get('object_id') + '/' + @model.get('field') + '/resolve'
@@ -262,6 +268,25 @@ module 'ResolveIssuesView', ->
                     resolve_modal = new ResolveIssuesView.ResolveVClockModal
                     resolve_modal.render contestant.value, get_resolution_url()
 
+        render_unsatisfiable_goals: (_template) ->
+            # render
+            json =
+                datetime: iso_date_from_unix_time @model.get('time')
+                critical: @model.get('critical')
+                namespace_id: @model.get('namespace_id')
+                namespace_name: namespaces.get(@model.get('namespace_id')).get('name')
+            @.$el.html _template(json)
+
+
+        render_machine_ghost: (_template) ->
+            # render
+            json =
+                datetime: iso_date_from_unix_time @model.get('time')
+                critical: @model.get('critical')
+                machine_id: @model.get('ghost')
+                machine_name: @model.get('ghost')
+            @.$el.html _template(json)
+
         render_unknown_issue: (_template) ->
             json =
                 issue_type: @model.get('type')
@@ -279,6 +304,10 @@ module 'ResolveIssuesView', ->
                     @render_logfile_write_issue _template
                 when 'VCLOCK_CONFLICT'
                     @render_vclock_conflict _template
+                when 'UNSATISFIABLE_GOALS'
+                    @render_unsatisfiable_goals _template
+                when 'MACHINE_GHOST'
+                    @render_machine_ghost _template
                 else
                     @render_unknown_issue @unknown_issue_template
 
