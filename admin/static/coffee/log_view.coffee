@@ -15,13 +15,14 @@ module 'LogView', ->
         initialize: ->
             log_initial '(initializing) events view: container'
             @log_entries = new LogEntries
+            console.log @log_entries
 
             setInterval @check_for_new_updates, updateInterval
             , updateInterval
 
         check_for_new_updates: =>
             if window.location.hash is @log_route and @log_entries.length > 0
-                min_timestamp = @log_entries.at(0).get('timestamp') + 1
+                min_timestamp = @log_entries.at(0).get('timestamp')
                 route = "/ajax/log/_?min_timestamp=#{min_timestamp}" if min_timestamp?
 
                 @num_new_entries = 0
@@ -72,7 +73,7 @@ module 'LogView', ->
                 @render()
             else
                 @fetch_log_entries(
-                    min_timestamp: @log_entries.at(0).get('timestamp') + 1
+                    min_timestamp: @log_entries.at(0).get('timestamp')
                     , (new_log_entries) =>
                         @log_entries.add new_log_entries.models
                         @render_header()
@@ -137,7 +138,7 @@ module 'LogView', ->
             json = _.extend @model.toJSON(), @model.get_formatted_message()
             @.$el.html @template _.extend json,
                 machine_name: machines.get(@model.get('machine_uuid')).get('name')
-                datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM MM, yyyy 'at' HH:mm:ss")
+                datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
 
             @.$('a[rel=popover]').popover
                 html: true

@@ -197,9 +197,7 @@ class Machine extends Backbone.Model
                     machine_disk_space += parseInt(stats.block_size) * parseInt(stats.blocks_total)
         return machine_disk_space
 
-
     get_stats_for_performance: =>
-
         stats_full = @get_stats()
         mstats = stats_full.proc
         __s =
