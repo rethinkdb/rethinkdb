@@ -50,6 +50,7 @@ void run_with_broadcaster(
             cluster.get_mailbox_manager(),
             branch_history_controller.get_view(),
             &initial_store.store,
+            &get_global_perfmon_collection(),
             &interruptor
         ));
 
@@ -62,6 +63,7 @@ void run_with_broadcaster(
             broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
             branch_history_controller.get_view(),
             broadcaster.get(),
+            &get_global_perfmon_collection(),
             &interruptor
         ));
 
@@ -200,6 +202,7 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
         &store2.store,
         replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
         generate_uuid(),
+        &get_global_perfmon_collection(),
         &interruptor);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
@@ -268,6 +271,7 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
         &substore,
         replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
         generate_uuid(),
+        &get_global_perfmon_collection(),
         &interruptor);
 
     printf("Expecting some things to be false.\n");

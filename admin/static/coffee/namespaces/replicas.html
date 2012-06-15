@@ -84,7 +84,7 @@
             <h4>Number of replicas:</h4>
           </label>
           <div class="input">
-              <input class="xlarge" name="num_replicas" type="text" value="{{#if nreplicas_input}}{{nreplicas_input}}{{else}}{{num_replicas}}{{/if}}"/>
+              <input class="xlarge" id="focus_num_replicas" name="num_replicas" type="text" value="{{#if nreplicas_input}}{{nreplicas_input}}{{else}}{{num_replicas}}{{/if}}"/>
             <p class="current">Current replicas: {{num_replicas}}</p>
             <p class="max">Max replicas: {{total_machines}}</p>
           </div>

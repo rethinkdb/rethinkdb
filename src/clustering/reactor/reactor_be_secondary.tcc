@@ -210,7 +210,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t(backfill_location));
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t<protocol_t> listener(mailbox_manager, broadcaster, branch_history, store, location_to_backfill_from, backfill_session_id, interruptor);
+                listener_t<protocol_t> listener(mailbox_manager, broadcaster, branch_history, store, location_to_backfill_from, backfill_session_id, parent_perfmon_collection, interruptor);
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use

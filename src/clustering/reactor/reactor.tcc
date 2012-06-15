@@ -25,7 +25,8 @@ reactor_t<protocol_t>::reactor_t(
         clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > rd,
         boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,
-        store_view_t<protocol_t> *_underlying_store) THROWS_NOTHING :
+        store_view_t<protocol_t> *_underlying_store,
+        perfmon_collection_t *_parent_perfmon_collection) THROWS_NOTHING :
     mailbox_manager(mm),
     ack_checker(ack_checker_),
     reactor_directory(rd),
@@ -34,7 +35,8 @@ reactor_t<protocol_t>::reactor_t(
     branch_history(bh),
     master_directory(std::map<master_id_t, master_business_card_t<protocol_t> >()),
     blueprint_watchable(b), underlying_store(_underlying_store),
-    blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this))
+    blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
+    parent_perfmon_collection(_parent_perfmon_collection)
 {
     {
         typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint_watchable);

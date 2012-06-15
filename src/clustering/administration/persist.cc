@@ -60,20 +60,21 @@ struct blob_superblock_t {
 
 const block_magic_t blob_superblock_t::expected_magic = { { 'b', 'l', 'o', 'b' } };
 
-persistent_file_t::persistent_file_t(const std::string& filename, bool create) {
+persistent_file_t::persistent_file_t(const std::string& filename, bool create, perfmon_collection_t *perfmon_parent) {
     if (create) {
         standard_serializer_t::create(
             standard_serializer_t::dynamic_config_t(),
             standard_serializer_t::private_dynamic_config_t(filename),
-            standard_serializer_t::static_config_t()
+            standard_serializer_t::static_config_t(),
+            perfmon_parent
         );
     }
 
     serializer.reset(new standard_serializer_t(
         standard_serializer_t::dynamic_config_t(),
         standard_serializer_t::private_dynamic_config_t(filename),
-        NULL)
-    );
+        perfmon_parent
+    ));
 
     if (create) {
         mirrored_cache_static_config_t cache_static_config;
@@ -84,7 +85,7 @@ persistent_file_t::persistent_file_t(const std::string& filename, bool create) {
     cache_dynamic_config.flush_waiting_threshold = 0;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, NULL));
+    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, perfmon_parent));
 }
 
 void persistent_file_t::update(const machine_id_t &machine_id, const cluster_semilattice_metadata_t &semilattice, bool create) {

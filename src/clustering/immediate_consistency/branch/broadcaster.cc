@@ -15,11 +15,12 @@ template <class protocol_t>
 broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
               boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
               store_view_t<protocol_t> *initial_store,
+              perfmon_collection_t *parent_perfmon_collection,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
       registrar(mailbox_manager, this),
-      broadcaster_collection("broadcaster", NULL, true, true)
+      broadcaster_collection("broadcaster", parent_perfmon_collection, true, true)
 {
 
     /* Snapshot the starting point of the store; we'll need to record this
