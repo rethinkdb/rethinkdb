@@ -4,6 +4,7 @@
 </script>
 
 <script id="namespace_view-sharding-template" type="text/x-handlebars-template">
+    <div class="alert_for_sharding alert alert-error"></div>
     <div class="sharding">
         <h3 class="title">Sharding settings</h3>
         <table class="shards table">
@@ -15,6 +16,12 @@
     <div class="change-shards"></div>
     <div class="blackout"></div>
 </script>
+
+
+<script id="namespace_view-sharding_alert-template" type="text/x-handlebars-template">
+    Please solve the current issues before editing the shards not to lose data.
+</script>
+
 
 <script id="namespace_view-shard-template" type="text/x-handlebars-template">
     <td class="shard summary"></td>

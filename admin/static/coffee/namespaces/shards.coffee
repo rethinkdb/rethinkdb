@@ -49,10 +49,11 @@ module 'NamespaceView', ->
     class @Sharding extends UIComponents.AbstractList
         className: 'namespace-shards'
         template: Handlebars.compile $('#namespace_view-sharding-template').html()
+        error_msg: Handlebars.compile $('#namespace_view-sharding_alert-template').html()
 
         events: ->
             'click .change-sharding-scheme': 'change_sharding_scheme'
-        has_unsatisfiable_goals: false
+        should_be_hidden: false
 
         initialize: ->
             super @model.get('computed_shards'), NamespaceView.Shard, 'table.shards tbody',
@@ -64,29 +65,44 @@ module 'NamespaceView', ->
             issues.on 'all', @check_has_unsatisfiable_goals
 
         check_has_unsatisfiable_goals: =>
-            if @has_unsatisfiable_goals is true
-                found_unsatisfiable_goals = false
-                for issue in issues.models
-                    if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id')
-                        found_unsatisfiable_goals = true
-                if found_unsatisfiable_goals is false
-                    @has_unsatisfiable_goals = false
-                    @.$el.toggleClass('namespace-shards-blackout')
-                    @.$('.blackout').toggleClass('blackout-active')
+            if @should_be_hidden is true
+                should_be_hidden_new = false
+                for issue in issues.models 
+                    if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id') # If unsatisfiable goals, the user should not change shards
+                        should_be_hidden_new = true
+                        break
+                    if issue.get('type') is 'MACHINE_DOWN' # If a machine connected (even with a role nothing) is down, the user should not change shards
+                        if machines.get(issue.get('victim')).get('datacenter_uuid') of @model.get('replica_affinities')
+                            should_be_hidden_new = true
+                            break
+
+                if should_be_hidden_new is false
+                    @should_be_hidden = false
+                    @render()
             else
                 for issue in issues.models
                     if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id')
-                        @has_unsatisfiable_goals = true
-                        @.$el.toggleClass('namespace-shards-blackout')
-                        @.$('.blackout').toggleClass('blackout-active')
-            
+                        @should_be_hidden = true
+                        @render()
+                        break
+                    if issue.get('type') is 'MACHINE_DOWN'
+                        if machines.get(issue.get('victim')).get('datacenter_uuid') of @model.get('replica_affinities')
+                            @should_be_hidden = true
+                            @render()
+                            break
+
         render: =>
             super()
 
-            if @has_unsatisfiable_goals is true
+            @.$el.toggleClass('namespace-shards-blackout')
+            if @should_be_hidden is true
                 @.$('.blackout').addClass('blackout-active')
+                @.$('.alert_for_sharding').html @error_msg
+                @.$('.alert_for_sharding').css('display', 'block')
             else
                 @.$('.blackout').removeClass('blackout-active')
+                @.$('.alert_for_sharding').html ''
+                @.$('.alert_for_sharding').css('display', 'hidden')
             return @
 
         change_sharding_scheme: (event) =>
@@ -275,7 +291,7 @@ module 'NamespaceView', ->
             # Present a confirmation dialog to make sure the user actually wants this
             confirmation_modal = new UIComponents.ConfirmationDialogModal
             confirmation_modal.render("Are you sure you want to make machine #{@model.get('name')} the master for this shard in datacenter #{@datacenter.get('name')}?",
-                "/ajax/memcached_namespaces/#{@namespace.get('id')}/primary_pinnings",
+                "/ajax/semilattice/memcached_namespaces/#{@namespace.get('id')}/primary_pinnings",
                 JSON.stringify(post_data),
                 (response) =>
                     # Set the link's text to a loading state
