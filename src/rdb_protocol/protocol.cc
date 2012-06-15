@@ -10,6 +10,8 @@
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
 
+typedef rdb_protocol_details::backfill_atom_t backfill_atom_t;
+
 typedef rdb_protocol_t::region_t region_t;
 
 typedef rdb_protocol_t::read_t read_t;
@@ -111,7 +113,8 @@ store_t::store_t(const std::string& filename, bool create, perfmon_collection_t 
         standard_serializer_t::create(
             standard_serializer_t::dynamic_config_t(),
             standard_serializer_t::private_dynamic_config_t(filename),
-            standard_serializer_t::static_config_t()
+            standard_serializer_t::static_config_t(),
+            perfmon_collection
             );
     }
 

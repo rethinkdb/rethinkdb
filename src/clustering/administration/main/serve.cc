@@ -16,6 +16,7 @@
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include <stdio.h>
+#include "rdb_protocol/protocol.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
@@ -115,6 +116,8 @@ bool serve_(
     perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
     // Reactor drivers
+
+    // Dummy
     boost::scoped_ptr<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<mock::dummy_protocol_t>(
             &mailbox_manager,
@@ -133,6 +136,7 @@ bool serve_(
                 dummy_reactor_driver->get_watchable(),
                 &our_root_directory_variable));
 
+    // Memcached
     boost::scoped_ptr<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<memcached_protocol_t>(
             &mailbox_manager,
@@ -149,6 +153,25 @@ bool serve_(
             new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::memcached_namespaces,
                 memcached_reactor_driver->get_watchable(),
+                &our_root_directory_variable));
+
+    // RDB
+    boost::scoped_ptr<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver(!i_am_a_server ? NULL :
+        new reactor_driver_t<rdb_protocol_t>(
+            &mailbox_manager,
+            directory_read_manager.get_root_view()->subview(
+                field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
+            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, semilattice_manager_cluster.get_root_view()),
+            metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
+            directory_read_manager.get_root_view()->subview(
+                field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+            filepath,
+            &perfmon_repo));
+    boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t> >
+        rdb_reactor_directory_copier(!i_am_a_server ? NULL :
+            new field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(
+                &cluster_directory_metadata_t::rdb_namespaces,
+                rdb_reactor_driver->get_watchable(),
                 &our_root_directory_variable));
 
     // Namespace repos

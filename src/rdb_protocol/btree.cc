@@ -47,7 +47,7 @@ point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice
     return point_read_response_t(data);
 }
 
-point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, 
+point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data,
                        btree_slice_t *slice, repli_timestamp_t timestamp,
                        transaction_t *txn, superblock_t *superblock) {
     block_size_t block_size = slice->cache()->get_block_size();
@@ -101,7 +101,7 @@ public:
         rassert(kr_.contains_key(key->contents, key->size));
         const rdb_value_t *value = static_cast<const rdb_value_t *>(val);
 
-        backfill_atom_t atom;
+        rdb_protocol_details::backfill_atom_t atom;
         atom.key.assign(key->size, key->contents);
         atom.value = get_data(value, txn);
         atom.recency = recency;

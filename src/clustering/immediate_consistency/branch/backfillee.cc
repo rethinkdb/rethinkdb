@@ -61,7 +61,7 @@ void backfillee(
          * pool services these requests and poops them off one at a time to
          * perform them. */
 
-        typedef fifo_enforcer_queue_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > chunk_queue_t; 
+        typedef fifo_enforcer_queue_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > chunk_queue_t;
         chunk_queue_t chunk_queue;
 
         /* The backfiller will notify `done_mailbox` when the backfill is all over
@@ -172,12 +172,12 @@ void backfillee(
 
         /* Now that the metadata indicates that the backfill is happening, it's
         time to start actually performing backfill chunks */
-        class chunk_callback_t : public coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> >::callback_t, 
+        class chunk_callback_t : public coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> >::callback_t,
                                   public home_thread_mixin_t {
         public:
             /* *sigh* Local variable copying is a pain. Why can't we have C++11
             closures? */
-            chunk_callback_t(store_view_t<protocol_t> *_store, 
+            chunk_callback_t(store_view_t<protocol_t> *_store,
                     chunk_queue_t *_chunk_queue, mailbox_manager_t *_mbox_manager,
                     mailbox_addr_t<void(int)> _allocation_mailbox) :
                 store(_store), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
@@ -293,6 +293,7 @@ void backfillee(
 
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 template void backfillee<mock::dummy_protocol_t>(
         mailbox_manager_t *mailbox_manager,
@@ -310,6 +311,16 @@ template void backfillee<memcached_protocol_t>(
         store_view_t<memcached_protocol_t> *store,
         memcached_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<memcached_protocol_t> > > > > backfiller_metadata,
+        backfill_session_id_t backfill_session_id,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);
+
+template void backfillee<rdb_protocol_t>(
+        mailbox_manager_t *mailbox_manager,
+        UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<rdb_protocol_t> > > branch_history,
+        store_view_t<rdb_protocol_t> *store,
+        rdb_protocol_t::region_t region,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<rdb_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t);

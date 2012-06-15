@@ -24,6 +24,7 @@ enum point_write_result_t {
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_write_result_t, int8_t, STORED, DUPLICATE);
 
+namespace rdb_protocol_details {
 
 struct backfill_atom_t {
     store_key_t key;
@@ -32,11 +33,13 @@ struct backfill_atom_t {
 
     backfill_atom_t() { }
     backfill_atom_t(const store_key_t& key_, const boost::shared_ptr<scoped_cJSON_t>& value_, const repli_timestamp_t& recency_)
-        : key(key_), value(value_), recency(recency_) 
+        : key(key_), value(value_), recency(recency_)
     { }
 
     RDB_MAKE_ME_SERIALIZABLE_3(key, value, recency);
 };
+
+} // namespace rdb_protocol_details
 
 struct rdb_protocol_t {
     typedef key_range_t region_t;
@@ -153,14 +156,15 @@ struct rdb_protocol_t {
             RDB_MAKE_ME_SERIALIZABLE_1(range);
         };
         struct key_value_pair_t {
-            backfill_atom_t backfill_atom;
+            rdb_protocol_details::backfill_atom_t backfill_atom;
 
             key_value_pair_t() { }
-            explicit key_value_pair_t(const backfill_atom_t& backfill_atom_) : backfill_atom(backfill_atom_) { }
+            explicit key_value_pair_t(const rdb_protocol_details::backfill_atom_t& backfill_atom_) : backfill_atom(backfill_atom_) { }
 
             RDB_MAKE_ME_SERIALIZABLE_1(backfill_atom);
         };
 
+        backfill_chunk_t() { }
         explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val_) : val(val_) { }
         boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
 
@@ -170,7 +174,7 @@ struct rdb_protocol_t {
         static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
             return backfill_chunk_t(delete_key_t(key, recency));
         }
-        static backfill_chunk_t set_key(const backfill_atom_t& key) {
+        static backfill_chunk_t set_key(const rdb_protocol_details::backfill_atom_t& key) {
             return backfill_chunk_t(key_value_pair_t(key));
         }
 
