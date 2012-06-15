@@ -6,6 +6,12 @@ render_body = ->
         backdrop: true
         keyboard: true
 
+    # Set actions on developer tools
+    $('#dev-tools #show-walkthrough-popup').on 'click', (event) ->
+        event.preventDefault()
+        $('.walkthrough-popup').html (new Walkthrough.Popup).render().el
+    
+
 
 class @IsDisconnected extends Backbone.View
     el: 'body'

@@ -3,8 +3,8 @@ module 'Walkthrough', ->
         template: Handlebars.compile $('#walkthrough_popup-template').html()
 
         events: ->
-            '.show-walkthrough-popup a': 'show_walkthrough'
-            '.hide-walkthrough a': 'hide_popup'
+            'click .show-walkthrough a': 'show_walkthrough'
+            'click .hide-popup a': 'hide_popup'
 
         render: =>
             @.$el.html @template
@@ -16,3 +16,13 @@ module 'Walkthrough', ->
 
         show_walkthrough: (event) =>
             event.preventDefault()
+            @.$el.remove()
+            $('#walkthrough').html (new Walkthrough.Carousel).render().el
+
+    class @Carousel extends Backbone.View
+        template: Handlebars.compile $('#walkthrough_carousel-template').html()
+
+        render: =>
+            @.$el.html @template
+            @.$('.carousel').carousel()
+            return @

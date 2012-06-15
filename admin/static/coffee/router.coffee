@@ -36,7 +36,7 @@ class BackboneCluster extends Backbone.Router
         @logs = new LogView.Container
 
         if not $.cookie('rethinkdb-admin')?
-            #$.cookie('rethinkdb-admin', new Date())
+            $.cookie('rethinkdb-admin', new Date())
             @render_walkthrough_popup()
 
     render_sidebar: -> @$sidebar.html @sidebar.render().el

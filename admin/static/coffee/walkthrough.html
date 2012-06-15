@@ -1,4 +1,33 @@
 <script id="walkthrough_popup-template" type="text/x-handlebars-template">
-    <p class="close"><a href="#">x</a></p>
-    <p class="show-walkthrough"><a href="#">Learn about RethinkDB's features &rarr;</a></p>
+    <div class="arrow"></div>
+    <div class="popup-inner">
+        <p class="hide-popup"><a href="#">x</a></p>
+        <p class="show-walkthrough"><a href="#">Learn about RethinkDB's features &rarr;</a></p>
+        <p class="popup-text">Take a quick walkthrough to learn 
+        RethinkDB's features and how to get the best out of your database.</p>
+    </div>
+</script>
+
+<script id="walkthrough_carousel-template" type="text/x-handlebars-template">
+    <div class="carousel slide">
+        <div class="carousel-inner">
+            <div class="active item">
+                <p class="carousel-num">1</p>
+            </div>
+            <div class="item">
+                <p class="carousel-num">2</p>
+            </div>
+            <div class="item">
+                <p class="carousel-num">3</p>
+            </div>
+            <div class="item">
+                <p class="carousel-num">4</p>
+            </div>
+            <div class="item">
+                <p class="carousel-num">5</p>
+            </div>
+        </div>
+        <a class="carousel-control left" href="#walkthrough .carousel" data-slide="prev">&lsaquo;</a>
+        <a class="carousel-control right" href="#walkthrough .carousel" data-slide="next">&rsaquo;</a>
+    </div>
 </script>

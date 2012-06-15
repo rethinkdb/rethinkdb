@@ -1641,25 +1641,75 @@
 */
 
 .walkthrough-popup {
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    margin-right: 80px;
-    background: @infoBackground;
-    border: thin solid lighten(@infoText, 30%);
-    border-bottom: 0;
-    padding: 10px;
-    p {
-        margin-bottom: 0;
-        &.show-walkthrough {
-            a { color: darken(@infoText, 5%); }
-            margin-right: 20px;
-            font-size: 1.1em;
+    position: absolute;
+    top: 40px;
+
+    width: 350px;
+
+    z-index: 2000;
+    padding-top: 5px;
+    margin-top: 4px;
+
+    .arrow {
+        position: absolute;
+        width: 0;
+        height: 0;
+        top: 0;
+        left: 45px; 
+        margin-left: -5px;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-bottom: 5px solid black;
+    }
+    .popup-inner {
+        padding: 3px;
+        overflow: hidden;
+        background: rgba(0,0,0,0.8);
+        .border-radius(6px);
+        .box-shadow(0 3px 7px rgba(0,0,0,0.3));
+        padding: 5px;
+        p {
+            margin-bottom: 0;
+            &.show-walkthrough {
+                a { color: @grayLighter; }
+                margin-right: 30px;
+                font-size: 1.2em;
+                padding: 5px;
+            }
+            &.hide-popup {
+                a { color: @grayLighter; }
+                float: right;
+                font-size: 14px;
+                position: relative;
+                top: -9px;
+                font-weight: bold;
+                opacity: 0.7;
+                margin-top: 6px;
+                margin-right: 5px;
+            }
+            &.popup-text {
+                font-size: 13px;
+                color: @grayLighter;
+                padding: 5px;
+            }
         }
-        &.close {
-            font-size: 16px;
-            position: relative;
-            top: -9px;
-        }
+    }
+}
+
+#walkthrough .carousel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1024px;
+    height: 400px;
+    margin-left: -512px;
+    margin-top: -200px;
+    background: @grayDark;
+    .item {
+    }
+    .carousel-num {
+        color: white;
+        text-align: center;
+        font-size: 30px;
     }
 }
