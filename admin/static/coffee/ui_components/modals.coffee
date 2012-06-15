@@ -235,7 +235,7 @@ module 'UIComponents', ->
             if no_error is true
                 $.ajax
                     processData: false
-                    url: "/ajax/" + @get_item_url() + "/#{@item_uuid}/name"
+                    url: "/ajax/semilattice/" + @get_item_url() + "/#{@item_uuid}/name"
                     type: 'POST'
                     contentType: 'application/json'
                     data: JSON.stringify(@formdata.new_name)
