@@ -5,6 +5,7 @@ import http_admin, driver, workload_runner
 from vcoptparse import *
 
 op = OptParser()
+op["mode"] = StringFlag("--mode", "debug")
 op["workload1"] = PositionalArg()
 op["workload2"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
@@ -12,9 +13,10 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
+    executable_path = driver.find_rethinkdb_executable(opts["mode"])
     print "Starting cluster..."
     num_nodes = 2
-    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i), log_path = "serve-output-%d" % i)
+    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i), log_path = "serve-output-%d" % i, exectuable_path = executable_path)
         for i in xrange(num_nodes)]
     time.sleep(3)
     print "Creating namespace..."
@@ -29,7 +31,7 @@ with driver.Metacluster() as metacluster:
     time.sleep(10)
     cluster.check()
     http.check_no_issues()
-    host, port = http.get_namespace_host(ns)
+    host, port = driver.get_namespace_host(ns.port, processes)
     workload_runner.run(opts["workload1"], host, port, opts["timeout"])
     cluster.check()
     http.check_no_issues()

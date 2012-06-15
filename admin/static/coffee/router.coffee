@@ -66,49 +66,29 @@ class BackboneCluster extends Backbone.Router
     namespace: (id) ->
         log_router '/namespaces/' + id
         clear_modals()
+        namespace = namespaces.get(id)
+        
+        if namespace? then view = new NamespaceView.Container model:namespace
+        else view = new NamespaceView.NotFound id
 
-        # Helper function to build the namespace view
-        build_namespace_view = (id) =>
-            namespace_view = new NamespaceView.Container id
-            @$container.html namespace_view.render().el
-
-        # Return the existing namespace from the collection if it exists
-        return build_namespace_view id
-
-    sharding_scheme: (id) ->
-        log_router '/namespaces/' + id + '/sharding_scheme'
-        clear_modals()
-        window.scrollTo(0,0); # Scroll to top
-
-        # Helper function to build the namespace view
-        build_sharding_scheme_view = (id) =>
-            sharding_scheme_view = new NamespaceView.ModifyShards(id)
-            @$container.html sharding_scheme_view.render().el
-
-        # Return the existing namespace from the collection if it exists
-        return build_sharding_scheme_view id
+        @$container.html view.render().el
 
     datacenter: (id) ->
         log_router '/datacenters/' + id
         clear_modals()
+        datacenter = datacenters.get(id)
+        
+        if datacenter? then view = new DatacenterView.Container model: datacenter
+        else view = new DatacenterView.NotFound id
 
-        # Helper function to build the datacenter view
-        build_datacenter_view = (id) =>
-            datacenter_view = new DatacenterView.Container id
-            @$container.html datacenter_view.render().el
-
-        # Return the existing datacenter from the collection if it exists
-        return build_datacenter_view id
+        @$container.html view.render().el
 
     machine: (id) ->
         log_router '/machines/' + id
         clear_modals()
+        machine = machines.get(id)
+        
+        if machine? then view = new MachineView.Container model: machine
+        else view = new MachineView.NotFound id
 
-        # Helper function to build the machine view
-        build_machine_view = (id) =>
-            machine_view = new MachineView.Container id
-            @$container.html machine_view.render().el
-
-        # Return the existing machine from the collection if it exists
-        return build_machine_view id
-
+        @$container.html view.render().el

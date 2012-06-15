@@ -40,6 +40,14 @@ semilattice_http_app_t::semilattice_http_app_t(
         boost::uuids::uuid _us)
     : semilattice_metadata(_semilattice_metadata), directory_metadata(_directory_metadata), us(_us) { }
 
+void semilattice_http_app_t::get_root(scoped_cJSON_t *json_out) {
+    // keep this in sync with handle's behavior for getting the root
+    cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+    json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t> json_adapter(&cluster_metadata);
+    namespace_metadata_ctx_t json_ctx(us);
+    json_out->reset(json_adapter.render(json_ctx));
+}
+
 http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
     try {
         cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();

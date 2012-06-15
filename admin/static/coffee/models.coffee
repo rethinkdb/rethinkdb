@@ -68,7 +68,8 @@ class Namespace extends Backbone.Model
             keys_set: 0
         _.each DataUtils.get_namespace_machines(@get('id')), (mid) =>
             _m = machines.get(mid)
-            _s = _m.get_stats()[@get('id')]
+            if _m?
+                _s = _m.get_stats()[@get('id')]
             if _s? and _s.btree?
                 keys_read = parseFloat(_s.btree.keys_read)
                 if not isNaN(keys_read)
@@ -213,12 +214,12 @@ class Machine extends Backbone.Model
                 avg: if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
             global_net_sent_persec:
                 avg: if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
-        
+
         for namespace in namespaces.models
             _s = namespace.get_stats()
             if not _s?
                 continue
-            
+
             if namespace.get('id') of stats_full
                 __s.keys_read += _s.keys_read
                 __s.keys_set += _s.keys_set
@@ -390,7 +391,7 @@ class IssuesRedundancy extends Backbone.Collection
                             for activity in directory_by_namespaces[namespace_id][machine_id]
                                 if key is activity[0] and @convert_activity[value] is activity[1].type
                                     found_activity = true
-                            
+
                             if found_activity is false
                                 issue_redundancy_param =
                                     machine_id: machine_id
@@ -400,8 +401,8 @@ class IssuesRedundancy extends Backbone.Collection
                                 issues_redundancy.push new IssueRedundancy issue_redundancy_param
         if issues_redundancy.length > 0 or issues_redundancy.length isnt @.length
             @.reset(issues_redundancy)
-        
-        
+
+
 
 class ProgressList extends Backbone.Collection
     model: Progress
@@ -520,6 +521,9 @@ module 'DataUtils', ->
         # We're organizing secondaries per datacenter
         secondaries = {}
         for machine_uuid, peers_roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+            if !machines.get(machine_uuid)? # In case the machine is dead
+                continue
+
             datacenter_uuid = machines.get(machine_uuid).get('datacenter_uuid')
             for _shard, role of peers_roles
                 if shard.toString() is _shard.toString() and role is 'role_secondary'
@@ -768,6 +772,8 @@ module 'DataUtils', ->
         _datacenters = []
 
         for machine_uuid, role of namespace.get('blueprint').peers_roles
+            if !machines.get(machine_uuid)? # If the machine is dead
+                continue
             if datacenter_uuid? and
                machines.get(machine_uuid) and
                machines.get(machine_uuid).get('datacenter_uuid') isnt datacenter_uuid

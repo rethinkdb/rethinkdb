@@ -5,7 +5,7 @@ import http_admin, driver, workload_runner
 from vcoptparse import *
 
 op = OptParser()
-op["mode"] = IntFlag("--mode", "debug")
+op["mode"] = StringFlag("--mode", "debug")
 op["workload"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
@@ -28,7 +28,7 @@ with driver.Metacluster() as metacluster:
     ns = http.add_namespace(protocol = "memcached", primary = dc)
     http.wait_until_blueprint_satisfied(ns)
 
-    host, port = driver.get_namespace_host(ns, [proxy_process])
+    host, port = driver.get_namespace_host(ns.port, [proxy_process])
     workload_runner.run(opts["workload"], host, port, opts["timeout"])
 
     cluster.check_and_stop()

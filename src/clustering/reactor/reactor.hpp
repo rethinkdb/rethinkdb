@@ -18,7 +18,8 @@ public:
             clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > reactor_directory,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
             clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable,
-            store_view_t<protocol_t> *_underlying_store) THROWS_NOTHING;
+            store_view_t<protocol_t> *_underlying_store,
+            perfmon_collection_t *_parent_perfmon_collection) THROWS_NOTHING;
 
     clone_ptr_t<watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > get_reactor_directory() {
         return directory_echo_writer.get_watchable();
@@ -163,6 +164,8 @@ private:
     auto_drainer_t drainer;
 
     typename watchable_t<blueprint_t<protocol_t> >::subscription_t blueprint_subscription;
+
+    perfmon_collection_t *parent_perfmon_collection;
 
     DISABLE_COPYING(reactor_t);
 };

@@ -12,12 +12,23 @@
           <td class="problems-detected availability">
               <h3>Availability</h3>
               <p class="message">
-               <a href="#" class="json" rel="dashboard_details" data-content="{{pluralize_noun "namespace" num_master_offline}} not available: {{links_to_masters_and_namespaces masters_offline}}" data-title="Availability problems">
                 Availability issues
-              </a>             
               detected
               </p>
-              <p class="details">{{num_masters_offline}} of {{num_masters}} {{pluralize_noun "master" num_masters_offline}} {{pluralize_verb_to_be num_masters_online}} not available</p>
+              {{#if has_masters_down}}
+              <p class="details">{{num_masters_offline}} of {{num_masters}} 
+              <a href="#" class="json" rel="dashboard_details" data-content="{{pluralize_noun "Namespace" num_master_offline}} not available: {{links_to_masters_and_namespaces masters_offline}}" data-title="Availability problems">
+                  {{pluralize_noun "master" num_masters_offline}} 
+              </a>
+              {{pluralize_verb_to_be num_masters_online}} not available</p>
+              {{/if}}
+              {{#if has_namespaces_without_masters}}
+              <p class="details">{{num_namespaces_without_masters}} 
+              <a href="#" class="json" rel="dashboard_details" data-content="{{pluralize_noun "Namespace" num_master_offline}} with shards not available: {{links_to_namespaces namespaces_without_masters}}" data-title="Availability problems">
+              {{pluralize_noun "namespace" num_namespaces_without_masters}}
+              </a>
+              {{pluralize_verb_to_have num_namespaces_without_masters}} some shards without master.</p>
+              {{/if}}
           </td>
           {{else}}
           <td class="no-problems-detected availability">

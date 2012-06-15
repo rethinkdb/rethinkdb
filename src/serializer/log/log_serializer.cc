@@ -32,11 +32,10 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
       pm_serializer_lba_gcs("serializer_lba_gcs", &serializer_collection)
 { }
 
-void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config) {
-
+void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config, perfmon_collection_t *stats_parent) {
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
 
-    direct_file_t df(private_dynamic_config.db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, NULL, dynamic_config.io_backend, dynamic_config.io_batch_factor);
+    direct_file_t df(private_dynamic_config.db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, stats_parent, dynamic_config.io_backend, dynamic_config.io_batch_factor);
 
     co_static_header_write(&df, on_disk_config, sizeof(*on_disk_config));
 
@@ -218,7 +217,6 @@ log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dyn
       data_block_manager(NULL),
       last_write(NULL),
       active_write_count(0) {
-
     /* This is because the serializer is not completely converted to coroutines yet. */
     ls_start_existing_fsm_t *s = new ls_start_existing_fsm_t(this);
     cond_t cond;
@@ -226,7 +224,6 @@ log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dyn
 }
 
 log_serializer_t::~log_serializer_t() {
-
     cond_t cond;
     if (!shutdown(&cond)) cond.wait();
 
@@ -457,10 +454,10 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
 
     // If we were in the process of shutting down and this is the
     // last transaction, shut ourselves down for good.
-    if(state == log_serializer_t::state_shutting_down
-       && shutdown_state == log_serializer_t::shutdown_waiting_on_serializer
-       && last_write == NULL
-       && active_write_count == 0) {
+    if (state == log_serializer_t::state_shutting_down
+        && shutdown_state == log_serializer_t::shutdown_waiting_on_serializer
+        && last_write == NULL
+        && active_write_count == 0) {
 
         next_shutdown_step();
     }

@@ -4,11 +4,18 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.
 import driver, http_admin
 from vcoptparse import *
 
+op = OptParser()
+op["mode"] = StringFlag("--mode", "debug")
+opts = op.parse(sys.argv)
+
 with driver.Metacluster() as metacluster:
     cluster1 = driver.Cluster(metacluster)
+    executable_path = driver.find_rethinkdb_executable(opts["mode"])
     print "Spinning up two processes..."
-    proc1 = driver.Process(cluster1, driver.Files(metacluster))
-    proc2 = driver.Process(cluster1, driver.Files(metacluster))
+    files1 = driver.Files(metacluster, executable_path = executable_path)
+    proc1 = driver.Process(cluster1, files1, executable_path = executable_path)
+    files2 = driver.Files(metacluster, executable_path = executable_path)
+    proc2 = driver.Process(cluster1, files2, executable_path = executable_path)
     proc1.wait_until_started_up()
     proc2.wait_until_started_up()
     cluster1.check()

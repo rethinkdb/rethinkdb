@@ -21,8 +21,8 @@
 #include <stack>
 #endif
 
-perfmon_counter_t pm_active_coroutines("active_coroutines", NULL),
-                  pm_allocated_coroutines("allocated_coroutines", NULL);
+perfmon_counter_t pm_active_coroutines("active_coroutines", &get_global_perfmon_collection()),
+                  pm_allocated_coroutines("allocated_coroutines", &get_global_perfmon_collection());
 
 size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
 

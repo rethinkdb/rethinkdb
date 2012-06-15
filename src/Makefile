@@ -342,7 +342,7 @@ CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
 
 ##### Build targets
-.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags etags unit valgrind web-assets
+.PHONY: all build-deb build-rpm callgrind callgrind clean cscope deb deb depclean gdb install install-binaries install-deb install-docs install-manpages install-rpm install-tools prepare_deb_package_dirs prepare_rpm_package_dirs regdb rerun revalgrind rpm rpm rpm-suse10 run sembuild showdefines style tags etags unit valgrind web-assets coffeelint
 
 # High level build targets
 
@@ -579,7 +579,7 @@ $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(COFFEE_SOURCES)
 ifeq ($(VERBOSE),0)
 	@echo "    COFFEE $@"
 endif
-	$(QUIET) cat $+ | coffee -bp --stdio > $@
+	$(QUIET) coffee_concatenated=`mktemp /tmp/cluster-min.XXX.coffee`; cat $+ > $$coffee_concatenated; (coffee -bp --stdio < $$coffee_concatenated > $@ && rm -f $$coffee_concatenated) || (rm -f $@; echo "COFFEE failed, inspect $$coffee_concatenated" >&2; false)
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
@@ -694,8 +694,7 @@ ifeq ($(VALGRIND),0)
 	$(error Using the 'valgrind' target doesn't automatically set VALGRIND to 1. Try again with \
 'make valgrind VALGRIND=1')
 endif
-	$(QUIET) rm -f $(RUN_FILE)
-	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
+	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) serve --port $(RUN_PORT)
 
 revalgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(VALGRIND),0)
@@ -728,8 +727,11 @@ cscope:
 analyze: $(SOURCES)
 	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
 
-style:
-	$(QUIET) ../scripts/check_style.sh 
+coffeelint:
+	coffeelint -f ../scripts/coffeelint.json -r ../admin/
+
+style: coffeelint
+	$(QUIET) ../scripts/check_style.sh
 
 showdefines:
 	$(QUIET) $(CXX) $(CXXFLAGS) -m32 -E -dM - < /dev/null

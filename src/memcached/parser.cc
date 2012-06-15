@@ -224,9 +224,10 @@ public:
         rassert(state_ == has_begun_write);
         DEBUG_ONLY_CODE(state_ = has_ended_write);
 
-        block_pm_duration flush_timer(&pipeliner_->rh_->stats->pm_conns_writing);
-        pipeliner_->rh_->flush_buffer();
-        flush_timer.end();
+        {
+            block_pm_duration flush_timer(&pipeliner_->rh_->stats->pm_conns_writing); // FIXME: race condition here
+            pipeliner_->rh_->flush_buffer();
+        }
 
         mutex_acq_.reset();
         pipeliner_->requests_out_sem.unlock();
@@ -806,12 +807,20 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         rh->read(dp->buf(), value_size);
         rh->read(crlf_buf, 2);
     } catch (memcached_interface_t::no_more_data_exc_t) {
-        rh->client_error("bad data chunk\r\n");
+        pipeliner_acq->done_argparsing();
+        pipeliner_acq->begin_write();
+        rh->client_error_bad_data();
+        pipeliner_acq->end_write();
+        delete pipeliner_acq;
         return;
     }
 
     if (memcmp(crlf_buf, crlf, 2) != 0) {
+        pipeliner_acq->done_argparsing();
+        pipeliner_acq->begin_write();
         rh->client_error("bad data chunk\r\n");
+        pipeliner_acq->end_write();
+        delete pipeliner_acq;
         return;
     }
 
