@@ -50,6 +50,7 @@ void run_with_broadcaster(
             cluster.get_mailbox_manager(),
             branch_history_controller.get_view(),
             &initial_store.store,
+            &get_global_perfmon_collection(),
             &interruptor
         ));
 
@@ -62,6 +63,7 @@ void run_with_broadcaster(
             broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
             branch_history_controller.get_view(),
             broadcaster.get(),
+            &get_global_perfmon_collection(),
             &interruptor
         ));
 
@@ -116,14 +118,18 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
         dummy_protocol_t::write_t w;
         std::string key = std::string(1, 'a' + randint(26));
         w.values[key] = values_inserted[key] = strprintf("%d", i);
-        class : public broadcaster_t<dummy_protocol_t>::ack_callback_t {
+        class : public broadcaster_t<dummy_protocol_t>::write_callback_t, public cond_t {
         public:
-            bool on_ack(peer_id_t) {
-                return true;
+            void on_response(peer_id_t, const typename dummy_protocol_t::write_response_t &) {
+                /* ignore */
             }
-        } ack_callback;
+            void on_done() {
+                pulse();
+            }
+        } write_callback;
         cond_t non_interruptor;
-        (*broadcaster)->write(w, &exiter, &ack_callback, order_source.check_in("unittest::run_read_write_test(write)"), &non_interruptor, NULL);
+        (*broadcaster)->spawn_write(w, &exiter, order_source.check_in("unittest::run_read_write_test(write)"), &write_callback, &non_interruptor);
+        write_callback.wait_lazily_unordered();
     }
 
     /* Now send some reads */
@@ -153,14 +159,18 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
     dummy_protocol_t::write_t w;
     w.values[key] = value;
-    class : public broadcaster_t<dummy_protocol_t>::ack_callback_t {
+    class : public broadcaster_t<dummy_protocol_t>::write_callback_t, public cond_t {
     public:
-        bool on_ack(peer_id_t) {
-            return true;
+        void on_response(peer_id_t, const dummy_protocol_t::write_response_t &) {
+            /* ignore */
         }
-    } ack_callback;
+        void on_done() {
+            pulse();
+        }
+    } write_callback;
     cond_t non_interruptor;
-    broadcaster->write(w, &exiter, &ack_callback, otok, &non_interruptor, NULL);
+    broadcaster->spawn_write(w, &exiter, otok, &write_callback, &non_interruptor);
+    write_callback.wait_lazily_unordered();
 }
 
 void run_backfill_test(simple_mailbox_cluster_t *cluster,
@@ -200,6 +210,7 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
         &store2.store,
         replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
         generate_uuid(),
+        &get_global_perfmon_collection(),
         &interruptor);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
@@ -268,6 +279,7 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
         &substore,
         replier_directory_controller.get_watchable()->subview(&wrap_replier_in_optional),
         generate_uuid(),
+        &get_global_perfmon_collection(),
         &interruptor);
 
     printf("Expecting some things to be false.\n");

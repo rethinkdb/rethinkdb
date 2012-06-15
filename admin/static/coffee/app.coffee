@@ -183,6 +183,7 @@ $ ->
         })
         $.getJSON('/ajax/progress', set_progress)
         $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
+
     collect_stat_data = (optional_callback) =>
         $.getJSON('/ajax/stat', set_stats)
 

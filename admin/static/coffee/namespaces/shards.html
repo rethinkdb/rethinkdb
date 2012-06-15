@@ -104,7 +104,7 @@
                     {{/if}}
                     <div class="shard_suggest_elements">
                         <label for="replicas">Number of shards:</label>
-                        <input class="num_shards" name="num_shards" type="text" value="{{new_shard_count}}"/>
+                        <input class="num_shards" id="focus_num_shards" name="num_shards" type="text" value="{{new_shard_count}}"/>
                         <button class="btn btn-compute-shards-suggestion" data-loading-text="Calculating...">Suggest</button>
                     </div>
                     <p class="current">Current shards: <strong>{{current_shards_count}}</strong>, Max shards: <strong>{{max_shard_count}}</strong></p>

@@ -1,4 +1,3 @@
-
 render_body = ->
     template = Handlebars.compile $('#body-structure-template').html()
     $('body').html(template())
@@ -6,6 +5,12 @@ render_body = ->
     $('.modal').modal
         backdrop: true
         keyboard: true
+
+    # Set actions on developer tools
+    $('#dev-tools #show-walkthrough-popup').on 'click', (event) ->
+        event.preventDefault()
+        $('.walkthrough-popup').html (new Walkthrough.Popup).render().el
+    
 
 
 class @IsDisconnected extends Backbone.View

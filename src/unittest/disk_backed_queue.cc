@@ -12,7 +12,7 @@ namespace unittest {
 
 void run_many_ints_test() {
     static const int NUM_ELTS_IN_QUEUE = 1000;
-    disk_backed_queue_t<int> queue("test");
+    disk_backed_queue_t<int> queue("test", &get_global_perfmon_collection());
     std::queue<int> ref_queue;
 
     for (int i = 0; i < NUM_ELTS_IN_QUEUE; ++i) {
@@ -33,7 +33,7 @@ TEST(DiskBackedQueue, ManyInts) {
 
 void run_big_values_test() {
     static const int NUM_BIG_ELTS_IN_QUEUE = 100;
-    disk_backed_queue_t<std::string> queue("test");
+    disk_backed_queue_t<std::string> queue("test", &get_global_perfmon_collection());
     std::queue<std::string> ref_queue;
 
     std::string val;
@@ -59,7 +59,7 @@ static void randomly_delay(int, signal_t *) {
 }
 
 void run_concurrent_test() {
-    disk_backed_queue_wrapper_t<int> queue("test");
+    disk_backed_queue_wrapper_t<int> queue("test", &get_global_perfmon_collection());
     coro_pool_t<int>::boost_function_callback_t callback(&randomly_delay);
     coro_pool_t<int> coro_pool(10, &queue, &callback);
     for (int i = 0; i < 1000; i++) {
