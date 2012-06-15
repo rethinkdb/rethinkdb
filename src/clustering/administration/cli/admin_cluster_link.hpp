@@ -1,8 +1,6 @@
 #ifndef CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 #define CLUSTERING_ADMINISTRATION_CLI_ADMIN_CLUSTER_LINK_HPP_
 
-#include <curl/curl.h>
-
 #include <vector>
 #include <string>
 
@@ -13,6 +11,7 @@
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/metadata_change_handler.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/suggester.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -114,10 +113,21 @@ private:
                                  std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >& ns_map);
 
     template <class protocol_t>
-    void do_admin_create_namespace_internal(std::string& name,
-                                            int port,
-                                            datacenter_id_t& primary,
-                                            const std::string& path);
+    namespace_id_t do_admin_create_namespace_internal(namespaces_semilattice_metadata_t<protocol_t>& ns,
+                                                      const std::string& name,
+                                                      int port,
+                                                      const datacenter_id_t& primary);
+
+    template <class obj_map>
+    void do_admin_set_datacenter_namespace(obj_map& metadata,
+                                           const boost::uuids::uuid obj_uuid,
+                                           const datacenter_id_t dc);
+
+    void do_admin_set_datacenter_machine(machines_semilattice_metadata_t::machine_map_t& metadata,
+                                         const boost::uuids::uuid obj_uuid,
+                                         const datacenter_id_t dc,
+                                         cluster_semilattice_metadata_t& cluster_metadata);
+
 
     void remove_datacenter_references(const datacenter_id_t& datacenter, cluster_semilattice_metadata_t& cluster_metadata);
 
@@ -301,6 +311,8 @@ private:
     message_multiplexer_t::client_t semilattice_manager_client;
     semilattice_manager_t<cluster_semilattice_metadata_t> semilattice_manager_cluster;
     message_multiplexer_t::client_t::run_t semilattice_manager_client_run;
+    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+    metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler;
     message_multiplexer_t::client_t directory_manager_client;
     watchable_variable_t<cluster_directory_metadata_t> our_directory_metadata;
     directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager;
@@ -308,7 +320,6 @@ private:
     message_multiplexer_t::client_t::run_t directory_manager_client_run;
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
-    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
 
     // Issue tracking etc.
     admin_tracker_t admin_tracker;
@@ -330,11 +341,6 @@ private:
     template <class T>
     void add_subset_to_maps(const std::string& base, T& data_map);
     metadata_info_t* get_info_from_id(const std::string& id);
-
-    CURL *curl_handle;
-    struct curl_slist *curl_header_list;
-    std::string sync_peer;
-    peer_id_t sync_peer_id;
 
     DISABLE_COPYING(admin_cluster_link_t);
 };

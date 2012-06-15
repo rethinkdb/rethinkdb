@@ -60,11 +60,14 @@ bool serve_(
     // stat_manager mailbox address
     stat_manager_t stat_manager(&mailbox_manager);
 
+    metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, &connectivity_cluster, semilattice_manager_cluster.get_root_view());
+
     watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(
         cluster_directory_metadata_t(
             machine_id,
             get_ips(),
             stat_manager.get_address(),
+            metadata_change_handler.get_request_mailbox_address(),
             log_server.get_business_card(),
             i_am_a_server ? SERVER_PEER : PROXY_PEER
         ));
@@ -190,6 +193,7 @@ bool serve_(
         administrative_http_server_manager_t administrative_http_interface(
             http_port,
             &mailbox_manager,
+            &metadata_change_handler,
             semilattice_manager_cluster.get_root_view(),
             directory_read_manager.get_root_view(),
             &memcached_namespace_repo,
