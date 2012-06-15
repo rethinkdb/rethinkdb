@@ -22,7 +22,24 @@ very clean. */
 
 template<class protocol_t>
 class broadcaster_t : public home_thread_mixin_t {
+private:
+    class incomplete_write_t;
+
 public:
+    class write_callback_t {
+    public:
+        write_callback_t();
+        virtual void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) = 0;
+        virtual void on_done() = 0;
+
+    protected:
+        virtual ~write_callback_t();
+
+    private:
+        friend class broadcaster_t;
+        incomplete_write_t *write;
+    };
+
     broadcaster_t(
             mailbox_manager_t *mm,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
@@ -31,29 +48,20 @@ public:
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
-    class ack_callback_t {
-    public:
-        /* If the return value is `true`, then `write()` will return. */
-        virtual bool on_ack(peer_id_t peer) = 0;
-
-    protected:
-        virtual ~ack_callback_t() { }
-    };
-
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t tok, signal_t *interruptor, boost::function<void()> write_complete_cb) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
+    /* Unlike `read()`, `spawn_write()` returns as soon as the write has begun
+    and replies asynchronously via a callback. It may block, so it takes an
+    `interruptor`, but it shouldn't block for a long time. If the
+    `write_callback_t` is destroyed while the write is still in progress, its
+    destructor will automatically deregister it so that no segfaults will
+    happen. */
+    void spawn_write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t tok, write_callback_t *cb, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     branch_id_t get_branch_id();
 
     broadcaster_business_card_t<protocol_t> get_business_card();
 
-    int num_incomplete_writes() {
-        return incomplete_writes.size();
-    }
-
 private:
     friend class listener_t<protocol_t>;
-
-    class incomplete_write_t;
 
     class incomplete_write_ref_t;
 
