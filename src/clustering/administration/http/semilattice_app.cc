@@ -35,14 +35,14 @@ void semilattice_http_app_t::fill_in_blueprints(cluster_semilattice_metadata_t *
 }
 
 semilattice_http_app_t::semilattice_http_app_t(
-        const boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > &_semilattice_metadata,
+        metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         boost::uuids::uuid _us)
-    : semilattice_metadata(_semilattice_metadata), directory_metadata(_directory_metadata), us(_us) { }
+    : metadata_change_handler(_metadata_change_handler), directory_metadata(_directory_metadata), us(_us) { }
 
 http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
     try {
-        cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
+        cluster_semilattice_metadata_t cluster_metadata = metadata_change_handler->get();
 
         //as we traverse the json sub directories this will keep track of where we are
         boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata));
@@ -117,7 +117,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     fill_in_blueprints(&cluster_metadata);
                 } catch (missing_machine_exc_t &e) { }
 
-                semilattice_metadata->join(cluster_metadata);
+                metadata_change_handler->update(cluster_metadata);
 
                 http_res_t res(200);
 
@@ -135,7 +135,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     fill_in_blueprints(&cluster_metadata);
                 } catch (missing_machine_exc_t &e) { }
 
-                semilattice_metadata->join(cluster_metadata);
+                metadata_change_handler->update(cluster_metadata);
 
                 http_res_t res(200);
 
@@ -172,7 +172,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                     fill_in_blueprints(&cluster_metadata);
                 } catch (missing_machine_exc_t &e) { }
 
-                semilattice_metadata->join(cluster_metadata);
+                metadata_change_handler->update(cluster_metadata);
 
                 http_res_t res(200);
 
