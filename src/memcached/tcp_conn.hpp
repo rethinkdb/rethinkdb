@@ -15,7 +15,6 @@ void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t
 connections until the destructor is called. */
 
 struct memcache_listener_t : public home_thread_mixin_t {
-
     memcache_listener_t(int port, namespace_interface_t<memcached_protocol_t> *namespace_if, perfmon_collection_t *parent);
     ~memcache_listener_t();
 

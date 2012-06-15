@@ -8,7 +8,7 @@ op = OptParser()
 op["use-proxy"] = BoolFlag("--use-proxy")
 op["num-nodes"] = IntFlag("--num-nodes", 3)
 op["num-shards"] = IntFlag("--num-shards", 2)
-op["mode"] = IntFlag("--mode", "debug")
+op["mode"] = StringFlag("--mode", "debug")
 op["workload"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
@@ -35,7 +35,7 @@ with driver.Metacluster() as metacluster:
         http.add_namespace_shard(ns, chr(ord('a') + 26 * i // opts["num-shards"]))
     http.wait_until_blueprint_satisfied(ns)
 
-    host, port = driver.get_namespace_host(ns, processes if not opts["use-proxy"] else [proxy_process])
+    host, port = driver.get_namespace_host(ns.port, processes if not opts["use-proxy"] else [proxy_process])
     workload_runner.run(opts["workload"], host, port, opts["timeout"])
 
     cluster.check_and_stop()

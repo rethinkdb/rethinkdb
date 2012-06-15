@@ -23,7 +23,7 @@ struct queue_block_t {
 template <class T>
 class disk_backed_queue_t {
 public:
-    disk_backed_queue_t(std::string filename) :
+    disk_backed_queue_t(std::string filename, perfmon_collection_t *stats_parent) :
             queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID)
     {
         /* We're going to register for writes, however those writes won't be able
@@ -34,13 +34,14 @@ public:
         standard_serializer_t::create(
                 standard_serializer_t::dynamic_config_t(),
                 standard_serializer_t::private_dynamic_config_t(filename),
-                standard_serializer_t::static_config_t()
+                standard_serializer_t::static_config_t(),
+                stats_parent
                 );
 
         serializer.reset(new standard_serializer_t(
             standard_serializer_t::dynamic_config_t(),
             standard_serializer_t::private_dynamic_config_t(filename),
-            NULL
+            stats_parent
             ));
 
         /* Remove the file we just created from the filesystem, so that it will
@@ -56,7 +57,7 @@ public:
         mirrored_cache_config_t cache_dynamic_config;
         cache_dynamic_config.max_size = MEGABYTE;
         cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-        cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, NULL));
+        cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, stats_parent));
     }
 
     void push(const T &t) {
@@ -76,7 +77,7 @@ public:
         wm << t;
         vector_stream_t stream;
         int res = send_write_message(&stream, &wm);
-        rassert(res == 0);
+        guarantee(res == 0);
 
         char buffer[MAX_REF_SIZE];
         bzero(buffer, MAX_REF_SIZE);

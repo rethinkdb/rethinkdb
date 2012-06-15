@@ -1,4 +1,3 @@
-
 # This file extends the UIComponents module with commonly used list
 # components.
 module 'UIComponents', ->
@@ -7,26 +6,33 @@ module 'UIComponents', ->
         # Use a generic template by default for a list
         template: Handlebars.compile $('#abstract_list-template').html()
 
-        # Abstract lists take several arguments
+        # Abstract lists take several arguments:
         #   collection: Backbone collection that backs the list
         #   element_view_class: Backbone view that each element in the list will be rendered with
         #   container: JQuery selector string specifying the div that each element view will be appended to
+        # They can also take several options:
         #   filter: optional filter that defines what elements to use from the collection using a truth test
         #           (function whose argument is a Backbone model and whose output is true/false)
-        initialize: (collection, element_view_class, container, filter) ->
+        #   sort: optional function that defines a sort order for the lista (defaults to Array.prototype.sort)
+        initialize: (collection, element_view_class, container, options) ->
             #log_initial '(initializing) list view: ' + class_name @collection
             @collection = collection
             @element_views = []
             @container = container
             @element_view_class = element_view_class
+            @options = options
             @size = 0
 
             # This filter defines which models from the collection should be represented by this list.
             # If one was not provided, define a filter that allows all models
-            if filter?
-                @filter = filter
+            if @options? and @options.filter?
+                @filter = @options.filter
             else
                 @filter = (model) -> true
+
+            if @options? and @options.sort?
+                @sort = @options.sort
+            else @sort = (a,b) -> 0
 
             # Initially we need to populate the element views list
             @reset_element_views()
@@ -49,6 +55,7 @@ module 'UIComponents', ->
                     @remove_elements model
 
         render: =>
+            @element_views.sort @sort
             #log_render '(rendering) list view: ' + class_name @collection
             # Render and append the list template to the DOM
             @.$el.html(@template({}))
@@ -74,6 +81,7 @@ module 'UIComponents', ->
             element_view = new @element_view_class
                 model: model
                 collection: @collection
+                args: @options.element_args if @options?
 
             @element_views.push element_view
             @size = @element_views.length

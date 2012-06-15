@@ -40,6 +40,23 @@ cJSON *directory_http_app_t::get_metadata_json(cluster_directory_metadata_t& met
     return json_adapter_head->render(json_ctx);
 }
 
+void directory_http_app_t::get_root(scoped_cJSON_t *json_out) {
+    // keep this in sync with handle's behavior for getting the root
+    std::map<peer_id_t, cluster_directory_metadata_t> md = directory_metadata->get();
+
+    json_out->reset(cJSON_CreateObject());
+
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
+        cluster_directory_metadata_t metadata = i->second;
+        std::string machine_id = boost::lexical_cast<std::string>(metadata.machine_id);
+
+        json_read_only_adapter_t<cluster_directory_metadata_t, namespace_metadata_ctx_t> json_adapter(&metadata);
+        namespace_metadata_ctx_t json_ctx(metadata.machine_id);
+
+        cJSON_AddItemToObject(json_out->get(), machine_id.c_str(), json_adapter.render(json_ctx));
+    }
+}
+
 http_res_t directory_http_app_t::handle(const http_req_t &req) {
     try {
         std::map<peer_id_t, cluster_directory_metadata_t> md = directory_metadata->get();

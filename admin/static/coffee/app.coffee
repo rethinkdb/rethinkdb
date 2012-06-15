@@ -1,4 +1,3 @@
-
 # This file contains all the good stuff we do to set up the
 # application. We should refactor this at some point, but I'm leaving
 # it as is for now.
@@ -19,7 +18,12 @@ declare_client_connected = ->
 
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
-        if data
+        if data isnt null
+            if data.protocol? and data.protocol is 'memcached'  # We check that the machines in the blueprint do exist
+                if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
+                    for machine_uuid of collection_data[id].blueprint.peers_roles
+                        if !machines.get(machine_uuid)?
+                            delete collection_data[id].blueprint.peers_roles[machine_uuid]
             if collection.get(id)
                 collection.get(id).set(data)
             else
@@ -28,7 +32,6 @@ apply_to_collection = (collection, collection_data) ->
         else
             if collection.get(id)
                 collection.remove(id)
-
 
 add_protocol_tag = (data, tag) ->
     f = (unused,id) ->
@@ -44,7 +47,8 @@ reset_collections = () ->
     issues.reset()
     directory.reset()
 
-# Process updates from the server and apply the diffs to our view of the data. Used by our version of Backbone.sync and POST / PUT responses for form actions
+# Process updates from the server and apply the diffs to our view of the data.
+# Used by our version of Backbone.sync and POST / PUT responses for form actions
 apply_diffs = (updates) ->
     declare_client_connected()
 
@@ -61,6 +65,14 @@ apply_diffs = (updates) ->
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "dummy"))
             when 'memcached_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "memcached"))
+                ###
+                for id, data of collection_data
+                    if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
+                        for machine_uuid of collection_data[id].blueprint.peers_roles
+                            if !machines.get(machine_uuid)?
+                                delete collection_data[id].blueprint.peers_roles[machine_uuid]
+                ###
+
             when 'datacenters'
                 apply_to_collection(datacenters, collection_data)
             when 'machines'
@@ -89,12 +101,12 @@ set_directory = (attributes_from_server) ->
             dir_machines[dir_machines.length] = value
     directory.reset(dir_machines)
 
-set_last_seen = (last_seen) ->
+set_last_seen = (last_seen_from_server) ->
     # Expand machines model with this data
-    for machine_uuid, timestamp of last_seen
+    for machine_uuid, timestamp of last_seen_from_server
         _m = machines.get machine_uuid
         if _m
-            _m.set('last_seen', timestamp)
+            _m.set('last_seen_from_server', timestamp)
 
 set_log_entries = (log_data_from_server) ->
     all_log_entries = []
@@ -149,7 +161,7 @@ $ ->
     # routes. TODO: somebody fix this in the server for heaven's
     # sakes!!!
     #   - an optional callback can be provided. Currently this callback will only be called after the /ajax route (metadata) is collected
-    collect_server_data = (optional_callback) =>
+    window.collect_server_data = (optional_callback) =>
         $.ajax({
             url: '/ajax'
             dataType: 'json'
@@ -158,7 +170,10 @@ $ ->
                     delete window.is_disconnected
                     window.location.reload(true)
 
-                apply_diffs(updates)
+                apply_diffs updates.semilattice
+                set_issues updates.issues
+                set_directory updates.directory
+                set_last_seen updates.last_seen
                 optional_callback() if optional_callback
             error: ->
                 if window.is_disconnected?
@@ -166,11 +181,9 @@ $ ->
                 else
                     window.is_disconnected = new IsDisconnected
         })
-        $.getJSON('/ajax/issues', set_issues)
         $.getJSON('/ajax/progress', set_progress)
-        $.getJSON('/ajax/directory', set_directory)
-        $.getJSON('/ajax/last_seen', set_last_seen)
         $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
+
     collect_stat_data = (optional_callback) =>
         $.getJSON('/ajax/stat', set_stats)
 
@@ -207,6 +220,3 @@ $ ->
     # Populate collection for the first time
     collect_server_data(collections_ready)
     collect_stat_data()
-
-
-

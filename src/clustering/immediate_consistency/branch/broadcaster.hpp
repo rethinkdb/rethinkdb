@@ -44,6 +44,7 @@ public:
             mailbox_manager_t *mm,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
             store_view_t<protocol_t> *initial_store,
+            perfmon_collection_t *parent_perfmon_collection,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);

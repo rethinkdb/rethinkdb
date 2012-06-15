@@ -92,7 +92,7 @@ public:
 public:
 
     /* Blocks. Does not check for an existing database--use check_existing for that. */
-    static void create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config);
+    static void create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config, perfmon_collection_t *stats_parent);
 
     /* Blocks. */
     log_serializer_t(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, perfmon_collection_t *perfmon_collection);

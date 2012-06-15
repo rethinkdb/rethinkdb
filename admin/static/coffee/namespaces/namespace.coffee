@@ -1,6 +1,12 @@
-
 # Namespace view
 module 'NamespaceView', ->
+    class @NotFound extends Backbone.View
+        template: Handlebars.compile $('#namespace_view-not_found-template').html()
+        initialize: (id) -> @id = id
+        render: =>
+            @.$el.html @template id: @id
+            return @
+
     # Container for the entire namespace view
     class @Container extends Backbone.View
         className: 'namespace-view'
@@ -9,61 +15,28 @@ module 'NamespaceView', ->
             'click a.rename-namespace': 'rename_namespace'
             'click .close': 'close_alert'
 
-        initialize: (id) =>
+        initialize: ->
             log_initial '(initializing) namespace view: container'
-            @namespace_uuid = id
+
+            # Panels for namespace view
+            @title = new NamespaceView.Title(model: @model)
+            @profile = new NamespaceView.Profile(model: @model)
+            @replicas = new NamespaceView.Replicas(model: @model)
+            @shards = new NamespaceView.Sharding(model: @model)
+            @stats_panel = new NamespaceView.StatsPanel(model: @model)
+            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
         rename_namespace: (event) ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'namespace'
             rename_modal.render()
             @title.update()
-            
-        wait_for_model_noop: =>
-            return true
-
-        wait_for_model: =>
-            @model = namespaces.get(@namespace_uuid)
-            if not @model
-                namespaces.off 'all', @render
-                namespaces.on 'all', @render
-                return false
-
-            # Model is finally ready, unbind necessary handlers
-            namespaces.off 'all', @render
-
-
-
-
-            # We no longer need all this logic in wait_for_model, so
-            # switch it to noop for the callers
-            @wait_for_model = @wait_for_model_noop
-
-            return true
-
-        render_empty: =>
-            @.$el.text 'Namespace ' + @namespace_uuid + ' is not available.'
-            return @
 
         render: =>
             log_render '(rendering) namespace view: container'
 
-            if @wait_for_model() is false
-                return @render_empty()
-
             json = @model.toJSON()
             @.$el.html @template json
-
-            # Some additional setup
-            @title = new NamespaceView.Title(@namespace_uuid)
-            @profile = new NamespaceView.Profile(model: @model)
-            @replicas = new NamespaceView.Replicas(model: @model)
-            @shards = new NamespaceView.Shards(model: @model)
-            
-            stats = @model.get_stats_for_performance
-            @performance_graph = new Vis.OpsPlot(stats)
-
-            @stats_panel = new NamespaceView.StatsPanel(model: @model)
 
             # fill the title of this page
             @.$('.main_title').html @title.render().$el
@@ -87,27 +60,23 @@ module 'NamespaceView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
-
     # NamespaceView.Title
     class @Title extends Backbone.View
         className: 'namespace-info-view'
         template: Handlebars.compile $('#namespace_view_title-template').html()
-        initialize: (uuid) =>
-            @uuid = uuid
-            @name = namespaces.get(@uuid).get('name')
+        initialize: ->
+            @name = @model.get('name')
             namespaces.on 'all', @update
         
         update: =>
-            if @name isnt namespaces.get(@uuid).get('name')
-                @name = namespaces.get(@uuid).get('name')
+            if @name isnt @model.get('name')
+                @name = @model.get('name')
                 @render()
 
         render: =>
-            json =
+            @.$el.html @template
                 name: @name
-            @.$el.html @template(json)
             return @
-
 
     # Profile view
     class @Profile extends Backbone.View
@@ -138,7 +107,6 @@ module 'NamespaceView', ->
 
             return @
 
-
     class @StatsPanel extends Backbone.View
         className: 'namespace-stats'
 
@@ -156,10 +124,13 @@ module 'NamespaceView', ->
         render: =>
             data_in_memory = 0
             data_total = 0
+            #TODO These are being calculated incorrectly. As they stand, data_in_memory is correct, but data_total is measuring the disk space used by this namespace. Issue filed.
             for machine in machines.models
                 if machine.get('stats')? and @model.get('id') of machine.get('stats')
-                    data_in_memory += machine.get('stats')[@model.get('id')].cache.block_size*machine.get('stats')[@model.get('id')].cache.blocks_in_memory
-                    data_total += machine.get('stats')[@model.get('id')].cache.block_size*machine.get('stats')[@model.get('id')].cache.blocks_total
+                    stats = machine.get('stats')
+                    if stats.cache?
+                        data_in_memory += stats.cache.block_size * stats.cache.blocks_in_memory
+                        data_total += stats.cache.block_size * stats.cache.blocks_total
 
             json =
                 data_in_memory_percent: Math.floor(data_in_memory/data_total*100)

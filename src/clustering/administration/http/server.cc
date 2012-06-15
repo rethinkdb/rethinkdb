@@ -9,6 +9,7 @@
 #include "clustering/administration/http/progress_app.hpp"
 #include "clustering/administration/http/semilattice_app.hpp"
 #include "clustering/administration/http/stat_app.hpp"
+#include "clustering/administration/http/combining_app.hpp"
 #include "http/file_app.hpp"
 #include "http/http.hpp"
 #include "http/routing_app.hpp"
@@ -58,6 +59,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/d3.v2.min.js");
     white_list.insert("/js/rdb_cubism.v1.js");
     white_list.insert("/js/date-en-US.js");
+    white_list.insert("/js/jquery.cookie.js");
     white_list.insert("/js/flot/jquery.flot.js");
     white_list.insert("/js/flot/jquery.flot.resize.js");
     white_list.insert("/js/handlebars-1.0.0.beta.6.js");
@@ -71,12 +73,19 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/jquery.validate.min.js");
     white_list.insert("/js/underscore-min.js");
     white_list.insert("/js/xdate.js");
+    white_list.insert("/js/chosen/chosen.jquery.min.js");
+    white_list.insert("/js/chosen/chosen.css");
+    white_list.insert("/js/chosen/chosen-sprite.png");
     white_list.insert("/js/jquery.ba-outside-events.min.js");
     white_list.insert("/images/alert-icon_small.png");
     white_list.insert("/images/critical-issue_small.png");
     white_list.insert("/images/information-icon_small.png");
-    white_list.insert("/images/mini_right-arrow.png");
-    white_list.insert("/images/mini_down-arrow.png");
+    white_list.insert("/images/right-arrow_16x16.png");
+    white_list.insert("/images/right-arrow_12x12.png");
+    white_list.insert("/images/down-arrow_16x16.png");
+    white_list.insert("/images/down-arrow_12x12.png");
+    white_list.insert("/images/glyphicons-halflings.png");
+    white_list.insert("/images/glyphicons-halflings-white.png");
     white_list.insert("/images/loading.gif");
     white_list.insert("/index.html");
     file_app.reset(new file_http_app_t(white_list, path));
@@ -102,9 +111,18 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     ajax_routes["log"] = log_app.get();
     ajax_routes["progress"] = progress_app.get();
     ajax_routes["distribution"] = distribution_app.get();
+    ajax_routes["semilattice"] = semilattice_app.get();
     DEBUG_ONLY_CODE(ajax_routes["cyanide"] = cyanide_app.get(););
 
-    ajax_routing_app.reset(new routing_http_app_t(semilattice_app.get(), ajax_routes));
+    std::map<std::string, http_json_app_t *> default_views;
+    default_views["semilattice"] = semilattice_app.get();
+    default_views["directory"] = directory_app.get();
+    default_views["issues"] = issues_app.get();
+    default_views["last_seen"] = last_seen_app.get();
+
+    combining_app.reset(new combining_http_app_t(default_views));
+
+    ajax_routing_app.reset(new routing_http_app_t(combining_app.get(), ajax_routes));
 
     std::map<std::string, http_app_t *> root_routes;
     root_routes["ajax"] = ajax_routing_app.get();

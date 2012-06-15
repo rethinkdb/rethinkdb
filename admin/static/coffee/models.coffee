@@ -1,10 +1,10 @@
 # Models for Backbone.js
 class Namespace extends Backbone.Model
-    urlRoot: '/ajax/namespaces'
     initialize: ->
-        log_initial '(initializing) namespace model'
-        super
         @load_key_distr()
+
+        # Add a computed shards property for convenience and metadata
+        @.set 'computed_shards', new DataUtils.Shards [],@
 
     # Cache key distribution info.
     load_key_distr: =>
@@ -68,7 +68,8 @@ class Namespace extends Backbone.Model
             keys_set: 0
         _.each DataUtils.get_namespace_machines(@get('id')), (mid) =>
             _m = machines.get(mid)
-            _s = _m.get_stats()[@get('id')]
+            if _m?
+                _s = _m.get_stats()[@get('id')]
             if _s? and _s.btree?
                 keys_read = parseFloat(_s.btree.keys_read)
                 if not isNaN(keys_read)
@@ -196,9 +197,7 @@ class Machine extends Backbone.Model
                     machine_disk_space += parseInt(stats.block_size) * parseInt(stats.blocks_total)
         return machine_disk_space
 
-
     get_stats_for_performance: =>
-
         stats_full = @get_stats()
         mstats = stats_full.proc
         __s =
@@ -213,12 +212,12 @@ class Machine extends Backbone.Model
                 avg: if mstats.global_net_recv_persec? then parseFloat(mstats.global_net_recv_persec.avg) else 0
             global_net_sent_persec:
                 avg: if mstats.global_net_sent_persec? then parseFloat(mstats.global_net_sent_persec.avg) else 0
-        
+
         for namespace in namespaces.models
             _s = namespace.get_stats()
             if not _s?
                 continue
-            
+
             if namespace.get('id') of stats_full
                 __s.keys_read += _s.keys_read
                 __s.keys_set += _s.keys_set
@@ -390,7 +389,7 @@ class IssuesRedundancy extends Backbone.Collection
                             for activity in directory_by_namespaces[namespace_id][machine_id]
                                 if key is activity[0] and @convert_activity[value] is activity[1].type
                                     found_activity = true
-                            
+
                             if found_activity is false
                                 issue_redundancy_param =
                                     machine_id: machine_id
@@ -400,8 +399,8 @@ class IssuesRedundancy extends Backbone.Collection
                                 issues_redundancy.push new IssueRedundancy issue_redundancy_param
         if issues_redundancy.length > 0 or issues_redundancy.length isnt @.length
             @.reset(issues_redundancy)
-        
-        
+
+
 
 class ProgressList extends Backbone.Collection
     model: Progress
@@ -415,6 +414,57 @@ class Directory extends Backbone.Collection
 # This module contains utility functions that compute and massage
 # commonly used data.
 module 'DataUtils', ->
+    # The equivalent of a database view, but for our Backbone models.
+    # Our models and collections have direct representations on the server. For
+    # convenience, it's useful to pick data from several of these models: these
+    # are computed models (and computed collections).
+    class @ComputedModel extends Backbone.Model
+    class @ComputedCollection extends Backbone.Collection
+
+    # Computed shard for a particular namespace: computed for convenience and for extra metadata
+    # Arguments:
+    #   shard: element of the namespace shards list: Namespace.get('shards')
+    #   namespace: namespace that this shard belongs to
+    # Computed attributes of a shard:
+    #   shard_boundaries: JSON string representing the shard boundaries
+    #   primary_uuid: machine uuid that is the master for this shard
+    #   secondary_uuids: list of machine_uuids that are the secondaries for this shard
+    class @Shard extends @ComputedModel
+        get_primary_uuid: => DataUtils.get_shard_primary_uuid @namespace.get('id'), @shard
+        get_secondary_uuids: => DataUtils.get_shard_secondary_uuids @namespace.get('id'), @shard
+
+        initialize: (shard, namespace) ->
+            @shard = shard
+            @namespace = namespace
+
+            @.set 'shard_boundaries', @shard
+            @.set 'primary_uuid', @get_primary_uuid()
+            @.set 'secondary_uuids',  @get_secondary_uuids()
+
+            namespace.on 'change:blueprint', =>
+                new_primary_uuid = @get_primary_uuid()
+                new_secondary_uuids = @get_secondary_uuids()
+                @.set 'primary_uuid', new_primary_uuid if @.get('primary_uuid') isnt new_primary_uuid
+                @.set 'secondary_uuids', new_secondary_uuids if not _.isEqual @.get('secondary_uuids'), new_secondary_uuids
+            
+    # The Shards collection maintains the computed shards for a given namespace.
+    # It will observe for any changes in the sharding scheme (or if the
+    # namespace has just been added) and maintains the list of computed shards,
+    # rebuilding if necessary.
+    class @Shards extends @ComputedCollection
+        model: DataUtils.Shard
+
+        initialize: (models, namespace) ->
+            @namespace = namespace
+            @namespace.on 'change:shards', => @compute_shards @namespace.get('shards')
+            @namespace.on 'add', => @compute_shards @namespace.get('shards')
+
+        compute_shards: (shards) =>
+            new_shards = []
+            for shard in shards
+                new_shards.push new DataUtils.Shard shard, @namespace
+            @.reset new_shards
+
     @get_machine_reachability = (machine_uuid) ->
         reachable = directory.get(machine_uuid)?
         if not reachable
@@ -469,6 +519,9 @@ module 'DataUtils', ->
         # We're organizing secondaries per datacenter
         secondaries = {}
         for machine_uuid, peers_roles of namespaces.get(namespace_uuid).get('blueprint').peers_roles
+            if !machines.get(machine_uuid)? # In case the machine is dead
+                continue
+
             datacenter_uuid = machines.get(machine_uuid).get('datacenter_uuid')
             for _shard, role of peers_roles
                 if shard.toString() is _shard.toString() and role is 'role_secondary'
@@ -717,6 +770,8 @@ module 'DataUtils', ->
         _datacenters = []
 
         for machine_uuid, role of namespace.get('blueprint').peers_roles
+            if !machines.get(machine_uuid)? # If the machine is dead
+                continue
             if datacenter_uuid? and
                machines.get(machine_uuid) and
                machines.get(machine_uuid).get('datacenter_uuid') isnt datacenter_uuid

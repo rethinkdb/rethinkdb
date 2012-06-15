@@ -19,6 +19,7 @@ std::string uuid_to_str(boost::uuids::uuid id);
 
 boost::uuids::uuid str_to_uuid(const std::string&);
 
+bool is_uuid(const std::string& str);
 
 
 #endif  // CONTAINERS_UUID_HPP_

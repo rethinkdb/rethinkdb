@@ -1,5 +1,12 @@
 # Machine view
 module 'MachineView', ->
+    class @NotFound extends Backbone.View
+        template: Handlebars.compile $('#machine_view-not_found-template').html()
+        initialize: (id) -> @id = id
+        render: =>
+            @.$el.html @template id: @id
+            return @
+
     # Container
     class @Container extends Backbone.View
         className: 'machine-view'
@@ -12,55 +19,24 @@ module 'MachineView', ->
 
         max_log_entries_to_render: 3
 
-        initialize: (id) =>
+        initialize: =>
             log_initial '(initializing) machine view: container'
-            @machine_uuid = id
 
-
+            # Panels for machine view
+            @title = new MachineView.Title(model: @model)
+            @profile = new MachineView.Profile(model: @model)
+            @data = new MachineView.Data(model: @model)
+            @stats_panel = new Vis.StatsPanel(@model.get_stats_for_performance)
+            @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
+        
         rename_machine: (event) ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'machine'
             rename_modal.render()
             @title.update()
 
-
-        wait_for_model_noop: =>
-            return true
-
-        wait_for_model: =>
-            @model = machines.get(@machine_uuid)
-            if not @model
-                machines.off 'all', @render
-                machines.on 'all', @render
-                return false
-
-            # Model is finally ready, unbind unnecessary handlers
-            machines.off 'all', @render
-
-            # Everything has been set up, we don't need this logic any more
-            @wait_for_model = @wait_for_model_noop
-
-            return true
-
-        render_empty: =>
-            @.$el.text 'Machine ' + @machine_uuid + ' is not available.'
-            return @
-
         render: =>
-
             log_render '(rendering) machine view: container'
-
-            if not @wait_for_model()
-                return @render_empty()
-
-            @title = new MachineView.Title(@machine_uuid)
-            @profile = new MachineView.Profile(@machine_uuid)
-            @data = new MachineView.Data(@machine_uuid)
-            
-            stats = @model.get_stats_for_performance
-            @performance_graph = new Vis.OpsPlot(stats)
-            
-            @stats_panel = new Vis.StatsPanel(stats)
 
             # create main structure
             @.$el.html @template
@@ -77,7 +53,6 @@ module 'MachineView', ->
 
             # display the data on the machines
             @.$('.data').html @data.render().$el
-
 
             # log entries
             if @model.get('log_entries')?
@@ -103,29 +78,25 @@ module 'MachineView', ->
     class @Title extends Backbone.View
         className: 'machine-info-view'
         template: Handlebars.compile $('#machine_view_title-template').html()
-        initialize: (model_id) =>
-            @id = model_id
-            @name = machines.get(@id).get('name')
+        initialize: =>
+            @name = @model.get('name')
             machines.on 'all', @update
         
         update: =>
-            if @name isnt machines.get(@id).get('name')
-                @name = machines.get(@id).get('name')
+            if @name isnt @model.get('name')
+                @name = @model.get('name')
                 @render()
 
         render: =>
-            json =
-                name: @name
-            @.$el.html @template(json)
+            @.$el.html @template
+                name: name
             return @
 
     # MachineView.Profile
     class @Profile extends Backbone.View
         className: 'machine-info-view'
         template: Handlebars.compile $('#machine_view_profile-template').html()
-        initialize: (model_id) =>
-            @id = model_id
-            @model = machines.get(model_id)
+        initialize: =>
             @model.on 'all', @render
             directory.on 'all', @render
             machines.on 'all', @render
@@ -152,13 +123,10 @@ module 'MachineView', ->
                     assigned_to_datacenter: datacenter_uuid
                     datacenter_name: datacenters.get(datacenter_uuid).get('name')
 
-
             # Reachability
             _.extend json,
                 status: DataUtils.get_machine_reachability(@model.get('id'))
             @.$el.html @template(json)
-
-
 
             return @
 
@@ -166,9 +134,7 @@ module 'MachineView', ->
         className: 'machine-info-view'
         template: Handlebars.compile $('#machine_view_data-template').html()
 
-        initialize: (model_id) =>
-            @model = machines.get(model_id)
-
+        initialize: =>
             @model.on 'all', @render
             directory.on 'all', @render
 
@@ -201,8 +167,6 @@ module 'MachineView', ->
             
             @.$el.html @template(json)
             return @
-
-
 
     # MachineView.RecentLogEntry
     class @RecentLogEntry extends Backbone.View

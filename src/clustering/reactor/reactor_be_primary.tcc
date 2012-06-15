@@ -334,7 +334,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
             }
         }
 
-        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history, store, interruptor);
+        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history, store, parent_perfmon_collection, interruptor);
 
         directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card()));
 
@@ -347,7 +347,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
-        listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, interruptor);
+        listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, parent_perfmon_collection, interruptor);
         replier_t<protocol_t> replier(&listener);
         master_t<protocol_t> master(mailbox_manager, ack_checker, &master_directory, &master_directory_lock, region, &broadcaster);
 

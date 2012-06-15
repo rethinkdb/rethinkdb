@@ -27,8 +27,6 @@
 #include "containers/intrusive_list.hpp"
 #include "perfmon_types.hpp"
 
-class side_coro_handler_t;
-
 /* linux_tcp_conn_t provides a disgusting wrapper around a TCP network connection. */
 
 class linux_tcp_conn_t :

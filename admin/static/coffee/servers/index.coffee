@@ -1,5 +1,12 @@
-
 # Index view of datacenters and machines
+# The server index view consists of several lists. Here's the hierarchy:
+#   @DatacenterList
+#   |-- @DatacenterListElement: a datacenter
+#   |   `-- @MachineList: machines for that datacenter
+#   |      `-- @MachinesListElement: individual machine in the datacenter
+#   |-- @UnassignedMachineListElement: grouping for unassigned machines
+#   |   `-- @MachineList: machines that are unassigned
+#   |      `-- @MachinesListElement: individual unassigned machine
 module 'ServerView', ->
     class @DatacenterList extends UIComponents.AbstractList
         # Use a datacenter-specific template for the datacenter list
@@ -19,7 +26,6 @@ module 'ServerView', ->
 
             @unassigned_machines = new ServerView.UnassignedMachinesListElement()
             @unassigned_machines.register_machine_callbacks @get_callbacks()
-
 
         render: =>
             super
@@ -78,7 +84,8 @@ module 'ServerView', ->
 
         initialize: (datacenter_uuid) ->
             @callbacks = []
-            super machines, ServerView.MachineListElement, 'tbody.list', (model) -> model.get('datacenter_uuid') is datacenter_uuid
+            super machines, ServerView.MachineListElement, 'tbody.list',
+                filter: (model) -> model.get('datacenter_uuid') is datacenter_uuid
 
             machines.on 'change:datacenter_uuid', (machine, new_datacenter_uuid) =>
                 num_elements_removed = @remove_elements machine
@@ -181,7 +188,7 @@ module 'ServerView', ->
 
             total_data = 0
 
-            max_traffic = 
+            max_traffic =
                 recv: 0
                 sent: 0
 
@@ -231,13 +238,13 @@ module 'ServerView', ->
 
                 if total_data isnt 0 and all_machine_in_datacenter_ready
                     json.machine_data_percent = Math.floor @model.get_used_disk_space()/total_data*100
-                    json.machine_data_has_problem = true if (json.machine_data_percent > @threshold_alert) and num_machine_in_datacenter>1 and @model.get_used_disk_space() isnt 0 
+                    json.machine_data_has_problem = true if (json.machine_data_percent > @threshold_alert) and num_machine_in_datacenter>1 and @model.get_used_disk_space() isnt 0
                 else
                     json.machine_data_percent = 0
 
-                if json.machine_disk_available isnt 0 
+                if json.machine_disk_available isnt 0
                     json.machine_disk_percent = Math.floor @model.get_used_disk_space()/(@model.get_used_disk_space()*3)*100 #TODO replace with real values
-                    json.machine_disk_has_problem = true if (json.machine_disk_data_percent>@threshold_alert) and @model.get_used_disk_space() isnt 0 
+                    json.machine_disk_has_problem = true if (json.machine_disk_data_percent>@threshold_alert) and @model.get_used_disk_space() isnt 0
                 else
                     json.machine_disk_percent = 0
 
@@ -278,18 +285,18 @@ module 'ServerView', ->
                     sparkline_attr_cpu.lineColor = 'red'
                 _.extend sparkline_attr_cpu, sparkline_attr
                 @.$('.cpu_sparkline').sparkline @history.cpu, sparkline_attr_cpu
-                
-                 # Add some parameters for the traffic sent sparkline and display it         
+
+                 # Add some parameters for the traffic sent sparkline and display it
                 sparkline_attr_traffic_sent =
                     chartRangeMax: human_readable_units(max_traffic.sent, units_space)
                 if total_traffic.sent isnt 0 and num_machine_in_datacenter>1 and @model.get_stats().proc.global_net_sent_persec_avg/total_traffic.sent*100>@threshold_alert
                     sparkline_attr_traffic_sent.lineColor = 'red'
                 _.extend sparkline_attr_traffic_sent, sparkline_attr
                 @.$('.traffic_sent_sparkline').sparkline @history.traffic_sent, sparkline_attr_traffic_sent
-               
-                
 
-                # Add some parameters for the traffic recv sparkline and display it         
+
+
+                # Add some parameters for the traffic recv sparkline and display it
                 sparkline_attr_traffic_recv =
                     chartRangeMax: human_readable_units(max_traffic.recv, units_space)
                 if total_traffic.sent isnt 0 and num_machine_in_datacenter>1 and @model.get_stats().proc.global_net_recv_persec_avg/total_traffic.recv*100>@threshold_alert
@@ -492,7 +499,7 @@ module 'ServerView', ->
             if no_error is true
                 $.ajax
                     processData: false
-                    url: '/ajax/datacenters/new'
+                    url: '/ajax/semilattice/datacenters/new'
                     type: 'POST'
                     contentType: 'application/json'
                     data: JSON.stringify({"name" : @formdata.name})
@@ -528,7 +535,7 @@ module 'ServerView', ->
         on_submit: ->
             super
             $.ajax
-                url: "/ajax/datacenters/#{@datacenter.id}"
+                url: "/ajax/semilattice/datacenters/#{@datacenter.id}"
                 type: 'DELETE'
                 contentType: 'application/json'
                 success: @on_success
@@ -536,7 +543,7 @@ module 'ServerView', ->
         on_success: (response) ->
             super
             if (response)
-                throw "Received a non null response to a delete... this is incorrect"
+                throw new Error("Received a non null response to a delete... this is incorrect")
             datacenters.remove(@datacenter.id)
             $('#user-alert-space').html @alert_tmpl
                 name: @datacenter.get('name')
@@ -570,7 +577,7 @@ module 'ServerView', ->
             # Set the datacenters!
             $.ajax
                 processData: false
-                url: "/ajax/machines"
+                url: "/ajax/semilattice/machines"
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify(json)
@@ -579,7 +586,8 @@ module 'ServerView', ->
         on_success: (response) =>
             super
             for _m_uuid, _m of response
-                machines.get(_m_uuid).set(_m)
+                if machines.get(_m_uuid)? # In case the machine was declared dead
+                    machines.get(_m_uuid).set(_m)
 
             machine_names = _.map(@machines_list, (_m) -> name: _m.get('name'))
             $('#user-alert-space').append (@alert_tmpl

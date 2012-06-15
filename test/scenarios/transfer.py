@@ -5,7 +5,7 @@ import http_admin, driver, workload_runner
 from vcoptparse import *
 
 op = OptParser()
-op["mode"] = IntFlag("--mode", "debug")
+op["mode"] = StringFlag("--mode", "debug")
 op["workload1"] = PositionalArg()
 op["workload2"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
@@ -16,7 +16,8 @@ with driver.Metacluster() as metacluster:
 
     print "Starting cluster..."
     files1 = driver.Files(metacluster, db_path = "db-first")
-    process1 = driver.Process(cluster, files1, log_path = "serve-output-first", executable_path = driver.find_rethinkdb_executable(opts["mode"]))
+    executable_path = driver.find_rethinkdb_executable(opts["mode"])
+    process1 = driver.Process(cluster, files1, log_path = "serve-output-first", executable_path = executable_path)
     process1.wait_until_started_up()
 
     print "Creating namespace..."
@@ -26,12 +27,12 @@ with driver.Metacluster() as metacluster:
     ns = http1.add_namespace(protocol = "memcached", primary = dc)
     http1.wait_until_blueprint_satisfied(ns)
 
-    host, port = driver.get_namespace_host(ns, [process1])
+    host, port = driver.get_namespace_host(ns.port, [process1])
     workload_runner.run(opts["workload1"], host, port, opts["timeout"])
 
     print "Bringing up new server..."
     files2 = driver.Files(metacluster, db_path = "db-second")
-    process2 = driver.Process(cluster, files2, log_path = "serve-output-second", executable_path = driver.find_rethinkdb_executable(opts["mode"]))
+    process2 = driver.Process(cluster, files2, log_path = "serve-output-second", executable_path = executable_path)
     process2.wait_until_started_up()
     http1.update_cluster_data()
     http1.move_server_to_datacenter(files2.machine_name, dc)
@@ -51,7 +52,7 @@ with driver.Metacluster() as metacluster:
     http2.check_no_issues()
     http2.wait_until_blueprint_satisfied(ns.name)
 
-    host, port = http2.get_namespace_host(ns.name)
+    host, port = driver.get_namespace_host(http2.find_namespace(ns.name).port, [process2])
     workload_runner.run(opts["workload2"], host, port, opts["timeout"])
 
     cluster.check_and_stop()

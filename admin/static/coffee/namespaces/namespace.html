@@ -1,7 +1,7 @@
 <script id="namespace_view-container-template" type="text/x-handlebars-template">
     <div class="full_profile">
         <div class="main_title"></div>
-        <div id="user-alert-space">{{print_safe old_alert_html}}</div>
+        <dIv id="user-alert-space">{{print_safe old_alert_html}}</div>
         <div class="two-panel-section">
             <div class="panel-left-unbalanced profile">
         </div>
@@ -17,15 +17,17 @@
 
     <h3 class="title">Replication settings</h3>
     <div class="section replication"></div>
+    <div class="section sharding">
+    </div>
+</script>
 
-    <h3 class="title">Sharding settings</h3>
-    <div class="section sharding"></div>
+<script id="namespace_view-not_found-template" type="text/x-handlebars-template">
+    <p>Namespace {{id}} could not be found.</p>
 </script>
 
 <script id="namespace_view_title-template" type="text/x-handlebars-template">
     <h1>Namespace overview for {{name}}</h1> (<a href="#" class="rename-namespace">rename</a>)
 </script>
-
 
 <script id="namespace_view-profile-template" type="text/x-handlebars-template">
     <h3 class="title">Namespace profile</h3>
