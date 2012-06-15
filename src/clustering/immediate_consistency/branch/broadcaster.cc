@@ -12,6 +12,17 @@
 #include "rpc/semilattice/view/member.hpp"
 
 template <class protocol_t>
+broadcaster_t<protocol_t>::write_callback_t::write_callback_t() : write(NULL) { }
+
+template <class protocol_t>
+broadcaster_t<protocol_t>::write_callback_t::~write_callback_t() {
+    if (write) {
+        rassert(write->callback == this);
+        write->callback = NULL;
+    }
+}
+
+template <class protocol_t>
 broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
               boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
               store_view_t<protocol_t> *initial_store,
@@ -97,71 +108,18 @@ broadcaster_business_card_t<protocol_t> broadcaster_t<protocol_t>::get_business_
 template <class protocol_t>
 class broadcaster_t<protocol_t>::incomplete_write_t : public home_thread_mixin_t {
 public:
-    incomplete_write_t(broadcaster_t *p,
-                       typename protocol_t::write_t w, transition_timestamp_t ts,
-                       ack_callback_t *cb,
-                       boost::function<void()> _completion_cb) :
-        write(w), timestamp(ts),
-        parent(p), incomplete_count(0),
-        ack_callback(cb),
-        completion_cb(_completion_cb)
-    {
-        rassert(ack_callback);
-    }
-
-    void notify_acked(peer_id_t peer, typename protocol_t::write_response_t _resp) {
-        if (!resp) {
-            resp = _resp;
-        }
-        if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
-            if (ack_callback->on_ack(peer) && resp) {
-                done_promise.pulse(true);
-            }
-        }
-    }
-
-    void notify_acked(peer_id_t peer) {
-        if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
-            if (ack_callback->on_ack(peer) && resp) {
-                done_promise.pulse(true);
-            }
-        }
-    }
-
-    void notify_no_more_acks() {
-        if (ack_callback && !done_promise.get_ready_signal()->is_pulsed()) {
-            done_promise.pulse(false);
-        }
-    }
-
-    /* This is called if `write()` gets interrupted and it's no longer
-       safe to access `ack_callback`. If this is called, `done_promise`
-       won't get pulsed unless it already is. */
-    void dont_touch_ack_callback() {
-        ack_callback = NULL;
-    }
+    incomplete_write_t(broadcaster_t *p, typename protocol_t::write_t w, transition_timestamp_t ts, write_callback_t *cb) :
+        write(w), timestamp(ts), callback(cb), parent(p), incomplete_count(0) { }
 
     typename protocol_t::write_t write;
     transition_timestamp_t timestamp;
-
-    /* `done_promise` gets pulsed with `true` when `ack_callback` is
-       satisfied, or with `false` if it will never be satisfied. */
-    promise_t<bool> done_promise;
-
-    typename protocol_t::write_response_t get_resp() {
-        rassert(resp);
-        return *resp;
-    }
+    write_callback_t *callback;
 
 private:
     friend class incomplete_write_ref_t;
 
     broadcaster_t *parent;
     int incomplete_count;
-    ack_callback_t *ack_callback;
-    boost::optional<typename protocol_t::write_response_t> resp;
-public:
-    boost::function<void()> completion_cb;
 
     DISABLE_COPYING(incomplete_write_t);
 };
@@ -411,9 +369,6 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 
     {
         wait_interruptible(lock, interruptor);
-        // TODO: We shouldn't reset exit_read_t _after_ we've
-        // acquired the mutex.  We should release it after we've
-        // gotten in line.
         mutex_assertion_t::acq_t mutex_acq(&mutex);
         lock->reset();
 
@@ -441,93 +396,52 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
 }
 
 template<class protocol_t>
-typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t order_token, signal_t *interruptor, boost::function<void()> completion_cb) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
-    /* We'll fill `write_wrapper` with the write that we start; we hold it in a
-    shared pointer so that it stays alive while we check its `done_promise`. */
-    boost::shared_ptr<incomplete_write_t> write_wrapper;
+void broadcaster_t<protocol_t>::spawn_write(typename protocol_t::write_t write, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t order_token, write_callback_t *cb, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
-    death_runner_t dont_let_write_touch_ack_callback_after_exception;
+    wait_interruptible(lock, interruptor);
 
-    typename protocol_t::write_response_t resp;
+    ASSERT_FINITE_CORO_WAITING;
 
-    {
-        incomplete_write_ref_t write_ref;
+    sanity_check();
 
-        std::map<dispatchee_t *, auto_drainer_t::lock_t> writers;
-        std::map<dispatchee_t *, fifo_enforcer_write_token_t> enforcer_tokens;
+    /* We have to be careful about the case where dispatchees are joining or
+    leaving at the same time as we are doing the write. The way we handle
+    this is via `mutex`. If the write reaches `mutex` before a new
+    dispatchee does, then the new dispatchee's constructor will send off the
+    write. Otherwise, the write will be sent directly to the new dispatchee
+    by the loop further down in this very function. */
+    mutex_assertion_t::acq_t mutex_acq(&mutex);
 
-        /* Set up the write. We have to be careful about the case where
-        dispatchees are joining or leaving at the same time as we are doing the
-        write. The way we handle this is via `mutex`. If the write reaches
-        `mutex` before a new dispatchee does, then the new dispatchee's
-        constructor will send off the write. Otherwise, the write will be sent
-        directly to the new dispatchee by the loop further down in this very
-        function. */
-        {
-            wait_interruptible(lock, interruptor);
+    lock->reset();
 
-            /* We must hold the mutex so that we don't race with other writes
-            that are starting or with new dispatchees that are joining. */
-            mutex_assertion_t::acq_t mutex_acq(&mutex);
+    transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
+    current_timestamp = timestamp.timestamp_after();
+    order_sink.check_out(order_token);
 
-            lock->reset();
+    boost::shared_ptr<incomplete_write_t> write_wrapper = boost::make_shared<incomplete_write_t>(
+        this, write, timestamp, cb);
+    incomplete_writes.push_back(write_wrapper);
 
-            ASSERT_FINITE_CORO_WAITING;
+    rassert(cb->write == NULL, "You can't reuse the same callback for two writes.");
+    cb->write = write_wrapper.get();
 
-            transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
-            current_timestamp = timestamp.timestamp_after();
-            order_sink.check_out(order_token);
+    /* Create a reference so that `write` doesn't declare itself
+    complete before we've even started */
+    incomplete_write_ref_t write_ref = incomplete_write_ref_t(write_wrapper);
 
-            write_wrapper = boost::make_shared<incomplete_write_t>(
-                this, write, timestamp, cb, completion_cb);
-            incomplete_writes.push_back(write_wrapper);
-
-            /* If there's an exception, this will make sure that the
-            `incomplete_write_t` object doesn't try to access `ack_callback`
-            after we exit. */
-            dont_let_write_touch_ack_callback_after_exception.fun = boost::bind(
-                &incomplete_write_t::dont_touch_ack_callback, write_wrapper.get());
-
-            /* Create a reference so that `write` doesn't declare itself
-            complete before we've even started */
-            write_ref = incomplete_write_ref_t(write_wrapper);
-
-            /* As long as we hold the lock, choose our writereader and take a
-            snapshot of the dispatchee map */
-            writers = dispatchees;
-            for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
-                    it != dispatchees.end(); it++) {
-                /* Once we call `enter_write()`, we have committed to sending
-                the write to every dispatchee. In particular, it's important
-                that we don't check `interruptor` until the write is on its way
-                to every dispatchee. */
-                enforcer_tokens[(*it).first] = (*it).first->fifo_source.enter_write();
-            }
-        }
-
-        {
-            ASSERT_FINITE_CORO_WAITING;
-            sanity_check();
-
-            /* First check that someone is going to be able to give us a response */
-            if (readable_dispatchees.empty()) {
-                throw cannot_perform_query_exc_t("no mirrors readable. this is strange because the primary mirror should be always readable.");
-            }
-
-            /* Dispatch the write to all the dispatchees */
-            for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = writers.begin(); it != writers.end(); it++) {
-                it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
-                    (*it).first, (*it).second, write_ref, enforcer_tokens[(*it).first]));
-            }
-        }
+    /* As long as we hold the lock, take a snapshot of the dispatchee map
+    and grab order tokens */
+    for (typename std::map<dispatchee_t *, auto_drainer_t::lock_t>::iterator it = dispatchees.begin();
+            it != dispatchees.end(); it++) {
+        /* Once we call `enter_write()`, we have committed to sending
+        the write to every dispatchee. In particular, it's important
+        that we don't check `interruptor` until the write is on its way
+        to every dispatchee. */
+        fifo_enforcer_write_token_t fifo_enforcer_token = it->first->fifo_source.enter_write();
+        it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
+            it->first, it->second, write_ref, fifo_enforcer_token
+            ));
     }
-
-    wait_interruptible(write_wrapper->done_promise.get_ready_signal(), interruptor);
-    if (!write_wrapper->done_promise.get_value()) {
-        throw cannot_perform_query_exc_t("insufficient mirrors to meet desired ack count");
-    }
-
-    return write_wrapper->get_resp();
 }
 
 template<class protocol_t>
@@ -557,7 +471,9 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
                     write_ref.get()->write, write_ref.get()->timestamp, token,
                     mirror_lock.get_drain_signal());
 
-            write_ref.get()->notify_acked(mirror->get_peer(), resp);
+            if (write_ref.get()->callback) {
+                write_ref.get()->callback->on_response(mirror->get_peer(), resp);
+            }
         } else {
             listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
                     write_ref.get()->write, write_ref.get()->timestamp, token,
@@ -588,19 +504,20 @@ void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> 
     any given call. */
     while (newest_complete_timestamp < write->timestamp.timestamp_after()) {
         boost::shared_ptr<incomplete_write_t> removed_write = incomplete_writes.front();
-        if (incomplete_writes.front()->completion_cb) {
-            incomplete_writes.front()->completion_cb();
-        }
         incomplete_writes.pop_front();
         rassert(newest_complete_timestamp == removed_write->timestamp.timestamp_before());
         newest_complete_timestamp = removed_write->timestamp.timestamp_after();
     }
-    write->notify_no_more_acks();
+    if (write->callback) {
+        rassert(write->callback->write == write.get());
+        write->callback->write = NULL;
+        write->callback->on_done();
+    }
 }
 
-    /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
-    and `newest_complete_timestamp`. It mostly exists as a form of executable
-    documentation. */
+/* This function sanity-checks `incomplete_writes`, `current_timestamp`,
+and `newest_complete_timestamp`. It mostly exists as a form of executable
+documentation. */
 template <class protocol_t>
 void broadcaster_t<protocol_t>::sanity_check() {
 #ifndef NDEBUG
