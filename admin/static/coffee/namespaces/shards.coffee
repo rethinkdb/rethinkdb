@@ -102,7 +102,7 @@ module 'NamespaceView', ->
             else
                 @.$('.blackout').removeClass('blackout-active')
                 @.$('.alert_for_sharding').html ''
-                @.$('.alert_for_sharding').css('display', 'hidden')
+                @.$('.alert_for_sharding').css('display', 'none')
             return @
 
         change_sharding_scheme: (event) =>
@@ -344,13 +344,16 @@ module 'NamespaceView', ->
     class @ModifyShards extends Backbone.View
         template: Handlebars.compile $('#modify_shards-template').html()
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
+        invalid_splitpoint_msg: Handlebars.compile $('#namespace_view_invalid_splitpoint_alert-template').html()
+        invalid_merge_msg: Handlebars.compile $('#namespace_view_invalid_merge_alert-template').html()
+
         class: 'modify-shards'
         events:
             'click #suggest_shards_btn': 'suggest_shards'
             'click #cancel_shards_suggester_btn': 'cancel_shards_suggester_btn'
             'click .btn-compute-shards-suggestion': 'compute_shards_suggestion'
             'click .btn-reset': 'reset_shards'
-            'click .btn-primary': 'on_submit'
+            'click .btn-primary-commit': 'on_submit'
             'click .btn-cancel': 'cancel'
 
         initialize: (namespace_id, shard_set) ->
@@ -465,8 +468,9 @@ module 'NamespaceView', ->
             if (0 <= index || index < @shard_set.length)
                 json_repr = $.parseJSON(@shard_set[index])
                 if (splitpoint <= json_repr[0] || (splitpoint >= json_repr[1] && json_repr[1] != null))
-                    throw new Error("Error invalid splitpoint")
-
+                    @.$('.invalid_shard_alert').html @invalid_splitpoint_msg
+                    @.$('.invalid_shard_alert').css('display', 'block')
+                    return
                 @shard_set.splice(index, 1, JSON.stringify([json_repr[0], splitpoint]), JSON.stringify([splitpoint, json_repr[1]]))
                 @render()
             else
@@ -474,7 +478,9 @@ module 'NamespaceView', ->
 
         merge_shard: (index) =>
             if (index < 0 || index + 1 >= @shard_set.length)
-                throw new Error("Error invalid index")
+                @.$('.invalid_shard_alert').html @invalid_splitpoint_msg
+                @.$('.invalid_shard_alert').css('display', 'block')
+                return
 
             newshard = JSON.stringify([$.parseJSON(@shard_set[index])[0], $.parseJSON(@shard_set[index+1])[1]])
             @shard_set.splice(index, 2, newshard)

@@ -880,6 +880,11 @@
     }
     .namespace-shards{
         position: relative;
+        .alert_for_sharding{
+            display: none;
+        }
+
+ 
     }
     .namespace-shards-blackout{
         .sharding{
@@ -892,7 +897,7 @@
             -ms-user-select: none;
             user-select: none;
         }
-    }
+   }
     .blackout-active{
         position: absolute;
         top: 0px;
@@ -905,9 +910,7 @@
         padding: 0px 0px 20px 0px;
         margin: 40px 0px 0px 0px;
     }
-    .alert_for_sharding{
-        display: none;
-    }
+
 
     h3.title {
         margin-bottom: 10px;
@@ -1379,7 +1382,9 @@
             }
         }
     }
-
+    .invalid_shard_alert{
+        display: none;
+    }
     .sharding-scheme {
         p.suggest_shards_pathway {
             margin-top: 1em;
