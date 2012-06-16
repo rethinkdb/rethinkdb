@@ -30,13 +30,13 @@ void semilattice_http_app_t::fill_in_blueprints(cluster_semilattice_metadata_t *
     }
 
     fill_in_blueprints_for_protocol<memcached_protocol_t>(&cluster_metadata->memcached_namespaces,
-            reactor_directory,
+            reactor_directory_memcached,
             machine_id_translation_table,
             machine_assignments,
             us);
 
     fill_in_blueprints_for_protocol<rdb_protocol_t>(&cluster_metadata->rdb_namespaces,
-            reactor_directory,
+            reactor_directory_rdb,
             machine_id_translation_table,
             machine_assignments,
             us);
