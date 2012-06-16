@@ -880,28 +880,37 @@
     }
     .namespace-shards{
         position: relative;
+        .alert_for_sharding{
+            display: none;
+        }
+
+ 
     }
     .namespace-shards-blackout{
-        opacity: 0.8;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        -khtml-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-    }
+        .sharding{
+            opacity: 0.7;
+            opacity: 0.7;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+   }
     .blackout-active{
         position: absolute;
         top: 0px;
         left: 0px;
         background: #000;
-        opacity: 0.8;
+        opacity: 0.3;
         height: 100%;
         width: 100%;
         z-index: 10;
-        padding: 10px 0px 20px 0px;
-        margin: -10px 0px 0px 0px;
+        padding: 0px 0px 20px 0px;
+        margin: 40px 0px 0px 0px;
     }
+
 
     h3.title {
         margin-bottom: 10px;
@@ -1373,7 +1382,9 @@
             }
         }
     }
-
+    .invalid_shard_alert{
+        display: none;
+    }
     .sharding-scheme {
         p.suggest_shards_pathway {
             margin-top: 1em;

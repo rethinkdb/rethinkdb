@@ -120,7 +120,7 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
         w.values[key] = values_inserted[key] = strprintf("%d", i);
         class : public broadcaster_t<dummy_protocol_t>::write_callback_t, public cond_t {
         public:
-            void on_response(peer_id_t, const typename dummy_protocol_t::write_response_t &) {
+            void on_response(peer_id_t, const dummy_protocol_t::write_response_t &) {
                 /* ignore */
             }
             void on_done() {

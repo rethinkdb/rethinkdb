@@ -92,7 +92,7 @@ void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, cons
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
     class : public broadcaster_t<memcached_protocol_t>::write_callback_t, public cond_t {
     public:
-        void on_response(peer_id_t, const typename memcached_protocol_t::write_response_t &) {
+        void on_response(peer_id_t, const memcached_protocol_t::write_response_t &) {
             /* ignore */
         }
         void on_done() {
