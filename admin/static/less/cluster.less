@@ -1696,20 +1696,25 @@
     }
 }
 
-#walkthrough .carousel {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 1024px;
-    height: 400px;
-    margin-left: -512px;
-    margin-top: -200px;
-    background: @grayDark;
-    .item {
+#walkthrough {
+    .modal {
+        /* Override bootstrap */
+        width: 930px;
+        margin-left: -465px;
+        margin-top: -315px;
+        .modal-body { max-height: none; }
+        /* End override */
+        .modal-body {
+            background: rgba(0, 0, 0, 0.85);
+        }
     }
-    .carousel-num {
-        color: white;
-        text-align: center;
-        font-size: 30px;
+    .carousel {
+        width: 900px;
+        height: 600px;
+        margin-bottom: 0;
+        .carousel-caption p {
+            margin-top: 5px;
+            font-style: italic;
+        }
     }
 }
