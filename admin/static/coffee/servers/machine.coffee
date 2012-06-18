@@ -74,6 +74,14 @@ module 'MachineView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
+        destroy: =>
+            machines.off()
+            @title.destroy()
+            @profile.destroy()
+            @data.destroy()
+            @stats_panel.destroy()
+            @performance_graph.destroy()
+
     # MachineView.Title
     class @Title extends Backbone.View
         className: 'machine-info-view'
