@@ -87,11 +87,12 @@ module 'DashboardView', ->
                                 name: machines.get(issue.get('location')).get('name')
                             status.machines_with_disk_problems.push(new_machine)
                         when "MACHINE_DOWN"
-                            status.masters_offline.push
-                                machine_id: issue.get('victim')
-                                machine_name: machines.get(issue.get('victim')).get('name')
-                                namespace_name: masters[issue.get('victim')].name
-                                namespace_id: masters[issue.get('victim')].id
+                            if masters[issue.get('victim')]?
+                                status.masters_offline.push
+                                    machine_id: issue.get('victim')
+                                    machine_name: machines.get(issue.get('victim')).get('name')
+                                    namespace_name: masters[issue.get('victim')].name
+                                    namespace_id: masters[issue.get('victim')].id
                         when "NAME_CONFLICT_ISSUE"
                             status.num_conflicts_name++
                         when "VCLOCK_CONFLICT"

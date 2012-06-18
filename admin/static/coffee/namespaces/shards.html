@@ -4,6 +4,7 @@
 </script>
 
 <script id="namespace_view-sharding-template" type="text/x-handlebars-template">
+    <div class="alert_for_sharding alert alert-error"></div>
     <div class="sharding">
         <h3 class="title">Sharding settings</h3>
         <table class="shards table">
@@ -14,6 +15,18 @@
     </div>
     <div class="change-shards"></div>
     <div class="blackout"></div>
+</script>
+
+
+<script id="namespace_view-sharding_alert-template" type="text/x-handlebars-template">
+    Please solve the current issues before editing the shards not to lose data.
+</script>
+
+<script id="namespace_view_invalid_splitpoint_alert-template" type="text/x-handlebars-template">
+    Error, invalid splitpoint. Shards must not overlap.
+</script>
+<script id="namespace_view_invalid_splitpoint_alert-template" type="text/x-handlebars-template">
+    Error, invalid merge.
 </script>
 
 <script id="namespace_view-shard-template" type="text/x-handlebars-template">
@@ -87,6 +100,7 @@
 <script id="modify_shards-template" type="text/x-handlebars-template">
     <div class="modify-shards">
         <h3 class="title">Change sharding settings for <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a>:</h3>
+        <div class="invalid_shard_alert alert alert-error"></div>
         {{#if unsaved_settings}}
         <div class="unsaved-settings-warning">You have unsaved changes. Please click "Commit settings" for them to take effect.</div>
         {{/if}}
@@ -118,7 +132,7 @@
             <div class="btn-footer">
                 <button class="btn btn-cancel" data-loading-text="Cancel">Cancel</button>
                 <button class="btn btn-reset" data-loading-text="Reset">Reset</button>
-                <button class="btn btn-primary" data-loading-text="Saving...">Commit settings</button>
+                <button class="btn btn-primary btn-primary-commit" data-loading-text="Saving...">Commit settings</button>
             </div>
         </form>
     </div>

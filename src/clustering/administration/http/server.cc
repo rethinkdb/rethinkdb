@@ -52,6 +52,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/bootstrap/bootstrap-tab.js");
     white_list.insert("/js/bootstrap/bootstrap-typeahead.js");
     white_list.insert("/js/bootstrap/bootstrap-collapse.js");
+    white_list.insert("/js/bootstrap/bootstrap-carousel.js");
     white_list.insert("/js/bootstrap/bootstrap-button.js");
     white_list.insert("/js/bootstrap/bootstrap-dropdown.js");
     white_list.insert("/js/bootstrap/bootstrap-tooltip.js");
@@ -87,6 +88,11 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/glyphicons-halflings.png");
     white_list.insert("/images/glyphicons-halflings-white.png");
     white_list.insert("/images/loading.gif");
+    white_list.insert("/images/walkthrough/1.jpg");
+    white_list.insert("/images/walkthrough/2.jpg");
+    white_list.insert("/images/walkthrough/3.jpg");
+    white_list.insert("/images/walkthrough/4.jpg");
+    white_list.insert("/images/walkthrough/5.jpg");
     white_list.insert("/index.html");
     file_app.reset(new file_http_app_t(white_list, path));
 

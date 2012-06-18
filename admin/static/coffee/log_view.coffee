@@ -15,7 +15,6 @@ module 'LogView', ->
         initialize: ->
             log_initial '(initializing) events view: container'
             @log_entries = new LogEntries
-            console.log @log_entries
 
             setInterval @check_for_new_updates, updateInterval
             , updateInterval

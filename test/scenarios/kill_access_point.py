@@ -1,0 +1,46 @@
+#!/usr/bin/python
+import sys, os, time
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
+import http_admin, driver, workload_runner
+from vcoptparse import *
+
+op = OptParser()
+op["workload"] = PositionalArg()
+op["mode"] = StringFlag("--mode", "debug")
+opts = op.parse(sys.argv)
+
+with driver.Metacluster() as metacluster:
+    print "Starting cluster..."
+    cluster = driver.Cluster(metacluster)
+    executable_path = driver.find_rethinkdb_executable(opts["mode"])
+    database_machine = driver.Process(cluster, driver.Files(metacluster, db_path = "db-database"), log_path = "serve-output-database", executable_path = executable_path)
+    access_machine = driver.Process(cluster, driver.Files(metacluster, db_path = "db-access"), log_path = "serve-output-access", executable_path = executable_path)
+    database_machine.wait_until_started_up
+    access_machine.wait_until_started_up()
+
+    print "Creating namespace..."
+    http = http_admin.ClusterAccess([("localhost", database_machine.http_port)])
+    database_dc = http.add_datacenter()
+    http.move_server_to_datacenter(database_machine.files.machine_name, database_dc)
+    other_dc = http.add_datacenter()
+    http.move_server_to_datacenter(access_machine.files.machine_name, other_dc)
+    ns = http.add_namespace(protocol = "memcached", primary = database_dc)
+    http.wait_until_blueprint_satisfied(ns)
+    cluster.check()
+    http.check_no_issues()
+
+    host, port = driver.get_namespace_host(ns.port, [access_machine])
+    with workload_runner.ContinuousWorkload(opts["workload"], host, port) as workload:
+        workload.start()
+        print "Running workload for 10 seconds..."
+        time.sleep(10)
+        cluster.check()
+        http.check_no_issues()
+        print "Killing the access machine..."
+        access_machine.close()
+        # Don't bother stopping the workload, just exit and it will get killed
+
+    http.declare_machine_dead(access_machine.files.machine_name)
+    http.check_no_issues()
+    database_machine.check()
+    print "The other machine dosn't seem to have crashed."
