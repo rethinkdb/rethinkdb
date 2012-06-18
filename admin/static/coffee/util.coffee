@@ -105,7 +105,7 @@ Handlebars.registerHelper 'humanize_machine_reachability', (status) ->
         else
             _last_seen = if status.last_seen? then status.last_seen else 'unknown'
             result = "<span class='label label-important'>Unreachable</span>
-                <br/><span class='timeago' title='#{_last_seen}'>since #{_last_seen}</span>"
+                <span class='timeago' title='#{_last_seen}'>since #{_last_seen}</span>"
     return new Handlebars.SafeString(result)
 
 Handlebars.registerHelper 'humanize_datacenter_reachability', (status) ->

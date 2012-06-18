@@ -247,12 +247,25 @@ module 'ServerView', ->
                     json.machine_disk_has_problem = true if (json.machine_disk_data_percent>@threshold_alert) and @model.get_used_disk_space() isnt 0
                 else
                     json.machine_disk_percent = 0
+            else
+                json = _.extend json,
+                    # TODO: add a helper to upgrade/downgrade units dynamically depending on the values
+                    global_cpu_util: 'NA'
+                    mem_used: 'NA'
+                    mem_available: 'NA'
+                    global_net_sent: 'NA'
+                    global_total_net_sent: 'NA'
+                    global_net_recv: 'NA'
+                    global_total_net_recv: 'NA'
+                    machine_disk_space: 'NA'
+                    total_data: 'NA'
+                    machine_disk_available: 'NA'
+
+            # Displays bars and text in the popover
+            @.$('.machine.summary').html @summary_template json
 
 
-                # Displays bars and text in the popover
-                @.$('.machine.summary').html @summary_template json
-
-
+            if @model.get_stats().proc.global_cpu_util?
                 # Update data for the sparklines
                 if !isNaN(json.global_cpu_util)
                     @history.cpu.shift()
