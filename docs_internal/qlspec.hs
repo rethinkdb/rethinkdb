@@ -66,13 +66,13 @@ data ExQuery = Pluck ReadQuery [Attr]                       -- Take out only rel
              | Distinct ReadQuery [Attr]                    -- Only return distinct rows
              | GroupBy ReadQuery [Attr] [(Attr, ReduceFn)]  -- Group by a set of attributes and reduce the rest
              | ImmutableFilter ReadQuery Selector           -- Equivalent to filter, but return data can't be modified
-             | Union ReadQuery ReadQuery                    -- Set/Bag
-             -- operations...  Operational (and declarative) way to do
-             -- joins. For each row in the outer query we execute the
-             -- inner query, and return the cross product. The inner
-             -- query can refer to the row of the outer one. The
-             -- optional symbols allow for renaming queries (so that
-             -- the user can avoid potential name conflicts).
+             | Union ReadQuery ReadQuery                    -- Set/Bag operations...
+             -- Operational (and declarative) way to do joins. For
+             -- each row in the outer query we execute the inner
+             -- query, and return the cross product. The inner query
+             -- can refer to the row of the outer one. The optional
+             -- symbols allow for renaming queries (so that the user
+             -- can avoid potential name conflicts).
              | CrossEach ReadQuery (Maybe Symbol) ReadQuery (Maybe Symbol)
                deriving Show
 
