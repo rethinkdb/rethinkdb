@@ -23,29 +23,26 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 http_req_t::resource_t::iterator it = req.resource.begin();
 
                 if (it == req.resource.end()) {
-                    return http_res_t(400); // TODO : make more descriptive?
+                    return http_res_t(400, "application/text", "No namespace specified");
                 }
 
                 boost::uuids::uuid namespace_uuid;
                 try {
                     namespace_uuid = str_to_uuid(*it);
                 } catch (std::runtime_error) {
-                    debugf("Failed to parse namespace\n");
-                    return http_res_t(400);
+                    return http_res_t(400, "application/text", "Failed to parse namespace\n");
                 }
 
                 cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
 
                 if (!std_contains(cluster_metadata.rdb_namespaces.namespaces, namespace_uuid)) {
-                    debugf("Didn't fine namespace\n");
-                    return http_res_t(404);
+                    return http_res_t(404, "application/text", "Didn't find namespace.");
                 }
 
                 ++it;
 
                 if (it == req.resource.end()) {
-                    debugf("Key not specified\n");
-                    return http_res_t(400);
+                    return http_res_t(400, "application/text", "Key not specified");
                 }
 
                 cond_t interrupt;
@@ -64,7 +61,6 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                     res.code = 200;
                     res.set_body("application/json", json.get());
                 } else {
-                    debugf("Key not found\n");
                     res.code = 404;
                 }
                 return res;
@@ -78,29 +74,26 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 http_req_t::resource_t::iterator it = req.resource.begin();
 
                 if (it == req.resource.end()) {
-                    debugf("Namespace not specified\n");
-                    return http_res_t(400); // TODO : make more descriptive?
+                    return http_res_t(400, "application/text", "Namespace not specified");
                 }
 
                 boost::uuids::uuid namespace_uuid;
                 try {
                     namespace_uuid = str_to_uuid(*it);
                 } catch (std::runtime_error) {
-                    return http_res_t(400);
+                    return http_res_t(400, "application/text", "namespace uuid did not parse as uuid");
                 }
 
                 cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
 
                 if (!std_contains(cluster_metadata.rdb_namespaces.namespaces, namespace_uuid)) {
-                    debugf("Didn't find namespace\n");
                     return http_res_t(404);
                 }
 
                 ++it;
 
                 if (it == req.resource.end()) {
-                    debugf("Key not found\n");
-                    return http_res_t(400);
+                    return http_res_t(400, "application/text", "Key not specified");
                 }
 
                 store_key_t key(*it);
@@ -108,8 +101,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 boost::shared_ptr<scoped_cJSON_t> doc(new scoped_cJSON_t(cJSON_Parse(req.body.c_str())));
 
                 if (!doc->get()) {
-                    debugf("json failed to parse: %s\n", req.body.c_str());
-                    return http_res_t(400);
+                    return http_res_t(400, "application/text", "Json failed to parse");
                 }
 
                 cond_t interrupt;

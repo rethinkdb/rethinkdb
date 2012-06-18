@@ -134,6 +134,12 @@ http_res_t::http_res_t(int rescode)
     : code(rescode)
 { }
 
+http_res_t::http_res_t(int rescode, const std::string &body_type, const std::string &body)
+    : code(rescode)
+{
+    set_body(body_type, body);
+}
+
 void http_res_t::add_last_modified(int) {
     not_implemented();
 }
