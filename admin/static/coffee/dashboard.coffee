@@ -9,10 +9,10 @@ module 'DashboardView', ->
         initialize: =>
             log_initial '(initializing) sidebar view:'
 
+            @cluster_status = new DashboardView.ClusterStatus()
 
         render: =>
             @.$el.html @template({})
-            @cluster_status = new DashboardView.ClusterStatus()
             @cluster_performance = new DashboardView.ClusterPerformance()
 
             @.$('#cluster_status_container').html @cluster_status.render().el
@@ -183,6 +183,7 @@ module 'DashboardView', ->
 
         render: =>
             log_render '(rendering) cluster status view'
+
 
             @.$el.html @template(@compute_status())
             @.$('a[rel=dashboard_details]').popover
