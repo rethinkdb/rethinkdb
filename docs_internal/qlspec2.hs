@@ -84,6 +84,8 @@ data View
     = Table TableRef
     | Filter View ArgName JSONTerm
 
+data OrderDirection = Ascending | Descending
+
 data StreamTerm
     = Arg ArgName
     | With [(ArgName, JSONTerm)] [(ArgName, StreamTerm)]
@@ -93,7 +95,7 @@ data StreamTerm
     | Filter StreamTerm Predicate
     | Map StreamTerm Mapping
     | Distinct StreamTerm Mapping
-    | OrderBy StreamTerm Mapping
+    | OrderBy StreamTerm OrderDirection Mapping
     | Limit Int StreamTerm
     | MergeSort [StreamTerm] Mapping
 
