@@ -21,6 +21,13 @@
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view.hpp"
 
+struct admin_metadata_update_exc_t : public std::exception {
+public:
+    admin_metadata_update_exc_t() { }
+    ~admin_metadata_update_exc_t() throw () { }
+    const char *what() const throw () { return "metadata change request through peer failed"; }
+};
+
 struct admin_cluster_exc_t : public std::exception {
 public:
     explicit admin_cluster_exc_t(const std::string& data) : info(data) { }
@@ -90,26 +97,28 @@ private:
 
     size_t get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter);
 
+    template <class map_type>
+    void do_admin_set_name_internal(map_type& obj_map, const boost::uuids::uuid& id);
+
     template <class protocol_t>
     void do_admin_set_acks_internal(namespace_semilattice_metadata_t<protocol_t>& ns,
                                     const datacenter_id_t& datacenter,
-                                    int num_acks,
-                                    const std::string& post_path);
+                                    int num_acks);
     template <class protocol_t>
     void do_admin_set_replicas_internal(namespace_semilattice_metadata_t<protocol_t>& ns,
                                         const datacenter_id_t& datacenter,
-                                        int num_replicas,
-                                        const std::string& post_path);
+                                        int num_replicas);
 
     template <class obj_map>
     void do_admin_set_name_internal(obj_map& metadata,
                                     const boost::uuids::uuid& uuid,
-                                    const std::string& new_name,
-                                    bool resolve);
+                                    const std::string& new_name);
+
+    template <class T>
+    void do_admin_remove_internal(std::map<boost::uuids::uuid, T>& obj_map, const boost::uuids::uuid& key);
 
     template <class protocol_t>
     void remove_machine_pinnings(const machine_id_t& machine,
-                                 const std::string& post_path,
                                  std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >& ns_map);
 
     template <class protocol_t>
@@ -133,7 +142,6 @@ private:
 
     template <class protocol_t>
     void remove_datacenter_references_from_namespaces(const datacenter_id_t& datacenter,
-                                                      const std::string& post_path,
                                                       std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >& ns_map);
 
     template <class map_type>
@@ -164,8 +172,7 @@ private:
                                      const shard_input_t& shard_in,
                                      const std::string& primary_str,
                                      const std::vector<std::string>& secondary_strs,
-                                     cluster_semilattice_metadata_t& cluster_metadata,
-                                     const std::string& post_path);
+                                     cluster_semilattice_metadata_t& cluster_metadata);
 
     template <class protocol_t>
     typename protocol_t::region_t find_shard_in_namespace(namespace_semilattice_metadata_t<protocol_t>& ns,
@@ -269,35 +276,24 @@ private:
                                        std::vector<std::vector<std::string> >& table);
 
     template <class T>
-    void resolve_value(const vclock_t<T>& field,
-                       const std::string& field_name,
-                       const std::string& post_path);
+    void resolve_value(vclock_t<T>& field);
 
     void resolve_machine_value(machine_semilattice_metadata_t& machine,
-                               const std::string& field,
-                               const std::string& post_path);
+                               const std::string& field);
 
     void resolve_datacenter_value(datacenter_semilattice_metadata_t& dc,
-                                  const std::string& field,
-                                  const std::string& post_path);
+                                  const std::string& field);
 
     template <class protocol_t>
     void resolve_namespace_value(namespace_semilattice_metadata_t<protocol_t>& ns,
-                                 const std::string& field,
-                                 const std::string& post_path);
+                                 const std::string& field);
 
     boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > traverse_directory(const std::vector<std::string>& path, namespace_metadata_ctx_t& json_ctx, cluster_semilattice_metadata_t& cluster_metadata);
 
     std::string path_to_str(const std::vector<std::string>& path);
 
-    static size_t handle_post_result(char *ptr, size_t size, size_t nmemb, void *param);
-    std::string post_result;
-
-    template <class T>
-    void post_metadata(std::string path, T& metadata);
-    std::string create_metadata(const std::string& path);
-    void delete_metadata(const std::string& path);
-    void post_internal(std::string path, std::string data);
+    peer_id_t choose_sync_peer();
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t choose_change_request_mailbox();
 
     local_issue_tracker_t local_issue_tracker;
     log_writer_t log_writer;
@@ -327,8 +323,10 @@ private:
     // Initial join
     initial_joiner_t initial_joiner;
 
+    machine_id_t change_request_id;
+
     struct metadata_info_t {
-        std::string uuid;
+        boost::uuids::uuid uuid;
         std::string name;
         std::vector<std::string> path;
     };

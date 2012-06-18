@@ -3,27 +3,19 @@
 
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
-
-class peer_down_exc_t : public std::exception {
-public:
-    const char *what() const throw () {
-        return "lost connection to peer while performing operation";
-    }
-};
+#include "clustering/resource.hpp"
 
 template <class metadata_t>
 class metadata_change_handler_t {
 public:
     typedef mailbox_t<void(bool)> result_mailbox_t;
     typedef mailbox_t<void(bool, metadata_t, typename result_mailbox_t::address_t)> commit_mailbox_t;
-    typedef mailbox_t<void(typename commit_mailbox_t::address_t)> ack_mailbox_t;
+    typedef mailbox_t<void(metadata_t, typename commit_mailbox_t::address_t)> ack_mailbox_t;
     typedef mailbox_t<void(typename ack_mailbox_t::address_t)> request_mailbox_t;
 
     metadata_change_handler_t(mailbox_manager_t *_mailbox_manager,
-                              connectivity_service_t *_connectivity,
                               const boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > &_metadata) :
         mailbox_manager(_mailbox_manager),
-        connectivity(_connectivity),
         request_mailbox(mailbox_manager,
                         boost::bind(&metadata_change_handler_t<metadata_t>::remote_change_request, this, _1),
                         mailbox_callback_mode_inline),
@@ -56,28 +48,23 @@ public:
     class metadata_change_request_t {
     public:
         metadata_change_request_t(mailbox_manager_t *_mailbox_manager,
-                                  connectivity_service_t *_connectivity,
                                   typename request_mailbox_t::address_t request_mailbox) :
             mailbox_manager(_mailbox_manager),
-            connectivity(_connectivity),
             interest_acquired(true)
         {
-            promise_t<typename commit_mailbox_t::address_t> commit_mailbox_promise;
+            cond_t done;
             ack_mailbox_t ack_mailbox(mailbox_manager,
-                                      boost::bind(&promise_t<typename commit_mailbox_t::address_t>::pulse,
-                                                  &commit_mailbox_promise, _1),
+                                      boost::bind(&metadata_change_handler_t::metadata_change_request_t::handle_ack,
+                                                  this, &done, _1, _2),
                                       mailbox_callback_mode_inline);
 
             send(mailbox_manager, request_mailbox, ack_mailbox.get_address());
-            disconnect_watcher_t dc_watcher(connectivity, request_mailbox.get_peer());
-            wait_any_t waiter(commit_mailbox_promise.get_ready_signal(), &dc_watcher);
+            disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), request_mailbox.get_peer());
+            wait_any_t waiter(&done, &dc_watcher);
             waiter.wait();
 
             if (dc_watcher.is_pulsed())
-                throw peer_down_exc_t();
-
-            rassert(commit_mailbox_promise.get_ready_signal()->is_pulsed());
-            commit_mailbox_address = commit_mailbox_promise.get_value();
+                throw resource_lost_exc_t();
         }
 
         ~metadata_change_request_t() {
@@ -87,34 +74,46 @@ public:
             }
         }
 
+        metadata_t get() const {
+            return remote_metadata;
+        }
+
         bool update(const metadata_t& metadata) {
             interest_acquired = false;
             promise_t<bool> result_promise;
             result_mailbox_t result_mailbox(mailbox_manager,
                                             boost::bind(&promise_t<bool>::pulse,
                                                         &result_promise, _1),
-                                            mailbox_callback_mode_inline),
+                                            mailbox_callback_mode_inline);
 
             send(mailbox_manager, commit_mailbox_address, true, metadata, result_mailbox.get_address());
-            disconnect_watcher_t dc_watcher(connectivity, request_mailbox.get_peer());
+            disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), commit_mailbox_address.get_peer());
             wait_any_t waiter(result_promise.get_ready_signal(), &dc_watcher);
             waiter.wait();
 
-            if (result_promise.get_ready_signal()->is_pulsed())
+            if (result_promise.get_ready_signal()->is_pulsed()) {
                 return result_promise.get_value();
+            }
             return false;
         }
 
     private:
+        void handle_ack(cond_t *done,
+                        metadata_t& metadata,
+                        typename commit_mailbox_t::address_t _commit_mailbox_address) {
+            commit_mailbox_address = _commit_mailbox_address;
+            remote_metadata = metadata;
+            done->pulse();
+        }
+
         mailbox_manager_t *mailbox_manager;
-        connectivity_service_t *connectivity;
         bool interest_acquired;
+        metadata_t remote_metadata;
         typename commit_mailbox_t::address_t commit_mailbox_address;
     };
 
 private:
     mailbox_manager_t *mailbox_manager;
-    connectivity_service_t *connectivity;
     request_mailbox_t request_mailbox;
     boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > metadata_view;
     std::set<cond_t*> coro_invalid_conditions;
@@ -125,43 +124,37 @@ private:
     }
 
     void remote_change_request_coro(typename ack_mailbox_t::address_t ack_mailbox) {
-        bool valid(true);
         cond_t invalid_condition;
         cond_t commit_done;
         commit_mailbox_t commit_mailbox(mailbox_manager,
                                         boost::bind(&metadata_change_handler_t<metadata_t>::handle_commit,
-                                                    this, &commit_done, &valid, _1, _2, _3),
+                                                    this, &commit_done, &invalid_condition, _1, _2, _3),
                                         mailbox_callback_mode_inline);
 
         coro_invalid_conditions.insert(&invalid_condition);
 
-        send(mailbox_manager, ack_mailbox, commit_mailbox.get_address());
-        disconnect_watcher_t dc_watcher(connectivity, ack_mailbox.get_peer());
-        wait_any_t waiter(&commit_done, &dc_watcher, &invalid_condition);
+        send(mailbox_manager, ack_mailbox, metadata_view->get(), commit_mailbox.get_address());
+        disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), ack_mailbox.get_peer());
+        wait_any_t waiter(&commit_done, &dc_watcher);
         waiter.wait();
-
-        if (invalid_condition.is_pulsed()) {
-            valid = false;
-            wait_any_t second_waiter(&commit_done, &dc_watcher);
-            second_waiter.wait();
-        }
 
         rassert(commit_done.is_pulsed() || dc_watcher.is_pulsed());
         coro_invalid_conditions.erase(&invalid_condition);
     }
 
     void handle_commit(cond_t *done,
-                       bool *valid,
+                       const cond_t *invalid_condition,
                        bool commit,
                        metadata_t metadata,
                        typename result_mailbox_t::address_t result_mailbox)
     {
         // The other side may abandon their change request, in which case we do nothing
         if (commit) {
-            if (valid) {
+            bool success = !invalid_condition->is_pulsed();
+            if (success) {
                 update(metadata);
             }
-            send<bool>(mailbox_manager, result_mailbox, valid);
+            coro_t::spawn_now(boost::bind(&send<bool>, mailbox_manager, result_mailbox, success));
         }
         done->pulse();
     }

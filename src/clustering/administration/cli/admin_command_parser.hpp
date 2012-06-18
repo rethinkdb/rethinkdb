@@ -53,9 +53,8 @@ private:
         command_info(std::string full_cmd,
                      std::string cmd,
                      std::string use,
-                     bool sync,
                      void (admin_cluster_link_t::* const fn)(command_data&)) :
-            full_command(full_cmd), command(cmd), usage(use), post_sync(sync), do_function(fn) { }
+            full_command(full_cmd), command(cmd), usage(use), do_function(fn) { }
 
         ~command_info();
 
@@ -65,7 +64,6 @@ private:
         std::string full_command;
         std::string command;
         std::string usage;
-        bool post_sync;
         void (admin_cluster_link_t::* do_function)(command_data&);
 
         std::vector<param_options *> positionals;
@@ -111,7 +109,6 @@ private:
                                const std::string& full_cmd,
                                const std::string& cmd,
                                const std::string& usage,
-                               bool post_sync,
                                void (admin_cluster_link_t::* const fn)(command_data&));
     admin_cluster_link_t * get_cluster();
 

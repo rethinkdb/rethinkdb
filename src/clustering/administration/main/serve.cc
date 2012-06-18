@@ -60,7 +60,7 @@ bool serve_(
     // stat_manager mailbox address
     stat_manager_t stat_manager(&mailbox_manager);
 
-    metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, &connectivity_cluster, semilattice_manager_cluster.get_root_view());
+    metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, semilattice_manager_cluster.get_root_view());
 
     watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(
         cluster_directory_metadata_t(

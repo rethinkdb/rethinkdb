@@ -92,7 +92,7 @@ public:
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_8(dummy_namespaces, memcached_namespaces, machine_id, ips, get_stats_mailbox_address, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_9(dummy_namespaces, memcached_namespaces, machine_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
 };
 
 // json adapter concept for directory_echo_wrapper_t
