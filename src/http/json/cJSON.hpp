@@ -121,7 +121,10 @@ extern void cJSON_ReplaceItemInObject(cJSON *object,const char *string,cJSON *ne
 #define cJSON_AddNumberToObject(object,name,n)	cJSON_AddItemToObject(object, name, cJSON_CreateNumber(n))
 #define cJSON_AddStringToObject(object,name,s)	cJSON_AddItemToObject(object, name, cJSON_CreateString(s))
 
+/* Copy function. */
 extern cJSON *cJSON_DeepCopy(cJSON *target);
+
+extern bool cJSON_Equal(cJSON *x, cJSON *y);
 
 #ifdef __cplusplus
 }

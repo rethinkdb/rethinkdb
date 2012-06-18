@@ -74,7 +74,7 @@ public:
     }
 
     static block_magic_t leaf_magic() {
-        block_magic_t magic = { { 'l', 'e', 'a', 'f' } };
+        block_magic_t magic = { { 'r', 'd', 'b', 'l' } };
         return magic;
     }
 

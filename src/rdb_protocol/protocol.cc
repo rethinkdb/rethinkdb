@@ -34,7 +34,7 @@ typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 /* read_t::get_region implementation */
 struct r_get_region_visitor : public boost::static_visitor<key_range_t> {
     key_range_t operator()(const point_read_t &pr) const {
-        return key_range_t(pr.key);
+        return key_range_t(key_range_t::closed, pr.key, key_range_t::closed, pr.key);
     }
 };
 
@@ -50,7 +50,7 @@ struct r_shard_visitor : public boost::static_visitor<read_t> {
     { }
 
     read_t operator()(const point_read_t &pr) const {
-        rassert(key_range_t(pr.key) == key_range);
+        rassert(key_range_t(key_range_t::closed, pr.key, key_range_t::closed, pr.key) == key_range);
         return read_t(pr);
     }
     const key_range_t &key_range;
@@ -71,7 +71,7 @@ read_response_t rdb_protocol_t::read_t::unshard(std::vector<read_response_t> res
 
 struct w_get_region_visitor : public boost::static_visitor<key_range_t> {
     key_range_t operator()(const point_write_t &pw) const {
-        return key_range_t(pw.key);
+        return key_range_t(key_range_t::closed, pw.key, key_range_t::closed, pw.key);
     }
 };
 
@@ -87,7 +87,7 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     { }
 
     write_t operator()(const point_write_t &pw) const {
-        rassert(key_range_t(pw.key) == key_range);
+        rassert(key_range_t(key_range_t::closed, pw.key, key_range_t::closed, pw.key) == key_range);
         return write_t(pw);
     }
     const key_range_t &key_range;

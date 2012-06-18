@@ -568,3 +568,81 @@ cJSON *cJSON_DeepCopy(cJSON *target) {
     }
 }
 
+bool cJSON_Equal(cJSON *x, cJSON *y) {
+    if (x->type != y->type) {
+        return false;
+    }
+
+    switch (x->type) {
+    case cJSON_False:
+    case cJSON_True:
+    case cJSON_NULL:
+        return true;
+        break;
+    case cJSON_Number:
+        if (x->valuedouble == y->valuedouble) {
+            rassert(x->valueint == y->valueint);
+            return true;
+        }
+        break;
+    case cJSON_String:
+        return strcmp(x->valuestring, y->valuestring) == 0;
+        break;
+    case cJSON_Array:
+        {
+            cJSON *xhd = x->child, *yhd = y->child;
+            while (xhd) { 
+                if (!yhd) {
+                    return false;
+                }
+
+                if (!cJSON_Equal(xhd, yhd)) {
+                    return false;
+                }
+
+                xhd = xhd->next; 
+                yhd = yhd->next;
+            }
+
+            if (yhd != NULL) {
+                return false;
+            }
+        }
+        return true;
+        break;
+    case cJSON_Object:
+        {
+            cJSON *xhd = x->child;
+            int child_count = 0;
+            while (xhd) {
+                child_count++;
+                //inefficient becase cjson sucks
+                cJSON *other_item = cJSON_GetObjectItem(y, xhd->string);
+
+                if (!other_item || !cJSON_Equal(xhd, other_item)) {
+                    return false;
+                }
+                xhd = xhd->next;
+            }
+
+            cJSON *yhd = y->child;
+
+            while (yhd) {
+                child_count--;
+                yhd = yhd->next;
+            }
+            if (child_count != 0) {
+                return false;
+            }
+
+            return true;
+        }
+        break;
+    default:
+        crash("Unreachable");
+        break;
+
+    }
+    crash("Unreachable");
+}
+

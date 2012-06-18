@@ -50,7 +50,7 @@ point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice
 point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data,
                        btree_slice_t *slice, repli_timestamp_t timestamp,
                        transaction_t *txn, superblock_t *superblock) {
-    block_size_t block_size = slice->cache()->get_block_size();
+    //block_size_t block_size = slice->cache()->get_block_size();
 
     keyvalue_location_t<rdb_value_t> kv_location;
 
@@ -120,11 +120,12 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_time
 }
 
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
-    block_size_t block_size = slice->cache()->get_block_size();
-
     keyvalue_location_t<rdb_value_t> kv_location;
 
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
+
+    blob_t blob(kv_location.value->value_ref(), blob::btree_maxreflen);
+    blob.clear(txn);
     kv_location.value.reset();
     null_key_modification_callback_t<rdb_value_t> null_cb;
     apply_keyvalue_change(txn, &kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
