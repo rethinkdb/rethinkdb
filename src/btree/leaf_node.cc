@@ -327,7 +327,6 @@ bool fsck(value_sizer_t<void> *sizer, const btree_key_t *left_exclusive_or_null,
     int i = 0;
     bool seen_tstamp_cutpoint = false;
     while (!iter.done(sizer)) {
-        debugf("Foo offset %d\n", iter.offset);
         int offset = iter.offset;
 
         // tstamp_cutpoint is supposed to be on some entry's offset.

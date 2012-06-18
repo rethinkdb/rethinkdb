@@ -30,18 +30,21 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 try {
                     namespace_uuid = str_to_uuid(*it);
                 } catch (std::runtime_error) {
+                    debugf("Failed to parse namespace\n");
                     return http_res_t(400);
                 }
 
                 cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
 
                 if (!std_contains(cluster_metadata.rdb_namespaces.namespaces, namespace_uuid)) {
+                    debugf("Didn't fine namespace\n");
                     return http_res_t(404);
                 }
 
                 ++it;
 
                 if (it == req.resource.end()) {
+                    debugf("Key not specified\n");
                     return http_res_t(400);
                 }
 
@@ -61,6 +64,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                     res.code = 200;
                     res.set_body("application/json", json.get());
                 } else {
+                    debugf("Key not found\n");
                     res.code = 404;
                 }
                 return res;
@@ -74,6 +78,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 http_req_t::resource_t::iterator it = req.resource.begin();
 
                 if (it == req.resource.end()) {
+                    debugf("Namespace not specified\n");
                     return http_res_t(400); // TODO : make more descriptive?
                 }
 
@@ -87,36 +92,33 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
 
                 if (!std_contains(cluster_metadata.rdb_namespaces.namespaces, namespace_uuid)) {
+                    debugf("Didn't find namespace\n");
                     return http_res_t(404);
                 }
 
                 ++it;
 
-                if (it != req.resource.end()) {
+                if (it == req.resource.end()) {
+                    debugf("Key not found\n");
                     return http_res_t(400);
                 }
 
-                cJSON *doc = cJSON_Parse(req.body.c_str());
+                store_key_t key(*it);
 
-                if (doc == NULL) {
-                    return http_res_t(400);
-                }
+                boost::shared_ptr<scoped_cJSON_t> doc(new scoped_cJSON_t(cJSON_Parse(req.body.c_str())));
 
-                cJSON *id = cJSON_GetObjectItem(doc, "id");
-
-                if (id == NULL || id->type != cJSON_String) {
-                    cJSON_Delete(doc);
+                if (!doc->get()) {
+                    debugf("json failed to parse: %s\n", req.body.c_str());
                     return http_res_t(400);
                 }
 
                 cond_t interrupt;
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_uuid, &interrupt);
 
-                store_key_t key(id->valuestring);
-                write.write = rdb_protocol_t::point_write_t(key, boost::make_shared<scoped_cJSON_t>(doc));
+                write.write = rdb_protocol_t::point_write_t(key, doc);
 
                 cond_t cond;
-                rdb_protocol_t::write_response_t write_res = ns_access.get_namespace_if()->write(write, order_source.check_in("dummy parser"), &cond);
+                rdb_protocol_t::write_response_t write_res = ns_access.get_namespace_if()->write(write, order_source.check_in("rdb parser"), &cond);
 
                 return http_res_t(204);
             }

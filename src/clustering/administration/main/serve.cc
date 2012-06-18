@@ -17,6 +17,7 @@
 #include "clustering/administration/reactor_driver.hpp"
 #include <stdio.h>
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/parser.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
@@ -185,6 +186,11 @@ bool serve_(
             field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces))
         );
 
+    namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
+        directory_read_manager.get_root_view()->subview(
+            field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces))
+        );
+
     parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
         &mailbox_manager,
         metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
@@ -198,6 +204,9 @@ bool serve_(
         DEBUG_ONLY(port_offset,)
         &memcached_namespace_repo,
         &perfmon_repo);
+
+    rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
+    http_server_t server(12345, &rdb_parser);
 
     boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
         new metadata_persistence::semilattice_watching_persister_t(

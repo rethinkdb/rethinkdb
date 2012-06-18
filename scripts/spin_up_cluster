@@ -136,7 +136,7 @@ else:
     for i, machine_name in enumerate(machine_names):
         # cleanup the directory
         directory = "cluster_directory_%d" % i
-        #os.system("rm -rf " + directory)
+        os.system("rm -rf " + directory)
         if (i == 0):
             cl = ["../build/debug/rethinkdb", "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
         else:
