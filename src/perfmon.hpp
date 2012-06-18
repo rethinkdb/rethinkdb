@@ -234,6 +234,7 @@ time period, the average record, and the min and max records. */
 // need to use a namespace, not inner classes, so we can pass the auxiliary
 // classes to the templated base classes
 namespace perfmon_sampler {
+
 struct stats_t {
     int count;
     double sum, min, max;
@@ -260,7 +261,8 @@ struct stats_t {
         }
     }
 };
-}
+
+}   /* namespace perfmon_sampler */
 
 class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
     typedef perfmon_sampler::stats_t stats_t;
