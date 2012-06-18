@@ -23,15 +23,25 @@ module 'ResolveIssuesView', ->
             @.$('#resolve_issues-container-inner-placeholder').html @template_inner
                 issues_exist: if issues.length > 0 then true else false
 
-            issue_views = []
-            issues.each (issue) ->
-                issue_views.push new ResolveIssuesView.Issue
+            # TODO: We should use a collection instead. It's ok for now since there are not a lot of issues, but still we should change it later.
+            previous_issues_views = if @issue_views? then @issue_views else []
+            @issue_views = [] 
+            issues.each (issue) =>
+                @issue_views.push new ResolveIssuesView.Issue
                     model: issue
 
+            for view in previous_issues_views
+                view.destroy()
+
             $issues = @.$('.issues').empty()
-            $issues.append view.render().el for view in issue_views
+            $issues.append view.render().el for view in @issue_views
 
             return @
+
+        destroy: =>
+            @unbind()
+            for view in @issue_views
+                view.destroy()
 
     class @DeclareMachineDeadModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#declare_machine_dead-modal-template').html()

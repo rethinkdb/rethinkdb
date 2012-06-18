@@ -17,7 +17,10 @@ module 'DashboardView', ->
 
             @.$('#cluster_status_container').html @cluster_status.render().el
             @.$('#cluster_performance_panel_placeholder').html @cluster_performance.render()
-
+    
+        destroy: =>
+            @cluster_status.destroy()
+            @cluster_performance.destroy()
 
     class @ClusterStatus extends Backbone.View
         className: 'dashboard-view'
@@ -191,6 +194,14 @@ module 'DashboardView', ->
             @.delegateEvents()
             return @
 
+
+        destroy: ->
+            issues.off()
+            issues_redundancy.off()
+            machines.off()
+            $('.popover').off()
+
+
     class @ClusterPerformance extends Backbone.View
         className: 'dashboard-view'
         template: Handlebars.compile $('#cluster_performance-template').html()
@@ -206,4 +217,5 @@ module 'DashboardView', ->
             log_render '(rendering) cluster_performance view'
             return @perf_panel.render().$el
 
-
+        destroy: =>
+            @perf_panel.destroy() # TODO to propagate

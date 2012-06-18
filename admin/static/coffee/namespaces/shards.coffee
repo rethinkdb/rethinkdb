@@ -111,6 +111,10 @@ module 'NamespaceView', ->
             view = new NamespaceView.ModifyShards @model.get('id')
             @.$('.change-shards').html view.render().el
 
+        destroy: ->
+            super()
+            issues.off()
+
     class @Shard extends Backbone.View
         tagName: 'tr'
         template: Handlebars.compile $('#namespace_view-shard-template').html()
@@ -153,6 +157,10 @@ module 'NamespaceView', ->
 
         reset_datacenter_list: =>
             @datacenter_list.render()
+
+        destroy: =>
+            @datacenter_list.destroy()
+            @namespace.off()
 
     class @ShardDatacenterList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_datacenter_list-template').html()
@@ -223,6 +231,10 @@ module 'NamespaceView', ->
 
             @.$('.datacenter.summary').html @summary_template json
 
+        destroy: =>
+            @model.off()
+            directory.off()
+            @namespace.off()
 
     class @ShardMachineList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_machine_list-template').html()
@@ -231,6 +243,10 @@ module 'NamespaceView', ->
             super
             @namespace = @options.element_args.namespace
             @namespace.on 'change:primary_pinnings', @render
+
+        destroy: =>
+            @machine_list.off()
+            @namespace.off()
 
     class @ShardMachine extends Backbone.View
         template: Handlebars.compile $('#namespace_view-shard_machine-template').html()
@@ -339,6 +355,12 @@ module 'NamespaceView', ->
 
             @.delegateEvents()
             return @
+
+        destroy: =>
+            @shard.off()
+            @shard.off()
+            @model.off()
+            directory.off()
 
     # A view for modifying the sharding plan.
     class @ModifyShards extends Backbone.View
@@ -555,6 +577,9 @@ module 'NamespaceView', ->
             namespaces.get(@namespace.id).set(response)
             window.app.navigate('/#namespaces/' + @namespace.get('id'), {trigger: true})
             $('#user-alert-space').append(@alert_tmpl({}))
+
+        destroy: =>
+            @namespace.off()
 
     # A view for modifying a specific shard
     class @ModifySingleShard extends Backbone.View

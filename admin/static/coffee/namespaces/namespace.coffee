@@ -60,6 +60,16 @@ module 'NamespaceView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
+        destroy: =>
+            @unbind()
+            @title.destroy()
+            @profile.destroy()
+            @replicas.destroy()
+            @shards.destroy()
+            @stats_panel.destroy()
+            @performance_graph.destroy()
+
+
     # NamespaceView.Title
     class @Title extends Backbone.View
         className: 'namespace-info-view'
