@@ -1,28 +1,23 @@
-module 'Walkthrough', ->
-    class @Popup extends Backbone.View
-        template: Handlebars.compile $('#walkthrough_popup-template').html()
+class Walkthrough extends Backbone.View
+    template: Handlebars.compile $('#walkthrough_popup-template').html()
+    modal_template: Handlebars.compile $('#walkthrough_modal-template').html()
 
-        events: ->
-            'click .show-walkthrough a': 'show_walkthrough'
-            'click .hide-popup a': 'hide_popup'
+    events: ->
+        'click .show-walkthrough a': 'show_walkthrough'
+        'click .hide-popup a': 'hide_popup'
 
-        render: =>
-            @.$el.html @template
-            return @
+    render: =>
+        @.$el.html @template
+        return @
 
-        hide_popup: (event) =>
-            event.preventDefault()
-            @.$el.remove()
+    hide_popup: (event) =>
+        event.preventDefault()
+        @.$el.remove()
 
-        show_walkthrough: (event) =>
-            event.preventDefault()
-            @.$el.remove()
-            $('#walkthrough').html (new Walkthrough.Carousel).render().el
+    show_walkthrough: (event) =>
+        event.preventDefault()
+        @.$el.remove()
+        $walkthrough = $('#walkthrough').html @modal_template
 
-    class @Carousel extends Backbone.View
-        template: Handlebars.compile $('#walkthrough_carousel-template').html()
-
-        render: =>
-            @.$el.html @template
-            @.$('.carousel').carousel()
-            return @
+        $('.modal', $walkthrough).modal('show')
+        $('.carousel', $walkthrough).carousel

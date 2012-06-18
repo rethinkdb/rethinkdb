@@ -20,7 +20,7 @@
               <a href="#" class="json" rel="dashboard_details" data-content="{{pluralize_noun "Namespace" num_master_offline}} not available: {{links_to_masters_and_namespaces masters_offline}}" data-title="Availability problems">
                   {{pluralize_noun "master" num_masters_offline}} 
               </a>
-              {{pluralize_verb_to_be num_masters_online}} not available</p>
+              not available</p>
               {{/if}}
               {{#if has_namespaces_without_masters}}
               <p class="details">{{num_namespaces_without_masters}} 
@@ -80,13 +80,13 @@
               <a href="#" class="json" rel="dashboard_details" data-content="{{pluralize_noun "replica" num_master_offline}} having problems: {{links_to_replicas_and_namespaces replicas_offline}}" data-title="Redundancy problems">
                  {{pluralize_noun "replica" num_replicas_offline}}
               </a>    
-              {{pluralize_verb_to_be num_replicas_offline}} offline</p>
+              {{pluralize_verb_to_have num_replicas_offline}} issues</p>
           </td>
           {{else}}
             <td class="no-problems-detected redundancy">
                 <h3>Redundancy</h3>
                 <p class="message">No redundancy issues detected</p>
-                <p class="details">{{num_replicas}} of {{num_replicas}} replicas are online</p>
+                <p class="details">{{num_replicas}} of {{num_replicas}} {{pluralize_noun "replica" num_replicas}} are online</p>
             </td>
           {{/if}}
 

@@ -80,16 +80,19 @@ module 'MachineView', ->
         template: Handlebars.compile $('#machine_view_title-template').html()
         initialize: =>
             @name = @model.get('name')
-            machines.on 'all', @update
+            @model.on 'change:name', @update
         
         update: =>
+            @render()
+            ###
             if @name isnt @model.get('name')
                 @name = @model.get('name')
                 @render()
+            ###
 
         render: =>
             @.$el.html @template
-                name: name
+                name: @name
             return @
 
     # MachineView.Profile
@@ -99,7 +102,7 @@ module 'MachineView', ->
         initialize: =>
             @model.on 'all', @render
             directory.on 'all', @render
-            machines.on 'all', @render
+            @model.on 'all', @render
 
         render: =>
             datacenter_uuid = @model.get('datacenter_uuid')
@@ -126,6 +129,7 @@ module 'MachineView', ->
             # Reachability
             _.extend json,
                 status: DataUtils.get_machine_reachability(@model.get('id'))
+
             @.$el.html @template(json)
 
             return @

@@ -1,4 +1,3 @@
-
 # Router for Backbone.js
 class BackboneCluster extends Backbone.Router
     routes:
@@ -41,7 +40,7 @@ class BackboneCluster extends Backbone.Router
 
     render_sidebar: -> @$sidebar.html @sidebar.render().el
     render_navbar: -> $('#navbar-container').html @navbar.render().el
-    render_walkthrough_popup: -> $('.walkthrough-popup').html (new Walkthrough.Popup).render().el
+    render_walkthrough_popup: -> $('.walkthrough-popup').html (new Walkthrough).render().el
 
     index_namespaces: ->
         log_router '/index_namespaces'
