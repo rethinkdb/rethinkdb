@@ -1137,25 +1137,31 @@ bool lookup(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_key
     return false;
 }
 
-void assert_not_old_timestamp(DEBUG_ONLY_VAR leaf_node_t *node, DEBUG_ONLY_VAR repli_timestamp_t tstamp) {
+void assert_not_old_timestamp(DEBUG_ONLY_VAR leaf_node_t *node, DEBUG_ONLY_VAR repli_timestamp_t tstamp, const btree_key_t *key) {
 #ifndef NDEBUG
     if (node->num_pairs > 0 && node->frontmost < node->tstamp_cutpoint) {
         repli_timestamp_t old_tstamp = get_timestamp(node, node->frontmost);
         // Timestamps aren't unique (because they're low-resolution)
         // but they are in order.
-        rassert(tstamp >= old_tstamp, "tstamp = %u, old_tstamp = %u", tstamp.time, old_tstamp.time);
+        rassert(tstamp >= old_tstamp, "tstamp = %u, old_tstamp = %u, key=%.*s", tstamp.time, old_tstamp.time, key->size, key->contents);
     }
 #endif
 }
 
-
 // Inserts a key/value pair into the node.  Hopefully you've already
 // cleaned up the old value, if there is one.
-void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+void insert(value_sizer_t<void> *sizer, leaf_node_t *node, repli_timestamp_t node_timestamp, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     rassert(!is_full(sizer, node, key, value));
     rassert(!km_proof.is_fake());
 
-    assert_not_old_timestamp(node, tstamp);
+    // TODO: Make node_timestamp not need to be passed and this not
+    // need to happen.  This might involve not having multiple shards
+    // share the same btree.
+    if (tstamp < node_timestamp) {
+        tstamp = node_timestamp;
+    }
+
+    assert_not_old_timestamp(node, tstamp, key);
 
     if (offsetof(leaf_node_t, pair_offsets) + sizeof(uint16_t) * (node->num_pairs + 1) + sizeof(repli_timestamp_t) + key->full_size() + sizer->size(value) > node->frontmost) {
         garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1);
@@ -1208,9 +1214,17 @@ void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *ke
 // This asserts that the key is in the node.  TODO: This means we're
 // already sure the key is in the node, which means we're doing an
 // unnecessary binary search.
-void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+void remove(value_sizer_t<void> *sizer, leaf_node_t *node, repli_timestamp_t node_tstamp, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     rassert(!km_proof.is_fake());
-    assert_not_old_timestamp(node, tstamp);
+
+    // TODO: Sigh.  Figure out how to remove the node_tstamp
+    // parameter.  This probably involves making separate shards _not_
+    // share the same btree.
+    if (tstamp < node_tstamp) {
+        tstamp = node_tstamp;
+    }
+
+    assert_not_old_timestamp(node, tstamp, key);
 
     int index;
     bool found = find_key(node, key, &index);
@@ -1401,12 +1415,12 @@ live_iter_t iter_for_whole_leaf(const leaf_node_t *node) {
 
 void leaf_patched_insert(value_sizer_t<void> *sizer, buf_lock_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     // rassert(!km_proof.is_fake());
-    node->apply_patch(new leaf_insert_patch_t(node->get_block_id(), node->get_next_patch_counter(), sizer->size(value), value, key, tstamp));
+    node->apply_patch(new leaf_insert_patch_t(node->get_block_id(), node->get_recency(), node->get_next_patch_counter(), sizer->size(value), value, key, tstamp));
 }
 
 void leaf_patched_remove(buf_lock_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     // rassert(!km_proof.is_fake());
-    node->apply_patch(new leaf_remove_patch_t(node->get_block_id(), node->get_next_patch_counter(), tstamp, key));
+    node->apply_patch(new leaf_remove_patch_t(node->get_block_id(), node->get_recency(), node->get_next_patch_counter(), tstamp, key));
 }
 
 void leaf_patched_erase_presence(buf_lock_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {

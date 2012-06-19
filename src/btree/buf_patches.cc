@@ -5,10 +5,10 @@
 #include "memcached/btree/value.hpp"
 #include "btree/detemplatizer.hpp"
 
-leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t _value_size, const void *value, const btree_key_t *_key, repli_timestamp_t _insertion_time)
+leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, repli_timestamp_t block_timestamp, patch_counter_t patch_counter, uint16_t _value_size, const void *value, const btree_key_t *_key, repli_timestamp_t _insertion_time)
     : buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_INSERT),
       value_size(_value_size), key(_key),
-      insertion_time(_insertion_time) {
+      insertion_time(std::max(block_timestamp, _insertion_time)) {
 
     {
         scoped_malloc<char> tmp(value_size);
@@ -70,13 +70,13 @@ uint16_t leaf_insert_patch_t::get_data_size() const {
 
 void leaf_insert_patch_t::apply_to_buf(char *buf_data, block_size_t bs) {
     leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
-    DETEMPLATIZE_LEAF_NODE_OP(leaf::insert, leaf_node, bs, leaf_node, key.btree_key(), value_buf.get(), insertion_time, key_modification_proof_t::real_proof());
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::insert, leaf_node, bs, leaf_node, insertion_time, key.btree_key(), value_buf.get(), insertion_time, key_modification_proof_t::real_proof());
 }
 
 
-leaf_remove_patch_t::leaf_remove_patch_t(block_id_t block_id, patch_counter_t patch_counter, repli_timestamp_t tstamp, const btree_key_t *_key) :
+leaf_remove_patch_t::leaf_remove_patch_t(block_id_t block_id, repli_timestamp_t block_timestamp, patch_counter_t patch_counter, repli_timestamp_t tstamp, const btree_key_t *_key) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_REMOVE),
-            timestamp(tstamp), key(_key) { }
+            timestamp(std::max(block_timestamp, tstamp)), key(_key) { }
 
 leaf_remove_patch_t::leaf_remove_patch_t(block_id_t block_id, patch_counter_t patch_counter, const char* data, uint16_t data_length) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_REMOVE),
@@ -115,7 +115,7 @@ uint16_t leaf_remove_patch_t::get_data_size() const {
 
 void leaf_remove_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
     leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
-    DETEMPLATIZE_LEAF_NODE_OP(leaf::remove, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), key.btree_key(), timestamp, key_modification_proof_t::real_proof());
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::remove, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), timestamp, key.btree_key(), timestamp, key_modification_proof_t::real_proof());
 }
 
 

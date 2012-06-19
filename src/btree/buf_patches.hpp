@@ -28,7 +28,7 @@ protected:
 private:
     friend void leaf_patched_insert(value_sizer_t<void> *sizer, buf_lock_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
 
-    leaf_insert_patch_t(block_id_t block_id, patch_counter_t patch_counter, uint16_t value_size, const void *value, const btree_key_t *key, repli_timestamp_t insertion_time);
+    leaf_insert_patch_t(block_id_t block_id, repli_timestamp_t block_timestamp, patch_counter_t patch_counter, uint16_t value_size, const void *value, const btree_key_t *key, repli_timestamp_t insertion_time);
 
     uint16_t value_size;
     scoped_malloc<char> value_buf;
@@ -49,7 +49,7 @@ protected:
 
 private:
     friend void leaf_patched_remove(buf_lock_t *node, const btree_key_t *key, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
-    leaf_remove_patch_t(block_id_t block_id, patch_counter_t patch_counter, repli_timestamp_t tstamp, const btree_key_t *key);
+    leaf_remove_patch_t(block_id_t block_id, repli_timestamp_t block_timestamp, patch_counter_t patch_counter, repli_timestamp_t tstamp, const btree_key_t *key);
 
     repli_timestamp_t timestamp;
     store_key_t key;

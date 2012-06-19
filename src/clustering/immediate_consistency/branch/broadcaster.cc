@@ -142,8 +142,8 @@ public:
         ack_callback = NULL;
     }
 
-    typename protocol_t::write_t write;
-    transition_timestamp_t timestamp;
+    const typename protocol_t::write_t write;
+    const transition_timestamp_t timestamp;
 
     /* `done_promise` gets pulsed with `true` when `ack_callback` is
        satisfied, or with `false` if it will never be satisfied. */
@@ -482,6 +482,9 @@ typename protocol_t::write_response_t broadcaster_t<protocol_t>::write(typename 
             transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
             current_timestamp = timestamp.timestamp_after();
             order_token = order_checkpoint.check_through(order_token);
+
+            // debugf("broadcaster write with transition timestamp %lu\n", timestamp.numeric_representation());
+            // debugf_print("the broadcaster write", write);
 
             write_wrapper = boost::make_shared<incomplete_write_t>(
                 this, write, timestamp, cb, completion_cb);

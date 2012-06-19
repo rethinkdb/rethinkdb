@@ -390,6 +390,8 @@ int gcd(int x, int y) {
 int64_t round_up_to_power_of_two(int64_t x) {
     rassert(x >= 0);
 
+    --x;
+
     x |= x >> 1;
     x |= x >> 2;
     x |= x >> 4;

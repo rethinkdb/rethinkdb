@@ -51,7 +51,7 @@ public:
         return length_;
     }
 
-private:
+public:
     // The number of bytes that have been appended.
     int64_t length_;
 
@@ -129,14 +129,14 @@ void printf_buffer_t<N>::vappendf(const char *format, va_list ap) {
 
         // the snprintfs return the number of characters they _would_
         // have written, not including the '\0'.
-        int size = vsnprintf(data_ + length_, N - length_, format, ap);
+        int size = vsnprintf(ptr_ + length_, N - length_, format, ap);
         rassert(size >= 0, "vsnprintf failed, bad format string?");
 
         if (size < N - length_) {
             length_ += size;
         } else {
             char *new_ptr;
-            alloc_copy_and_format(data_, length_, size, round_up_to_power_of_two(length_ + size + 1), format, aq, &new_ptr);
+            alloc_copy_and_format(ptr_, length_, size, round_up_to_power_of_two(length_ + size + 1), format, aq, &new_ptr);
 
             // TODO: Have valgrind mark data_ memory undefined.
             ptr_ = new_ptr;
@@ -159,7 +159,7 @@ void printf_buffer_t<N>::vappendf(const char *format, va_list ap) {
         } else {
 
             char *new_ptr;
-            alloc_copy_and_format(data_, length_, size, alloc_limit, format, aq, &new_ptr);
+            alloc_copy_and_format(ptr_, length_, size, round_up_to_power_of_two(length_ + size + 1), format, aq, &new_ptr);
 
             delete[] ptr_;
             ptr_ = new_ptr;
