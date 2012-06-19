@@ -144,6 +144,8 @@ data ReadQuery = ReadQuery Term
 
 data WriteQuery
     = Update View Mapping
+    | Delete View 
+    | Mutate View Mapping
     -- TODO: how does insert work if we insert a row with a primary key that
     -- already exists in the table?
     | Insert TableRef [Term]
@@ -152,4 +154,6 @@ data WriteQuery
     -- `PointUpdate tref attr key updater`
     -- updates THE row in tref with attr equal to key, using updater
     -- NB. very restricted: attrname MUST be primary key
-    | PointUpdate Table AttrName Term Mapping
+    | PointUpdate TableRef AttrName Term Mapping
+    | PointDelete TableRef AttrName Term
+    | PointMutate TableRef AttrName Term Mapping
