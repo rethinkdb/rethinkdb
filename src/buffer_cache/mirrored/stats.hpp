@@ -1,7 +1,7 @@
 #ifndef BUFFER_CACHE_MIRRORED_STATS_HPP_
 #define BUFFER_CACHE_MIRRORED_STATS_HPP_
 
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 /* A class to hold all the stats we care about for this cache. */
 struct mc_cache_stats_t {

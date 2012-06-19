@@ -9,7 +9,7 @@
 #include "concurrency/one_per_thread.hpp"
 #include "containers/archive/tcp_conn_stream.hpp"
 #include "containers/map_sentries.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
 #include "containers/uuid.hpp"

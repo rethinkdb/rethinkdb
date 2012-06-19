@@ -1,6 +1,6 @@
 #include "arch/io/disk/conflict_resolving.hpp"
 
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 template<class payload_t>
 conflict_resolving_diskmgr_t<payload_t>::conflict_resolving_diskmgr_t(perfmon_collection_t *stats) :

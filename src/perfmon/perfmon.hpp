@@ -1,5 +1,5 @@
 /* Please avoid #include'ing this file from other headers unless you absolutely
- * need to. Please #include "perfmon_types.hpp" instead. This helps avoid
+ * need to. Please #include "perfmon/perfmon_types.hpp" instead. This helps avoid
  * potential circular dependency problems, since perfmons are used all over the
  * place but also depend on a significant chunk of our threading infrastructure
  * (by way of get_thread_id() & co).
@@ -13,7 +13,7 @@
 
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
-#include "perfmon_types.hpp"
+#include "perfmon/perfmon_types.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "utils.hpp"
 

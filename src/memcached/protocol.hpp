@@ -18,7 +18,7 @@
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
-#include "perfmon_types.hpp"
+#include "perfmon/perfmon_types.hpp"
 #include "repli_timestamp.hpp"
 
 class real_superblock_t;

@@ -23,7 +23,7 @@
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 #include "do_on_thread.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 
 std::string admin_cluster_link_t::peer_id_to_machine_name(const std::string& peer_id) {

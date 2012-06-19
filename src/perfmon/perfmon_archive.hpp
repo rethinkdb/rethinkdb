@@ -1,7 +1,7 @@
 #ifndef PERFMON_ARCHIVE_HPP_
 #define PERFMON_ARCHIVE_HPP_
 
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "rpc/serialize_macros.hpp"
 

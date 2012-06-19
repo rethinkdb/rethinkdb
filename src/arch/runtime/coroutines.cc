@@ -13,7 +13,7 @@
 #include "config/args.hpp"
 #include "do_on_thread.hpp"
 
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 #include "utils.hpp"
 
 #ifndef NDEBUG
