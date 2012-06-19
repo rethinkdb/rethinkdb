@@ -538,7 +538,7 @@ void admin_cluster_link_t::do_admin_pin_shard(admin_command_parser_t::command_da
     }
 
     if (!change_request.update(cluster_metadata)) {
-        throw admin_metadata_update_exc_t();
+        throw admin_retry_exc_t();
     }
 }
 
@@ -810,7 +810,7 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
     }
 
     if (!change_request.update(cluster_metadata)) {
-        throw admin_metadata_update_exc_t();
+        throw admin_retry_exc_t();
     }
 
     if (!error.empty()) {
@@ -903,7 +903,7 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
     }
 
     if (!change_request.update(cluster_metadata)) {
-        throw admin_metadata_update_exc_t();
+        throw admin_retry_exc_t();
     }
 
     if (!error.empty()) {
@@ -1647,7 +1647,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(admin_command_parser_t::co
     datacenter.name.upgrade_version(change_request_id);
 
     if (!change_request.update(cluster_metadata)) {
-        throw admin_metadata_update_exc_t();
+        throw admin_retry_exc_t();
     }
 
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
@@ -1695,7 +1695,7 @@ void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::com
     }
 
     if (!change_request.update(cluster_metadata)) {
-        throw admin_metadata_update_exc_t();
+        throw admin_retry_exc_t();
     }
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
@@ -1753,7 +1753,7 @@ void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::comma
     }
 
     if (!change_request.update(cluster_metadata)) {
-        throw admin_metadata_update_exc_t();
+        throw admin_retry_exc_t();
     }
 }
 
@@ -1862,7 +1862,7 @@ void admin_cluster_link_t::do_admin_set_name(admin_command_parser_t::command_dat
     }
 
     if (!change_request.update(cluster_metadata)) {
-        throw admin_metadata_update_exc_t();
+        throw admin_retry_exc_t();
     }
 }
 
@@ -1917,7 +1917,7 @@ void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_dat
     }
 
     if (!change_request.update(cluster_metadata)) {
-        throw admin_metadata_update_exc_t();
+        throw admin_retry_exc_t();
     }
 }
 
@@ -1996,7 +1996,7 @@ void admin_cluster_link_t::do_admin_set_replicas(admin_command_parser_t::command
     }
 
     if (!change_request.update(cluster_metadata)) {
-        throw admin_metadata_update_exc_t();
+        throw admin_retry_exc_t();
     }
 }
 
@@ -2076,7 +2076,7 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
 
     if (do_update) {
         if (!change_request.update(cluster_metadata)) {
-            throw admin_metadata_update_exc_t();
+            throw admin_retry_exc_t();
         }
     }
 
@@ -2557,7 +2557,7 @@ void admin_cluster_link_t::do_admin_resolve(admin_command_parser_t::command_data
     }
 
     if (!change_request.update(cluster_metadata)) {
-        throw admin_metadata_update_exc_t();
+        throw admin_retry_exc_t();
     }
 }
 

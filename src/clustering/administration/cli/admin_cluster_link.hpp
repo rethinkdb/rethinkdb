@@ -21,13 +21,6 @@
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view.hpp"
 
-struct admin_metadata_update_exc_t : public std::exception {
-public:
-    admin_metadata_update_exc_t() { }
-    ~admin_metadata_update_exc_t() throw () { }
-    const char *what() const throw () { return "metadata change request through peer failed"; }
-};
-
 struct admin_cluster_exc_t : public std::exception {
 public:
     explicit admin_cluster_exc_t(const std::string& data) : info(data) { }
@@ -39,11 +32,9 @@ private:
 
 struct admin_retry_exc_t : public std::exception {
 public:
-    explicit admin_retry_exc_t(const std::string& data) : info(data) { }
+    explicit admin_retry_exc_t() { }
     ~admin_retry_exc_t() throw () { }
-    const char *what() const throw () { return info.c_str(); }
-private:
-    std::string info;
+    const char *what() const throw () { return "metadata update to peer was rejected, try again"; }
 };
 
 class admin_cluster_link_t {

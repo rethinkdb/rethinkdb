@@ -14,6 +14,8 @@
 admin_command_parser_t *admin_command_parser_t::instance = NULL;
 uint64_t admin_command_parser_t::cluster_join_timeout = 5000; // Give 5 seconds to connect to all machines in the cluster
 
+const size_t MAX_RETRIES = 5;
+
 const char *list_command = "ls";
 const char *list_stats_command = "ls stats";
 const char *list_issues_command = "ls issues";
@@ -645,12 +647,16 @@ void admin_command_parser_t::run_command(command_data& data) {
         get_cluster()->sync_from();
 
         // Retry until the command completes, this is necessary if multiple sources modify the same vclock
+        size_t tries = 0;
         while (true) {
+            ++tries;
             try {
                 (get_cluster()->*(data.info->do_function))(data);
                 break;
             } catch (admin_retry_exc_t& ex) {
-                // Do nothing, command must be retried
+                if (tries == MAX_RETRIES) {
+                    throw admin_cluster_exc_t("updated metadata rejected by the cluster too many times, most likely someone else is editing the metadata");
+                }
             }
         }
     }
