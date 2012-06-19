@@ -88,14 +88,14 @@ data Builtin
     | ArrayToStream
 
     | Reduce Reduction
-    | GroupBy Mapping Reduction -- TODO: document
+    | GroupedMapReduce Mapping Mapping Reduction -- TODO: document
 
     -- Arbitrary javascript function.
     -- js funcs need to be type-annotated
     -- TODO: figure out precise semantics
     | Javascript String
     -- Tim wants this, ask him what it should do
-    -- | JavascriptReturningStream String
+    | JavascriptReturningStream String
 
     -- "Porcelain"
     | MapReduce Mapping Reduction
