@@ -65,7 +65,7 @@ module 'NamespaceView', ->
             issues.on 'all', @check_has_unsatisfiable_goals
 
         check_has_unsatisfiable_goals: =>
-            if @should_be_hidden is true
+            if @should_be_hidden
                 should_be_hidden_new = false
                 for issue in issues.models 
                     if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id') # If unsatisfiable goals, the user should not change shards
@@ -76,7 +76,7 @@ module 'NamespaceView', ->
                             should_be_hidden_new = true
                             break
 
-                if should_be_hidden_new is false
+                if not should_be_hidden_new
                     @should_be_hidden = false
                     @render()
             else
@@ -94,15 +94,11 @@ module 'NamespaceView', ->
         render: =>
             super()
 
-            @.$el.toggleClass('namespace-shards-blackout')
-            if @should_be_hidden is true
-                @.$('.blackout').addClass('blackout-active')
-                @.$('.alert_for_sharding').html @error_msg
-                @.$('.alert_for_sharding').css('display', 'block')
-            else
-                @.$('.blackout').removeClass('blackout-active')
-                @.$('.alert_for_sharding').html ''
-                @.$('.alert_for_sharding').css('display', 'none')
+            @.$el.toggleClass('namespace-shards-blackout', @should_be_hidden)
+            @.$('.blackout').toggleClass('blackout-active', @should_be_hidden)
+            @.$('.alert_for_sharding').toggle @should_be_hidden
+            @.$('.alert_for_sharding').html @error_msg if @should_be_hidden
+
             return @
 
         change_sharding_scheme: (event) =>
@@ -136,8 +132,6 @@ module 'NamespaceView', ->
                 element_args:
                     shard: @model
                     namespace: @namespace
-
-              
 
             @namespace.on 'change:key_distr_sorted', @render_summary
             
@@ -206,9 +200,6 @@ module 'NamespaceView', ->
             @namespace.on 'change:replica_affinities', @reset_list
             @namespace.on 'change:secondary_pinnings', @reset_list
             @namespace.on 'change:blueprint', @reset_list
-
-
-
 
         reset_list: =>
             @machine_list.reset_element_views()
@@ -578,7 +569,8 @@ module 'NamespaceView', ->
         on_success: (response) =>
             @.$('.btn-primary').button('reset')
             namespaces.get(@namespace.id).set(response)
-            window.app.navigate('/#namespaces/' + @namespace.get('id'), {trigger: true})
+            @.$el.remove()
+            $('.namespace-view .sharding').show()
             $('#user-alert-space').append(@alert_tmpl({}))
 
         destroy: =>
