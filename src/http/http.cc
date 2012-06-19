@@ -187,7 +187,6 @@ http_server_t::http_server_t(int port, http_app_t *_application) : application(_
 
 http_server_t::~http_server_t() { }
 
-
 std::string human_readable_status(int code) {
     switch(code) {
     case 200:
