@@ -36,7 +36,8 @@ reactor_t<protocol_t>::reactor_t(
     master_directory(std::map<master_id_t, master_business_card_t<protocol_t> >()),
     blueprint_watchable(b), underlying_store(_underlying_store),
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
-    parent_perfmon_collection(_parent_perfmon_collection)
+    parent_perfmon_collection(_parent_perfmon_collection),
+    regions_perfmon_collection("regions", parent_perfmon_collection, true, true)
 {
     {
         typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint_watchable);
