@@ -43,6 +43,10 @@ module 'DashboardView', ->
             issues.on 'all', @render
             issues_redundancy.on 'reset', @render # when issues_redundancy is reset
             machines.on 'stats_updated', @render # when the stats of the machines are updated
+
+            $('.links_to_other_view').live 'click', ->
+                $('.popover-inner').remove()
+
             @render()
 
 
@@ -71,6 +75,7 @@ module 'DashboardView', ->
                                 name: namespace.get('name')
                                 id: namespace.get('id')
                             status.num_masters++
+
 
             if issues.length != 0
                 status.num_machines_with_disk_problems = 0
