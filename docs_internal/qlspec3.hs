@@ -1,3 +1,8 @@
+-- fundamental problem noted by slava:
+
+-- too complicated. too hard to optimize. too "programmy" instead of
+-- "relational".
+
 module RethinkDB where
 
 -- A Symbol is essentially an identifier, a way to refer to other
@@ -18,8 +23,6 @@ type Var = Symbol         -- Reference to a variable/argument
 -- the name is ambigious).
 data TableRef = TableRef (Maybe DBName) TableName
                 deriving Show
-
-data Type = -- TODO
 
 data Term
     = Var Var
@@ -90,7 +93,9 @@ data Builtin
     -- Arbitrary javascript function.
     -- js funcs need to be type-annotated
     -- TODO: figure out precise semantics
-    | Javascript ([Type], Type) String
+    | Javascript String
+    -- Tim wants this, ask him what it should do
+    -- | JavascriptReturningStream String
 
     -- "Porcelain"
     | MapReduce Mapping Reduction
