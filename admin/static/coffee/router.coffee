@@ -1,6 +1,5 @@
 # Extend Backbone View 
 Backbone.View.prototype.destroy = ->
-    @unbind()
     return
 
 # Router for Backbone.js
