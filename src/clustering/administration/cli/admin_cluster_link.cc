@@ -20,6 +20,7 @@
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
+#include "memcached/protocol_json_adapter.hpp"
 #include "do_on_thread.hpp"
 #include "perfmon.hpp"
 

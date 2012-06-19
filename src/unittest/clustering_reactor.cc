@@ -12,6 +12,7 @@
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "mock/dummy_protocol_json_adapter.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"

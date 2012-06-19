@@ -54,6 +54,8 @@ module 'NamespaceView', ->
             # Display the shards
             @.$('.section.sharding').html @shards.render().el
 
+            @.$('.nav-tabs').tab()
+
             return @
 
         close_alert: (event) ->

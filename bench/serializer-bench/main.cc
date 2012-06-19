@@ -127,10 +127,15 @@ struct tester_t :
         }
 
         fprintf(stderr, "Creating a database...\n");
-        log_serializer_t::create(config->ser_dynamic_config, config->ser_private_dynamic_config, config->ser_static_config);
+        log_serializer_t::create(config->ser_dynamic_config,
+                                 config->ser_private_dynamic_config,
+                                 config->ser_static_config,
+                                 &get_global_perfmon_collection());
         
         fprintf(stderr, "Starting serializer...\n");
-        ser = new log_serializer_t(config->ser_dynamic_config, config->ser_private_dynamic_config, NULL);
+        ser = new log_serializer_t(config->ser_dynamic_config,
+                                   config->ser_private_dynamic_config,
+                                   &get_global_perfmon_collection());
         on_serializer_ready(ser);
     }
     
