@@ -182,7 +182,7 @@ module 'Vis', ->
             return @
 
         destroy: =>
-            @context.off()
+            @context.on 'focus'
             @legend.destroy()
 
     class @OpsPlotLegend extends Backbone.View
@@ -209,7 +209,7 @@ module 'Vis', ->
             return @
 
         destroy: =>
-            @read_matric.off()
+            @read_metric.on 'change' # We remove the listener.
 
     class @SizeBoundedCache
         constructor: (num_data_points, _stat) ->

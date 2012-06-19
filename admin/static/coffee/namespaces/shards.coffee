@@ -368,6 +368,7 @@ module 'NamespaceView', ->
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
         invalid_splitpoint_msg: Handlebars.compile $('#namespace_view_invalid_splitpoint_alert-template').html()
         invalid_merge_msg: Handlebars.compile $('#namespace_view_invalid_merge_alert-template').html()
+        invalid_shard_msg: Handlebars.compile $('#namespace_view_invalid_shard_alert-template').html()
 
         class: 'modify-shards'
         events:
@@ -496,7 +497,9 @@ module 'NamespaceView', ->
                 @shard_set.splice(index, 1, JSON.stringify([json_repr[0], splitpoint]), JSON.stringify([splitpoint, json_repr[1]]))
                 @render()
             else
-                # TODO handle error
+                @.$('.invalid_shard_alert').html @invalid_shard_msg
+                @.$('.invalid_shard_alert').css('display', 'block')
+
 
         merge_shard: (index) =>
             if (index < 0 || index + 1 >= @shard_set.length)

@@ -72,7 +72,7 @@ class BackboneCluster extends Backbone.Router
         log_router '/logs'
         clear_modals()
         @current_view.destroy()
-        @curreht_view = new LogView.Container
+        @current_view = new LogView.Container
         @$container.html @current_view.render().el
 
     namespace: (id) ->
@@ -95,7 +95,7 @@ class BackboneCluster extends Backbone.Router
         if datacenter? then @current_view = new DatacenterView.Container model: datacenter
         else @current_view = new DatacenterView.NotFound id
 
-        @$container.html view.render().el
+        @$container.html @current_view.render().el
 
     machine: (id) ->
         log_router '/machines/' + id
