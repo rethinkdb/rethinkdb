@@ -148,7 +148,7 @@ private:
         try {
             class write_callback_t : public broadcaster_t<protocol_t>::write_callback_t {
             public:
-                write_callback_t(ack_checker_t *ac) : ack_checker(ac) { }
+                explicit write_callback_t(ack_checker_t *ac) : ack_checker(ac) { }
                 void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) {
                     if (!response_promise.get_ready_signal()->is_pulsed()) {
                         ack_set.insert(peer);
