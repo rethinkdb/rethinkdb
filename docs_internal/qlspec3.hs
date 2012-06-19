@@ -61,7 +61,7 @@ data Builtin
     | Filter Predicate
     | Map Mapping
     | OrderBy OrderDirection Mapping
-    | Distinct StreamTerm Mapping
+    | Distinct Mapping
     | Limit Int
     | Count                     -- counts # of elements in a stream
     | Union                     -- merges streams in undefined order
