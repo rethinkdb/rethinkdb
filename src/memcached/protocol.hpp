@@ -167,7 +167,7 @@ public:
         fifo_enforcer_sink_t token_sink;
 
     public:
-        store_t(const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
+        store_t(const std::string& filename, bool create, perfmon_collection_t *collection);
         ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);

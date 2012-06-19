@@ -30,7 +30,7 @@ public:
 
     void pulse();
 
-    void wait_eagerly();
+    void wait_eagerly_deprecated();
 
 private:
     bool pulsed_;

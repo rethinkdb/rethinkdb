@@ -65,7 +65,7 @@ module 'NamespaceView', ->
             issues.on 'all', @check_has_unsatisfiable_goals
 
         check_has_unsatisfiable_goals: =>
-            if @should_be_hidden is true
+            if @should_be_hidden
                 should_be_hidden_new = false
                 for issue in issues.models 
                     if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id') # If unsatisfiable goals, the user should not change shards
@@ -76,7 +76,7 @@ module 'NamespaceView', ->
                             should_be_hidden_new = true
                             break
 
-                if should_be_hidden_new is false
+                if not should_be_hidden_new
                     @should_be_hidden = false
                     @render()
             else
@@ -94,15 +94,11 @@ module 'NamespaceView', ->
         render: =>
             super()
 
-            @.$el.toggleClass('namespace-shards-blackout')
-            if @should_be_hidden is true
-                @.$('.blackout').addClass('blackout-active')
-                @.$('.alert_for_sharding').html @error_msg
-                @.$('.alert_for_sharding').css('display', 'block')
-            else
-                @.$('.blackout').removeClass('blackout-active')
-                @.$('.alert_for_sharding').html ''
-                @.$('.alert_for_sharding').css('display', 'none')
+            @.$el.toggleClass('namespace-shards-blackout', @should_be_hidden)
+            @.$('.blackout').toggleClass('blackout-active', @should_be_hidden)
+            @.$('.alert_for_sharding').toggle @should_be_hidden
+            @.$('.alert_for_sharding').html @error_msg if @should_be_hidden
+
             return @
 
         change_sharding_scheme: (event) =>
@@ -110,6 +106,10 @@ module 'NamespaceView', ->
             @.$('.sharding').hide()
             view = new NamespaceView.ModifyShards @model.get('id')
             @.$('.change-shards').html view.render().el
+
+        destroy: ->
+            super()
+            issues.off()
 
     class @Shard extends Backbone.View
         tagName: 'tr'
@@ -133,8 +133,6 @@ module 'NamespaceView', ->
                     shard: @model
                     namespace: @namespace
 
-              
-
             @namespace.on 'change:key_distr_sorted', @render_summary
             
             @namespace.on 'change:blueprint', @reset_datacenter_list #TODO bind to peers_roles
@@ -153,6 +151,10 @@ module 'NamespaceView', ->
 
         reset_datacenter_list: =>
             @datacenter_list.render()
+
+        destroy: =>
+            @datacenter_list.destroy()
+            @namespace.off()
 
     class @ShardDatacenterList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_datacenter_list-template').html()
@@ -199,9 +201,6 @@ module 'NamespaceView', ->
             @namespace.on 'change:secondary_pinnings', @reset_list
             @namespace.on 'change:blueprint', @reset_list
 
-
-
-
         reset_list: =>
             @machine_list.reset_element_views()
             @machine_list.render()
@@ -223,6 +222,10 @@ module 'NamespaceView', ->
 
             @.$('.datacenter.summary').html @summary_template json
 
+        destroy: =>
+            @model.off()
+            directory.off()
+            @namespace.off()
 
     class @ShardMachineList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_machine_list-template').html()
@@ -231,6 +234,10 @@ module 'NamespaceView', ->
             super
             @namespace = @options.element_args.namespace
             @namespace.on 'change:primary_pinnings', @render
+
+        destroy: =>
+            @machine_list.off()
+            @namespace.off()
 
     class @ShardMachine extends Backbone.View
         template: Handlebars.compile $('#namespace_view-shard_machine-template').html()
@@ -340,12 +347,19 @@ module 'NamespaceView', ->
             @.delegateEvents()
             return @
 
+        destroy: =>
+            @shard.off()
+            @shard.off()
+            @model.off()
+            directory.off()
+
     # A view for modifying the sharding plan.
     class @ModifyShards extends Backbone.View
         template: Handlebars.compile $('#modify_shards-template').html()
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
         invalid_splitpoint_msg: Handlebars.compile $('#namespace_view_invalid_splitpoint_alert-template').html()
         invalid_merge_msg: Handlebars.compile $('#namespace_view_invalid_merge_alert-template').html()
+        invalid_shard_msg: Handlebars.compile $('#namespace_view_invalid_shard_alert-template').html()
 
         class: 'modify-shards'
         events:
@@ -474,7 +488,9 @@ module 'NamespaceView', ->
                 @shard_set.splice(index, 1, JSON.stringify([json_repr[0], splitpoint]), JSON.stringify([splitpoint, json_repr[1]]))
                 @render()
             else
-                # TODO handle error
+                @.$('.invalid_shard_alert').html @invalid_shard_msg
+                @.$('.invalid_shard_alert').css('display', 'block')
+
 
         merge_shard: (index) =>
             if (index < 0 || index + 1 >= @shard_set.length)
@@ -553,8 +569,12 @@ module 'NamespaceView', ->
         on_success: (response) =>
             @.$('.btn-primary').button('reset')
             namespaces.get(@namespace.id).set(response)
-            window.app.navigate('/#namespaces/' + @namespace.get('id'), {trigger: true})
+            @.$el.remove()
+            $('.namespace-view .sharding').show()
             $('#user-alert-space').append(@alert_tmpl({}))
+
+        destroy: =>
+            @namespace.off()
 
     # A view for modifying a specific shard
     class @ModifySingleShard extends Backbone.View

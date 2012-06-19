@@ -27,7 +27,7 @@ void semaphore_t::co_lock(int count) {
         void on_semaphore_available() { pulse(); }
     } cb;
     lock(&cb, count);
-    cb.wait_eagerly();
+    cb.wait_eagerly_deprecated();
     // TODO: Remove the need for in_callback checks.
     coro_t::yield();
 }
@@ -78,7 +78,7 @@ void adjustable_semaphore_t::co_lock(int count) {
         void on_semaphore_available() { pulse(); }
     } cb;
     lock(&cb, count);
-    cb.wait_eagerly();
+    cb.wait_eagerly_deprecated();
     // TODO: remove need for in_callback checks
     coro_t::yield();
 }
