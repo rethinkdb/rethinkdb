@@ -18,6 +18,10 @@ module 'Vis', ->
             @.$('.stats_placeholder').html(@stats_panel.render().$el)
             return @
 
+        destroy: =>
+            @ops_plot.destroy()
+            @stats_panel.destroy()
+
     @num_formatter = (i) ->
         if isNaN(i)
             return 'N/A'
@@ -177,6 +181,10 @@ module 'Vis', ->
 
             return @
 
+        destroy: =>
+            @context.off()
+            @legend.destroy()
+
     class @OpsPlotLegend extends Backbone.View
         className: 'ops_plot_legend'
         template: Handlebars.compile $('#ops_plot_legend-template').html()
@@ -186,7 +194,8 @@ module 'Vis', ->
             @context = _context
             @reads = null
             @writes = null
-            _read_metric.on 'change', =>
+            @read_metric = _read_metric
+            @read_metric.on 'change', =>
                 @reads = _read_metric.valueAt(@context.size() - 1)
                 @writes = _write_metric.valueAt(@context.size() - 1)
                 @render()
@@ -198,6 +207,9 @@ module 'Vis', ->
                 read_count: if @reads? then Vis.num_formatter(@reads) else 'N/A'
                 write_count: if @writes? then Vis.num_formatter(@writes) else 'N/A'
             return @
+
+        destroy: =>
+            @read_matric.off()
 
     class @SizeBoundedCache
         constructor: (num_data_points, _stat) ->

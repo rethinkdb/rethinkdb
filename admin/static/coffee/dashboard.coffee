@@ -218,4 +218,4 @@ module 'DashboardView', ->
             return @perf_panel.render().$el
 
         destroy: =>
-            @perf_panel.destroy() # TODO to propagate
+            @perf_panel.destroy()
