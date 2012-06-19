@@ -166,6 +166,7 @@ private:
     typename watchable_t<blueprint_t<protocol_t> >::subscription_t blueprint_subscription;
 
     perfmon_collection_t *parent_perfmon_collection;
+    perfmon_collection_t regions_perfmon_collection;
 
     DISABLE_COPYING(reactor_t);
 };

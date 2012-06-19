@@ -37,7 +37,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(memcach
 }
 
 template <class ctx_t>
-cJSON *render_as_json(memcached_protocol_t::region_t *target, const ctx_t &c) {
+std::string render_region_as_string(typename memcached_protocol_t::region_t *target, const ctx_t &c) {
     scoped_cJSON_t res(cJSON_CreateArray());
 
     cJSON_AddItemToArray(res.get(), render_as_json(&target->left, c));
@@ -48,8 +48,12 @@ cJSON *render_as_json(memcached_protocol_t::region_t *target, const ctx_t &c) {
         cJSON_AddItemToArray(res.get(), cJSON_CreateNull());
     }
 
-    std::string val = cJSON_print_std_string(res.get());
-    return cJSON_CreateString(val.c_str());
+    return cJSON_print_std_string(res.get());
+}
+
+template <class ctx_t>
+cJSON *render_as_json(memcached_protocol_t::region_t *target, const ctx_t &c) {
+    return cJSON_CreateString(render_region_as_string(target, c).c_str());
 }
 
 template <class ctx_t>
