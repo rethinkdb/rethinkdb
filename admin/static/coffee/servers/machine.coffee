@@ -74,6 +74,14 @@ module 'MachineView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
+        destroy: =>
+            machines.off()
+            @title.destroy()
+            @profile.destroy()
+            @data.destroy()
+            @stats_panel.destroy()
+            @performance_graph.destroy()
+
     # MachineView.Title
     class @Title extends Backbone.View
         className: 'machine-info-view'
@@ -95,12 +103,14 @@ module 'MachineView', ->
                 name: @name
             return @
 
+        destroy: =>
+            @model.off()
+
     # MachineView.Profile
     class @Profile extends Backbone.View
         className: 'machine-info-view'
         template: Handlebars.compile $('#machine_view_profile-template').html()
         initialize: =>
-            @model.on 'all', @render
             directory.on 'all', @render
             @model.on 'all', @render
 
@@ -133,6 +143,10 @@ module 'MachineView', ->
             @.$el.html @template(json)
 
             return @
+
+        destroy: =>
+            directory.off()
+            @model.off()
 
     class @Data extends Backbone.View
         className: 'machine-info-view'
@@ -171,6 +185,10 @@ module 'MachineView', ->
             
             @.$el.html @template(json)
             return @
+
+        destroy: =>
+            @model.off()
+            directory.off()
 
     # MachineView.RecentLogEntry
     class @RecentLogEntry extends Backbone.View

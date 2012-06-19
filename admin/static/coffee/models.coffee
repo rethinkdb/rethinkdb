@@ -1,4 +1,4 @@
-# Models for Backbone.js
+#Models for Backbone.js
 class Namespace extends Backbone.Model
     initialize: ->
         @load_key_distr()

@@ -95,6 +95,7 @@ module 'UIComponents', ->
 
             # For all matching views, remove the view from the DOM and from the known element views list
             for view in matching_views
+                view.destroy()
                 view.remove()
                 @element_views = _.without @element_views, view
 
@@ -113,6 +114,11 @@ module 'UIComponents', ->
 
         # Gets a list of UI callbacks this list will want to register (e.g. with a CheckboxListElement)
         get_callbacks: -> []
+
+        destroy: =>
+            @collection.off()
+            for view in @element_views
+                view.destroy()
 
     # Abstract list element that show info about the element and has a checkbox
     class @CheckboxListElement extends Backbone.View
