@@ -4,6 +4,7 @@
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "clustering/resource.hpp"
+#include "concurrency/auto_drainer.hpp"
 
 template <class metadata_t>
 class metadata_change_handler_t {
@@ -117,13 +118,18 @@ private:
     request_mailbox_t request_mailbox;
     boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > metadata_view;
     std::set<cond_t*> coro_invalid_conditions;
+    auto_drainer_t drainer;
 
     void remote_change_request(typename ack_mailbox_t::address_t ack_mailbox) {
         // Spawn a coroutine to wait for the metadata change
-        coro_t::spawn_now(boost::bind(&metadata_change_handler_t::remote_change_request_coro, this, ack_mailbox));
+        coro_t::spawn_sometime(boost::bind(&metadata_change_handler_t::remote_change_request_coro,
+                                           this,
+                                           ack_mailbox,
+                                           auto_drainer_t::lock_t(&drainer)));
     }
 
-    void remote_change_request_coro(typename ack_mailbox_t::address_t ack_mailbox) {
+    void remote_change_request_coro(typename ack_mailbox_t::address_t ack_mailbox,
+                                    auto_drainer_t::lock_t lock UNUSED) {
         cond_t invalid_condition;
         cond_t commit_done;
         commit_mailbox_t commit_mailbox(mailbox_manager,
@@ -154,9 +160,17 @@ private:
             if (success) {
                 update(metadata);
             }
-            coro_t::spawn_now(boost::bind(&send<bool>, mailbox_manager, result_mailbox, success));
+            coro_t::spawn_sometime(boost::bind(&metadata_change_handler_t::send_result,
+                                               this,
+                                               success,
+                                               result_mailbox,
+                                               auto_drainer_t::lock_t(&drainer)));
         }
         done->pulse();
+    }
+
+    void send_result(bool result, typename result_mailbox_t::address_t result_mailbox, auto_drainer_t::lock_t lock UNUSED) {
+        send<bool>(mailbox_manager, result_mailbox, result);
     }
 };
 
