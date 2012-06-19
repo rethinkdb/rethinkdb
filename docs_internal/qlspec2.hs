@@ -46,7 +46,9 @@ data JSONTerm
     | IsInMap AttrName JSONTerm
 
     | StreamAsArray StreamTerm
-    | Reduce StreamTerm Reduction
+    | Fold StreamTerm Reduction
+    | OrderedReduce StreamTerm Reduction
+    | UnorderedReduce StreamTerm Reduction
     | GroupBy StreamTerm Mapping Reduction
     | Count StreamTerm
 
