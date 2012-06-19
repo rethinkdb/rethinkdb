@@ -21,9 +21,6 @@ data TableRef = TableRef (Maybe DBName) TableName
 
 data Type = -- TODO
 
--- TODO: some form of error handling
--- TODO: porcelain
--- TODO: concatmap
 data Term
     = Var Var
     | Let [(Var, Term)] Term
