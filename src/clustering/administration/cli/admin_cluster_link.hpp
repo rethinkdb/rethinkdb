@@ -188,9 +188,6 @@ private:
                                 const key_range_t& shard,
                                 cluster_semilattice_metadata_t& cluster_metadata);
 
-    template <class map_type, class value_type>
-    void insert_pinning(map_type& region_map, const key_range_t& shard, value_type& value);
-
     struct machine_info_t {
         machine_info_t() : status(), primaries(0), secondaries(0), namespaces(0) { }
 

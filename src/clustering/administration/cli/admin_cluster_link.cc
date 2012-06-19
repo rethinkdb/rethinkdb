@@ -681,14 +681,16 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
     // Set primary and secondaries - do this before posting any changes in case anything goes wrong
     if (set_primary) {
         insert_pinning(ns.primary_pinnings.get_mutable(), shard, primary);
+        ns.primary_pinnings.upgrade_version(change_request_id);
     }
     if (set_secondary) {
         insert_pinning(ns.secondary_pinnings.get_mutable(), shard, secondaries);
+        ns.primary_pinnings.upgrade_version(change_request_id);
     }
 }
 
 template <class map_type, class value_type>
-void admin_cluster_link_t::insert_pinning(map_type& region_map, const key_range_t& shard, value_type& value) {
+void insert_pinning(map_type& region_map, const key_range_t& shard, value_type& value) {
     map_type new_map;
     bool shard_done = false;
 
@@ -786,6 +788,7 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
                     ns.shards.get_mutable().insert(left);
                     ns.shards.get_mutable().insert(right);
                 }
+                ns.shards.upgrade_version(change_request_id);
             } catch (std::exception& ex) {
                 error += ex.what();
                 error += "\n";
@@ -808,7 +811,9 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
 
     if (!change_request.update(cluster_metadata)) {
         throw admin_metadata_update_exc_t();
-    } else if (!error.empty()) {
+    }
+
+    if (!error.empty()) {
         if (split_points.size() > 1) {
             throw admin_cluster_exc_t(error + "not all split points were successfully added");
         } else {
@@ -876,6 +881,7 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
                 ns.shards.get_mutable().erase(shard);
                 ns.shards.get_mutable().erase(prev);
                 ns.shards.get_mutable().insert(merged);
+                ns.shards.upgrade_version(change_request_id);
             } catch (std::exception& ex) {
                 error += ex.what();
                 error += "\n";
@@ -898,7 +904,9 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
 
     if (!change_request.update(cluster_metadata)) {
         throw admin_metadata_update_exc_t();
-    } else if (!error.empty()) {
+    }
+
+    if (!error.empty()) {
         if (split_points.size() > 1) {
             throw admin_cluster_exc_t(error + "not all split points were successfully removed");
         } else {
@@ -1754,16 +1762,14 @@ void admin_cluster_link_t::do_admin_set_datacenter_namespace(obj_map& metadata,
                                                              const boost::uuids::uuid obj_uuid,
                                                              const datacenter_id_t dc) {
     typename obj_map::iterator i = metadata.find(obj_uuid);
-    if (i == metadata.end() || i->second.is_deleted())
+    if (i == metadata.end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(obj_uuid));
-
-    if (!i->second.get_mutable().primary_datacenter.in_conflict()) {
-        i->second.get_mutable().primary_datacenter = i->second.get_mutable().primary_datacenter.make_new_version(dc, change_request_id);
-    } else {
+    } else if (i->second.get_mutable().primary_datacenter.in_conflict()) {
         throw admin_cluster_exc_t("namespace's primary datacenter is in conflict, run 'help resolve' for more information");
     }
 
-    i->second.get_mutable().primary_datacenter = i->second.get_mutable().primary_datacenter.make_new_version(dc, change_request_id);
+    i->second.get_mutable().primary_datacenter.get_mutable() = dc;
+    i->second.get_mutable().primary_datacenter.upgrade_version(change_request_id);
 }
 
 void admin_cluster_link_t::do_admin_set_datacenter_machine(machines_semilattice_metadata_t::machine_map_t& metadata,
@@ -1771,23 +1777,21 @@ void admin_cluster_link_t::do_admin_set_datacenter_machine(machines_semilattice_
                                                            const datacenter_id_t dc,
                                                            cluster_semilattice_metadata_t& cluster_metadata) {
     machines_semilattice_metadata_t::machine_map_t::iterator i = metadata.find(obj_uuid);
-    if (i == metadata.end() || i->second.is_deleted())
+    if (i == metadata.end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(obj_uuid));
-
-    if (!i->second.get_mutable().datacenter.in_conflict()) {
-        datacenter_id_t old_datacenter(i->second.get_mutable().datacenter.get());
-        i->second.get_mutable().datacenter = i->second.get_mutable().datacenter.make_new_version(dc, change_request_id);
-
-        // If the datacenter has changed (or we couldn't determine the old datacenter uuid), clear pinnings
-        if (old_datacenter != dc) {
-            remove_machine_pinnings(obj_uuid, cluster_metadata.memcached_namespaces.namespaces);
-            remove_machine_pinnings(obj_uuid, cluster_metadata.dummy_namespaces.namespaces);
-        }
-    } else {
+    } else if (i->second.get_mutable().datacenter.in_conflict()) {
         throw admin_cluster_exc_t("machine's datacenter is in conflict, run 'help resolve' for more information");
     }
 
-    i->second.get_mutable().datacenter = i->second.get_mutable().datacenter.make_new_version(dc, change_request_id);
+    datacenter_id_t old_datacenter(i->second.get_mutable().datacenter.get());
+    i->second.get_mutable().datacenter.get_mutable() = dc;
+    i->second.get_mutable().datacenter.upgrade_version(change_request_id);
+
+    // If the datacenter has changed (or we couldn't determine the old datacenter uuid), clear pinnings
+    if (old_datacenter != dc) {
+        remove_machine_pinnings(obj_uuid, cluster_metadata.memcached_namespaces.namespaces);
+        remove_machine_pinnings(obj_uuid, cluster_metadata.dummy_namespaces.namespaces);
+    }
 }
 
 template <class protocol_t>
@@ -1805,19 +1809,32 @@ void admin_cluster_link_t::remove_machine_pinnings(const machine_id_t& machine,
 
         // Check for and remove the machine in primary pinnings
         if (!ns.primary_pinnings.in_conflict()) {
+            bool do_upgrade = false;
             for (typename region_map_t<protocol_t, machine_id_t>::iterator j = ns.primary_pinnings.get_mutable().begin();
                  j != ns.primary_pinnings.get_mutable().end(); ++j) {
                 if (j->second == machine) {
                     j->second = nil_uuid();
+                    do_upgrade = true;
                 }
+            }
+
+            if (do_upgrade) {
+                ns.primary_pinnings.upgrade_version(change_request_id);
             }
         }
 
         // Check for and remove the machine in secondary pinnings
         if (!ns.secondary_pinnings.in_conflict()) {
+            bool do_upgrade = false;
             for (typename region_map_t<protocol_t, std::set<machine_id_t> >::iterator j = ns.secondary_pinnings.get_mutable().begin();
                  j != ns.secondary_pinnings.get_mutable().end(); ++j) {
-                j->second.erase(machine);
+                if (j->second.erase(machine) == 1) {
+                    do_upgrade = true;
+                }
+            }
+
+            if (do_upgrade) {
+                ns.secondary_pinnings.upgrade_version(change_request_id);
             }
         }
     }
@@ -1928,6 +1945,7 @@ void admin_cluster_link_t::do_admin_set_acks_internal(namespace_semilattice_meta
     }
 
     ns.ack_expectations.get_mutable()[datacenter] = num_acks;
+    ns.ack_expectations.upgrade_version(change_request_id);
 }
 
 void admin_cluster_link_t::do_admin_set_replicas(admin_command_parser_t::command_data& data) {
@@ -2009,6 +2027,7 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(namespace_semilattice_
     }
 
     ns.replica_affinities.get_mutable()[datacenter] = num_replicas - (is_primary ? 1 : 0);
+    ns.replica_affinities.upgrade_version(change_request_id);
 }
 
 void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data& data) {
@@ -2017,6 +2036,7 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     std::vector<std::string> ids = data.params["id"];
     std::string error;
+    bool do_update = false;
 
     for (size_t i = 0; i < ids.size(); ++i) {
         try {
@@ -2033,7 +2053,11 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
                 do_admin_remove_internal(cluster_metadata.dummy_namespaces.namespaces, obj_info->uuid);
             } else if (obj_info->path[0] == "memcached_namespaces") {
                 do_admin_remove_internal(cluster_metadata.memcached_namespaces.namespaces, obj_info->uuid);
+            } else {
+                throw admin_cluster_exc_t("unrecognized object type: " + obj_info->path[0]);
             }
+
+            do_update = true;
 
             // Clean up any hanging references
             if (obj_info->path[0] == "machines") {
@@ -2050,9 +2074,13 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
         }
     }
 
-    if (!change_request.update(cluster_metadata)) {
-        throw admin_metadata_update_exc_t();
-    } else if (!error.empty()) {
+    if (do_update) {
+        if (!change_request.update(cluster_metadata)) {
+            throw admin_metadata_update_exc_t();
+        }
+    }
+
+    if (!error.empty()) {
         if (ids.size() > 1) {
             throw admin_cluster_exc_t(error + "not all removes were successful");
         } else {
@@ -2106,14 +2134,17 @@ void admin_cluster_link_t::remove_datacenter_references_from_namespaces(const da
 
         if (!ns.primary_datacenter.in_conflict() && ns.primary_datacenter.get_mutable() == datacenter) {
             ns.primary_datacenter.get_mutable() = nil_id;
+            ns.primary_datacenter.upgrade_version(change_request_id);
         }
 
         if (!ns.replica_affinities.in_conflict()) {
             ns.replica_affinities.get_mutable().erase(datacenter);
+            ns.replica_affinities.upgrade_version(change_request_id);
         }
 
         if (!ns.ack_expectations.in_conflict()) {
             ns.ack_expectations.get_mutable().erase(datacenter);
+            ns.ack_expectations.upgrade_version(change_request_id);
         }
     }
 }
