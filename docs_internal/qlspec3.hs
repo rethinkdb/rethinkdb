@@ -21,11 +21,21 @@ data TableRef = TableRef (Maybe DBName) TableName
 
 data Type = -- TODO
 
+-- TODO: some form of error handling
+-- TODO: porcelain
+-- TODO: concatmap
 data Term
     = Var Var
     | Let [(Var, Term)] Term
+    -- NB. can have terms under the builtin. think carefully about how to handle
+    -- this in code that deals with ASTs.
     | Call Builtin [Term]
     | If Term Term Term
+    -- `try e1 (v. e2)`
+    -- runs and returns e1;
+    -- if it fails, binds v to the error message and runs & returns e2.
+    | Try Term (Var, Term)
+    | Error String              -- raises an error with a given message
 
     -- Literals
     | Number JSONNumber
@@ -38,12 +48,18 @@ data Term
     -- no "And", "Or" needed; can be desugared to "If".
     | ViewAsStream View         -- turns a view into a stream
 
+    -- `GetByKey tref attr expr`
+    -- is porcelain for:
+    --     try (nth 0 (filter tref (\x. x.attr == expr))) null
+    | GetByKey TableRef AttrName Term
+
 data Builtin
     = Not                       -- logical negation
 
     -- Map/record operations
     | GetAttr AttrName
     | HasAttr AttrName
+    | PickAttrs [AttrName]      -- technically porcelain
 
     -- merges two maps, preferring the key-value pairs from its second argument
     -- in case of conflict. used eg. to do field update.
@@ -59,12 +75,14 @@ data Builtin
 
     -- Stream operations
     | Filter Predicate
-    | Map Mapping
+    | Map Mapping               -- mapping function has type (json -> json)
+    | ConcatMap Mapping         -- mapping function has type (json -> stream)
     | OrderBy OrderDirection Mapping
     | Distinct Mapping
     | Limit Int
-    | Count                     -- counts # of elements in a stream
+    | Length                    -- counts # of elements in a stream
     | Union                     -- merges streams in undefined order
+    | Nth                       -- nth element from stream
 
     | StreamToArray
     | ArrayToStream
@@ -76,6 +94,9 @@ data Builtin
     -- js funcs need to be type-annotated
     -- TODO: figure out precise semantics
     | Javascript ([Type], Type) String
+
+    -- "Porcelain"
+    | MapReduce Mapping Reduction
 
 data Comparison = EQ | NE | LT | LE | GT | GE
 
@@ -105,14 +126,28 @@ data Predicate
 data View
     = Table TableRef
     | FilterView View Predicate
+    -- TODO: pick closed/open-ness convention
+    -- ie. does (range tref "a" 0 3) include or exclude rows where a = 0, 3?
+    | RangeView View AttrName (Maybe Term, Maybe Term)
 
 data OrderDirection = Ascending | Descending
 
 -- "magically" uses the query's type to determine whether to stream results?
 data ReadQuery = ReadQuery Term
 
+-- TODO: how are we doing deletes?
+
+-- tim proposes returning "null" from a mapping to indicate "delete this row"
+-- for an update. GetByKey can also return "null" to indicate "no row found".
+
 data WriteQuery
-    = Update View (Var, Term)
+    = Update View Mapping
+    -- TODO: how does insert work if we insert a row with a primary key that
+    -- already exists in the table?
     | Insert TableRef [Term]
-    | InsertStream TableRef Stream -- or should this just be a ForEach?
+    | InsertStream TableRef Stream
     | ForEach Stream Var [WriteQuery]
+    -- `PointUpdate tref attr key updater`
+    -- updates THE row in tref with attr equal to key, using updater
+    -- NB. very restricted: attrname MUST be primary key
+    | PointUpdate Table AttrName Term Mapping
