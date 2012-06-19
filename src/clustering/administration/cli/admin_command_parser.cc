@@ -653,10 +653,12 @@ void admin_command_parser_t::run_command(command_data& data) {
             try {
                 (get_cluster()->*(data.info->do_function))(data);
                 break;
-            } catch (admin_retry_exc_t& ex) {
-                if (tries == MAX_RETRIES) {
-                    throw admin_cluster_exc_t("updated metadata rejected by the cluster too many times, most likely someone else is editing the metadata");
-                }
+            } catch (admin_retry_exc_t& ex) { // commit rejected by the selected peer
+            } catch (resource_lost_exc_t& ex) { // selected peer went down
+            }
+
+            if (tries == MAX_RETRIES) {
+                throw admin_cluster_exc_t("too many failed tries to update the metadata through the cluster");
             }
         }
     }

@@ -280,8 +280,7 @@ private:
 
     std::string path_to_str(const std::vector<std::string>& path);
 
-    peer_id_t choose_sync_peer();
-    metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t choose_change_request_mailbox();
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t choose_sync_peer();
 
     local_issue_tracker_t local_issue_tracker;
     log_writer_t log_writer;
@@ -312,6 +311,7 @@ private:
     initial_joiner_t initial_joiner;
 
     machine_id_t change_request_id;
+    peer_id_t sync_peer_id;
 
     struct metadata_info_t {
         boost::uuids::uuid uuid;

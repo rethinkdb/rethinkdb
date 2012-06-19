@@ -238,28 +238,17 @@ admin_cluster_link_t::~admin_cluster_link_t() {
     clear_metadata_maps();
 }
 
-metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t admin_cluster_link_t::choose_change_request_mailbox() {
+metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t admin_cluster_link_t::choose_sync_peer() {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
 
     for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.begin(); i != directory.end(); ++i) {
         if (i->second.peer_type == SERVER_PEER) {
             change_request_id = i->second.machine_id;
+            sync_peer_id = i->first;
             return i->second.semilattice_change_mailbox;
         }
     }
-    throw admin_cluster_exc_t("no suitable peer found for sync");
-}
-
-peer_id_t admin_cluster_link_t::choose_sync_peer() {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
-
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.begin(); i != directory.end(); ++i) {
-        if (i->second.peer_type == SERVER_PEER) {
-            return i->first;
-        }
-    }
-
-    throw admin_cluster_exc_t("no suitable peer found for sync");
+    throw admin_cluster_exc_t("no reachable server found in the cluster");
 }
 
 void admin_cluster_link_t::update_metadata_maps() {
@@ -306,7 +295,13 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, T& data_m
 void admin_cluster_link_t::sync_from() {
     try {
         cond_t interruptor;
-        semilattice_metadata->sync_from(choose_sync_peer(), &interruptor);
+        std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
+
+        if (sync_peer_id.is_nil() || directory.count(sync_peer_id) == 0) {
+            choose_sync_peer();
+        }
+        
+        semilattice_metadata->sync_from(sync_peer_id, &interruptor);
     } catch (sync_failed_exc_t& ex) {
         throw admin_no_connection_exc_t("connection lost to cluster");
     } catch (admin_cluster_exc_t& ex) {
@@ -467,7 +462,7 @@ datacenter_id_t get_machine_datacenter(const std::string& id, const machine_id_t
 
 void admin_cluster_link_t::do_admin_pin_shard(admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
-        change_request(&mailbox_manager, choose_change_request_mailbox());
+        change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     std::string ns(data.params["namespace"][0]);
     std::vector<std::string> ns_path(get_info_from_id(ns)->path);
@@ -725,7 +720,7 @@ void insert_pinning(map_type& region_map, const key_range_t& shard, value_type& 
 // TODO: templatize on protocol
 void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
-        change_request(&mailbox_manager, choose_change_request_mailbox());
+        change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     std::vector<std::string> ns_path(get_info_from_id(data.params["namespace"][0])->path);
     std::vector<std::string> split_points(data.params["split-points"]);
@@ -824,7 +819,7 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
 
 void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
-        change_request(&mailbox_manager, choose_change_request_mailbox());
+        change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     std::vector<std::string> ns_path(get_info_from_id(data.params["namespace"][0])->path);
     std::vector<std::string> split_points(data.params["split-points"]);
@@ -1638,7 +1633,7 @@ void admin_cluster_link_t::do_admin_list_machines(admin_command_parser_t::comman
 
 void admin_cluster_link_t::do_admin_create_datacenter(admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
-        change_request(&mailbox_manager, choose_change_request_mailbox());
+        change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     datacenter_id_t new_id = generate_uuid();
     datacenter_semilattice_metadata_t& datacenter = cluster_metadata.datacenters.datacenters[new_id].get_mutable();
@@ -1655,7 +1650,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(admin_command_parser_t::co
 
 void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
-        change_request(&mailbox_manager, choose_change_request_mailbox());
+        change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     std::string protocol(data.params["protocol"][0]);
     std::string port_str(data.params["port"][0]);
@@ -1729,7 +1724,7 @@ namespace_id_t admin_cluster_link_t::do_admin_create_namespace_internal(namespac
 
 void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
-        change_request(&mailbox_manager, choose_change_request_mailbox());
+        change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     std::string obj_id(data.params["id"][0]);
     metadata_info_t *obj_info(get_info_from_id(obj_id));
@@ -1842,7 +1837,7 @@ void admin_cluster_link_t::remove_machine_pinnings(const machine_id_t& machine,
 
 void admin_cluster_link_t::do_admin_set_name(admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
-        change_request(&mailbox_manager, choose_change_request_mailbox());
+        change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     metadata_info_t *info = get_info_from_id(data.params["id"][0]);
     std::string name = data.params["new-name"][0];
@@ -1877,7 +1872,7 @@ void admin_cluster_link_t::do_admin_set_name_internal(map_type& obj_map, const b
 
 void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
-        change_request(&mailbox_manager, choose_change_request_mailbox());
+        change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     metadata_info_t *ns_info(get_info_from_id(data.params["namespace"][0]));
     metadata_info_t *dc_info(get_info_from_id(data.params["datacenter"][0]));
@@ -1950,7 +1945,7 @@ void admin_cluster_link_t::do_admin_set_acks_internal(namespace_semilattice_meta
 
 void admin_cluster_link_t::do_admin_set_replicas(admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
-        change_request(&mailbox_manager, choose_change_request_mailbox());
+        change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     metadata_info_t *ns_info(get_info_from_id(data.params["namespace"][0]));
     metadata_info_t *dc_info(get_info_from_id(data.params["datacenter"][0]));
@@ -2032,7 +2027,7 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(namespace_semilattice_
 
 void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
-        change_request(&mailbox_manager, choose_change_request_mailbox());
+        change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     std::vector<std::string> ids = data.params["id"];
     std::string error;
@@ -2522,7 +2517,7 @@ bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& mach
 
 void admin_cluster_link_t::do_admin_resolve(admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
-        change_request(&mailbox_manager, choose_change_request_mailbox());
+        change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     std::string obj_id = data.params["id"][0];
     std::string field = data.params["field"][0];
