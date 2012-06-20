@@ -46,7 +46,7 @@ message Term {
     message If {
         required Term test = 1;
         required Term true_branch = 2;
-        required Term else_branch = 3;
+        required Term false_branch = 3;
     };
 
     optional If if_ = 5; //Underscore to avoid conflicting with c++ keyword
@@ -214,7 +214,7 @@ message View {
         RANGEVIEW = 3;
     };
 
-    required ViewType view_type = 1;
+    required ViewType type = 1;
 
     message Table {
         required TableRef table_ref = 1;
@@ -235,6 +235,8 @@ message View {
         optional Term lowerbound = 3;
         optional Term upperbound = 4;
     };
+
+    optional RangeView range_view = 4;
 };
 
 enum OrderDirection {
