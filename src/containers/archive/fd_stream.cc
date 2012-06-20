@@ -8,6 +8,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <sys/socket.h> // shutdown
+#include <sys/types.h>
 #include <unistd.h>
 
 // -------------------- fd_stream_t --------------------
@@ -31,49 +32,52 @@ fd_stream_t::~fd_stream_t() {
 
 int64_t fd_stream_t::read(void *buf, int64_t size) {
     assert_thread();
+    guarantee(size > 0);
     guarantee(!io_in_progress_);
 
     if (!is_read_open())
         return -1;
 
     char *bufp = static_cast<char *>(buf);
-    rassert(is_read_open());
-    guarantee(!io_in_progress_);
+    for (;;) {
+        rassert(is_read_open());
+        guarantee(!io_in_progress_);
 
-    ssize_t res = ::read(fd_.get(), bufp, size);
+        ssize_t res = ::read(fd_.get(), bufp, size);
 
-    if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
-        io_in_progress_ = true;
+        if (res > 0) {
+            // We read some data.
+            guarantee(res <= size);
+            return res;
 
-        linux_event_watcher_t::watch_t watch(event_watcher_.get(), poll_event_in);
-        wait_any_t waiter(&watch, &read_closed_);
-        waiter.wait_lazily_unordered();
+        } else if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
+            // Wait until we can read, or we shut down.
+            if (!wait_for_read())
+                return -1;          // we shut down.
 
-        io_in_progress_ = false;
+            // Go around the loop to try to read again
 
-        if (read_closed_.is_pulsed()) {
-            // We were closed. Something else has already called
-            // on_shutdown_read(), which is probably what pulsed us.
+        } else {
+            // EOF or error
+            if (res == -1)
+                on_read_error(errno);
+            else
+                guarantee(res == 0); // sanity
+            shutdown_read();
             return -1;
         }
-
-    } else if (res == 0 || res == -1) {
-        if (res == -1)
-            on_read_error(errno);
-        on_shutdown_read();
     }
-
-    return res;
 }
 
 int64_t fd_stream_t::write(const void *buf, int64_t size) {
     assert_thread();
+    guarantee(size > 0);
     guarantee(!io_in_progress_);
-    int64_t orig_size = size;
 
     if (!is_write_open())
         return -1;
 
+    int64_t orig_size = size;
     const char *bufp = static_cast<const char *>(buf);
     while (size > 0) {
         rassert(is_write_open());
@@ -81,37 +85,27 @@ int64_t fd_stream_t::write(const void *buf, int64_t size) {
 
         ssize_t res = ::write(fd_.get(), bufp, size);
 
-        if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            // Wait for a notification from the event queue, or for an order to
-            // shut down
-            io_in_progress_ = true;
+        if (res > 0) {
+            // We wrote something!
+            guarantee(res <= size);
+            bufp += res;
+            size -= res;
+            // Go around the loop; keep writing until done.
 
-            linux_event_watcher_t::watch_t watch(event_watcher_.get(), poll_event_out);
-            wait_any_t waiter(&watch, &write_closed_);
-            waiter.wait_lazily_unordered();
-
-            io_in_progress_ = false;
-
-            if (!is_write_open()) {
-                // We were closed. Something else has already called
-                // on_shutdown_write(), which is probably what pulsed us.
-                return -1;
-            }
-
+        } else if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
+            // Wait until we can write, or we shut down.
+            if (!wait_for_write())
+                return -1;      // we shut down.
             // Go around the loop and write some more.
 
-        } else if (res == -1 || res == 0) {
+        } else {
             if (res == -1)
                 on_write_error(errno);
             else
-                logERR("Didn't expect write() to return 0.");
-            on_shutdown_write();
+                logERR("Didn't expect write() to return %ld.", res);
+            shutdown_write();
             return -1;
         }
-
-        guarantee(res > 0 && res <= size);
-        bufp += res;
-        size -= res;
     }
 
     return orig_size;
@@ -119,6 +113,32 @@ int64_t fd_stream_t::write(const void *buf, int64_t size) {
 
 bool fd_stream_t::is_read_open() { return !read_closed_.is_pulsed(); }
 bool fd_stream_t::is_write_open() { return !write_closed_.is_pulsed(); }
+
+bool fd_stream_t::wait_for_read() {
+    // Wait for a notification from the event queue, or an order to shut down
+    io_in_progress_ = true;
+
+    linux_event_watcher_t::watch_t watch(event_watcher_.get(), poll_event_in);
+    wait_any_t waiter(&watch, &read_closed_);
+    waiter.wait_lazily_unordered();
+
+    io_in_progress_ = false;
+
+    return is_read_open();
+}
+
+bool fd_stream_t::wait_for_write() {
+    // Wait for a notification from the event queue, or an order to shut down
+    io_in_progress_ = true;
+
+    linux_event_watcher_t::watch_t watch(event_watcher_.get(), poll_event_out);
+    wait_any_t waiter(&watch, &write_closed_);
+    waiter.wait_lazily_unordered();
+
+    io_in_progress_ = false;
+
+    return is_write_open();
+}
 
 void fd_stream_t::shutdown_read() {
     assert_thread();
@@ -192,4 +212,146 @@ void socket_stream_t::do_shutdown_write() {
     int res = ::shutdown(fd_.get(), SHUT_WR);
     if (res != 0 && errno != ENOTCONN)
         logERR("Could not shutdown socket for writing: %s", strerror(errno));
+}
+
+
+// -------------------- unix_socket_stream_t --------------------
+unix_socket_stream_t::unix_socket_stream_t(int fd)
+    : socket_stream_t(fd) {}
+
+int unix_socket_stream_t::send_fd(int fd) {
+    return send_fds(1, &fd);
+}
+
+archive_result_t unix_socket_stream_t::recv_fd(int *fd) {
+    return recv_fds(1, fd);
+}
+
+// Large but somewhat arbitrary upper bound, since we're allocating space for fd
+// buffers on the stack.
+#define MAX_FDS 1024
+
+// The code for {send,recv}_fds was determined by careful reading of the man
+// pages for sendmsg(2), recvmsg(2), unix(7), and particularly cmsg(3), which
+// contains a helpful example.
+// <http://swtch.com/usr/local/plan9/src/lib9/sendfd.c> was also helpful.
+
+int unix_socket_stream_t::send_fds(int64_t num_fds, int *fds) {
+    if (num_fds > MAX_FDS) {
+        logERR("Trying to send too many fds: %zu", num_fds);
+        return -1;
+    }
+
+    // Set-up for a call to sendmsg().
+    struct msghdr msg;
+    msg.msg_flags = 0;
+
+    // We send a single null byte along with the data. Sending a zero-length
+    // message is dubious; receiving one is even more dubious.
+    struct iovec iov;
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+
+    char c = '\0';
+    iov.iov_base = &c;
+    iov.iov_len = 1;
+
+    // The control message is the important part for sending fds.
+    char control[CMSG_SPACE(sizeof(int) * num_fds)];
+    msg.msg_control = control;
+    msg.msg_controllen = sizeof control;
+
+    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+    cmsg->cmsg_level = SOL_SOCKET; // see unix(7) for explanation
+    cmsg->cmsg_type = SCM_RIGHTS;  // says that we're sending an array of fds
+    cmsg->cmsg_len = CMSG_LEN(sizeof(int) * num_fds);
+    memcpy(CMSG_DATA(cmsg), fds, sizeof(int) * num_fds);
+
+    msg.msg_controllen = cmsg->cmsg_len;
+
+    // Write it out.
+    ssize_t res;
+    while (1 != (res = sendmsg(fd_.get(), &msg, 0))) {
+        if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
+            // Wait until we can write, or we shut down.
+            if (!wait_for_write())
+                return -1;          // we shut down
+
+            // Go around the loop and try to write again.
+            continue;
+        }
+
+        if (res == -1)
+            on_write_error(errno);
+        else
+            logERR("Didn't expect sendmsg() to return %ld.", res);
+        shutdown_write();
+        return -1;
+    }
+
+    return 0;
+}
+
+archive_result_t unix_socket_stream_t::recv_fds(int64_t num_fds, int *fds) {
+    if (num_fds > MAX_FDS) {
+        logERR("Trying to receive too many fds: %zu", num_fds);
+        return ARCHIVE_GENERIC_ERROR;
+    }
+
+    // Set-up for a call to recvmsg()
+    struct msghdr msg;
+    msg.msg_flags = 0;
+
+    // We expect to receive a single null byte.
+    struct iovec iov;
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+
+    char c = 'x';               // a value that is not what we expect
+    iov.iov_base = &c;
+    iov.iov_len = 1;
+
+    // The control message
+    char control[CMSG_SPACE(sizeof(int) * num_fds)];
+    msg.msg_control = control;
+    msg.msg_controllen = sizeof control;
+
+    // Read it in.
+    ssize_t res;
+    while (1 != (res = recvmsg(fd_.get(), &msg, 0))) {
+        if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
+            // Wait until we can read, or we shut down.
+            if (!wait_for_read())
+                return ARCHIVE_SOCK_ERROR; // we shut down
+
+            // Go around the loop and try to read again.
+            continue;
+        }
+
+        if (res == -1)
+            on_read_error(errno);
+        shutdown_read();
+        return res == 0 ? ARCHIVE_SOCK_EOF : ARCHIVE_SOCK_ERROR;
+    }
+
+    // Check the message.
+    if (c != '\0') {
+        logERR("When receiving fds over unix socket, got wrong byte of data; "
+               "this probably indicates programmer error");
+        return ARCHIVE_RANGE_ERROR;
+    }
+    
+    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+    guarantee(cmsg);
+
+    if (msg.msg_controllen != CMSG_SPACE(sizeof(int) * num_fds) ||
+        cmsg->cmsg_len != CMSG_LEN(sizeof(int) * num_fds))
+    {
+        logERR("When receiving fds over unix socket, got bad-sized control message; "
+               "this probably indicates programmer error");
+        return ARCHIVE_RANGE_ERROR;
+    }
+
+    memcpy(fds, CMSG_DATA(cmsg), sizeof(int) * num_fds);
+    return ARCHIVE_SUCCESS;
 }

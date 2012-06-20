@@ -30,6 +30,14 @@ class fd_stream_t :
   protected:
     bool is_read_open();
     bool is_write_open();
+
+    // wait_for_{read,write} wait for either an opportunity to read/write, or
+    // for us to shutdown for reading/writing, whichever happens first. It
+    // returns true if we can read/write and false if we have shut down (in
+    // which case on_shutdown_{read,write} has already been called).
+    MUST_USE bool wait_for_read();
+    MUST_USE bool wait_for_write();
+
     void shutdown_read();
     void shutdown_write();
 
@@ -66,6 +74,7 @@ class fd_stream_t :
 class socket_stream_t :
     public fd_stream_t
 {
+  public:
     socket_stream_t(int fd);
 
   protected:
@@ -76,6 +85,29 @@ class socket_stream_t :
 
   private:
     DISABLE_COPYING(socket_stream_t);
+};
+
+class unix_socket_stream_t :
+    public socket_stream_t
+{
+  public:
+    unix_socket_stream_t(int fd);
+
+    // Sends open file descriptors. Must be matched by a call to recv_fd{s,} on
+    // the other end, or weird shit could happen.
+    //
+    // Returns -1 on error, 0 on success. Blocks until all fds are written.
+    int send_fds(int64_t num_fds, int *fds);
+    int send_fd(int fd);
+
+    // Receives open file descriptors. Must only be called to match a call to
+    // write_fd{s,} on the other end; otherwise undefined behavior could result!
+    // Blocks until all fds are received.
+    MUST_USE archive_result_t recv_fds(int64_t num_fds, int *fds);
+    MUST_USE archive_result_t recv_fd(int *fd);
+
+  private:
+    DISABLE_COPYING(unix_socket_stream_t);
 };
 
 #endif  // CONTAINERS_ARCHIVE_FD_STREAM_HPP_
