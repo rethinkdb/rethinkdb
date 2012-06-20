@@ -160,8 +160,7 @@ struct tester_t :
         while (active_txns < config->concurrent_txns && !stop) {
             active_txns++;
             total_txns++;
-            // TODO should this be spawn_now or spawn?
-            coro_t::spawn_now(boost::bind(transact, ser, log, config->inserts_per_txn, config->updates_per_txn, this));
+            coro_t::spawn_sometime(boost::bind(transact, ser, log, config->inserts_per_txn, config->updates_per_txn, this));
         }
         
         // See if we need to report the TPS
