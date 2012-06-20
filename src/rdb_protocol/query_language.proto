@@ -49,14 +49,14 @@ message Term {
         required Term else_branch = 3;
     };
 
-    optional If if = 5;
+    optional If if_ = 5; //Underscore to avoid conflicting with c++ keyword
 
     message Try {
         required Term try_term = 1;
         required VarTermTuple var_and_catch_term = 2;
     };
 
-    optional Try try = 6;
+    optional Try try_ = 6; //Underscore to avoic conflicting with c++ keyword
 
     optional string error = 7;
 
@@ -110,7 +110,7 @@ message Builtin {
         NTH = 25;
         STREAMTOARRAY = 26;
         ARRAYTOSTREAM = 27;
-        REDUCEREDUCTION = 28;
+        REDUCE = 28;
         GROUPEDMAPREDUCE = 29;
         JAVASCRIPT = 30;
         JAVASCRIPTRETURNINGSTREAM = 31;
@@ -165,7 +165,6 @@ message Builtin {
     };
 
     optional Reduce reduce = 10;
-
 
     message GroupedMapReduce {
         required Mapping group_mapping = 1;
@@ -260,7 +259,7 @@ message WriteQuery {
         POINTMUTATE = 9;
     };
 
-    optional WriteQueryType write_query_type = 1;
+    required WriteQueryType type = 1;
 
     message Update {
         required View view = 1;
@@ -273,7 +272,7 @@ message WriteQuery {
         required View view = 1;
     };
 
-    optional View view = 3;
+    optional Delete delete_ = 3; //underscore to avoid conflicting with C++ keyword
 
     message Mutate {
         required View view = 1;
