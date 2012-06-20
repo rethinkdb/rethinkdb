@@ -14,7 +14,7 @@
 fd_stream_t::fd_stream_t(int fd)
     : fd_(fd),
       event_watcher_(new linux_event_watcher_t(fd, this)),
-      DEBUG_ONLY(io_in_progress_(false))
+      io_in_progress_(false)
 {
     guarantee_err(0 == fcntl(fd, F_SETFL, O_NONBLOCK),
                   "Could not make fd non-blocking.");
@@ -31,76 +31,66 @@ fd_stream_t::~fd_stream_t() {
 
 int64_t fd_stream_t::read(void *buf, int64_t size) {
     assert_thread();
-    rassert(!io_in_progress_);
-    int64_t orig_size = size;
+    guarantee(!io_in_progress_);
 
     if (!is_read_open())
         return -1;
 
-    char *bufp = reinterpret_cast<char*>(buf);
-    while (size > 0) {
-        rassert(is_read_open());
-        rassert(!io_in_progress_);
+    char *bufp = static_cast<char *>(buf);
+    rassert(is_read_open());
+    guarantee(!io_in_progress_);
 
-        ssize_t res = ::read(fd_.get(), reinterpret_cast<void*>(bufp), size);
+    ssize_t res = ::read(fd_.get(), bufp, size);
 
-        if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            DEBUG_ONLY_CODE(io_in_progress_ = true);
+    if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
+        io_in_progress_ = true;
 
-            linux_event_watcher_t::watch_t watch(event_watcher_.get(), poll_event_in);
-            wait_any_t waiter(&watch, &read_closed_);
-            waiter.wait_lazily_unordered();
+        linux_event_watcher_t::watch_t watch(event_watcher_.get(), poll_event_in);
+        wait_any_t waiter(&watch, &read_closed_);
+        waiter.wait_lazily_unordered();
 
-            DEBUG_ONLY_CODE(io_in_progress_ = false);
+        io_in_progress_ = false;
 
-            if (!is_read_open()) {
-                // We were closed. Something else has already called
-                // on_shutdown_read(), which is probably what pulsed us.
-                return -1;
-            }
-
-            // Go around the loop and try to read again.
-
-        } else if (res == 0 || res == -1) {
-            if (res == -1)
-                on_read_error(errno);
-            on_shutdown_read();
+        if (read_closed_.is_pulsed()) {
+            // We were closed. Something else has already called
+            // on_shutdown_read(), which is probably what pulsed us.
             return -1;
         }
 
-        rassert (res > 0 && res <= size);
-        size -= res;
-        bufp += res;
+    } else if (res == 0 || res == -1) {
+        if (res == -1)
+            on_read_error(errno);
+        on_shutdown_read();
     }
 
-    return orig_size;
+    return res;
 }
 
 int64_t fd_stream_t::write(const void *buf, int64_t size) {
     assert_thread();
-    rassert(!io_in_progress_);
+    guarantee(!io_in_progress_);
     int64_t orig_size = size;
 
     if (!is_write_open())
         return -1;
 
-    const char *bufp = reinterpret_cast<const char*>(buf);
+    const char *bufp = static_cast<const char *>(buf);
     while (size > 0) {
         rassert(is_write_open());
-        rassert(!io_in_progress_);
+        guarantee(!io_in_progress_);
 
-        ssize_t res = ::write(fd_.get(), reinterpret_cast<const void*>(bufp), size);
+        ssize_t res = ::write(fd_.get(), bufp, size);
 
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             // Wait for a notification from the event queue, or for an order to
             // shut down
-            DEBUG_ONLY_CODE(io_in_progress_ = true);
+            io_in_progress_ = true;
 
             linux_event_watcher_t::watch_t watch(event_watcher_.get(), poll_event_out);
             wait_any_t waiter(&watch, &write_closed_);
             waiter.wait_lazily_unordered();
 
-            DEBUG_ONLY_CODE(io_in_progress_ = false);
+            io_in_progress_ = false;
 
             if (!is_write_open()) {
                 // We were closed. Something else has already called
@@ -119,7 +109,7 @@ int64_t fd_stream_t::write(const void *buf, int64_t size) {
             return -1;
         }
 
-        rassert (res > 0 && res <= size);
+        guarantee(res > 0 && res <= size);
         bufp += res;
         size -= res;
     }
@@ -142,22 +132,6 @@ void fd_stream_t::shutdown_write() {
     on_shutdown_write();
 }
 
-void fd_stream_t::on_read_error(int errno_) {
-    // Default handler logs all errors.
-    rassert (errno_ != EAGAIN && errno_ != EWOULDBLOCK);
-    logERR("Could not read from fd: %s", strerror(errno_));
-}
-
-void fd_stream_t::on_write_error(int errno_) {
-    // Default handler logs all errors.
-    rassert (errno_ != EAGAIN && errno_ != EWOULDBLOCK);
-    logERR("Could not write to fd: %s", strerror(errno_));
-}
-
-// NOPs by default
-void fd_stream_t::do_shutdown_read() {}
-void fd_stream_t::do_shutdown_write() {}
-
 void fd_stream_t::on_shutdown_read() {
     assert_thread();
     rassert(is_read_open());
@@ -176,9 +150,8 @@ void fd_stream_t::on_event(int events) {
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
     poll_event_in/poll_event_out events are not sent through this function. */
 
-    // If it was an error or hangup (other end closed?), silently die.
-    if (!(events & poll_event_err || events & poll_event_hup)) {
-        // Don't know why we got this. Log it.
+    if (!(events & (poll_event_err | poll_event_hup))) {
+        // It wasn't an error or hangup, so why did we fail? Log it.
         std::string s(format_poll_event(events));
         logERR("Unexpected epoll err/hup/rdhup. events=%s", s.c_str());
     }
@@ -193,20 +166,17 @@ void fd_stream_t::on_event(int events) {
 socket_stream_t::socket_stream_t(int fd)
     : fd_stream_t(fd) {}
 
-void socket_stream_t::on_read_error(int errno_) {
-    if (errno_ != ECONNRESET && errno_ != ENOTCONN) {
+void socket_stream_t::on_read_error(int errsv) {
+    if (errsv != EPIPE && errsv != ECONNRESET && errsv != ENOTCONN) {
         // Unexpected error (not just "we closed").
-        logERR("Could not read from socket: %s", strerror(errno_));
+        logERR("Could not read from socket: %s", strerror(errsv));
     }
 }
 
-void socket_stream_t::on_write_error(int errno_) {
-    /* These errors are expected to happen at some point in practice */
-    if (errno_ != EPIPE && errno_ != ENOTCONN && errno_ != EHOSTUNREACH &&
-        errno_ != ENETDOWN && errno_ != EHOSTDOWN && errno_ != ECONNRESET)
-    {
-        // Unexpected error
-        logERR("Could not read from socket: %s", strerror(errno_));
+void socket_stream_t::on_write_error(int errsv) {
+    if (errsv != EPIPE && errsv != ENOTCONN && errsv != ECONNRESET) {
+        // Unexpected error (not just "we closed")
+        logERR("Could not read from socket: %s", strerror(errsv));
     }
 }
 

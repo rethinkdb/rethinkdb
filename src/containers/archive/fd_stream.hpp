@@ -1,14 +1,14 @@
 #ifndef CONTAINERS_ARCHIVE_FD_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_FD_STREAM_HPP_
 
-#include <boost/scoped_ptr.hpp>
-
 #include "arch/io/event_watcher.hpp" // linux_event_watcher_t
 #include "arch/io/io_utils.hpp"      // scoped_fd_t
 #include "concurrency/cond_var.hpp"
 #include "containers/archive/archive.hpp"
 #include "errors.hpp"
 #include "utils.hpp"                 // home_thread_mixin_t
+
+#include <boost/scoped_ptr.hpp>
 
 // This is very similar to linux_tcp_conn_t.
 class fd_stream_t :
@@ -33,15 +33,13 @@ class fd_stream_t :
     void shutdown_read();
     void shutdown_write();
 
-    // Overridable to change what we do on errors. By default, we log them all
-    // as errors.
-    virtual void on_read_error(int errno_);
-    virtual void on_write_error(int errno_);
+    // Must be overriden to determine what we do with errors.
+    virtual void on_read_error(int errsv) = 0;
+    virtual void on_write_error(int errsv) = 0;
 
-    // Overridable to add behavior to shutdown_{read,write}(). By default, we do
-    // nothing except note that the read/write direction has closed.
-    virtual void do_shutdown_read();
-    virtual void do_shutdown_write();
+    // Must be overriden to determine how we perform a {read,write} shutdown.
+    virtual void do_shutdown_read() = 0;
+    virtual void do_shutdown_write() = 0;
 
   private:
     void on_shutdown_read();
@@ -54,10 +52,9 @@ class fd_stream_t :
     boost::scoped_ptr<linux_event_watcher_t> event_watcher_;
 
   private:
-#ifndef NDEBUG
-    /* True if there is a pending read or write */
+    /* True if there is a pending read or write. Used to check that we are used
+     * in a single-threaded fashion. */
     bool io_in_progress_;
-#endif
 
     /* These are pulsed if and only if the read/write end of the connection has been closed. */
     cond_t read_closed_, write_closed_;
@@ -81,4 +78,4 @@ class socket_stream_t :
     DISABLE_COPYING(socket_stream_t);
 };
 
-#endif
+#endif  // CONTAINERS_ARCHIVE_FD_STREAM_HPP_
