@@ -34,6 +34,7 @@ std::map<peer_id_t, machine_id_t> get_machine_id(const std::map<peer_id_t, clust
 administrative_http_server_manager_t::administrative_http_server_manager_t(
         int port,
         mailbox_manager_t *mbox_manager,
+        metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
         clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
@@ -96,7 +97,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/index.html");
     file_app.reset(new file_http_app_t(white_list, path));
 
-    semilattice_app.reset(new semilattice_http_app_t(_semilattice_metadata, _directory_metadata, _us));
+    semilattice_app.reset(new semilattice_http_app_t(_metadata_change_handler, _directory_metadata, _us));
     directory_app.reset(new directory_http_app_t(_directory_metadata));
     issues_app.reset(new issues_http_app_t(&_admin_tracker->issue_aggregator));
     stat_app.reset(new stat_http_app_t(mbox_manager, _directory_metadata));
