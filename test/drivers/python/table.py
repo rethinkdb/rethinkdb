@@ -10,7 +10,7 @@ class TestTable(unittest.TestCase):
 
         # The AST these tests should generate
         self.ast = p.TableRef()
-        self.ast.db_name = 'db_name'
+        self.ast.db_name = self.db.ast
         self.ast.table_name = 'table_name'
     
     # Grabbing a table reference (the following tests are equivalent)
