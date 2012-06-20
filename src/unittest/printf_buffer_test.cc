@@ -41,8 +41,6 @@ TEST(PrintfBufferTest, Buffering) {
     ASSERT_EQ(str + "ijklmno", std::string(buf.c_str()));
     ASSERT_NE(buf.c_str(), buf.data_);
 
-    BREAKPOINT;
-
     buf.appendf("p");
     ASSERT_NE(buf.c_str(), buf.data_);
     ASSERT_EQ(str + "ijklmnop", std::string(buf.c_str()));
