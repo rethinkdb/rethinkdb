@@ -24,42 +24,41 @@
     </div>
 </script>
 
-
 <script id="stats_panel-template" type="text/x-handlebars-template">
-        <ul class="list_stats total_ops_sec">
-            <li class="title"><span>Total ops/sec:</span></td>
-            <li class="minichart"><span>Loading...</span></td>
-            <li class="value"><span>{{total_ops_sec}}</span></td>
-        </ul>
-        <ul class="list_stats total_cpu_util">
-            <li class="title"><span>CPU usage:</span></td>
-            <li class="minichart"><span>Loading...</span></td>
-            <li class="value"><span>{{total_cpu_util}}%</span></td>
-        </ul>
-        <ul class="list_stats total_ram_usage">
-            <li class="title"><span>RAM usage:</span></td>
-            <li class="minichart">
-                <div class="progress">
-                    <div class="bar" style="width: {{mem_used_percent}}%;"></div>
-                </div>
-            <lid>
-            <li class="value"><span>{{mem_used}} of {{mem_total}}</span></td>
-        </ul>
-        <ul class="list_stats total_disk_usage">
-            <li class="title"><span>Disk usage:</span></td>
-            <li class="minichart"><span>Loading...</span></td>
-            <li class="value"><span>{{disk_used}}</span></td>
-        </ul>
-        <ul class="list_stats global_net_sent">
-            <li class="title"><span>Traffic sent:</span></td>
-            <li class="minichart"><span>Loading...</span></td>
-            <li class="value"><span>{{global_net_sent}}/sec</span></td>
-        </ul>
-        <ul class="list_stats global_net_recv">
-            <li class="title"><span>Traffic recv:</span></td>
-            <li class="minichart"><span>Loading...</span></td>
-            <li class="value"><span>{{global_net_recv}}/sec</span></td>
-        </ul>
-    </table>
+    <h3 class="title">Statistics</h3>
+    <ul class="list_stats total_ops_sec">
+        <li class="title"><span>Total ops/sec:</span></td>
+        <li class="minichart"><span>Loading...</span></td>
+        <li class="value"><span>{{total_ops_sec}}</span></td>
+    </ul>
+    <ul class="list_stats total_cpu_util">
+        <li class="title"><span>CPU usage:</span></td>
+        <li class="minichart"><span>Loading...</span></td>
+        <li class="value"><span>{{total_cpu_util}}%</span></td>
+    </ul>
+    <ul class="list_stats total_ram_usage">
+        <li class="title"><span>RAM usage:</span></td>
+        <li class="minichart">
+            <div class="progress">
+                <div class="bar" style="width: {{mem_used_percent}}%;"></div>
+            </div>
+        <lid>
+        <li class="value"><span>{{mem_used}} of {{mem_total}}</span></td>
+    </ul>
+    <ul class="list_stats total_disk_usage">
+        <li class="title"><span>Disk usage:</span></td>
+        <li class="minichart"><span>Loading...</span></td>
+        <li class="value"><span>{{disk_used}}</span></td>
+    </ul>
+    <ul class="list_stats global_net_sent">
+        <li class="title"><span>Traffic sent:</span></td>
+        <li class="minichart"><span>Loading...</span></td>
+        <li class="value"><span>{{global_net_sent}}/sec</span></td>
+    </ul>
+    <ul class="list_stats global_net_recv">
+        <li class="title"><span>Traffic recv:</span></td>
+        <li class="minichart"><span>Loading...</span></td>
+        <li class="value"><span>{{global_net_recv}}/sec</span></td>
+    </ul>
 </script>
 

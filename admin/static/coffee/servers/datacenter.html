@@ -1,26 +1,33 @@
 <script id="datacenter_view-container-template" type="text/x-handlebars-template">
-  <div class="main_title"></div>
-  <div id="user-alert-space"></div>
+    <div class="main_title"></div>
+    <div id="user-alert-space"></div>
 
-  <div class="two-panel-section profile-expandable">
-    <div class="panel-left-unbalanced profile">
-    </div>   
-
-    <div class="panel-right-unbalanced performance">
-      <h3 class="title">Performance</h3>
-      <div class="performance-graph"></div>
+    <div class="two-panel-section profile-expandable">
+        <div class="panel-left-unbalanced profile"></div>   
+        <div class="panel-right-unbalanced performance">
+            <h3 class="title">Performance</h3>
+            <div class="performance-graph"></div>
+        </div>
     </div>
-  </div>
 
-  <h3 class="title">Statistics</h3>
-  <div class="section datacenter-stats"></div>
-
-  <h3 class="title">Data in this datacenter</h3>
-  <div class="section data"></div>
-
-
-  <h3 class="title">Recent log entries for this datacenter</h3>
-  <div class="section recent-log-entries"></div>
+    <ul class="nav nav-tabs">
+        <li class="active"><a href="#datacenter-statistics" data-toggle="tab">Statistics</a></li>
+        <li><a href="#datacenter-data" data-toggle="tab">Data</a></li>
+        <li><a href="#datacenter-log-entries" data-toggle="tab">Recent log entries</a></li>
+    </ul>
+    <div class="tab-content">  
+        <div class="tab-pane active" id="datacenter-statistics">
+            <div class="section datacenter-stats"></div>
+        </div>
+        <div class="tab-pane" id="datacenter-data">
+            <div class="section data"></div>
+        </div>
+        <div class="tab-pane" id="datacenter-log-entries">
+            <div class="section recent-log-entries">
+                <h3 class="title">Recent log entries for this datacenter</h3>
+            </div>
+        </div>
+    </div>
 </script>
 
 <script id="datacenter_view-not_found-template" type="text/x-handlebars-template">
@@ -28,11 +35,10 @@
 </script>
 
 <script id="datacenter_view_title-template" type="text/x-handlebars-template">
-  <h1>Datacenter overview for {{name}}</h1> (<a href="#" class="rename-datacenter">rename</a>)
+    <h1>Datacenter overview for {{name}}</h1> (<a href="#" class="rename-datacenter">rename</a>)
 </script>
 
 <script id="datacenter_view_profile-template" type="text/x-handlebars-template">
-
     <h3 class="title">Datacenter profile</h3>
     <div class="section summary">
       <p class="status">Status: {{humanize_datacenter_reachability status}}</p>
@@ -48,6 +54,7 @@
 </script>
 
 <script id="datacenter_view_data-template" type="text/x-handlebars-template">
+    <h3 class="title">Data in this datacenter</h3>
     {{#unless data.namespaces}}
     <p>No data found in this datacenter.</p>
     {{/unless}}
@@ -55,7 +62,6 @@
     <div class="namespace">
       <h4>Shards for namespace <a href="/#namespaces/{{uuid}}">{{name}}</a>:</h4>
       <ul>
-
         {{#each shards}}
         <li>{{name}} ({{nprimaries}} {{pluralize_noun "primary" nprimaries}}, {{nsecondaries}} {{pluralize_noun "secondary" nsecondaries}})</li>
         {{/each}}

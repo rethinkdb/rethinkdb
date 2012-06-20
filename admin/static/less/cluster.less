@@ -879,9 +879,15 @@
     .section {
         border-bottom: thin solid #CCC;
         padding-bottom: 10px;
-        padding-top: 10px;
+        padding-top: 0;
         overflow:hidden;
+        h3.title { margin-bottom: 10px; }    
     }
+    ul.nav-tabs { 
+        margin-bottom: 15px; 
+        margin-top: 15px;
+    }
+
     .namespace-shards{
         position: relative;
         .alert_for_sharding{
@@ -973,16 +979,6 @@
 */
 
 .namespace-view {
-    .section { 
-        padding-top: 0; 
-        h3.title { margin-bottom: 10px; }    
-    }
-
-    ul.nav-tabs { 
-        margin-bottom: 15px; 
-        margin-top: 15px;
-    }
-
     table.datacenters {
         margin-bottom: 15px;
         td {
@@ -1642,10 +1638,12 @@
 
 .stats_panel {
     margin-left: 1em;
-    text-transform: uppercase;
-    color: @gray;
-    font-size: 0.85em;
-    line-height: 2em;
+    li {
+        text-transform: uppercase; 
+        color: @gray;
+        font-size: 0.85em;
+        line-height: 2em;
+    }
     td.minichart {
         width: 75px;
         padding-left: 5px;
