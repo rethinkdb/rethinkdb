@@ -79,6 +79,7 @@ void debugf_dump_buf(printf_buffer_t<1000> *buf);
 
 // Primitive debug_print declarations.
 void debug_print(append_only_printf_buffer_t *buf, uint64_t x);
+void debug_print(append_only_printf_buffer_t *buf, const std::string& s);
 
 #ifndef NDEBUG
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));

@@ -57,6 +57,8 @@ public:
         std::vector<int> indices;
         std::vector<typename protocol_t::backfill_chunk_t> sharded_chunks;
 
+        debugf_print("apply_backfill_chunk with", chunk);
+
         typename protocol_t::region_t chunk_region = chunk.get_region();
 
         for (int i = 0; i < num_stores; ++i) {

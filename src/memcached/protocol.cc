@@ -1028,3 +1028,42 @@ void debug_print(append_only_printf_buffer_t *buf, const append_prepend_mutation
     // We don't print the data yet.
     buf->appendf(", ...}");
 }
+
+class generic_debug_print_visitor_t : public boost::static_visitor<void> {
+public:
+    generic_debug_print_visitor_t(append_only_printf_buffer_t *buf) : buf_(buf) { }
+
+    template <class T>
+    void operator()(const T& x) {
+        debug_print(buf_, x);
+    }
+
+private:
+    append_only_printf_buffer_t *buf_;
+    DISABLE_COPYING(generic_debug_print_visitor_t);
+};
+
+void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t& chunk) {
+    generic_debug_print_visitor_t v(buf);
+    boost::apply_visitor(v, chunk.val);
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t::delete_key_t& del) {
+    buf->appendf("bf::delete_key_t{key=");
+    debug_print(buf, del.key);
+    buf->appendf(", recency=");
+    debug_print(buf, del.recency);
+    buf->appendf("}");
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t::delete_range_t& del) {
+    buf->appendf("bf::delete_range_t{range=");
+    debug_print(buf, del.range);
+    buf->appendf("}");
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t::key_value_pair_t& kvpair) {
+    buf->appendf("bf::kv{atom=");
+    debug_print(buf, kvpair.backfill_atom);
+    buf->appendf("}");
+}

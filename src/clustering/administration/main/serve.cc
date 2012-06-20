@@ -83,7 +83,8 @@ public:
 
             svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
         } else {
-            const int num_stores = 4 + randint(4);
+            // num_stores randomization is commented out to simplify experiments with figuring out what's wrong with rebalance.
+            const int num_stores = 2; // 4 + randint(4);
             debugf("creating %d hash-sharded stores\n", num_stores);
             stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
 

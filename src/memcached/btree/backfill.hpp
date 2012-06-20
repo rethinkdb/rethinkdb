@@ -4,6 +4,8 @@
 #include "btree/backfill.hpp"
 #include "memcached/queries.hpp"
 
+class append_only_printf_buffer_t;
+
 struct backfill_atom_t {
     store_key_t key;
     intrusive_ptr_t<data_buffer_t> value;
@@ -16,6 +18,9 @@ struct backfill_atom_t {
     backfill_atom_t(const store_key_t& key_, const intrusive_ptr_t<data_buffer_t>& value_, const mcflags_t& flags_, const exptime_t& exptime_, const repli_timestamp_t& recency_, const cas_t& cas_or_zero_)
         : key(key_), value(value_), flags(flags_), exptime(exptime_), recency(recency_), cas_or_zero(cas_or_zero_) { }
 };
+
+void debug_print(append_only_printf_buffer_t *buf, const backfill_atom_t& atom);
+
 
 // How to use this class: Send on_delete_range calls before
 // on_keyvalue calls for keys within that range.

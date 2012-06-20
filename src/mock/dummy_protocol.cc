@@ -516,6 +516,15 @@ void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::write
     buf->appendf("}");
 }
 
+void debug_print(append_only_printf_buffer_t *buf, const dummy_protocol_t::backfill_chunk_t& chunk) {
+    buf->appendf("dummy_chunk{key=");
+    debug_print(buf, chunk.key);
+    buf->appendf(", value=");
+    debug_print(buf, chunk.value);
+    buf->appendf(", timestamp=");
+    debug_print(buf, chunk.timestamp);
+    buf->appendf("}");
+}
 
 
 
