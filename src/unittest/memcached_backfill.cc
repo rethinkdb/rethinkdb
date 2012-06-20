@@ -39,6 +39,7 @@ void run_with_broadcaster(
             cluster.get_mailbox_manager(),
             branch_history_controller.get_view(),
             &multi_store,
+            &get_global_perfmon_collection(),
             &interruptor
         ));
 
@@ -51,6 +52,7 @@ void run_with_broadcaster(
             broadcaster_business_card_watchable_variable.get_watchable(),
             branch_history_controller.get_view(),
             broadcaster.get(),
+            &get_global_perfmon_collection(),
             &interruptor
         ));
 
@@ -78,8 +80,6 @@ void run_in_thread_pool_with_broadcaster(
 
 /* `PartialBackfill` backfills only in a specific sub-region. */
 
-static void do_nothing() { }
-
 void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
     sarc_mutation_t set;
     set.key = store_key_t(key);
@@ -92,14 +92,18 @@ void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, cons
     fake_fifo_enforcement_t enforce;
     memcached_protocol_t::write_t write(set, time(NULL), 12345);
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
-    class : public broadcaster_t<memcached_protocol_t>::ack_callback_t {
+    class : public broadcaster_t<memcached_protocol_t>::write_callback_t, public cond_t {
     public:
-        bool on_ack(peer_id_t) {
-            return true;
+        void on_response(peer_id_t, const memcached_protocol_t::write_response_t &) {
+            /* ignore */
         }
-    } ack_callback;
+        void on_done() {
+            pulse();
+        }
+    } write_callback;
     cond_t non_interruptor;
-    broadcaster->write(write, &exiter, &ack_callback, otok, &non_interruptor, &do_nothing);
+    broadcaster->spawn_write(write, &exiter, otok, &write_callback, &non_interruptor);
+    write_callback.wait_lazily_unordered();
 }
 
 void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
@@ -142,6 +146,7 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
         &multi_store2,
         replier_business_card_variable.get_watchable(),
         generate_uuid(),
+        &get_global_perfmon_collection(),
         &interruptor);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());

@@ -62,6 +62,7 @@ public:
             multistore_ptr_t<protocol_t> *svs,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
             backfill_session_id_t backfill_session_id,
+            perfmon_collection_t *backfill_stats_parent,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t);
 
     /* This version of the `listener_t` constructor is called when we are
@@ -72,6 +73,7 @@ public:
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
             broadcaster_t<protocol_t> *broadcaster,
+            perfmon_collection_t *backfill_stats_parent,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     /* Returns a signal that is pulsed if the mirror is not in contact with the
@@ -121,14 +123,14 @@ private:
     void try_start_receiving_writes(
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster,
             signal_t *interruptor)
-	THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t);
+        THROWS_ONLY(interrupted_exc_t, broadcaster_lost_exc_t);
 
     void on_write(typename protocol_t::write_t write,
-                  transition_timestamp_t transition_timestamp,
-                  order_token_t order_token,
-                  fifo_enforcer_write_token_t fifo_token,
-                  mailbox_addr_t<void()> ack_addr)
-	THROWS_NOTHING;
+            transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
+            fifo_enforcer_write_token_t fifo_token,
+            mailbox_addr_t<void()> ack_addr)
+        THROWS_NOTHING;
 
     void enqueue_write(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
@@ -136,8 +138,7 @@ private:
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void()> ack_addr,
             auto_drainer_t::lock_t keepalive)
-
-	THROWS_NOTHING;
+        THROWS_NOTHING;
 
     void perform_enqueued_write(const write_queue_entry_t &serialized_write, state_timestamp_t backfill_end_timestamp, signal_t *interruptor) 
         THROWS_ONLY(interrupted_exc_t);
@@ -146,11 +147,11 @@ private:
     explanation of why `on_writeread()` and `on_read()` are here. */
 
     void on_writeread(typename protocol_t::write_t write,
-                      transition_timestamp_t transition_timestamp,
-                      order_token_t order_token,
-                      fifo_enforcer_write_token_t fifo_token,
-                      mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
-	THROWS_NOTHING;
+            transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
+            fifo_enforcer_write_token_t fifo_token,
+            mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
+        THROWS_NOTHING;
 
     void perform_writeread(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
@@ -158,14 +159,14 @@ private:
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
             auto_drainer_t::lock_t keepalive)
-	THROWS_NOTHING;
+        THROWS_NOTHING;
 
     void on_read(typename protocol_t::read_t read,
             state_timestamp_t expected_timestamp,
             order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
-	THROWS_NOTHING;
+        THROWS_NOTHING;
 
     void perform_read(typename protocol_t::read_t read,
             DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
@@ -173,7 +174,7 @@ private:
             fifo_enforcer_read_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
             auto_drainer_t::lock_t keepalive)
-	THROWS_NOTHING;
+        THROWS_NOTHING;
 
     void wait_for_version(state_timestamp_t timestamp, signal_t *interruptor);
 
@@ -193,6 +194,8 @@ private:
     gets pulsed when we successfully register. */
     promise_t<intro_t> registration_done_cond;
 
+    boost::uuids::uuid uuid;
+    perfmon_collection_t perfmon_collection;
     fifo_enforcer_sink_t write_queue_entrance_sink;
     disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue;
     boost::scoped_ptr<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback;

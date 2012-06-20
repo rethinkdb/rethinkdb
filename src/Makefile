@@ -94,12 +94,12 @@ CXX:=icc
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm
 else ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lcurl
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
@@ -317,6 +317,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			vis.coffee \
 			models.coffee \
 			navbar.coffee \
+			walkthrough.coffee \
 			router.coffee \
 			app.coffee)
 HANDLEBARS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/coffee -name '*.html')
@@ -572,6 +573,13 @@ endif
 
 # Build rules
 
+rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
+rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py
+rpc/mailbox/typed.hpp: ../scripts/generate_rpc_templates.py
+
+rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
+	$< > $@
+
 web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico
 
 $(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(COFFEE_SOURCES)
@@ -694,8 +702,7 @@ ifeq ($(VALGRIND),0)
 	$(error Using the 'valgrind' target doesn't automatically set VALGRIND to 1. Try again with \
 'make valgrind VALGRIND=1')
 endif
-	$(QUIET) rm -f $(RUN_FILE)
-	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
+	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) serve --port $(RUN_PORT)
 
 revalgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(VALGRIND),0)

@@ -157,11 +157,14 @@ bool serve_(
     // stat_manager mailbox address
     stat_manager_t stat_manager(&mailbox_manager);
 
+    metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, semilattice_manager_cluster.get_root_view());
+
     watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(
         cluster_directory_metadata_t(
             machine_id,
             get_ips(),
             stat_manager.get_address(),
+            metadata_change_handler.get_request_mailbox_address(),
             log_server.get_business_card(),
             i_am_a_server ? SERVER_PEER : PROXY_PEER
         ));
@@ -196,7 +199,7 @@ bool serve_(
     admin_tracker_t admin_tracker(
         semilattice_manager_cluster.get_root_view(), directory_read_manager.get_root_view());
 
-    perfmon_collection_t proc_stats_collection("proc", NULL, true, true);
+    perfmon_collection_t proc_stats_collection("proc", &get_global_perfmon_collection(), true, true);
     proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
 
     boost::scoped_ptr<initial_joiner_t> initial_joiner;
@@ -209,7 +212,7 @@ bool serve_(
         }
     }
 
-    perfmon_collection_repo_t perfmon_repo(NULL);
+    perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
     file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(filepath);
     // Reactor drivers
@@ -289,6 +292,7 @@ bool serve_(
         administrative_http_server_manager_t administrative_http_interface(
             http_port,
             &mailbox_manager,
+            &metadata_change_handler,
             semilattice_manager_cluster.get_root_view(),
             directory_read_manager.get_root_view(),
             &memcached_namespace_repo,

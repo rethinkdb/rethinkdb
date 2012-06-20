@@ -38,7 +38,6 @@ bool check_existence(const std::string& file_path) {
 }
 
 void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, bool *result_out) {
-
     if (check_existence(filepath)) {
         printf("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
         *result_out = false;
@@ -60,7 +59,8 @@ void run_rethinkdb_create(const std::string &filepath, std::string &machine_name
         return;
     }
 
-    metadata_persistence::persistent_file_t store(metadata_file(filepath), true);
+    perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
+    metadata_persistence::persistent_file_t store(metadata_file(filepath), true, &metadata_perfmon_collection);
     store.update(our_machine_id, metadata, true);
 
     printf("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
@@ -101,7 +101,6 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
 }
 
 void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,) bool *result_out, std::string web_assets) {
-
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
@@ -113,7 +112,8 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
     machine_id_t persisted_machine_id;
     cluster_semilattice_metadata_t persisted_semilattice_metadata;
 
-    metadata_persistence::persistent_file_t store(metadata_file(filepath));
+    perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
+    metadata_persistence::persistent_file_t store(metadata_file(filepath), false, &metadata_perfmon_collection);
     store.read(&persisted_machine_id, &persisted_semilattice_metadata);
 
     *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset,) persisted_machine_id, persisted_semilattice_metadata, web_assets, &sigint_cond);
@@ -128,7 +128,8 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
     if (check_existence(filepath)) {
         printf("It already exists.  Loading data...\n");
 
-        metadata_persistence::persistent_file_t store(metadata_file(filepath));
+        perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
+        metadata_persistence::persistent_file_t store(metadata_file(filepath), false, &metadata_perfmon_collection);
         store.read(&our_machine_id, &semilattice_metadata);
 
         *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset,) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
@@ -204,7 +205,8 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
         }
 
-        metadata_persistence::persistent_file_t store(metadata_file(filepath), true);
+        perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
+        metadata_persistence::persistent_file_t store(metadata_file(filepath), true, &metadata_perfmon_collection);
         store.update(our_machine_id, semilattice_metadata, true);
 
         *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset,) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
@@ -311,10 +313,23 @@ po::options_description get_rethinkdb_porcelain_options() {
     return desc;
 }
 
+int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::options_description& options) {
+    try {
+        po::store(po::parse_command_line(argc, argv, options), *vm);
+        po::notify(*vm);
+        return 0;
+    } catch (po::unknown_option& ex) {
+        fprintf(stderr, "%s\n", ex.what());
+        return 1;
+    }
+}
+
 int main_rethinkdb_create(int argc, char *argv[]) {
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, get_rethinkdb_create_options()), vm);
-    po::notify(vm);
+    int res = parse_commands(argc, argv, &vm, get_rethinkdb_create_options());
+    if (res) {
+        return res;
+    }
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string machine_name = vm["name"].as<std::string>();
@@ -327,8 +342,10 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
 int main_rethinkdb_serve(int argc, char *argv[]) {
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, get_rethinkdb_serve_options()), vm);
-    po::notify(vm);
+    int res = parse_commands(argc, argv, &vm, get_rethinkdb_serve_options());
+    if (res) {
+        return res;
+    }
 
     std::string filepath = vm["directory"].as<std::string>();
     std::vector<host_and_port_t> joins;
@@ -392,7 +409,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result));
 
     } catch (std::exception& ex) {
-        printf("%s\n", ex.what());
+        fprintf(stderr, "%s\n", ex.what());
         result = false;
     }
 
@@ -401,8 +418,10 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
 
 int main_rethinkdb_proxy(int argc, char *argv[]) {
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, get_rethinkdb_proxy_options()), vm);
-    po::notify(vm);
+    int res = parse_commands(argc, argv, &vm, get_rethinkdb_proxy_options());
+    if (res) {
+        return res;
+    }
 
     if (!vm.count("join")) {
         printf("No --join option(s) given. A proxy needs to connect to something!\n"
@@ -434,8 +453,10 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
 int main_rethinkdb_porcelain(int argc, char *argv[]) {
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, get_rethinkdb_porcelain_options()), vm);
-    po::notify(vm);
+    int res = parse_commands(argc, argv, &vm, get_rethinkdb_porcelain_options());
+    if (res) {
+        return res;
+    }
 
     std::string filepath = vm["directory"].as<std::string>();
     std::string machine_name = vm["name"].as<std::string>();

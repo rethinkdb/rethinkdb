@@ -36,3 +36,9 @@ for workload in workloads:
         repeat = 3,
         inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads"]
         )
+
+do_test(
+    "$RETHINKDB/test/scenarios/proxy_cluster.py '$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT'",
+    repeat = 3,
+    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads"]
+    )

@@ -118,6 +118,11 @@ module 'NamespaceView', ->
 
             return @
 
+        destroy: ->
+            @model.off()
+            directory.off()
+            progress_list.off()
+
     # Modify replica counts and ack counts in each datacenter
     class @ModifyReplicasModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#modify_replicas-modal-template').html()
@@ -176,6 +181,7 @@ module 'NamespaceView', ->
         render: ->
             log_render '(rendering) modify replicas dialog (outer)'
             super(@compute_json())
+            $('#focus_num_replicas').focus()
 
         on_submit: =>
             super

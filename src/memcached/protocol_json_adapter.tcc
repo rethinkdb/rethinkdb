@@ -37,7 +37,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(key_ran
 }
 
 template <class ctx_t>
-cJSON *render_as_json(key_range_t *target, const ctx_t &c) {
+std::string render_region_as_string(key_range_t *target, const ctx_t &c) {
     scoped_cJSON_t res(cJSON_CreateArray());
 
     cJSON_AddItemToArray(res.get(), render_as_json(&target->left, c));
@@ -48,8 +48,12 @@ cJSON *render_as_json(key_range_t *target, const ctx_t &c) {
         cJSON_AddItemToArray(res.get(), cJSON_CreateNull());
     }
 
-    std::string val = cJSON_print_std_string(res.get());
-    return cJSON_CreateString(val.c_str());
+    return cJSON_print_std_string(res.get());
+}
+
+template <class ctx_t>
+cJSON *render_as_json(key_range_t *target, const ctx_t &c) {
+    return cJSON_CreateString(render_region_as_string(target, c).c_str());
 }
 
 template <class ctx_t>
@@ -110,11 +114,16 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(UNUSED 
 }
 
 template <class ctx_t>
-cJSON *render_as_json(hash_region_t<key_range_t> *target, const ctx_t &c) {
+std::string render_region_as_string(hash_region_t<key_range_t> *target, const ctx_t &c) {
     // TODO: ghetto low level hash_region_t assertion.
     guarantee(target->beg == 0 && target->end == HASH_REGION_HASH_SIZE);
 
-    return render_as_json(&target->inner, c);
+    return render_region_as_string(&target->inner, c);
+}
+
+template <class ctx_t>
+cJSON *render_as_json(hash_region_t<key_range_t> *target, const ctx_t &c) {
+    return cJSON_CreateString(render_region_as_string(target, c).c_str());
 }
 
 template <class ctx_t>

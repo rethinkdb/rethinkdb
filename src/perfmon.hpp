@@ -234,6 +234,7 @@ time period, the average record, and the min and max records. */
 // need to use a namespace, not inner classes, so we can pass the auxiliary
 // classes to the templated base classes
 namespace perfmon_sampler {
+
 struct stats_t {
     int count;
     double sum, min, max;
@@ -260,7 +261,8 @@ struct stats_t {
         }
     }
 };
-}
+
+}   /* namespace perfmon_sampler */
 
 class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
     typedef perfmon_sampler::stats_t stats_t;
@@ -389,7 +391,8 @@ class perfmon_collection_t : public perfmon_t {
 public:
     perfmon_collection_t(const std::string &_name, perfmon_collection_t *parent, bool insert, bool _create_submap)
         : perfmon_t(parent, insert), name(_name), create_submap(_create_submap)
-    { }
+    {
+    }
 
     /* Perfmon interface */
     void *begin_stats() {
@@ -417,6 +420,7 @@ public:
         perfmon_result_t *map;
         if (create_submap) {
             perfmon_result_t::alloc_map_result(&map);
+            rassert(result->get_map()->count(name) == 0);
             result->get_map()->insert(std::pair<std::string, perfmon_result_t *>(name, map));
         } else {
             map = result;
@@ -497,5 +501,7 @@ struct block_pm_duration {
         if (!ended) end();
     }
 };
+
+perfmon_collection_t &get_global_perfmon_collection();
 
 #endif /* PERFMON_HPP_ */

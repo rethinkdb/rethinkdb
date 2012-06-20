@@ -21,7 +21,7 @@ module 'NamespaceView', ->
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
             super namespaces, NamespaceView.NamespaceListElement, 'tbody.list'
-
+            @to_unbind = []
         render: =>
             super
             @update_toolbar_buttons()
@@ -38,6 +38,7 @@ module 'NamespaceView', ->
             machine_list_element.off 'selected'
             machine_list_element.on 'selected', @update_toolbar_buttons
 
+
         add_namespace: (event) =>
             event.preventDefault()
             if datacenters.length is 0
@@ -46,6 +47,7 @@ module 'NamespaceView', ->
             else
                 log_action 'add namespace button clicked'
                 @add_namespace_dialog.render()
+                $('#focus_namespace_name').focus()
 
         remove_namespace: (event) =>
             log_action 'remove namespace button clicked'
@@ -59,6 +61,10 @@ module 'NamespaceView', ->
             # We need to check how many namespaces have been checked off to decide which buttons to enable/disable
             $remove_namespaces_button = @.$('.actions-bar a.btn.remove-namespace')
             $remove_namespaces_button.toggleClass 'disabled', @get_selected_elements().length < 1
+
+        destroy: =>
+             super()
+           
 
     # Namespace list element
     class @NamespaceListElement extends UIComponents.CheckboxListElement
@@ -80,7 +86,6 @@ module 'NamespaceView', ->
 
         initialize: ->
             log_initial '(initializing) list view: namespace'
-            @model.on 'change', @render
             super @template
 
             # Initialize history
@@ -134,6 +139,10 @@ module 'NamespaceView', ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'namespace'
             rename_modal.render()
+
+        destroy: =>
+            @model.off()
+            machines.off()
 
     # A modal for adding namespaces
     class @AddNamespaceModal extends UIComponents.AbstractModal

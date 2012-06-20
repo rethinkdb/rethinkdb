@@ -37,16 +37,15 @@ public:
         mailbox_manager(mm),
         ack_checker(ac),
         broadcaster(b),
+        enqueued_writes(0),
         registrar(mm, this),
         read_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_read,
                                                   this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
         write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
                                                    this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
         master_directory(md), master_directory_lock(mdl),
-        uuid(generate_uuid()),
-        enqueued_writes(0)
+        uuid(generate_uuid())
     {
-
         rassert(ack_checker);
 
         master_business_card_t<protocol_t> bcard(
@@ -110,9 +109,9 @@ private:
                     return;
                 }
 
-                auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
+                auto_drainer_t::lock_t peer_lifetime_lock(it->second->drainer());
                 fifo_enforcer_sink_t::exit_read_t exiter(it->second->sink(), token);
-                reply = broadcaster->read(read, &exiter, otok, auto_drainer_lock.get_drain_signal());
+                reply = broadcaster->read(read, &exiter, otok, peer_lifetime_lock.get_drain_signal());
             } catch (cannot_perform_query_exc_t e) {
                 reply = e.what();
             }
@@ -129,50 +128,77 @@ private:
                   auto_drainer_t::lock_t keepalive)
         THROWS_NOTHING
     {
-        enqueued_writes++;
-        try {
-            keepalive.assert_is_holding(&drainer);
-            boost::variant<typename protocol_t::write_response_t, std::string> reply;
-            try {
-                typename std::map<namespace_interface_id_t, parser_lifetime_t *>::iterator it = sink_map.find(parser_id);
-                if (it == sink_map.end()) {
-                    /* We got a message from a parser that already deregistered
-                    itself. This happened because the deregistration message
-                    raced ahead of the query. Ignore it. */
-                    return;
-                }
-                it->second->allocated_ops--;
+        keepalive.assert_is_holding(&drainer);
 
-                class ac_t : public broadcaster_t<protocol_t>::ack_callback_t {
-                public:
-                    explicit ac_t(master_t *p) : parent(p) { }
-                    bool on_ack(peer_id_t peer) {
-                        ack_set.insert(peer);
-                        return parent->ack_checker->is_acceptable_ack_set(ack_set);
-                    }
-                    master_t *parent;
-                    std::set<peer_id_t> ack_set;
-                } ack_checker(this);
-
-                auto_drainer_t::lock_t auto_drainer_lock(it->second->drainer());
-                fifo_enforcer_sink_t::exit_write_t exiter(it->second->sink(), token);
-                reply = broadcaster->write(write, &exiter, &ack_checker, otok, auto_drainer_lock.get_drain_signal(), boost::bind(&master_t<protocol_t>::write_completion_cb, this, keepalive));
-            } catch (cannot_perform_query_exc_t e) {
-                reply = e.what();
-            }
-            send(mailbox_manager, response_address, reply);
-        } catch (interrupted_exc_t) {
-            /* See note in `on_read()` */
+        typename std::map<namespace_interface_id_t, parser_lifetime_t *>::iterator it = sink_map.find(parser_id);
+        if (it == sink_map.end()) {
+            /* We got a message from a parser that already deregistered
+            itself. This happened because the deregistration message
+            raced ahead of the query. Ignore it. */
+            return;
         }
-    }
+        /* TODO: Store `auto_drainer_t::lock_t` along with
+        `parser_lifetime_t *` in the map, like we do with `dispatchee_t` in
+        the broadcaster */
+        auto_drainer_t::lock_t parser_lifetime_lock(it->second->drainer());
 
-    void write_completion_cb(UNUSED auto_drainer_t::lock_t l) {
+        enqueued_writes++;
+        it->second->allocated_ops--;
+
+        try {
+            class write_callback_t : public broadcaster_t<protocol_t>::write_callback_t {
+            public:
+                explicit write_callback_t(ack_checker_t *ac) : ack_checker(ac) { }
+                void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) {
+                    if (!response_promise.get_ready_signal()->is_pulsed()) {
+                        ack_set.insert(peer);
+                        if (ack_checker->is_acceptable_ack_set(ack_set)) {
+                            response_promise.pulse(response);
+                        }
+                    }
+                }
+                void on_done() {
+                    done_cond.pulse();
+                }
+                ack_checker_t *ack_checker;
+                std::set<peer_id_t> ack_set;
+                promise_t<typename protocol_t::write_response_t> response_promise;
+                cond_t done_cond;
+            } write_callback(ack_checker);
+
+            /* It's essential that we use `parser_lifetime_lock.get_drain_signal()`
+            rather than `keepalive.get_drain_signal()` because the operations
+            from the parser may be arriving out of order, and if we lose contact
+            with the parser, we need to be able to interrupt outstanding
+            operations rather than blocking until the `master_t` itself is
+            destroyed. */
+            fifo_enforcer_sink_t::exit_write_t exiter(it->second->sink(), token);
+            broadcaster->spawn_write(write, &exiter, otok, &write_callback, parser_lifetime_lock.get_drain_signal());
+
+            wait_any_t waiter(&write_callback.done_cond, write_callback.response_promise.get_ready_signal());
+            wait_interruptible(&waiter, parser_lifetime_lock.get_drain_signal());
+
+            if (write_callback.response_promise.get_ready_signal()->is_pulsed()) {
+                send(mailbox_manager, response_address,
+                    boost::variant<typename protocol_t::write_response_t, std::string>(write_callback.response_promise.get_value())
+                    );
+            } else {
+                rassert(write_callback.done_cond.is_pulsed());
+                send(mailbox_manager, response_address,
+                    boost::variant<typename protocol_t::write_response_t, std::string>("not enough replicas responded")
+                    );
+            }
+
+        } catch (interrupted_exc_t) {
+            /* ignore */
+        }
+
         enqueued_writes--;
         consider_allocating_more_writes();
     }
 
     void consider_allocating_more_writes() {
-        if (enqueued_writes  + ALLOCATION_CHUNK < TARGET_OPERATION_QUEUE_LENGTH) {
+        if (enqueued_writes + ALLOCATION_CHUNK < TARGET_OPERATION_QUEUE_LENGTH) {
             parser_lifetime_t *most_depleted_parser = NULL;
             for (typename std::map<namespace_interface_id_t, parser_lifetime_t *>::iterator it  = sink_map.begin();
                                                                                    it != sink_map.end();
@@ -182,12 +208,16 @@ private:
                 }
             }
             if (most_depleted_parser && most_depleted_parser->allocated_ops < MAX_ALLOCATION) {
-                coro_t::spawn_sometime(boost::bind(&master_t<protocol_t>::allocate_more_writes, this, most_depleted_parser->allocate_mailbox));
+                coro_t::spawn_sometime(boost::bind(
+                    &master_t<protocol_t>::allocate_more_writes, this,
+                    most_depleted_parser->allocate_mailbox, auto_drainer_t::lock_t(&drainer)
+                    ));
                 most_depleted_parser->allocated_ops += ALLOCATION_CHUNK;
             }
         }
     }
-    void allocate_more_writes(mailbox_addr_t<void(int)> addr) {
+
+    void allocate_more_writes(mailbox_addr_t<void(int)> addr, UNUSED auto_drainer_t::lock_t keepalive) {
         send(mailbox_manager, addr, ALLOCATION_CHUNK);
     }
 
@@ -195,6 +225,8 @@ private:
     ack_checker_t *ack_checker;
     broadcaster_t<protocol_t> *broadcaster;
     std::map<namespace_interface_id_t, parser_lifetime_t *> sink_map;
+    int enqueued_writes;
+
     auto_drainer_t drainer;
 
     registrar_t<namespace_interface_business_card_t, master_t *, parser_lifetime_t> registrar;
@@ -206,8 +238,6 @@ private:
     watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > *master_directory;
     mutex_assertion_t *master_directory_lock;
     master_id_t uuid;
-
-    int enqueued_writes;
 
     DISABLE_COPYING(master_t);
 };

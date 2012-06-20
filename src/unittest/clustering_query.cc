@@ -32,7 +32,6 @@ static std::map<peer_id_t, std::map<master_id_t, master_business_card_t<dummy_pr
 }
 
 static void run_read_write_test() {
-
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
 
@@ -49,6 +48,7 @@ static void run_read_write_test() {
         cluster.get_mailbox_manager(),
         branch_history_controller.get_view(),
         &multi_initial_store,
+        &get_global_perfmon_collection(),
         &interruptor
         );
 
@@ -60,6 +60,7 @@ static void run_read_write_test() {
         broadcaster_metadata_controller.get_watchable()->subview(&wrap_in_optional),
         branch_history_controller.get_view(),
         &broadcaster,
+        &get_global_perfmon_collection(),
         &interruptor
         );
 
@@ -114,7 +115,6 @@ TEST(ClusteringNamespace, ReadWrite) {
 }
 
 static void run_broadcaster_problem_test() {
-
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
 
@@ -131,6 +131,7 @@ static void run_broadcaster_problem_test() {
         cluster.get_mailbox_manager(),
         branch_history_controller.get_view(),
         &multi_initial_store,
+        &get_global_perfmon_collection(),
         &interruptor
         );
 
@@ -142,6 +143,7 @@ static void run_broadcaster_problem_test() {
         broadcaster_metadata_controller.get_watchable(),
         branch_history_controller.get_view(),
         &broadcaster,
+        &get_global_perfmon_collection(),
         &interruptor
         );
 
@@ -188,7 +190,6 @@ TEST(ClusteringNamespace, BroadcasterProblem) {
 }
 
 static void run_missing_master_test() {
-
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
 

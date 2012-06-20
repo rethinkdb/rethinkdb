@@ -127,10 +127,15 @@ struct tester_t :
         }
 
         fprintf(stderr, "Creating a database...\n");
-        log_serializer_t::create(config->ser_dynamic_config, config->ser_private_dynamic_config, config->ser_static_config);
+        log_serializer_t::create(config->ser_dynamic_config,
+                                 config->ser_private_dynamic_config,
+                                 config->ser_static_config,
+                                 &get_global_perfmon_collection());
         
         fprintf(stderr, "Starting serializer...\n");
-        ser = new log_serializer_t(config->ser_dynamic_config, config->ser_private_dynamic_config, NULL);
+        ser = new log_serializer_t(config->ser_dynamic_config,
+                                   config->ser_private_dynamic_config,
+                                   &get_global_perfmon_collection());
         on_serializer_ready(ser);
     }
     
@@ -155,8 +160,7 @@ struct tester_t :
         while (active_txns < config->concurrent_txns && !stop) {
             active_txns++;
             total_txns++;
-            // TODO should this be spawn_now or spawn?
-            coro_t::spawn_now(boost::bind(transact, ser, log, config->inserts_per_txn, config->updates_per_txn, this));
+            coro_t::spawn_sometime(boost::bind(transact, ser, log, config->inserts_per_txn, config->updates_per_txn, this));
         }
         
         // See if we need to report the TPS

@@ -178,7 +178,7 @@ public:
         // TODO: This was originally private.  Do we still want it to be private?
         typedef region_map_t<memcached_protocol_t, binary_blob_t> metainfo_t;
 
-        store_t(const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
+        store_t(const std::string& filename, bool create, perfmon_collection_t *collection);
         ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);

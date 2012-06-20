@@ -22,7 +22,7 @@ class test_store_t {
 public:
     test_store_t() :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            store(temp_file.name(), true)
+            store(temp_file.name(), true, &get_global_perfmon_collection())
     {
         /* Initialize store metadata */
         cond_t non_interruptor;
