@@ -13,7 +13,7 @@ class TestTable(unittest.TestCase):
         assertTrue(protoEq(t, ast))
         
     def test_table_ref_dict(self):
-        t = self.db.['table_name']
+        t = self.db['table_name']
         assertTrue(protoEq(t, ast))
         
     def test_table_ref_direct(self):
