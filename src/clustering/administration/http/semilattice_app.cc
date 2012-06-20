@@ -8,32 +8,6 @@
 #include "clustering/administration/suggester.hpp"
 #include "stl_utils.hpp"
 
-void semilattice_http_app_t::fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata) {
-    std::map<machine_id_t, datacenter_id_t> machine_assignments;
-
-    for (std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::iterator it  = cluster_metadata->machines.machines.begin();
-            it != cluster_metadata->machines.machines.end();
-            it++) {
-        if (!it->second.is_deleted()) {
-            machine_assignments[it->first] = it->second.get().datacenter.get();
-        }
-    }
-
-    std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > reactor_directory;
-    std::map<peer_id_t, machine_id_t> machine_id_translation_table;
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_metadata->get();
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator it = directory.begin(); it != directory.end(); it++) {
-        reactor_directory.insert(std::make_pair(it->first, it->second.memcached_namespaces));
-        machine_id_translation_table.insert(std::make_pair(it->first, it->second.machine_id));
-    }
-
-    fill_in_blueprints_for_protocol<memcached_protocol_t>(&cluster_metadata->memcached_namespaces,
-            reactor_directory,
-            machine_id_translation_table,
-            machine_assignments,
-            us);
-}
-
 semilattice_http_app_t::semilattice_http_app_t(
         metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
@@ -122,7 +96,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 /* Fill in the blueprints */
                 try {
-                    fill_in_blueprints(&cluster_metadata);
+                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us);
                 } catch (missing_machine_exc_t &e) { }
 
                 metadata_change_handler->update(cluster_metadata);
@@ -140,7 +114,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 json_adapter_head->erase(json_ctx);
 
                 try {
-                    fill_in_blueprints(&cluster_metadata);
+                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us);
                 } catch (missing_machine_exc_t &e) { }
 
                 metadata_change_handler->update(cluster_metadata);
@@ -177,7 +151,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 /* Fill in the blueprints */
                 try {
-                    fill_in_blueprints(&cluster_metadata);
+                    fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us);
                 } catch (missing_machine_exc_t &e) { }
 
                 metadata_change_handler->update(cluster_metadata);

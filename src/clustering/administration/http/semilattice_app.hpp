@@ -15,8 +15,6 @@ public:
     void get_root(scoped_cJSON_t *json_out);
 
 private:
-    void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata);
-
     metadata_change_handler_t<cluster_semilattice_metadata_t> *metadata_change_handler;
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory_metadata;
     boost::uuids::uuid us;
