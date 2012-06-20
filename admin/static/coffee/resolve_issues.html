@@ -14,7 +14,12 @@
 </script>
 
 <script id="declare_machine_dead-modal-template" type="text/x-handlebars-template">
-  <p>Are you sure you want to declare <strong>{{machine_name}}</strong> dead?</p>
+    <div class="alert alert-error">
+        <h4 class="title_center">Warning</h4>
+        <p>If you declare this machine dead, you will not be able to reconnect it later, even if it does reconnect, it will consider itself dead and will stop working.</p>
+        <p>All the data on the machine will be lost.</p>
+    </div>
+    <p>Are you sure you want to declare <strong>{{machine_name}}</strong> dead?</p>
 </script>
 
 <script id="declared_machine_dead-alert-template" type="text/x-handlebars-template">

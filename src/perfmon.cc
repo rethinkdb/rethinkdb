@@ -55,9 +55,9 @@ perfmon_result_t::~perfmon_result_t() {
 /* The var list keeps track of all of the perfmon_t objects. */
 
 perfmon_collection_t &get_global_perfmon_collection() {
-    /* Getter function so that we can be sure that var_list is initialized before it is needed,
-    as advised by the C++ FAQ. Otherwise, a perfmon_t might be initialized before the var list
-    was initialized. */
+    /* Getter function so that we can be sure that `collection` is initialized
+    before it is needed, as advised by the C++ FAQ. Otherwise, a `perfmon_t`
+    might be initialized before `collection` was initialized. */
 
     static perfmon_collection_t collection("Global", NULL, false, false);
     return collection;

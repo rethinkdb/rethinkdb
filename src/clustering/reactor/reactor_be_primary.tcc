@@ -4,6 +4,7 @@
 #include <exception>
 #include <vector>
 
+#include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
@@ -334,7 +335,10 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
             }
         }
 
-        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history, store, parent_perfmon_collection, interruptor);
+        std::string region_name(render_region_as_string(&region, 0));
+        perfmon_collection_t region_perfmon_collection(region_name, &regions_perfmon_collection, true, true);
+
+        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history, store, &region_perfmon_collection, interruptor);
 
         directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card()));
 
@@ -347,7 +351,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
-        listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, parent_perfmon_collection, interruptor);
+        listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, &region_perfmon_collection, interruptor);
         replier_t<protocol_t> replier(&listener);
         master_t<protocol_t> master(mailbox_manager, ack_checker, &master_directory, &master_directory_lock, region, &broadcaster);
 

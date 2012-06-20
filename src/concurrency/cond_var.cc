@@ -26,12 +26,12 @@ void one_waiter_cond_t::pulse() {
     if (waiter_) {
         coro_t *tmp = waiter_;
         waiter_ = NULL;
-        tmp->notify_now();
+        tmp->notify_now_deprecated();
         // we might be destroyed here
     }
 }
 
-void one_waiter_cond_t::wait_eagerly() {
+void one_waiter_cond_t::wait_eagerly_deprecated() {
     rassert(!waiter_);
     if (!pulsed_) {
         waiter_ = coro_t::self();

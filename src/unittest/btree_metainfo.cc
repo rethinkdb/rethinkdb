@@ -53,11 +53,11 @@ void run_metainfo_test() {
     cache_t::create(&serializer, &cache_static_config);
 
     mirrored_cache_config_t cache_dynamic_config;
-    cache_t cache(&serializer, &cache_dynamic_config, NULL);
+    cache_t cache(&serializer, &cache_dynamic_config, &get_global_perfmon_collection());
 
     btree_slice_t::create(&cache);
 
-    btree_slice_t btree(&cache, NULL);
+    btree_slice_t btree(&cache, &get_global_perfmon_collection());
 
     order_source_t order_source;
 
