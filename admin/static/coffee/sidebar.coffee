@@ -13,15 +13,14 @@ module 'Sidebar', ->
             @connectivity_status = new Sidebar.ConnectivityStatus()
             @issues = new Sidebar.Issues()
 
-            @reset_log_entries()
-            recent_log_entries.on 'reset', =>
-                @reset_log_entries()
-                @render()
+            #@reset_log_entries()
+            recent_log_entries.on 'reset', @render
 
             # Render when roude changes
             window.app.on 'all', @render
 
         render: (route) =>
+            @.$('.recent-log-entries').html ''
             @.$el.html @template({})
 
             # Render connectivity status
@@ -30,20 +29,12 @@ module 'Sidebar', ->
 
             # Render issue summary
             @.$('.issues').html @issues.render().el
-
+            
             # Render each event view and add it to the list of recent events
-            for view in @recent_log_entries
+            for view in recent_log_entries_view
                 @.$('.recent-log-entries').append view.render().el
-
             return @
 
-        reset_log_entries: =>
-            # Wipe out any existing recent log entry views
-            @recent_log_entries = []
-
-            # Add an log view for the most recent log entries
-            for log_entry in recent_log_entries.models[0...@max_recent_log_entries]
-                @recent_log_entries.push new Sidebar.RecentLogEntry model: log_entry
 
     # Sidebar.ClientConnectionStatus
     class @ClientConnectionStatus extends Backbone.View
