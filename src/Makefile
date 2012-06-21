@@ -94,12 +94,12 @@ CXX:=icc
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lcurl -lv8
 else ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lcurl
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lcurl -lv8
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lcurl -lv8
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
