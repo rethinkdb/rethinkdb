@@ -232,7 +232,7 @@ void debugf_prefix_buf(printf_buffer_t<1000> *buf) {
 }
 
 void debugf_dump_buf(printf_buffer_t<1000> *buf) {
-   // Writing a single buffer in one shot like this makes it less
+    // Writing a single buffer in one shot like this makes it less
     // likely that stderr debugfs and stdout printfs get mixed
     // together, and probably makes it faster too.  (We can't simply
     // flockfile both stderr and stdout because there's no established

@@ -58,7 +58,9 @@ public:
         return p_ != NULL;
     }
 
-    struct hidden_t { private: hidden_t(); };
+    class hidden_t {
+        hidden_t();
+    };
     typedef void booleanesque_t(hidden_t);
 
     operator booleanesque_t*() const {

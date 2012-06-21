@@ -288,9 +288,9 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, T& data_m
 
         if (!i->second.get().name.in_conflict()) {
             info->name = i->second.get().name.get();
-            name_map.insert(std::make_pair<std::string, metadata_info_t*>(info->name, info));
+            name_map.insert(std::pair<std::string, metadata_info_t*>(info->name, info));
         }
-        uuid_map.insert(std::make_pair<std::string, metadata_info_t*>(uuid_str, info));
+        uuid_map.insert(std::pair<std::string, metadata_info_t*>(uuid_str, info));
     }
 }
 
@@ -2205,8 +2205,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
             dc->second.get_mutable().name.in_conflict() ||
             dc->second.get_mutable().name.get().empty()) {
             printf("primary datacenter %s\n", uuid_to_str(ns.primary_datacenter.get()).c_str());
-        }
-        else {
+        } else {
             printf("primary datacenter '%s' %s\n", dc->second.get_mutable().name.get().c_str(), uuid_to_str(ns.primary_datacenter.get()).c_str());
         }
     } else {

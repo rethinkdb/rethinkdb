@@ -1,5 +1,5 @@
-#ifndef TIMESTAMP_HPP_
-#define TIMESTAMP_HPP_
+#ifndef REPLI_TIMESTAMP_HPP_
+#define REPLI_TIMESTAMP_HPP_
 
 #include <stdint.h>
 
@@ -40,4 +40,4 @@ repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y);
 
 void debug_print(append_only_printf_buffer_t *buf, repli_timestamp_t tstamp);
 
-#endif  // TIMESTAMP_HPP_
+#endif  // REPLI_TIMESTAMP_HPP_

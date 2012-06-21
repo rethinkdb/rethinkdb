@@ -1,5 +1,5 @@
-#ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_
-#define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_
+#ifndef HASH_REGION_HPP_
+#define HASH_REGION_HPP_
 
 
 // TODO: Find a good location for this file.
@@ -227,4 +227,4 @@ void debug_print(append_only_printf_buffer_t *buf, const hash_region_t<inner_reg
     buf->appendf("}");
 }
 
-#endif  // CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_HASH_REGION_HPP_
+#endif  // HASH_REGION_HPP_

@@ -148,7 +148,7 @@ public:
     bool should_backfill(const typename protocol_t::store_t::metainfo_t &metainfo) {
         combined_metainfo_.update(metainfo);
 
-        -- countdown_;
+        --countdown_;
         rassert(countdown_ >= 0, "countdown_ is %d\n", countdown_);
 
         if (countdown_ == 0) {

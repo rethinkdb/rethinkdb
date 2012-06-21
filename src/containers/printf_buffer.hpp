@@ -148,7 +148,7 @@ void printf_buffer_t<N>::vappendf(const char *format, va_list ap) {
 
         char tmp[1];
 
-        int size = vsnprintf(tmp, 1, format, ap);
+        int size = vsnprintf(tmp, sizeof(tmp), format, ap);
         rassert(size >= 0, "vsnprintf failed, bad format string?");
 
         int64_t alloc_limit = round_up_to_power_of_two(length_ + 1);

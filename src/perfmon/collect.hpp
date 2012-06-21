@@ -8,4 +8,4 @@ into the given perfmon_result_t object. It must be run in a coroutine and it blo
 until it is done. */
 void perfmon_get_stats(perfmon_result_t *dest);
 
-#endif
+#endif  // PERFMON_COLLECT_HPP_

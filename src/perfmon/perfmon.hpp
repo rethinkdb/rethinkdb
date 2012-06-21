@@ -4,8 +4,8 @@
  * place but also depend on a significant chunk of our threading infrastructure
  * (by way of get_thread_id() & co).
  */
-#ifndef PERFMON_HPP_
-#define PERFMON_HPP_
+#ifndef PERFMON_PERFMON_HPP_
+#define PERFMON_PERFMON_HPP_
 
 #include <limits>
 #include <string>
@@ -291,4 +291,4 @@ struct block_pm_duration {
     }
 };
 
-#endif /* PERFMON_HPP_ */
+#endif /* PERFMON_PERFMON_HPP_ */

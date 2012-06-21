@@ -1,5 +1,5 @@
-#ifndef PERFMON_ARCHIVE_HPP_
-#define PERFMON_ARCHIVE_HPP_
+#ifndef PERFMON_PERFMON_ARCHIVE_HPP_
+#define PERFMON_PERFMON_ARCHIVE_HPP_
 
 #include "perfmon/perfmon.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -81,4 +81,4 @@ inline archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
     return ARCHIVE_SUCCESS;
 }
 
-#endif /* PERFMON_ARCHIVE_HPP_ */
+#endif /* PERFMON_PERFMON_ARCHIVE_HPP_ */

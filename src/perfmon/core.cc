@@ -188,7 +188,7 @@ void perfmon_result_t::reset_type(perfmon_result_type_t new_type) {
     type = new_type;
 }
 
-std::pair<perfmon_result_t::iterator,bool> perfmon_result_t::insert(const std::string &name, perfmon_result_t *val) {
+std::pair<perfmon_result_t::iterator, bool> perfmon_result_t::insert(const std::string &name, perfmon_result_t *val) {
     std::string s(name);
     perfmon_result_t::internal_map_t *map = get_map();
     rassert(map->count(name) == 0);
