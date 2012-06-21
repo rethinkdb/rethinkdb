@@ -308,7 +308,7 @@ struct new_and_metainfo_checker_t {
     const metainfo_checker_t<protocol_t> &metainfo_checker;
     new_and_metainfo_checker_t(const metainfo_checker_t<protocol_t> &_metainfo_checker,
                                const typename protocol_t::store_t::metainfo_t &_new_metainfo)
-        : metainfo_checker(_metainfo_checker), new_metainfo(_new_metainfo) { }
+        : new_metainfo(_new_metainfo), metainfo_checker(_metainfo_checker) { }
 #else
     explicit new_and_metainfo_checker_t(const typename protocol_t::store_t::metainfo_t &_new_metainfo)
         : new_metainfo(_new_metainfo) { }
