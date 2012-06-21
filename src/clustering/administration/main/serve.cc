@@ -132,7 +132,7 @@ bool serve_(
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
     const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file,
     const std::set<peer_address_t> &joins,
-    int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,)
+    int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, )
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
     std::string web_assets, signal_t *stop_cond)
 {
@@ -268,14 +268,14 @@ bool serve_(
     parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
         &mailbox_manager,
         metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-        DEBUG_ONLY(port_offset,)
+        DEBUG_ONLY(port_offset, )
         &dummy_namespace_repo,
         &perfmon_repo);
 
     parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
         &mailbox_manager,
         metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-        DEBUG_ONLY(port_offset,)
+        DEBUG_ONLY(port_offset, )
         &memcached_namespace_repo,
         &perfmon_repo);
 
@@ -315,12 +315,12 @@ bool serve_(
     return true;
 }
 
-bool serve(const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve(const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, ) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     std::string logfilepath = filepath + "/log_file";
-    return serve_(true, logfilepath, filepath, persistent_file, joins, port, client_port, http_port, DEBUG_ONLY(port_offset,) machine_id, semilattice_metadata, web_assets, stop_cond);
+    return serve_(true, logfilepath, filepath, persistent_file, joins, port, client_port, http_port, DEBUG_ONLY(port_offset, ) machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
-bool serve_proxy(const std::string &logfilepath, const std::set<peer_address_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve_proxy(const std::string &logfilepath, const std::set<peer_address_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, ) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return serve_(false, logfilepath, "", NULL, joins, port, client_port, http_port, DEBUG_ONLY(port_offset,) machine_id, semilattice_metadata, web_assets, stop_cond);
+    return serve_(false, logfilepath, "", NULL, joins, port, client_port, http_port, DEBUG_ONLY(port_offset, ) machine_id, semilattice_metadata, web_assets, stop_cond);
 }
