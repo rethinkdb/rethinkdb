@@ -76,7 +76,7 @@ int send_job(write_stream_t *stream, const instance_t &job) {
     const job_func_t funcptr = &garbage::job_runner;
     msg.append(&funcptr, sizeof funcptr);
 
-    // We send the job over as well; job_runner will deserialize us.
+    // We send the job over as well; job_runner will deserialize it.
     msg << job;
 
     return send_write_message(stream, &msg);
