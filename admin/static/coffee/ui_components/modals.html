@@ -22,12 +22,19 @@
 </script>
 
 <!-- Template for the confirmation dialog -->
-<script id="confirmation_dialog-template" type="text/x-handlebars-template">
+<script id="confirmation_dialog-template" type="text/x-handlebars-template"> 
+  <div class="alert alert-error error_answer"></div>
   <h2>{{message}}</h2>
+</script>
+
+<!-- Template in case of ajax error -->
+<script id="fail_ajax_request-template" type="text/x-handlebars-template">
+    Sorry, something went wrong with the ajax request. Please try again.
 </script>
 
 <!-- Template for the rename item dialog -->
 <script id="rename_item-modal-template" type="text/x-handlebars-template">
+  <div class="alert alert-error error_answer"></div>
   <form class="form">
     <fieldset>
       <legend>Rename {{capitalize type}} from {{old_name}} to:</legend>

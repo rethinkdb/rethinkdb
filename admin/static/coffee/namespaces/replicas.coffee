@@ -242,6 +242,7 @@ module 'NamespaceView', ->
                     replica_affinities: replica_affinities_to_send
                     ack_expectations: ack_expectations_to_send
                 success: @on_success
+                error: @on_error
 
         on_success: (response) =>
             super
