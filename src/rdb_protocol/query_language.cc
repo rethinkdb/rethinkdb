@@ -421,6 +421,7 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
             crash("unreachable");
             break;
     }
+    crash("unreachable");
 }
 
 function_t get_type(const Builtin &b, variable_type_scope_t *) {

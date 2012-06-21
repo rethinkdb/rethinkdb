@@ -4,6 +4,7 @@
 
 #include "utils.hpp"
 
+#include "rdb_protocol/query_language.pb.h"
 
 namespace rdb_protocol {
 

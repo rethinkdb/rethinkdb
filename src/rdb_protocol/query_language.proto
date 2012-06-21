@@ -72,6 +72,7 @@ message Term {
 
     optional View view_as_stream = 13;
 
+
     message GetByKey {
         required TableRef table_ref = 1;
         required string attrname = 2;
@@ -123,62 +124,64 @@ message Builtin {
 
     repeated string attrs = 3; //used if type is PICKATTRS
 
+    optional Comparison comparsion = 4;
+
     message Filter {
         required Predicate predicate = 1;
     };
 
-    optional Filter filter = 4;
+    optional Filter filter = 5;
 
     message Map {
         required Mapping mapping = 1;
     };
 
-    optional Map map = 5;
+    optional Map map = 6;
 
     message ConcatMap {
         required Mapping mapping = 1;
     };
 
-    optional ConcatMap concat_map = 6;
+    optional ConcatMap concat_map = 7;
 
     message OrderBy {
         required OrderDirection order_direction = 1;
         required Mapping mapping = 2;
     };
 
-    optional OrderBy order_by = 7;
+    optional OrderBy order_by = 8;
 
     message Distinct {
         required Mapping mapping = 1;
     };
 
-    optional Distinct distinct = 8;
+    optional Distinct distinct = 9;
 
     message Limit {
         required  int32 limit = 1;
     }
 
-    optional Limit limit = 9;
+    optional Limit limit = 10;
 
     message Reduce {
         required Reduction reduction = 1;
     };
 
-    optional Reduce reduce = 10;
+    optional Reduce reduce = 11;
 
     message GroupedMapReduce {
         required Mapping group_mapping = 1;
         required MapReduce map_reduce = 2;
     };
 
-    optional GroupedMapReduce grouped_map_reduce = 11;
+    optional GroupedMapReduce grouped_map_reduce = 12;
 
     message MapReduce {
         required Mapping change_mapping = 1;
         required Reduction reduction = 2;
     };
 
-    optional MapReduce map_reduce = 12;
+    optional MapReduce map_reduce = 13;
 };
 
 enum Comparison {
@@ -330,3 +333,25 @@ message WriteQuery {
 
     optional PointMutate point_mutate = 10;
 };
+
+message Query {
+    enum QueryType {
+        READ = 1;
+        WRITE = 2;
+    }
+
+    required QueryType type = 1;
+
+    required int64 token = 2;
+
+    optional ReadQuery read_query = 3;
+    optional WriteQuery write_query = 4;
+}
+
+message Response {
+    required int32 statuscode = 1;
+
+    required int64 token = 2;
+
+    repeated string response = 3;
+}
