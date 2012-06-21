@@ -57,8 +57,6 @@ public:
         std::vector<int> indices;
         std::vector<typename protocol_t::backfill_chunk_t> sharded_chunks;
 
-        debugf_print("apply_backfill_chunk with", chunk);
-
         typename protocol_t::region_t chunk_region = chunk.get_region();
 
         for (int i = 0; i < num_stores; ++i) {
@@ -166,7 +164,6 @@ void backfillee(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
-    debugf_print("constructing backfillee with backfill_session_id", backfill_session_id);
     rassert(region_is_superset(svs->get_multistore_joined_region(), region));
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 

@@ -352,8 +352,6 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
                                     int num_stores_assertion,
                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
-    debugf_print("applying write", write);
-
     guarantee(num_stores() == num_stores_assertion);
     std::vector<typename protocol_t::write_response_t> responses;
     new_and_metainfo_checker_t<protocol_t> metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo);
