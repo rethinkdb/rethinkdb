@@ -70,7 +70,7 @@ uint16_t leaf_insert_patch_t::get_data_size() const {
 
 void leaf_insert_patch_t::apply_to_buf(char *buf_data, block_size_t bs) {
     leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
-    DETEMPLATIZE_LEAF_NODE_OP(leaf::insert, leaf_node, bs, leaf_node, insertion_time, key.btree_key(), value_buf.get(), insertion_time, key_modification_proof_t::real_proof());
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::insert, leaf_node, bs, leaf_node, key.btree_key(), value_buf.get(), insertion_time, key_modification_proof_t::real_proof());
 }
 
 
@@ -115,7 +115,7 @@ uint16_t leaf_remove_patch_t::get_data_size() const {
 
 void leaf_remove_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
     leaf_node_t *leaf_node = reinterpret_cast<leaf_node_t *>(buf_data);
-    DETEMPLATIZE_LEAF_NODE_OP(leaf::remove, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), timestamp, key.btree_key(), timestamp, key_modification_proof_t::real_proof());
+    DETEMPLATIZE_LEAF_NODE_OP(leaf::remove, leaf_node, bs, reinterpret_cast<leaf_node_t *>(buf_data), key.btree_key(), timestamp, key_modification_proof_t::real_proof());
 }
 
 

@@ -124,9 +124,9 @@ bool find_key(const leaf_node_t *node, const btree_key_t *key, int *index_out);
 
 bool lookup(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_key_t *key, void *value_out);
 
-void insert(value_sizer_t<void> *sizer, leaf_node_t *node, repli_timestamp_t node_timestamp, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof);
+void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof);
 
-void remove(value_sizer_t<void> *sizer, leaf_node_t *node, repli_timestamp_t node_timestamp, const btree_key_t *key, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
+void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, key_modification_proof_t km_proof);
 
 void erase_presence(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
 

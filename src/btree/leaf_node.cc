@@ -1150,16 +1150,9 @@ void assert_not_old_timestamp(DEBUG_ONLY_VAR leaf_node_t *node, DEBUG_ONLY_VAR r
 
 // Inserts a key/value pair into the node.  Hopefully you've already
 // cleaned up the old value, if there is one.
-void insert(value_sizer_t<void> *sizer, leaf_node_t *node, repli_timestamp_t node_timestamp, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+void insert(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, const void *value, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     rassert(!is_full(sizer, node, key, value));
     rassert(!km_proof.is_fake());
-
-    // TODO: Make node_timestamp not need to be passed and this not
-    // need to happen.  This might involve not having multiple shards
-    // share the same btree.
-    if (tstamp < node_timestamp) {
-        tstamp = node_timestamp;
-    }
 
     assert_not_old_timestamp(node, tstamp, key);
 
@@ -1214,15 +1207,8 @@ void insert(value_sizer_t<void> *sizer, leaf_node_t *node, repli_timestamp_t nod
 // This asserts that the key is in the node.  TODO: This means we're
 // already sure the key is in the node, which means we're doing an
 // unnecessary binary search.
-void remove(value_sizer_t<void> *sizer, leaf_node_t *node, repli_timestamp_t node_tstamp, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
+void remove(value_sizer_t<void> *sizer, leaf_node_t *node, const btree_key_t *key, repli_timestamp_t tstamp, UNUSED key_modification_proof_t km_proof) {
     rassert(!km_proof.is_fake());
-
-    // TODO: Sigh.  Figure out how to remove the node_tstamp
-    // parameter.  This probably involves making separate shards _not_
-    // share the same btree.
-    if (tstamp < node_tstamp) {
-        tstamp = node_tstamp;
-    }
 
     assert_not_old_timestamp(node, tstamp, key);
 
