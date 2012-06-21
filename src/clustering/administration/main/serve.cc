@@ -34,7 +34,7 @@
 template <class protocol_t>
 class file_based_svs_by_namespace_t : public svs_by_namespace_t<protocol_t> {
 public:
-    file_based_svs_by_namespace_t(const std::string &file_path) : file_path_(file_path) { }
+    explicit file_based_svs_by_namespace_t(const std::string &file_path) : file_path_(file_path) { }
 
     void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
                  boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > *stores_out,

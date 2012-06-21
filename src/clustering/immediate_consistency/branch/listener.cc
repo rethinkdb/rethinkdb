@@ -17,7 +17,7 @@
 template <class protocol_t>
 struct version_leq_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
 public:
-    version_leq_metainfo_checker_callback_t(const state_timestamp_t& tstamp) : tstamp_(tstamp) { }
+    explicit version_leq_metainfo_checker_callback_t(const state_timestamp_t& tstamp) : tstamp_(tstamp) { }
 
     void check_metainfo(const region_map_t<protocol_t, binary_blob_t>& metainfo, const typename protocol_t::region_t& region) const {
         region_map_t<protocol_t, binary_blob_t> masked = metainfo.mask(region);

@@ -257,6 +257,8 @@ void debugf(const char *msg, ...) {
     debugf_dump_buf(&buf);
 }
 
+#endif
+
 void debug_print(append_only_printf_buffer_t *buf, uint64_t x) {
     buf->appendf("%" PRIu64, x);
 }
@@ -265,8 +267,6 @@ void debug_print(append_only_printf_buffer_t *buf, const std::string& s) {
     const char *data = s.data();
     debug_print_quoted_string(buf, reinterpret_cast<const uint8_t *>(data), s.size());
 }
-
-#endif
 
 rng_t::rng_t( UNUSED int seed) {
     memset(&buffer_, 0, sizeof(buffer_));

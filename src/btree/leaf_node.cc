@@ -1137,7 +1137,7 @@ bool lookup(value_sizer_t<void> *sizer, const leaf_node_t *node, const btree_key
     return false;
 }
 
-void assert_not_old_timestamp(DEBUG_ONLY_VAR leaf_node_t *node, DEBUG_ONLY_VAR repli_timestamp_t tstamp, const btree_key_t *key) {
+void assert_not_old_timestamp(DEBUG_ONLY_VAR leaf_node_t *node, DEBUG_ONLY_VAR repli_timestamp_t tstamp, DEBUG_ONLY_VAR const btree_key_t *key) {
 #ifndef NDEBUG
     if (node->num_pairs > 0 && node->frontmost < node->tstamp_cutpoint) {
         repli_timestamp_t old_tstamp = get_timestamp(node, node->frontmost);

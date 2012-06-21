@@ -32,7 +32,7 @@ private:
 
 struct admin_retry_exc_t : public std::exception {
 public:
-    explicit admin_retry_exc_t() { }
+    admin_retry_exc_t() { }
     ~admin_retry_exc_t() throw () { }
     const char *what() const throw () { return "metadata update to peer was rejected, try again"; }
 };

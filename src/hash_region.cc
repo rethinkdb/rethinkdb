@@ -58,7 +58,7 @@ const store_key_t *double_key_lookup(int i, const std::vector<hash_region_t<key_
 
 class hash_splitpoint_comparer_t {
 public:
-    hash_splitpoint_comparer_t(const std::vector< hash_region_t<key_range_t> > *vec) : vec_(vec) { }
+    explicit hash_splitpoint_comparer_t(const std::vector< hash_region_t<key_range_t> > *vec) : vec_(vec) { }
 
     int compare(int i, int j) {
         uint64_t ival = double_hash_lookup(i, *vec_);
@@ -74,7 +74,7 @@ public: // TODO
 
 class key_splitpoint_comparer_t {
 public:
-    key_splitpoint_comparer_t(const std::vector<hash_region_t<key_range_t> > *vec) : vec_(vec) { }
+    explicit key_splitpoint_comparer_t(const std::vector<hash_region_t<key_range_t> > *vec) : vec_(vec) { }
 
     int compare(int i, int j) {
         // debugf("compare %d %d\n", i, j);
@@ -115,7 +115,7 @@ public:  // TODO
 template <class comparer_type>
 class splitpoint_less_t {
 public:
-    splitpoint_less_t(const std::vector<hash_region_t<key_range_t> > *vec) : comparer_(vec) { }
+    explicit splitpoint_less_t(const std::vector<hash_region_t<key_range_t> > *vec) : comparer_(vec) { }
 
     bool operator()(int i, int j) {
         bool ret = comparer_.compare(i, j) < 0;
@@ -132,7 +132,7 @@ private:
 template <class comparer_type>
 class splitpoint_equal_t {
 public:
-    splitpoint_equal_t(const std::vector<hash_region_t<key_range_t> > *vec) : comparer_(vec) { }
+    explicit splitpoint_equal_t(const std::vector<hash_region_t<key_range_t> > *vec) : comparer_(vec) { }
 
     bool operator()(int i, int j) {
         return comparer_.compare(i, j) == 0;

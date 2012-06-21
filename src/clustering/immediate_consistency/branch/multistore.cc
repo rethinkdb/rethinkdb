@@ -303,11 +303,16 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_
 // Because boost::bind only takes 10 arguments.
 template <class protocol_t>
 struct new_and_metainfo_checker_t {
-    DEBUG_ONLY(const metainfo_checker_t<protocol_t> &metainfo_checker;)
     const typename protocol_t::store_t::metainfo_t &new_metainfo;
-    new_and_metainfo_checker_t(DEBUG_ONLY(const metainfo_checker_t<protocol_t> &_metainfo_checker, )
+#ifndef NDEBUG
+    const metainfo_checker_t<protocol_t> &metainfo_checker;
+    new_and_metainfo_checker_t(const metainfo_checker_t<protocol_t> &_metainfo_checker,
                                const typename protocol_t::store_t::metainfo_t &_new_metainfo)
-        : DEBUG_ONLY(metainfo_checker(_metainfo_checker), ) new_metainfo(_new_metainfo) { }
+        : metainfo_checker(_metainfo_checker), new_metainfo(_new_metainfo) { }
+#else
+    explicit new_and_metainfo_checker_t(const typename protocol_t::store_t::metainfo_t &_new_metainfo)
+        : new_metainfo(_new_metainfo) { }
+#endif
 };
 
 template <class protocol_t>

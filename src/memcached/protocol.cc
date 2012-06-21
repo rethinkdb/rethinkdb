@@ -357,7 +357,7 @@ memcached_protocol_t::region_t memcached_protocol_t::backfill_chunk_t::get_regio
 
 struct backfill_chunk_shard_visitor_t : public boost::static_visitor<memcached_protocol_t::backfill_chunk_t> {
 public:
-    backfill_chunk_shard_visitor_t(const memcached_protocol_t::region_t &_region) : region(_region) { }
+    explicit backfill_chunk_shard_visitor_t(const memcached_protocol_t::region_t &_region) : region(_region) { }
     memcached_protocol_t::backfill_chunk_t operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t &del) {
         memcached_protocol_t::backfill_chunk_t ret(del);
         rassert(region_is_superset(region, ret.get_region()));
@@ -953,7 +953,7 @@ void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metain
 
 class memcached_write_debug_print_visitor_t : public boost::static_visitor<void> {
 public:
-    memcached_write_debug_print_visitor_t(append_only_printf_buffer_t *buf) : buf_(buf) { }
+    explicit memcached_write_debug_print_visitor_t(append_only_printf_buffer_t *buf) : buf_(buf) { }
 
     void operator()(const get_cas_mutation_t& mut) {
         debug_print(buf_, mut);
@@ -1031,7 +1031,7 @@ void debug_print(append_only_printf_buffer_t *buf, const append_prepend_mutation
 
 class generic_debug_print_visitor_t : public boost::static_visitor<void> {
 public:
-    generic_debug_print_visitor_t(append_only_printf_buffer_t *buf) : buf_(buf) { }
+    explicit generic_debug_print_visitor_t(append_only_printf_buffer_t *buf) : buf_(buf) { }
 
     template <class T>
     void operator()(const T& x) {
