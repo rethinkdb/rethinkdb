@@ -382,8 +382,6 @@ memcached_protocol_t::backfill_chunk_t memcached_protocol_t::backfill_chunk_t::s
     return boost::apply_visitor(v, val);
 }
 
-
-
 hash_region_t<key_range_t> memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
     rassert(subregion_number >= 0);
     rassert(subregion_number < num_cpu_shards);
@@ -397,25 +395,22 @@ hash_region_t<key_range_t> memcached_protocol_t::cpu_sharding_subspace(int subre
     return hash_region_t<key_range_t>(beg, end, key_range_t::universe());
 }
 
-
-
-
 memcached_protocol_t::store_t::store_t(const std::string& filename, bool create, perfmon_collection_t *_perfmon_collection)
     : store_view_t<memcached_protocol_t>(hash_region_t<key_range_t>::universe()),
-      perfmon_collection(_perfmon_collection) {
+      perfmon_collection(filename, _perfmon_collection, true, true) {
     if (create) {
         standard_serializer_t::create(
             standard_serializer_t::dynamic_config_t(),
             standard_serializer_t::private_dynamic_config_t(filename),
             standard_serializer_t::static_config_t(),
-            perfmon_collection
+            &perfmon_collection
             );
     }
 
     serializer.reset(new standard_serializer_t(
         standard_serializer_t::dynamic_config_t(),
         standard_serializer_t::private_dynamic_config_t(filename),
-        perfmon_collection
+        &perfmon_collection
         ));
 
     if (create) {
@@ -425,13 +420,13 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create,
 
     cache_dynamic_config.max_size = GIGABYTE;
     cache_dynamic_config.max_dirty_size = GIGABYTE / 2;
-    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, perfmon_collection));
+    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, &perfmon_collection));
 
     if (create) {
         btree_slice_t::create(cache.get());
     }
 
-    btree.reset(new btree_slice_t(cache.get(), perfmon_collection));
+    btree.reset(new btree_slice_t(cache.get(), &perfmon_collection));
 
     if (create) {
         // Initialize metainfo to an empty `binary_blob_t` because its domain is

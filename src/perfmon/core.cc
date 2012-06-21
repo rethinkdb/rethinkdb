@@ -126,6 +126,7 @@ void perfmon_result_t::clear_map() {
     for (perfmon_result_t::internal_map_t::iterator it = map_.begin(); it != map_.end(); ++it) {
         delete it->second;
     }
+    map_.clear();
 }
 
 perfmon_result_t perfmon_result_t::make_string() {
