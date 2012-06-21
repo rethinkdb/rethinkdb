@@ -58,7 +58,6 @@ class blocking_fd_watcher_t : public fd_watcher_t {
 
   private:
     bool read_open_, write_open_;
-    DISABLE_COPYING(blocking_fd_watcher_t);
 };
 
 /* linux_event_fd_watcher_t uses a linux_event_watcher to wait for IO, and makes
@@ -153,9 +152,6 @@ class socket_stream_t : public fd_stream_t {
     virtual void on_write_error(int errno_);
     virtual void do_shutdown_read();
     virtual void do_shutdown_write();
-
-  private:
-    DISABLE_COPYING(socket_stream_t);
 };
 
 class unix_socket_stream_t : public socket_stream_t {
@@ -174,9 +170,6 @@ class unix_socket_stream_t : public socket_stream_t {
     // Blocks until all fds are received.
     MUST_USE archive_result_t recv_fds(int64_t num_fds, fd_t *fds);
     MUST_USE archive_result_t recv_fd(fd_t *fd);
-
-  private:
-    DISABLE_COPYING(unix_socket_stream_t);
 };
 
 #endif  // CONTAINERS_ARCHIVE_FD_STREAM_HPP_
