@@ -2,7 +2,7 @@ import rethinkdb as r
 import unittest
 import query_language_pb2 as p
 
-class TestTable(unittest.TestCase):
+class TestTableRef(unittest.TestCase):
     # Shared db ref, ast
     def setUp(self):
         # A database object
@@ -13,7 +13,8 @@ class TestTable(unittest.TestCase):
         self.ast.db_name = self.db.ast
         self.ast.table_name = 'table_name'
     
-    # Grabbing a table reference (the following tests are equivalent)
+    # Grabbing a table reference (the following tests should produce
+    # equivalent ASTs)
     def test_table_ref_attr(self):
         t = self.db.table_name
         assertEqual(t.ast, self.ast)
