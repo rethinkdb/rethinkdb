@@ -214,13 +214,15 @@ int64_t fd_stream_t::write(const void *buf, int64_t size) {
 void fd_stream_t::shutdown_read() {
     assert_thread();
     do_shutdown_read();
-    fd_watcher_->on_shutdown_read();
+    if (fd_watcher_->is_read_open())
+        fd_watcher_->on_shutdown_read();
 }
 
 void fd_stream_t::shutdown_write() {
     assert_thread();
     do_shutdown_write();
-    fd_watcher_->on_shutdown_write();
+    if (fd_watcher_->is_write_open())
+        fd_watcher_->on_shutdown_write();
 }
 
 void fd_stream_t::on_event(int events) {

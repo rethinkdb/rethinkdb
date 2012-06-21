@@ -131,6 +131,7 @@ class fd_stream_t :
     virtual void on_write_error(int errsv) = 0;
 
     // Must be overriden to determine how we perform a {read,write} shutdown.
+    // Should be idempotent (once called, further calls do nothing).
     virtual void do_shutdown_read() = 0;
     virtual void do_shutdown_write() = 0;
 
