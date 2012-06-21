@@ -7,7 +7,6 @@
 
 #include <map>
 #include <stdexcept>
-#include <iostream>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
