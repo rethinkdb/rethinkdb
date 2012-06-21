@@ -219,7 +219,7 @@ function collect_server_data_once(optional_callback) {
 
 function collect_server_data(optional_callback) {
     collect_server_data_once(optional_callback)
-    setTimeout(collect_server_data_once, updateInterval) // The callback are used just once.
+    setTimeout(collect_server_data, updateInterval) // The callback are used just once.
 }`
 
 
