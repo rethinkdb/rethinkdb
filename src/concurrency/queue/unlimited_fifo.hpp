@@ -33,7 +33,7 @@ struct unlimited_fifo_queue_t : public passive_producer_t<value_t> {
           counter(NULL)
     { }
 
-    unlimited_fifo_queue_t(perfmon_counter_t *_counter)
+    explicit unlimited_fifo_queue_t(perfmon_counter_t *_counter)
         : passive_producer_t<value_t>(&available_control),
           counter(_counter)
     { }

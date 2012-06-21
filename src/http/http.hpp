@@ -90,7 +90,7 @@ struct http_res_t {
 
     http_res_t();
     explicit http_res_t(int rescode);
-    explicit http_res_t(int rescode, const std::string & body_type, const std::string& body_text);
+    http_res_t(int rescode, const std::string & body_type, const std::string& body_text);
     void add_last_modified(int);
 };
 

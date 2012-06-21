@@ -45,7 +45,7 @@ key_range_t read_t::get_region() const THROWS_NOTHING {
 /* read_t::shard implementation */
 
 struct r_shard_visitor : public boost::static_visitor<read_t> {
-    r_shard_visitor(const key_range_t &_key_range)
+    explicit r_shard_visitor(const key_range_t &_key_range)
         : key_range(_key_range)
     { }
 
@@ -82,7 +82,7 @@ key_range_t write_t::get_region() const THROWS_NOTHING {
 /* write_t::shard implementation */
 
 struct w_shard_visitor : public boost::static_visitor<write_t> {
-    w_shard_visitor(const key_range_t &_key_range)
+    explicit w_shard_visitor(const key_range_t &_key_range)
         : key_range(_key_range)
     { }
 

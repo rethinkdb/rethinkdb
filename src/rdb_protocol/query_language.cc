@@ -411,7 +411,7 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
             return primitive_t(primitive_t::STREAM);
             break;
         case Term::GETBYKEY:
-            if (get_type(t.get_by_key().key(), scope) == type_t(primitive_t::JSON)) {
+            if (get_type(t.get_by_key().key(), scope) == type_t(primitive_t(primitive_t::JSON))) {
                 return primitive_t(primitive_t::JSON);
             } else {
                 return error_t("Key must be a json value.");
@@ -429,145 +429,145 @@ function_t get_type(const Builtin &b, variable_type_scope_t *) {
     switch (b.type()) {
         //JSON -> JSON
         case Builtin::NOT:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::GETATTR:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::HASATTR:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::PICKATTRS:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::MAPMERGE:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::ARRAYCONS:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::ARRAYCONCAT:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::ARRAYSLICE:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::ARRAYNTH:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::ARRAYLENGTH:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::ADD:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::SUBTRACT:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::MULTIPLY:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::DIVIDE:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::MODULO:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::COMPARE:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::FILTER:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
 			break;
         case Builtin::MAP:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
 			break;
         case Builtin::CONCATMAP:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
 			break;
         case Builtin::ORDERBY:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
 			break;
         case Builtin::DISTINCT:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
 			break;
         case Builtin::LIMIT:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
 			break;
         case Builtin::LENGTH:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::UNION:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
 			break;
         case Builtin::NTH:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::STREAMTOARRAY:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::ARRAYTOSTREAM:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
 			break;
         case Builtin::REDUCE:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::GROUPEDMAPREDUCE:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::JAVASCRIPT:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
-            res.push_back(type_t(primitive_t::JSON));
-            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
 			break;
         case Builtin::MAPREDUCE:
-            res.push_back(type_t(primitive_t::STREAM));
-            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(type_t(primitive_t(primitive_t::JSON)));
 			break;
         default:
             crash("unreachable");

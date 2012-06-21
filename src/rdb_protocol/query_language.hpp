@@ -44,7 +44,7 @@ struct error_t {
         : desc("Unknown error.")
     { }
 
-    error_t(const std::string &_desc)
+    explicit error_t(const std::string &_desc)
         : desc(_desc)
     { }
 
@@ -62,7 +62,7 @@ struct primitive_t {
         STREAM
     } value;
 
-    primitive_t(primitive_type_t _value)
+    explicit primitive_t(primitive_type_t _value)
         : value(_value)
     { }
 

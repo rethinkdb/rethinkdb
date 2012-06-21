@@ -49,7 +49,7 @@ struct rdb_protocol_t {
     struct point_read_response_t {
         boost::shared_ptr<scoped_cJSON_t> data;
         point_read_response_t() { }
-        point_read_response_t(boost::shared_ptr<scoped_cJSON_t> _data)
+        explicit point_read_response_t(boost::shared_ptr<scoped_cJSON_t> _data)
             : data(_data)
         { }
 
@@ -85,7 +85,7 @@ struct rdb_protocol_t {
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
-        read_t(const point_read_t &r) : read(r) { }
+        explicit read_t(const point_read_t &r) : read(r) { }
 
         RDB_MAKE_ME_SERIALIZABLE_1(read);
     };
@@ -132,7 +132,7 @@ struct rdb_protocol_t {
 
         write_t() { }
         write_t(const write_t& w) : write(w.write) { }
-        write_t(const point_write_t &w) : write(w) { }
+        explicit write_t(const point_write_t &w) : write(w) { }
 
         RDB_MAKE_ME_SERIALIZABLE_1(write);
     };
