@@ -75,7 +75,7 @@ message Term {
     message GetByKey {
         required TableRef table_ref = 1;
         required string attrname = 2;
-        required Term value = 3; 
+        required Term key = 3; 
     };
 
     optional GetByKey get_by_key = 14;

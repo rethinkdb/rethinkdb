@@ -93,7 +93,7 @@ bool is_well_defined(const Term &t) {
         if (t.type() != Term::GETBYKEY) {
             return false;
         } else {
-            CHECK_WELL_DEFINED(t.get_by_key().value());
+            CHECK_WELL_DEFINED(t.get_by_key().key());
         }
     }
 
@@ -320,3 +320,259 @@ bool is_well_defined(const WriteQuery &w) {
 
     return true;
 }
+
+namespace query_language {
+type_t get_type(const Term &t, variable_type_scope_t *scope) {
+    switch (t.type()) {
+        case Term::VAR:
+            return scope->get_type(t.var());
+            break;
+        case Term::LET:
+            {
+                scope->push(); //create a new scope
+                for (int i = 0; i < t.let().binds_size(); ++i) {
+                    scope->put_in_scope(t.let().binds(i).var().var(), get_type(t.let().binds(i).term(), scope));
+                }
+                type_t res = get_type(t.let().expr(), scope);
+                scope->pop();
+                return res;
+                break;
+            }
+        case Term::CALL:
+            {
+                function_t signature = get_type(t.call().builtin(), scope);
+                if (t.call().args_size() + 1 > int(signature.size())) {
+                    return error_t(strprintf("Too many arguments passed to function. Expected %d but got %d", int(signature.size() - 1), t.call().args_size())); //TODO would be nice to have function names attached to errors
+                } else if (t.call().args_size() + 1 < int(signature.size())) {
+                    return error_t(strprintf("Too few  arguments passed to function. Expected %d but got %d", int(signature.size() - 1), t.call().args_size())); //TODO would be nice to have function names attached to errors
+                }
+                for (int i = 0; i < t.call().args_size(); ++i) {
+                    if (get_type(t.call().args(i), scope) == signature.front()) {
+                        rassert(!signature.empty());
+                        signature.pop_front();
+                    } else {
+                        return error_t("Type mismatch in function call\n"); //Need descriptions of types to give a more informative message
+                    }
+                }
+                rassert(signature.size() == 1);
+                return signature.front();
+                break;
+            }
+        case Term::IF:
+            {
+                if (!(get_type(t.if_().test(), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+                    return error_t("Test in an if must be JSON\n");
+                }
+                type_t true_branch  = get_type(t.if_().true_branch(), scope),
+                       false_branch = get_type(t.if_().false_branch(), scope);
+                if (!(true_branch == false_branch)) {
+                    return error_t("Mismatch between true and false branch types.");
+                } else {
+                    return true_branch;
+                }
+                break;
+            }
+        case Term::TRY:
+            {
+                type_t try_type = get_type(t.try_().try_term(), scope);
+                scope->push();
+                scope->put_in_scope(t.try_().var_and_catch_term().var().var(), primitive_t(primitive_t::ERROR));
+                type_t catch_type = get_type(t.try_().var_and_catch_term().term(), scope);
+                scope->pop();
+                if (!(try_type == catch_type)) {
+                    return error_t("Mismatch between try and catch branch types.");
+                } else {
+                    return try_type;
+                }
+                break;
+            }
+        case Term::ERROR:
+            return primitive_t(primitive_t::ERROR);
+            break;
+        case Term::NUMBER:
+            return primitive_t(primitive_t::JSON);
+            break;
+        case Term::STRING:
+            return primitive_t(primitive_t::JSON);
+            break;
+        case Term::BOOL:
+            return primitive_t(primitive_t::JSON);
+            break;
+        case Term::JSON_NULL:
+            return primitive_t(primitive_t::JSON);
+            break;
+        case Term::ARRAY:
+            return primitive_t(primitive_t::JSON);
+            break;
+        case Term::MAP:
+            return primitive_t(primitive_t::JSON);
+            break;
+        case Term::VIEWASSTREAM:
+            return primitive_t(primitive_t::STREAM);
+            break;
+        case Term::GETBYKEY:
+            if (get_type(t.get_by_key().key(), scope) == type_t(primitive_t::JSON)) {
+                return primitive_t(primitive_t::JSON);
+            } else {
+                return error_t("Key must be a json value.");
+            }
+            break;
+        default:
+            crash("unreachable");
+            break;
+    }
+}
+
+function_t get_type(const Builtin &b, variable_type_scope_t *) {
+    function_t res;
+    switch (b.type()) {
+        //JSON -> JSON
+        case Builtin::NOT:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::GETATTR:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::HASATTR:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::PICKATTRS:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::MAPMERGE:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::ARRAYCONS:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::ARRAYCONCAT:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::ARRAYSLICE:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::ARRAYNTH:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::ARRAYLENGTH:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::ADD:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::SUBTRACT:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::MULTIPLY:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::DIVIDE:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::MODULO:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::COMPARE:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::FILTER:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::STREAM));
+			break;
+        case Builtin::MAP:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::STREAM));
+			break;
+        case Builtin::CONCATMAP:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::STREAM));
+			break;
+        case Builtin::ORDERBY:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::STREAM));
+			break;
+        case Builtin::DISTINCT:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::STREAM));
+			break;
+        case Builtin::LIMIT:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::STREAM));
+			break;
+        case Builtin::LENGTH:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::UNION:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::STREAM));
+			break;
+        case Builtin::NTH:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::STREAMTOARRAY:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::ARRAYTOSTREAM:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::STREAM));
+			break;
+        case Builtin::REDUCE:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::GROUPEDMAPREDUCE:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::JAVASCRIPT:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        case Builtin::JAVASCRIPTRETURNINGSTREAM:
+            res.push_back(type_t(primitive_t::JSON));
+            res.push_back(type_t(primitive_t::STREAM));
+			break;
+        case Builtin::MAPREDUCE:
+            res.push_back(type_t(primitive_t::STREAM));
+            res.push_back(type_t(primitive_t::JSON));
+			break;
+        default:
+            crash("unreachable");
+            break;
+    }
+    return res;
+}
+
+} //namespace query_language
