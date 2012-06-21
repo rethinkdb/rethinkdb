@@ -19,109 +19,6 @@ static const char * stat_mean = "mean";
 static const char * stat_std_dev = "std_dev";
 static const char * no_value = "-";
 
-perfmon_result_t::perfmon_result_t() {
-    type = type_value;
-}
-
-perfmon_result_t::perfmon_result_t(const perfmon_result_t &copyee)
-    : type(copyee.type), value_(copyee.value_), map_() {
-    for (internal_map_t::const_iterator it = copyee.map_.begin(); it != copyee.map_.end(); ++it) {
-        perfmon_result_t *subcopy = new perfmon_result_t(*it->second);
-        map_.insert(std::pair<std::string, perfmon_result_t *>(it->first, subcopy));
-    }
-}
-
-perfmon_result_t::perfmon_result_t(const std::string &s) {
-    type = type_value;
-    value_ = s;
-}
-
-perfmon_result_t::perfmon_result_t(const std::map<std::string, perfmon_result_t *> &m) {
-    type = type_map;
-    map_ = m;
-}
-
-perfmon_result_t::~perfmon_result_t() {
-    if (type == type_map) {
-        for (internal_map_t::iterator it = map_.begin(); it != map_.end(); ++it) {
-            delete it->second;
-        }
-    } else {
-        rassert(map_.empty());
-    }
-}
-
-
-/* The var list keeps track of all of the perfmon_t objects. */
-
-perfmon_collection_t &get_global_perfmon_collection() {
-    /* Getter function so that we can be sure that `collection` is initialized
-    before it is needed, as advised by the C++ FAQ. Otherwise, a `perfmon_t`
-    might be initialized before `collection` was initialized. */
-
-    static perfmon_collection_t collection("Global", NULL, false, false);
-    return collection;
-}
-
-// TODO (rntz) remove lock, not necessary with perfmon static initialization restrictions
-
-/* The var lock protects the var list when it is being modified. In theory, this should all work
-automagically because the constructor of every perfmon_t calls get_var_lock(), causing the var lock
-to be constructed before the first perfmon, so it is destroyed after the last perfmon. */
-
-spinlock_t &get_var_lock() {
-    /* To avoid static initialization fiasco */
-
-    static spinlock_t lock;
-    return lock;
-}
-
-/* This is the function that actually gathers the stats. It is illegal to create or destroy
-perfmon_t objects while perfmon_get_stats is active. */
-
-void co_perfmon_visit(int thread, void *data) {
-    on_thread_t moving(thread);
-    get_global_perfmon_collection().visit_stats(data);
-}
-
-void perfmon_get_stats(perfmon_result_t *dest) {
-    void *data;
-
-    data = get_global_perfmon_collection().begin_stats();
-
-    pmap(get_num_threads(), boost::bind(&co_perfmon_visit, _1, data));
-
-    get_global_perfmon_collection().end_stats(data, dest);
-}
-
-/* Constructor and destructor register and deregister the perfmon. */
-
-perfmon_t::perfmon_t(perfmon_collection_t *_parent, bool _insert)
-    : parent(_parent), insert(_insert)
-{
-    if (insert) {
-        // FIXME maybe get rid of this spinlock, especially when parent isn't global
-        // According to jdoliner, you can't just remove this, because that breaks some unit-tests.
-        // This should be investigated.
-        spinlock_acq_t acq(&get_var_lock());
-        if (!parent) {
-            crash("Parent can't be NULL when adding a perfmon to a collection");
-        } else {
-            parent->add(this);
-        }
-    }
-}
-
-perfmon_t::~perfmon_t() {
-    if (insert) {
-        spinlock_acq_t acq(&get_var_lock());
-        if (!parent) {
-            crash("Parent can't be NULL when adding a perfmon to a collection");
-        } else {
-            parent->remove(this);
-        }
-    }
-}
 
 bool global_full_perfmon = false;
 
@@ -297,7 +194,6 @@ stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
     return stddev_t();
 }
 
-
 perfmon_stddev_t::perfmon_stddev_t(const std::string& _name, perfmon_collection_t *parent)
     : perfmon_perthread_t<stddev_t>(parent), name(_name) { }
 
@@ -454,3 +350,4 @@ std::string perfmon_duration_sampler_t::call(UNUSED int argc, UNUSED char **argv
         return "Disabled\n";
     }
 }
+

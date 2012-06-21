@@ -26,7 +26,7 @@
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
 #include "arch/os_signal.hpp"
-#include "perfmon/perfmon.hpp"
+#include "perfmon/collect.hpp"
 #include "memcached/stats.hpp"
 
 static const char *crlf = "\r\n";

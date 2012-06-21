@@ -5,7 +5,7 @@
 
 #include "clustering/administration/stat_manager.hpp"
 #include "concurrency/watchable.hpp"
-#include "perfmon/perfmon.hpp"
+#include "perfmon/collect.hpp"
 #include "perfmon/perfmon_archive.hpp"
 #include "stl_utils.hpp"
 
