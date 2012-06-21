@@ -89,14 +89,6 @@ apply_diffs = (updates) ->
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "dummy"))
             when 'memcached_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "memcached"))
-                ###
-                for id, data of collection_data
-                    if collection_data[id].blueprint? and collection_data[id].blueprint.peers_roles?
-                        for machine_uuid of collection_data[id].blueprint.peers_roles
-                            if !machines.get(machine_uuid)?
-                                delete collection_data[id].blueprint.peers_roles[machine_uuid]
-                ###
-
             when 'datacenters'
                 apply_to_collection(datacenters, collection_data)
             when 'machines'
@@ -141,12 +133,21 @@ set_log_entries = (log_data_from_server) ->
             entry.set('machine_uuid',machine_uuid)
             _m_collection.add entry
             all_log_entries.push entry
-
+    
         _m = machines.get(machine_uuid)
         if _m?
             machines.get(machine_uuid).set('log_entries', _m_collection)
 
-    recent_log_entries.reset(all_log_entries)
+    recent_log_entries_view.length = 0
+    recent_log_entries.reset(all_log_entries, {silent: true})
+    index = 0
+    for log_entry in recent_log_entries.models
+        if index > 4
+            break
+        index++
+        recent_log_entries_view.push new Sidebar.RecentLogEntry model: log_entry
+    recent_log_entries.trigger 'reset'
+    all_log_entries.length = 0 # Clean array
 
 set_stats = (stat_data) ->
     for machine_id, data of stat_data
@@ -158,6 +159,66 @@ collections_ready = ->
     render_body()
     cluster = new BackboneCluster
     Backbone.history.start()
+
+# A helper function to collect data from all of our shitty
+# routes. TODO: somebody fix this in the server for heaven's
+# sakes!!!
+#   - an optional callback can be provided. Currently this callback will only be called after the /ajax route (metadata) is collected
+# To avoid memory leak, we use function declaration (so with pure javascript since coffeescript can't do it)
+`function collect_stat_data() {
+    $.ajax({
+        url: '/ajax/stat',
+        dataType: 'json',
+        success: function(data) {
+            set_stats(data)
+            setTimeout(collect_stat_data, statUpdateInterval)
+        }
+    });
+}`
+
+`function collect_server_data(optional_callback) {
+    $.ajax({
+        url: '/ajax',
+        dataType: 'json',
+        success: function(updates) {
+            if (window.is_disconnected != null) {
+                delete window.is_disconnected
+                window.location.reload(true)
+            }
+            apply_diffs(updates.semilattice)
+            set_issues(updates.issues)
+            set_directory(updates.directory)
+            set_last_seen(updates.last_seen)
+            if (optional_callback) {
+                optional_callback()
+            }
+            
+        },
+        error: function() {
+            if (window.is_disconnected != null) {
+                window.is_disconnected.display_fail()
+            }
+            else {
+                window.is_disconnected = new IsDisconnected
+            }
+        }
+    })
+    
+    $.ajax({
+        url: '/ajax/progress', 
+        dataType: 'json',
+        success: set_progress
+    })
+    
+    $.ajax({
+        url: '/ajax/log/_?max_length=10',
+        dataType: 'json',
+        success: set_log_entries
+    })
+    
+
+    setTimeout(collect_server_data, updateInterval)
+}`
 
 $ ->
     render_loading()
@@ -171,6 +232,9 @@ $ ->
     window.progress_list = new ProgressList
     window.directory = new Directory
     window.recent_log_entries = new LogEntries
+    # We tie recent_log_entries_view to window and not to the sidebar to avoid a memory leak
+    # (we have to clean the views before reseting the collection)
+    window.recent_log_entries_view = [] 
     window.issues_redundancy = new IssuesRedundancy
     window.connection_status = new ConnectionStatus
     window.computed_cluster = new ComputedCluster
@@ -180,36 +244,6 @@ $ ->
     # Load the data bootstrapped from the HTML template
     # reset_collections()
     reset_token()
-
-    # A helper function to collect data from all of our shitty
-    # routes. TODO: somebody fix this in the server for heaven's
-    # sakes!!!
-    #   - an optional callback can be provided. Currently this callback will only be called after the /ajax route (metadata) is collected
-    window.collect_server_data = (optional_callback) =>
-        $.ajax({
-            url: '/ajax'
-            dataType: 'json'
-            success: (updates) ->
-                if window.is_disconnected?
-                    delete window.is_disconnected
-                    window.location.reload(true)
-
-                apply_diffs updates.semilattice
-                set_issues updates.issues
-                set_directory updates.directory
-                set_last_seen updates.last_seen
-                optional_callback() if optional_callback
-            error: ->
-                if window.is_disconnected?
-                    window.is_disconnected.display_fail()
-                else
-                    window.is_disconnected = new IsDisconnected
-        })
-        $.getJSON('/ajax/progress', set_progress)
-        $.getJSON('/ajax/log/_?max_length=10', set_log_entries)
-
-    collect_stat_data = (optional_callback) =>
-        $.getJSON('/ajax/stat', set_stats)
 
     # Override the default Backbone.sync behavior to allow reading diffs
     legacy_sync = Backbone.sync
@@ -236,10 +270,10 @@ $ ->
             triggered[event]+=1
 
     # We need to reload data every updateInterval
-    setInterval (-> Backbone.sync 'read', null), updateInterval
+    #setInterval (-> Backbone.sync 'read', null), updateInterval
     declare_client_connected()
     # Stat update intervanl is different
-    setInterval collect_stat_data, statUpdateInterval
+    #setInterval collect_stat_data, statUpdateInterval
 
     # Populate collection for the first time
     collect_server_data(collections_ready)
