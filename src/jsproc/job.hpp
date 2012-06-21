@@ -42,51 +42,45 @@ class job_t {
   public:
     virtual ~job_t() {}
 
-    // Called on main process side.
-    virtual void send(write_stream_t *stream) = 0;
-    virtual void rdb_serialize(write_message_t &msg) = 0;
-
     // Called on worker process side.
-    virtual archive_result_t rdb_deserialize(read_stream_t *s) = 0;
     virtual void run_job(job_result_t *result, read_stream_t *input, write_stream_t *output) = 0;
 };
 
+// Returns 0 on success, -1 on failure.
 template <typename instance_t>
-class magic_job_t : public job_t {
-  public:
-    // The job_func_t that runs this kind of job.
-    static void job_runner(job_result_t *result, read_stream_t *input, write_stream_t *output) {
-        // Get the job instance.
-        instance_t job;
-        archive_result_t res = deserialize(input, &job);
-        if (res != ARCHIVE_SUCCESS) {
-            result->type = JOB_INITIAL_READ_FAILURE;
-            result->data.archive_result = res;
-            return;
+int send_job(write_stream_t *stream, const instance_t &job) {
+    struct garbage {
+        static void job_runner(job_result_t *result, read_stream_t *input, write_stream_t *output) {
+            // Get the job instance.
+            instance_t job;
+            archive_result_t res = deserialize(input, &job);
+            if (res != ARCHIVE_SUCCESS) {
+                result->type = JOB_INITIAL_READ_FAILURE;
+                result->data.archive_result = res;
+                return;
+            }
+
+            // Run it.
+            job.run_job(result, input, output);
         }
+    };
 
-        // Run it.
-        job.run_job(result, input, output);
-    }
+    write_message_t msg;
 
-    void send(write_stream_t *stream) {
-        write_message_t msg;
+    // This is kind of a hack.
+    //
+    // We send the address of the function that runs the job we want (namely
+    // job_runner). This works only because the address of job_runner is
+    // statically known and the worker processes we are sending to are
+    // fork()s of ourselves, and so have the same address space layout.
+    const job_func_t funcptr = &garbage::job_runner;
+    msg.append(&funcptr, sizeof funcptr);
 
-        // This is kind of a hack.
-        //
-        // We send the address of the function that runs the job we want (namely
-        // job_runner). This works only because the address of job_runner is
-        // statically known and the worker processes we are sending to are
-        // fork()s of ourselves, and so have the same address space layout.
-        const job_func_t funcptr = &job_runner;
-        msg.append(&funcptr, sizeof funcptr);
+    // We send the job over as well; job_runner will deserialize us.
+    msg << job;
 
-        // We send ourselves over as well; run_job will deserialize us.
-        rdb_serialize(msg);
-
-        send_write_message(stream, &msg);
-    }
-};
+    return send_write_message(stream, &msg);
+}
 
 } // namespace jsproc
 
