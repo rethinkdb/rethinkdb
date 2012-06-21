@@ -174,9 +174,9 @@ collections_ready = ->
             setTimeout(collect_stat_data, statUpdateInterval)
         }
     });
-}`
+}
 
-`function collect_server_data(optional_callback) {
+function collect_server_data_once(optional_callback) {
     $.ajax({
         url: '/ajax',
         dataType: 'json',
@@ -215,10 +215,14 @@ collections_ready = ->
         dataType: 'json',
         success: set_log_entries
     })
-    
+} 
 
-    setTimeout(collect_server_data, updateInterval)
+function collect_server_data(optional_callback) {
+    collect_server_data_once(optional_callback)
+    setTimeout(collect_server_data_once, updateInterval) // The callback are used just once.
 }`
+
+
 
 $ ->
     render_loading()
