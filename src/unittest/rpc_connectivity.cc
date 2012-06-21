@@ -582,7 +582,7 @@ void run_check_headers_test() {
     {
         char data[len+1];
         int64_t read = force_read(&conn, data, len);
-        ASSERT_TRUE(read >= 0);
+        ASSERT_GE(read, 0);
         data[read] = 0;         // null-terminate
         ASSERT_STREQ(cluster_proto_header, data);
     }

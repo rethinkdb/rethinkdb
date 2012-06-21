@@ -174,4 +174,4 @@ private:
     }
 };
 
-#endif
+#endif  // CLUSTERING_ADMINISTRATION_METADATA_CHANGE_HANDLER_HPP_

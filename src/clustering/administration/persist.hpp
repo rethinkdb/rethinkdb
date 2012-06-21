@@ -18,7 +18,7 @@ class persistent_file_t {
 public:
     persistent_file_t(const std::string& filename, bool create, perfmon_collection_t *perfmon_parent);
 
-    void update(const machine_id_t &machine_id, const cluster_semilattice_metadata_t &semilattice, bool create=false);
+    void update(const machine_id_t &machine_id, const cluster_semilattice_metadata_t &semilattice, bool create = false);
     void read(machine_id_t *machine_id_out, cluster_semilattice_metadata_t *semilattice_out);
 private:
     boost::scoped_ptr<standard_serializer_t> serializer;

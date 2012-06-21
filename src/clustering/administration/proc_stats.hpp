@@ -2,7 +2,7 @@
 #define CLUSTERING_ADMINISTRATION_PROC_STATS_HPP_
 
 #include "concurrency/auto_drainer.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 class proc_stats_collector_t : public home_thread_mixin_t {
 public:

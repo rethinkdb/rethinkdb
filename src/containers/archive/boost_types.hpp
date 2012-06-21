@@ -207,11 +207,9 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::optional<T> *x) {
 }
 
 template <class K, class V>
-write_message_t &operator<<(write_message_t &msg, const boost::ptr_map<K,V> &x) {
+write_message_t &operator<<(write_message_t &msg, const boost::ptr_map<K, V> &x) {
     msg << x.size();
-    for (typename boost::ptr_map<K,V>::const_iterator it  = x.begin();
-                                                      it != x.end();
-                                                      ++it) {
+    for (typename boost::ptr_map<K, V>::const_iterator it = x.begin(); it != x.end(); ++it) {
         msg << it->first;
         msg << *it->second;
     }
@@ -219,16 +217,16 @@ write_message_t &operator<<(write_message_t &msg, const boost::ptr_map<K,V> &x) 
 }
 
 template <class K, class V>
-MUST_USE archive_result_t deserialize(read_stream_t *s, boost::ptr_map<K,V> *x) {
+MUST_USE archive_result_t deserialize(read_stream_t *s, boost::ptr_map<K, V> *x) {
     x->clear();
 
-    typename boost::ptr_map<K,V>::size_type size;
+    typename boost::ptr_map<K, V>::size_type size;
     archive_result_t res = deserialize(s, &size);
     if (res != ARCHIVE_SUCCESS) {
         goto FAIL;
     }
 
-    for (typename boost::ptr_map<K,V>::size_type i = 0; i < size; ++i) {
+    for (typename boost::ptr_map<K, V>::size_type i = 0; i < size; ++i) {
         K k;
         res = deserialize(s, &k);
         if (res != ARCHIVE_SUCCESS) {

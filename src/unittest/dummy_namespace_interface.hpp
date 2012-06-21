@@ -9,6 +9,7 @@
 #include "concurrency/pmap.hpp"
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "protocol_api.hpp"
 
@@ -21,26 +22,36 @@ public:
     explicit dummy_performer_t(boost::shared_ptr<store_view_t<protocol_t> > s) :
         store(s) { }
 
-    typename protocol_t::read_response_t read(typename protocol_t::read_t read, UNUSED state_timestamp_t expected_timestamp, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    typename protocol_t::read_response_t read(typename protocol_t::read_t read,
+                                              DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
         store->new_read_token(read_token);
 
-        region_map_t<protocol_t, binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(expected_timestamp));
+#ifndef NDEBUG
+        equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback((binary_blob_t(expected_timestamp)));
+        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
+#endif
 
-        return store->read(DEBUG_ONLY(expected_metainfo, ) read, read_token, interruptor);
+        return store->read(DEBUG_ONLY(metainfo_checker, ) read, order_token_t::ignore, read_token, interruptor);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, transition_timestamp_t transition_timestamp) THROWS_NOTHING {
         cond_t non_interruptor;
-        region_map_t<protocol_t, binary_blob_t> expected_metainfo(store->get_region(), binary_blob_t(transition_timestamp.timestamp_before()));
+
+#ifndef NDEBUG
+        equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(binary_blob_t(transition_timestamp.timestamp_before()));
+        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
+#endif
 
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
         store->new_write_token(write_token);
 
         return store->write(
-            DEBUG_ONLY(expected_metainfo, )
+            DEBUG_ONLY(metainfo_checker, )
             region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
             write, transition_timestamp,
+            order_token_t::ignore,
             write_token, &non_interruptor
             );
     }
@@ -60,7 +71,7 @@ public:
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
         next->store->new_read_token(read_token);
 
-        region_map_t<protocol_t, binary_blob_t> metainfo = next->store->get_metainfo(read_token, &interruptor);
+        region_map_t<protocol_t, binary_blob_t> metainfo = next->store->get_metainfo(order_token_t::ignore, read_token, &interruptor);
 
         for (typename region_map_t<protocol_t, binary_blob_t>::iterator it  = metainfo.begin();
                                                                         it != metainfo.end();
@@ -163,7 +174,7 @@ public:
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
                 stores[i]->new_read_token(read_token);
 
-                region_map_t<protocol_t, binary_blob_t> metadata = stores[i]->get_metainfo(read_token, &interruptor);
+                region_map_t<protocol_t, binary_blob_t> metadata = stores[i]->get_metainfo(order_token_t::ignore, read_token, &interruptor);
 
                 rassert(metadata.get_domain() == shards[i]);
                 for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it  = metadata.begin();
@@ -180,7 +191,9 @@ public:
                         region_map_t<protocol_t, state_timestamp_t>(shards[i], state_timestamp_t::zero()),
                         &binary_blob_t::make<state_timestamp_t>
                         ),
-                    write_token, &interruptor);
+                    order_token_t::ignore,
+                    write_token,
+                    &interruptor);
             }
 
             dummy_performer_t<protocol_t> *performer = new dummy_performer_t<protocol_t>(stores[i]);

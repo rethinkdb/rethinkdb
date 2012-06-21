@@ -7,6 +7,8 @@
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
+#include "containers/printf_buffer.hpp"
+
 /* stl utils make some stl structures nicer to work with */
 
 template <class K, class V>
@@ -40,6 +42,16 @@ public:
 
     bool operator==(const cartesian_product_iterator_t &);
 };
+
+template <class K, class V>
+void debug_print(append_only_printf_buffer_t *buf, const std::map<K, V> &map);
+
+template <class T>
+void debug_print(append_only_printf_buffer_t *buf, const std::vector<T> &vec);
+
+template <class T, class U>
+void debug_print(append_only_printf_buffer_t *buf, const std::pair<T, U> &p);
+
 
 #include "stl_utils.tcc"
 

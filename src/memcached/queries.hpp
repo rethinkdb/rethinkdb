@@ -24,6 +24,10 @@ struct data_buffer_t;
 
 template <typename T> struct one_way_iterator_t;
 
+
+// TODO: Too many of these query objects are publicly mutable objects.
+
+
 /* `get` */
 
 struct get_query_t {
@@ -72,13 +76,13 @@ struct rget_result_t {
 };
 
 /* `distribution_get` */
-struct distribution_get_query_t { 
-    distribution_get_query_t() 
+struct distribution_get_query_t {
+    distribution_get_query_t()
         : max_depth(0), range(key_range_t::universe())
     { }
-    explicit distribution_get_query_t(int _max_depth) 
-        : max_depth(_max_depth), range(key_range_t::universe()) 
-    { } 
+    explicit distribution_get_query_t(int _max_depth)
+        : max_depth(_max_depth), range(key_range_t::universe())
+    { }
 
     int max_depth;
     key_range_t range;
@@ -102,6 +106,8 @@ struct get_cas_mutation_t {
     get_cas_mutation_t() { }
     explicit get_cas_mutation_t(const store_key_t &k) : key(k) { }
 };
+
+void debug_print(append_only_printf_buffer_t *buf, const get_cas_mutation_t& mut);
 
 /* `set`, `add`, `replace`, `cas` */
 
@@ -152,6 +158,8 @@ struct sarc_mutation_t {
         key(key_), data(data_), flags(flags_), exptime(exptime_), add_policy(add_policy_), replace_policy(replace_policy_), old_cas(old_cas_) { }
 };
 
+void debug_print(append_only_printf_buffer_t *buf, const sarc_mutation_t& mut);
+
 enum set_result_t {
     /* Returned on success */
     sr_stored,
@@ -180,6 +188,8 @@ struct delete_mutation_t {
     delete_mutation_t(const store_key_t& key_, bool dont_put_in_delete_queue_) : key(key_), dont_put_in_delete_queue(dont_put_in_delete_queue_) { }
 };
 
+void debug_print(append_only_printf_buffer_t *buf, const delete_mutation_t& mut);
+
 enum delete_result_t {
     dr_deleted,
     dr_not_found,
@@ -205,6 +215,8 @@ struct incr_decr_mutation_t {
     incr_decr_mutation_t(incr_decr_kind_t idk, const store_key_t &k, uint64_t a) :
         kind(idk), key(k), amount(a) { }
 };
+
+void debug_print(append_only_printf_buffer_t *buf, const incr_decr_mutation_t& mut);
 
 struct incr_decr_result_t {
     enum result_t {
@@ -234,6 +246,8 @@ struct append_prepend_mutation_t {
     append_prepend_mutation_t(append_prepend_kind_t kind_, const store_key_t &key_, const intrusive_ptr_t<data_buffer_t> &data_) :
         kind(kind_), key(key_), data(data_) { }
 };
+
+void debug_print(append_only_printf_buffer_t *buf, const append_prepend_mutation_t& mut);
 
 enum append_prepend_result_t {
     apr_success,

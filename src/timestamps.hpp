@@ -1,10 +1,14 @@
 #ifndef TIMESTAMPS_HPP_
 #define TIMESTAMPS_HPP_
 
-#include <stdint.h>
+#define __STDC_FORMAT_MACROS
 
+#include <inttypes.h>
+
+#include "containers/printf_buffer.hpp"
 #include "repli_timestamp.hpp"
 #include "rpc/serialize_macros.hpp"
+
 
 /* These are the timestamp types used by the clustering code.
 `repli_timestamp_t`, which is used internally within the btree code, is defined
@@ -42,11 +46,19 @@ public:
         return ts;
     }
 
+    friend void debug_print(append_only_printf_buffer_t *buf, state_timestamp_t ts);
+
 private:
     friend class transition_timestamp_t;
     uint64_t num;
     RDB_MAKE_ME_SERIALIZABLE_1(num);
 };
+
+inline void debug_print(append_only_printf_buffer_t *buf, state_timestamp_t ts) {
+    buf->appendf("st_t{");
+    debug_print(buf, ts.num);
+    buf->appendf("}");
+}
 
 class transition_timestamp_t {
 public:
@@ -88,5 +100,6 @@ private:
     state_timestamp_t before;
     RDB_MAKE_ME_SERIALIZABLE_1(before);
 };
+
 
 #endif /* TIMESTAMPS_HPP_ */

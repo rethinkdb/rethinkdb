@@ -157,9 +157,9 @@ std::vector<std::string> parse_line(const std::string& line) {
     for (size_t i = 0; i < line.length(); ++i) {
         if (escape) {
             // It was easier for me to understand the boolean logic like this, empty if statements intentional
-            if (quote == '\0' && (line[i] == '\'' || line[i] == '\"' || line[i] == ' ' || line[i] == '\t' || line[i] == '\r' || line[i] == '\n'));
-            else if (quote != '\0' && line[i] == quote);
-            else {
+            if (quote == '\0' && (line[i] == '\'' || line[i] == '\"' || line[i] == ' ' || line[i] == '\t' || line[i] == '\r' || line[i] == '\n')) {
+            } else if (quote != '\0' && line[i] == quote) {
+            } else {
                 argument += '\\';
             }
             argument += line[i];
@@ -329,7 +329,8 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
     for (size_t i = 0; i < helps.size(); ++i) {
         if (helps[i].description.c_str() == NULL) {
             continue;
-        } if (description_header_printed == false) {
+        }
+        if (description_header_printed == false) {
             help->pagef("%s\n", make_bold("DESCRIPTION").c_str());
             description_header_printed = true;
         }
@@ -932,12 +933,14 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
     linenoiseCallable linenoise_blocker(prompt, &raw_line);
     std::string line;
 
+    // TODO: Make this use strprintf, not snprintf.
+
     // Build the prompt based on our initial join command
     std::string join_peer_truncated(join_peer);
     if (join_peer.length() > 50) {
         join_peer_truncated = join_peer.substr(0, 47) + "...";
     }
-    snprintf(prompt, 64, "%s> ", join_peer_truncated.c_str());
+    snprintf(prompt, sizeof(prompt), "%s> ", join_peer_truncated.c_str());
 
     linenoiseSetCompletionCallback(completion_generator_hook);
     thread_pool_t::run_in_blocker_pool(linenoise_blocker);

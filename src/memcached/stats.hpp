@@ -1,7 +1,7 @@
 #ifndef MEMCACHED_STATS_HPP_
 #define MEMCACHED_STATS_HPP_
 
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 struct memcached_stats_t {
     explicit memcached_stats_t(perfmon_collection_t *parent)

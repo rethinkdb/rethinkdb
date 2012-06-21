@@ -72,7 +72,7 @@ public:
             machine_id_t mid,
             const std::vector<std::string> &_ips,
             const get_stats_mailbox_address_t& _stats_mailbox,
-            const typename metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t& _semilattice_change_mailbox,
+            const metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t& _semilattice_change_mailbox,
             const log_server_business_card_t &lmb,
             cluster_directory_peer_type_t _peer_type) :
         machine_id(mid), ips(_ips), get_stats_mailbox_address(_stats_mailbox), semilattice_change_mailbox(_semilattice_change_mailbox), log_mailbox(lmb), peer_type(_peer_type) { }
@@ -87,7 +87,7 @@ public:
     std::vector<std::string> ips;
 
     get_stats_mailbox_address_t get_stats_mailbox_address;
-    typename metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t semilattice_change_mailbox;
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t semilattice_change_mailbox;
     log_server_business_card_t log_mailbox;
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
