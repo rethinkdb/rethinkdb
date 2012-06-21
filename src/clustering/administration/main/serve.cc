@@ -179,8 +179,11 @@ bool serve_(
     connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run, client_port);
 
     // If (0 == port), then we asked the OS to give us a port number.
-    if (0 == port) port = connectivity_cluster_run.get_port();
-    else rassert(port == connectivity_cluster_run.get_port());
+    if (0 == port) {
+        port = connectivity_cluster_run.get_port();
+    } else {
+        rassert(port == connectivity_cluster_run.get_port());
+    }
     printf("Listening for intracluster traffic on port %d...\n", port);
 
     auto_reconnector_t auto_reconnector(
