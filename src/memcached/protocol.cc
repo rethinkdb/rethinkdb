@@ -951,41 +951,25 @@ void memcached_protocol_t::store_t::update_metainfo(const metainfo_t &old_metain
     }
 }
 
-class memcached_write_debug_print_visitor_t : public boost::static_visitor<void> {
+class generic_debug_print_visitor_t : public boost::static_visitor<void> {
 public:
-    explicit memcached_write_debug_print_visitor_t(append_only_printf_buffer_t *buf) : buf_(buf) { }
+    explicit generic_debug_print_visitor_t(append_only_printf_buffer_t *buf) : buf_(buf) { }
 
-    void operator()(const get_cas_mutation_t& mut) {
-        debug_print(buf_, mut);
-    }
-
-    void operator()(const sarc_mutation_t& mut) {
-        debug_print(buf_, mut);
-    }
-
-    void operator()(const delete_mutation_t& mut) {
-        debug_print(buf_, mut);
-    }
-
-    void operator()(const incr_decr_mutation_t& mut) {
-        debug_print(buf_, mut);
-    }
-
-    void operator()(const append_prepend_mutation_t& mut) {
-        debug_print(buf_, mut);
+    template <class T>
+    void operator()(const T& x) {
+        debug_print(buf_, x);
     }
 
 private:
     append_only_printf_buffer_t *buf_;
-    DISABLE_COPYING(memcached_write_debug_print_visitor_t);
+    DISABLE_COPYING(generic_debug_print_visitor_t);
 };
-
 
 
 // Debug printing impls
 void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::write_t& write) {
     buf->appendf("mcwrite{");
-    memcached_write_debug_print_visitor_t v(buf);
+    generic_debug_print_visitor_t v(buf);
     boost::apply_visitor(v, write.mutation);
     if (write.proposed_cas) {
         buf->appendf(", cas=%lu", write.proposed_cas);
@@ -1028,20 +1012,6 @@ void debug_print(append_only_printf_buffer_t *buf, const append_prepend_mutation
     // We don't print the data yet.
     buf->appendf(", ...}");
 }
-
-class generic_debug_print_visitor_t : public boost::static_visitor<void> {
-public:
-    explicit generic_debug_print_visitor_t(append_only_printf_buffer_t *buf) : buf_(buf) { }
-
-    template <class T>
-    void operator()(const T& x) {
-        debug_print(buf_, x);
-    }
-
-private:
-    append_only_printf_buffer_t *buf_;
-    DISABLE_COPYING(generic_debug_print_visitor_t);
-};
 
 void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t& chunk) {
     generic_debug_print_visitor_t v(buf);
