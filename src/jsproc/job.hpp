@@ -3,8 +3,6 @@
 
 #include "containers/archive/archive.hpp"
 
-#include <unistd.h>
-
 namespace jsproc {
 
 // Declared out here so that its branches are visible at top-level. Only
