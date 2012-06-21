@@ -76,7 +76,7 @@ message Term {
     message GetByKey {
         required TableRef table_ref = 1;
         required string attrname = 2;
-        required Term value = 3; 
+        required Term value = 3;
     };
 
     optional GetByKey get_by_key = 14;
@@ -332,3 +332,25 @@ message WriteQuery {
 
     optional PointMutate point_mutate = 10;
 };
+
+message Query {
+    enum QueryType {
+        READ = 1;
+        WRITE = 2;
+    }
+
+    required QueryType type = 1;
+
+    required int64 token = 2;
+
+    optional ReadQuery read_query = 3;
+    optional WriteQuery write_query = 4;
+}
+
+message Response {
+    required int32 statuscode = 1;
+
+    required int64 token = 2;
+
+    repeated string response = 3;
+}
