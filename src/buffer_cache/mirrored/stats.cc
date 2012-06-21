@@ -1,3 +1,6 @@
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include "buffer_cache/mirrored/stats.hpp"
 
 mc_cache_stats_t::perfmon_cache_custom_t::perfmon_cache_custom_t(perfmon_collection_t *parent)
@@ -13,7 +16,7 @@ void mc_cache_stats_t::perfmon_cache_custom_t::visit_stats(void *) {
 }
 
 void mc_cache_stats_t::perfmon_cache_custom_t::end_stats(void *, perfmon_result_t *dest) {
-    dest->insert("block_size", new perfmon_result_t(strprintf("%ld", block_size)));
+    dest->insert("block_size", new perfmon_result_t(strprintf("%" PRIu32, block_size)));
 }
 
 mc_cache_stats_t::mc_cache_stats_t(perfmon_collection_t *parent)

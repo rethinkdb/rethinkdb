@@ -62,7 +62,7 @@ struct mc_cache_stats_t {
         void visit_stats(void *);
         void end_stats(void *, perfmon_result_t *dest);
     public:
-        long block_size;
+        uint32_t block_size;
     };
     perfmon_cache_custom_t pm_block_size;
 };
