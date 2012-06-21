@@ -81,7 +81,7 @@ module 'ResolveIssuesView', ->
                 async: false
             
             # rerender issue view (just the issues, not the whole thing)
-            window.app.resolve_issues.render_issues()
+            #window.app.resolve_issues.render_issues()
             
             # notify the user that we succeeded
             $('#user-alert-space').append @alert_tmpl
@@ -165,15 +165,15 @@ module 'ResolveIssuesView', ->
             ack_expectations_to_send = {}
 
             for datacenter in @datacenters_with_issues
-                replica_affinities_to_send[datacenter.datacenter_id] = datacenter.num_machines
-   
-                ack_expectations_to_send[datacenter.datacenter_id] = @namespace.get('ack_expectations')[datacenter.datacenter_id]
-                if ack_expectations_to_send[datacenter.datacenter_id] > replica_affinities_to_send[datacenter.datacenter_id]
-                    ack_expectations_to_send[datacenter.datacenter_id] = replica_affinities_to_send[datacenter.datacenter_id]
+                if datacenter.num_replicas > datacenter.num_machines
+                    replica_affinities_to_send[datacenter.datacenter_id] = datacenter.num_machines
 
-                if @namespace.get('primary_uuid') is datacenter.datacenter_id # Since primary is a replica, we lower it by 1 if we are dealing with the primary datacenter
-                    replica_affinities_to_send[datacenter.datacenter_id]--
+                    ack_expectations_to_send[datacenter.datacenter_id] = @namespace.get('ack_expectations')[datacenter.datacenter_id]
+                    if ack_expectations_to_send[datacenter.datacenter_id] > replica_affinities_to_send[datacenter.datacenter_id]
+                        ack_expectations_to_send[datacenter.datacenter_id] = replica_affinities_to_send[datacenter.datacenter_id]
 
+                    if @namespace.get('primary_uuid') is datacenter.datacenter_id # Since primary is a replica, we lower it by 1 if we are dealing with the primary datacenter
+                        replica_affinities_to_send[datacenter.datacenter_id]--
 
             $.ajax
                 processData: false
@@ -345,40 +345,15 @@ module 'ResolveIssuesView', ->
 
             namespace = namespaces.get(@model.get('namespace_id'))
             
-            # Check primary
-            num_replicas = namespace.get('replica_affinities')[namespace.get('primary_uuid')]
-            if not num_replicas? # replica affinities may be missing for new namespaces
-                num_replicas = 0
-            num_replicas++ # The master is also a replica
-            num_machines = DataUtils.get_datacenter_machines(namespace.get('primary_uuid')).length
-            if num_machines < num_replicas
-                json.datacenters_with_issues.push
-                    datacenter_id: namespace.get('primary_uuid')
-                    datacenter_name: datacenters.get(namespace.get('primary_uuid')).get('name')
-                    num_replicas: num_replicas
-                    num_machines: num_machines
-                primary_replica_count = namespace.get('replica_affinities')[namespace.get('primary_uuid')]
-                if not primary_replica_count? # Replica affinities may be missing for new namespaces
-                    primary_replica_count = 0
-
-                if json.datacenters_with_issues[json.datacenters_with_issues.length-1].num_machines > primary_replica_count-1 # -1 for the primary
-                    json.datacenters_with_issues[json.datacenters_with_issues.length-1].change_ack = true
-
-            # Check secondaries
-            secondary_affinities = {}
-            _.each namespace.get('replica_affinities'), (num_replicas, id) =>
-                if id != namespace.get('primary_uuid') and num_replicas > 0
-                    num_machines = DataUtils.get_datacenter_machines(id).length
-                    if num_machines < num_replicas
-                        json.datacenters_with_issues.push
-                            datacenter_id: id
-                            datacenter_name: datacenters.get(id).get('name')
-                            num_replicas: num_replicas
-                            num_machines: num_machines
-
-                        if DataUtils.get_ack_expectations(namespace.get('id'), id) > json.datacenters_with_issues[json.datacenters_with_issues.length-1].num_machines
-                            json.datacenters_with_issues[json.datacenters_with_issues.length-1].change_ack = true
- 
+            for datacenter_id of @model.get('replica_affinities')
+                number_replicas = if datacenter_id is @model.get('primary_datacenter') then @model.get('replica_affinities')[datacenter_id]+1 else @model.get('replica_affinities')[datacenter_id]
+                
+                if number_replicas > @model.get('actual_machines_in_datacenters')[datacenter_id]
+                    json.datacenters_with_issues.push
+                        datacenter_id: datacenter_id
+                        datacenter_name: datacenters.get(datacenter_id).get('name')
+                        num_replicas: number_replicas
+                        num_machines: @model.get('actual_machines_in_datacenters')[datacenter_id]
 
             @.$el.html _template(json)
             # bind resolution events
