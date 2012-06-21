@@ -176,6 +176,12 @@ private:
 };
 
 template <class protocol_t>
+void regionwrap_chunkfun(const boost::function<void(typename protocol_t::backfill_chunk_t)> &wrappee, const typename protocol_t::region_t& region, typename protocol_t::backfill_chunk_t chunk) {
+    // TODO: This is a borderline hack for memcached delete_range_t chunks.
+    wrappee(chunk.shard(region));
+}
+
+template <class protocol_t>
 void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
                                                          multistore_send_backfill_should_backfill_t<protocol_t> *helper,
                                                          const region_map_t<protocol_t, state_timestamp_t> &start_point,
@@ -191,7 +197,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
     try {
         store->send_backfill(start_point.mask(get_region(i)),
                              boost::bind(&multistore_send_backfill_should_backfill_t<protocol_t>::should_backfill, helper, _1),
-                             chunk_fun,  // TODO: Do we need to wrap this?
+                             boost::bind(regionwrap_chunkfun<protocol_t>, chunk_fun, get_region(i), _1),
                              progress,
                              read_tokens[i],
                              interruptor);
