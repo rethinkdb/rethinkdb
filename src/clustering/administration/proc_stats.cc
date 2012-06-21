@@ -110,10 +110,10 @@ private:
 // memory consumption, network stats, etc.
 struct global_sys_stat_t {
 public:
-    long mem_total, mem_free;
-    long utime, ntime, stime, itime, wtime;
+    int64_t mem_total, mem_free;
+    int64_t utime, ntime, stime, itime, wtime;
     int ncpus;
-    long bytes_received, bytes_sent;
+    int64_t bytes_received, bytes_sent;
 
 public:
     static global_sys_stat_t read_global_stats() {
@@ -204,7 +204,7 @@ public:
                 netinfo = strstr(netinfo, ": ");
                 if(netinfo) {
                     netinfo += 2;
-                    long recv, sent;
+                    int64_t recv, sent;
                     res = sscanf(netinfo, "%ld%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%*d%*[ ]%ld%*[ ]", &recv, &sent);
                     if(res == 2) {
                         stat.bytes_received += recv;
