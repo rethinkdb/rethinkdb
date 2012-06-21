@@ -22,7 +22,7 @@ int worker_t::spawn(worker_t *proc) {
     if (!pid) {
         // We're the child.
         guarantee_err(0 == close(fds[0]), "could not close fd");
-        exit(worker_t::run(fds[1]));
+        exit(worker_t::run_worker(fds[1]));
     }
 
     // We're the parent
@@ -56,7 +56,7 @@ static void accept_job(
     (*jobfunc)(result, job_input, job_output);
 }
 
-int worker_t::run(int sockfd) {
+int worker_t::run_worker(int sockfd) {
     unix_socket_stream_t sock(sockfd, new blocking_fd_watcher_t());
 
     // Receive and run jobs until we get an error, or a job tells us to shut down.

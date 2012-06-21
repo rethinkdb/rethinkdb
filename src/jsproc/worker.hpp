@@ -17,7 +17,7 @@ class worker_t {
 
   private:
     // Static utility method called by spawn() on the worker-process side.
-    static int run(int sockfd);
+    static int run_worker(int sockfd);
 };
 
 } // namespace jsproc
