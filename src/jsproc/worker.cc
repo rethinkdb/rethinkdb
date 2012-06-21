@@ -22,7 +22,7 @@ int worker_t::spawn(worker_t *proc) {
     if (!pid) {
         // We're the child.
         guarantee_err(0 == close(fds[0]), "could not close fd");
-        return worker_t::run(fds[1]);
+        exit(worker_t::run(fds[1]));
     }
 
     // We're the parent
