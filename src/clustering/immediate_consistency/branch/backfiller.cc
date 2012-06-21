@@ -92,6 +92,8 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
                        mailbox_addr_t<void(mailbox_addr_t<void(int)>)> allocation_registration_box,
 					   auto_drainer_t::lock_t keepalive) {
 
+    debugf_print("on_backfill with backfill_session_id", session_id);
+
     assert_thread();
     rassert(region_is_superset(svs->get_multistore_joined_region(), start_point.get_domain()));
 

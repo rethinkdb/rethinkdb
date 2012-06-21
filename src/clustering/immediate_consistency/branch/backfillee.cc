@@ -166,6 +166,7 @@ void backfillee(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
+    debugf_print("constructing backfillee with backfill_session_id", backfill_session_id);
     rassert(region_is_superset(svs->get_multistore_joined_region(), region));
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
