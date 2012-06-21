@@ -106,6 +106,9 @@ class fd_stream_t :
     // by default constructs a linux_event_fd_watcher_t.
     explicit fd_stream_t(fd_t fd, fd_watcher_t *watcher = NULL);
 
+    // Due to details of C++ (calling virtual functions from destructors is a
+    // Bad Idea), it is our subclass' responsibility to ensure that we have shut
+    // down (both for read & write) before ~fd_stream_t() is called.
     virtual ~fd_stream_t();
 
     // {read,write}_stream_t functions
@@ -146,6 +149,7 @@ class fd_stream_t :
 class socket_stream_t : public fd_stream_t {
   public:
     explicit socket_stream_t(fd_t fd, fd_watcher_t *watcher = NULL);
+    virtual ~socket_stream_t();
 
   protected:
     virtual void on_read_error(int errno_);

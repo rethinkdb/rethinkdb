@@ -129,8 +129,9 @@ fd_stream_t::fd_stream_t(int fd, fd_watcher_t *watcher)
 fd_stream_t::~fd_stream_t() {
     assert_thread();
 
-    if (fd_watcher_->is_read_open()) shutdown_read();
-    if (fd_watcher_->is_write_open()) shutdown_write();
+    // See comment in fd_stream.hpp.
+    rassert(!fd_watcher_->is_read_open());
+    rassert(!fd_watcher_->is_write_open());
 }
 
 int64_t fd_stream_t::read(void *buf, int64_t size) {
@@ -243,6 +244,11 @@ void fd_stream_t::on_event(int events) {
 // -------------------- socket_stream_t --------------------
 socket_stream_t::socket_stream_t(int fd, fd_watcher_t *watcher)
     : fd_stream_t(fd, watcher) {}
+
+socket_stream_t::~socket_stream_t() {
+    if (fd_watcher_->is_read_open()) shutdown_read();
+    if (fd_watcher_->is_write_open()) shutdown_write();
+}
 
 void socket_stream_t::on_read_error(int errsv) {
     if (errsv != EPIPE && errsv != ECONNRESET && errsv != ENOTCONN) {
