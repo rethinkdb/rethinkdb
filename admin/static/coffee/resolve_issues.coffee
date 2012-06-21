@@ -46,6 +46,8 @@ module 'ResolveIssuesView', ->
     class @DeclareMachineDeadModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#declare_machine_dead-modal-template').html()
         alert_tmpl: Handlebars.compile $('#declared_machine_dead-alert-template').html()
+        template_issue_error: Handlebars.compile $('#fail_solve_issue-template').html()
+
         class: 'declare-machine-dead'
 
         initialize: ->
@@ -62,17 +64,57 @@ module 'ResolveIssuesView', ->
 
         on_submit: ->
             super
+
+            data = 
+                semilattice:
+                    machines: {}
+
+            data.semilattice.machines[@machine_to_kill.get('id')] = null
+            $.ajax
+                url: "/ajax"
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify(data)
+                success: @on_success
+                error: @on_error
+ 
+            ###
+            data = null
+            $.ajax
+                url: "/ajax/semilattice/machines/"+@machine_to_kill.get('id')
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify(data)
+                success: @on_success
+            ###
+ 
+            ###
             $.ajax
                 url: "/ajax/semilattice/machines/#{@machine_to_kill.id}"
                 type: 'DELETE'
                 contentType: 'application/json'
+                data: JSON.stringify(data)
                 success: @on_success
+            ###
+            #
+ 
+        on_success_with_error: =>
+            @.$('.error_answer').html @template_issue_error
+
+            if @.$('.error_answer').css('display') is 'none'
+                @.$('.error_answer').slideDown('fast')
+            else
+                @.$('.error_answer').css('display', 'none')
+                @.$('.error_answer').fadeIn()
+            @reset_buttons()
+ 
 
         on_success: (response) ->
-            super
             if (response)
-                throw new Error("Received a non null response to a delete... this is incorrect")
+                @on_success_with_error()
+                return
 
+            super
 
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
@@ -125,6 +167,7 @@ module 'ResolveIssuesView', ->
                 contentType: 'application/json'
                 data: JSON.stringify(@final_value)
                 success: @on_success
+                error: @on_error
 
         on_success: (response) ->
             super
@@ -183,6 +226,7 @@ module 'ResolveIssuesView', ->
                     replica_affinities: replica_affinities_to_send
                     ack_expectations: ack_expectations_to_send
                 success: @on_success
+                error: @on_error
 
 
         on_success: ->

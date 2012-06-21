@@ -19,7 +19,12 @@
         <p>If you declare this machine dead, you will not be able to reconnect it later, even if it does reconnect, it will consider itself dead and will stop working.</p>
         <p>All the data on the machine will be lost.</p>
     </div>
+    <div class="alert alert-error error_answer"></div>
     <p>Are you sure you want to declare <strong>{{machine_name}}</strong> dead?</p>
+</script>
+
+<script id="fail_solve_issue-template" type="text/x-handlebars-template">
+    Sorry, something went wrong. The issue might not be up to date, please refresh.
 </script>
 
 <script id="declared_machine_dead-alert-template" type="text/x-handlebars-template">
@@ -30,6 +35,7 @@
 </script>
 
 <script id="resolve_vclock-modal-template" type="text/x-handlebars-template">
+  <div class="alert alert-error error_answer"></div>
   <p>Are you sure you want to use the value <strong>{{final_value}}</strong>?</p>
 </script>
 
@@ -41,6 +47,7 @@
 </script>
 
 <script id="resolve_unsatisfiable_goals_modal-template" type="text/x-handlebars-template">
+    <div class="alert alert-error error_answer"></div>
     <p>Are you sure you want to lower the number of replicas for the datacenter</p>
     <ul>
     {{#each datacenters_with_issues}}

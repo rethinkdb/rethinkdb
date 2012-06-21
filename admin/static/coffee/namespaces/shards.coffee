@@ -286,6 +286,7 @@ module 'NamespaceView', ->
                         collect_server_data =>
                             $popover.remove()
                             $('#user-alert-space').append (@alert_tmpl {})
+                    #TODO: Handle error
                 $popover_button.button('loading')
 
         make_master: (event) =>
