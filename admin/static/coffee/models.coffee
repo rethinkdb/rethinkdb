@@ -358,7 +358,8 @@ class IssuesRedundancy extends Backbone.Collection
 
     compute_redundancy_errors: =>
         issues_redundancy = []
-        @num_replicas = 0
+
+        num_replicas = 0
 
 
         directory_by_namespaces = DataUtils.get_directory_activities_by_namespaces()
@@ -374,7 +375,7 @@ class IssuesRedundancy extends Backbone.Collection
                 for key of blueprint[machine_id]
                     value = blueprint[machine_id][key]
                     if value is "role_primary" or value is "role_secondary"
-                        @num_replicas++
+                        num_replicas++
 
                         if !(directory_by_namespaces?) or !(directory_by_namespaces[namespace_id]?) or !(directory_by_namespaces[namespace_id][machine_id]?)
                             issue_redundancy_param =
@@ -397,10 +398,13 @@ class IssuesRedundancy extends Backbone.Collection
                                     namespace_uuid: namespace_id
                                     namespace_name: namespace.get('name')
                                 issues_redundancy.push new IssueRedundancy issue_redundancy_param
+
+
         if issues_redundancy.length > 0 or issues_redundancy.length isnt @.length
             @.reset(issues_redundancy)
-
-
+        if num_replicas isnt @num_replicas
+            @num_replicas = num_replicas
+            @.trigger 'reset'
 
 class ProgressList extends Backbone.Collection
     model: Progress
