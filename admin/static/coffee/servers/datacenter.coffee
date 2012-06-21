@@ -65,7 +65,10 @@ module 'DatacenterView', ->
                 entries_to_render.push(new DatacenterView.RecentLogEntry
                     model: log_entry)
             entries_to_render = entries_to_render.slice(0, @max_log_entries_to_render)
+
             @.$('.recent-log-entries').append entry.render().el for entry in entries_to_render
+
+            @.$('.nav-tabs').tab()
 
             return @
 

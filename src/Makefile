@@ -94,12 +94,12 @@ CXX:=icc
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm
 else ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lcurl
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
@@ -572,6 +572,13 @@ rpm-suse10:
 endif
 
 # Build rules
+
+rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
+rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py
+rpc/mailbox/typed.hpp: ../scripts/generate_rpc_templates.py
+
+rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
+	$< > $@
 
 web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico
 
