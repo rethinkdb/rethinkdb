@@ -23,28 +23,40 @@ void protob_server_t<request_t, response_t>::handle_conn(boost::scoped_ptr<nasce
 
     //TODO figure out how to do this with less copying
     for (;;) {
-        int size;
-        conn->read(&size, sizeof(size));
-
-        boost::scoped_array<char> data(new char[size]);
-        conn->read(data.get(), size);
-
         request_t request;
-        request.ParseFromArray(data.get(), size);
+        try {
+            int size;
+            conn->read(&size, sizeof(size));
 
-        switch (cb_mode) {
-            case INLINE:
-                send(f(request), conn.get());
-                break;
-            case CORO_ORDERED:
-                crash("unimplemented");
-                break;
-            case CORO_UNORDERED:
-                crash("unimplemented");
-                break;
-            default:
-                crash("unreachable");
-                break;
+            boost::scoped_array<char> data(new char[size]);
+            conn->read(data.get(), size);
+
+            request.ParseFromArray(data.get(), size);
+        } catch (tcp_conn_t::read_closed_exc_t &) {
+            //TODO need to figure out what blocks us up here in non inline cb
+            //mode
+            return;
+        }
+
+        try {
+            switch (cb_mode) {
+                case INLINE:
+                    send(f(request), conn.get());
+                    break;
+                case CORO_ORDERED:
+                    crash("unimplemented");
+                    break;
+                case CORO_UNORDERED:
+                    crash("unimplemented");
+                    break;
+                default:
+                    crash("unreachable");
+                    break;
+            }
+        } catch (tcp_conn_t::write_closed_exc_t &) {
+            //TODO need to figure out what blocks us up here in non inline cb
+            //mode
+            return;
         }
     }
 }
