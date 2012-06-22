@@ -346,8 +346,10 @@ message Query {
 
     required int64 token = 2;
 
-    optional ReadQuery read_query = 3;
-    optional WriteQuery write_query = 4;
+    required int64 size = 3;
+
+    optional ReadQuery read_query = 4;
+    optional WriteQuery write_query = 5;
 }
 
 message Response {
@@ -355,5 +357,7 @@ message Response {
 
     required int64 token = 2;
 
-    repeated string response = 3;
+    required int64 size = 3;
+
+    repeated string response = 4;
 }
