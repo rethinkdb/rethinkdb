@@ -48,11 +48,15 @@ Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->
     return out
 
 
-#Returns a list of links to machines and namespaces
+#Returns a list of links to machines and namespace
+#TODO make thinkgs prettier
 Handlebars.registerHelper 'links_to_replicas_and_namespaces', (machines) ->
     out = ""
     for i in [0...machines.length]
         out += '<p><a href="#namespaces/'+machines[i].get('namespace_uuid')+'" class="links_to_other_view">'+machines[i].get('namespace_name')+'</a> (<a href="#machines/'+machines[i].get('machine_id')+'" class="links_to_other_view">'+machines[i].get('machine_name')+'</a>)</p>'
+        out += '<ul><li>Shard: '+machines[i].get('shard')+'</li>'
+        out += '<li>Blueprint: '+machines[i].get('blueprint')+'</li>'
+        out += '<li>Directory: '+machines[i].get('directory')+'</li></ul>'
     return out
 
 # If the two arguments are equal, show the inner block; else block is available

@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include <map>
+#include <iostream>
 #include <stdexcept>
 
 #include "errors.hpp"
