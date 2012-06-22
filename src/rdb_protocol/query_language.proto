@@ -346,18 +346,14 @@ message Query {
 
     required int64 token = 2;
 
-    required int64 size = 3;
-
-    optional ReadQuery read_query = 4;
-    optional WriteQuery write_query = 5;
+    optional ReadQuery read_query = 3;
+    optional WriteQuery write_query = 4;
 }
 
 message Response {
-    required int32 statuscode = 1;
+    required int32 status_code = 1;
 
     required int64 token = 2;
 
-    required int64 size = 3;
-
-    repeated string response = 4;
+    repeated string response = 3;
 }

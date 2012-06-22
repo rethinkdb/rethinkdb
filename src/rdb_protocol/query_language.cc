@@ -395,6 +395,9 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
         case Term::STRING:
             return primitive_t(primitive_t::JSON);
             break;
+        case Term::JSON:
+            return primitive_t(primitive_t::JSON);
+            break;
         case Term::BOOL:
             return primitive_t(primitive_t::JSON);
             break;
