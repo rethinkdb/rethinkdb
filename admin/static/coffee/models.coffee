@@ -351,13 +351,14 @@ class IssuesRedundancy extends Backbone.Collection
 
 
 
-    convert_activity:
-        'role_secondary': 'secondary_up_to_date'
-        'role_nothing': 'nothing'
-        'role_primary': 'primary'
+    convert_activity: (role) ->
+        switch role
+            when 'role_secondary' then return 'secondary_up_to_date'
+            when 'role_nothing' then return 'nothing'
+            when 'role_primary' then return 'primary'
 
     compute_redundancy_errors: =>
-        issues_redundancy = []
+        issues_redundancy_new = []
 
         num_replicas = 0
 
@@ -383,25 +384,26 @@ class IssuesRedundancy extends Backbone.Collection
                                 machine_name: machine_name
                                 namespace_uuid: namespace_id
                                 namespace_name: namespace.get('name')
+                                shard: key
+                                blueprint: value
+                                directory: 'not_found'
                             issue_redundancy = new IssueRedundancy issue_redundancy_param
-                            issues_redundancy.push issue_redundancy
-                        else
-                            found_activity = false
-                            for activity in directory_by_namespaces[namespace_id][machine_id]
-                                if key is activity[0] and @convert_activity[value] is activity[1].type
-                                    found_activity = true
-
-                            if found_activity is false
-                                issue_redundancy_param =
-                                    machine_id: machine_id
-                                    machine_name: machine_name
-                                    namespace_uuid: namespace_id
-                                    namespace_name: namespace.get('name')
-                                issues_redundancy.push new IssueRedundancy issue_redundancy_param
+                            issues_redundancy_new.push issue_redundancy
+                        else if directory_by_namespaces[namespace_id][machine_id][key] != @convert_activity(value)
+                            issue_redundancy_param =
+                                machine_id: machine_id
+                                machine_name: machine_name
+                                namespace_uuid: namespace_id
+                                namespace_name: namespace.get('name')
+                                shard: key
+                                blueprint: value
+                                directory: directory_by_namespaces[namespace_id][machine_id][key]
+                            issues_redundancy_new.push new IssueRedundancy issue_redundancy_param
 
 
-        if issues_redundancy.length > 0 or issues_redundancy.length isnt @.length
-            @.reset(issues_redundancy)
+        if issues_redundancy_new.length > 0 or issues_redundancy_new.length isnt @.length
+            @.reset(issues_redundancy_new)
+
         if num_replicas isnt @num_replicas
             @num_replicas = num_replicas
             @.trigger 'reset'
@@ -589,10 +591,10 @@ module 'DataUtils', ->
                 for activity_id, activity of activity_map
                     if !(namespace_id of activities)
                         activities[namespace_id] = {}
-                    if activities[namespace_id][machine.get('id')]?
-                        activities[namespace_id][machine.get('id')].push(activity)
-                    else
-                        activities[namespace_id][machine.get('id')] = [activity]
+
+                    if !activities[namespace_id][machine.get('id')]?
+                        activities[namespace_id][machine.get('id')] = {}
+                    activities[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
 
         return activities
 
