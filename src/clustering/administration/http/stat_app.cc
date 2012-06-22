@@ -3,7 +3,6 @@
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include "arch/timing.hpp"
 #include "clustering/administration/http/stat_app.hpp"
