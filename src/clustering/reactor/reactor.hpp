@@ -181,5 +181,3 @@ private:
 
 #include "clustering/reactor/reactor_be_secondary.tcc"
 
-#include "clustering/reactor/reactor_be_nothing.tcc"
-
