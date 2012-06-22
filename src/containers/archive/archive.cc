@@ -4,8 +4,7 @@
 
 #include <algorithm>
 
-#include "errors.hpp"
-#include <boost/uuid/uuid.hpp>
+#include "containers/uuid.hpp"
 
 int64_t force_read(read_stream_t *s, void *p, int64_t n) {
     rassert(n >= 0);

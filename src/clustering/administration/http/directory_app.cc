@@ -2,11 +2,11 @@
 
 #include "errors.hpp"
 #include <boost/lexical_cast.hpp>
-#include <boost/uuid/uuid.hpp>
 #include <boost/scoped_ptr.hpp>
 
-#include "http/http.hpp"
 #include "clustering/administration/http/directory_app.hpp"
+#include "containers/uuid.hpp"
+#include "http/http.hpp"
 
 directory_http_app_t::directory_http_app_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >& _directory_metadata)
     : directory_metadata(_directory_metadata) { }

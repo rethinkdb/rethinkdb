@@ -3,6 +3,9 @@
 
 #include "http/json/json_adapter.hpp"
 
+#include "errors.hpp"
+#include <boost/uuid/uuid_io.hpp>
+
 #include "containers/uuid.hpp"
 #include "utils.hpp"
 #include "logger.hpp"
@@ -457,7 +460,7 @@ cJSON *render_as_json(const boost::uuids::uuid *uuid, const ctx_t &) {
 template <class ctx_t>
 void apply_json_to(cJSON *change, boost::uuids::uuid *uuid, const ctx_t &) {
     if (change->type == cJSON_NULL) {
-        *uuid = boost::uuids::nil_generator()();
+        *uuid = nil_uuid();
     } else {
         try {
             *uuid = str_to_uuid(get_string(change));
