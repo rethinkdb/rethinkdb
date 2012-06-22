@@ -34,10 +34,6 @@ public:
 write_message_t &operator<<(write_message_t &msg, repli_timestamp_t tstamp);
 archive_result_t deserialize(read_stream_t *s, repli_timestamp_t *tstamp);
 
-// LIKE std::max, except it's technically not associative.
-// TODO: repli_max is silly and obsolete.
-repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y);
-
 void debug_print(append_only_printf_buffer_t *buf, repli_timestamp_t tstamp);
 
 #endif  // REPLI_TIMESTAMP_HPP_
