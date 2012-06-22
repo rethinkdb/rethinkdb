@@ -1,6 +1,3 @@
-#ifndef CLUSTERING_SUGGESTER_SUGGESTER_TCC_
-#define CLUSTERING_SUGGESTER_SUGGESTER_TCC_
-
 #include "clustering/suggester/suggester.hpp"
 
 #include "stl_utils.hpp"
@@ -300,5 +297,3 @@ persistable_blueprint_t<memcached_protocol_t> suggest_blueprint<memcached_protoc
         const region_map_t<memcached_protocol_t, std::set<machine_id_t> > &secondary_pinnings
         );
 
-
-#endif /* CLUSTERING_SUGGESTER_SUGGESTER_TCC_ */

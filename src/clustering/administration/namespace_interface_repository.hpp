@@ -41,6 +41,4 @@ private:
     DISABLE_COPYING(namespace_repo_t);
 };
 
-#include "clustering/administration/namespace_interface_repository.tcc"
-
 #endif /* CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_ */
