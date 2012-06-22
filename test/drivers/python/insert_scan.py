@@ -1,3 +1,7 @@
+
+# TO RUN: python -m unittest insert_scan
+
+
 import os
 import sys
 import unittest
