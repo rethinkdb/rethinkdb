@@ -18,12 +18,13 @@ message Term {
         ERROR = 5;
         NUMBER = 6;
         STRING = 7;
-        BOOL = 8;
-        JSON_NULL = 9; //can't use just "NULL" here we get in trouble
-        ARRAY = 10;
-        MAP = 11;
-        VIEWASSTREAM = 12;
-        GETBYKEY = 13;
+        JSON = 8;
+        BOOL = 9;
+        JSON_NULL = 10; //can't use just "NULL" here we get in trouble
+        ARRAY = 11;
+        MAP = 12;
+        VIEWASSTREAM = 13;
+        GETBYKEY = 14;
     };
     required TermType type = 1;
 
@@ -64,22 +65,23 @@ message Term {
 
     optional string valuestring = 9;
 
-    optional bool valuebool = 10;
+    optional string jsonstring = 10;
 
-    repeated Term array = 11;
+    optional bool valuebool = 11;
 
-    repeated VarTermTuple map = 12;
+    repeated Term array = 12;
 
-    optional View view_as_stream = 13;
+    repeated VarTermTuple map = 13;
 
+    optional View view_as_stream = 14;
 
     message GetByKey {
         required TableRef table_ref = 1;
         required string attrname = 2;
-        required Term key = 3; 
+        required Term key = 3;
     };
 
-    optional GetByKey get_by_key = 14;
+    optional GetByKey get_by_key = 15;
 };
 
 message Builtin {
@@ -124,7 +126,7 @@ message Builtin {
 
     repeated string attrs = 3; //used if type is PICKATTRS
 
-    optional Comparison comparsion = 4;
+    optional Comparison comparison = 4;
 
     message Filter {
         required Predicate predicate = 1;
