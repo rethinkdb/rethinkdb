@@ -736,7 +736,7 @@ analyze: $(SOURCES)
 	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
 
 coffeelint:
-	coffeelint -f ../scripts/coffeelint.json -r ../admin/
+	-coffeelint -f ../scripts/coffeelint.json -r ../admin/
 
 style: coffeelint
 	$(QUIET) ../scripts/check_style.sh
