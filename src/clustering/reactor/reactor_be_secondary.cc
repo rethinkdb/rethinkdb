@@ -1,5 +1,4 @@
-#ifndef CLUSTERING_REACTOR_REACTOR_BE_SECONDARY_TCC_
-#define CLUSTERING_REACTOR_REACTOR_BE_SECONDARY_TCC_
+#include "clustering/reactor/reactor.hpp"
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -241,4 +240,11 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
     }
 }
 
-#endif
+#include "mock/dummy_protocol.hpp"
+#include "mock/dummy_protocol_json_adapter.hpp"
+#include "memcached/protocol.hpp"
+#include "memcached/protocol_json_adapter.hpp"
+
+template class reactor_t<mock::dummy_protocol_t>;
+template class reactor_t<memcached_protocol_t>;
+

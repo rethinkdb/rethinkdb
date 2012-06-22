@@ -221,34 +221,6 @@ void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t ver
     }
 }
 
-template<class protocol_t, class activity_t>
-boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcard(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &bcards, peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >::const_iterator it = bcards.find(p_id);
-    if (it == bcards.end()) {
-        return boost::optional<boost::optional<activity_t> >();
-    }
-    if (!it->second) {
-        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>());
-    }
-    typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second->internal.activities.find(ra_id);
-    if (jt == it->second->internal.activities.end()) {
-        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>());
-    }
-    try {
-        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>(boost::get<activity_t>(jt->second.second)));
-    } catch (boost::bad_get) {
-        crash("Tried to get an activity of an unexpected type, it is assumed "
-            "the person calling this function knows the type of the activity "
-            "they will be getting back.\n");
-    }
-}
-
-template <class protocol_t>
-template <class activity_t>
-clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reactor_t<protocol_t>::get_directory_entry_view(peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    return reactor_directory->subview(boost::bind(&extract_activity_from_reactor_bcard<protocol_t, activity_t>, _1, p_id, ra_id));
-}
-
 
 
 #include "mock/dummy_protocol.hpp"
