@@ -11,7 +11,7 @@ class TestTableRef(unittest.TestCase):
     # Shared db ref, ast
     def setUp(self):
         self.conn = r.Connection("localhost", 4000)
-        self.table = r.DB("testdb").testtable
+        self.table = r.db("testdb").testtable
 
     def test_table_insert(self):
         q = self.table.insert({"a": "b"}, {"c": "d"})

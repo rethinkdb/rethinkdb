@@ -73,12 +73,12 @@ class Connection(object):
             raise ValueError
 
 
-class DB(object):
+class db(object):
     def __init__(self, name):
         self.name = name
 
     def __getitem__(self, key):
-        return DB(key)
+        return db(key)
 
     def __getattr__(self, key):
         return Table(self, key)
@@ -115,7 +115,7 @@ class Insert(object):
             term.jsonstring = json.dumps(entry)
 
 #a = Connection("newton", 80)
-#t = DB("foo").bar
+#t = db("foo").bar
 #root_ast = p.Query()
 #a._finalize_ast(root_ast, t)
 #a._finalize_ast(root_ast, t.insert({"a": "b"}, {"b": "c"}))
