@@ -2,7 +2,7 @@
 
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "logger.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 evictable_t::evictable_t(mc_cache_t *_cache, bool loaded)
     : eviction_priority(DEFAULT_EVICTION_PRIORITY), cache(_cache), page_repl_index(static_cast<unsigned int>(-1))

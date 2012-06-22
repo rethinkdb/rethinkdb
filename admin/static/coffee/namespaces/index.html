@@ -51,8 +51,14 @@
 </script>
 
 
+<script id="fail_rename_namespace-template" type="text/x-handlebars-template">
+    Sorry, something went wrong. The namespace might not be up to date, please refresh.
+</script>
+
+
 
 <script id="add_namespace-modal-template" type="text/x-handlebars-template">
+  <div class="alert alert-error error_answer"></div>
   <form class="form">
     <fieldset>
       <legend>Namespace details</legend>
@@ -104,6 +110,7 @@
 </script>
 
 <script id="remove_namespace-modal-template" type="text/x-handlebars-template">
+  <div class="alert alert-error error_answer"></div>
   <h2>Are you sure you want to remove these namespaces:</h2>
   <ul class="namespace-list">
     {{#each namespaces}}

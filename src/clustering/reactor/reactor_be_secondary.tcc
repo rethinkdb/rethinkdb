@@ -134,7 +134,7 @@ bool reactor_t<protocol_t>::find_replier_in_directory(const typename protocol_t:
 
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
         /* Tell everyone that we're backfilling so that we can get up to
          * date. */
@@ -154,16 +154,17 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                  * Also this is potentially a performance boost because it
                  * allows other secondaries to preemptively backfill before the
                  * primary is up. */
-                backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history, store);
+                backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history, svs);
 
                 /* Tell everyone in the cluster what state we're in. */
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token;
-                store->new_read_token(order_token);
-                typename reactor_business_card_t<protocol_t>::secondary_without_primary_t activity(region_map_transform<protocol_t,
-                                                                                                                        binary_blob_t,
-                                                                                                                        version_range_t>(store->get_metainfo(order_token, interruptor),
-                                                                                                                                         &binary_blob_t::get<version_range_t>),
-                                                                                                   backfiller.get_business_card());
+                const int num_stores = svs->num_stores();
+                boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
+                svs->new_read_tokens(read_tokens.get(), num_stores);
+
+                typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
+                    activity(svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor),
+                             backfiller.get_business_card());
+
                 directory_entry.set(activity);
 
                 /* Wait until we can find a primary for our region. */
@@ -213,7 +214,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 perfmon_collection_t region_perfmon_collection(region_name, &regions_perfmon_collection, true, true);
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t<protocol_t> listener(mailbox_manager, broadcaster, branch_history, store, location_to_backfill_from, backfill_session_id, &regions_perfmon_collection, interruptor);
+                listener_t<protocol_t> listener(mailbox_manager, broadcaster, branch_history, svs, location_to_backfill_from, backfill_session_id, &regions_perfmon_collection, interruptor);
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use

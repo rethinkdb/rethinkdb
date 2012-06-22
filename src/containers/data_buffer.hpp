@@ -5,6 +5,8 @@
 #include "containers/intrusive_ptr.hpp"
 #include "errors.hpp"
 
+class append_only_printf_buffer_t;
+
 struct data_buffer_t {
 private:
     int64_t ref_count_;
@@ -48,6 +50,7 @@ inline void intrusive_ptr_release(data_buffer_t *buffer) {
     }
 }
 
+void debug_print(append_only_printf_buffer_t *buf, const intrusive_ptr_t<data_buffer_t>& ptr);
 
 
 

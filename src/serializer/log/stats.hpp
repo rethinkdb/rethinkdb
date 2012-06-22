@@ -1,7 +1,7 @@
 #ifndef SERIALIZER_LOG_STATS_HPP_
 #define SERIALIZER_LOG_STATS_HPP_
 
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 struct log_serializer_stats_t {
     perfmon_collection_t serializer_collection;

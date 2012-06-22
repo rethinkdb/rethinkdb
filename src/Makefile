@@ -94,12 +94,12 @@ CXX:=icc
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lcurl -lv8
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lv8
 else ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lcurl -lv8
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lv8
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lcurl -lv8
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lv8
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
@@ -736,7 +736,7 @@ analyze: $(SOURCES)
 	$(QUIET) clang --analyze $(CXXFLAGS) $(SOURCES)
 
 coffeelint:
-	coffeelint -f ../scripts/coffeelint.json -r ../admin/
+	-coffeelint -f ../scripts/coffeelint.json -r ../admin/
 
 style: coffeelint
 	$(QUIET) ../scripts/check_style.sh

@@ -9,6 +9,8 @@
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/semilattice/view.hpp"
 
+template <class> class multistore_ptr_t;
+
 template<class protocol_t>
 class reactor_t {
 public:
@@ -18,7 +20,7 @@ public:
             clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > reactor_directory,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
             clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable,
-            store_view_t<protocol_t> *_underlying_store,
+            multistore_ptr_t<protocol_t> *_underlying_svs,
             perfmon_collection_t *_parent_perfmon_collection) THROWS_NOTHING;
 
     clone_ptr_t<watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > get_reactor_directory() {
@@ -79,7 +81,7 @@ private:
             auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
     /* Implemented in clustering/reactor/reactor_be_primary.tcc */
-    void be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
+    void be_primary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
             signal_t *interruptor) THROWS_NOTHING;
 
     /* A backfill candidate is a structure we use to keep track of the different
@@ -113,7 +115,7 @@ private:
     bool is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                       const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out);
 
-    static backfill_candidate_t make_backfill_candidate_from_binary_blob(const binary_blob_t &b);
+    static backfill_candidate_t make_backfill_candidate_from_version_range(const version_range_t &b);
 
     /* Implemented in clustering/reactor/reactor_be_secondary.tcc */
     bool find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
@@ -122,7 +124,7 @@ private:
     bool find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
                                       clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_out);
 
-    void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
+    void be_secondary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
             signal_t *interruptor) THROWS_NOTHING;
 
 
@@ -130,7 +132,7 @@ private:
     bool is_safe_for_us_to_be_nothing(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                       const typename protocol_t::region_t &region);
 
-    void be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
+    void be_nothing(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
             signal_t *interruptor) THROWS_NOTHING;
 
     static boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > extract_broadcaster_from_reactor_business_card_primary(
@@ -157,7 +159,7 @@ private:
 
     clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable;
 
-    store_view_t<protocol_t> *underlying_store;
+    multistore_ptr_t<protocol_t> *underlying_svs;
 
     std::map<typename protocol_t::region_t, current_role_t *> current_roles;
 

@@ -88,4 +88,35 @@ cartesian_product_iterator_t<left_container_t, right_container_t>::operator++(in
     return *this = *this + 1;
 }
 
+template <class It>
+void debug_print_iterators(append_only_printf_buffer_t *buf, It beg, It end) {
+    for (It it = beg; it != end; ++it) {
+        if (it != beg) {
+            buf->appendf(", ");
+        }
+        debug_print(buf, *it);
+    }
+}
+
+template <class K, class V>
+void debug_print(append_only_printf_buffer_t *buf, const std::map<K, V> &map) {
+    buf->appendf("{");
+    debug_print_iterators(buf, map.begin(), map.end());
+    buf->appendf("}");
+}
+
+template <class T>
+void debug_print(append_only_printf_buffer_t *buf, const std::vector<T> &vec) {
+    buf->appendf("[");
+    debug_print_iterators(buf, vec.begin(), vec.end());
+    buf->appendf("]");
+}
+
+template <class T, class U>
+void debug_print(append_only_printf_buffer_t *buf, const std::pair<T, U> &p) {
+    debug_print(buf, p.first);
+    buf->appendf(" => ");
+    debug_print(buf, p.second);
+}
+
 #endif  // STL_UTILS_TCC_

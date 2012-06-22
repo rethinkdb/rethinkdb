@@ -21,7 +21,7 @@
 #include "concurrency/wait_any.hpp"
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 /* Network connection object */
 

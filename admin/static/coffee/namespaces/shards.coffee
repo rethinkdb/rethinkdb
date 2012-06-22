@@ -286,6 +286,7 @@ module 'NamespaceView', ->
                         collect_server_data =>
                             $popover.remove()
                             $('#user-alert-space').append (@alert_tmpl {})
+                    #TODO: Handle error
                 $popover_button.button('loading')
 
         make_master: (event) =>
@@ -309,7 +310,7 @@ module 'NamespaceView', ->
                     $('#user-alert-space').append (@alert_tmpl {})
                     
                     # Trigger a manual refresh of the data
-                    collect_server_data()
+                    collect_server_data(true)
             )
 
         get_available_machines_in_datacenter: =>

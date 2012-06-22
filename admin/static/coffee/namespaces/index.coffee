@@ -218,6 +218,7 @@ module 'NamespaceView', ->
                         port : parseInt(formdata.port)
                         )
                     success: @on_success
+                    error: @on_error
 
         on_success: (response) =>
             super
@@ -238,6 +239,7 @@ module 'NamespaceView', ->
     class @RemoveNamespaceModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#remove_namespace-modal-template').html()
         alert_tmpl: Handlebars.compile $('#removed_namespace-alert-template').html()
+        template_remove_error: Handlebars.compile $('#fail_rename_namespace-template').html()
         class: 'remove-namespace-dialog'
 
         initialize: ->
@@ -264,6 +266,7 @@ module 'NamespaceView', ->
                     type: 'DELETE'
                     contentType: 'application/json'
                     success: @on_success
+                    error: @on_error
             # TODO: this should happen on success, but I'm hacking
             # this in here until we support multiple deletes in one
             # blow on the server. Remove the next two lines once
@@ -271,11 +274,23 @@ module 'NamespaceView', ->
             for namespace in @namespaces_to_delete
                 namespaces.remove(namespace.id)
 
-        on_success: (response) ->
-            super
+        on_success_with_error: =>
+            @.$('.error_answer').html @template_remove_error
 
+            if @.$('.error_answer').css('display') is 'none'
+                @.$('.error_answer').slideDown('fast')
+            else
+                @.$('.error_answer').css('display', 'none')
+                @.$('.error_answer').fadeIn()
+            @reset_buttons()
+
+
+        on_success: (response) ->
             if (response)
-                throw new Error("Received a non null response to a delete... this is incorrect")
+                @on_success_with_error()
+                return
+
+            super
 
             # TODO: hook this up once we have support for deleting
             # multiple items with one http request.

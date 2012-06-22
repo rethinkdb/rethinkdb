@@ -5,6 +5,7 @@ module 'UIComponents', ->
     # Basic modal dialog to extend
     class @AbstractModal extends Backbone.View
         template_outer: Handlebars.compile $('#abstract-modal-outer-template').html()
+        template_ajax_error: Handlebars.compile $('#fail_ajax_request-template').html()
 
         events: ->
             'click .cancel': 'cancel_modal'
@@ -84,6 +85,16 @@ module 'UIComponents', ->
             @.$('.btn-primary').button('loading')
             @.$('.cancel').button('loading')
 
+        on_error: =>
+            @.$('.error_answer').html @template_ajax_error
+
+            if @.$('.error_answer').css('display') is 'none'
+                @.$('.error_answer').slideDown('fast')
+            else
+                @.$('.error_answer').css('display', 'none')
+                @.$('.error_answer').fadeIn()
+            @reset_buttons()
+
         add_custom_button: (main_text, class_str, data_loading_text, on_click) =>
             @custom_buttons.push
                 main_text: main_text
@@ -124,6 +135,7 @@ module 'UIComponents', ->
                 contentType: 'application/json'
                 data: @data
                 success: @on_success
+                error: @on_error
 
         on_success: (response) ->
             super
@@ -240,6 +252,7 @@ module 'UIComponents', ->
                     contentType: 'application/json'
                     data: JSON.stringify(@formdata.new_name)
                     success: @on_success
+                    error: @on_error
 
         on_success: (response) ->
             super

@@ -26,7 +26,7 @@
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
 #include "arch/os_signal.hpp"
-#include "perfmon.hpp"
+#include "perfmon/collect.hpp"
 #include "memcached/stats.hpp"
 
 static const char *crlf = "\r\n";
@@ -447,28 +447,29 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
         is the number of shards. To avoid this, we need to be aware of the
         sharding scheme and not dispatch `rget_query_t`s that cross shard
         boundaries */
-        std::set<key_range_t> shards = rh->nsi->get_sharding_scheme();
+        const std::set< hash_region_t<key_range_t> > shards = rh->nsi->get_sharding_scheme();
 
-        /* The `std::set` should already be sorted properly, but we check that
-        explicitly in debug mode. */
-#ifndef NDEBUG
-        key_range_t::right_bound_t bound(store_key_t::min());
-        for (std::set<key_range_t>::iterator it = shards.begin(); it != shards.end(); it++) {
-            rassert(!bound.unbounded);
-            rassert(bound.key == it->left);
-            bound = it->right;
+        /* Check that we have a valid set of hash ranges, that don't use their hashing parts. */
+        {
+            key_range_t::right_bound_t bound(store_key_t::min());
+            for (std::set< hash_region_t<key_range_t> >::const_iterator it = shards.begin(); it != shards.end(); it++) {
+                guarantee(!bound.unbounded);
+                guarantee(it->beg == 0);
+                guarantee(it->end == HASH_REGION_HASH_SIZE);
+                guarantee(bound.key == it->inner.left);
+                bound = it->inner.right;
+            }
+            rassert(bound.unbounded);
         }
-        rassert(bound.unbounded);
-#endif
 
         /* Find the shard that we're going to start in. */
-        std::set<key_range_t>::iterator shard_it = shards.begin();
-        while (!shard_it->contains_key(range.left)) {
-            shard_it++;
+        std::set<hash_region_t<key_range_t> >::const_iterator shard_it = shards.begin();
+        while (!shard_it->inner.contains_key(range.left)) {
+            ++shard_it;
         }
 
         while (max_items > 0) {
-            rget_query_t rget_query(region_intersection(range, *shard_it), max_items);
+            rget_query_t rget_query(region_intersection(range, shard_it->inner), max_items);
             memcached_protocol_t::read_t read(rget_query, time(NULL));
             cond_t non_interruptor;
             memcached_protocol_t::read_response_t response = rh->nsi->read(read, order_token_t::ignore, &non_interruptor);
@@ -489,7 +490,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
                 range.left.increment();
             } else {
                 /* This round of the range scan stopped for some other reason... */
-                if (shard_it->right < range.right) {
+                if (shard_it->inner.right < range.right) {
                     /* The `rget_query_t` hit the right-hand bound of the range we
                     passed to it. But because we were filtering by shard, the
                     right-hand bound of the range we passed to it isn't the
@@ -498,8 +499,8 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
                     the maximum number of rows that the user requested, but in that
                     case the `while` loop will stop, so we don't have to distinguish
                     between the two cases.) */
-                    shard_it++;
-                    range.left = shard_it->left;
+                    ++shard_it;
+                    range.left = shard_it->inner.left;
                 } else {
                     /* The `rget_query_t` hit the right-hand bound of the range we
                     passed to it. Because the right-hand bound of the range scan
@@ -513,7 +514,7 @@ void do_rget(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, char
 
             rassert(results.pairs.size() <= max_items);
             max_items -= results.pairs.size();
-        } 
+        }
         rh->write_end();
 
     } catch (cannot_perform_query_exc_t e) {
