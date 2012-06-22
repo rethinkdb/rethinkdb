@@ -1,5 +1,10 @@
-import rethinkdb as r
+import os
+import sys
 import unittest
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
+
+import rethinkdb as r
 
 
 class TestTableRef(unittest.TestCase):
