@@ -312,6 +312,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			namespaces/index.coffee namespaces/replicas.coffee namespaces/shards.coffee namespaces/machines.coffee namespaces/namespace.coffee \
 			servers/index.coffee servers/machine.coffee servers/datacenter.coffee \
 			dashboard.coffee \
+			dataexplorer.coffee \
 			sidebar.coffee \
 			resolve_issues.coffee \
 			log_view.coffee \

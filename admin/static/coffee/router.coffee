@@ -14,6 +14,7 @@ class BackboneCluster extends Backbone.Router
         'dashboard': 'dashboard'
         'resolve_issues': 'resolve_issues'
         'logs': 'logs'
+        'dataexplorer': 'dataexplorer'
 
     initialize: ->
         log_initial '(initializing) router'
@@ -74,6 +75,14 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         @current_view = new LogView.Container
         @$container.html @current_view.render().el
+
+    dataexplorer: ->
+        log_router '/dataexplorer'
+        clear_modals()
+        @current_view.destroy()
+        @current_view = new DataExplorerView.Container
+        @$container.html @current_view.render().el
+
 
     namespace: (id) ->
         log_router '/namespaces/' + id
