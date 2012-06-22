@@ -3,6 +3,7 @@
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 
 template<class key_t, class value_t>
 std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::optional<value_t> > &map) {
@@ -224,9 +225,7 @@ void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t ver
 
 
 #include "mock/dummy_protocol.hpp"
-#include "mock/dummy_protocol_json_adapter.hpp"
 #include "memcached/protocol.hpp"
-#include "memcached/protocol_json_adapter.hpp"
 
 template class reactor_t<mock::dummy_protocol_t>;
 template class reactor_t<memcached_protocol_t>;

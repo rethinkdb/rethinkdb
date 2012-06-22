@@ -206,5 +206,3 @@ clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reacto
 
 #endif /* CLUSTERING_REACTOR_REACTOR_HPP_ */
 
-#include "clustering/reactor/reactor_be_primary.tcc"
-

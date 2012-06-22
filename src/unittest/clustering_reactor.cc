@@ -5,6 +5,7 @@
 
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/immediate_consistency/query/namespace_interface.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
