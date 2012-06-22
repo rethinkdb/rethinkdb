@@ -3,6 +3,7 @@
 
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
+#include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "concurrency/watchable.hpp"
@@ -175,8 +176,6 @@ private:
 
 
 #endif /* CLUSTERING_REACTOR_REACTOR_HPP_ */
-
-#include "clustering/reactor/reactor.tcc"
 
 #include "clustering/reactor/reactor_be_primary.tcc"
 

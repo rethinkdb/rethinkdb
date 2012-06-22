@@ -1,6 +1,3 @@
-#ifndef CLUSTERING_REACTOR_REACTOR_TCC_
-#define CLUSTERING_REACTOR_REACTOR_TCC_
-
 #include "clustering/reactor/reactor.hpp"
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
@@ -252,4 +249,12 @@ clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reacto
     return reactor_directory->subview(boost::bind(&extract_activity_from_reactor_bcard<protocol_t, activity_t>, _1, p_id, ra_id));
 }
 
-#endif  // CLUSTERING_REACTOR_REACTOR_TCC_
+
+
+#include "mock/dummy_protocol.hpp"
+#include "mock/dummy_protocol_json_adapter.hpp"
+#include "memcached/protocol.hpp"
+#include "memcached/protocol_json_adapter.hpp"
+
+template class reactor_t<mock::dummy_protocol_t>;
+template class reactor_t<memcached_protocol_t>;
