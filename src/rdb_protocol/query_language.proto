@@ -351,7 +351,7 @@ message Query {
 }
 
 message Response {
-    required int32 statuscode = 1;
+    required int32 status_code = 1;
 
     required int64 token = 2;
 

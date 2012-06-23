@@ -15,12 +15,12 @@
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
-#include <stdio.h>
-#include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/parser.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
+#include "rdb_protocol/parser.hpp"
+#include "rdb_protocol/pb_server.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
@@ -29,6 +29,7 @@
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
+#include <stdio.h>
 
 bool serve_(
     bool i_am_a_server,
@@ -207,6 +208,8 @@ bool serve_(
 
     rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
     http_server_t server(12345, &rdb_parser);
+
+    query_server_t rdb_pb_server(12346, semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
 
     boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
         new metadata_persistence::semilattice_watching_persister_t(
