@@ -5,6 +5,7 @@
 #include <map>
 
 #include "containers/intrusive_list.hpp"
+#include "utils.hpp"
 #include "concurrency/rwi_lock.hpp"
 
 class perfmon_collection_t;
@@ -43,7 +44,7 @@ public:
 };
 
 /* A perfmon collection allows you to add hierarchy to stats. */
-class perfmon_collection_t : public perfmon_t {
+class perfmon_collection_t : public perfmon_t, public home_thread_mixin_t {
 public:
     perfmon_collection_t(const std::string &_name, perfmon_collection_t *parent, bool insert, bool _create_submap)
         : perfmon_t(parent, insert), name(_name), create_submap(_create_submap) { }

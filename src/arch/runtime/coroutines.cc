@@ -357,7 +357,12 @@ bool is_coroutine_stack_overflow(void *addr) {
     return cglobals->current_coro && cglobals->current_coro->stack.address_is_stack_overflow(addr);
 }
 
+bool coroutines_have_been_initialized() {
+    return cglobals != NULL;
+}
+
 coro_t * coro_t::get_coro() {
+    rassert(coroutines_have_been_initialized());
     coro_t *coro;
 
     if (cglobals->free_coros.size() == 0) {

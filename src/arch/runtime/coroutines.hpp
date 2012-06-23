@@ -161,6 +161,7 @@ private:
 
 /* Returns true if the given address is in the protection page of the current coroutine. */
 bool is_coroutine_stack_overflow(void *addr);
+bool coroutines_have_been_initialized();
 
 #ifndef NDEBUG
 
