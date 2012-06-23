@@ -149,6 +149,40 @@ class val(Term):
         else:
             raise ValueError
 
+class Comparison(Term):
+    def __init__(self, terms, cmp_type):
+        if not terms:
+            raise ValueError
+        self.terms = terms
+        self.cmp_type = cmp_type
+
+    def write_ast(self, parent):
+        # If we only have one term, the comparison compiles to true
+        if len(self.terms) == 1:
+            val(True).write_ast(parent)
+            return
+        # Otherwise we need to be able to actually compare
+        class Comparison2(Term):
+            def __init__(self, term1, term2, cmp_type):
+                self.term1 = toTerm(term1)
+                self.term2 = toTerm(term2)
+                self.cmp_type = cmp_type
+            def write_ast(self, parent):
+                parent.type = p.Term.CALL
+                parent.call.builtin.type = p.Builtin.COMPARE
+                parent.call.builtin.comparison = self.cmp_type
+                self.term1.write_ast(parent.call.args.add())
+                self.term2.write_ast(parent.call.args.add())
+        # If we only have two terms, we can just do the comparision
+        if len(self.terms) == 2:
+            Comparison2(self.terms[0], self.terms[1], self.cmp_type).write_ast(parent)
+            return
+        # If we have more than two, we have to resort to conjunctions
+        _and(Comparison2(self.terms[0], self.terms[1], self.cmp_type),
+             Comparison(self.terms[1:], self.cmp_type)).write_ast(parent)
+
+def eq(*terms):
+    return Comparison(list(terms), p.EQ)
 
 def toTerm(value):
     if isinstance(value, Term):
