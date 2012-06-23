@@ -197,6 +197,8 @@ private:
     struct thread_info_t {
         double current_count, last_count;
         int current_interval;
+
+        thread_info_t() : current_count(0), last_count(0), current_interval(1) { }
     } thread_data[MAX_THREADS];
     void update(ticks_t now);
     std::string name;
