@@ -3,9 +3,6 @@
 
 #include "http/json/json_adapter.hpp"
 
-#include "errors.hpp"
-#include <boost/uuid/uuid_io.hpp>
-
 #include "containers/uuid.hpp"
 #include "utils.hpp"
 #include "logger.hpp"
