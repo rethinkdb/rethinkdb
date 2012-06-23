@@ -25,19 +25,21 @@ class Connection(object):
         self.socket.sendall(header + serialized)
         resp_header = self._recvall(4)
         msglen = struct.unpack("<L", resp_header)[0]
-        response = self._recvall(msglen)
+        response_serialized = self._recvall(msglen)
+        response = p.Response()
+        response.ParseFromString(response_serialized)
 
-        return p.Response.ParseFromString(response)
+        return response
 
     def get_token(self):
         token = self.token
         self.token += 1
         return token
 
-    def _recvall(self, len):
+    def _recvall(self, length):
         buf = ""
-        while len(buf) != len:
-            buf += self.socket.recv(len - len(buf))
+        while len(buf) != length:
+            buf += self.socket.recv(length - len(buf))
         return buf
 
     def _finalize_ast(self, root, query):
@@ -47,7 +49,7 @@ class Connection(object):
             return table
         elif query is p.View.Table:
             view = self._finalize_ast(root, p.View)
-            view.view_type = p.View.TABLE
+            view.type = p.View.TABLE
             return view.table
         elif query is p.View:
             term = self._finalize_ast(root, p.Term)
@@ -78,7 +80,7 @@ class db(object):
         self.name = name
 
     def __getitem__(self, key):
-        return db(key)
+        return Table(key)
 
     def __getattr__(self, key):
         return Table(self, key)
