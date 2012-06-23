@@ -83,11 +83,6 @@ class db(object):
     def __getattr__(self, key):
         return Table(self, key)
 
-# (ReadQuery (Table (TableRef dbname tablename)))
-
-# (Query (ReadQuery (Term (View (Table (TableRef dbname tablename))))))
-
-
 class Table(object):
 
     def __init__(self, db, name):
@@ -114,6 +109,53 @@ class Insert(object):
             term.type = p.Term.JSON
             term.jsonstring = json.dumps(entry)
 
+class Term(object):
+    pass
+
+class Conjunction(Term):
+    def __init__(self, predicates):
+        if not predicates:
+            raise ValueError
+        self.predicates = predicates
+
+    def write_ast(self, parent):
+        # If there is one predicate left, we just write that and
+        # return
+        if len(self.predicates) == 1:
+            toTerm(self.predicates[0]).write_ast(parent)
+            return
+        # Otherwise, we need an if branch
+        parent.type = p.Term.IF
+        toTerm(self.predicates[0]).write_ast(parent.if_.test)
+        # Then recurse
+        remaining_predicates = Conjunction(self.predicates[1:])
+        remaining_predicates.write_ast(parent.if_.true_branch)
+        # Else false
+        val(False).write_ast(parent.if_.false_branch)
+
+def _and(*predicates):
+    return Conjunction(list(predicates))
+
+class val(Term):
+    def __init__(self, value):
+        self.value = value
+
+    def write_ast(self, parent):
+        if isinstance(self.value, bool):
+            parent.type = p.Term.BOOL
+            parent.valuebool = self.value
+        else:
+            raise ValueError
+
+
+def toTerm(value):
+    if isinstance(value, Term):
+        return value
+    if isinstance(value, bool):
+        return val(value)
+    else:
+        raise ValueError
+    
 #a = Connection("newton", 80)
 #t = db("foo").bar
 #root_ast = p.Query()
