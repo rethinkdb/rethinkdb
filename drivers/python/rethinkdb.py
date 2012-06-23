@@ -146,6 +146,9 @@ class val(Term):
         if isinstance(self.value, bool):
             parent.type = p.Term.BOOL
             parent.valuebool = self.value
+        elif isinstance(self.value, int):
+            parent.type = p.Term.NUMBER
+            parent.number = self.value
         else:
             raise ValueError
 
@@ -183,11 +186,21 @@ class Comparison(Term):
 
 def eq(*terms):
     return Comparison(list(terms), p.EQ)
+def neq(*terms):
+    return Comparison(list(terms), p.NE)
+def lt(*terms):
+    return Comparison(list(terms), p.LT)
+def lte(*terms):
+    return Comparison(list(terms), p.LE)
+def gt(*terms):
+    return Comparison(list(terms), p.GT)
+def gte(*terms):
+    return Comparison(list(terms), p.GE)
 
 def toTerm(value):
     if isinstance(value, Term):
         return value
-    if isinstance(value, bool):
+    if isinstance(value, (bool, int)):
         return val(value)
     else:
         raise ValueError
