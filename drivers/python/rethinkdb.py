@@ -114,6 +114,18 @@ class Insert(object):
 class Term(object):
     pass
 
+class _if(Term):
+    def __init__(self, test, true_branch, false_branch):
+        self.test = toTerm(test)
+        self.true_branch = toTerm(true_branch)
+        self.false_branch = toTerm(false_branch)
+
+    def write_ast(self, parent):
+        parent.type = p.Term.IF
+        self.test.write_ast(parent.if_.test)
+        self.true_branch.write_ast(parent.if_.true_branch)
+        self.false_branch.write_ast(parent.if_.false_branch)
+
 class Conjunction(Term):
     def __init__(self, predicates):
         if not predicates:
@@ -127,16 +139,40 @@ class Conjunction(Term):
             toTerm(self.predicates[0]).write_ast(parent)
             return
         # Otherwise, we need an if branch
-        parent.type = p.Term.IF
-        toTerm(self.predicates[0]).write_ast(parent.if_.test)
-        # Then recurse
-        remaining_predicates = Conjunction(self.predicates[1:])
-        remaining_predicates.write_ast(parent.if_.true_branch)
-        # Else false
-        val(False).write_ast(parent.if_.false_branch)
+        _if(toTerm(self.predicates[0]),
+            Conjunction(self.predicates[1:]),
+            val(False)).write_ast(parent)
 
 def _and(*predicates):
     return Conjunction(list(predicates))
+
+class Disjunction(Term):
+    def __init__(self, predicates):
+        if not predicates:
+            raise ValueError
+        self.predicates = predicates
+
+    def write_ast(self, parent):
+        # If there is one predicate left, we just write that and
+        # return
+        if len(self.predicates) == 1:
+            toTerm(self.predicates[0]).write_ast(parent)
+            return
+        # Otherwise, we need an if branch
+        _if(toTerm(self.predicates[0]),
+            val(True),
+            Disjunction(self.predicates[1:])).write_ast(parent)
+
+def _or(*predicates):
+    return Disjunction(list(predicates))
+
+class _not(Term):
+    def __init__(self, term):
+        self.term = toTerm(term)
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.NOT
+        self.term.write_ast(parent.call.args.add())
 
 class val(Term):
     def __init__(self, value):
@@ -196,6 +232,124 @@ def gt(*terms):
     return Comparison(list(terms), p.GT)
 def gte(*terms):
     return Comparison(list(terms), p.GE)
+
+def and_eq(_hash):
+    terms = []
+    for key in _hash.iterkeys():
+        val = _hash[key]
+        terms.append(eq(key, val))
+    return Conjunction(terms)
+        
+
+class Arithmetic(Term):
+    def __init__(self, terms, op_type):
+        if not terms:
+            raise ValueError
+        if op_type is p.Builtin.MODULO and len(terms) != 2:
+            raise ValueError
+        self.terms = terms
+        self.op_type = op_type
+    def write_ast(self, parent):
+        # A class to actually do the op
+        class Arithmetic2(Term):
+            def __init__(self, term1, term2, op_type):
+                self.term1 = toTerm(term1)
+                self.term2 = toTerm(term2)
+                self.op_type = op_type
+            def write_ast(self, parent):
+                parent.type = p.Term.CALL
+                parent.call.builtin.type = self.op_type
+                self.term1.write_ast(parent.call.args.add())
+                self.term2.write_ast(parent.call.args.add())
+        # If we only have one term...
+        if len(self.terms) == 1:
+            # If we're adding or multiplying, just write it
+            if self.op_type is p.Builtin.ADD or self.op_type is p.Builtin.MULTIPLY:
+                toTerm(self.terms[0]).write_ast(parent)
+                return
+            # If we're dividing, do 1/X (like clisp)
+            if self.op_type is p.Builtin.DIVIDE:
+                Arithmetic2(val(1), toTerm(self.terms[0]), self.op_type).write_ast(parent)
+                return
+            # If we're subtracting, do 0-X (like lisp)
+            if self.op_type is p.Builtin.SUBTRACT:
+                Arithmetic2(val(0), toTerm(self.terms[0]), self.op_type).write_ast(parent)
+                return
+            return
+        # Encode the op
+        op_term = Arithmetic2(self.terms[0], self.terms[1], self.op_type)
+        # If we only have two terms, just do the op
+        if len(self.terms) == 2:
+            op_term.write_ast(parent)
+            return
+        # Otherwise, do the op and recurse
+        Arithmetic([op_term] + self.terms[2:], self.op_type).write_ast(parent.call.args.add())
+
+def add(*terms):
+    return Arithmetic(list(terms), p.Builtin.ADD)
+def sub(*terms):
+    return Arithmetic(list(terms), p.Builtin.SUBTRACT)
+def div(*terms):
+    return Arithmetic(list(terms), p.Builtin.DIVIDE)
+def mul(*terms):
+    return Arithmetic(list(terms), p.Builtin.MULTIPLY)
+def mod(*terms):
+    return Arithmetic(list(terms), p.Builtin.MODULO)
+
+class var(Term):
+    def __init__(self, name):
+        if not name:
+            raise ValueError
+        self.name = name
+
+    def attr(self, name):
+        return attr(name, self)
+        
+    def write_ast(self, parent):
+        parent.type = p.Term.VAR
+        parent.var = self.name
+
+class attr(Term):
+    def __init__(self, name, parent):
+        if not name:
+            raise ValueError
+        attrs = name.split('.')
+        attrs.reverse()
+        self.name = attrs[0]
+        attrs = attrs[1:]
+        if len(attrs) > 0:
+            attrs.reverse()
+            self.parent = attr('.'.join(attrs), parent)
+        else:
+            self.parent = parent
+
+    def attr(self, name):
+        return attr(name, self)
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.GETATTR
+        parent.call.builtin.attr = self.name
+        self.parent.write_ast(parent.call.args.add())
+
+class Let(Term):
+    def __init__(self, pairs, expr):
+        self.pairs = pairs
+        self.expr = expr
+    def write_ast(self, parent):
+        parent.type = p.Term.LET
+        for pair in self.pairs:
+            binding = parent.let.binds.add()
+            toTerm(pair[0]).write_ast(binding.var)
+            toTerm(pair[1]).write_ast(binding.term)
+        self.expr.write_ast(parent.let.expr)
+
+# Accepts an arbitrary number of pairs followed by a single
+# expression. Each pair is a variable followed by expression (binds
+# the latter to the former and evaluates the last expression in that
+# context).
+def let(*args):
+    return Let(args[:len(args) - 1], args[len(args) - 1])
 
 def toTerm(value):
     if isinstance(value, Term):
