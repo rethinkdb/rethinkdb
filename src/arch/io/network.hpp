@@ -25,7 +25,7 @@
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "containers/intrusive_list.hpp"
-#include "perfmon/perfmon_types.hpp"
+#include "perfmon/types.hpp"
 
 /* linux_tcp_conn_t provides a disgusting wrapper around a TCP network connection. */
 

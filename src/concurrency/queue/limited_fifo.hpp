@@ -5,7 +5,7 @@
 
 #include "concurrency/queue/passive_producer.hpp"
 #include "concurrency/semaphore.hpp"
-#include "perfmon/perfmon_types.hpp"
+#include "perfmon/types.hpp"
 
 /* `limited_fifo_queue_t` is a first-in, first-out queue that has a limited depth. If the
 consumer is not reading of the queue as fast as the producer is pushing things onto the
