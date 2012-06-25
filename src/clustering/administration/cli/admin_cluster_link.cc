@@ -6,7 +6,6 @@
 #include <stdio.h>
 
 #include <map>
-#include <iostream>
 #include <stdexcept>
 
 #include "errors.hpp"
@@ -2599,6 +2598,37 @@ void admin_cluster_link_t::do_admin_resolve(admin_command_parser_t::command_data
     }
 }
 
+// Reads from stream until a newline is occurred.  Reads the newline
+// but does not store it in out.  Returns true upon success.
+bool getline(FILE *stream, std::string *out) {
+    out->clear();
+
+    const int size = 1024;
+    char buf[size];
+
+    for (;;) {
+        char *res = fgets(buf, size, stream);
+
+        if (!res) {
+            return false;
+        }
+
+        if (res) {
+            int len = strlen(buf);
+            guarantee(len < size);
+            guarantee(len > 0);
+
+            if (buf[len - 1] == '\n') {
+                buf[len - 1] = '\0';
+                out->append(buf);
+                return true;
+            } else {
+                out->append(buf);
+            }
+        }
+    }
+}
+
 template <class T>
 void admin_cluster_link_t::resolve_value(vclock_t<T>& field) {
     if (!field.in_conflict()) {
@@ -2615,7 +2645,11 @@ void admin_cluster_link_t::resolve_value(vclock_t<T>& field) {
     printf("select: ");
 
     std::string selection;
-    getline(std::cin, selection);
+    bool getline_res = getline(stdin, &selection);
+    if (!getline_res) {
+        throw admin_cluster_exc_t("could not read from stdin");
+    }
+
     int index = atoi(selection.c_str());
 
     if (index < 0 || (size_t)index > values.size()) {
