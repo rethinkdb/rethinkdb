@@ -3,6 +3,7 @@
 
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
@@ -20,28 +21,159 @@ void push_finish_on_queue(fifo_enforcer_queue_t<std::pair<std::pair<bool, backfi
     queue->push(token, std::make_pair(std::make_pair(false, backfill_chunk_t()), token));
 }
 
+
+/* Now that the metadata indicates that the backfill is happening, it's
+   time to start actually performing backfill chunks */
+template <class protocol_t>
+class chunk_callback_t : public coro_pool_t<std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> >::callback_t,
+                         public home_thread_mixin_t {
+public:
+    chunk_callback_t(multistore_ptr_t<protocol_t> *_svs,
+                     fifo_enforcer_queue_t<std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> > *_chunk_queue, mailbox_manager_t *_mbox_manager,
+                     mailbox_addr_t<void(int)> _allocation_mailbox) :
+        svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
+        allocation_mailbox(_allocation_mailbox), unacked_chunks(0),
+        done_message_arrived(false), num_outstanding_chunks(0)
+    { }
+
+    void actually_call_receive_backfill(const std::vector<int> *indices,
+                                        const std::vector<typename protocol_t::backfill_chunk_t> *sharded_chunks,
+                                        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                        signal_t *interruptor,
+                                        int i) {
+        try {
+            rassert(write_tokens[i].get() != NULL);
+            rassert(interruptor != NULL);
+
+            svs->get_store_view((*indices)[i])->receive_backfill((*sharded_chunks)[i], write_tokens[i], interruptor);
+        } catch (interrupted_exc_t&) {
+            // We check if the thing was pulsed after pmap returns.
+        }
+    }
+
+    void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
+        const int num_stores = svs->num_stores();
+
+        std::vector<int> indices;
+        std::vector<typename protocol_t::backfill_chunk_t> sharded_chunks;
+
+        typename protocol_t::region_t chunk_region = chunk.get_region();
+
+        for (int i = 0; i < num_stores; ++i) {
+            typename protocol_t::region_t region = svs->get_region(i);
+
+            typename protocol_t::region_t intersection = region_intersection(region, chunk_region);
+            if (!region_is_empty(intersection)) {
+                indices.push_back(i);
+                sharded_chunks.push_back(chunk.shard(intersection));
+            }
+        }
+
+        boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[indices.size()]);
+        svs->new_particular_write_tokens(indices.data(), indices.size(), write_tokens.get());
+        chunk_queue->finish_write(chunk_token);
+
+        pmap(indices.size(), boost::bind(&chunk_callback_t::actually_call_receive_backfill, this, &indices, &sharded_chunks, write_tokens.get(), interruptor, _1));
+
+        if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
+        }
+    }
+
+    // TODO: Don't pass a std::pair of std::pair.
+    void coro_pool_callback(std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> chunk, signal_t *interruptor) {
+        assert_thread();
+        try {
+            if (chunk.first.first) {
+                /* This is an actual backfill chunk */
+
+                /* Before letting the next thing go, increment
+                   `num_outstanding_chunks` and acquire a write token. The
+                   former is so that if the next thing is a done message,
+                   it won't pulse `done_cond` while we're still going. The
+                   latter is so that the backfill chunks acquire the
+                   superblock in the correct order. */
+                num_outstanding_chunks++;
+
+                // We acquire the write token in apply_backfill_chunk.
+                apply_backfill_chunk(chunk.second, chunk.first.second, interruptor);
+
+                /* Allow the backfiller to send us more data */
+                int chunks_to_send_out = 0;
+                {
+                    /* Notice it's important that we don't wait while we're
+                     * modifying unacked chunks, otherwise another callback may
+                     * decided to send out an allocation as well. */
+                    ASSERT_NO_CORO_WAITING;
+                    ++unacked_chunks;
+                    rassert(unacked_chunks <= ALLOCATION_CHUNK);
+                    if (unacked_chunks == ALLOCATION_CHUNK) {
+                        unacked_chunks = 0;
+                        chunks_to_send_out = ALLOCATION_CHUNK;
+                    }
+                }
+                if (chunks_to_send_out != 0) {
+                    send(mbox_manager, allocation_mailbox, chunks_to_send_out);
+                }
+
+                num_outstanding_chunks--;
+
+            } else {
+                /* This is a fake backfill "chunk" that just indicates
+                   that the backfill is over */
+                rassert(!done_message_arrived);
+                done_message_arrived = true;
+                chunk_queue->finish_write(chunk.second);
+            }
+
+            if (done_message_arrived && num_outstanding_chunks == 0) {
+                done_cond.pulse_if_not_already_pulsed();
+            }
+
+        } catch (interrupted_exc_t) {
+            /* This means that the `coro_pool_t` is being destroyed
+               before the queue drains. That can only happen if we are
+               being interrupted or if we lost contact with the backfiller.
+               In either case, abort; the store will be left in a
+               half-backfilled state. */
+        }
+    }
+
+    cond_t done_cond;
+
+private:
+    multistore_ptr_t<protocol_t> *svs;
+    fifo_enforcer_queue_t<std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> > *chunk_queue;
+    mailbox_manager_t *mbox_manager;
+    mailbox_addr_t<void(int)> allocation_mailbox;
+    int unacked_chunks;
+    bool done_message_arrived;
+    int num_outstanding_chunks;
+
+    DISABLE_COPYING(chunk_callback_t);
+};
+
 template<class protocol_t>
 void backfillee(
         mailbox_manager_t *mailbox_manager,
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
-        store_view_t<protocol_t> *store,
+        multistore_ptr_t<protocol_t> *svs,
         typename protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
-    rassert(region_is_superset(store->get_region(), region));
+    rassert(region_is_superset(svs->get_multistore_joined_region(), region));
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
-    store->new_read_token(read_token);
+    const int num_stores = svs->num_stores();
+    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[svs->num_stores()]);
+    svs->new_read_tokens(read_tokens.get(), num_stores);
+
     region_map_t<protocol_t, version_range_t> start_point =
-        region_map_transform<protocol_t, binary_blob_t, version_range_t>(
-            store->get_metainfo(read_token, interruptor),
-            &binary_blob_t::get<version_range_t>
-            );
+	svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
 
     start_point = start_point.mask(region);
 
@@ -159,106 +291,23 @@ void backfillee(
                 }
             }
         }
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
-        store->new_write_token(write_token);
-        store->set_metainfo(
+
+        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+
+        svs->new_write_tokens(write_tokens.get(), num_stores);
+
+        svs->set_all_metainfos(
             region_map_transform<protocol_t, version_range_t, binary_blob_t>(
                 region_map_t<protocol_t, version_range_t>(span_parts.begin(), span_parts.end()),
                 &binary_blob_t::make<version_range_t>
                 ),
-            write_token,
+            order_token_t::ignore,
+            write_tokens.get(),
+            num_stores,
             interruptor
             );
 
-        /* Now that the metadata indicates that the backfill is happening, it's
-        time to start actually performing backfill chunks */
-        class chunk_callback_t : public coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> >::callback_t, 
-                                  public home_thread_mixin_t {
-        public:
-            /* *sigh* Local variable copying is a pain. Why can't we have C++11
-            closures? */
-            chunk_callback_t(store_view_t<protocol_t> *_store, 
-                    chunk_queue_t *_chunk_queue, mailbox_manager_t *_mbox_manager,
-                    mailbox_addr_t<void(int)> _allocation_mailbox) :
-                store(_store), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
-                allocation_mailbox(_allocation_mailbox), unacked_chunks(0),
-                done_message_arrived(false), num_outstanding_chunks(0)
-                { }
-
-            void coro_pool_callback(std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> chunk, signal_t *interruptor) {
-                assert_thread();
-                try {
-                    if (chunk.first.first) {
-                        /* This is an actual backfill chunk */
-
-                        /* Before letting the next thing go, increment
-                        `num_outstanding_chunks` and acquire a write token. The
-                        former is so that if the next thing is a done message,
-                        it won't pulse `done_cond` while we're still going. The
-                        latter is so that the backfill chunks acquire the
-                        superblock in the correct order. */
-                        num_outstanding_chunks++;
-                        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
-                        store->new_write_token(write_token);
-                        chunk_queue->finish_write(chunk.second);
-
-                        /* The important part: actually apply the backfill
-                        chunk. */
-                        store->receive_backfill(chunk.first.second, write_token, interruptor);
-
-                        /* Allow the backfiller to send us more data */
-                        int chunks_to_send_out = 0;
-                        {
-                            /* Notice it's important that we don't wait while we're
-                             * modifying unacked chunks, otherwise another callback may
-                             * decided to send out an allocation as well. */
-                            ASSERT_NO_CORO_WAITING;
-                            ++unacked_chunks;
-                            rassert(unacked_chunks <= ALLOCATION_CHUNK);
-                            if (unacked_chunks == ALLOCATION_CHUNK) {
-                                unacked_chunks = 0;
-                                chunks_to_send_out = ALLOCATION_CHUNK;
-                            }
-                        }
-                        if (chunks_to_send_out != 0) {
-                            send(mbox_manager, allocation_mailbox, chunks_to_send_out);
-                        }
-
-                        num_outstanding_chunks--;
-
-                    } else {
-                        /* This is a fake backfill "chunk" that just indicates
-                        that the backfill is over */
-                        rassert(!done_message_arrived);
-                        done_message_arrived = true;
-                        chunk_queue->finish_write(chunk.second);
-                    }
-
-                    if (done_message_arrived && num_outstanding_chunks == 0) {
-                        done_cond.pulse_if_not_already_pulsed();
-                    }
-
-                } catch (interrupted_exc_t) {
-                    /* This means that the `coro_pool_t` is being destroyed
-                    before the queue drains. That can only happen if we are
-                    being interrupted or if we lost contact with the backfiller.
-                    In either case, abort; the store will be left in a
-                    half-backfilled state. */
-                }
-            }
-
-            cond_t done_cond;
-
-        private:
-            store_view_t<protocol_t> *store;
-            chunk_queue_t *chunk_queue;
-            mailbox_manager_t *mbox_manager;
-            mailbox_addr_t<void(int)> allocation_mailbox;
-            int unacked_chunks;
-            bool done_message_arrived;
-            int num_outstanding_chunks;
-
-        } chunk_callback(store, &chunk_queue, mailbox_manager, allocation_mailbox);
+        chunk_callback_t<protocol_t> chunk_callback(svs, &chunk_queue, mailbox_manager, allocation_mailbox);
 
         coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
 
@@ -278,16 +327,20 @@ void backfillee(
     }
 
     /* Update the metadata to indicate that the backfill occurred */
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> write_token;
-    store->new_write_token(write_token);
-    store->set_metainfo(
+    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+
+    svs->new_write_tokens(write_tokens.get(), num_stores);
+
+    svs->set_all_metainfos(
         region_map_transform<protocol_t, version_range_t, binary_blob_t>(
             end_point_cond.get_value(),
             &binary_blob_t::make<version_range_t>
             ),
-        write_token,
+        order_token_t::ignore,
+        write_tokens.get(),
+        num_stores,
         interruptor
-        );
+    );
 }
 
 
@@ -297,7 +350,7 @@ void backfillee(
 template void backfillee<mock::dummy_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<mock::dummy_protocol_t> > > branch_history,
-        store_view_t<mock::dummy_protocol_t> *store,
+        multistore_ptr_t<mock::dummy_protocol_t> *svs,
         mock::dummy_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<mock::dummy_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
@@ -307,7 +360,7 @@ template void backfillee<mock::dummy_protocol_t>(
 template void backfillee<memcached_protocol_t>(
         mailbox_manager_t *mailbox_manager,
         UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<memcached_protocol_t> > > branch_history,
-        store_view_t<memcached_protocol_t> *store,
+        multistore_ptr_t<memcached_protocol_t> *svs,
         memcached_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<memcached_protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,

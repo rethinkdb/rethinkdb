@@ -191,4 +191,4 @@ private:
     boost::scoped_ptr<cache_t> cache;
 };
 
-#endif   /* CONTAINERS_DISK_BACKED_QUEUE_HPP_ */
+#endif /* CONTAINERS_DISK_BACKED_QUEUE_HPP_ */

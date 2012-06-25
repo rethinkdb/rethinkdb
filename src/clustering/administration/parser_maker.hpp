@@ -9,7 +9,7 @@ class parser_maker_t {
 public:
     parser_maker_t(mailbox_manager_t *,
                             boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > >,
-                            DEBUG_ONLY(int port_offset,)
+                            DEBUG_ONLY(int port_offset, )
                             namespace_repo_t<protocol_t> *repo,
                             perfmon_collection_repo_t *_perfmon_collection_repo);
 

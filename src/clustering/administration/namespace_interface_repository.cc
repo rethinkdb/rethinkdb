@@ -1,6 +1,3 @@
-#ifndef __CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_RESPOSITORY_TCC__
-#define __CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_RESPOSITORY_TCC__
-
 #include "clustering/administration/namespace_interface_repository.hpp"
 
 #include "errors.hpp"
@@ -46,4 +43,9 @@ namespace_repo_t<protocol_t>::access_t::access_t(namespace_repo_t *parent, names
     wait_interruptible(ns_if->get_initial_ready_signal(), interruptor);
 }
 
-#endif
+
+#include "mock/dummy_protocol.hpp"
+#include "memcached/protocol.hpp"
+
+template class namespace_repo_t<mock::dummy_protocol_t>;
+template class namespace_repo_t<memcached_protocol_t>;

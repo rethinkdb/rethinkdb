@@ -5,7 +5,6 @@
 #include <sys/stat.h>
 
 #include "errors.hpp"
-#include <boost/lexical_cast.hpp>
 #include <boost/scoped_array.hpp>
 
 #include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
@@ -94,12 +93,26 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
 
     struct timespec timestamp = parse_time(std::string(start_timestamp, end_timestamp - start_timestamp));
     struct timespec uptime;
-    try {
-        uptime.tv_sec = boost::lexical_cast<int>(std::string(start_uptime_ipart, end_uptime_ipart - start_uptime_ipart));
-        uptime.tv_nsec = 1e3 * boost::lexical_cast<int>(std::string(start_uptime_fpart, end_uptime_fpart - start_uptime_fpart));
-    } catch (boost::bad_lexical_cast) {
-        throw std::runtime_error("cannot parse log message (9)");
+
+    {
+        std::string tv_sec_str(start_uptime_ipart, end_uptime_ipart - start_uptime_ipart);
+        uint64_t tv_sec;
+        if (!strtou64_strict(tv_sec_str, 10, &tv_sec)) {
+            throw std::runtime_error("cannot parse log message (9)");
+        }
+
+        uptime.tv_sec = tv_sec;
+
+        std::string tv_nsec_str(start_uptime_fpart, end_uptime_fpart - start_uptime_fpart);
+        uint64_t tv_nsec;
+        if (!strtou64_strict(tv_nsec_str, 10, &tv_nsec)) {
+            throw std::runtime_error("cannot parse log message (10)");
+        }
+
+        // TODO: Seriously?  We assume three decimal places?
+        uptime.tv_nsec = 1e3 * tv_nsec;
     }
+
     log_level_t level = parse_log_level(std::string(start_level, end_level - start_level));
     std::string message = std::string(start_message, end_message - start_message);
 
@@ -323,7 +336,7 @@ void log_coro(log_writer_t *writer, log_level_t level, const std::string &messag
 
 /* Declared in `logger.hpp`, not `clustering/administration/logger.hpp` like the
 other things in this file. */
-void log_internal(UNUSED const char *src_file, UNUSED int src_line, UNUSED log_level_t level, const char *format, ...) {
+void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, ...) {
     if (log_writer_t *writer = TLS_get_global_log_writer()) {
         auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
 
@@ -333,5 +346,6 @@ void log_internal(UNUSED const char *src_file, UNUSED int src_line, UNUSED log_l
         va_end(args);
 
         coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
+
     }
 }

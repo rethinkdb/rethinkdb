@@ -45,4 +45,4 @@ struct admin_tracker_t {
     last_seen_tracker_t last_seen_tracker;
 };
 
-#endif
+#endif  // CLUSTERING_ADMINISTRATION_ADMIN_TRACKER_HPP_

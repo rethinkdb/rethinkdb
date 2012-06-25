@@ -457,7 +457,7 @@ cJSON *render_as_json(const boost::uuids::uuid *uuid, const ctx_t &) {
 template <class ctx_t>
 void apply_json_to(cJSON *change, boost::uuids::uuid *uuid, const ctx_t &) {
     if (change->type == cJSON_NULL) {
-        *uuid = boost::uuids::nil_generator()();
+        *uuid = nil_uuid();
     } else {
         try {
             *uuid = str_to_uuid(get_string(change));
@@ -486,6 +486,7 @@ cJSON *render_as_json(boost::optional<T> *target, const ctx_t &ctx) {
     if (*target) {
         return render_as_json(&**target, ctx);
     } else {
+        // TODO: This is obviously broken?
         return cJSON_CreateString("Unset value");
     }
 }
@@ -575,7 +576,12 @@ void apply_json_to(cJSON *change, std::string *str, const ctx_t &) {
 template <class ctx_t>
 void on_subfield_change(std::string *, const ctx_t &) { }
 
+
 //JSON adapter for std::map
+
+// TODO: User-specified data shouldn't produce fields.  A std::map
+// should be serialized as an array of key, value pairs.  No?
+
 template <class K, class V, class ctx_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(std::map<K, V> *map, const ctx_t &ctx) {
     typename json_adapter_if_t<ctx_t>::json_adapter_map_t res;

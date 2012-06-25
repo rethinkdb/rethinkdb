@@ -47,7 +47,8 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
         namespace_repo_t<memcached_protocol_t>::access_t ns_access(ns_repo, n_id, &interrupt);
 
         memcached_protocol_t::read_t read(distribution_get_query_t(depth), time(NULL));
-        memcached_protocol_t::read_response_t db_res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &interrupt);
+        memcached_protocol_t::read_response_t db_res
+            = ns_access.get_namespace_if()->read(read, order_source.check_in("distribution_app_t::handle"), &interrupt);
 
         http_res_t res(200);
 

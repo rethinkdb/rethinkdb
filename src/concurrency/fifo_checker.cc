@@ -70,7 +70,6 @@ order_token_t order_source_t::check_in(const std::string& tag) {
 
 
 
-
 order_sink_t::order_sink_t() { }
 
 void order_sink_t::check_out(order_token_t token) {
@@ -132,6 +131,10 @@ order_token_t order_checkpoint_t::check_through(order_token_t tok) {
     order_token_t tok2 = source_.check_in(tok.tag() + tagappend_);
     if (tok.read_mode()) tok2 = tok2.with_read_mode();
     return tok2;
+}
+
+order_token_t order_checkpoint_t::checkpoint_raw_check_in() {
+    return source_.check_in("(nothing)" + tagappend_);
 }
 
 #endif  // ifndef NDEBUG

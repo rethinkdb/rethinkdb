@@ -6,6 +6,7 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/semantic_checking.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/registrant.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/promise.hpp"
@@ -58,7 +59,7 @@ public:
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
-            store_view_t<protocol_t> *s,
+            multistore_ptr_t<protocol_t> *svs,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
             backfill_session_id_t backfill_session_id,
             perfmon_collection_t *backfill_stats_parent,
@@ -94,13 +95,17 @@ private:
 
     class write_queue_entry_t {
     public:
+        // TODO: Can we not remove the default constructor?
         write_queue_entry_t() { }
-        write_queue_entry_t(const typename protocol_t::write_t &w, transition_timestamp_t tt, fifo_enforcer_write_token_t ft) :
-            write(w), transition_timestamp(tt), fifo_token(ft) { }
+        write_queue_entry_t(const typename protocol_t::write_t &w, transition_timestamp_t tt, order_token_t _order_token, fifo_enforcer_write_token_t ft) :
+            write(w), transition_timestamp(tt), order_token(_order_token), fifo_token(ft) { }
         typename protocol_t::write_t write;
         transition_timestamp_t transition_timestamp;
+        order_token_t order_token;
         fifo_enforcer_write_token_t fifo_token;
-        RDB_MAKE_ME_SERIALIZABLE_3(write, transition_timestamp, fifo_token);
+
+        // TODO: Why does this need to be serializable?
+        RDB_MAKE_ME_SERIALIZABLE_4(write, order_token, transition_timestamp, fifo_token);
     };
 
     // TODO: What the fuck is this boost optional boost optional shit?
@@ -122,12 +127,14 @@ private:
 
     void on_write(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void()> ack_addr)
         THROWS_NOTHING;
 
     void enqueue_write(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void()> ack_addr,
             auto_drainer_t::lock_t keepalive)
@@ -141,12 +148,14 @@ private:
 
     void on_writeread(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
         THROWS_NOTHING;
 
     void perform_writeread(typename protocol_t::write_t write,
             transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
             auto_drainer_t::lock_t keepalive)
@@ -154,12 +163,14 @@ private:
 
     void on_read(typename protocol_t::read_t read,
             state_timestamp_t expected_timestamp,
+            order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
         THROWS_NOTHING;
 
     void perform_read(typename protocol_t::read_t read,
             DEBUG_ONLY_VAR state_timestamp_t expected_timestamp,
+            order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
             auto_drainer_t::lock_t keepalive)
@@ -173,7 +184,7 @@ private:
 
     boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
 
-    store_view_t<protocol_t> *store;
+    multistore_ptr_t<protocol_t> *svs;
 
     branch_id_t branch_id;
 

@@ -6,12 +6,12 @@
 template<class protocol_t, class parser_t>
 parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox_manager,
                                boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_semilattice_metadata,
-                               DEBUG_ONLY(int _port_offset,)
+                               DEBUG_ONLY(int _port_offset, )
                                namespace_repo_t<protocol_t> *_repo,
                                perfmon_collection_repo_t *_perfmon_collection_repo)
     : mailbox_manager(_mailbox_manager),
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
-      DEBUG_ONLY(port_offset(_port_offset),)
+      DEBUG_ONLY(port_offset(_port_offset), )
       repo(_repo),
       namespaces_subscription(boost::bind(&parser_maker_t::on_change, this), namespaces_semilattice_metadata),
       perfmon_collection_repo(_perfmon_collection_repo)

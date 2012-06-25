@@ -5,8 +5,8 @@
 
 #include "clustering/administration/stat_manager.hpp"
 #include "concurrency/watchable.hpp"
-#include "perfmon.hpp"
-#include "perfmon_archive.hpp"
+#include "perfmon/collect.hpp"
+#include "perfmon/archive.hpp"
 #include "stl_utils.hpp"
 
 stat_manager_t::stat_manager_t(mailbox_manager_t* mailbox_manager) : get_stats_mailbox(mailbox_manager, boost::bind(&stat_manager_t::send_stats, mailbox_manager, _1, _2)) { }

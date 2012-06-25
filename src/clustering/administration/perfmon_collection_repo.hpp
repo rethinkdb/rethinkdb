@@ -1,7 +1,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP_
 #define CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP_
 
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 
 class perfmon_collection_repo_t {

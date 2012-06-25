@@ -5,12 +5,11 @@
 
 #include "utils.hpp"
 #include <boost/function.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 
 #include "arch/address.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/signal.hpp"
+#include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
 
 /* `peer_id_t` is a wrapper around a `boost::uuids::uuid`. Each newly
@@ -28,7 +27,7 @@ public:
     }
 
     peer_id_t()
-        : uuid(boost::uuids::nil_uuid())
+        : uuid(nil_uuid())
     { }
 
     explicit peer_id_t(boost::uuids::uuid u) : uuid(u) { }

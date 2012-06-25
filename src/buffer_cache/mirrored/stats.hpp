@@ -1,7 +1,7 @@
 #ifndef BUFFER_CACHE_MIRRORED_STATS_HPP_
 #define BUFFER_CACHE_MIRRORED_STATS_HPP_
 
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 /* A class to hold all the stats we care about for this cache. */
 struct mc_cache_stats_t {
@@ -62,7 +62,7 @@ struct mc_cache_stats_t {
         void visit_stats(void *);
         void end_stats(void *, perfmon_result_t *dest);
     public:
-        long block_size;
+        uint32_t block_size;
     };
     perfmon_cache_custom_t pm_block_size;
 };
