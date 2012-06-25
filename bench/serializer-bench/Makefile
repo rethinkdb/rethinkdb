@@ -1,6 +1,6 @@
 DEBUG?=0
 CXXFLAGS=-Wall -pg -g -DUSE_UCONTEXT -DNDEBUG=1
-LDFLAGS=-Wall -rdynamic -lrt -laio -pg -g -lgsl -lgslcblas -pthread -lcurl -lQtCore
+LDFLAGS=-Wall -rdynamic -lrt -laio -pg -g -lgsl -lgslcblas -pthread -lQtCore
 OBJDIR:=../../build/release/obj
 #STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
 STATIC_LIBRARIES:=boost_program_options

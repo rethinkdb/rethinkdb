@@ -100,7 +100,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,) bool *result_out, std::string web_assets) {
+void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, ) bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
@@ -116,10 +116,10 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
     metadata_persistence::persistent_file_t store(metadata_file(filepath), false, &metadata_perfmon_collection);
     store.read(&persisted_machine_id, &persisted_semilattice_metadata);
 
-    *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset,) persisted_machine_id, persisted_semilattice_metadata, web_assets, &sigint_cond);
+    *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, ) persisted_machine_id, persisted_semilattice_metadata, web_assets, &sigint_cond);
 }
 
-void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,) bool *result_out, std::string web_assets) {
+void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, ) bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     machine_id_t our_machine_id;
     cluster_semilattice_metadata_t semilattice_metadata;
@@ -132,7 +132,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         metadata_persistence::persistent_file_t store(metadata_file(filepath), false, &metadata_perfmon_collection);
         store.read(&our_machine_id, &semilattice_metadata);
 
-        *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset,) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
+        *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, ) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
 
     } else {
         printf("It does not already exist. Creating it...\n");
@@ -177,9 +177,11 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
 
             persistable_blueprint_t<memcached_protocol_t> blueprint;
-            std::map<key_range_t, blueprint_details::role_t> roles;
-            roles.insert(std::make_pair(key_range_t::universe(), blueprint_details::role_primary));
-            blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
+            {
+                std::map<hash_region_t<key_range_t>, blueprint_details::role_t> roles;
+                roles.insert(std::make_pair(hash_region_t<key_range_t>::universe(), blueprint_details::role_primary));
+                blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
+            }
             namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<memcached_protocol_t> >(blueprint, our_machine_id);
 
             namespace_metadata.primary_datacenter = vclock_t<datacenter_id_t>(datacenter_id, our_machine_id);
@@ -192,9 +194,9 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             ack_expectations.insert(std::make_pair(datacenter_id, 1));
             namespace_metadata.ack_expectations = vclock_t<std::map<datacenter_id_t, int> >(ack_expectations, our_machine_id);
 
-            std::set<key_range_t> shards;
-            shards.insert(key_range_t::universe());
-            namespace_metadata.shards = vclock_t<std::set<key_range_t> >(shards, our_machine_id);
+            std::set< hash_region_t<key_range_t> > shards;
+            shards.insert(hash_region_t<key_range_t>::universe());
+            namespace_metadata.shards = vclock_t<std::set<hash_region_t<key_range_t> > >(shards, our_machine_id);
 
             semilattice_metadata.memcached_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
 
@@ -238,17 +240,17 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         metadata_persistence::persistent_file_t store(metadata_file(filepath), true, &metadata_perfmon_collection);
         store.update(our_machine_id, semilattice_metadata, true);
 
-        *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset,) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
+        *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, ) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
     }
 }
 
-void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,) bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, ) bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     cluster_semilattice_metadata_t semilattice_metadata;
     machine_id_t our_machine_id = generate_uuid();
     rassert(!joins.empty());
 
-    *result_out = serve_proxy(logfilepath, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset,) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
+    *result_out = serve_proxy(logfilepath, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, ) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
 }
 
 po::options_description get_machine_options() {
@@ -395,7 +397,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins, port, client_port, http_port,
-                                   DEBUG_ONLY(vm["port-offset"].as<int>(),)
+                                   DEBUG_ONLY(vm["port-offset"].as<int>(), )
                                    &result, render_as_path(web_path)));
 
     return result ? 0 : 1;
@@ -474,7 +476,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins, port, client_port, http_port,
-                                   DEBUG_ONLY(vm["port-offset"].as<int>(),)
+                                   DEBUG_ONLY(vm["port-offset"].as<int>(), )
                                    &result, render_as_path(web_path)));
 
     return result ? 0 : 1;
@@ -507,7 +509,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins,
-                                   port, client_port, http_port, DEBUG_ONLY(vm["port-offset"].as<int>(),)
+                                   port, client_port, http_port, DEBUG_ONLY(vm["port-offset"].as<int>(), )
                                    &result, render_as_path(web_path)));
 
     return result ? 0 : 1;

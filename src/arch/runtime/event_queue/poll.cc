@@ -16,7 +16,7 @@
 #include "utils.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/thread_pool.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 int user_to_poll(int mode) {
 

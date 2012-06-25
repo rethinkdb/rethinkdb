@@ -1,6 +1,6 @@
 #include "unittest/gtest.hpp"
 
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 #include <math.h>
 #include <stdint.h>
 

@@ -137,6 +137,12 @@ public:
         /* `backfill_chunk_t` must be serializable. `backfill_chunk_t` must act
         like a data type. */
 
+        region_t get_region() const THROWS_NOTHING;
+
+        // [Precondition] see write_t
+        // [Postcondition] see write_t
+        backfill_chunk_t shard(region_t region) const THROWS_NOTHING;
+
     private:
         ?
     };

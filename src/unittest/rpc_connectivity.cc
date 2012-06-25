@@ -17,7 +17,7 @@ struct starter_t : public thread_message_t {
         tp->shutdown();
     }
     void on_thread_switch() {
-        coro_t::spawn_now(boost::bind(&starter_t::run, this));
+        coro_t::spawn_now_deprecated(boost::bind(&starter_t::run, this));
     }
 };
 
@@ -310,9 +310,9 @@ struct watcher_t {
         EXPECT_TRUE(list.find(p) != list.end());
 
         /* Make sure messages sent from connection events are delivered
-        properly. We must use `coro_t::spawn_now()` because `send_message()`
+        properly. We must use `coro_t::spawn_now_deprecated()` because `send_message()`
         may block. */
-        coro_t::spawn_now(boost::bind(&recording_test_application_t::send, application, 89765, p));
+        coro_t::spawn_now_deprecated(boost::bind(&recording_test_application_t::send, application, 89765, p));
     }
 
     void on_disconnect(peer_id_t p) {
@@ -582,7 +582,7 @@ void run_check_headers_test() {
     {
         char data[len+1];
         int64_t read = force_read(&conn, data, len);
-        ASSERT_TRUE(read >= 0);
+        ASSERT_GE(read, 0);
         data[read] = 0;         // null-terminate
         ASSERT_STREQ(cluster_proto_header, data);
     }

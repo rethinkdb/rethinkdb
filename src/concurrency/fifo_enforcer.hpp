@@ -10,7 +10,7 @@
 #include "utils.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 #include "stl_utils.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 class cond_t;
 class signal_t;

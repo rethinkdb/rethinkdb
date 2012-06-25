@@ -95,7 +95,7 @@ module 'NamespaceView', ->
                 btn_primary_text: 'Commit'
             super json
 
-            # Render our fun inner lady bits
+            # Render inner template
             @render_inner()
 
         on_submit: =>

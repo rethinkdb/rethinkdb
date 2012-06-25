@@ -40,7 +40,7 @@ void unlock_mutex(mutex_t *mutex, bool eager) {
         coro_t *next = mutex->waiters.front();
         mutex->waiters.pop_front();
         if (eager) {
-            next->notify_now();
+            next->notify_now_deprecated();
         } else {
             next->notify_sometime();
         }

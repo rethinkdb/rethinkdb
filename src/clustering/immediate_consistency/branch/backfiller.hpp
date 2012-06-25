@@ -6,6 +6,7 @@
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 
 template <class> class semilattice_read_view_t;
+template <class> class multistore_ptr_t;
 
 
 /* If you construct a `backfiller_t` for a given store, then it will advertise
@@ -15,7 +16,7 @@ class backfiller_t : public home_thread_mixin_t {
 public:
     backfiller_t(mailbox_manager_t *mm,
 		 boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
-		 store_view_t<protocol_t> *s);
+		 multistore_ptr_t<protocol_t> *svs);
 
     backfiller_business_card_t<protocol_t> get_business_card();
 
@@ -43,7 +44,7 @@ private:
     mailbox_manager_t *mailbox_manager;
     boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
 
-    store_view_t<protocol_t> *store;
+    multistore_ptr_t<protocol_t> *svs;
 
     std::map<backfill_session_id_t, cond_t *> local_interruptors;
     std::map<backfill_session_id_t, typename protocol_t::backfill_progress_t *> local_backfill_progress;

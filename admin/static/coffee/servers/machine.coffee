@@ -63,6 +63,8 @@ module 'MachineView', ->
                 entries_to_render = entries_to_render.slice(0, @max_log_entries_to_render)
                 @.$('.recent-log-entries').append entry.render().el for entry in entries_to_render
 
+                @.$('.nav-tabs').tab()
+
             return @
 
         set_datacenter: (event) =>
@@ -74,32 +76,45 @@ module 'MachineView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
+        destroy: =>
+            machines.off()
+            @title.destroy()
+            @profile.destroy()
+            @data.destroy()
+            @stats_panel.destroy()
+            @performance_graph.destroy()
+
     # MachineView.Title
     class @Title extends Backbone.View
         className: 'machine-info-view'
         template: Handlebars.compile $('#machine_view_title-template').html()
         initialize: =>
             @name = @model.get('name')
-            machines.on 'all', @update
+            @model.on 'change:name', @update
         
         update: =>
+            @render()
+            ###
             if @name isnt @model.get('name')
                 @name = @model.get('name')
                 @render()
+            ###
 
         render: =>
             @.$el.html @template
-                name: name
+                name: @name
             return @
+
+        destroy: =>
+            @model.off()
 
     # MachineView.Profile
     class @Profile extends Backbone.View
         className: 'machine-info-view'
         template: Handlebars.compile $('#machine_view_profile-template').html()
         initialize: =>
-            @model.on 'all', @render
             directory.on 'all', @render
-            machines.on 'all', @render
+            @model.on 'all', @render
 
         render: =>
             datacenter_uuid = @model.get('datacenter_uuid')
@@ -126,9 +141,14 @@ module 'MachineView', ->
             # Reachability
             _.extend json,
                 status: DataUtils.get_machine_reachability(@model.get('id'))
+
             @.$el.html @template(json)
 
             return @
+
+        destroy: =>
+            directory.off()
+            @model.off()
 
     class @Data extends Backbone.View
         className: 'machine-info-view'
@@ -167,6 +187,10 @@ module 'MachineView', ->
             
             @.$el.html @template(json)
             return @
+
+        destroy: =>
+            @model.off()
+            directory.off()
 
     # MachineView.RecentLogEntry
     class @RecentLogEntry extends Backbone.View

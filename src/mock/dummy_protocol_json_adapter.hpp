@@ -17,6 +17,10 @@ void apply_json_to(cJSON *, dummy_protocol_t::region_t *, const ctx_t &);
 
 template <class ctx_t>
 void  on_subfield_change(dummy_protocol_t::region_t *, const ctx_t &);
+
+template <class ctx_t>
+std::string render_region_as_string(dummy_protocol_t::region_t *target, const ctx_t &ctx);
+
 }//namespace mock
 
 #include "mock/dummy_protocol_json_adapter.tcc"

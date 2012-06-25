@@ -1,11 +1,9 @@
-#ifndef CLUSTERING_REACTOR_REACTOR_TCC_
-#define CLUSTERING_REACTOR_REACTOR_TCC_
-
 #include "clustering/reactor/reactor.hpp"
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 
 template<class key_t, class value_t>
 std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::optional<value_t> > &map) {
@@ -25,7 +23,7 @@ reactor_t<protocol_t>::reactor_t(
         clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > rd,
         boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,
-        store_view_t<protocol_t> *_underlying_store,
+        multistore_ptr_t<protocol_t> *_underlying_svs,
         perfmon_collection_t *_parent_perfmon_collection) THROWS_NOTHING :
     mailbox_manager(mm),
     ack_checker(ack_checker_),
@@ -34,9 +32,11 @@ reactor_t<protocol_t>::reactor_t(
     directory_echo_mirror(mailbox_manager, rd->subview(&collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >)),
     branch_history(bh),
     master_directory(std::map<master_id_t, master_business_card_t<protocol_t> >()),
-    blueprint_watchable(b), underlying_store(_underlying_store),
+    blueprint_watchable(b),
+    underlying_svs(_underlying_svs),
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
-    parent_perfmon_collection(_parent_perfmon_collection)
+    parent_perfmon_collection(_parent_perfmon_collection),
+    regions_perfmon_collection("regions", parent_perfmon_collection, true, true)
 {
     {
         typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint_watchable);
@@ -144,7 +144,7 @@ void reactor_t<protocol_t>::run_role(
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
 
     //A store_view_t derived object that acts as a store for the specified region
-    store_subview_t<protocol_t> store_subview(underlying_store, region);
+    multistore_ptr_t<protocol_t> svs_subview(underlying_svs, region);
 
     {
         //All of the be_{role} functions respond identically to blueprint changes
@@ -153,13 +153,13 @@ void reactor_t<protocol_t>::run_role(
 
         switch (role->role) {
             case blueprint_details::role_primary:
-                be_primary(region, &store_subview, role->blueprint.get_watchable(), &wait_any);
+                be_primary(region, &svs_subview, role->blueprint.get_watchable(), &wait_any);
                 break;
             case blueprint_details::role_secondary:
-                be_secondary(region, &store_subview, role->blueprint.get_watchable(), &wait_any);
+                be_secondary(region, &svs_subview, role->blueprint.get_watchable(), &wait_any);
                 break;
             case blueprint_details::role_nothing:
-                be_nothing(region, &store_subview, role->blueprint.get_watchable(), &wait_any);
+                be_nothing(region, &svs_subview, role->blueprint.get_watchable(), &wait_any);
                 break;
             default:
                 unreachable();
@@ -177,8 +177,7 @@ void reactor_t<protocol_t>::run_role(
 }
 
 template<class protocol_t>
-boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > reactor_t<protocol_t>::extract_broadcaster_from_reactor_business_card_primary(
-        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard) {
+boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > reactor_t<protocol_t>::extract_broadcaster_from_reactor_business_card_primary(const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard) {
     if (!bcard) {
         return boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > >();
     }
@@ -223,32 +222,12 @@ void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t ver
     }
 }
 
-template<class protocol_t, class activity_t>
-boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcard(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &bcards, peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    typename std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > >::const_iterator it = bcards.find(p_id);
-    if (it == bcards.end()) {
-        return boost::optional<boost::optional<activity_t> >();
-    }
-    if (!it->second) {
-        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>());
-    }
-    typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second->internal.activities.find(ra_id);
-    if (jt == it->second->internal.activities.end()) {
-        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>());
-    }
-    try {
-        return boost::optional<boost::optional<activity_t> >(boost::optional<activity_t>(boost::get<activity_t>(jt->second.second)));
-    } catch (boost::bad_get) {
-        crash("Tried to get an activity of an unexpected type, it is assumed "
-            "the person calling this function knows the type of the activity "
-            "they will be getting back.\n");
-    }
-}
 
-template <class protocol_t>
-template <class activity_t>
-clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reactor_t<protocol_t>::get_directory_entry_view(peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    return reactor_directory->subview(boost::bind(&extract_activity_from_reactor_bcard<protocol_t, activity_t>, _1, p_id, ra_id));
-}
 
-#endif  // CLUSTERING_REACTOR_REACTOR_TCC_
+#include "mock/dummy_protocol.hpp"
+#include "memcached/protocol.hpp"
+#include "rdb_protocol/protocol.hpp"
+
+template class reactor_t<mock::dummy_protocol_t>;
+template class reactor_t<memcached_protocol_t>;
+template class reactor_t<rdb_protocol_t>;

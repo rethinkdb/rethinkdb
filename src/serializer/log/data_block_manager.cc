@@ -5,7 +5,7 @@
 
 #include "arch/arch.hpp"
 #include "concurrency/mutex.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
 
 /* TODO: Right now we perform garbage collection via the do_write() interface on the

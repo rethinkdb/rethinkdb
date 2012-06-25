@@ -241,6 +241,10 @@ struct key_range_t {
 
 std::string key_range_to_debug_str(const key_range_t &kr);
 
+void debug_print(append_only_printf_buffer_t *buf, const store_key_t &k);
+void debug_print(append_only_printf_buffer_t *buf, const store_key_t *k);
+void debug_print(append_only_printf_buffer_t *buf, const key_range_t &kr);
+
 bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
 bool operator!=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
 bool operator<(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);

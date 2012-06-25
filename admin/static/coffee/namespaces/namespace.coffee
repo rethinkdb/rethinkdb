@@ -54,11 +54,23 @@ module 'NamespaceView', ->
             # Display the shards
             @.$('.section.sharding').html @shards.render().el
 
+            @.$('.nav-tabs').tab()
+
             return @
 
         close_alert: (event) ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
+
+        destroy: =>
+            @unbind()
+            @title.destroy()
+            @profile.destroy()
+            @replicas.destroy()
+            @shards.destroy()
+            @stats_panel.destroy()
+            @performance_graph.destroy()
+
 
     # NamespaceView.Title
     class @Title extends Backbone.View

@@ -1,12 +1,13 @@
-#ifndef CLUSTERING_REACTOR_REACTOR_BE_PRIMARY_TCC_
-#define CLUSTERING_REACTOR_REACTOR_BE_PRIMARY_TCC_
+#include "clustering/reactor/reactor.hpp"
 
 #include <exception>
 #include <vector>
 
+#include "clustering/administration/http/json_adapters.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
+#include "clustering/immediate_consistency/branch/replier.hpp"
 
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
@@ -202,10 +203,8 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_
  * candidates tell us not to backfill that data if our local store's version is
  * alreadly the most up to date. */
 template <class protocol_t>
-typename reactor_t<protocol_t>::backfill_candidate_t reactor_t<protocol_t>::make_backfill_candidate_from_binary_blob(const binary_blob_t &b) {
-    return backfill_candidate_t(binary_blob_t::get<version_range_t>(b),
-                                std::vector<typename backfill_candidate_t::backfill_location_t>(),
-                                true);
+typename reactor_t<protocol_t>::backfill_candidate_t reactor_t<protocol_t>::make_backfill_candidate_from_version_range(const version_range_t &vr) {
+    return backfill_candidate_t(vr, std::vector<typename backfill_candidate_t::backfill_location_t>(), true);
 }
 
 /* Wraps backfillee, catches the exceptions it throws and instead uses a
@@ -214,14 +213,14 @@ template <class protocol_t>
 void do_backfill(
         mailbox_manager_t *mailbox_manager,
         boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
-        store_view_t<protocol_t> *store,
+        multistore_ptr_t<protocol_t> *svs,
         typename protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
         backfill_session_id_t backfill_session_id,
         promise_t<bool> *success,
         signal_t *interruptor) THROWS_NOTHING {
     try {
-        backfillee<protocol_t>(mailbox_manager, branch_history, store, region, backfiller_metadata, backfill_session_id, interruptor);
+        backfillee<protocol_t>(mailbox_manager, branch_history, svs, region, backfiller_metadata, backfill_session_id, interruptor);
         success->pulse(true);
     } catch (interrupted_exc_t) {
         success->pulse(false);
@@ -238,7 +237,7 @@ bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<bro
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
     try {
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);
@@ -254,10 +253,11 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
 
             /* Figure out what version of the data is already present in our
              * store so we don't backfill anything prior to it. */
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token;
-            store->new_read_token(order_token);
-            region_map_t<protocol_t, binary_blob_t> metainfo = store->get_metainfo(order_token, interruptor);
-            best_backfiller_map_t best_backfillers = region_map_transform<protocol_t, binary_blob_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_binary_blob);
+            const int num_stores = svs->num_stores();
+            boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
+            svs->new_read_tokens(read_tokens.get(), num_stores);
+            region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
+            region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
 
             /* This waits until every other peer is ready to accept us as the
              * primary and there is a unique coherent latest verstion of the
@@ -288,7 +288,9 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
                     promise_t<bool> *p = new promise_t<bool>;
                     promises.push_back(p);
                     coro_t::spawn_sometime(boost::bind(&do_backfill<protocol_t>,
-                                                       mailbox_manager, branch_history, store,
+                                                       mailbox_manager,
+                                                       branch_history,
+                                                       svs,
                                                        it->first,
                                                        it->second.places_to_get_this_version[0].backfiller,
                                                        backfill_session_id,
@@ -334,7 +336,10 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
             }
         }
 
-        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history, store, parent_perfmon_collection, interruptor);
+        std::string region_name(render_region_as_string(&region, 0));
+        perfmon_collection_t region_perfmon_collection(region_name, &regions_perfmon_collection, true, true);
+
+        broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history, svs, &region_perfmon_collection, interruptor);
 
         directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card()));
 
@@ -347,7 +352,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
-        listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, parent_perfmon_collection, interruptor);
+        listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history, &broadcaster, &region_perfmon_collection, interruptor);
         replier_t<protocol_t> replier(&listener);
         master_t<protocol_t> master(mailbox_manager, ack_checker, &master_directory, &master_directory_lock, region, &broadcaster);
 
@@ -359,4 +364,15 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
     }
 }
 
-#endif
+
+#include "mock/dummy_protocol.hpp"
+#include "mock/dummy_protocol_json_adapter.hpp"
+#include "memcached/protocol.hpp"
+#include "memcached/protocol_json_adapter.hpp"
+#include "rdb_protocol/protocol.hpp"
+
+
+template class reactor_t<mock::dummy_protocol_t>;
+template class reactor_t<memcached_protocol_t>;
+template class reactor_t<rdb_protocol_t>;
+

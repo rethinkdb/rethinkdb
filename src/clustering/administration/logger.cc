@@ -323,7 +323,7 @@ void log_coro(log_writer_t *writer, log_level_t level, const std::string &messag
 
 /* Declared in `logger.hpp`, not `clustering/administration/logger.hpp` like the
 other things in this file. */
-void log_internal(UNUSED const char *src_file, UNUSED int src_line, UNUSED log_level_t level, const char *format, ...) {
+void log_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t level, const char *format, ...) {
     if (log_writer_t *writer = TLS_get_global_log_writer()) {
         auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
 
@@ -333,5 +333,6 @@ void log_internal(UNUSED const char *src_file, UNUSED int src_line, UNUSED log_l
         va_end(args);
 
         coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
+
     }
 }

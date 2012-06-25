@@ -34,7 +34,6 @@ region_join_result_t region_join(const std::vector<key_range_t> &vec, key_range_
     }
 }
 
-// Terminology: minuend - subtrahend = difference
 std::vector<key_range_t> region_subtract_many(key_range_t minuend, const std::vector<key_range_t>& subtrahends) {
     std::vector<key_range_t> buf, temp_result_buf;
     buf.push_back(minuend);

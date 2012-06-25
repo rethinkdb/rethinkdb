@@ -94,12 +94,12 @@ CXX:=icc
 endif
 
 ifeq ($(COMPILER),CLANG)
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lstdc++ -lm
 else ifeq ($(COMPILER),INTEL)
-LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++ -lcurl
+LDFLAGS:= -B/opt/intel/bin -pthread -lrt -laio -lstdc++
 else
 # GCC
-LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio -lcurl
+LDFLAGS:=-Wl,--no-as-needed -pthread -lrt -laio
 endif
 
 STATIC_LIBRARIES:=boost_serialization protobuf boost_program_options
@@ -301,6 +301,7 @@ SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 #### Web UI sources
 WEB_SOURCE_DIR:=../admin
 WEB_ASSETS_BUILD_DIR:=$(BUILD_DIR)/web
+WEB_ASSETS_OBJ_DIR:=$(BUILD_DIR)/webobj
 #This atrociousness comes from the fact... fuck it blah blah blah coffee script.
 #Basically coffee script can't handle dependencies.
 COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
@@ -317,6 +318,7 @@ COFFEE_SOURCES:=$(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			vis.coffee \
 			models.coffee \
 			navbar.coffee \
+			walkthrough.coffee \
 			router.coffee \
 			app.coffee)
 HANDLEBARS_SOURCES:=$(shell find $(WEB_SOURCE_DIR)/static/coffee -name '*.html')
@@ -578,14 +580,28 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) protoc --python_out ../drivers/python/ rdb_protocol/query_language.proto
 
+rpc/semilattice/joins/macros.hpp: ../scripts/generate_join_macros.py
+rpc/serialize_macros.hpp: ../scripts/generate_serialize_macros.py
+rpc/mailbox/typed.hpp: ../scripts/generate_rpc_templates.py
+
+rpc/semilattice/joins/macros.hpp rpc/serialize_macros.hpp rpc/mailbox/typed.hpp:
+	$< > $@
+
 web-assets: $(WEB_ASSETS_BUILD_DIR)/cluster-min.js $(WEB_ASSETS_BUILD_DIR)/cluster.css $(WEB_ASSETS_BUILD_DIR)/index.html $(WEB_ASSETS_BUILD_DIR)/js $(WEB_ASSETS_BUILD_DIR)/images $(WEB_ASSETS_BUILD_DIR)/favicon.ico
 
-$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(COFFEE_SOURCES)
+$(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee: $(COFFEE_SOURCES)
+	$(QUIET) mkdir -p $(WEB_ASSETS_OBJ_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    CONCAT $@"
+endif
+	$(QUIET) cat $+ > $@
+
+$(WEB_ASSETS_BUILD_DIR)/cluster-min.js: $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    COFFEE $@"
 endif
-	$(QUIET) coffee_concatenated=`mktemp /tmp/cluster-min.XXX.coffee`; cat $+ > $$coffee_concatenated; (coffee -bp --stdio < $$coffee_concatenated > $@ && rm -f $$coffee_concatenated) || (rm -f $@; echo "COFFEE failed, inspect $$coffee_concatenated" >&2; false)
+	$(QUIET) coffee -bp --stdio < $(WEB_ASSETS_OBJ_DIR)/cluster-min.concat.coffee > $@
 
 $(WEB_ASSETS_BUILD_DIR)/cluster.css: $(LESS_MAIN)
 	$(QUIET) mkdir -p $(WEB_ASSETS_BUILD_DIR)
