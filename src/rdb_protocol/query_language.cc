@@ -233,6 +233,10 @@ bool is_well_defined(const View &v) {
     return true;
 }
 
+bool is_well_defined(const ReadQuery &r) {
+    return is_well_defined(r.term());
+}
+
 bool is_well_defined(const WriteQuery &w) {
     rassert(w.has_type());
     rassert(WriteQuery_WriteQueryType_IsValid(w.type()));
@@ -315,6 +319,24 @@ bool is_well_defined(const WriteQuery &w) {
             return false;
         } else {
             CHECK_WELL_DEFINED(w.point_mutate().key());
+        }
+    }
+
+    return true;
+}
+
+bool is_well_defined(const Query &q) {
+    if (q.has_read_query()) {
+        if (q.type() != Query::READ) {
+            return false;
+        } else {
+            CHECK_WELL_DEFINED(q.read_query());
+        }
+
+        if (q.type() != Query::WRITE) {
+            return false;
+        } else {
+            CHECK_WELL_DEFINED(q.write_query());
         }
     }
 
@@ -577,6 +599,189 @@ function_t get_type(const Builtin &b, variable_type_scope_t *) {
             break;
     }
     return res;
+}
+
+type_t get_type(const Reduction &r, variable_type_scope_t *scope) {
+    if (!(get_type(r.base(), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+        return type_t(error_t());
+    }
+
+    if (r.var1().type() != Term::VAR) {
+        return type_t(error_t());
+    }
+
+    if (r.var2().type() != Term::VAR) {
+        return type_t(error_t());
+    }
+
+    new_scope_t scope_maker(scope);
+    scope->put_in_scope(r.var1().var(), type_t(primitive_t(primitive_t::JSON)));
+    scope->put_in_scope(r.var2().var(), type_t(primitive_t(primitive_t::JSON)));
+
+    if (!(get_type(r.body(), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+        return type_t(error_t());
+    } else {
+        return type_t(primitive_t(primitive_t::JSON));
+    }
+}
+
+type_t get_type(const Mapping &m, variable_type_scope_t *scope) {
+    if (m.arg().type() != Term::VAR) {
+        return type_t(error_t());
+    }
+
+    new_scope_t scope_maker(scope);
+    scope->put_in_scope(m.arg().var(), type_t(primitive_t(primitive_t::JSON)));
+
+    if (!(get_type(m.body(), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+        return type_t(error_t());
+    } else {
+        return type_t(primitive_t(primitive_t::JSON));
+    }
+}
+
+type_t get_type(const Predicate &p, variable_type_scope_t *scope) {
+    if (p.arg().type() != Term::VAR) {
+        return type_t(error_t());
+    }
+
+    new_scope_t scope_maker(scope);
+    scope->put_in_scope(p.arg().var(), type_t(primitive_t(primitive_t::JSON)));
+
+    if (!(get_type(p.body(), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+        return type_t(error_t());
+    } else {
+        return type_t(primitive_t(primitive_t::JSON));
+    }
+}
+
+type_t get_type(const View &v, variable_type_scope_t *scope) {
+    switch(v.type()) {
+        case View::TABLE:
+            //no way for this to be incorrect
+            return type_t(primitive_t(primitive_t::VIEW));
+            break;
+        case View::FILTERVIEW:
+            if (get_type(v.filter_view().view(), scope) == type_t(primitive_t(primitive_t::VIEW)) &&
+                get_type(v.filter_view().predicate(), scope) == type_t(primitive_t(primitive_t::JSON))) {
+                return type_t(primitive_t(primitive_t::VIEW));
+            }
+            break;
+        case View::RANGEVIEW:
+            if (get_type(v.range_view().view(), scope) == type_t(primitive_t(primitive_t::VIEW)) &&
+                get_type(v.range_view().lowerbound(), scope) == type_t(primitive_t(primitive_t::JSON)) &&
+                get_type(v.range_view().upperbound(), scope) == type_t(primitive_t(primitive_t::JSON))) {
+                return type_t(primitive_t(primitive_t::READ));
+            }
+            break;
+        default:
+            crash("Unreachable");
+    }
+    crash("Unreachable");
+}
+
+type_t get_type(const ReadQuery &r, variable_type_scope_t *scope) {
+    type_t res = get_type(r.term(), scope);
+    if (res == type_t(primitive_t(primitive_t::JSON)) ||
+        res == type_t(primitive_t(primitive_t::STREAM))) {
+        return type_t(primitive_t(primitive_t::READ));
+    } else {
+        return error_t("ReadQueries must produce either JSON or a STREAM.");
+    }
+}
+
+type_t get_type(const WriteQuery &w, variable_type_scope_t *scope) {
+    switch (w.type()) {
+        case WriteQuery::UPDATE:
+            if (get_type(w.update().view(), scope) == type_t(primitive_t(primitive_t::VIEW)) &&
+                get_type(w.update().mapping(), scope) == type_t(primitive_t(primitive_t::JSON))) {
+                return type_t(primitive_t(primitive_t::WRITE));
+            }
+            break;
+        case WriteQuery::DELETE:
+            if (get_type(w.update().view(), scope) == type_t(primitive_t(primitive_t::VIEW))) {
+                return type_t(primitive_t(primitive_t::WRITE));
+            }
+            break;
+        case WriteQuery::MUTATE:
+            if (get_type(w.mutate().view(), scope) == type_t(primitive_t(primitive_t::VIEW)) &&
+                get_type(w.mutate().mapping(), scope) == type_t(primitive_t(primitive_t::JSON))) {
+                return type_t(primitive_t(primitive_t::WRITE));
+            }
+            break;
+        case WriteQuery::INSERT:
+            for (int i = 0; i < w.insert().terms_size(); ++i) {
+                if (!(get_type(w.insert().terms(i), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+                    return type_t(error_t("Trying to insert a non JSON term"));
+                }
+            }
+            return type_t(primitive_t(primitive_t::WRITE));
+            break;
+        case WriteQuery::INSERTSTREAM:
+            if (!(get_type(w.insert_stream().stream(), scope) == type_t(primitive_t(primitive_t::STREAM)))) {
+                return type_t(primitive_t(primitive_t::WRITE));
+            }
+            break;
+        case WriteQuery::FOREACH:
+            {
+                if (!(get_type(w.for_each().stream(), scope) == STREAM())) {
+                    return type_t(error_t("Must pass a stream in to a FOREACH query."));
+                }
+
+                new_scope_t scope_maker(scope);
+                scope->put_in_scope(w.for_each().var().var(), JSON());
+                for (int i = 0; i < w.for_each().queries_size(); ++i) {
+                    if (!(get_type(w.for_each().queries(i), scope) == WRITE())) {
+                        return type_t(error_t("Queries passed to a foreach must all be write queries\n"));
+                    }
+                }
+                return type_t(primitive_t(primitive_t::WRITE));
+            }
+            break;
+        case WriteQuery::POINTUPDATE:
+            if (!(get_type(w.point_update().key(), scope) == JSON()) ||
+                !(get_type(w.point_update().mapping(), scope) == JSON())) {
+                return type_t(error_t("Key and mapping must both be of type JSON\n"));
+            }
+            return type_t(primitive_t(primitive_t::WRITE));
+            break;
+        case WriteQuery::POINTDELETE:
+            if (!(get_type(w.point_delete().key(), scope) == JSON())) {
+                return type_t(error_t("Key must be of type JSON\n"));
+            }
+            return type_t(primitive_t(primitive_t::WRITE));
+            break;
+        case WriteQuery::POINTMUTATE:
+            if (!(get_type(w.point_mutate().key(), scope) == JSON()) ||
+                !(get_type(w.point_mutate().mapping(), scope) == JSON())) {
+                return type_t(error_t("Key and mapping must both be of type JSON\n"));
+            }
+            return type_t(primitive_t(primitive_t::WRITE));
+            break;
+        default:
+            break;
+    }
+    crash("Unreachable");
+}
+
+type_t get_type(const Query &q, variable_type_scope_t *scope) {
+    switch (q.type()) {
+        case Query::READ:
+            if (!(get_type(q.read_query(), scope) == READ())) {
+                return type_t(error_t("Malformed read."));
+            }
+            return QUERY();
+            break;
+        case Query::WRITE:
+            if (!(get_type(q.write_query(), scope) == WRITE())) {
+                return type_t(error_t("Malformed write."));
+            }
+            return QUERY();
+            break;
+        default:
+            crash("unreachable");
+    }
+    crash("unreachable");
 }
 
 } //namespace query_language

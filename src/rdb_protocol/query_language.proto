@@ -331,6 +331,7 @@ message WriteQuery {
         required TableRef table_ref = 1;
         required string attrname = 2;
         required Term key = 3;
+        required Mapping mapping = 4;
     };
 
     optional PointMutate point_mutate = 10;
