@@ -213,6 +213,14 @@ def gt(*terms):
 def gte(*terms):
     return Comparison(list(terms), p.GE)
 
+def and_eq(_hash):
+    terms = []
+    for key in _hash.iterkeys():
+        val = _hash[key]
+        terms.append(eq(key, val))
+    return Conjunction(terms)
+        
+
 class Arithmetic(Term):
     def __init__(self, terms, op_type):
         if not terms:
