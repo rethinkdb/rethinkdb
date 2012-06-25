@@ -205,6 +205,42 @@ def gt(*terms):
 def gte(*terms):
     return Comparison(list(terms), p.GE)
 
+class var(Term):
+    def __init__(self, name):
+        if not name:
+            raise ValueError
+        self.name = name
+
+    def attr(self, name):
+        return attr(name, self)
+        
+    def write_ast(self, parent):
+        parent.type = p.Term.VAR
+        parent.var = self.name
+
+class attr(Term):
+    def __init__(self, name, parent):
+        if not name:
+            raise ValueError
+        attrs = name.split('.')
+        attrs.reverse()
+        self.name = attrs[0]
+        attrs = attrs[1:]
+        if len(attrs) > 0:
+            attrs.reverse()
+            self.parent = attr('.'.join(attrs), parent)
+        else:
+            self.parent = parent
+
+    def attr(self, name):
+        return attr(name, self)
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.GETATTR
+        parent.call.builtin.attr = self.name
+        self.parent.write_ast(parent.call.args.add())
+
 def toTerm(value):
     if isinstance(value, Term):
         return value
