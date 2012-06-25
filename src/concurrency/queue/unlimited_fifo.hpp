@@ -4,7 +4,7 @@
 #include <list>
 
 #include "concurrency/queue/passive_producer.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 /* `unlimited_fifo_queue_t` is one of the simplest possible implementations of
 `passive_producer_t`. It's a first-in, first-out queue. It's called "unlimited"

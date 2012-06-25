@@ -118,6 +118,11 @@ module 'NamespaceView', ->
 
             return @
 
+        destroy: ->
+            @model.off()
+            directory.off()
+            progress_list.off()
+
     # Modify replica counts and ack counts in each datacenter
     class @ModifyReplicasModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#modify_replicas-modal-template').html()
@@ -237,6 +242,7 @@ module 'NamespaceView', ->
                     replica_affinities: replica_affinities_to_send
                     ack_expectations: ack_expectations_to_send
                 success: @on_success
+                error: @on_error
 
         on_success: (response) =>
             super

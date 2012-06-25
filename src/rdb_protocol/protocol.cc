@@ -236,6 +236,7 @@ void store_t::acquire_superblock_for_write(
 }
 
 metainfo_t store_t::get_metainfo(
+        UNUSED order_token_t order_token,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
@@ -274,6 +275,7 @@ region_map_t<rdb_protocol_t, binary_blob_t> store_t::get_metainfo_internal(trans
 
 void store_t::set_metainfo(
         const metainfo_t &new_metainfo,
+        UNUSED order_token_t order_token,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -302,8 +304,9 @@ private:
 };
 
 read_response_t store_t::read(
-        DEBUG_ONLY(const metainfo_t& expected_metainfo, )
-        const read_t &read,
+        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
+        const rdb_protocol_t::read_t &read,
+        UNUSED order_token_t order_token,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -312,7 +315,7 @@ read_response_t store_t::read(
     boost::scoped_ptr<transaction_t> txn;
     acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
 
-    check_metainfo(DEBUG_ONLY(expected_metainfo, ) txn.get(), superblock.get());
+    check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());
 
     /* Ugly hack */
     boost::scoped_ptr<superblock_t> superblock2;
@@ -338,10 +341,11 @@ private:
 };
 
 write_response_t store_t::write(
-        DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
         const metainfo_t& new_metainfo,
-        const write_t &write,
+        const rdb_protocol_t::write_t &write,
         transition_timestamp_t timestamp,
+        UNUSED order_token_t order_token,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -351,7 +355,7 @@ write_response_t store_t::write(
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
     acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
 
-    check_and_update_metainfo(DEBUG_ONLY(expected_metainfo, ) new_metainfo, txn.get(), superblock.get());
+    check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
 
     write_visitor_t v(btree.get(), txn, superblock.get(), timestamp.to_repli_timestamp());
     return boost::apply_visitor(v, write.write);
@@ -510,7 +514,7 @@ void store_t::receive_backfill(
 }
 
 void store_t::reset_data(
-        region_t subregion,
+        const region_t &subregion,
         const metainfo_t &new_metainfo,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
         signal_t *interruptor)
@@ -536,23 +540,25 @@ void store_t::reset_data(
 }
 
 void store_t::check_and_update_metainfo(
-        DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
         const metainfo_t &new_metainfo,
         transaction_t *txn,
         real_superblock_t *superblock) const
         THROWS_NOTHING {
-    metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(expected_metainfo, ) txn, superblock);
+    metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn, superblock);
     update_metainfo(old_metainfo, new_metainfo, txn, superblock);
 }
 
 store_t::metainfo_t store_t::check_metainfo(
-        DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+        DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
         transaction_t *txn,
         real_superblock_t *superblock) const
         THROWS_NOTHING {
 
     region_map_t<rdb_protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn, superblock->get());
-    rassert(old_metainfo.mask(expected_metainfo.get_domain()) == expected_metainfo);
+#ifndef NDEBUG
+    metainfo_checker.check_metainfo(old_metainfo.mask(metainfo_checker.get_domain()));
+#endif
     return old_metainfo;
 }
 
@@ -577,4 +583,14 @@ void rdb_protocol_t::store_t::update_metainfo(const metainfo_t &old_metainfo, co
                                 static_cast<const char*>((*i).second.data()) + (*i).second.size());
         set_superblock_metainfo(txn, sb_buf, key.vector(), value); // FIXME: this is not efficient either, see how value is created
     }
+}
+
+key_range_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
+    rassert(subregion_number >= 0);
+    rassert(subregion_number < num_cpu_shards);
+
+    if (subregion_number == 0) {
+        return key_range_t::universe();
+    }
+    return key_range_t::empty();
 }

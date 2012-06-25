@@ -84,15 +84,14 @@ private:
 
 
 /* Order sources create order tokens with increasing values for a
-   specific bucket.  When they are destroyed they call a void()
-   function which might inform somebody that the bucket is now
-   available for reuse. */
+   specific bucket. */
 class order_source_t : public home_thread_mixin_t {
 public:
 #ifndef NDEBUG
     order_source_t();
     ~order_source_t();
 
+    // Makes a write-mode order token.
     order_token_t check_in(const std::string& tag);
 #else
     order_source_t() { }
@@ -188,10 +187,12 @@ public:
     explicit order_checkpoint_t(const std::string& tagappend) : tagappend_(tagappend) { }
     void set_tagappend(const std::string& tagappend);
     order_token_t check_through(order_token_t token);
+    order_token_t checkpoint_raw_check_in();
 #else
     explicit order_checkpoint_t(UNUSED const std::string& tagappend) { }
     void set_tagappend(UNUSED const std::string& tagappend) { }
     order_token_t check_through(UNUSED order_token_t token) { return order_token_t(); }
+    order_token_t checkpoint_raw_check_in() { return order_token_t(); }
 #endif  // ndef NDEBUG
 
 private:

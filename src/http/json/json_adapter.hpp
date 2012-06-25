@@ -10,10 +10,7 @@
 #include <boost/function.hpp>
 #include <boost/variant.hpp>
 #include <boost/optional/optional.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-
+#include "containers/uuid.hpp"
 #include "http/json.hpp"
 
 /* A note about json adapter exceptions: When an operation throws an exception

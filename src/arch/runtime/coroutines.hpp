@@ -26,8 +26,8 @@ public:
     friend bool is_coroutine_stack_overflow(void *);
 
     template<class Callable>
-    static void spawn_now(const Callable &action) {
-        get_and_init_coro(action)->notify_now();
+    static void spawn_now_deprecated(const Callable &action) {
+        get_and_init_coro(action)->notify_now_deprecated();
     }
 
     template<class Callable>
@@ -73,7 +73,7 @@ public:
     was to provide better performance than could be achieved with
     `notify_later_ordered()`, but `notify_sometime()` is now filling that role
     instead. */
-    void notify_now();
+    void notify_now_deprecated();
 
     /* Schedules the coroutine to be woken up eventually. Can be safely called
     from any thread. Returns immediately. Does not provide any ordering
@@ -161,6 +161,7 @@ private:
 
 /* Returns true if the given address is in the protection page of the current coroutine. */
 bool is_coroutine_stack_overflow(void *addr);
+bool coroutines_have_been_initialized();
 
 #ifndef NDEBUG
 

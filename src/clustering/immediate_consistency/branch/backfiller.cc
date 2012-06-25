@@ -1,6 +1,7 @@
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 
 #include "clustering/immediate_consistency/branch/history.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/semaphore.hpp"
 #include "rpc/semilattice/view.hpp"
@@ -15,9 +16,9 @@ inline state_timestamp_t get_earliest_timestamp_of_version_range(const version_r
 template <class protocol_t>
 backfiller_t<protocol_t>::backfiller_t(mailbox_manager_t *mm,
 				       boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
-				       store_view_t<protocol_t> *s)
+				       multistore_ptr_t<protocol_t> *_svs)
     : mailbox_manager(mm), branch_history(bh),
-      store(s),
+      svs(_svs),
       backfill_mailbox(mailbox_manager,
 		       boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, _6, auto_drainer_t::lock_t(&drainer))),
       cancel_backfill_mailbox(mailbox_manager,
@@ -43,6 +44,10 @@ bool backfiller_t<protocol_t>::confirm_and_send_metainfo(typename store_view_t<p
 									 );
 
 #ifndef NDEBUG
+    // TODO: Should the rassert calls in this block of code be return
+    // false statements instead of assertions?  Tim doesn't know.
+    // Figure this out.
+
     /* Confirm that `start_point` is a point in our past */
     typedef region_map_t<protocol_t, version_range_t> version_map_t;
 
@@ -79,8 +84,7 @@ void send_chunk(mailbox_manager_t *mbox_manager,
 }
 
 template <class protocol_t>
-void backfiller_t<protocol_t>::on_backfill(
-					   backfill_session_id_t session_id,
+void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
 					   region_map_t<protocol_t, version_range_t> start_point,
 					   mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>)> end_point_cont,
 					   mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
@@ -89,7 +93,7 @@ void backfiller_t<protocol_t>::on_backfill(
 					   auto_drainer_t::lock_t keepalive) {
 
     assert_thread();
-    rassert(region_is_superset(store->get_region(), start_point.get_domain()));
+    rassert(region_is_superset(svs->get_multistore_joined_region(), start_point.get_domain()));
 
     /* Set up a local interruptor cond and put it in the map so that this
        session can be interrupted if the backfillee decides to abort */
@@ -110,13 +114,15 @@ void backfiller_t<protocol_t>::on_backfill(
     send(mailbox_manager, allocation_registration_box, receive_allocations_mbox.get_address());
 
     try {
+        // TODO: Describe this fifo source's purpose a bit.  It's for ordering backfill operations, right?
         fifo_enforcer_source_t fifo_src;
 
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> send_backfill_token;
-        store->new_read_token(send_backfill_token);
+        const int num_stores = svs->num_stores();
+        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > send_backfill_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
+        svs->new_read_tokens(send_backfill_tokens.get(), num_stores);
 
         /* Actually perform the backfill */
-        store->send_backfill(
+        svs->send_multistore_backfill(
                      region_map_transform<protocol_t, version_range_t, state_timestamp_t>(
                                                       start_point,
                                                       &get_earliest_timestamp_of_version_range
@@ -124,7 +130,8 @@ void backfiller_t<protocol_t>::on_backfill(
                      boost::bind(&backfiller_t<protocol_t>::confirm_and_send_metainfo, this, _1, start_point, end_point_cont),
                      boost::bind(send_chunk<protocol_t>, mailbox_manager, chunk_cont, _1, &fifo_src, &chunk_semaphore),
                      local_backfill_progress[session_id],
-                     send_backfill_token,
+                     send_backfill_tokens.get(),
+                     num_stores,
                      &interrupted
                      );
 

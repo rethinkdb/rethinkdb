@@ -261,9 +261,8 @@ cJSON *render_as_json(region_map_t<protocol_t, value_t> *target, const ctx_t &ct
     for (typename region_map_t<protocol_t, value_t>::iterator it  = target->begin();
                                                               it != target->end();
                                                               ++it) {
-        scoped_cJSON_t key(render_as_json(&it->first, ctx));
-        rassert(key.get()->type == cJSON_String);
-        cJSON_AddItemToObject(res, get_string(key.get()).c_str(), render_as_json(&it->second, ctx));
+        std::string key(render_region_as_string(&it->first, ctx));
+        cJSON_AddItemToObject(res, key.c_str(), render_as_json(&it->second, ctx));
     }
 
     return res;

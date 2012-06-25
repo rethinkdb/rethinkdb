@@ -1,6 +1,7 @@
 #include "unittest/gtest.hpp"
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "unittest/clustering_utils.hpp"
@@ -28,7 +29,8 @@ void run_backfill_test() {
         region.keys.insert(std::string(&c, 1));
     }
 
-    dummy_protocol_t::store_t backfiller_store, backfillee_store;
+    dummy_protocol_t::store_t backfiller_store;
+    dummy_protocol_t::store_t backfillee_store;
 
     /* Make a dummy metadata view to hold a branch tree so branch history checks
     can be performed */
@@ -44,7 +46,7 @@ void run_backfill_test() {
         dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
         dummy_branch.origin = region_map_t<dummy_protocol_t, version_range_t>(
-            region, version_range_t(version_t(boost::uuids::nil_generator()(), state_timestamp_t::zero()))
+            region, version_range_t(version_t(nil_uuid(), state_timestamp_t::zero()))
             );
         std::map<branch_id_t, branch_birth_certificate_t<dummy_protocol_t> > singleton_map;
         singleton_map[dummy_branch_id] = dummy_branch;
@@ -55,18 +57,16 @@ void run_backfill_test() {
 
     // initialize the metainfo in a store
     store_view_t<dummy_protocol_t> *stores[] = { &backfiller_store, &backfillee_store };
-    for (size_t i = 0; i < sizeof stores / sizeof stores[0]; i++) {
+    for (size_t i = 0; i < sizeof(stores) / sizeof(stores[0]); i++) {
         cond_t non_interruptor;
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
         stores[i]->new_write_token(token);
         stores[i]->set_metainfo(
-            region_map_t<dummy_protocol_t, binary_blob_t>(
-                region,
-                binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
-                ),
-                token,
-                &non_interruptor
-            );
+            region_map_t<dummy_protocol_t, binary_blob_t>(region,
+                                                          binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))),
+            order_token_t::ignore,
+            token,
+            &non_interruptor);
     }
 
     // Insert 10 values into both stores, then another 10 into only `backfiller_store` and not `backfillee_store`
@@ -83,18 +83,20 @@ void run_backfill_test() {
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
             backfiller_store.new_write_token(token);
 
+#ifndef NDEBUG
+            equality_metainfo_checker_callback_t<dummy_protocol_t>
+                metainfo_checker_callback(binary_blob_t(version_range_t(version_t(dummy_branch_id, ts.timestamp_before()))));
+            metainfo_checker_t<dummy_protocol_t> metainfo_checker(&metainfo_checker_callback, region);
+#endif
+
             backfiller_store.write(
-                DEBUG_ONLY(
-                    region_map_t<dummy_protocol_t, binary_blob_t>(
-                        region,
-                        binary_blob_t(version_range_t(version_t(dummy_branch_id, ts.timestamp_before())))
-                    ),
-                )
+                DEBUG_ONLY(metainfo_checker, )
                 region_map_t<dummy_protocol_t, binary_blob_t>(
                     region,
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ),
                 w, ts,
+                order_token_t::ignore,
                 token,
                 &non_interruptor
             );
@@ -107,21 +109,28 @@ void run_backfill_test() {
 
     /* Expose the backfiller to the cluster */
 
+    store_view_t<dummy_protocol_t> *backfiller_store_ptr = &backfiller_store;
+    multistore_ptr_t<dummy_protocol_t> backfiller_multistore(&backfiller_store_ptr, 1);
+
     backfiller_t<dummy_protocol_t> backfiller(
         cluster.get_mailbox_manager(),
         branch_history_controller.get_view(),
-        &backfiller_store);
+        &backfiller_multistore);
 
     watchable_variable_t<boost::optional<backfiller_business_card_t<dummy_protocol_t> > > pseudo_directory(
         boost::optional<backfiller_business_card_t<dummy_protocol_t> >(backfiller.get_business_card()));
 
     /* Run a backfill */
 
+    // Uhh.. hehhehheh... this might be wrong.
+    store_view_t<dummy_protocol_t> *backfillee_store_ptr = &backfillee_store;
+    multistore_ptr_t<dummy_protocol_t> backfillee_multistore(&backfillee_store_ptr, 1);
+
     cond_t interruptor;
     backfillee<dummy_protocol_t>(
         cluster.get_mailbox_manager(),
         branch_history_controller.get_view(),
-        &backfillee_store,
+        &backfillee_multistore,
         backfillee_store.get_region(),
         pseudo_directory.get_watchable()->subview(&wrap_in_optional),
         generate_uuid(),
@@ -140,7 +149,7 @@ void run_backfill_test() {
 
     region_map_t<dummy_protocol_t, version_range_t> backfillee_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
-            backfillee_store.get_metainfo(token1, &interruptor),
+            backfillee_store.get_metainfo(order_token_t::ignore, token1, &interruptor),
             &binary_blob_t::get<version_range_t>
         );
 
@@ -149,7 +158,7 @@ void run_backfill_test() {
 
     region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
-            backfiller_store.get_metainfo(token2, &interruptor),
+            backfiller_store.get_metainfo(order_token_t::ignore, token2, &interruptor),
             &binary_blob_t::get<version_range_t>
         );
 

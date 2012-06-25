@@ -13,7 +13,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(dummy_p
 }
 
 template <class ctx_t>
-cJSON *render_as_json(dummy_protocol_t::region_t *target, const ctx_t &) {
+std::string render_region_as_string(dummy_protocol_t::region_t *target, const ctx_t &) {
     std::string val;
     val += "{";
     for (std::set<std::string>::iterator it =  target->keys.begin();
@@ -24,8 +24,12 @@ cJSON *render_as_json(dummy_protocol_t::region_t *target, const ctx_t &) {
     }
 
     val += "}";
+    return val;
+}
 
-    return cJSON_CreateString(val.c_str());
+template <class ctx_t>
+cJSON *render_as_json(dummy_protocol_t::region_t *target, const ctx_t &ctx) {
+    return cJSON_CreateString(render_region_as_string(target, ctx).c_str());
 }
 
 template <class ctx_t>

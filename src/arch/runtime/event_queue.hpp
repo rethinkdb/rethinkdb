@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include "perfmon_types.hpp"
+#include "perfmon/types.hpp"
 #include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/event_queue_types.hpp"
 

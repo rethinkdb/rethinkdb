@@ -1,4 +1,5 @@
 #define __STDC_LIMIT_MACROS
+#define __STDC_FORMAT_MACROS
 
 #include "utils.hpp"
 
@@ -7,7 +8,7 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -182,17 +183,69 @@ void *malloc_aligned(size_t size, size_t alignment) {
     return ptr;
 }
 
+void debug_print_quoted_string(append_only_printf_buffer_t *buf, const uint8_t *s, size_t n) {
+    buf->appendf("\"");
+    for (size_t i = 0; i < n; ++i) {
+        uint8_t ch = s[i];
+
+        switch (ch) {
+        case '\"':
+            buf->appendf("\\\"");
+            break;
+        case '\\':
+            buf->appendf("\\\\");
+            break;
+        case '\n':
+            buf->appendf("\\n");
+            break;
+        case '\t':
+            buf->appendf("\\t");
+            break;
+        case '\r':
+            buf->appendf("\\r");
+            break;
+        default:
+            if (ch <= '~' && ch >= ' ') {
+                // ASCII dependency here
+                buf->appendf("%c", ch);
+            } else {
+                const char *table = "0123456789ABCDEF";
+                buf->appendf("\\x%c%c", table[ch / 16], table[ch % 16]);
+            }
+            break;
+        }
+    }
+    buf->appendf("\"");
+}
+
 #ifndef NDEBUG
-void debugf(const char *msg, ...) {
+// Adds the time/thread id prefix to buf.
+void debugf_prefix_buf(printf_buffer_t<1000> *buf) {
     struct timespec t;
 
     int res = clock_gettime(CLOCK_REALTIME, &t);
     guarantee_err(res == 0, "clock_gettime(CLOCK_REALTIME) failed");
 
-    printf_buffer_t<1000> buf;
-    format_time(t, &buf);
+    format_time(t, buf);
 
-    buf.appendf(" Thread %d: ", get_thread_id());
+    buf->appendf(" Thread %d: ", get_thread_id());
+}
+
+void debugf_dump_buf(printf_buffer_t<1000> *buf) {
+    // Writing a single buffer in one shot like this makes it less
+    // likely that stderr debugfs and stdout printfs get mixed
+    // together, and probably makes it faster too.  (We can't simply
+    // flockfile both stderr and stdout because there's no established
+    // rule about which one should be locked first.)
+    size_t nitems = fwrite(buf->data(), 1, buf->size(), stderr);
+    guarantee_err(nitems == size_t(buf->size()), "trouble writing to stderr");
+    int res = fflush(stderr);
+    guarantee_err(res == 0, "fflush(stderr) failed");
+}
+
+void debugf(const char *msg, ...) {
+    printf_buffer_t<1000> buf;
+    debugf_prefix_buf(&buf);
 
     va_list ap;
     va_start(ap, msg);
@@ -201,17 +254,19 @@ void debugf(const char *msg, ...) {
 
     va_end(ap);
 
-    // Writing a single buffer in one shot like this makes it less
-    // likely that stderr debugfs and stdout printfs get mixed
-    // together, and probably makes it faster too.  (We can't simply
-    // flockfile both stderr and stdout because there's no established
-    // rule about which one should be locked first.)
-    size_t nitems = fwrite(buf.data(), 1, buf.size(), stderr);
-    guarantee_err(nitems == size_t(buf.size()), "trouble writing to stderr");
-    res = fflush(stderr);
-    guarantee_err(res == 0, "fflush(stderr) failed");
+    debugf_dump_buf(&buf);
 }
+
 #endif
+
+void debug_print(append_only_printf_buffer_t *buf, uint64_t x) {
+    buf->appendf("%" PRIu64, x);
+}
+
+void debug_print(append_only_printf_buffer_t *buf, const std::string& s) {
+    const char *data = s.data();
+    debug_print_quoted_string(buf, reinterpret_cast<const uint8_t *>(data), s.size());
+}
 
 rng_t::rng_t( UNUSED int seed) {
     memset(&buffer_, 0, sizeof(buffer_));
@@ -340,6 +395,8 @@ int gcd(int x, int y) {
 
 int64_t round_up_to_power_of_two(int64_t x) {
     rassert(x >= 0);
+
+    --x;
 
     x |= x >> 1;
     x |= x >> 2;

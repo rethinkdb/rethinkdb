@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "arch/arch.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 #include "serializer/log/stats.hpp"
 
 struct extent_block_t :

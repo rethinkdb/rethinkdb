@@ -3,14 +3,13 @@
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include "arch/timing.hpp"
 #include "clustering/administration/http/stat_app.hpp"
 #include "clustering/administration/stat_manager.hpp"
 #include "http/json.hpp"
-#include "perfmon.hpp"
-#include "perfmon_archive.hpp"
+#include "perfmon/perfmon.hpp"
+#include "perfmon/archive.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 
 static const char * STAT_REQ_TIMEOUT_PARAM = "timeout";

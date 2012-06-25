@@ -65,7 +65,10 @@ module 'DatacenterView', ->
                 entries_to_render.push(new DatacenterView.RecentLogEntry
                     model: log_entry)
             entries_to_render = entries_to_render.slice(0, @max_log_entries_to_render)
+
             @.$('.recent-log-entries').append entry.render().el for entry in entries_to_render
+
+            @.$('.nav-tabs').tab()
 
             return @
 
@@ -80,6 +83,15 @@ module 'DatacenterView', ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
+        
+        destroy: =>
+            @title.destroy()
+            @profile.destroy()
+            @data.destroy()
+            @stats_panel.destroy()
+            @performance_graph.destroy()
+
+        
     # DatacenterView.Title
     class @Title extends Backbone.View
         className: 'datacenter-info-view'
@@ -97,6 +109,9 @@ module 'DatacenterView', ->
             @.$el.html @template
                 name: @name
             return @
+
+        destroy: ->
+            datacenters.off()
 
     class @Profile extends Backbone.View
         className: 'datacenter-info-view'
@@ -182,6 +197,12 @@ module 'DatacenterView', ->
 
             return @
 
+        destroy: =>
+            @model.off()
+            machines.off()
+            directory.off()
+
+
     class @Data extends Backbone.View
         className: 'datacenter-data-view'
 
@@ -244,6 +265,12 @@ module 'DatacenterView', ->
             @.$el.html @template(json)
 
             return @
+
+        destroy: =>
+            @model.off()
+            machines.off()
+            directory.off()
+
 
     # DatacenterView.RecentLogEntry
     class @RecentLogEntry extends Backbone.View

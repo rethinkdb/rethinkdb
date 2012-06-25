@@ -185,6 +185,9 @@ class val(Term):
         elif isinstance(self.value, int):
             parent.type = p.Term.NUMBER
             parent.number = self.value
+        elif isinstance(self.value, str):
+            parent.type = p.Term.STRING
+            parent.valuestring = self.value
         else:
             raise ValueError
 
@@ -356,8 +359,23 @@ def toTerm(value):
         return value
     if isinstance(value, (bool, int)):
         return val(value)
+    if isinstance(value, str):
+        return parseStringTerm(value)
     else:
         raise ValueError
+
+def parseStringTerm(value):
+    # If the string is quoted, it's a value
+    if ((value.strip().startswith('"') and value.strip().endswith('"'))
+        or (value.strip().startswith("'") and value.strip().endswith("'"))):
+        return val(value.strip().strip("'").strip('"'))
+    # If it isn't, it's a combo var/args
+    terms = value.strip().split('.')
+    first = var(terms[0])
+    if len(terms) > 1:
+        return var(terms[0]).attr('.'.join(terms[1:]))
+    else:
+        return var(terms[0])
     
 #a = Connection("newton", 80)
 #t = db("foo").bar

@@ -1,10 +1,10 @@
 #include <string>
 
 #include "errors.hpp"
-#include <boost/lexical_cast.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <boost/optional.hpp>
+#include <boost/shared_ptr.hpp>
 
+#include "containers/uuid.hpp"
 #include "http/http.hpp"
 #include "clustering/administration/http/directory_app.hpp"
 
@@ -48,7 +48,7 @@ void directory_http_app_t::get_root(scoped_cJSON_t *json_out) {
 
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
         cluster_directory_metadata_t metadata = i->second;
-        std::string machine_id = boost::lexical_cast<std::string>(metadata.machine_id);
+        std::string machine_id = uuid_to_str(metadata.machine_id);
 
         json_read_only_adapter_t<cluster_directory_metadata_t, namespace_metadata_ctx_t> json_adapter(&metadata);
         namespace_metadata_ctx_t json_ctx(metadata.machine_id);
@@ -65,7 +65,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
 
         boost::optional<std::string> requested_machine_id;
         if (it != req.resource.end()) {
-            std::string machine_id_token = boost::lexical_cast<std::string>(*it);
+            std::string machine_id_token = *it;
             if (any_machine_id_wildcard != machine_id_token) {
                 requested_machine_id = machine_id_token;
             }
@@ -76,7 +76,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
             scoped_cJSON_t body(cJSON_CreateObject());
             for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
                 cluster_directory_metadata_t metadata = i->second;
-                std::string machine_id = boost::lexical_cast<std::string>(metadata.machine_id);
+                std::string machine_id = uuid_to_str(metadata.machine_id);
                 cJSON_AddItemToObject(body.get(), machine_id.c_str(), get_metadata_json(metadata, it, req.resource.end()));
             }
             http_res_t res(200);
@@ -85,7 +85,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
         } else {
             for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
                 cluster_directory_metadata_t metadata = i->second;
-                std::string machine_id = boost::lexical_cast<std::string>(metadata.machine_id);
+                std::string machine_id = uuid_to_str(metadata.machine_id);
                 if (*requested_machine_id == machine_id) {
                     scoped_cJSON_t machine_json = scoped_cJSON_t(get_metadata_json(metadata, it, req.resource.end()));
                     http_res_t res(200);

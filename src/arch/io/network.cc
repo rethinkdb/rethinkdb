@@ -21,7 +21,7 @@
 #include "concurrency/wait_any.hpp"
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 /* Network connection object */
 
@@ -796,7 +796,7 @@ void linux_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
         fd_t new_sock = accept(sock.get(), NULL, NULL);
 
         if (new_sock != INVALID_FD) {
-            coro_t::spawn_now(boost::bind(&linux_tcp_listener_t::handle, this, new_sock));
+            coro_t::spawn_now_deprecated(boost::bind(&linux_tcp_listener_t::handle, this, new_sock));
 
             /* If we backed off before, un-backoff now that the problem seems to be
             resolved. */
@@ -864,41 +864,40 @@ void linux_tcp_listener_t::on_event(int events) {
 }
 
 std::vector<std::string> get_ips() {
-    std::vector<std::string> res;
-    struct ifaddrs *ifAddrStruct = NULL;
-    struct ifaddrs *ifa = NULL;
-    void *tmpAddrPtr = NULL;
+    std::vector<std::string> ret;
 
-    getifaddrs(&ifAddrStruct);
+    struct ifaddrs *if_addrs = NULL;
+    getifaddrs(&if_addrs);
 
-    // TODO: WTF?  Is this copyright RethinkDB??
+    for (ifaddrs *p = if_addrs; p != NULL; p = p->ifa_next) {
+        if (p->ifa_addr->sa_family == AF_INET) {
+            if (!(p->ifa_flags & IFF_LOOPBACK)) {
+                struct sockaddr_in *in_addr = reinterpret_cast<sockaddr_in *>(p->ifa_addr);
+                // I don't think the "+ 1" is necessary, we're being
+                // paranoid about weak documentation.
+                char buf[INET_ADDRSTRLEN + 1] = { 0 };
+                const char *res = inet_ntop(AF_INET, &in_addr->sin_addr, buf, INET_ADDRSTRLEN);
 
-    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-        if (ifa ->ifa_addr->sa_family==AF_INET) {
-            if (ifa->ifa_flags & IFF_LOOPBACK) {
-                //Loop back device
-                continue;
+                guarantee_err(res != NULL, "inet_ntop failed");
+
+                ret.push_back(std::string(buf));
             }
-            tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-            char addressBuffer[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+        } else if (p->ifa_addr->sa_family == AF_INET6) {
+            if (!(p->ifa_flags & IFF_LOOPBACK)) {
+                struct sockaddr_in6 *in6_addr = reinterpret_cast<sockaddr_in6 *>(p->ifa_addr);
 
-            res.push_back(addressBuffer);
-        } else if (ifa->ifa_addr->sa_family==AF_INET6) {
-            if (ifa->ifa_flags & IFF_LOOPBACK) {
-                //Loop back device
-                continue;
+                char buf[INET_ADDRSTRLEN + 1] = { 0 };
+                const char *res = inet_ntop(AF_INET6, &in6_addr->sin6_addr, buf, INET6_ADDRSTRLEN);
+
+                guarantee_err(res != NULL, "inet_ntop failed on an ipv6 address");
+
+                ret.push_back(std::string(buf));
             }
-            tmpAddrPtr=&((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
-            char addressBuffer[INET6_ADDRSTRLEN];
-            inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
-
-            res.push_back(addressBuffer);
-        } 
+        }
     }
 
-    if (ifAddrStruct!=NULL) {
-        freeifaddrs(ifAddrStruct);
-    }
-    return res;
+    freeifaddrs(if_addrs);
+
+    return ret;
 }
+

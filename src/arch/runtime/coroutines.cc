@@ -13,7 +13,7 @@
 #include "config/args.hpp"
 #include "do_on_thread.hpp"
 
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 #include "utils.hpp"
 
 #ifndef NDEBUG
@@ -53,7 +53,7 @@ struct coro_globals_t {
     /* These variables are used in the implementation of
     `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING`. They record the
     number of things that are currently preventing us from `wait()`ing or
-    `notify_now()`ing or whatever. */
+    `notify_now_deprecated()`ing or whatever. */
     int assert_no_coro_waiting_counter;
     std::stack<std::pair<std::string, int> > no_waiting_call_sites;
 
@@ -251,14 +251,14 @@ void coro_t::yield() {  /* class method */
     self()->wait();
 }
 
-void coro_t::notify_now() {
+void coro_t::notify_now_deprecated() {
     rassert(waiting_);
     rassert(!notified_);
     rassert(current_thread_ == linux_thread_pool_t::thread_id);
 
 #ifndef NDEBUG
     rassert(cglobals->assert_no_coro_waiting_counter == 0,
-        "This code path is not supposed to use notify_now() or spawn_now().");
+        "This code path is not supposed to use notify_now_deprecated() or spawn_now_deprecated().");
 
     /* Record old value of `assert_finite_coro_waiting_counter`. It must be legal to call
     `coro_t::wait()` within the coro we are going to jump to, or else we would never jump
@@ -268,7 +268,7 @@ void coro_t::notify_now() {
 #endif
 
 #ifndef NDEBUG
-    /* It's not safe to notify_now() in the catch-clause of an exception handler for the same
+    /* It's not safe to notify_now_deprecated() in the catch-clause of an exception handler for the same
     reason we can't wait(). */
     rassert(!abi::__cxa_current_exception_type());
 #endif
@@ -336,7 +336,9 @@ void coro_t::on_thread_switch() {
     rassert(notified_);
     notified_ = false;
 
-    notify_now();
+    /* TODO: When `notify_now_deprecated()` is finally removed, just fold it
+    into this function. */
+    notify_now_deprecated();
 }
 
 void coro_t::set_coroutine_stack_size(size_t size) {
@@ -355,7 +357,12 @@ bool is_coroutine_stack_overflow(void *addr) {
     return cglobals->current_coro && cglobals->current_coro->stack.address_is_stack_overflow(addr);
 }
 
+bool coroutines_have_been_initialized() {
+    return cglobals != NULL;
+}
+
 coro_t * coro_t::get_coro() {
+    rassert(coroutines_have_been_initialized());
     coro_t *coro;
 
     if (cglobals->free_coros.size() == 0) {

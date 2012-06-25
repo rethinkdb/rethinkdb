@@ -102,4 +102,4 @@ bool version_is_divergent<rdb_protocol_t>(
         const branch_history_t<rdb_protocol_t> &bh,
         version_t v1,
         version_t v2,
-        memcached_protocol_t::region_t relevant_region);
+        rdb_protocol_t::region_t relevant_region);
