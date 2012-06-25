@@ -332,7 +332,9 @@ bool is_well_defined(const Query &q) {
         } else {
             CHECK_WELL_DEFINED(q.read_query());
         }
+    }
 
+    if (q.has_write_query()) {
         if (q.type() != Query::WRITE) {
             return false;
         } else {
