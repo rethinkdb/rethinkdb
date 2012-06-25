@@ -146,6 +146,14 @@ class Conjunction(Term):
 def _and(*predicates):
     return Conjunction(list(predicates))
 
+class _not(Term):
+    def __init__(self, term):
+        self.term = toTerm(term)
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.NOT
+        self.term.write_ast(parent.call.args.add())
+
 class val(Term):
     def __init__(self, value):
         self.value = value
@@ -204,6 +212,61 @@ def gt(*terms):
     return Comparison(list(terms), p.GT)
 def gte(*terms):
     return Comparison(list(terms), p.GE)
+
+class Arithmetic(Term):
+    def __init__(self, terms, op_type):
+        if not terms:
+            raise ValueError
+        if op_type is p.Builtin.MODULO and len(terms) != 2:
+            raise ValueError
+        self.terms = terms
+        self.op_type = op_type
+    def write_ast(self, parent):
+        # A class to actually do the op
+        class Arithmetic2(Term):
+            def __init__(self, term1, term2, op_type):
+                self.term1 = toTerm(term1)
+                self.term2 = toTerm(term2)
+                self.op_type = op_type
+            def write_ast(self, parent):
+                parent.type = p.Term.CALL
+                parent.call.builtin.type = self.op_type
+                self.term1.write_ast(parent.call.args.add())
+                self.term2.write_ast(parent.call.args.add())
+        # If we only have one term...
+        if len(self.terms) == 1:
+            # If we're adding or multiplying, just write it
+            if self.op_type is p.Builtin.ADD or self.op_type is p.Builtin.MULTIPLY:
+                toTerm(self.terms[0]).write_ast(parent)
+                return
+            # If we're dividing, do 1/X (like clisp)
+            if self.op_type is p.Builtin.DIVIDE:
+                Arithmetic2(val(1), toTerm(self.terms[0]), self.op_type).write_ast(parent)
+                return
+            # If we're subtracting, do 0-X (like lisp)
+            if self.op_type is p.Builtin.SUBTRACT:
+                Arithmetic2(val(0), toTerm(self.terms[0]), self.op_type).write_ast(parent)
+                return
+            return
+        # Encode the op
+        op_term = Arithmetic2(self.terms[0], self.terms[1], self.op_type)
+        # If we only have two terms, just do the op
+        if len(self.terms) == 2:
+            op_term.write_ast(parent)
+            return
+        # Otherwise, do the op and recurse
+        Arithmetic([op_term] + self.terms[2:], self.op_type).write_ast(parent.call.args.add())
+
+def add(*terms):
+    return Arithmetic(list(terms), p.Builtin.ADD)
+def sub(*terms):
+    return Arithmetic(list(terms), p.Builtin.SUBTRACT)
+def div(*terms):
+    return Arithmetic(list(terms), p.Builtin.DIVIDE)
+def mul(*terms):
+    return Arithmetic(list(terms), p.Builtin.MULTIPLY)
+def mod(*terms):
+    return Arithmetic(list(terms), p.Builtin.MODULO)
 
 class var(Term):
     def __init__(self, name):
