@@ -30,7 +30,7 @@ public:
     version_t(branch_id_t bid, state_timestamp_t ts) :
         branch(bid), timestamp(ts) { }
     static version_t zero() {
-        return version_t(boost::uuids::nil_generator()(), state_timestamp_t::zero());
+        return version_t(nil_uuid(), state_timestamp_t::zero());
     }
 
     bool operator==(const version_t &v) const{

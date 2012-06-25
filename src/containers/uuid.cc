@@ -30,7 +30,6 @@ void debug_print(append_only_printf_buffer_t *buf, const boost::uuids::uuid& id)
 
 
 std::string uuid_to_str(boost::uuids::uuid id) {
-    // Heh.
     return boost::uuids::to_string(id);
 }
 

@@ -1,8 +1,8 @@
 #ifndef CLUSTERING_REGISTRATION_METADATA_HPP_
 #define CLUSTERING_REGISTRATION_METADATA_HPP_
 
+#include "containers/uuid.hpp"
 #include "rpc/mailbox/typed.hpp"
-#include <boost/uuid/uuid.hpp>
 
 template<class business_card_t>
 class registrar_business_card_t {

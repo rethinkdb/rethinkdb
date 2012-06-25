@@ -4,6 +4,7 @@
 #include <string>
 
 #include "errors.hpp"
+#define BOOST_UUID_NO_TYPE_TRAITS
 #include <boost/uuid/uuid.hpp>
 
 class append_only_printf_buffer_t;

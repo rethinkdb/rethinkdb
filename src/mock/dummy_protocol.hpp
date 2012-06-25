@@ -14,7 +14,7 @@
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
-#include "perfmon/perfmon_types.hpp"
+#include "perfmon/types.hpp"
 
 class signal_t;
 

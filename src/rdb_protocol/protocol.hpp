@@ -4,7 +4,6 @@
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
-#include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
 #include "btree/operations.hpp"

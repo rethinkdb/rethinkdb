@@ -46,6 +46,4 @@ private:
     DISABLE_COPYING(pinnings_shards_mismatch_issue_tracker_t);
 };
 
-#include "clustering/administration/issues/pinnings_shards_mismatch.tcc"
-
 #endif  // CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMATCH_HPP_

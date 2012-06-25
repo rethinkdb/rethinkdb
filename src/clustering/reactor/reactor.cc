@@ -48,7 +48,7 @@ reactor_t<protocol_t>::reactor_t(
 
 template <class protocol_t>
 reactor_t<protocol_t>::directory_entry_t::directory_entry_t(reactor_t<protocol_t> *_parent, typename protocol_t::region_t _region)
-    : parent(_parent), region(_region), reactor_activity_id(boost::uuids::nil_generator()())
+    : parent(_parent), region(_region), reactor_activity_id(nil_uuid())
 { }
 
 template <class protocol_t>
