@@ -9,7 +9,7 @@ TEST(VectorClock, Construction) {
     vclock_t<int> blank; //contains an unitialized value
     ASSERT_FALSE(blank.in_conflict());
 
-    boost::uuids::uuid machine1 = generate_uuid();
+    uuid_t machine1 = generate_uuid();
     vclock_t<int> val(0, machine1);
     ASSERT_FALSE(val.in_conflict());
 
@@ -22,7 +22,7 @@ TEST(VectorClock, Construction) {
 TEST(VectorClock, NewVersion) {
     vclock_t<int> val;
 
-    boost::uuids::uuid machine1 = generate_uuid(), machine2 = generate_uuid(),
+    uuid_t machine1 = generate_uuid(), machine2 = generate_uuid(),
                        machine3 = generate_uuid(), machine4 = generate_uuid();
 
     semilattice_join(&val, val.make_new_version(1, machine1));
@@ -42,7 +42,7 @@ TEST(VectorClock, NewVersion) {
 }
 
 TEST(VectorClock, Conflict) {
-    boost::uuids::uuid machine1 = generate_uuid(), machine2 = generate_uuid();
+    uuid_t machine1 = generate_uuid(), machine2 = generate_uuid();
 
     vclock_t<int> m_1s_opinion(1, machine1);
     vclock_t<int> m_2s_opinion(2, machine2);
@@ -60,7 +60,7 @@ TEST(VectorClock, Conflict) {
     ASSERT_THROW(merge.make_new_version(3, machine2), in_conflict_exc_t);
     ASSERT_THROW(merge.upgrade_version(machine2), in_conflict_exc_t);
 
-    boost::uuids::uuid resolving_machine = generate_uuid();
+    uuid_t resolving_machine = generate_uuid();
     vclock_t<int> resolution = merge.make_resolving_version(3, resolving_machine);
     semilattice_join(&merge, resolution);
 

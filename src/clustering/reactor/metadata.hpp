@@ -11,7 +11,7 @@
 currently happening on this machine. Each `reactor_business_card_t` only applies
 to a single namespace. */
 
-typedef boost::uuids::uuid reactor_activity_id_t;
+typedef uuid_t reactor_activity_id_t;
 
 namespace reactor_business_card_details {
 /* This peer would like to become a primary but can't for 1 or more of the

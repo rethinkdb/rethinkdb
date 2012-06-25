@@ -12,7 +12,7 @@
 #include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
 
-/* `peer_id_t` is a wrapper around a `boost::uuids::uuid`. Each newly
+/* `peer_id_t` is a wrapper around a `uuid_t`. Each newly
 created cluster node picks a UUID to be its peer-ID. */
 class peer_id_t {
 public:
@@ -30,9 +30,9 @@ public:
         : uuid(nil_uuid())
     { }
 
-    explicit peer_id_t(boost::uuids::uuid u) : uuid(u) { }
+    explicit peer_id_t(uuid_t u) : uuid(u) { }
 
-    boost::uuids::uuid get_uuid() const {
+    uuid_t get_uuid() const {
         return uuid;
     }
 
@@ -43,7 +43,7 @@ public:
 private:
     friend class connectivity_cluster_t;
 
-    boost::uuids::uuid uuid;
+    uuid_t uuid;
 
     RDB_MAKE_ME_SERIALIZABLE_1(uuid);
 };
@@ -111,7 +111,7 @@ public:
     could be reconstructed by watching connection and disconnection events, but
     it would be hard to reconstruct it consistently across multiple threads. The
     connectivity layer can do it trivially. */
-    virtual boost::uuids::uuid get_connection_session_id(peer_id_t) = 0;
+    virtual uuid_t get_connection_session_id(peer_id_t) = 0;
 
 protected:
     virtual ~connectivity_service_t() { }

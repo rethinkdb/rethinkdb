@@ -3,7 +3,7 @@
 namespace {
 
 template<class type_t>
-void check(const std::string &object_type, const boost::uuids::uuid &object_id,
+void check(const std::string &object_type, const uuid_t &object_id,
         const std::string &field, const vclock_t<type_t> &vector_clock,
         std::list<clone_ptr_t<vector_clock_conflict_issue_t> > *out) {
 

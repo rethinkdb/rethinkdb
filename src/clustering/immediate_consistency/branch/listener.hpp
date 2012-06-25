@@ -194,7 +194,7 @@ private:
     gets pulsed when we successfully register. */
     promise_t<intro_t> registration_done_cond;
 
-    boost::uuids::uuid uuid;
+    uuid_t uuid;
     perfmon_collection_t perfmon_collection;
     fifo_enforcer_sink_t write_queue_entrance_sink;
     disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue;
