@@ -163,17 +163,20 @@ class unix_socket_stream_t : public socket_stream_t {
   public:
     explicit unix_socket_stream_t(fd_t fd, fd_watcher_t *watcher = NULL);
 
+    // WARNING. Sending large numbers of fds at once is contraindicated. See
+    // arch/fd_send_recv.hpp. TODO(rntz): fix this.
+
     // Sends open file descriptors. Must be matched by a call to recv_fd{s,} on
     // the other end, or weird shit could happen.
     //
     // Returns -1 on error, 0 on success. Blocks until all fds are written.
-    int send_fds(int64_t num_fds, fd_t *fds);
+    int send_fds(size_t num_fds, fd_t *fds);
     int send_fd(fd_t fd);
 
     // Receives open file descriptors. Must only be called to match a call to
     // write_fd{s,} on the other end; otherwise undefined behavior could result!
     // Blocks until all fds are received.
-    MUST_USE archive_result_t recv_fds(int64_t num_fds, fd_t *fds);
+    MUST_USE archive_result_t recv_fds(size_t num_fds, fd_t *fds);
     MUST_USE archive_result_t recv_fd(fd_t *fd);
 };
 

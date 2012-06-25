@@ -1,15 +1,16 @@
 #include "containers/archive/fd_stream.hpp"
 
+#include <cstring>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#include "arch/fd_send_recv.hpp"
 #include "arch/runtime/event_queue.hpp" // format_poll_event
 #include "concurrency/wait_any.hpp"     // wait_any_t
 #include "errors.hpp"
 #include "logger.hpp"  // logERR
-
-#include <cstring>
-#include <fcntl.h>
-#include <sys/socket.h> // shutdown
-#include <sys/types.h>
-#include <unistd.h>
 
 // -------------------- blocking_fd_watcher_t --------------------
 blocking_fd_watcher_t::blocking_fd_watcher_t()
@@ -293,131 +294,42 @@ archive_result_t unix_socket_stream_t::recv_fd(int *fd) {
     return recv_fds(1, fd);
 }
 
-// Large but somewhat arbitrary upper bound, since we're allocating space for fd
-// buffers on the stack.
-#define MAX_FDS 1024
-
-// The code for {send,recv}_fds was determined by careful reading of the man
-// pages for sendmsg(2), recvmsg(2), unix(7), and particularly cmsg(3), which
-// contains a helpful example.
-// <http://swtch.com/usr/local/plan9/src/lib9/sendfd.c> was also helpful.
-
-int unix_socket_stream_t::send_fds(int64_t num_fds, int *fds) {
-    if (num_fds > MAX_FDS) {
-        logERR("Trying to send too many fds: %zu", num_fds);
-        return -1;
-    }
-
-    // Set-up for a call to sendmsg().
-    struct msghdr msg;
-    msg.msg_flags = 0;
-
-    // We send a single null byte along with the data. Sending a zero-length
-    // message is dubious; receiving one is even more dubious.
-    struct iovec iov;
-    msg.msg_iov = &iov;
-    msg.msg_iovlen = 1;
-
-    char c = '\0';
-    iov.iov_base = &c;
-    iov.iov_len = 1;
-
-    // The control message is the important part for sending fds.
-    char control[CMSG_SPACE(sizeof(int) * num_fds)];
-    msg.msg_control = control;
-    msg.msg_controllen = sizeof control;
-
-    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
-    cmsg->cmsg_level = SOL_SOCKET; // see unix(7) for explanation
-    cmsg->cmsg_type = SCM_RIGHTS;  // says that we're sending an array of fds
-    cmsg->cmsg_len = CMSG_LEN(sizeof(int) * num_fds);
-    memcpy(CMSG_DATA(cmsg), fds, sizeof(int) * num_fds);
-
-    msg.msg_controllen = cmsg->cmsg_len;
-
-    // Write it out.
-    ssize_t res;
-    while (1 != (res = sendmsg(fd_.get(), &msg, 0))) {
-        if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
-            // Wait until we can write, or we shut down.
-            if (!fd_watcher_->wait_for_write())
-                return -1;          // we shut down
-
-            // Go around the loop and try to write again.
-            continue;
+int unix_socket_stream_t::send_fds(size_t num_fds, int *fds) {
+    while (-1 == ::send_fds(fd_.get(), num_fds, fds)) {
+        if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) {
+            on_write_error(errno);
+            return -1;
         }
 
-        if (res == -1)
-            on_write_error(errno);
-        else
-            logERR("Didn't expect sendmsg() to return %ld.", res);
-        shutdown_write();
-        return -1;
+        // Wait until we can write, or we shut down.
+        if (!fd_watcher_->wait_for_write())
+            return -1;          // we shut down
     }
 
     return 0;
 }
 
-archive_result_t unix_socket_stream_t::recv_fds(int64_t num_fds, int *fds) {
-    if (num_fds > MAX_FDS) {
-        logERR("Trying to receive too many fds: %zu", num_fds);
-        return ARCHIVE_GENERIC_ERROR;
-    }
+archive_result_t unix_socket_stream_t::recv_fds(size_t num_fds, int *fds) {
+    for (;;)
+        switch (::recv_fds(fd_.get(), num_fds, fds)) {
+          case FD_RECV_OK: return ARCHIVE_SUCCESS;
 
-    // Set-up for a call to recvmsg()
-    struct msghdr msg;
-    msg.msg_flags = 0;
+          case FD_RECV_EOF: return ARCHIVE_SOCK_EOF;
 
-    // We expect to receive a single null byte.
-    struct iovec iov;
-    msg.msg_iov = &iov;
-    msg.msg_iovlen = 1;
+          case FD_RECV_INVALID: return ARCHIVE_RANGE_ERROR;
 
-    char c = 'x';               // a value that is not what we expect
-    iov.iov_base = &c;
-    iov.iov_len = 1;
+          case FD_RECV_ERROR:
+            if ((errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+                // Wait until we can read, or we shut down.
+                && fd_watcher_->wait_for_read())
+            {
+                // Go around the loop and try again.
+                continue;
+            }
 
-    // The control message
-    char control[CMSG_SPACE(sizeof(int) * num_fds)];
-    msg.msg_control = control;
-    msg.msg_controllen = sizeof control;
+            // Socket error, or we shut down.
+            return ARCHIVE_SOCK_ERROR;
 
-    // Read it in.
-    ssize_t res;
-    while (1 != (res = recvmsg(fd_.get(), &msg, 0))) {
-        if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
-            // Wait until we can read, or we shut down.
-            if (!fd_watcher_->wait_for_read())
-                return ARCHIVE_SOCK_ERROR; // we shut down
-
-            // Go around the loop and try to read again.
-            continue;
+          default: unreachable();
         }
-
-        if (res == -1)
-            on_read_error(errno);
-        shutdown_read();
-        return res == 0 ? ARCHIVE_SOCK_EOF : ARCHIVE_SOCK_ERROR;
-    }
-
-    // Check the message.
-    if (c != '\0') {
-        logERR("When receiving fds over unix socket, got wrong byte of data; "
-               "this probably indicates programmer error");
-        return ARCHIVE_RANGE_ERROR;
-    }
-    
-    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
-    guarantee(cmsg);
-
-    if (msg.msg_controllen != CMSG_SPACE(sizeof(int) * num_fds) ||
-        cmsg->cmsg_len != CMSG_LEN(sizeof(int) * num_fds))
-    {
-        logERR("When receiving fds over unix socket, got bad-sized control message; "
-               "this probably indicates programmer error");
-        return ARCHIVE_RANGE_ERROR;
-    }
-
-    memcpy(fds, CMSG_DATA(cmsg), sizeof(int) * num_fds);
-    return ARCHIVE_SUCCESS;
 }
