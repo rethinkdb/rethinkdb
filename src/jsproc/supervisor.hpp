@@ -43,7 +43,7 @@ class supervisor_t :
     int connect(boost::scoped_ptr<unix_socket_stream_t> &stream);
 
     // Called by spawn() in the supervisor process.
-    static int run_supervisor(pid_t child, int sockfd);
+    static void exec_supervisor(pid_t child, int sockfd) THROWS_NOTHING;
 
   private:
     boost::scoped_ptr<unix_socket_stream_t> stream_;

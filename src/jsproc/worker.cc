@@ -6,34 +6,6 @@
 
 namespace jsproc {
 
-// -------------------- worker_t --------------------
-int worker_t::spawn(worker_t *proc) {
-    int fds[2];
-    int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
-    if (res) return res;
-
-    pid_t pid = fork();
-    if (pid == -1) {
-        guarantee_err(0 == close(fds[0]), "could not close fd");
-        guarantee_err(0 == close(fds[1]), "could not close fd");
-        return -1;
-    }
-
-    if (!pid) {
-        // We're the child.
-        guarantee_err(0 == close(fds[0]), "could not close fd");
-        exit(worker_t::run_worker(fds[1]));
-    }
-
-    // We're the parent
-    guarantee(pid);
-    guarantee_err(0 == close(fds[1]), "could not close fd");
-
-    proc->pid = pid;
-    proc->fd = fds[0];
-    return 0;
-}
-
 // Accepts and runs a job.
 static void accept_job(
     job_result_t *result,
@@ -56,7 +28,7 @@ static void accept_job(
     (*jobfunc)(result, job_input, job_output);
 }
 
-int worker_t::run_worker(int sockfd) {
+void exec_worker(int sockfd) {
     unix_socket_stream_t sock(sockfd, new blocking_fd_watcher_t());
 
     // Receive and run jobs until we get an error, or a job tells us to shut down.
@@ -67,7 +39,7 @@ int worker_t::run_worker(int sockfd) {
     } while (result.type != JOB_SHUTDOWN && sock.is_read_open() && sock.is_write_open());
 
     // TODO (rntz): useful return codes.
-    return 0;
+    exit(0);
 }
 
 } // namespace jsproc

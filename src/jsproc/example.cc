@@ -1,6 +1,8 @@
 #include "jsproc/example.hpp"
 
 #include <cstring>              // strerror
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include <v8.h>
 
@@ -79,13 +81,40 @@ class js_eval_job_t : public jsproc::job_t
     RDB_MAKE_ME_SERIALIZABLE_1(js_src);
 };
 
+int fork_worker(pid_t *pid, int *fd) {
+    int fds[2];
+    int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
+    if (res) return -1;
+
+    *fd = fds[0];
+    *pid = fork();
+
+    if (*pid == -1) {
+        guarantee_err(0 == close(fds[0]), "could not close fd");
+        guarantee_err(0 == close(fds[1]), "could not close fd");
+        return -1;
+    }
+
+    if (!*pid) {
+        // We're the child.
+        guarantee_err(0 == close(fds[0]), "could not close fd");
+        jsproc::exec_worker(fds[1]);
+        unreachable();
+    }
+
+    // We're the parent
+    guarantee(pid);
+    guarantee_err(0 == close(fds[1]), "could not close fd");
+    return 0;
+}
+
 int main_rethinkdb_js(int argc, char *argv[]) {
     (void) argc; (void) argv;
 
-    jsproc::worker_t worker;
-    guarantee_err(0 == jsproc::worker_t::spawn(&worker), "could not spawn worker");
-
-    unix_socket_stream_t stream(worker.fd, new blocking_fd_watcher_t());
+    pid_t pid;
+    int fd;
+    guarantee_err (0 == fork_worker(&pid, &fd), "could not spawn worker");
+    unix_socket_stream_t stream(fd, new blocking_fd_watcher_t());
 
     char *line = NULL;
     size_t line_sz = 0;

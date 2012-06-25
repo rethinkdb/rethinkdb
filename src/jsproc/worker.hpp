@@ -6,19 +6,8 @@
 
 namespace jsproc {
 
-// A handle to a worker process. POD.
-class worker_t {
-  public:
-    pid_t pid;
-    int fd;
-
-    // Static utility method called on the supervisor side.
-    static int spawn(worker_t *proc);
-
-  private:
-    // Static utility method called by spawn() on the worker-process side.
-    static int run_worker(int sockfd);
-};
+// Called in a worker process to do the heavy lifting. Never returns.
+void exec_worker(int socket_fd);
 
 } // namespace jsproc
 
