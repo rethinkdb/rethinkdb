@@ -382,7 +382,7 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
             }
         case Term::IF:
             {
-                if (!(get_type(t.if_().test(), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+                if (!(get_type(t.if_().test(), scope) == JSON())) {
                     return error_t("Test in an if must be JSON\n");
                 }
                 type_t true_branch  = get_type(t.if_().true_branch(), scope),
@@ -436,7 +436,7 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
             return primitive_t(primitive_t::STREAM);
             break;
         case Term::GETBYKEY:
-            if (get_type(t.get_by_key().key(), scope) == type_t(primitive_t(primitive_t::JSON))) {
+            if (get_type(t.get_by_key().key(), scope) == JSON()) {
                 return primitive_t(primitive_t::JSON);
             } else {
                 return error_t("Key must be a json value.");
@@ -454,145 +454,145 @@ function_t get_type(const Builtin &b, variable_type_scope_t *) {
     switch (b.type()) {
         //JSON -> JSON
         case Builtin::NOT:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::GETATTR:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::HASATTR:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::PICKATTRS:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::MAPMERGE:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::ARRAYCONS:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::ARRAYCONCAT:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::ARRAYSLICE:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::ARRAYNTH:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::ARRAYLENGTH:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::ADD:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::SUBTRACT:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::MULTIPLY:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::DIVIDE:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::MODULO:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::COMPARE:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::FILTER:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(STREAM());
+            res.push_back(STREAM());
 			break;
         case Builtin::MAP:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(STREAM());
+            res.push_back(STREAM());
 			break;
         case Builtin::CONCATMAP:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(STREAM());
+            res.push_back(STREAM());
 			break;
         case Builtin::ORDERBY:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(STREAM());
+            res.push_back(STREAM());
 			break;
         case Builtin::DISTINCT:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(STREAM());
+            res.push_back(STREAM());
 			break;
         case Builtin::LIMIT:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(STREAM());
+            res.push_back(STREAM());
 			break;
         case Builtin::LENGTH:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(STREAM());
+            res.push_back(JSON());
 			break;
         case Builtin::UNION:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(STREAM());
+            res.push_back(STREAM());
+            res.push_back(STREAM());
 			break;
         case Builtin::NTH:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(STREAM());
+            res.push_back(JSON());
 			break;
         case Builtin::STREAMTOARRAY:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(STREAM());
+            res.push_back(JSON());
 			break;
         case Builtin::ARRAYTOSTREAM:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(JSON());
+            res.push_back(STREAM());
 			break;
         case Builtin::REDUCE:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(STREAM());
+            res.push_back(JSON());
 			break;
         case Builtin::GROUPEDMAPREDUCE:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(STREAM());
+            res.push_back(JSON());
 			break;
         case Builtin::JAVASCRIPT:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(JSON());
+            res.push_back(JSON());
 			break;
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
+            res.push_back(JSON());
+            res.push_back(STREAM());
 			break;
         case Builtin::MAPREDUCE:
-            res.push_back(type_t(primitive_t(primitive_t::STREAM)));
-            res.push_back(type_t(primitive_t(primitive_t::JSON)));
+            res.push_back(STREAM());
+            res.push_back(JSON());
 			break;
         default:
             crash("unreachable");
@@ -602,7 +602,7 @@ function_t get_type(const Builtin &b, variable_type_scope_t *) {
 }
 
 type_t get_type(const Reduction &r, variable_type_scope_t *scope) {
-    if (!(get_type(r.base(), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+    if (!(get_type(r.base(), scope) == JSON())) {
         return type_t(error_t());
     }
 
@@ -615,13 +615,13 @@ type_t get_type(const Reduction &r, variable_type_scope_t *scope) {
     }
 
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(r.var1().var(), type_t(primitive_t(primitive_t::JSON)));
-    scope->put_in_scope(r.var2().var(), type_t(primitive_t(primitive_t::JSON)));
+    scope->put_in_scope(r.var1().var(), JSON());
+    scope->put_in_scope(r.var2().var(), JSON());
 
-    if (!(get_type(r.body(), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+    if (!(get_type(r.body(), scope) == JSON())) {
         return type_t(error_t());
     } else {
-        return type_t(primitive_t(primitive_t::JSON));
+        return JSON();
     }
 }
 
@@ -631,12 +631,12 @@ type_t get_type(const Mapping &m, variable_type_scope_t *scope) {
     }
 
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(m.arg().var(), type_t(primitive_t(primitive_t::JSON)));
+    scope->put_in_scope(m.arg().var(), JSON());
 
-    if (!(get_type(m.body(), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+    if (!(get_type(m.body(), scope) == JSON())) {
         return type_t(error_t());
     } else {
-        return type_t(primitive_t(primitive_t::JSON));
+        return JSON();
     }
 }
 
@@ -646,12 +646,12 @@ type_t get_type(const Predicate &p, variable_type_scope_t *scope) {
     }
 
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(p.arg().var(), type_t(primitive_t(primitive_t::JSON)));
+    scope->put_in_scope(p.arg().var(), JSON());
 
-    if (!(get_type(p.body(), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+    if (!(get_type(p.body(), scope) == JSON())) {
         return type_t(error_t());
     } else {
-        return type_t(primitive_t(primitive_t::JSON));
+        return JSON();
     }
 }
 
@@ -659,19 +659,19 @@ type_t get_type(const View &v, variable_type_scope_t *scope) {
     switch(v.type()) {
         case View::TABLE:
             //no way for this to be incorrect
-            return type_t(primitive_t(primitive_t::VIEW));
+            return VIEW();
             break;
         case View::FILTERVIEW:
-            if (get_type(v.filter_view().view(), scope) == type_t(primitive_t(primitive_t::VIEW)) &&
-                get_type(v.filter_view().predicate(), scope) == type_t(primitive_t(primitive_t::JSON))) {
-                return type_t(primitive_t(primitive_t::VIEW));
+            if (get_type(v.filter_view().view(), scope) == VIEW() &&
+                get_type(v.filter_view().predicate(), scope) == JSON()) {
+                return VIEW();
             }
             break;
         case View::RANGEVIEW:
-            if (get_type(v.range_view().view(), scope) == type_t(primitive_t(primitive_t::VIEW)) &&
-                get_type(v.range_view().lowerbound(), scope) == type_t(primitive_t(primitive_t::JSON)) &&
-                get_type(v.range_view().upperbound(), scope) == type_t(primitive_t(primitive_t::JSON))) {
-                return type_t(primitive_t(primitive_t::READ));
+            if (get_type(v.range_view().view(), scope) == VIEW() &&
+                get_type(v.range_view().lowerbound(), scope) == JSON() &&
+                get_type(v.range_view().upperbound(), scope) == JSON()) {
+                return READ();
             }
             break;
         default:
@@ -682,9 +682,9 @@ type_t get_type(const View &v, variable_type_scope_t *scope) {
 
 type_t get_type(const ReadQuery &r, variable_type_scope_t *scope) {
     type_t res = get_type(r.term(), scope);
-    if (res == type_t(primitive_t(primitive_t::JSON)) ||
-        res == type_t(primitive_t(primitive_t::STREAM))) {
-        return type_t(primitive_t(primitive_t::READ));
+    if (res == JSON() ||
+        res == STREAM()) {
+        return READ();
     } else {
         return error_t("ReadQueries must produce either JSON or a STREAM.");
     }
@@ -693,33 +693,33 @@ type_t get_type(const ReadQuery &r, variable_type_scope_t *scope) {
 type_t get_type(const WriteQuery &w, variable_type_scope_t *scope) {
     switch (w.type()) {
         case WriteQuery::UPDATE:
-            if (get_type(w.update().view(), scope) == type_t(primitive_t(primitive_t::VIEW)) &&
-                get_type(w.update().mapping(), scope) == type_t(primitive_t(primitive_t::JSON))) {
-                return type_t(primitive_t(primitive_t::WRITE));
+            if (get_type(w.update().view(), scope) == VIEW() &&
+                get_type(w.update().mapping(), scope) == JSON()) {
+                return WRITE();
             }
             break;
         case WriteQuery::DELETE:
-            if (get_type(w.update().view(), scope) == type_t(primitive_t(primitive_t::VIEW))) {
-                return type_t(primitive_t(primitive_t::WRITE));
+            if (get_type(w.update().view(), scope) == VIEW()) {
+                return WRITE();
             }
             break;
         case WriteQuery::MUTATE:
-            if (get_type(w.mutate().view(), scope) == type_t(primitive_t(primitive_t::VIEW)) &&
-                get_type(w.mutate().mapping(), scope) == type_t(primitive_t(primitive_t::JSON))) {
-                return type_t(primitive_t(primitive_t::WRITE));
+            if (get_type(w.mutate().view(), scope) == VIEW() &&
+                get_type(w.mutate().mapping(), scope) == JSON()) {
+                return WRITE();
             }
             break;
         case WriteQuery::INSERT:
             for (int i = 0; i < w.insert().terms_size(); ++i) {
-                if (!(get_type(w.insert().terms(i), scope) == type_t(primitive_t(primitive_t::JSON)))) {
+                if (!(get_type(w.insert().terms(i), scope) == JSON())) {
                     return type_t(error_t("Trying to insert a non JSON term"));
                 }
             }
-            return type_t(primitive_t(primitive_t::WRITE));
+            return WRITE();
             break;
         case WriteQuery::INSERTSTREAM:
-            if (!(get_type(w.insert_stream().stream(), scope) == type_t(primitive_t(primitive_t::STREAM)))) {
-                return type_t(primitive_t(primitive_t::WRITE));
+            if (!(get_type(w.insert_stream().stream(), scope) == STREAM())) {
+                return WRITE();
             }
             break;
         case WriteQuery::FOREACH:
@@ -735,7 +735,7 @@ type_t get_type(const WriteQuery &w, variable_type_scope_t *scope) {
                         return type_t(error_t("Queries passed to a foreach must all be write queries\n"));
                     }
                 }
-                return type_t(primitive_t(primitive_t::WRITE));
+                return WRITE();
             }
             break;
         case WriteQuery::POINTUPDATE:
@@ -743,20 +743,20 @@ type_t get_type(const WriteQuery &w, variable_type_scope_t *scope) {
                 !(get_type(w.point_update().mapping(), scope) == JSON())) {
                 return type_t(error_t("Key and mapping must both be of type JSON\n"));
             }
-            return type_t(primitive_t(primitive_t::WRITE));
+            return WRITE();
             break;
         case WriteQuery::POINTDELETE:
             if (!(get_type(w.point_delete().key(), scope) == JSON())) {
                 return type_t(error_t("Key must be of type JSON\n"));
             }
-            return type_t(primitive_t(primitive_t::WRITE));
+            return WRITE();
             break;
         case WriteQuery::POINTMUTATE:
             if (!(get_type(w.point_mutate().key(), scope) == JSON()) ||
                 !(get_type(w.point_mutate().mapping(), scope) == JSON())) {
                 return type_t(error_t("Key and mapping must both be of type JSON\n"));
             }
-            return type_t(primitive_t(primitive_t::WRITE));
+            return WRITE();
             break;
         default:
             break;
