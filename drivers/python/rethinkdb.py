@@ -114,6 +114,18 @@ class Insert(object):
 class Term(object):
     pass
 
+class _if(Term):
+    def __init__(self, test, true_branch, false_branch):
+        self.test = toTerm(test)
+        self.true_branch = toTerm(true_branch)
+        self.false_branch = toTerm(false_branch)
+
+    def write_ast(self, parent):
+        parent.type = p.Term.IF
+        self.test.write_ast(parent.if_.test)
+        self.true_branch.write_ast(parent.if_.true_branch)
+        self.false_branch.write_ast(parent.if_.false_branch)
+
 class Conjunction(Term):
     def __init__(self, predicates):
         if not predicates:
@@ -127,13 +139,9 @@ class Conjunction(Term):
             toTerm(self.predicates[0]).write_ast(parent)
             return
         # Otherwise, we need an if branch
-        parent.type = p.Term.IF
-        toTerm(self.predicates[0]).write_ast(parent.if_.test)
-        # Then recurse
-        remaining_predicates = Conjunction(self.predicates[1:])
-        remaining_predicates.write_ast(parent.if_.true_branch)
-        # Else false
-        val(False).write_ast(parent.if_.false_branch)
+        _if(self.predicates[0],
+            Conjunction(self.predicates[1:]),
+            val(False)).write_ast(parent)
 
 def _and(*predicates):
     return Conjunction(list(predicates))
