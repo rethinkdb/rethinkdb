@@ -16,7 +16,7 @@ perfmon_t::perfmon_t(perfmon_collection_t *_parent, bool _insert)
             // it in order to avoid adding an incompletely constructed object into the perfmon collection which
             // could be queried concurrently. It is assumed here that the constructor of the deriving class
             // cannot block. If it can, it's a bug!
-            coro_t::spawn_later_ordered(boost::bind(&perfmon_collection_t::add, parent, this));
+            coro_t::spawn_sometime(boost::bind(&perfmon_collection_t::add, parent, this));
         } else {
             // There are no other coroutines and, we assume, no other threads that can access the parent perfmon
             // collection, so we add `this` into `parent` right now, even though the current object hasn't been
