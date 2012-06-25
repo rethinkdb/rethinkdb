@@ -6,7 +6,7 @@
 #include <set>
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/mailbox/mailbox.hpp"
-#include "perfmon/perfmon_types.hpp"
+#include "perfmon/types.hpp"
 
 class stat_manager_t {
 public:

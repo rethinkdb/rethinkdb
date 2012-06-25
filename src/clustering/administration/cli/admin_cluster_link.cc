@@ -23,7 +23,7 @@
 #include "memcached/protocol_json_adapter.hpp"
 #include "do_on_thread.hpp"
 #include "perfmon/perfmon.hpp"
-#include "perfmon/perfmon_archive.hpp"
+#include "perfmon/archive.hpp"
 
 std::string admin_cluster_link_t::peer_id_to_machine_name(const std::string& peer_id) {
     std::string result(peer_id);
