@@ -139,12 +139,32 @@ class Conjunction(Term):
             toTerm(self.predicates[0]).write_ast(parent)
             return
         # Otherwise, we need an if branch
-        _if(self.predicates[0],
+        _if(toTerm(self.predicates[0]),
             Conjunction(self.predicates[1:]),
             val(False)).write_ast(parent)
 
 def _and(*predicates):
     return Conjunction(list(predicates))
+
+class Disjunction(Term):
+    def __init__(self, predicates):
+        if not predicates:
+            raise ValueError
+        self.predicates = predicates
+
+    def write_ast(self, parent):
+        # If there is one predicate left, we just write that and
+        # return
+        if len(self.predicates) == 1:
+            toTerm(self.predicates[0]).write_ast(parent)
+            return
+        # Otherwise, we need an if branch
+        _if(toTerm(self.predicates[0]),
+            val(True),
+            Disjunction(self.predicates[1:])).write_ast(parent)
+
+def _or(*predicates):
+    return Disjunction(list(predicates))
 
 class _not(Term):
     def __init__(self, term):
@@ -311,6 +331,25 @@ class attr(Term):
         parent.call.builtin.type = p.Builtin.GETATTR
         parent.call.builtin.attr = self.name
         self.parent.write_ast(parent.call.args.add())
+
+class Let(Term):
+    def __init__(self, pairs, expr):
+        self.pairs = pairs
+        self.expr = expr
+    def write_ast(self, parent):
+        parent.type = p.Term.LET
+        for pair in self.pairs:
+            binding = parent.let.binds.add()
+            toTerm(pair[0]).write_ast(binding.var)
+            toTerm(pair[1]).write_ast(binding.term)
+        self.expr.write_ast(parent.let.expr)
+
+# Accepts an arbitrary number of pairs followed by a single
+# expression. Each pair is a variable followed by expression (binds
+# the latter to the former and evaluates the last expression in that
+# context).
+def let(*args):
+    return Let(args[:len(args) - 1], args[len(args) - 1])
 
 def toTerm(value):
     if isinstance(value, Term):
