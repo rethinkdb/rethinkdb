@@ -67,6 +67,11 @@ read_response_t rdb_protocol_t::read_t::unshard(std::vector<read_response_t> res
     return responses[0];
 }
 
+read_response_t rdb_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
+    return unshard(responses, cache);
+}
+
+
 /* write_t::get_region() implementation */
 
 struct w_get_region_visitor : public boost::static_visitor<key_range_t> {
@@ -100,6 +105,10 @@ write_t write_t::shard(key_range_t region) const THROWS_NOTHING {
 write_response_t write_t::unshard(std::vector<write_response_t> responses, temporary_cache_t *) const THROWS_NOTHING {
     rassert(responses.size() == 1);
     return responses[0];
+}
+
+write_response_t write_t::multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
+    return unshard(responses, cache);
 }
 
 typedef rdb_protocol_t::store_t store_t;

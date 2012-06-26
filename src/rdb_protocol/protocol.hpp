@@ -82,6 +82,7 @@ struct rdb_protocol_t {
         key_range_t get_region() const THROWS_NOTHING;
         read_t shard(const key_range_t &region) const THROWS_NOTHING;
         read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        read_response_t multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
@@ -130,6 +131,7 @@ struct rdb_protocol_t {
         key_range_t get_region() const THROWS_NOTHING;
         write_t shard(key_range_t region) const THROWS_NOTHING;
         write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        write_response_t multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : write(w.write) { }

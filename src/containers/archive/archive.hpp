@@ -6,6 +6,8 @@
 #include "errors.hpp"
 #include "containers/intrusive_list.hpp"
 
+class uuid_t;
+
 struct fake_archive_exc_t {
     const char *what() const throw() {
         return "Writing to a tcp stream failed.";
@@ -183,14 +185,8 @@ ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(double);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
 
-namespace boost { namespace uuids {
-
-struct uuid;
-
-} }  // namespace boost::uuids
-
-write_message_t &operator<<(write_message_t &msg, const boost::uuids::uuid &uuid);
-MUST_USE archive_result_t deserialize(read_stream_t *s, boost::uuids::uuid *uuid);
+write_message_t &operator<<(write_message_t &msg, const uuid_t &uuid);
+MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_t *uuid);
 
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_
