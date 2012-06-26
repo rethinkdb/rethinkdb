@@ -1,33 +1,40 @@
 #ifndef CONTAINERS_UUID_HPP_
 #define CONTAINERS_UUID_HPP_
 
+#include <string.h>
+#include <stdint.h>
+
 #include <string>
 
 #include "errors.hpp"
-#define BOOST_UUID_NO_TYPE_TRAITS
-#include <boost/uuid/uuid.hpp>
 
 class append_only_printf_buffer_t;
 
 class uuid_t {
 public:
     uuid_t() { }
-    explicit uuid_t(const boost::uuids::uuid& uuid) : uuid_(uuid) { }
 
-    const boost::uuids::uuid& uuid() const { return uuid_; }
-
-    bool is_nil() const { return uuid_.is_nil(); }
-
-    static size_t static_size() {
-        CT_ASSERT(sizeof(uuid_t) == sizeof(boost::uuids::uuid));
-        return sizeof(uuid_t);
+    bool is_nil() const {
+        for (size_t i = 0; i < kStaticSize; ++i) {
+            if (data_[i] != 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    uint8_t *data() { return uuid_.data; }
-    const uint8_t *data() const { return uuid_.data; }
+    uint8_t *data() { return data_; }
+    const uint8_t *data() const { return data_; }
+
+    static size_t static_size() {
+        CT_ASSERT(sizeof(uuid_t) == kStaticSize);
+        return kStaticSize;
+    }
 
 private:
-    boost::uuids::uuid uuid_;
+    static const size_t kStaticSize = 16;
+
+    uint8_t data_[kStaticSize];
 };
 
 
