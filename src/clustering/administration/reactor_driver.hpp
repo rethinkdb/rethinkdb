@@ -26,15 +26,33 @@ template <class> class multistore_ptr_t;
 template <class protocol_t>
 class stores_lifetimer_t {
 public:
-    stores_lifetimer_t() { }
-    ~stores_lifetimer_t() { }
+    stores_lifetimer_t() : num_stores_(-1) { }
+    ~stores_lifetimer_t() {
+        if (num_stores_ != -1) {
+            for (int i = 0; i < num_stores_; ++i) {
+                // TODO: This should use pmap.
+                on_thread_t th(stores_[i]->home_thread());
+
+                stores_[i].reset();
+            }
+        }
+    }
 
     boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> >& stores() {
         return stores_;
     }
 
+    void set_num_stores(int n) {
+        guarantee(n > 0);
+        guarantee(num_stores_ == -1);
+        num_stores_ = n;
+    }
+
+
 private:
     boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > stores_;
+    const int num_stores_;
+
     DISABLE_COPYING(stores_lifetimer_t);
 };
 

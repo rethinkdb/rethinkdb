@@ -1,6 +1,7 @@
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 
 #include "clustering/immediate_consistency/branch/multistore.hpp"
+#include "db_thread_info.hpp"
 
 template <class protocol_t>
 void
@@ -8,6 +9,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
                                                    namespace_id_t namespace_id,
                                                    stores_lifetimer_t<protocol_t> *stores_out,
                                                    boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
+
+    const int num_db_threads = get_num_db_threads();
 
     // TODO: If the server gets killed when starting up, we can
     // get a database in an invalid startup state.
@@ -37,7 +40,17 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
 
         // TODO: This should use pmap.
         for (int i = 0; i < num_stores; ++i) {
+
+            // TODO: A problem with this is that all the stores get
+            // created on low-number threads.  What if there are
+            // multiple namespaces?  We need a global
+            // thread-distributor that evenly distributes stores about
+            // threads.
+            on_thread_t th(i % num_db_threads);
+
             const std::string file_name = file_name_base + "_" + strprintf("%d", i);
+
+            // TODO: Can we pass perfmon_collection across threads like this?
             stores_out->stores()[i].reset(new typename protocol_t::store_t(file_name, false, perfmon_collection));
             store_views[i] = stores_out->stores()[i].get();
         }
@@ -56,6 +69,10 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
         // TODO: This should use pmap.
         boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
         for (int i = 0; i < num_stores; ++i) {
+
+            // TODO: See the todo about thread distribution above.  It is applicable here, too.
+            on_thread_t th(i % num_db_threads);
+
             const std::string file_name = file_name_base + "_" + strprintf("%d", i);
             stores_out->stores()[i].reset(new typename protocol_t::store_t(file_name, true, perfmon_collection));
             store_views[i] = stores_out->stores()[i].get();
