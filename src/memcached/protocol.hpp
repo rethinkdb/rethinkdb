@@ -69,7 +69,7 @@ public:
 
         hash_region_t<key_range_t> get_region() const THROWS_NOTHING;
         read_t shard(const hash_region_t<key_range_t> &region) const THROWS_NOTHING;
-        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        read_response_t unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
         read_response_t multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         read_t() { }
@@ -97,7 +97,7 @@ public:
         typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> query_t;
         hash_region_t<key_range_t> get_region() const THROWS_NOTHING;
         write_t shard(const hash_region_t<key_range_t> &region) const THROWS_NOTHING;
-        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        write_response_t unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
         write_response_t multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         write_t() { }
