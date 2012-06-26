@@ -34,7 +34,7 @@ with driver.Metacluster() as metacluster:
     files2 = driver.Files(metacluster, db_path = "db-second")
     process2 = driver.Process(cluster, files2, log_path = "serve-output-second", executable_path = executable_path)
     process2.wait_until_started_up()
-    http1.update_cluster_data()
+    http1.update_cluster_data(3)
     http1.move_server_to_datacenter(files2.machine_name, dc)
     http1.set_namespace_affinities(ns, {dc: 1})
     http1.check_no_issues()
