@@ -1,0 +1,130 @@
+<script id="dataexplorer_view-template" type="text/x-handlebars-template">
+    <h1 class="title status">Data Explorer</h1>
+</script>
+
+
+<script id="dataexplorer_input_query-template" type="text/x-handlebars-template">
+    <div class="input_query_container" >
+    <textarea class="input_query"></textarea>
+    <input type="button" value="clear" class="btn button_query clear_query" />
+    <input type="button" value="execute" class="btn button_query execute_query" />
+    </div>
+    <div class="loading_query">
+        <img src="/images/ajax-loader.gif" class="loading_query_img"/>
+    </div>
+</script>
+
+
+<script id="dataexplorer_default_view-template" type="text/x-handlebars-template">
+    <h2>Quick Start</h2>
+    <p>You can automatically build a query by clicking on a namespace or on a previous query. You can then modify them as you wish.</p>
+    <p>The data explorer is equipped with a suggestion feature, but if you are lost, you can find more details in the <a href="#help">help page</a>.</p>
+
+    <div class="namespaces_available_container">
+        <h3>Namespaces available</h3>
+
+        {{#if has_namespaces}}
+        <ul class="namaspaces_available_list">
+            {{#each namespaces}}
+            <li class="namespace_element"><a href="#" data-id="{{this.id}}">{{this.name}}</a></li>
+            {{/each}}
+        </ul>
+        {{else}}
+        There is no namespace available. <br />Start by <a href="#namespaces">creating one</a>.
+        {{/if}}
+   </div>
+    <div class="history_queries">
+        <h3>Previous query</h3>
+        
+        <div class="history_query_container">
+        {{#if has_old_queries}}
+        <ul class="history_queries_list">
+            {{#each old_queries}}
+            <li class="namespace_element"><a href="#" data-id="{{this.id}}">{{this.name}}</a></li>
+            {{/each}}
+        </ul>
+        {{else}}
+        <p>There are no previous queries</p>
+        {{/if}}
+    </div>
+    </div>
+</script>
+
+
+<script id="dataexplorer_query_list-template" type="text/x-handlebars-template">
+    <ul class="history_query_list">
+    </ul>
+</script>
+
+<script id="dataexplorer_query_element-template" type="text/x-handlebars-template">
+    <li class="query_element">{{query}}</a></li>
+</script>
+
+
+<script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
+    <div class="change_view_container">Go home - Json view - Tree view - Raw view</div>
+    <h2>Results</h2>
+    <p>For query {{query}}</p>
+    <div class="results">
+    </div>
+</script>
+
+
+<script id="dataexplorer_result_empty-template" type="text/x-handlebars-template">
+    <p>No result were returned for this query</p>
+</script>
+
+<script id="dataexplorer_result_json_tree_container-template" type="text/x-handlebars-template">
+    <div class="json_tree">{{print_safe tree}}</div>
+</script>
+
+<script id="dataexplorer_result_json_tree_span-template" type="text/x-handlebars-template">
+    <span class="{{classname}}" contentEditable="true">{{value}}</span>
+</script>
+
+
+<script id="dataexplorer_result_json_tree_url-template" type="text/xs-handlebars-template">
+    <a href="{{url}}"><span class="jt_q">"</span>{{url}}<span class="jt_q">"</span></a>
+</script>
+
+
+
+<script id="dataexplorer_result_json_tree_array-template" type="text/x-handlebars-template">
+    {{#if no_value}}
+    [ ]
+    {{else}}
+    <span class="jt_arrow"></span>
+    <span class="jt_b">[</span>
+    <span class="jt_points">...</span>
+    <ul class="jt_array jt_collapsible">
+        {{#each values}}
+        <li>
+            {{print_safe value}}
+        </li>
+        {{/each}}
+    </ul>
+    <span class="jt_b jt_close">]</span>
+    {{/if}}
+</script>
+
+<script id="dataexplorer_result_json_tree_object-template" type="text/x-handlebars-template">
+    {{#if no_value}}
+    { } 
+    {{else}}
+    <span class="jt_arrow"></span>
+    <span class="jt_b">{</span>
+    <span class="jt_points">...</span>
+    <ul class="jt_object jt_collapsible">
+        {{#each values}}
+        <li>
+                "{{this.key}}": {{print_safe this.value}}
+        </li>
+        {{/each}}
+    </ul>
+    <span class="jt_b jt_close">}</span>
+    {{/if}}
+</script>
+
+
+
+
