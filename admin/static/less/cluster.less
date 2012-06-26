@@ -1748,18 +1748,87 @@
     }
 }
 
-
+/* Data Explorer */
 .dataexplorer_container{
     width: 700px;
     overflow: auto;
+    .query_control{
+        .input_query_container{
+            padding: 0px;
+            margin: 10px 0px;
+            .input_query{
+                width: 500px;
+                height: 18px;
+                padding: 4px 10px;
+            }
+            .button_query{
+                width: 80px;
+            }
+        }
+        .loading_query{
+            text-align: center;
+            height: 16px;
+            padding: 0px;
+            margin: 0px;
+            .loading_query_img{
+                display: none;
+            }
+        }
+    }
+    .data_container{
+        .namespaces_available_container{
+            float: left;
+            width: 330px;
+            padding: 20px 10px 10px 10px;
+        }
+        .history_queries{
+            float: left;
+            width: 330px;
+            padding: 20px 10px 10px 10px;
+        }
 
-    .list_namespaces{
-        width: 200px;
-        position: float: left;
+        .change_view_container{
+            float: right;
+        }
     }
 
-    .dataexplorer_container{
-        width: 500px;
+    .results{
+        .json_tree{
+            font: 13px/18px monospace,mono,consolas;
+            .jt_prop{
+            }
+            .jt_null{
+                font-weight: bold;
+                color: red
+            }
+            .jt_bool{
+                font-weight: bold;
+                color: blue;
+            }
+            .jt_num{
+                font-weight: bold;
+                color: blue;
+            }
+            .jt_string{
+                color: green;
+            }
+            .jt_array{
+                list-style: none;
+                padding-left: 24px;
+                border-left: 1px dotted #bbb;
+            }
+            .jt_object{
+                list-style: none;
+                padding-left: 19px;
+                border-left: 1px dotted #bbb;
+            }
+            .jt_a{
+                width: 15px;
+                height: 15px;
+                float: left;
+                display: block;
+                background: url('/images/arrow_right.gif') no-repeat;
+            }
+        }
     }
-
 }
