@@ -106,7 +106,7 @@ inline type_t WRITE() {
 }
 
 inline type_t QUERY() {
-    return type_t(primitive_t(primitive_t::QUERY));
+    return type_t(primitive_t(primitive_t::WRITE));
 }
 
 typedef std::list<type_t> function_t;

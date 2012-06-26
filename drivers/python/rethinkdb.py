@@ -81,7 +81,7 @@ class db(object):
 class View(object):
     def filter(self, selector, row='row'):
         return Filter(self, selector, row)
-    
+
 class Table(View):
     def __init__(self, db, name):
         self.db = db
@@ -118,7 +118,7 @@ class Insert(object):
             term = insert.terms.add()
             term.type = p.Term.JSON
             term.jsonstring = json.dumps(entry)
-            
+
     def _finalize_query(self, root):
         write_query = _finalize_internal(root, p.WriteQuery)
         write_query.type = p.WriteQuery.INSERT
@@ -127,10 +127,7 @@ class Insert(object):
 
 class Filter(View):
     def __init__(self, parent_view, selector, row):
-        if type(selector) is dict:
-            self.selector = self._and_eq(selector)
-        else:
-            self.selector = toTerm(selector)
+        self.selector = toTerm(selector)
         self.row = row # don't do to term so we can compare in self.filter without overriding bs
         self.parent_view = parent_view
 
@@ -140,27 +137,19 @@ class Filter(View):
             return Filter(self.parent_view, _and(self.selector, selector), row)
         else:
             return Filter(self, selector, row)
-        
+
     def write_ast(self, parent):
         parent.type = p.View.FILTERVIEW
         self.parent_view.write_ast(parent.filter_view.view)
-        toTerm(self.row).write_ast(parent.filter_view.predicate.arg)
+        parent.filter_view.predicate.arg = self.row
         self.selector.write_ast(parent.filter_view.predicate.body)
-    
+
     def _finalize_query(self, root):
         term = _finalize_internal(root, p.Term)
         term.type = p.Term.VIEWASSTREAM
         self.write_ast(term.view_as_stream)
         return term
-    
-    def _and_eq(self, _hash):
-        terms = []
-        for key in _hash.iterkeys():
-            val = _hash[key]
-            terms.append(eq(key, val))
-        return Conjunction(terms)
-        
-    
+
 class Term(object):
     def _finalize_query(self, root):
         read_query = _finalize_internal(root, p.ReadQuery)
@@ -277,17 +266,25 @@ class Comparison(Term):
              Comparison(self.terms[1:], self.cmp_type)).write_ast(parent)
 
 def eq(*terms):
-    return Comparison(list(terms), p.EQ)
+    return Comparison(list(terms), p.Builtin.EQ)
 def neq(*terms):
-    return Comparison(list(terms), p.NE)
+    return Comparison(list(terms), p.Builtin.NE)
 def lt(*terms):
-    return Comparison(list(terms), p.LT)
+    return Comparison(list(terms), p.Builtin.LT)
 def lte(*terms):
-    return Comparison(list(terms), p.LE)
+    return Comparison(list(terms), p.Builtin.LE)
 def gt(*terms):
-    return Comparison(list(terms), p.GT)
+    return Comparison(list(terms), p.Builtin.GT)
 def gte(*terms):
-    return Comparison(list(terms), p.GE)
+    return Comparison(list(terms), p.Builtin.GE)
+
+def and_eq(_hash):
+    terms = []
+    for key in _hash.iterkeys():
+        val = _hash[key]
+        terms.append(eq(key, val))
+    return Conjunction(terms)
+
 
 class Arithmetic(Term):
     def __init__(self, terms, op_type):
@@ -352,7 +349,7 @@ class var(Term):
 
     def attr(self, name):
         return attr(name, self)
-        
+
     def write_ast(self, parent):
         parent.type = p.Term.VAR
         parent.var = self.name
@@ -421,4 +418,4 @@ def parseStringTerm(value):
         return var(terms[0]).attr('.'.join(terms[1:]))
     else:
         return var(terms[0])
-    
+

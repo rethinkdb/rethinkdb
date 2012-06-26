@@ -4,7 +4,7 @@ message TableRef {
 };
 
 message VarTermTuple {
-    required Term var = 1;
+    required string var = 1;
     required Term term = 2;
 };
 
@@ -120,6 +120,15 @@ message Builtin {
         MAPREDUCE = 32;
     };
 
+    enum Comparison {
+        EQ = 1;
+        NE = 2;
+        LT = 3;
+        LE = 4;
+        GT = 5;
+        GE = 6;
+    };
+
     required BuiltinType type = 1;
 
     optional string attr = 2; //used if type is GETATTR of HASATTR
@@ -186,29 +195,20 @@ message Builtin {
     optional MapReduce map_reduce = 13;
 };
 
-enum Comparison {
-    EQ = 1;
-    NE = 2;
-    LT = 3;
-    LE = 4;
-    GT = 5;
-    GE = 6;
-}
-
 message Reduction {
     required Term base = 1;
-    required Term var1 = 2;
-    required Term var2 = 3;
+    required string var1 = 2;
+    required string var2 = 3;
     required Term body = 4;
 };
 
 message Mapping {
-    required Term arg = 1;
+    required string arg = 1;
     required Term body = 2;
 };
 
 message Predicate {
-    required Term arg = 1;
+    required string arg = 1;
     required Term body = 2;
 };
 
@@ -304,7 +304,7 @@ message WriteQuery {
 
     message ForEach {
         required Term stream = 1;
-        required Term var = 2;
+        required string var = 2;
         repeated WriteQuery queries = 3;
     };
 

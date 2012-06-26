@@ -188,20 +188,16 @@ bool is_well_defined(const Builtin &b) {
 
 bool is_well_defined(const Reduction &r) {
     CHECK_WELL_DEFINED(r.base())
-    CHECK_WELL_DEFINED(r.var1())
-    CHECK_WELL_DEFINED(r.var2())
     CHECK_WELL_DEFINED(r.body())
     return true;
 }
 
 bool is_well_defined(const Mapping &m) {
-    CHECK_WELL_DEFINED(m.arg());
     CHECK_WELL_DEFINED(m.body());
     return true;
 }
 
 bool is_well_defined(const Predicate &p) {
-    CHECK_WELL_DEFINED(p.arg());
     CHECK_WELL_DEFINED(p.body());
     return true;
 }
@@ -290,7 +286,6 @@ bool is_well_defined(const WriteQuery &w) {
             return false;
         } else {
             CHECK_WELL_DEFINED(w.for_each().stream());
-            CHECK_WELL_DEFINED(w.for_each().var());
             for (int i = 0; i < w.for_each().queries_size(); ++i) {
                 CHECK_WELL_DEFINED(w.for_each().queries(i));
             }
@@ -355,7 +350,7 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
             {
                 scope->push(); //create a new scope
                 for (int i = 0; i < t.let().binds_size(); ++i) {
-                    scope->put_in_scope(t.let().binds(i).var().var(), get_type(t.let().binds(i).term(), scope));
+                    scope->put_in_scope(t.let().binds(i).var(), get_type(t.let().binds(i).term(), scope));
                 }
                 type_t res = get_type(t.let().expr(), scope);
                 scope->pop();
@@ -400,7 +395,7 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
             {
                 type_t try_type = get_type(t.try_().try_term(), scope);
                 scope->push();
-                scope->put_in_scope(t.try_().var_and_catch_term().var().var(), primitive_t(primitive_t::ERROR));
+                scope->put_in_scope(t.try_().var_and_catch_term().var(), primitive_t(primitive_t::ERROR));
                 type_t catch_type = get_type(t.try_().var_and_catch_term().term(), scope);
                 scope->pop();
                 if (!(try_type == catch_type)) {
@@ -435,7 +430,11 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
             return primitive_t(primitive_t::JSON);
             break;
         case Term::VIEWASSTREAM:
-            return primitive_t(primitive_t::STREAM);
+            if (get_type(t.view_as_stream(), scope) == VIEW()) {
+                return primitive_t(primitive_t::STREAM);
+            } else {
+                return type_t(error_t());
+            }
             break;
         case Term::GETBYKEY:
             if (get_type(t.get_by_key().key(), scope) == JSON()) {
@@ -608,17 +607,9 @@ type_t get_type(const Reduction &r, variable_type_scope_t *scope) {
         return type_t(error_t());
     }
 
-    if (r.var1().type() != Term::VAR) {
-        return type_t(error_t());
-    }
-
-    if (r.var2().type() != Term::VAR) {
-        return type_t(error_t());
-    }
-
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(r.var1().var(), JSON());
-    scope->put_in_scope(r.var2().var(), JSON());
+    scope->put_in_scope(r.var1(), JSON());
+    scope->put_in_scope(r.var2(), JSON());
 
     if (!(get_type(r.body(), scope) == JSON())) {
         return type_t(error_t());
@@ -628,12 +619,8 @@ type_t get_type(const Reduction &r, variable_type_scope_t *scope) {
 }
 
 type_t get_type(const Mapping &m, variable_type_scope_t *scope) {
-    if (m.arg().type() != Term::VAR) {
-        return type_t(error_t());
-    }
-
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(m.arg().var(), JSON());
+    scope->put_in_scope(m.arg(), JSON());
 
     if (!(get_type(m.body(), scope) == JSON())) {
         return type_t(error_t());
@@ -643,12 +630,8 @@ type_t get_type(const Mapping &m, variable_type_scope_t *scope) {
 }
 
 type_t get_type(const Predicate &p, variable_type_scope_t *scope) {
-    if (p.arg().type() != Term::VAR) {
-        return type_t(error_t());
-    }
-
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(p.arg().var(), JSON());
+    scope->put_in_scope(p.arg(), JSON());
 
     if (!(get_type(p.body(), scope) == JSON())) {
         return type_t(error_t());
@@ -731,7 +714,7 @@ type_t get_type(const WriteQuery &w, variable_type_scope_t *scope) {
                 }
 
                 new_scope_t scope_maker(scope);
-                scope->put_in_scope(w.for_each().var().var(), JSON());
+                scope->put_in_scope(w.for_each().var(), JSON());
                 for (int i = 0; i < w.for_each().queries_size(); ++i) {
                     if (!(get_type(w.for_each().queries(i), scope) == WRITE())) {
                         return type_t(error_t("Queries passed to a foreach must all be write queries\n"));
