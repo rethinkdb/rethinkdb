@@ -34,11 +34,17 @@ void exec_worker(int sockfd) {
     // Receive and run jobs until we get an error, or a job tells us to shut down.
     job_result_t result;
     do {
+        fprintf(stderr, "WORKER accepting\n");
         accept_job(&result, &sock, &sock, &sock);
+        fprintf(stderr, "WORKER result: %s\n",
+                result.type == JOB_SUCCESS ? "success" :
+                result.type == JOB_INITIAL_READ_FAILURE ? "initial read failure" :
+                "other");
         // TODO (rntz): logging, error-detection etc.
     } while (result.type != JOB_SHUTDOWN && sock.is_read_open() && sock.is_write_open());
 
     // TODO (rntz): useful return codes.
+    fprintf(stderr, "WORKER dying!\n");
     exit(0);
 }
 

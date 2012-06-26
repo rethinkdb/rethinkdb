@@ -1,10 +1,17 @@
 #include "jsproc/supervisor.hpp"
 
+#include <cstdio>
 #include <cstring>
-#include <sys/types.h>
+#include <deque>
+#include <fcntl.h>
+#include <map>
+#include <signal.h>
+#include <sys/select.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include "arch/runtime/event_queue.hpp"
 #include "logger.hpp"
 #include "jsproc/worker.hpp"
 
@@ -51,15 +58,9 @@ int supervisor_t::spawn(supervisor_t *proc) {
         return -1;
     }
 
-
     if (pid) {
         // We're the parent.
-
-        // TODO (rntz): what should we do if close() errors here? if we just
-        // die, we'll leave a very confused forked-off rethinkdb engine process
-        // lying around.
-        close(fds[1]);
-
+        guarantee_err(0 == close(fds[1]), "could not close fd");
         exec_supervisor(pid, fds[0]);
         unreachable();
     }
@@ -73,18 +74,25 @@ int supervisor_t::spawn(supervisor_t *proc) {
 
 
 // -------------------- supervisor process --------------------
-class supervisor_proc_t :
-        private linux_queue_parent_t, private linux_event_callback_t
-{
-    // The PID and unix socket for the rethinkdb engine child process.
-    pid_t engine_pid_;
-    fd_t engine_fd_;
 
-    // Queue used to multiplex events.
-    linux_event_queue_t queue_;
+// TODO (rntz): some way of handling engine process shutdown.
 
+// Maximum number of open requests for fds that the supervisor will accept.
+#define MAX_FD_REQUESTS         1
+
+// The supervisor will attempt to ensure that there are always at least this
+// many idle javascript processes.
+#define MIN_IDLE_JS_PROCS       1
+
+// The supervisor will attempt to ensure that there are always at least this
+// many total javascript processes. This is therefore the size of the initial
+// worker pool. Must be at least MIN_IDLE_JS_PROCS.
+#define MIN_JS_PROCS            8
+
+class supervisor_proc_t {
   public:
     supervisor_proc_t(pid_t child, int sockfd);
+    ~supervisor_proc_t();
 
     // Used for spawning new workers. See exec_supervisor(), spawn().
     struct exec_worker_exc_t {
@@ -92,21 +100,43 @@ class supervisor_proc_t :
         int fd;
     };
 
-    struct worker_t { pid_t pid; fd_t fd; };
+    struct child_t { pid_t pid; fd_t fd; };
 
     // If this returns, it means we are a forked worker process. The returned
     // int is the fd of our control socket.
+    int exec() THROWS_ONLY(exec_worker_exc_t);
+
+    // Returns exit code of supervisor process (hence of original rethinkdb
+    // process).
     int run() THROWS_ONLY(exec_worker_exc_t);
+    int event_loop() THROWS_ONLY(exec_worker_exc_t);
 
-    // linux_queue_parent_t methods
-    virtual void pump();
-    virtual bool should_shut_down();
+    // Various helpers for event_loop().
+    void wait_for_events();
+    void init_fdsets(int *nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds);
+    void get_new_idle_procs();
+    void handle_requests();
+    void enforce_bounds();
 
-    // linux_event_callback_t methods
-    virtual void on_event(int events);
+    // Called by signal handler when a child of ours dies.
+    void on_child_death(siginfo_t *info);
 
-    // Returns true on success, false on failure.
-    bool spawn(worker_t *worker) THROWS_ONLY(exec_worker_exc_t);
+    // Returns false on failure.
+    bool create_worker(child_t *child) THROWS_ONLY(exec_worker_exc_t);
+    void fork_workers(int num);
+
+  private:
+    // The rethinkdb engine child process.
+    child_t engine_;
+
+    // Worker processes.
+    typedef std::vector<child_t> workers_t;
+    workers_t idle_workers_, busy_workers_;
+
+    // Unfulfilled requests from the engine.
+    std::deque<fd_t> engine_requests_;
+
+    static void close_workers(workers_t *workers);
 };
 
 void supervisor_t::exec_supervisor(pid_t child, int sockfd) THROWS_NOTHING {
@@ -120,30 +150,160 @@ void supervisor_t::exec_supervisor(pid_t child, int sockfd) THROWS_NOTHING {
     unreachable();
 }
 
-supervisor_proc_t::supervisor_proc_t(pid_t child, int sockfd) :
-    engine_pid_(child), engine_fd_(sockfd),
-    queue_(this)
-{}
+supervisor_proc_t::supervisor_proc_t(pid_t child, int sockfd) {
+    engine_.pid = child;
+    engine_.fd = sockfd;
+    guarantee(0 == fcntl(engine_.fd, F_SETFL, O_NONBLOCK),
+              "could not make socket non-blocking");
+}
+
+supervisor_proc_t::~supervisor_proc_t() {
+    // Destroy all our workers, to close their fds.
+    guarantee_err(0 == close(engine_.fd), "could not close fd");
+    close_workers(&idle_workers_);
+    close_workers(&busy_workers_);
+}
+
+void supervisor_proc_t::close_workers(workers_t *workers) {
+    for (workers_t::iterator it = workers->begin(); it != workers->end(); ++it) {
+        guarantee_err(0 == close(it->fd), "could not close fd");
+    }
+}
+
+int supervisor_proc_t::exec() THROWS_ONLY(exec_worker_exc_t) {
+    exit(run());
+}
 
 int supervisor_proc_t::run() THROWS_ONLY(exec_worker_exc_t) {
-    // TODO (rntz): set up signal handlers.
+    // We accept all signals except SIGCHLD. We accept SIGCHLD only in certain
+    // places, to avoid concurrency problems.
+    sigset_t childmask;
+    guarantee_err(0 == sigemptyset(&childmask), "Could not create empty signal set");
+    guarantee_err(0 == sigaddset(&childmask, SIGCHLD), "Could not add SIGCHLD to signal set");
+    guarantee(0 == sigprocmask(SIG_SETMASK, &childmask, NULL), "Could not set signal mask");
 
-    // TODO (rntz): set up event handlers on queue_
-    queue_.watch_resource(engine_fd_, poll_event_in, this);
+    // Set up signal handler for SIGCHLD, using RAII to ensure that it gets
+    // unset when this function exits.
+    static supervisor_proc_t *supervisor_proc = this;
 
-    // Run event loop.
-    queue_.run();
+    struct sa_setter_t {
+        static void signal_handler(int signo, siginfo_t *info, UNUSED void *ucontext) {
+            guarantee(signo == SIGCHLD);
+            guarantee(supervisor_proc);
+            supervisor_proc->on_child_death(info);
+        }
+
+        sa_setter_t() {
+            struct sigaction sa;
+            guarantee(0 == sigemptyset(&sa.sa_mask), "Could not create empty signal set");
+            sa.sa_flags = SA_SIGINFO;
+            sa.sa_sigaction = signal_handler;
+            guarantee_err(0 == sigaction(SIGCHLD, &sa, NULL), "Could not set signal handler");
+        }
+
+        ~sa_setter_t() {
+            struct sigaction sa;
+            sa.sa_handler = SIG_DFL;
+            guarantee(0 == sigemptyset(&sa.sa_mask), "Could not create empty signal set");
+            sa.sa_flags = 0;
+            guarantee_err(0 == sigaction(SIGCHLD, &sa, NULL), "Could not set signal handler");
+        }
+    } sa_setter;
+
+    // TODO (rntz): make SIGTERM, SIGINT handlers that Do The Right Thing.
+    // perhaps this means forwarding to the rethinkdb engine?
+    // talk to someone about this
+
+    // Fork off initial worker pool.
+    guarantee(MIN_IDLE_JS_PROCS <= MIN_JS_PROCS); // sanity
+    fork_workers(MIN_JS_PROCS);
+
+    // TODO (rntz) Main event loop
 
     // TODO (rntz): determine return code properly!
     // NB. This will be the return code of the original rethinkdb invocation!
-    exit(-1);
+    return -1;
 }
 
-bool supervisor_proc_t::spawn(worker_t *proc) THROWS_ONLY(exec_worker_exc_t) {
+int supervisor_proc_t::event_loop() THROWS_ONLY(exec_worker_exc_t) {
+    for (;;) {
+        wait_for_events();
+
+        // Check whether any busy js processes have sent us a byte, indicating
+        // they have become ready.
+        get_new_idle_procs();
+
+        // Read requests from the engine, and unload requests (from queue or
+        // engine) onto idle procs.
+        handle_requests();
+
+        // Spawn new processes as appropriate to ensure our minimum requested
+        // idle/total processes, etcetera.
+        enforce_bounds();
+    }
+
+    unreachable();              // FIXME
+}
+
+void supervisor_proc_t::wait_for_events() {
+    // Set up fd set.
+    int nfds;
+    fd_set readfds, writefds, exceptfds;
+    init_fdsets(&nfds, &readfds, &writefds, &exceptfds);
+
+    int res = select(nfds, &readfds, &writefds, &exceptfds, NULL);
+    if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
+        // Not a problem; just loop round again and we'll handle it.
+        res = 0;
+    }
+
+    guarantee_err(res != -1, "Waiting for select() failed");
+
+    // Allow signals to get at us.
+    sigset_t emptymask, oldmask;
+    guarantee_err(0 == sigemptyset(&emptymask), "Could not create empty signal set");
+    guarantee_err(0 == sigprocmask(SIG_SETMASK, &emptymask, &oldmask), "Could not unblock signals");
+    guarantee_err(0 == sigprocmask(SIG_SETMASK, &oldmask, NULL), "Could not block signals");
+}
+
+void supervisor_proc_t::init_fdsets(int *nfds, fd_set *readfds, fd_set *writefds, fd_set *except_fds) {
+    guarantee(0 && "unimplemented");
+    (void) nfds; (void) readfds; (void) writefds; (void) except_fds;
+}
+
+void supervisor_proc_t::get_new_idle_procs() {
+    guarantee(0 && "unimplemented");
+}
+
+void supervisor_proc_t::handle_requests() {
+    guarantee(0 && "unimplemented");
+}
+
+void supervisor_proc_t::enforce_bounds() {
+    guarantee(0 && "unimplemented");
+}
+
+// reason is the value of si_code
+void supervisor_proc_t::on_child_death(siginfo_t *info) {
+    guarantee(0 && "unimplemented");
+    (void) info;
+}
+
+void supervisor_proc_t::fork_workers(int num) {
+    guarantee(num > 0);
+    for (int i = 0; i < num; ++i) {
+        child_t worker;
+        if (!create_worker(&worker))
+            continue;
+        idle_workers_.push_back(worker);
+    }
+}
+
+bool supervisor_proc_t::create_worker(child_t *child) THROWS_ONLY(exec_worker_exc_t) {
     int fds[2];
     int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
     if (res) {
-        // FIXME: error message.
+        perror("could not make socketpair() for worker process");
         return false;
     }
 
@@ -151,7 +311,7 @@ bool supervisor_proc_t::spawn(worker_t *proc) THROWS_ONLY(exec_worker_exc_t) {
     if (pid == -1) {
         guarantee_err(0 == close(fds[0]), "could not close fd");
         guarantee_err(0 == close(fds[1]), "could not close fd");
-        // FIXME: error message
+        perror("could not fork() worker process");
         return false;
     }
 
@@ -165,26 +325,12 @@ bool supervisor_proc_t::spawn(worker_t *proc) THROWS_ONLY(exec_worker_exc_t) {
     // We're the parent
     guarantee(pid);
     guarantee_err(0 == close(fds[1]), "could not close fd");
+    guarantee_err(0 == fcntl(fds[0], F_SETFL, O_NONBLOCK),
+                  "could not make socket non-blocking");
 
-    proc->pid = pid;
-    proc->fd = fds[0];
+    child->pid = pid;
+    child->fd = fds[0];
     return true;
-}
-
-void supervisor_proc_t::pump() {
-    guarantee(0 && "unimplemented");
-}
-
-bool supervisor_proc_t::should_shut_down() {
-    guarantee(0 && "unimplemented");
-    return false;
-}
-
-// Called when engine_fd_ has events for us.
-void supervisor_proc_t::on_event(int events) {
-    // FIXME
-    guarantee(0 && "unimplemented");
-    (void) events;
 }
 
 } // namespace jsproc
