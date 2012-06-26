@@ -31,7 +31,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                     return http_res_t(400, "text/plain", "No namespace specified");
                 }
 
-                boost::uuids::uuid namespace_uuid;
+                uuid_t namespace_uuid;
                 try {
                     namespace_uuid = str_to_uuid(*it);
                 } catch (std::runtime_error) {
@@ -86,7 +86,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                     return http_res_t(400, "text/plain", "Namespace not specified");
                 }
 
-                boost::uuids::uuid namespace_uuid;
+                uuid_t namespace_uuid;
                 try {
                     namespace_uuid = str_to_uuid(*it);
                 } catch (std::runtime_error) {
