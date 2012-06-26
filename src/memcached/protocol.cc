@@ -147,17 +147,17 @@ public:
 };
 
 struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
-    std::vector<memcached_protocol_t::read_response_t> &bits;
+    const std::vector<memcached_protocol_t::read_response_t> &bits;
 
-    explicit read_unshard_visitor_t(std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
+    explicit read_unshard_visitor_t(const std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
     memcached_protocol_t::read_response_t operator()(UNUSED get_query_t get) {
         rassert(bits.size() == 1);
         return memcached_protocol_t::read_response_t(boost::get<get_result_t>(bits[0].result));
     }
     memcached_protocol_t::read_response_t operator()(rget_query_t rget) {
-        std::map<store_key_t, rget_result_t *> sorted_bits;
+        std::map<store_key_t, const rget_result_t *> sorted_bits;
         for (int i = 0; i < int(bits.size()); i++) {
-            rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
+            const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
             if (!bit->pairs.empty()) {
                 const store_key_t &key = bit->pairs.front().key;
                 rassert(sorted_bits.count(key) == 0);
@@ -169,11 +169,11 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
 #endif
         rget_result_t result;
         size_t cumulative_size = 0;
-        for (std::map<store_key_t, rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); it++) {
+        for (std::map<store_key_t, const rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); it++) {
             if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
                 break;
             }
-            for (std::vector<key_with_data_buffer_t>::iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); jt++) {
+            for (std::vector<key_with_data_buffer_t>::const_iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); jt++) {
                 if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
                     break;
                 }
@@ -204,11 +204,11 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
         distribution_result_t res;
 
         for (int i = 0, e = bits.size(); i < e; i++) {
-            distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
+            const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
             rassert(result, "Bad boost::get\n");
 
 #ifndef NDEBUG
-            for (std::map<store_key_t, int>::iterator it = result->key_counts.begin();
+            for (std::map<store_key_t, int>::const_iterator it = result->key_counts.begin();
                  it != result->key_counts.end();
                  ++it) {
                 rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'", int(it->first.size()), int(it->first.size()), it->first.contents());
@@ -222,7 +222,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
     }
 };
 
-memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(const std::vector<read_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     read_unshard_visitor_t v(responses);
     return boost::apply_visitor(v, query);
 }
@@ -345,7 +345,7 @@ memcached_protocol_t::write_t memcached_protocol_t::write_t::shard(DEBUG_ONLY_VA
 
 /* `memcached_protocol_t::write_response_t::unshard()` */
 
-memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(std::vector<memcached_protocol_t::write_response_t> responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(const std::vector<memcached_protocol_t::write_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
     rassert(responses.size() == 1);
     return responses[0];

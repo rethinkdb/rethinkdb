@@ -81,11 +81,11 @@ public:
 
         /* Recombines the responses to a group of reads created by
         `read_t::shard()`, that were sharded in the key-range direction. */
-        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        read_response_t unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         /* Recombines the responses to a group of reads, that were
            sharded in the hash-range direction. */
-        read_response_t multistore_unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        read_response_t multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         /* Other requirements: `read_t` must be serializable. `read_t` must act
         like a data type. */
@@ -118,7 +118,7 @@ public:
 
         /* Recombines the responses to a group of reads created by
         `write_t::shard()`. */
-        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        write_response_t unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         /* Recombines the responses to a group of writes, that were
            sharded in the hash-range direction. */
