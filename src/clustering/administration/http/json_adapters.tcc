@@ -182,13 +182,13 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(peer_id
 
 template <class ctx_t>
 cJSON *render_as_json(peer_id_t *target, const ctx_t &ctx) {
-    boost::uuids::uuid uuid = target->get_uuid();
+    uuid_t uuid = target->get_uuid();
     return render_as_json(&uuid, ctx);
 }
 
 template <class ctx_t>
 void apply_json_to(cJSON *change, peer_id_t *target, const ctx_t &ctx) {
-    boost::uuids::uuid uuid;
+    uuid_t uuid;
     apply_json_to(change, &uuid, ctx);
     *target = peer_id_t(uuid);
 }

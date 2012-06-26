@@ -10,7 +10,7 @@ class vector_clock_conflict_issue_t : public global_issue_t {
 public:
     vector_clock_conflict_issue_t(
             const std::string &_object_type,
-            const boost::uuids::uuid &_object_id,
+            const uuid_t &_object_id,
             const std::string &_field) :
         object_type(_object_type), object_id(_object_id), field(_field) { }
 
@@ -41,7 +41,7 @@ public:
     }
 
     std::string object_type;
-    boost::uuids::uuid object_id;
+    uuid_t object_id;
     std::string field;
 
 private:

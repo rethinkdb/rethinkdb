@@ -12,7 +12,7 @@
 
 
 struct order_bucket_t {
-    boost::uuids::uuid uuid_;
+    uuid_t uuid_;
 
     static order_bucket_t invalid() { return order_bucket_t(nil_uuid()); }
     static order_bucket_t create() { return order_bucket_t(generate_uuid()); }
@@ -21,7 +21,7 @@ struct order_bucket_t {
 private:
     RDB_MAKE_ME_SERIALIZABLE_1(uuid_);
 
-    explicit order_bucket_t(boost::uuids::uuid uuid) : uuid_(uuid) { }
+    explicit order_bucket_t(uuid_t uuid) : uuid_(uuid) { }
 };
 
 
