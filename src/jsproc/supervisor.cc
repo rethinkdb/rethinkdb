@@ -10,10 +10,12 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
-#include "logger.hpp"
+#include "arch/fd_send_recv.hpp"
 #include "jsproc/worker.hpp"
+#include "logger.hpp"
 
 namespace jsproc {
 
@@ -75,7 +77,15 @@ int supervisor_t::spawn(supervisor_t *proc) {
 
 // -------------------- supervisor process --------------------
 
+// TODO (rntz): a panic() method or similar. There are a lot of guarantees etc.
+// in here that would be better served by at least attempting to clean up after
+// ourselves rather than just abort()ing.
+
 // TODO (rntz): some way of handling engine process shutdown.
+
+// TODO (rntz): a way to kill off unneeded worker processes if we have too many.
+// Currently the number of JS procs we have grows monotonically until it hits
+// MAX_JS_PROCS.
 
 // Maximum number of open requests for fds that the supervisor will accept.
 #define MAX_FD_REQUESTS         1
@@ -88,6 +98,10 @@ int supervisor_t::spawn(supervisor_t *proc) {
 // many total javascript processes. This is therefore the size of the initial
 // worker pool. Must be at least MIN_IDLE_JS_PROCS.
 #define MIN_JS_PROCS            8
+
+// The supervisor will never spawn more than this many JS processes, period.
+// This takes priority over MIN_IDLE_JS_PROCS.
+#define MAX_JS_PROCS            20
 
 class supervisor_proc_t {
   public:
@@ -102,28 +116,9 @@ class supervisor_proc_t {
 
     struct child_t { pid_t pid; fd_t fd; };
 
-    // If this returns, it means we are a forked worker process. The returned
-    // int is the fd of our control socket.
-    int exec() THROWS_ONLY(exec_worker_exc_t);
-
     // Returns exit code of supervisor process (hence of original rethinkdb
     // process).
     int run() THROWS_ONLY(exec_worker_exc_t);
-    int event_loop() THROWS_ONLY(exec_worker_exc_t);
-
-    // Various helpers for event_loop().
-    void wait_for_events();
-    void init_fdsets(int *nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds);
-    void get_new_idle_procs();
-    void handle_requests();
-    void enforce_bounds();
-
-    // Called by signal handler when a child of ours dies.
-    void on_child_death(siginfo_t *info);
-
-    // Returns false on failure.
-    bool create_worker(child_t *child) THROWS_ONLY(exec_worker_exc_t);
-    void fork_workers(int num);
 
   private:
     // The rethinkdb engine child process.
@@ -134,17 +129,41 @@ class supervisor_proc_t {
     workers_t idle_workers_, busy_workers_;
 
     // Unfulfilled requests from the engine.
-    std::deque<fd_t> engine_requests_;
+    std::deque<fd_t> requests_;
+
+  private:
+    int event_loop() THROWS_ONLY(exec_worker_exc_t);
+
+    void wait_for_events();
+    void init_fdsets(int *nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds);
+    void get_new_idle_procs();
+    void handle_requests();
+    void enforce_bounds();
+
+    // Tries to send a request to an idle worker. Returns false on failure. `it`
+    // must point to an iterator into idle_workers_ (that is not
+    // idle_workers_.end()); it is updated appropriately after return.
+    bool send_request(workers_t::iterator *it, fd_t reqfd);
+
+    // Called by signal handler when a child of ours dies.
+    void on_sigchild(siginfo_t *info);
+
+    // Returns false on failure.
+    bool create_worker(child_t *child) THROWS_ONLY(exec_worker_exc_t);
+    void fork_workers(int num);
+    void kill_worker(child_t child);
+
+    void self_destruct();
 
     static void close_workers(workers_t *workers);
 };
 
 void supervisor_t::exec_supervisor(pid_t child, int sockfd) THROWS_NOTHING {
-    // TODO(rntz): save signal handlers?
+    // TODO(rntz): save signal mask/handlers?
     try {
-        supervisor_proc_t(child, sockfd).run();
+        exit(supervisor_proc_t(child, sockfd).run());
     } catch (supervisor_proc_t::exec_worker_exc_t e) {
-        // TODO(rntz): restore signal handlers?
+        // TODO(rntz): restore signal mask/handlers?
         exec_worker(e.fd);
     }
     unreachable();
@@ -170,10 +189,6 @@ void supervisor_proc_t::close_workers(workers_t *workers) {
     }
 }
 
-int supervisor_proc_t::exec() THROWS_ONLY(exec_worker_exc_t) {
-    exit(run());
-}
-
 int supervisor_proc_t::run() THROWS_ONLY(exec_worker_exc_t) {
     // We accept all signals except SIGCHLD. We accept SIGCHLD only in certain
     // places, to avoid concurrency problems.
@@ -190,13 +205,13 @@ int supervisor_proc_t::run() THROWS_ONLY(exec_worker_exc_t) {
         static void signal_handler(int signo, siginfo_t *info, UNUSED void *ucontext) {
             guarantee(signo == SIGCHLD);
             guarantee(supervisor_proc);
-            supervisor_proc->on_child_death(info);
+            supervisor_proc->on_sigchild(info);
         }
 
         sa_setter_t() {
             struct sigaction sa;
             guarantee(0 == sigemptyset(&sa.sa_mask), "Could not create empty signal set");
-            sa.sa_flags = SA_SIGINFO;
+            sa.sa_flags = SA_SIGINFO | SA_NOCLDSTOP;
             sa.sa_sigaction = signal_handler;
             guarantee_err(0 == sigaction(SIGCHLD, &sa, NULL), "Could not set signal handler");
         }
@@ -218,11 +233,10 @@ int supervisor_proc_t::run() THROWS_ONLY(exec_worker_exc_t) {
     guarantee(MIN_IDLE_JS_PROCS <= MIN_JS_PROCS); // sanity
     fork_workers(MIN_JS_PROCS);
 
-    // TODO (rntz) Main event loop
-
+    // Main event loop
     // TODO (rntz): determine return code properly!
     // NB. This will be the return code of the original rethinkdb invocation!
-    return -1;
+    return event_loop();
 }
 
 int supervisor_proc_t::event_loop() THROWS_ONLY(exec_worker_exc_t) {
@@ -266,31 +280,218 @@ void supervisor_proc_t::wait_for_events() {
     guarantee_err(0 == sigprocmask(SIG_SETMASK, &oldmask, NULL), "Could not block signals");
 }
 
-void supervisor_proc_t::init_fdsets(int *nfds, fd_set *readfds, fd_set *writefds, fd_set *except_fds) {
-    guarantee(0 && "unimplemented");
-    (void) nfds; (void) readfds; (void) writefds; (void) except_fds;
+static inline void addfd(int fd, fd_set *fdset, int *nfds) {
+    if (fd+1 > *nfds)
+        *nfds = fd+1;
+    FD_SET(fd, fdset);
+}
+
+void supervisor_proc_t::init_fdsets(int *nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds) {
+    FD_ZERO(readfds);
+    FD_ZERO(writefds);
+    FD_ZERO(exceptfds);
+
+    *nfds = 0;
+
+    // We always watch our busy processes for reading, in case they become idle,
+    // which they signal by sending us a single byte.
+    for (workers_t::iterator it = busy_workers_.begin(); it != busy_workers_.end(); ++it) {
+        addfd(it->fd, readfds, nfds);
+    }
+
+    // If we have room on the request queue, we watch the engine fd for read, so
+    // that it can send us requests.
+    if (requests_.size() < MAX_FD_REQUESTS) {
+        addfd(engine_.fd, readfds, nfds);
+    }
+
+    // If we have pending requests, we watch all idle processes for write.
+    if (!requests_.empty()) {
+        for (workers_t::iterator it = idle_workers_.begin(); it != idle_workers_.end(); ++it) {
+            addfd(it->fd, writefds, nfds);
+        }
+    }
 }
 
 void supervisor_proc_t::get_new_idle_procs() {
-    guarantee(0 && "unimplemented");
+    // For each busy process, check whether we can read from its fd.
+    workers_t::iterator it = busy_workers_.begin();
+    while (it != busy_workers_.end()) {
+        char c;
+        ssize_t res = read(it->fd, &c, 1);
+
+        if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
+            // Nothing to do; keep going.
+            ++it;
+            continue;
+        }
+
+        if (res == 0 || res == -1) {
+            // EOF or shut-down. Worker process is no longer active.
+            fprintf(stderr, "read from child %d failed (%s), killing it\n",
+                    it->pid, strerror(errno));
+            kill_worker(*it);
+            it = busy_workers_.erase(it);
+            continue;
+        }
+
+        // Add it to the idle worker list.
+        guarantee(res == 1);
+        idle_workers_.push_back(*it);
+        it = busy_workers_.erase(it);
+    }
 }
 
 void supervisor_proc_t::handle_requests() {
-    guarantee(0 && "unimplemented");
+    workers_t::iterator wi = idle_workers_.begin();
+
+    // Unload requests from the front of the queue.
+    std::deque<fd_t>::iterator fdi = requests_.begin();
+    while (fdi != requests_.end() && wi != idle_workers_.end()) {
+        if (send_request(&wi, *fdi)) {
+            // Success! Handle the next request.
+            fdi = requests_.erase(fdi);
+        }
+        // send_request updates `wi` and cleans up for us in case of failure
+    }
+
+    // Either we serviced all requests, or we ran out of idle workers which were
+    // ready to accept jobs.
+    guarantee(requests_.empty() || wi == idle_workers_.end());
+
+    // Read requests from the engine and either send them to an idle worker or
+    // put them in the queue, until the queue is full or there are no more
+    // requests.
+    while (requests_.size() < MAX_FD_REQUESTS) {
+        fd_t fd = 0;
+        fd_recv_result_t res = recv_fds(engine_.fd, 1, &fd);
+        if (res == FD_RECV_ERROR &&
+            (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
+            // The engine has no more requests, and that's fine by us.
+            break;
+        }
+
+        switch (res) {
+          case FD_RECV_OK:
+            // Try to find a willing worker.
+            guarantee(fd);
+            while (wi != idle_workers_.end()) {
+                if (send_request(&wi, fd)) {
+                    fd = 0;     // indicates we managed to fulfill the request
+                    break;
+                }
+            }
+            if (fd) {
+                // Couldn't find a willing worker; push on queue.
+                requests_.push_back(fd);
+            }
+            break;
+
+          case FD_RECV_ERROR:
+          case FD_RECV_EOF:
+          case FD_RECV_INVALID:
+            fprintf(stderr, "read from rethinkdb engine failed (%s), shutting down",
+                    res == FD_RECV_ERROR ? strerror(errno) :
+                    res == FD_RECV_EOF ? "EOF received" :
+                    "invalid request - PROBABLY A BUG, PLEASE REPORT");
+            self_destruct();
+
+          default: unreachable();
+        }
+    }
+}
+
+bool supervisor_proc_t::send_request(workers_t::iterator *it, fd_t fd) {
+    rassert(*it != idle_workers_.end());
+
+    if (!send_fds((*it)->fd, 1, &fd)) {
+        // Success! Move worker to busy worker list.
+        busy_workers_.push_back(**it);
+        *it = idle_workers_.erase(*it);
+        return true;
+    }
+
+    if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
+        // Worker isn't ready for us. Advance iterator to next candidate.
+        ++*it;
+    } else {
+        // Unknown error. Kill offending worker and update iterator.
+        fprintf(stderr, "write to child %d failed (%s), killing it\n",
+                (*it)->pid, strerror(errno));
+        kill_worker(**it);
+        *it = idle_workers_.erase(*it);
+    }
+    return false;
 }
 
 void supervisor_proc_t::enforce_bounds() {
-    guarantee(0 && "unimplemented");
+    // NB. we count outstanding requests against the number of idle processes we
+    // have for checking MIN_IDLE_JS_PROCS.
+    int total_procs = idle_workers_.size() + busy_workers_.size();
+    int idle_procs = idle_workers_.size() - requests_.size();
+    int i = std::min(MAX_JS_PROCS - total_procs,
+                     std::max(idle_procs - MIN_IDLE_JS_PROCS,
+                              total_procs - MIN_JS_PROCS));
+
+    if (i > 0)
+        fork_workers(i);
 }
 
-// reason is the value of si_code
-void supervisor_proc_t::on_child_death(siginfo_t *info) {
-    guarantee(0 && "unimplemented");
-    (void) info;
+void supervisor_proc_t::on_sigchild(siginfo_t *info) {
+    guarantee(info->si_signo == SIGCHLD);
+
+    switch (info->si_code) {
+      case CLD_EXITED: case CLD_KILLED: case CLD_DUMPED: break; // normal
+
+      case SI_USER: case SI_TKILL:
+        fprintf(stderr, "Received SIGCHLD from kill(2), tkill(2), "
+                "or tgkill(2); ignoring.\n");
+        return;
+
+      default:
+        // TODO (rntz): This should really be a panic, not a guarantee.
+        guarantee(0, "Received SIGCHLD for unknown reason");
+    }
+
+    pid_t pid = info->si_pid;
+
+    if (pid == engine_.pid) {
+        guarantee(0 && "unimplemented");
+
+    } else {
+        // Find the worker process that died.
+        child_t child;
+
+        for (workers_t::iterator it = busy_workers_.begin(); it != busy_workers_.end(); ++it)
+            if (pid == it->pid) {
+                child = *it;
+                busy_workers_.erase(it);
+                goto found;
+            }
+
+        for (workers_t::iterator it = idle_workers_.begin(); it != idle_workers_.end(); ++it)
+            if (pid == it->pid) {
+                child = *it;
+                idle_workers_.erase(it);
+                goto found;
+            }
+
+        // Didn't find the child. TODO (rntz): this should panic, not guarantee.
+        guarantee(0, "Got spurious SIGCHLD.");
+
+      found:
+        // wait() for it, to clean up zombies.
+        printf("Worker %d died with status %d, cleaning up...\n",
+               pid, info->si_status);
+        pid_t res = waitpid(pid, NULL, WNOHANG);
+        guarantee_err(res != -1, "could not waitpid() on dead child");
+        guarantee(res != 0, "SIGCHLD reported child dead, but it's alive?");
+        guarantee(pid == res);
+    }
 }
 
 void supervisor_proc_t::fork_workers(int num) {
-    guarantee(num > 0);
+    guarantee(num >= 0);
     for (int i = 0; i < num; ++i) {
         child_t worker;
         if (!create_worker(&worker))
@@ -331,6 +532,18 @@ bool supervisor_proc_t::create_worker(child_t *child) THROWS_ONLY(exec_worker_ex
     child->pid = pid;
     child->fd = fds[0];
     return true;
+}
+
+void supervisor_proc_t::kill_worker(child_t child) {
+    // TODO(rntz): Ideally we'd TERM processes, wait a bit, and then KILL them
+    // if they're still alive. But this requires bookkeeping infrastructure that
+    // we don't have at present.
+    guarantee_err(0 == kill(child.pid, SIGKILL), "could not kill worker process");
+    guarantee_err(0 == close(child.fd), "could not close fd");
+}
+
+void supervisor_proc_t::self_destruct() {
+    guarantee(0 && "unimplemented");
 }
 
 } // namespace jsproc
