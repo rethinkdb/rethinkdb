@@ -81,8 +81,6 @@ class db(object):
 class View(object):
     def filter(self, selector, row='row'):
         return Filter(self, selector, row)
-    def pluck(self, attrs, row='row'):
-        return Pluck(self, attrs, row)
     
 class Table(View):
     def __init__(self, db, name):
