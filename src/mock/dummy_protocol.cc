@@ -82,6 +82,11 @@ dummy_protocol_t::read_response_t dummy_protocol_t::read_t::unshard(std::vector<
     return combined;
 }
 
+dummy_protocol_t::read_response_t
+dummy_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& resps, UNUSED temporary_cache_t *cache) const {
+    return unshard(resps, cache);
+}
+
 dummy_protocol_t::region_t dummy_protocol_t::write_t::get_region() const {
     region_t region;
     for (std::map<std::string, std::string>::const_iterator it = values.begin();
@@ -119,6 +124,11 @@ dummy_protocol_t::write_response_t dummy_protocol_t::write_t::unshard(std::vecto
         }
     }
     return combined;
+}
+
+dummy_protocol_t::write_response_t
+dummy_protocol_t::write_t::multistore_unshard(const std::vector<write_response_t>& resps, UNUSED temporary_cache_t *cache) const {
+    return unshard(resps, cache);
 }
 
 bool region_is_superset(dummy_protocol_t::region_t a, dummy_protocol_t::region_t b) {

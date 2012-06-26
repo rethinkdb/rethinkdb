@@ -43,7 +43,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster
     res["rdb_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<rdb_protocol_t>, ctx_t>(&target->rdb_namespaces));
     res["machines"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machines_semilattice_metadata_t, ctx_t>(&target->machines));
     res["datacenters"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<datacenters_semilattice_metadata_t, ctx_t>(&target->datacenters));
-    res["me"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<boost::uuids::uuid, ctx_t>(ctx.us));
+    res["me"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<uuid_t, ctx_t>(ctx.us));
     return res;
 }
 

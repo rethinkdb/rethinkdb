@@ -147,9 +147,90 @@ public:
 };
 
 struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
-    std::vector<memcached_protocol_t::read_response_t> &bits;
+    const std::vector<memcached_protocol_t::read_response_t> &bits;
 
-    explicit read_unshard_visitor_t(std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
+    explicit read_unshard_visitor_t(const std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
+    memcached_protocol_t::read_response_t operator()(UNUSED get_query_t get) {
+        rassert(bits.size() == 1);
+        return memcached_protocol_t::read_response_t(boost::get<get_result_t>(bits[0].result));
+    }
+    memcached_protocol_t::read_response_t operator()(rget_query_t rget) {
+        std::map<store_key_t, const rget_result_t *> sorted_bits;
+        for (int i = 0; i < int(bits.size()); i++) {
+            const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
+            if (!bit->pairs.empty()) {
+                const store_key_t &key = bit->pairs.front().key;
+                rassert(sorted_bits.count(key) == 0);
+                sorted_bits.insert(std::make_pair(key, bit));
+            }
+        }
+#ifndef NDEBUG
+        store_key_t last;
+#endif
+        rget_result_t result;
+        size_t cumulative_size = 0;
+        for (std::map<store_key_t, const rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); it++) {
+            if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
+                break;
+            }
+            for (std::vector<key_with_data_buffer_t>::const_iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); jt++) {
+                if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
+                    break;
+                }
+                result.pairs.push_back(*jt);
+                cumulative_size += estimate_rget_result_pair_size(*jt);
+#ifndef NDEBUG
+                rassert(result.pairs.size() == 0 || jt->key > last);
+                last = jt->key;
+#endif
+            }
+        }
+        if (cumulative_size >= rget_max_chunk_size) {
+            result.truncated = true;
+        } else {
+            result.truncated = false;
+        }
+        return memcached_protocol_t::read_response_t(result);
+    }
+    memcached_protocol_t::read_response_t operator()(UNUSED distribution_get_query_t dget) {
+        rassert(bits.size() > 0);
+        rassert(boost::get<distribution_result_t>(&bits[0].result));
+        rassert(bits.size() == 1 || boost::get<distribution_result_t>(&bits[1].result));
+
+        // Asserts that we don't look like a hash-sharded thing.
+        rassert(!(bits.size() > 1
+                  && boost::get<distribution_result_t>(&bits[0].result)->key_counts.begin()->first == boost::get<distribution_result_t>(&bits[1].result)->key_counts.begin()->first));
+
+        distribution_result_t res;
+
+        for (int i = 0, e = bits.size(); i < e; i++) {
+            const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
+            rassert(result, "Bad boost::get\n");
+
+#ifndef NDEBUG
+            for (std::map<store_key_t, int>::const_iterator it = result->key_counts.begin();
+                 it != result->key_counts.end();
+                 ++it) {
+                rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'", int(it->first.size()), int(it->first.size()), it->first.contents());
+            }
+#endif
+            res.key_counts.insert(result->key_counts.begin(), result->key_counts.end());
+
+        }
+
+        return memcached_protocol_t::read_response_t(res);
+    }
+};
+
+memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(const std::vector<read_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+    read_unshard_visitor_t v(responses);
+    return boost::apply_visitor(v, query);
+}
+
+struct read_multistore_unshard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
+    const std::vector<memcached_protocol_t::read_response_t> &bits;
+
+    explicit read_multistore_unshard_visitor_t(const std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
     memcached_protocol_t::read_response_t operator()(UNUSED get_query_t get) {
         rassert(bits.size() == 1);
         return memcached_protocol_t::read_response_t(boost::get<get_result_t>(bits[0].result));
@@ -157,7 +238,7 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
     memcached_protocol_t::read_response_t operator()(rget_query_t rget) {
         std::vector<key_with_data_buffer_t> pairs;
         for (int i = 0; i < int(bits.size()); ++i) {
-            rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
+            const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
             pairs.insert(pairs.end(), bit->pairs.begin(), bit->pairs.end());
         }
 
@@ -182,126 +263,61 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
         result.pairs.swap(pairs);
 
         return memcached_protocol_t::read_response_t(result);
-
-
-        // This code below was the pre-hash-sharding rget unsharding
-        // code.  Now we go with something quite simpler, and dumber, above.  If
-        // we split the unsharding code into separate hash and key
-        // unsharding functions, we will want this code back.
-
-#if 0  // pre-hash-sharding code.
-        std::map<store_key_t, rget_result_t *> sorted_bits;
-        for (int i = 0; i < int(bits.size()); i++) {
-            rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
-            if (!bit->pairs.empty()) {
-                const store_key_t &key = bit->pairs.front().key;
-                rassert(sorted_bits.count(key) == 0);
-                sorted_bits.insert(std::make_pair(key, bit));
-            }
-        }
-#ifndef NDEBUG
-        store_key_t last;
-#endif
-        rget_result_t result;
-        size_t cumulative_size = 0;
-        for (std::map<store_key_t, rget_result_t *>::iterator it = sorted_bits.begin(); it != sorted_bits.end(); it++) {
-            if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
-                break;
-            }
-            for (std::vector<key_with_data_buffer_t>::iterator jt = it->second->pairs.begin(); jt != it->second->pairs.end(); jt++) {
-                if (cumulative_size >= rget_max_chunk_size || int(result.pairs.size()) > rget.maximum) {
-                    break;
-                }
-                result.pairs.push_back(*jt);
-                cumulative_size += estimate_rget_result_pair_size(*jt);
-#ifndef NDEBUG
-                rassert(result.pairs.size() == 0 || jt->key > last);
-                last = jt->key;
-#endif
-            }
-        }
-        if (cumulative_size >= rget_max_chunk_size) {
-            result.truncated = true;
-        } else {
-            result.truncated = false;
-        }
-        return memcached_protocol_t::read_response_t(result);
-#endif  // 0, pre-hash-sharding-code.
     }
     memcached_protocol_t::read_response_t operator()(UNUSED distribution_get_query_t dget) {
         rassert(bits.size() > 0);
         rassert(boost::get<distribution_result_t>(&bits[0].result));
         rassert(bits.size() == 1 || boost::get<distribution_result_t>(&bits[1].result));
 
-        // TODO: This condition is a bit of a hack to recognize distribution queries sharded by hash rather than key.
-        // Wait until you see how we do rget :(
-        if (bits.size() > 1
-            && boost::get<distribution_result_t>(&bits[0].result)->key_counts.begin()->first == boost::get<distribution_result_t>(&bits[1].result)->key_counts.begin()->first) {
-            distribution_result_t res;
-            int64_t total_num_keys = 0;
-            rassert(bits.size() > 0);
+        // These test properties of distribution queries sharded by hash rather than key.
+        rassert(bits.size() > 1);
+        rassert(boost::get<distribution_result_t>(&bits[0].result)->key_counts.begin()->first == boost::get<distribution_result_t>(&bits[1].result)->key_counts.begin()->first);
 
-            int64_t total_keys_in_res = 0;
-            for (int i = 0, e = bits.size(); i < e; ++i) {
-                distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
-                rassert(result, "Bad boost::get\n");
+        distribution_result_t res;
+        int64_t total_num_keys = 0;
+        rassert(bits.size() > 0);
 
-                int64_t tmp_total_keys = 0;
-                for (std::map<store_key_t, int>::const_iterator it = result->key_counts.begin();
-                     it != result->key_counts.end();
-                     ++it) {
-                    tmp_total_keys += it->second;
-                }
+        int64_t total_keys_in_res = 0;
+        for (int i = 0, e = bits.size(); i < e; ++i) {
+            const distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
+            rassert(result, "Bad boost::get\n");
 
-                total_num_keys += tmp_total_keys;
-
-                if (res.key_counts.size() < result->key_counts.size()) {
-                    res = *result;
-                    total_keys_in_res = tmp_total_keys;
-                }
-            }
-
-            if (total_keys_in_res == 0) {
-                return memcached_protocol_t::read_response_t(res);
-            }
-
-            double scale_factor = double(total_num_keys) / double(total_keys_in_res);
-
-            rassert(scale_factor >= 1.0);  // Directly provable from the code above.
-
-            for (std::map<store_key_t, int>::iterator it = res.key_counts.begin();
-                 it != res.key_counts.end();
+            int64_t tmp_total_keys = 0;
+            for (std::map<store_key_t, int>::const_iterator it = result->key_counts.begin();
+                 it != result->key_counts.end();
                  ++it) {
-                it->second *= scale_factor;
+                tmp_total_keys += it->second;
             }
 
-            return memcached_protocol_t::read_response_t(res);
-        } else {
+            total_num_keys += tmp_total_keys;
 
-            distribution_result_t res;
-
-            for (int i = 0, e = bits.size(); i < e; i++) {
-                distribution_result_t *result = boost::get<distribution_result_t>(&bits[i].result);
-                rassert(result, "Bad boost::get\n");
-
-#ifndef NDEBUG
-                for (std::map<store_key_t, int>::iterator it = result->key_counts.begin();
-                     it != result->key_counts.end();
-                     ++it) {
-                    rassert(!std_contains(res.key_counts, it->first), "repeated key '%*.*s'", int(it->first.size()), int(it->first.size()), it->first.contents());
-                }
-#endif
-                res.key_counts.insert(result->key_counts.begin(), result->key_counts.end());
-
+            if (res.key_counts.size() < result->key_counts.size()) {
+                res = *result;
+                total_keys_in_res = tmp_total_keys;
             }
+        }
 
+        if (total_keys_in_res == 0) {
             return memcached_protocol_t::read_response_t(res);
         }
+
+        double scale_factor = double(total_num_keys) / double(total_keys_in_res);
+
+        rassert(scale_factor >= 1.0);  // Directly provable from the code above.
+
+        for (std::map<store_key_t, int>::iterator it = res.key_counts.begin();
+             it != res.key_counts.end();
+             ++it) {
+            it->second *= scale_factor;
+        }
+
+        return memcached_protocol_t::read_response_t(res);
     }
 };
 
-memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
-    read_unshard_visitor_t v(responses);
+
+memcached_protocol_t::read_response_t memcached_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+    read_multistore_unshard_visitor_t v(responses);
     return boost::apply_visitor(v, query);
 }
 
@@ -329,11 +345,16 @@ memcached_protocol_t::write_t memcached_protocol_t::write_t::shard(DEBUG_ONLY_VA
 
 /* `memcached_protocol_t::write_response_t::unshard()` */
 
-memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(std::vector<memcached_protocol_t::write_response_t> responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(const std::vector<memcached_protocol_t::write_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
     rassert(responses.size() == 1);
     return responses[0];
 }
+
+memcached_protocol_t::write_response_t memcached_protocol_t::write_t::multistore_unshard(const std::vector<memcached_protocol_t::write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
+    return unshard(responses, cache);
+}
+
 
 struct backfill_chunk_get_region_visitor_t : public boost::static_visitor< hash_region_t<key_range_t> > {
     hash_region_t<key_range_t> operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t &del) {
