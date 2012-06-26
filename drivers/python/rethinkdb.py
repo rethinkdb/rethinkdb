@@ -4,6 +4,8 @@ import json
 import socket
 import struct
 
+DEFAULT_ROW_BINDING = 'row'
+
 # To run a query against a server:
 # > conn = r.Connection("newton", 80)
 # > q = r.db("foo").bar
@@ -79,8 +81,12 @@ class db(object):
         return Table(self, key)
 
 class View(object):
-    def filter(self, selector, row='row'):
+    def filter(self, selector, row=DEFAULT_ROW_BINDING):
         return Filter(self, selector, row)
+    
+    def update(self, updater, row=DEFAULT_ROW_BINDING):
+        return Update(self, updater, row)
+
 
 class Table(View):
     def __init__(self, db, name):
@@ -135,7 +141,7 @@ class Filter(View):
         self.parent_view = parent_view
 
     # Try to collapse chained filters into conjunctions for performance
-    def filter(self, selector, row='row'):
+    def filter(self, selector, row=DEFAULT_ROW_BINDING):
         if row is self.row:
             return Filter(self.parent_view, _and(self.selector, selector), row)
         else:
@@ -160,6 +166,32 @@ class Filter(View):
             terms.append(eq(key, val))
         return Conjunction(terms)
 
+class Update(object):
+    # Accepts a dict, and eventually, javascript
+    def __init__(self, parent_view, updater, row):
+        self.updater = updater
+        self.row = row
+        self.parent_view = parent_view
+
+    def write_ast(self, parent):
+        parent.type = p.WriteQuery.UPDATE
+        self.parent_view.write_ast(parent.update.view)
+        parent.update.mapping.arg = self.row
+        body = parent.update.mapping.body
+        body.type = p.Term.CALL
+        body.call.builtin.type = p.Builtin.MAPMERGE
+        toTerm(self.row).write_ast(body.call.args.add())
+        right = body.call.args.add()
+        right.type = p.Term.MAP
+        for key in self.updater:
+            value = self.updater[key]
+            pair = right.map.add()
+            pair.var = key
+            toTerm(value).write_ast(pair.term)
+
+    def _finalize_query(self, root):
+        wq = _finalize_internal(root, p.WriteQuery)
+        self.write_ast(wq)
 
 class Term(object):
     def _finalize_query(self, root):

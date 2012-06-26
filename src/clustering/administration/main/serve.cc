@@ -218,9 +218,14 @@ bool do_serve(
         &perfmon_repo);
 
     rdb_protocol::query_http_app_t rdb_parser(semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
+    // TODO: make this not be shitty (port offsets and such)
+#ifdef NDEBUG
     http_server_t server(12345, &rdb_parser);
-
     query_server_t rdb_pb_server(12346, semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
+#else
+    http_server_t server(12345 + port_offset, &rdb_parser);
+    query_server_t rdb_pb_server(12346 + port_offset, semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
+#endif
 
     boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
         new metadata_persistence::semilattice_watching_persister_t(
