@@ -81,6 +81,8 @@ class db(object):
 class View(object):
     def filter(self, selector, row='row'):
         return Filter(self, selector, row)
+    def pluck(self, attrs, row='row'):
+        return Pluck(self, attrs, row)
     
 class Table(View):
     def __init__(self, db, name):
@@ -127,7 +129,10 @@ class Insert(object):
 
 class Filter(View):
     def __init__(self, parent_view, selector, row):
-        self.selector = toTerm(selector)
+        if type(selector) is dict:
+            self.selector = self._and_eq(selector)
+        else:
+            self.selector = toTerm(selector)
         self.row = row # don't do to term so we can compare in self.filter without overriding bs
         self.parent_view = parent_view
 
@@ -149,6 +154,14 @@ class Filter(View):
         term.type = p.Term.VIEWASSTREAM
         self.write_ast(term.view_as_stream)
         return term
+    
+    def _and_eq(self, _hash):
+        terms = []
+        for key in _hash.iterkeys():
+            val = _hash[key]
+            terms.append(eq(key, val))
+        return Conjunction(terms)
+        
     
 class Term(object):
     def _finalize_query(self, root):
@@ -277,14 +290,6 @@ def gt(*terms):
     return Comparison(list(terms), p.GT)
 def gte(*terms):
     return Comparison(list(terms), p.GE)
-
-def and_eq(_hash):
-    terms = []
-    for key in _hash.iterkeys():
-        val = _hash[key]
-        terms.append(eq(key, val))
-    return Conjunction(terms)
-        
 
 class Arithmetic(Term):
     def __init__(self, terms, op_type):
