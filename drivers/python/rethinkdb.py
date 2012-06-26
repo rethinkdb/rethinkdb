@@ -4,7 +4,14 @@ import json
 import socket
 import struct
 
-# r.connect
+# To run a query against a server:
+# > conn = r.Connection("newton", 80)
+# > q = r.db("foo").bar
+# > conn.run(q)
+
+# To print query AST:
+# > q = r.db("foo").bar
+# > r._debug_ast(q)
 
 class Connection(object):
     def __init__(self, hostname, port):
@@ -17,7 +24,8 @@ class Connection(object):
 
     def run(self, query):
         root_ast = p.Query()
-        self._finalize_ast(root_ast, query)
+        root_ast.token = self.get_token()
+        query._finalize_query(root_ast)
 
         serialized = root_ast.SerializeToString()
 
@@ -42,38 +50,23 @@ class Connection(object):
             buf += self.socket.recv(length - len(buf))
         return buf
 
-    def _finalize_ast(self, root, query):
-        if isinstance(query, Table):
-            table = self._finalize_ast(root, p.View.Table)
-            query.write_ast(table.table_ref)
-            return table
-        elif query is p.View.Table:
-            view = self._finalize_ast(root, p.View)
-            view.type = p.View.TABLE
-            return view.table
-        elif query is p.View:
-            term = self._finalize_ast(root, p.Term)
-            term.type = p.Term.VIEWASSTREAM
-            return term.view_as_stream
-        elif query is p.Term:
-            read_query = self._finalize_ast(root, p.ReadQuery)
-            return read_query.term
-        elif query is p.ReadQuery:
-            root.token = self.get_token()
-            root.type = p.Query.READ
-            return root.read_query
-        elif isinstance(query, Insert):
-            write_query = self._finalize_ast(root, p.WriteQuery)
-            write_query.type = p.WriteQuery.INSERT
-            query.write_ast(write_query.insert)
-            return write_query.insert
-        elif query is p.WriteQuery:
-            root.token = self.get_token()
-            root.type = p.Query.WRITE
-            return root.write_query
-        else:
-            raise ValueError
+def _finalize_internal(root, query):
+    if query is p.Term:
+        read_query = _finalize_internal(root, p.ReadQuery)
+        return read_query.term
+    elif query is p.ReadQuery:
+        root.type = p.Query.READ
+        return root.read_query
+    elif query is p.WriteQuery:
+        root.type = p.Query.WRITE
+        return root.write_query
+    else:
+        raise ValueError
 
+def _debug_ast(query):
+    root_ast = p.Query()
+    query._finalize_query(root_ast)
+    print str(root_ast)
 
 class db(object):
     def __init__(self, name):
@@ -85,18 +78,34 @@ class db(object):
     def __getattr__(self, key):
         return Table(self, key)
 
-class Table(object):
+class View(object):
+    def filter(self, selector, row='row'):
+        return Filter(self, selector, row)
 
+class Table(View):
     def __init__(self, db, name):
         self.db = db
         self.name = name
 
-    def insert(self, *docs):
-        return Insert(self, docs)
+    def insert(self, docs):
+        if type(docs) is list:
+            return Insert(self, docs)
+        else:
+            return Insert(self, [docs])
 
-    def write_ast(self, table_ref):
-        table_ref.db_name = self.db.name
-        table_ref.table_name = self.name
+    def write_ref_ast(self, parent):
+        parent.db_name = self.db.name
+        parent.table_name = self.name
+
+    def write_ast(self, parent):
+        parent.type = p.View.TABLE
+        self.write_ref_ast(parent.table.table_ref)
+
+    def _finalize_query(self, root):
+        term = _finalize_internal(root, p.Term)
+        term.type = p.Term.VIEWASSTREAM
+        self.write_ast(term.view_as_stream)
+        return term
 
 class Insert(object):
     def __init__(self, table, entries):
@@ -104,15 +113,48 @@ class Insert(object):
         self.entries = entries
 
     def write_ast(self, insert):
-        self.table.write_ast(insert.table_ref)
-
+        self.table.write_ref_ast(insert.table_ref)
         for entry in self.entries:
             term = insert.terms.add()
             term.type = p.Term.JSON
             term.jsonstring = json.dumps(entry)
 
+    def _finalize_query(self, root):
+        write_query = _finalize_internal(root, p.WriteQuery)
+        write_query.type = p.WriteQuery.INSERT
+        self.write_ast(write_query.insert)
+        return write_query.insert
+
+class Filter(View):
+    def __init__(self, parent_view, selector, row):
+        self.selector = toTerm(selector)
+        self.row = row # don't do to term so we can compare in self.filter without overriding bs
+        self.parent_view = parent_view
+
+    # Try to collapse chained filters into conjunctions for performance
+    def filter(self, selector, row='row'):
+        if row is self.row:
+            return Filter(self.parent_view, _and(self.selector, selector), row)
+        else:
+            return Filter(self, selector, row)
+
+    def write_ast(self, parent):
+        parent.type = p.View.FILTERVIEW
+        self.parent_view.write_ast(parent.filter_view.view)
+        parent.filter_view.predicate.arg = self.row
+        self.selector.write_ast(parent.filter_view.predicate.body)
+
+    def _finalize_query(self, root):
+        term = _finalize_internal(root, p.Term)
+        term.type = p.Term.VIEWASSTREAM
+        self.write_ast(term.view_as_stream)
+        return term
+
 class Term(object):
-    pass
+    def _finalize_query(self, root):
+        read_query = _finalize_internal(root, p.ReadQuery)
+        self.write_ast(read_query.term)
+        return read_query.term
 
 class _if(Term):
     def __init__(self, test, true_branch, false_branch):
@@ -224,17 +266,17 @@ class Comparison(Term):
              Comparison(self.terms[1:], self.cmp_type)).write_ast(parent)
 
 def eq(*terms):
-    return Comparison(list(terms), p.EQ)
+    return Comparison(list(terms), p.Builtin.EQ)
 def neq(*terms):
-    return Comparison(list(terms), p.NE)
+    return Comparison(list(terms), p.Builtin.NE)
 def lt(*terms):
-    return Comparison(list(terms), p.LT)
+    return Comparison(list(terms), p.Builtin.LT)
 def lte(*terms):
-    return Comparison(list(terms), p.LE)
+    return Comparison(list(terms), p.Builtin.LE)
 def gt(*terms):
-    return Comparison(list(terms), p.GT)
+    return Comparison(list(terms), p.Builtin.GT)
 def gte(*terms):
-    return Comparison(list(terms), p.GE)
+    return Comparison(list(terms), p.Builtin.GE)
 
 def and_eq(_hash):
     terms = []
@@ -242,7 +284,7 @@ def and_eq(_hash):
         val = _hash[key]
         terms.append(eq(key, val))
     return Conjunction(terms)
-        
+
 
 class Arithmetic(Term):
     def __init__(self, terms, op_type):
@@ -307,7 +349,7 @@ class var(Term):
 
     def attr(self, name):
         return attr(name, self)
-        
+
     def write_ast(self, parent):
         parent.type = p.Term.VAR
         parent.var = self.name
@@ -376,10 +418,4 @@ def parseStringTerm(value):
         return var(terms[0]).attr('.'.join(terms[1:]))
     else:
         return var(terms[0])
-    
-#a = Connection("newton", 80)
-#t = db("foo").bar
-#root_ast = p.Query()
-#a._finalize_ast(root_ast, t)
-#a._finalize_ast(root_ast, t.insert({"a": "b"}, {"b": "c"}))
-#print str(root_ast)
+
