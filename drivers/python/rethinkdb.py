@@ -51,15 +51,7 @@ class Connection(object):
         return buf
 
 def _finalize_internal(root, query):
-    if query is p.View.Table:
-        view = _finalize_internal(root, p.View)
-        view.type = p.View.TABLE
-        return view.table
-    elif query is p.View:
-        term = _finalize_internal(root, p.Term)
-        term.type = p.Term.VIEWASSTREAM
-        return term.view_as_stream
-    elif query is p.Term:
+    if query is p.Term:
         read_query = _finalize_internal(root, p.ReadQuery)
         return read_query.term
     elif query is p.ReadQuery:
@@ -87,25 +79,33 @@ class db(object):
         return Table(self, key)
 
 class View(object):
-    def insert(self, docs):
-        if type(docs) is list:
-            return Insert(self, docs)
-        else:
-            return Insert(self, [docs])
+    def filter(self, selector, row='row'):
+        return Filter(self, selector, row)
     
 class Table(View):
     def __init__(self, db, name):
         self.db = db
         self.name = name
 
-    def write_ast(self, table_ref):
-        table_ref.db_name = self.db.name
-        table_ref.table_name = self.name
+    def insert(self, docs):
+        if type(docs) is list:
+            return Insert(self, docs)
+        else:
+            return Insert(self, [docs])
+
+    def write_ref_ast(self, parent):
+        parent.db_name = self.db.name
+        parent.table_name = self.name
+
+    def write_ast(self, parent):
+        parent.type = p.View.TABLE
+        self.write_ref_ast(parent.table.table_ref)
 
     def _finalize_query(self, root):
-        table = _finalize_internal(root, p.View.Table)
-        self.write_ast(table.table_ref)
-        return table
+        term = _finalize_internal(root, p.Term)
+        term.type = p.Term.VIEWASSTREAM
+        self.write_ast(term.view_as_stream)
+        return term
 
 class Insert(object):
     def __init__(self, table, entries):
@@ -113,7 +113,7 @@ class Insert(object):
         self.entries = entries
 
     def write_ast(self, insert):
-        self.table.write_ast(insert.table_ref)
+        self.table.write_ref_ast(insert.table_ref)
         for entry in self.entries:
             term = insert.terms.add()
             term.type = p.Term.JSON
@@ -125,6 +125,24 @@ class Insert(object):
         self.write_ast(write_query.insert)
         return write_query.insert
 
+class Filter(View):
+    def __init__(self, parent_view, selector, row):
+        self.selector = toTerm(selector)
+        self.row = toTerm(row)
+        self.parent_view = parent_view
+        
+    def write_ast(self, parent):
+        parent.type = p.View.FILTERVIEW
+        self.parent_view.write_ast(parent.filter_view.view)
+        self.row.write_ast(parent.filter_view.predicate.arg)
+        self.selector.write_ast(parent.filter_view.predicate.body)
+    
+    def _finalize_query(self, root):
+        term = _finalize_internal(root, p.Term)
+        term.type = p.Term.VIEWASSTREAM
+        self.write_ast(term.view_as_stream)
+        return term
+    
 class Term(object):
     def _finalize_query(self, root):
         read_query = _finalize_internal(root, p.ReadQuery)
