@@ -1,5 +1,4 @@
-#ifndef CLUSTERING_REACTOR_REACTOR_BE_PRIMARY_TCC_
-#define CLUSTERING_REACTOR_REACTOR_BE_PRIMARY_TCC_
+#include "clustering/reactor/reactor.hpp"
 
 #include <exception>
 #include <vector>
@@ -8,6 +7,7 @@
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
+#include "clustering/immediate_consistency/branch/replier.hpp"
 
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
@@ -364,4 +364,12 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
     }
 }
 
-#endif
+
+#include "mock/dummy_protocol.hpp"
+#include "mock/dummy_protocol_json_adapter.hpp"
+#include "memcached/protocol.hpp"
+#include "memcached/protocol_json_adapter.hpp"
+
+template class reactor_t<mock::dummy_protocol_t>;
+template class reactor_t<memcached_protocol_t>;
+

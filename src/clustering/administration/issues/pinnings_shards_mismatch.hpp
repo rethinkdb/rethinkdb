@@ -13,8 +13,8 @@ public:
     pinnings_shards_mismatch_issue_t(
             const namespace_id_t &offending_namespace,
             const std::set<typename protocol_t::region_t> &shards,
-            const region_map_t<protocol_t, boost::uuids::uuid> &primary_pinnings,
-            const region_map_t<protocol_t, std::set<boost::uuids::uuid> > &secondary_pinnings);
+            const region_map_t<protocol_t, uuid_t> &primary_pinnings,
+            const region_map_t<protocol_t, std::set<uuid_t> > &secondary_pinnings);
 
     std::string get_description() const;
 
@@ -45,7 +45,5 @@ private:
 
     DISABLE_COPYING(pinnings_shards_mismatch_issue_tracker_t);
 };
-
-#include "clustering/administration/issues/pinnings_shards_mismatch.tcc"
 
 #endif  // CLUSTERING_ADMINISTRATION_ISSUES_PINNINGS_SHARDS_MISMATCH_HPP_

@@ -19,7 +19,7 @@
 /* Every broadcaster generates a UUID when it's first created. This is the UUID
 of the branch that the broadcaster administers. */
 
-typedef boost::uuids::uuid branch_id_t;
+typedef uuid_t branch_id_t;
 
 /* `version_t` is a (branch ID, timestamp) pair. A `version_t` uniquely
 identifies the state of some region of the database at some time. */
@@ -30,7 +30,7 @@ public:
     version_t(branch_id_t bid, state_timestamp_t ts) :
         branch(bid), timestamp(ts) { }
     static version_t zero() {
-        return version_t(boost::uuids::nil_generator()(), state_timestamp_t::zero());
+        return version_t(nil_uuid(), state_timestamp_t::zero());
     }
 
     bool operator==(const version_t &v) const{
@@ -144,7 +144,7 @@ public:
 /* `backfiller_business_card_t` represents a thing that is willing to serve
 backfills over the network. It appears in the directory. */
 
-typedef boost::uuids::uuid backfill_session_id_t;
+typedef uuid_t backfill_session_id_t;
 
 template<class protocol_t>
 struct backfiller_business_card_t {

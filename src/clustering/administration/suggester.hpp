@@ -39,7 +39,6 @@ void fill_in_blueprints_for_protocol(
 
 void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
                         std::map<peer_id_t, cluster_directory_metadata_t> directory,
-                        const boost::uuids::uuid &us);
+                        const uuid_t &us);
 
-#include "clustering/administration/suggester.tcc"
 #endif /* CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_ */

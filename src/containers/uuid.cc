@@ -1,6 +1,10 @@
 #include "containers/uuid.hpp"
 
+#include <string.h>
+
 #include "errors.hpp"
+#define BOOST_UUID_NO_TYPE_TRAITS
+#include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
@@ -8,34 +12,58 @@
 
 #include "utils.hpp"
 
-boost::uuids::uuid generate_uuid() {
+bool operator==(const uuid_t& x, const uuid_t& y) {
+    return memcmp(x.data(), y.data(), uuid_t::static_size()) == 0;
+}
+
+bool operator<(const uuid_t& x, const uuid_t& y) {
+    return memcmp(x.data(), y.data(), uuid_t::static_size()) < 0;
+}
+
+uuid_t from_boost_uuid(const boost::uuids::uuid& uuid) {
+    CT_ASSERT(sizeof(uuid_t) == sizeof(boost::uuids::uuid));
+
+    uuid_t ret;
+    memcpy(ret.data(), uuid.data, uuid_t::static_size());
+    return ret;
+}
+
+boost::uuids::uuid as_boost_uuid(const uuid_t& uuid) {
+    boost::uuids::uuid ret;
+    memcpy(ret.data, uuid.data(), uuid_t::static_size());
+    return ret;
+}
+
+uuid_t generate_uuid() {
 #ifndef VALGRIND
-    return boost::uuids::random_generator()();
+    return from_boost_uuid(boost::uuids::random_generator()());
 #else
-    boost::uuids::uuid uuid;
-    for (size_t i = 0; i < sizeof uuid.data; i++) {
-        uuid.data[i] = static_cast<uint8_t>(randint(256));
+    uuid_t ret;
+    uint8_t *dat = ret.data();
+    for (size_t i = 0; i < uuid_t::static_size(); i++) {
+        dat[i] = static_cast<uint8_t>(randint(256));
     }
-    return uuid;
+    return ret;
 #endif
 }
 
-boost::uuids::uuid nil_uuid() {
-    return boost::uuids::nil_generator()();
+uuid_t nil_uuid() {
+    uuid_t ret;
+    memset(ret.data(), 0, uuid_t::static_size());
+    return ret;
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const boost::uuids::uuid& id) {
-    buf->appendf("%s", boost::uuids::to_string(id).c_str());
+void debug_print(append_only_printf_buffer_t *buf, const uuid_t& id) {
+    buf->appendf("%s", uuid_to_str(id).c_str());
 }
 
 
-std::string uuid_to_str(boost::uuids::uuid id) {
-    // Heh.
-    return boost::uuids::to_string(id);
+std::string uuid_to_str(uuid_t id) {
+    return boost::uuids::to_string(as_boost_uuid(id));
 }
 
-boost::uuids::uuid str_to_uuid(const std::string& uuid) {
-    return boost::uuids::string_generator()(uuid);
+uuid_t str_to_uuid(const std::string& uuid) {
+    return from_boost_uuid(boost::uuids::string_generator()(uuid));
 }
 
 bool is_uuid(const std::string& str) {

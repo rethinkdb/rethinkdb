@@ -4,7 +4,6 @@
 #include <map>
 
 #include "utils.hpp"
-#include <boost/uuid/uuid.hpp>
 #include <boost/bind.hpp>
 
 #include "clustering/administration/datacenter_metadata.hpp"
@@ -16,6 +15,7 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/json_adapters.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "containers/uuid.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
@@ -23,7 +23,7 @@
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
 
-typedef boost::uuids::uuid namespace_id_t;
+typedef uuid_t namespace_id_t;
 
 /* This is the metadata for a single namespace of a specific protocol. */
 
@@ -140,8 +140,8 @@ public:
 };
 
 struct namespace_metadata_ctx_t {
-    boost::uuids::uuid us;
-    explicit namespace_metadata_ctx_t(boost::uuids::uuid _us)
+    uuid_t us;
+    explicit namespace_metadata_ctx_t(uuid_t _us)
         : us(_us)
     { }
 };

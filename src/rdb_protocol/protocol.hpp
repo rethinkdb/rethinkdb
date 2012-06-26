@@ -2,8 +2,8 @@
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
 #include "utils.hpp"
-#include "boost/shared_ptr.hpp"
-#include "boost/variant.hpp"
+#include <boost/shared_ptr.hpp>
+#include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
 #include "http/json.hpp"

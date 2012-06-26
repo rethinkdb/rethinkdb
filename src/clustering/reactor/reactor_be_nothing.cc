@@ -1,7 +1,7 @@
-#ifndef CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC_
-#define CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC_
+#include "clustering/reactor/reactor.hpp"
 
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 
 
@@ -130,4 +130,9 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
     }
 }
 
-#endif
+
+#include "mock/dummy_protocol.hpp"
+#include "memcached/protocol.hpp"
+
+template class reactor_t<mock::dummy_protocol_t>;
+template class reactor_t<memcached_protocol_t>;

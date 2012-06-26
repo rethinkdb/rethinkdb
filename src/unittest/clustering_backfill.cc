@@ -46,7 +46,7 @@ void run_backfill_test() {
         dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
         dummy_branch.origin = region_map_t<dummy_protocol_t, version_range_t>(
-            region, version_range_t(version_t(boost::uuids::nil_generator()(), state_timestamp_t::zero()))
+            region, version_range_t(version_t(nil_uuid(), state_timestamp_t::zero()))
             );
         std::map<branch_id_t, branch_birth_certificate_t<dummy_protocol_t> > singleton_map;
         singleton_map[dummy_branch_id] = dummy_branch;

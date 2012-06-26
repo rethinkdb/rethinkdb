@@ -3,11 +3,9 @@
 
 #include <string>
 
-#include "errors.hpp"
-#include <boost/uuid/uuid.hpp>
-
-#include "utils.hpp"
+#include "containers/uuid.hpp"
 #include "http/json/json_adapter.hpp"
+#include "utils.hpp"
 
 class issue_json_t {
 public:
@@ -35,7 +33,7 @@ void on_subfield_change(issue_json_t *, const ctx_t &);
 //A local issue occurs on a single machine
 class local_issue_json_t : public issue_json_t {
 public:
-    boost::uuids::uuid machine;
+    uuid_t machine;
 };
 
 //json adapter concept for local_issue_json_t
