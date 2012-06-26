@@ -40,7 +40,7 @@ vclock_t<T>::vclock_t() {
 }
 
 template <class T>
-vclock_t<T>::vclock_t(const T &_t, const boost::uuids::uuid &us) {
+vclock_t<T>::vclock_t(const T &_t, const uuid_t &us) {
     stamped_value_t tmp = std::make_pair(vclock_details::version_map_t(), _t);
     tmp.first[us] = 1;
     values.insert(tmp);
@@ -60,7 +60,7 @@ void vclock_t<T>::throw_if_conflict() const {
 }
 
 template <class T>
-vclock_t<T> vclock_t<T>::make_new_version(const T& t, const boost::uuids::uuid &us) {
+vclock_t<T> vclock_t<T>::make_new_version(const T& t, const uuid_t &us) {
     throw_if_conflict();
     stamped_value_t tmp = *values.begin();
     get_with_default(tmp.first, us, 0)++;
@@ -69,7 +69,7 @@ vclock_t<T> vclock_t<T>::make_new_version(const T& t, const boost::uuids::uuid &
 }
 
 template <class T>
-vclock_t<T> vclock_t<T>::make_resolving_version(const T& t, const boost::uuids::uuid &us) {
+vclock_t<T> vclock_t<T>::make_resolving_version(const T& t, const uuid_t &us) {
     vclock_details::version_map_t vmap; //construct a vmap that dominates all the others
 
     for (typename value_map_t::iterator it  = values.begin();
@@ -84,7 +84,7 @@ vclock_t<T> vclock_t<T>::make_resolving_version(const T& t, const boost::uuids::
 }
 
 template <class T>
-void vclock_t<T>::upgrade_version(const boost::uuids::uuid &us) {
+void vclock_t<T>::upgrade_version(const uuid_t &us) {
     throw_if_conflict();
 
     stamped_value_t tmp = *values.begin();

@@ -10,7 +10,7 @@ namespace vclock_details {
 
 // TODO: This should _NOT_ be an int.
 // TODO: There are other things named version_map_t.  Some of these need to change.
-typedef std::map<boost::uuids::uuid, int> version_map_t;
+typedef std::map<uuid_t, int> version_map_t;
 
 bool dominates(const version_map_t &, const version_map_t &);
 
@@ -56,17 +56,17 @@ private:
 public:
     vclock_t();
 
-    vclock_t(const T &_t, const boost::uuids::uuid &us);
+    vclock_t(const T &_t, const uuid_t &us);
 
     bool in_conflict() const;
 
     void throw_if_conflict() const;
 
-    vclock_t<T> make_new_version(const T& t, const boost::uuids::uuid &us);
+    vclock_t<T> make_new_version(const T& t, const uuid_t &us);
 
-    vclock_t<T> make_resolving_version(const T& t, const boost::uuids::uuid &us);
+    vclock_t<T> make_resolving_version(const T& t, const uuid_t &us);
 
-    void upgrade_version(const boost::uuids::uuid &us);
+    void upgrade_version(const uuid_t &us);
 
     T get() const;
 

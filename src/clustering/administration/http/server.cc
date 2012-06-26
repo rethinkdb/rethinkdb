@@ -39,7 +39,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
         admin_tracker_t *_admin_tracker,
-        boost::uuids::uuid _us,
+        uuid_t _us,
         std::string path)
 {
     std::set<std::string> white_list;
