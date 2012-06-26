@@ -122,8 +122,7 @@ class Insert(object):
         self.table.write_ref_ast(insert.table_ref)
         for entry in self.entries:
             term = insert.terms.add()
-            term.type = p.Term.JSON
-            term.jsonstring = json.dumps(entry)
+            toTerm(entry).write_ast(term)
 
     def _finalize_query(self, root):
         write_query = _finalize_internal(root, p.WriteQuery)
@@ -273,6 +272,9 @@ class val(Term):
         elif isinstance(self.value, str):
             parent.type = p.Term.STRING
             parent.valuestring = self.value
+        elif isinstance(self.value, dict):
+            parent.type = p.Term.JSON
+            parent.jsonstring = json.dumps(self.value)
         else:
             raise ValueError
 
@@ -434,7 +436,7 @@ def let(*args):
 def toTerm(value):
     if isinstance(value, Term):
         return value
-    if isinstance(value, (bool, int)):
+    if isinstance(value, (bool, int, dict)):
         return val(value)
     if isinstance(value, str):
         return parseStringTerm(value)
