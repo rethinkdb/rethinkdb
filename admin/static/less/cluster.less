@@ -1795,8 +1795,6 @@
     .results{
         .json_tree{
             font: 13px/18px monospace,mono,consolas;
-            .jt_prop{
-            }
             .jt_null{
                 font-weight: bold;
                 color: red
@@ -1812,9 +1810,15 @@
             .jt_string{
                 color: green;
             }
+            .jt_b{
+                font-weight: bold;
+            }
+            .jt_close{
+                margin-left: 24px;
+            }
             .jt_array{
                 list-style: none;
-                padding-left: 24px;
+                padding-left: 19px;
                 border-left: 1px dotted #bbb;
             }
             .jt_object{
@@ -1822,13 +1826,30 @@
                 padding-left: 19px;
                 border-left: 1px dotted #bbb;
             }
-            .jt_a{
+            .jt_arrow{
                 width: 15px;
                 height: 15px;
+                margin: 3px 2px 0px 2px;
                 float: left;
                 display: block;
+                background: url('/images/arrow_down.gif') no-repeat;
+            }
+            .jt_arrow_hidden{
                 background: url('/images/arrow_right.gif') no-repeat;
             }
+            .jt_points{
+                display: none;
+            }
+            .jt_points_collapsed{
+                display: inline;
+            }
+            .jt_collapsed{
+                display: none;
+            }
+            .jt_b_collapsed{
+                display: inline;
+                margin-left: 0px;
+            }   
         }
     }
 }
