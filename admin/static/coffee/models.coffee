@@ -6,6 +6,7 @@ class Namespace extends Backbone.Model
         # Add a computed shards property for convenience and metadata
         @.set 'computed_shards', new DataUtils.Shards [],@
 
+    # TODO Fix this leak
     # Cache key distribution info.
     load_key_distr: =>
         $.ajax
