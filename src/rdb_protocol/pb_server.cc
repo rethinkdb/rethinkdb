@@ -6,7 +6,6 @@ query_server_t::query_server_t(int port, const boost::shared_ptr<semilattice_rea
 { }
 
 Response query_server_t::handle(const Query &q) {
-    BREAKPOINT;
     Response res;
     if (!is_well_defined(q)) {
         res.set_status_code(-1);
