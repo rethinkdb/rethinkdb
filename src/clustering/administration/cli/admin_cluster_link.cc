@@ -1691,17 +1691,15 @@ void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::com
     std::string protocol(data.params["protocol"][0]);
     std::string port_str(data.params["port"][0]);
     std::string name(data.params["name"][0]);
-    int port = atoi(port_str.c_str());
+    uint64_t port;
     std::string datacenter_id(data.params["primary"][0]);
     metadata_info_t *datacenter_info(get_info_from_id(datacenter_id));
     datacenter_id_t primary(str_to_uuid(datacenter_info->path[1]));
     namespace_id_t new_id;
 
     // Make sure port is a number
-    for (size_t i = 0; i < port_str.length(); ++i) {
-        if (port_str[i] < '0' || port_str[i] > '9') {
-            throw admin_parse_exc_t("port is not a number");
-        }
+    if (!strtou64_strict(port_str, 10, &port)) {
+        throw admin_parse_exc_t("port is not a number");
     }
 
     if (port > 65536) {
@@ -1916,12 +1914,11 @@ void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_dat
     metadata_info_t *ns_info(get_info_from_id(data.params["namespace"][0]));
     metadata_info_t *dc_info(get_info_from_id(data.params["datacenter"][0]));
     std::string acks_str = data.params["num-acks"][0].c_str();
+    uint64_t acks_num;
 
     // Make sure num-acks is a number
-    for (size_t i = 0; i < acks_str.length(); ++i) {
-        if (acks_str[i] < '0' || acks_str[i] > '9') {
-            throw admin_parse_exc_t("num-acks is not a number");
-        }
+    if (!strtou64_strict(acks_str, 10, &acks_num)) {
+        throw admin_parse_exc_t("num-acks is not a number");
     }
 
     if (dc_info->path[0] != "datacenters") {
@@ -1935,7 +1932,7 @@ void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_dat
         } else if (i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
         }
-        do_admin_set_acks_internal(i->second.get_mutable(), dc_info->uuid, atoi(acks_str.c_str()));
+        do_admin_set_acks_internal(i->second.get_mutable(), dc_info->uuid, acks_num);
 
     } else if (ns_info->path[0] == "memcached_namespaces") {
         namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(ns_info->uuid);
@@ -1944,7 +1941,7 @@ void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_dat
         } else if (i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
         }
-        do_admin_set_acks_internal(i->second.get_mutable(), dc_info->uuid, atoi(acks_str.c_str()));
+        do_admin_set_acks_internal(i->second.get_mutable(), dc_info->uuid, acks_num);
 
     } else {
         throw admin_parse_exc_t(data.params["namespace"][0] + " is not a namespace");
@@ -1990,13 +1987,11 @@ void admin_cluster_link_t::do_admin_set_replicas(admin_command_parser_t::command
     metadata_info_t *ns_info(get_info_from_id(data.params["namespace"][0]));
     metadata_info_t *dc_info(get_info_from_id(data.params["datacenter"][0]));
     std::string replicas_str = data.params["num-replicas"][0].c_str();
-    int num_replicas = atoi(replicas_str.c_str());
+    uint64_t num_replicas;
 
-    // Make sure num-acks is a number
-    for (size_t i = 0; i < replicas_str.length(); ++i) {
-        if (replicas_str[i] < '0' || replicas_str[i] > '9') {
-            throw admin_parse_exc_t("num-replicas is not a number");
-        }
+    // Make sure num-replicas is a number
+    if (!strtou64_strict(replicas_str, 10, &num_replicas)) {
+        throw admin_parse_exc_t("num-replicas is not a number");
     }
 
     if (dc_info->path[0] != "datacenters") {
@@ -2650,9 +2645,8 @@ void admin_cluster_link_t::resolve_value(vclock_t<T>& field) {
         throw admin_cluster_exc_t("could not read from stdin");
     }
 
-    int index = atoi(selection.c_str());
-
-    if (index < 0 || (size_t)index > values.size()) {
+    uint64_t index;
+    if (!strtou64_strict(selection, 10, &index) || index > values.size()) {
         throw admin_cluster_exc_t("invalid selection");
     } else if (index == 0) {
         throw admin_cluster_exc_t("cancelled");
