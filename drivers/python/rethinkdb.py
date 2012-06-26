@@ -128,13 +128,20 @@ class Insert(object):
 class Filter(View):
     def __init__(self, parent_view, selector, row):
         self.selector = toTerm(selector)
-        self.row = toTerm(row)
+        self.row = row # don't do to term so we can compare in self.filter without overriding bs
         self.parent_view = parent_view
+
+    # Try to collapse chained filters into conjunctions for performance
+    def filter(self, selector, row='row'):
+        if row is self.row:
+            return Filter(self.parent_view, _and(self.selector, selector), row)
+        else:
+            return Filter(self, selector, row)
         
     def write_ast(self, parent):
         parent.type = p.View.FILTERVIEW
         self.parent_view.write_ast(parent.filter_view.view)
-        self.row.write_ast(parent.filter_view.predicate.arg)
+        toTerm(self.row).write_ast(parent.filter_view.predicate.arg)
         self.selector.write_ast(parent.filter_view.predicate.body)
     
     def _finalize_query(self, root):
