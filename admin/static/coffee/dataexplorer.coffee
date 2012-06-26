@@ -31,6 +31,7 @@ module 'DataExplorerView', ->
                     messages: 52
                     inscription_date: '04/26/1998'
                     citizen_id: null
+                    member: true
                     website: "http://www.neumino.com"
                     groups: [
                             id: 'a53e4190-dfcc-4810-aded-a3d4f422e9b9'
@@ -182,6 +183,7 @@ module 'DataExplorerView', ->
         template_json_tree: 
             'container' : Handlebars.compile $('#dataexplorer_result_json_tree_container-template').html()
             'span': Handlebars.compile $('#dataexplorer_result_json_tree_span-template').html()
+            'span_with_quotes': Handlebars.compile $('#dataexplorer_result_json_tree_span_with_quotes-template').html()
             'url': Handlebars.compile $('#dataexplorer_result_json_tree_url-template').html()
             'object': Handlebars.compile $('#dataexplorer_result_json_tree_object-template').html()
             'array': Handlebars.compile $('#dataexplorer_result_json_tree_array-template').html()
@@ -218,14 +220,18 @@ module 'DataExplorerView', ->
                     for element in value
                         sub_values.push 
                             value: @json_to_node element
+                    sub_values[sub_values.length-1]['is_last'] = true
                     return @template_json_tree.array
                         values: sub_values
             else if value_type is 'object'
                 sub_values = []
                 for key of value
+                    last_key = key
                     sub_values.push
                         key: key
                         value: @json_to_node value[key]
+
+                sub_values[sub_values.length-1]['is_last'] = true
 
                 data = 
                     no_values: false
@@ -244,7 +250,7 @@ module 'DataExplorerView', ->
                     return @template_json_tree.url
                         url: value
                 else
-                    return @template_json_tree.span
+                    return @template_json_tree.span_with_quotes
                         classname: 'jt_string'
                         value: value
             else if value_type is 'boolean'

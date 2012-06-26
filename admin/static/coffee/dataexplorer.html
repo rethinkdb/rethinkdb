@@ -74,22 +74,23 @@
     <p>No result were returned for this query</p>
 </script>
 
+
+<!-- Keep </script> without space/new line before so the comma stick to the value of the object-->
 <script id="dataexplorer_result_json_tree_container-template" type="text/x-handlebars-template">
-    <div class="json_tree">{{print_safe tree}}</div>
-</script>
+    <div class="json_tree">{{print_safe tree}}</div></script>
 
 <script id="dataexplorer_result_json_tree_span-template" type="text/x-handlebars-template">
-    <span class="{{classname}}" contentEditable="true">{{value}}</span>
-</script>
+    <span class="{{classname}}" contentEditable="true">{{value}}</span></script>
 
+<script id="dataexplorer_result_json_tree_span_with_quotes-template" type="text/x-handlebars-template">
+    <span class="{{classname}}">"</span><span class="{{classname}}" contentEditable="true">{{value}}</span><span class="{{classname}}">"</span></script>
 
 <script id="dataexplorer_result_json_tree_url-template" type="text/xs-handlebars-template">
-    <a href="{{url}}"><span class="jt_q">"</span>{{url}}<span class="jt_q">"</span></a>
-</script>
-
+    <a href="{{url}}">{{url}}</a></script>
 
 
 <script id="dataexplorer_result_json_tree_array-template" type="text/x-handlebars-template">
+
     {{#if no_value}}
     [ ]
     {{else}}
@@ -99,7 +100,7 @@
     <ul class="jt_array jt_collapsible">
         {{#each values}}
         <li>
-            {{print_safe value}}
+            {{print_safe value}}{{#unless is_last}}, {{/unless}}
         </li>
         {{/each}}
     </ul>
@@ -117,7 +118,7 @@
     <ul class="jt_object jt_collapsible">
         {{#each values}}
         <li>
-                "{{this.key}}": {{print_safe this.value}}
+                "{{this.key}}": {{print_safe this.value}}{{#unless is_last}}, {{/unless}}
         </li>
         {{/each}}
     </ul>
