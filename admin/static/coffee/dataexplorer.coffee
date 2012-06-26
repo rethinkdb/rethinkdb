@@ -1,3 +1,28 @@
+#TODO remove the test functions
+generate_id = (n) ->
+    chars = '0123456789qwertasdfgzxcvbyuioplkjhnm'
+    result = ''
+    for i in [0..n]
+        num = Math.floor(Math.random()*(chars.length+1))
+        result += chars.substring(num, num+1)
+
+    return result
+
+
+generate_number = (n) ->
+    return Math.floor(Math.random()*n)
+
+generate_string = (n) ->
+    chars = 'qwertasdfgzxcvbyuioplkjhnm'
+    result = ''
+    for i in [0..n]
+        num = Math.floor(Math.random()*(chars.length+1))
+        result += chars.substring(num, num+1)
+
+    return result
+
+
+
 #TODO destroy views
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
@@ -8,6 +33,7 @@ module 'DataExplorerView', ->
             'keypress .input_query': 'handle_keypress'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
+            'click .namespace_link': 'write_query'
 
         handle_keypress: (event) =>
             if event.which is 13 and !event.shiftKey
@@ -28,6 +54,7 @@ module 'DataExplorerView', ->
                     login: 'michel'
                     first_name: 'Michel'
                     last_name: 'Tu'
+                    email: 'michel@rethinkdb.com'
                     messages: 52
                     inscription_date: '04/26/1998'
                     citizen_id: null
@@ -53,60 +80,27 @@ module 'DataExplorerView', ->
                 ]
             else
                 result = []
-                result.push
-                    id: '_97a54c09-112e-4e32-86f8-24522e6e1df4'
-                    login: 'michel'
-                    first_name: 'Michel'
-                    last_name: 'Tu'
-                    messages: 52
-                    inscription_date: '04/26/1998'
-                    citizen_id: null
-                    website: "http://www.neumino.com"
-                    groups: [
-                        id: 'a53e4190-dfcc-4810-aded-a3d4f422e9b9'
-                        name: 'front end developers'
-                        ,
-                        id: 'ebcdb08d-302c-4403-a392-eadad3f5bea5'
-                        name: 'rethinkDB'
-                    ]
-                    skills:
-                        development:
-                            'javascript': 9
-                            'css': 9
-                            'c++': 2
-                        music:
-                            'violin': 0
-                            'piano': 1
-                            'guitare': 2
-                    last_score: [ 54, 43, 11, 95, 78]
-            
-                result.push
-                    id: '_97a54c09-112e-4e32-86f8-24522e6e1df4'
-                    login: 'michel'
-                    first_name: 'Michel'
-                    last_name: 'Tu'
-                    messages: 52
-                    inscription_date: '04/26/1998'
-                    citizen_id: null
-                    website: "http://www.neumino.com"
-                    groups: [
-                        id: 'a53e4190-dfcc-4810-aded-a3d4f422e9b9'
-                        name: 'front end developers'
-                        ,
-                        id: 'ebcdb08d-302c-4403-a392-eadad3f5bea5'
-                        name: 'rethinkDB'
-                    ]
-                    skills:
-                        development:
-                            'javascript': 9
-                            'css': 9
-                            'c++': 2
-                        music:
-                            'violin': 0
-                            'piano': 1
-                            'guitare': 2
-                    last_score: [ 54, 43, 11, 95, 78]
+                for i in [0..20]
+                    element = {}
+                    element['_id'] = generate_id(25)
+                    element['name'] = generate_string(18)
+                    element['mail'] = generate_string(8)+'@'+generate_string(6)+'.com'
+                    element['last_scores'] = []
+                    limit = generate_number(20)
+                    for p in [0..limit]
+                        element['last_scores'].push generate_number(100)
+                    element['phone'] =
+                        home: generate_number(10)
+                        mobile: generate_number(10)
+                    element['website'] = 'http://www.'+generate_string(12)+'.com'
 
+
+                        
+                    element[generate_string(10)] = generate_string(10)
+
+
+                    result.push element
+                console.log result
             @data_container.render(query, result)
 
         make_suggestion: ->
@@ -118,6 +112,11 @@ module 'DataExplorerView', ->
             @.$('.input_query').focus()
 
  
+        write_query: (event) =>
+            event.preventDefault()
+            query = 'r.'+event.target.dataset.name+'.find()'
+            @.$('.input_query').val query
+
         initialize: =>
             log_initial '(initializing) sidebar view:'
 
@@ -185,12 +184,13 @@ module 'DataExplorerView', ->
             'span': Handlebars.compile $('#dataexplorer_result_json_tree_span-template').html()
             'span_with_quotes': Handlebars.compile $('#dataexplorer_result_json_tree_span_with_quotes-template').html()
             'url': Handlebars.compile $('#dataexplorer_result_json_tree_url-template').html()
+            'email': Handlebars.compile $('#dataexplorer_result_json_tree_email-template').html()
             'object': Handlebars.compile $('#dataexplorer_result_json_tree_object-template').html()
             'array': Handlebars.compile $('#dataexplorer_result_json_tree_array-template').html()
 
         events:
             'click .jt_arrow': 'toggle_collapse'
-
+            'keypress ': 'handle_keypress'
 
 
         current_result: []
@@ -204,6 +204,7 @@ module 'DataExplorerView', ->
 
         #TODO catch RangeError: Maximum call stack size exceeded
         #TODO check special characters
+        #TODO what to do with new line?
         json_to_node: (value) =>
             value_type = typeof value
             
@@ -220,7 +221,11 @@ module 'DataExplorerView', ->
                     for element in value
                         sub_values.push 
                             value: @json_to_node element
-                    sub_values[sub_values.length-1]['is_last'] = true
+                        if typeof element is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(element) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(element))
+                            sub_values[sub_values.length-1]['no_comma'] = true
+
+
+                    sub_values[sub_values.length-1]['no_comma'] = true
                     return @template_json_tree.array
                         values: sub_values
             else if value_type is 'object'
@@ -230,8 +235,11 @@ module 'DataExplorerView', ->
                     sub_values.push
                         key: key
                         value: @json_to_node value[key]
+                    #TODO Remove this check by sending whether the comma should be add or not
+                    if typeof value[key] is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(value[key]) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(value[key]))
+                        sub_values[sub_values.length-1]['no_comma'] = true
 
-                sub_values[sub_values.length-1]['is_last'] = true
+                sub_values[sub_values.length-1]['no_comma'] = true
 
                 data = 
                     no_values: false
@@ -249,6 +257,10 @@ module 'DataExplorerView', ->
                 if /^(http|https):\/\/[^\s]+$/i.test(value)
                     return @template_json_tree.url
                         url: value
+                else if /^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value) # We don't handle .museum extension and special characters
+                    return @template_json_tree.email
+                        email: value
+
                 else
                     return @template_json_tree.span_with_quotes
                         classname: 'jt_string'
@@ -258,10 +270,6 @@ module 'DataExplorerView', ->
                     classname: 'jt_bool'
                     value: value
  
-
-
-            #TODO check special characters
-            #TODO what to do with new line?
 
 
 
@@ -287,9 +295,9 @@ module 'DataExplorerView', ->
                 when  'json'
                      @.$('.results').html @json_to_tree @current_result
                 when  'table'
-                     @.$('.results').html @template_json
+                     @.$('.results').html @json_to_table @current_result
                 when  'raw'
-                     @.$('.results').html @template_json
+                     @.$('.results').html @json_to_tree @current_result
    
             return @
 
@@ -300,13 +308,21 @@ module 'DataExplorerView', ->
             @.$(event.target).toggleClass('jt_arrow_hidden')
 
        
+        handle_keypress: (event) =>
+            if event.which is 13 and !event.shiftKey
+                event.preventDefault()
+                @send_update(event.target)
+                @.$(event.target).blur()
+
+        #TODO complete method
+        send_update: (target) ->
+            console.log 'update'
 
     class @DefaultView extends Backbone.View
         className: 'helper_view'
         template: Handlebars.compile $('#dataexplorer_default_view-template').html()
         template_query: Handlebars.compile $('#dataexplorer_query_element-template').html()
         template_query_list: Handlebars.compile $('#dataexplorer_query_list-template').html()
-
 
 
         history_queries: []
@@ -329,7 +345,6 @@ module 'DataExplorerView', ->
             json.namespaces = []
             for namespace in namespaces.models
                 json.namespaces.push
-                    id: namespace.get('id')
                     name: namespace.get('name')
 
             json.has_namespaces = if json.namespaces.length is 0 then false else true
@@ -341,6 +356,5 @@ module 'DataExplorerView', ->
         
             return @
 
-
         destroy: ->
-            namespaces.off 
+            namespaces.off()

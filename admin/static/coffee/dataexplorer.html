@@ -26,7 +26,7 @@
         {{#if has_namespaces}}
         <ul class="namaspaces_available_list">
             {{#each namespaces}}
-            <li class="namespace_element"><a href="#" data-id="{{this.id}}">{{this.name}}</a></li>
+            <li class="namespace_element"><a href="#" data-name="{{name}}" class="namespace_link">{{name}}</a></li>
             {{/each}}
         </ul>
         {{else}}
@@ -80,14 +80,18 @@
     <div class="json_tree">{{print_safe tree}}</div></script>
 
 <script id="dataexplorer_result_json_tree_span-template" type="text/x-handlebars-template">
-    <span class="{{classname}}" contentEditable="true">{{value}}</span></script>
+    <span class="jt_editable {{classname}}" contentEditable="true">{{value}}</span></script>
 
 <script id="dataexplorer_result_json_tree_span_with_quotes-template" type="text/x-handlebars-template">
-    <span class="{{classname}}">"</span><span class="{{classname}}" contentEditable="true">{{value}}</span><span class="{{classname}}">"</span></script>
+    <span class="{{classname}}">"</span><span class="jt_editable {{classname}}" contentEditable="true">{{value}}</span><span class="{{classname}}">"</span></script>
 
 <script id="dataexplorer_result_json_tree_url-template" type="text/xs-handlebars-template">
-    <a href="{{url}}">{{url}}</a></script>
+    <span class="jt_editable jt_url" contentEditable="true">{{url}}</span>,
+    <a href="{{url}}" class="jt_link">»</a></script>
 
+<script id="dataexplorer_result_json_tree_email-template" type="text/xs-handlebars-template">
+    <span class="jt_editable jt_email" contentEditable="true">{{email}}</span>,
+    <a href="mailto:{{email}}" class="jt_link">»</a></script>
 
 <script id="dataexplorer_result_json_tree_array-template" type="text/x-handlebars-template">
 
@@ -100,7 +104,7 @@
     <ul class="jt_array jt_collapsible">
         {{#each values}}
         <li>
-            {{print_safe value}}{{#unless is_last}}, {{/unless}}
+            {{print_safe value}}{{#unless no_comma}}, {{/unless}}
         </li>
         {{/each}}
     </ul>
@@ -118,7 +122,7 @@
     <ul class="jt_object jt_collapsible">
         {{#each values}}
         <li>
-                "{{this.key}}": {{print_safe this.value}}{{#unless is_last}}, {{/unless}}
+                "{{this.key}}": {{print_safe this.value}}{{#unless no_comma}}, {{/unless}}
         </li>
         {{/each}}
     </ul>
