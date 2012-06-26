@@ -6,7 +6,7 @@ template <class protocol_t>
 void
 file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon_collection,
                                                    namespace_id_t namespace_id,
-                                                   boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > *stores_out,
+                                                   stores_lifetimer_t<protocol_t> *stores_out,
                                                    boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
 
     // TODO: If the server gets killed when starting up, we can
@@ -37,7 +37,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
 
         // The files already exist, thus we don't create them.
         boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
-        stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
+        stores_out->stores().reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
 
         debugf("loading %d hash-sharded stores\n", num_stores);
 
@@ -46,8 +46,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
         // TODO: This should use pmap.
         for (int i = 0; i < num_stores; ++i) {
             const std::string file_name = file_name_base + "_" + strprintf("%d", i);
-            (*stores_out)[i].reset(new typename protocol_t::store_t(file_name, false, perfmon_collection));
-            store_views[i] = (*stores_out)[i].get();
+            stores_out->stores()[i].reset(new typename protocol_t::store_t(file_name, false, perfmon_collection));
+            store_views[i] = stores_out->stores()[i].get();
         }
 
         svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
@@ -55,7 +55,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
         // num_stores randomization is commented out to simplify experiments with figuring out what's wrong with rebalance.
         const int num_stores = 4 + randint(4);
         debugf("creating %d hash-sharded stores\n", num_stores);
-        stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
+        stores_out->stores().reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
 
         // TODO: How do we specify what the stores' regions are?
 
@@ -66,8 +66,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
         boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
         for (int i = 0; i < num_stores; ++i) {
             const std::string file_name = file_name_base + "_" + strprintf("%d", i);
-            (*stores_out)[i].reset(new typename protocol_t::store_t(file_name, true, perfmon_collection));
-            store_views[i] = (*stores_out)[i].get();
+            stores_out->stores()[i].reset(new typename protocol_t::store_t(file_name, true, perfmon_collection));
+            store_views[i] = stores_out->stores()[i].get();
         }
 
         svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
