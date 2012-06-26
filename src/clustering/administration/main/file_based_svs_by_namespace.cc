@@ -11,17 +11,11 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
 
     // TODO: If the server gets killed when starting up, we can
     // get a database in an invalid startup state.
-
-    // TODO: Obviously, the hard-coded numeric constant here might
-    // be regarded as a problem.  Randomly choosing between 4 or 5
-    // is pretty cool though.
     const std::string file_name_base = file_path_ + "/" + uuid_to_str(namespace_id);
 
     // TODO: This is quite suspicious in that we check if the file
     // exists and then assume it exists or does not exist when
     // loading or creating it.
-
-    // TODO: Also we only check file 0.
 
     // TODO: We should use N slices on M serializers, not N slices
     // on N serializers.
