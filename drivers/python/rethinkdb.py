@@ -4,7 +4,14 @@ import json
 import socket
 import struct
 
-# r.connect
+# To run a query against a server:
+# > conn = r.Connection("newton", 80)
+# > q = r.db("foo").bar
+# > conn.run(q)
+
+# To print query AST:
+# > q = r.db("foo").bar
+# > r._debug_ast(q)
 
 class Connection(object):
     def __init__(self, hostname, port):
@@ -17,7 +24,8 @@ class Connection(object):
 
     def run(self, query):
         root_ast = p.Query()
-        self._finalize_ast(root_ast, query)
+        root_ast.token = self.get_token()
+        query._finalize_query(root_ast)
 
         serialized = root_ast.SerializeToString()
 
@@ -42,38 +50,31 @@ class Connection(object):
             buf += self.socket.recv(length - len(buf))
         return buf
 
-    def _finalize_ast(self, root, query):
-        if isinstance(query, Table):
-            table = self._finalize_ast(root, p.View.Table)
-            query.write_ast(table.table_ref)
-            return table
-        elif query is p.View.Table:
-            view = self._finalize_ast(root, p.View)
-            view.type = p.View.TABLE
-            return view.table
-        elif query is p.View:
-            term = self._finalize_ast(root, p.Term)
-            term.type = p.Term.VIEWASSTREAM
-            return term.view_as_stream
-        elif query is p.Term:
-            read_query = self._finalize_ast(root, p.ReadQuery)
-            return read_query.term
-        elif query is p.ReadQuery:
-            root.token = self.get_token()
-            root.type = p.Query.READ
-            return root.read_query
-        elif isinstance(query, Insert):
-            write_query = self._finalize_ast(root, p.WriteQuery)
-            write_query.type = p.WriteQuery.INSERT
-            query.write_ast(write_query.insert)
-            return write_query.insert
-        elif query is p.WriteQuery:
-            root.token = self.get_token()
-            root.type = p.Query.WRITE
-            return root.write_query
-        else:
-            raise ValueError
+def _finalize_internal(root, query):
+    if query is p.View.Table:
+        view = _finalize_internal(root, p.View)
+        view.type = p.View.TABLE
+        return view.table
+    elif query is p.View:
+        term = _finalize_internal(root, p.Term)
+        term.type = p.Term.VIEWASSTREAM
+        return term.view_as_stream
+    elif query is p.Term:
+        read_query = _finalize_internal(root, p.ReadQuery)
+        return read_query.term
+    elif query is p.ReadQuery:
+        root.type = p.Query.READ
+        return root.read_query
+    elif query is p.WriteQuery:
+        root.type = p.Query.WRITE
+        return root.write_query
+    else:
+        raise ValueError
 
+def _debug_ast(query):
+    root_ast = p.Query()
+    query._finalize_query(root_ast)
+    print str(root_ast)
 
 class db(object):
     def __init__(self, name):
@@ -85,18 +86,26 @@ class db(object):
     def __getattr__(self, key):
         return Table(self, key)
 
-class Table(object):
-
+class View(object):
+    def insert(self, docs):
+        if type(docs) is list:
+            return Insert(self, docs)
+        else:
+            return Insert(self, [docs])
+    
+class Table(View):
     def __init__(self, db, name):
         self.db = db
         self.name = name
 
-    def insert(self, *docs):
-        return Insert(self, docs)
-
     def write_ast(self, table_ref):
         table_ref.db_name = self.db.name
         table_ref.table_name = self.name
+
+    def _finalize_query(self, root):
+        table = _finalize_internal(root, p.View.Table)
+        self.write_ast(table.table_ref)
+        return table
 
 class Insert(object):
     def __init__(self, table, entries):
@@ -105,14 +114,22 @@ class Insert(object):
 
     def write_ast(self, insert):
         self.table.write_ast(insert.table_ref)
-
         for entry in self.entries:
             term = insert.terms.add()
             term.type = p.Term.JSON
             term.jsonstring = json.dumps(entry)
+            
+    def _finalize_query(self, root):
+        write_query = _finalize_internal(root, p.WriteQuery)
+        write_query.type = p.WriteQuery.INSERT
+        self.write_ast(write_query.insert)
+        return write_query.insert
 
 class Term(object):
-    pass
+    def _finalize_query(self, root):
+        read_query = _finalize_internal(root, p.ReadQuery)
+        self.write_ast(read_query.term)
+        return read_query.term
 
 class _if(Term):
     def __init__(self, test, true_branch, false_branch):
@@ -377,9 +394,3 @@ def parseStringTerm(value):
     else:
         return var(terms[0])
     
-#a = Connection("newton", 80)
-#t = db("foo").bar
-#root_ast = p.Query()
-#a._finalize_ast(root_ast, t)
-#a._finalize_ast(root_ast, t.insert({"a": "b"}, {"b": "c"}))
-#print str(root_ast)
