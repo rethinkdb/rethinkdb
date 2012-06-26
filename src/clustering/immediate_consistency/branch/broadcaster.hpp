@@ -14,47 +14,56 @@
 
 template <class> class listener_t;
 template <class> class semilattice_readwrite_view_t;
+template <class> class multistore_ptr_t;
 struct mailbox_manager_t;
 
 
-/* The implementation of `broadcaster_t` is a mess, but the interface is
-very clean. */
+
+template <class> class background_writer_t;
 
 template<class protocol_t>
 class broadcaster_t : public home_thread_mixin_t {
+private:
+    class incomplete_write_t;
+
 public:
+    class write_callback_t {
+    public:
+        write_callback_t();
+        virtual void on_response(peer_id_t peer, const typename protocol_t::write_response_t &response) = 0;
+        virtual void on_done() = 0;
+
+    protected:
+        virtual ~write_callback_t();
+
+    private:
+        friend class broadcaster_t;
+        incomplete_write_t *write;
+    };
+
     broadcaster_t(
             mailbox_manager_t *mm,
             boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
-            store_view_t<protocol_t> *initial_store,
+            multistore_ptr_t<protocol_t> *initial_svs,
             perfmon_collection_t *parent_perfmon_collection,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
 
-    class ack_callback_t {
-    public:
-        /* If the return value is `true`, then `write()` will return. */
-        virtual bool on_ack(peer_id_t peer) = 0;
-
-    protected:
-        virtual ~ack_callback_t() { }
-    };
-
-    typename protocol_t::write_response_t write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, ack_callback_t *cb, order_token_t tok, signal_t *interruptor, boost::function<void()> write_complete_cb) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t);
+    /* Unlike `read()`, `spawn_write()` returns as soon as the write has begun
+    and replies asynchronously via a callback. It may block, so it takes an
+    `interruptor`, but it shouldn't block for a long time. If the
+    `write_callback_t` is destroyed while the write is still in progress, its
+    destructor will automatically deregister it so that no segfaults will
+    happen. */
+    void spawn_write(typename protocol_t::write_t w, fifo_enforcer_sink_t::exit_write_t *lock, order_token_t tok, write_callback_t *cb, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     branch_id_t get_branch_id();
 
     broadcaster_business_card_t<protocol_t> get_business_card();
 
-    int num_incomplete_writes() {
-        return incomplete_writes.size();
-    }
-
 private:
     friend class listener_t<protocol_t>;
-
-    class incomplete_write_t;
 
     class incomplete_write_ref_t;
 
@@ -68,7 +77,7 @@ private:
     machine.) */
     void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
 
-    void background_write(dispatchee_t *, auto_drainer_t::lock_t, incomplete_write_ref_t, fifo_enforcer_write_token_t) THROWS_NOTHING;
+    void background_write(dispatchee_t *, auto_drainer_t::lock_t, incomplete_write_ref_t, order_token_t, fifo_enforcer_write_token_t) THROWS_NOTHING;
     void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
 
     /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
@@ -80,9 +89,10 @@ private:
 
     branch_id_t branch_id;
 
-    /* Until our initial listener has been constructed, this holds the store
-    that was passed to our constructor. After that, it's `NULL`. */
-    store_view_t<protocol_t> *bootstrap_store;
+    /* Until our initial listener has been constructed, this holds the
+    multistore_ptr that was passed to our constructor. After that,
+    it's `NULL`. */
+    multistore_ptr_t<protocol_t> *bootstrap_svs;
 
     /* If a write has begun, but some mirror might not have completed it yet,
     then it goes in `incomplete_writes`. The idea is that a new mirror that
@@ -95,12 +105,12 @@ private:
     /* `mutex` is held by new writes and reads being created, by writes
     finishing, and by dispatchees joining, leaving, or upgrading. It protects
     `incomplete_writes`, `current_timestamp`, `newest_complete_timestamp`,
-    `order_sink`, `dispatchees`, and `readable_dispatchees`. */
+    `order_checkpoint`, `dispatchees`, and `readable_dispatchees`. */
     mutex_assertion_t mutex;
 
     std::list<boost::shared_ptr<incomplete_write_t> > incomplete_writes;
     state_timestamp_t current_timestamp, newest_complete_timestamp;
-    order_sink_t order_sink;
+    order_checkpoint_t order_checkpoint;
 
     std::map<dispatchee_t *, auto_drainer_t::lock_t> dispatchees;
     intrusive_list_t<dispatchee_t> readable_dispatchees;

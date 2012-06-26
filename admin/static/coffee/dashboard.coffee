@@ -9,15 +9,18 @@ module 'DashboardView', ->
         initialize: =>
             log_initial '(initializing) sidebar view:'
 
+            @cluster_status = new DashboardView.ClusterStatus()
 
         render: =>
             @.$el.html @template({})
-            @cluster_status = new DashboardView.ClusterStatus()
             @cluster_performance = new DashboardView.ClusterPerformance()
 
             @.$('#cluster_status_container').html @cluster_status.render().el
             @.$('#cluster_performance_panel_placeholder').html @cluster_performance.render()
-
+    
+        destroy: =>
+            @cluster_status.destroy()
+            @cluster_performance.destroy()
 
     class @ClusterStatus extends Backbone.View
         className: 'dashboard-view'
@@ -40,6 +43,10 @@ module 'DashboardView', ->
             issues.on 'all', @render
             issues_redundancy.on 'reset', @render # when issues_redundancy is reset
             machines.on 'stats_updated', @render # when the stats of the machines are updated
+
+            $('.links_to_other_view').live 'click', ->
+                $('.popover-inner').remove()
+
             @render()
 
 
@@ -69,6 +76,7 @@ module 'DashboardView', ->
                                 id: namespace.get('id')
                             status.num_masters++
 
+
             if issues.length != 0
                 status.num_machines_with_disk_problems = 0
                 status.machines_with_disk_problems = []
@@ -87,11 +95,12 @@ module 'DashboardView', ->
                                 name: machines.get(issue.get('location')).get('name')
                             status.machines_with_disk_problems.push(new_machine)
                         when "MACHINE_DOWN"
-                            status.masters_offline.push
-                                machine_id: issue.get('victim')
-                                machine_name: machines.get(issue.get('victim')).get('name')
-                                namespace_name: masters[issue.get('victim')].name
-                                namespace_id: masters[issue.get('victim')].id
+                            if masters[issue.get('victim')]?
+                                status.masters_offline.push
+                                    machine_id: issue.get('victim')
+                                    machine_name: machines.get(issue.get('victim')).get('name')
+                                    namespace_name: masters[issue.get('victim')].name
+                                    namespace_id: masters[issue.get('victim')].id
                         when "NAME_CONFLICT_ISSUE"
                             status.num_conflicts_name++
                         when "VCLOCK_CONFLICT"
@@ -183,11 +192,20 @@ module 'DashboardView', ->
         render: =>
             log_render '(rendering) cluster status view'
 
+
             @.$el.html @template(@compute_status())
             @.$('a[rel=dashboard_details]').popover
                 trigger: 'manual'
             @.delegateEvents()
             return @
+
+
+        destroy: ->
+            issues.off()
+            issues_redundancy.off()
+            machines.off()
+            $('.popover').off()
+
 
     class @ClusterPerformance extends Backbone.View
         className: 'dashboard-view'
@@ -204,4 +222,5 @@ module 'DashboardView', ->
             log_render '(rendering) cluster_performance view'
             return @perf_panel.render().$el
 
-
+        destroy: =>
+            @perf_panel.destroy()

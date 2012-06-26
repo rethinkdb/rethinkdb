@@ -245,50 +245,48 @@ function TableRenderer(headers, rowRendererFunc) {
 };
 
 function BuildStatusRenderer() {
-    this.text = makeText("");
-    this.element = makeElement("span", { }, [this.text]);
+    this.element = makeElement("span", { }, []);
     this.setData = function(build) {
         if (build.status == "waiting") {
             this.element.style.color = "black";
-            this.text.replaceWholeText("Waiting");
+            this.element.textContent = "Waiting";
         } else if (build.status == "uploading") {
             this.element.style.color = "#CCAA00";
-            this.text.replaceWholeText("Uploading");
+            this.element.textContent = "Uploading";
         } else if (build.status == "running") {
             this.element.style.color = "#CCAA00";
-            this.text.replaceWholeText("Running (" + formatDuration(currentUnixTimestamp() - build.start_time) + ")");
+            this.element.textContent = "Running (" + formatDuration(currentUnixTimestamp() - build.start_time) + ")";
         } else if (build.status == "ok") {
             this.element.style.color = "green";
-            this.text.replaceWholeText("OK (" + formatDuration(build.end_time - build.start_time) + ")");
+            this.element.textContent = "OK (" + formatDuration(build.end_time - build.start_time) + ")";
         } else if (build.status == "fail") {
             this.element.style.color = "#CC0000";
-            this.text.replaceWholeText("Fail (" + formatDuration(build.end_time - build.start_time) + ")");
+            this.element.textContent = "Fail (" + formatDuration(build.end_time - build.start_time) + ")";
         } else if (build.status == "bug") {
             this.element.style.color = "#CC0000";
-            this.text.replaceWholeText("Bug");
+            this.element.textContent = "Bug";
         }
     };
 };
 
 function TestRoundStatusRenderer() {
-    this.text = makeText("");
-    this.element = makeElement("span", { }, [this.text]);
+    this.element = makeElement("span", { }, []);
     this.setData = function(round) {
         if (round.status == "waiting") {
             this.element.style.color = "black";
-            this.text.replaceWholeText("Waiting");
+            this.element.textContent = "Waiting";
         } else if (round.status == "running") {
             this.element.style.color = "#CCAA00";
-            this.text.replaceWholeText("Running (" + formatDuration(currentUnixTimestamp() - round.start_time) + ")");
+            this.element.textContent = "Running (" + formatDuration(currentUnixTimestamp() - round.start_time) + ")";
         } else if (round.status == "pass") {
             this.element.style.color = "green";
-            this.text.replaceWholeText("Pass (" + formatDuration(round.end_time - round.start_time) + ")");
+            this.element.textContent = "Pass (" + formatDuration(round.end_time - round.start_time) + ")";
         } else if (round.status == "fail") {
             this.element.style.color = "#CC0000";
-            this.text.replaceWholeText("Fail (" + formatDuration(round.end_time - round.start_time) + ")");
+            this.element.textContent = "Fail (" + formatDuration(round.end_time - round.start_time) + ")";
         } else if (round.status == "bug") {
             this.element.style.color = "#CC0000";
-            this.text.replaceWholeText("Bug");
+            this.element.textContent = "Bug";
         }
     };
 };
@@ -335,8 +333,7 @@ function TestStatusRenderer(url_pattern) {
 };
 
 function CountRenderer(labels, classifier) {
-    this.text = makeText("");
-    this.element = makeElement("span", { }, [this.text]);
+    this.element = makeElement("span", { }, []);
     this.setData = function (data) {
         var counts = { };
         labels.forEach(function (label) {
@@ -355,17 +352,17 @@ function CountRenderer(labels, classifier) {
                 text += counts[label] + " " + label;
             }
         });
-        this.text.replaceWholeText(text);
+        this.element.textContent = text;
     };
 };
 
 function LongTextRenderer(height) {
     var text = document.createTextNode();
-    this.element = makeElement("textarea", { "width": "70%", "height": height + "px", "whitespace": "pre", "font-family": "monospace" }, [text]);
+    this.element = makeElement("textarea", { "width": "70%", "height": height + "px", "whitespace": "pre", "font-family": "monospace" }, []);
     this.element.readOnly = true;
     this.element.wrap = "off";
     this.setData = function (output) {
-        text.replaceWholeText(output);
+        this.element.textContent = output;
     };
 };
 """
@@ -519,18 +516,19 @@ def list():
                     function TestRowRenderer(name) {
                         this.statusRenderer = new TestStatusRenderer(%(round_url_pattern)s.replace("<TEST>", name));
                         this.commandLineText = makeText("");
+                        var commandLineTd = makeElement("td", { }, []);
                         this.element = makeElement("tr", { }, [
                             makeElement("td", { }, [
                                 makeLink(%(test_url_pattern)s.replace("<TEST>", name), [
                                     makeText(name)
                                 ]),
                             ]),
-                            makeElement("td", { }, [this.commandLineText]),
+                            commandLineTd,
                             makeElement("td", { }, [this.statusRenderer.element])
                         ]);
                         this.setData = function (test) {
                             this.statusRenderer.setData(test);
-                            this.commandLineText.replaceWholeText(test.command_line);
+                            commandLineTd.textContent = test.command_line;
                         };
                     };
 
@@ -682,7 +680,7 @@ def test(name):
 
                     function TestRootRenderer() {
                         this.statusRenderer = new TestStatusRenderer(%(round_url_pattern)s);
-                        this.commandLine = makeText("");
+                        var commandLineNode = makeElement("code", { }, [])
                         this.missingRenderer = new OptionalRenderer(
                             "Missing prerequisites",
                             function () {
@@ -692,7 +690,7 @@ def test(name):
                         this.element = makeElement("div", { }, [
                             makeElement("p", { }, [
                                 makeText("Command line: "),
-                                makeElement("code", { }, [this.commandLine])
+                                commandLineNode
                             ]),
                             makeElement("p", { }, [
                                 makeText("Status: "),
@@ -702,7 +700,7 @@ def test(name):
                         ]);
                         this.setResult = function (test) {
                             this.statusRenderer.setData(test);
-                            this.commandLine.replaceWholeText(test.command_line);
+                            commandLineNode.textContent = test.command_line;
                             this.missingRenderer.setData(test.missing);
                         };
                     }
@@ -844,7 +842,7 @@ def round(name, round):
 
                     function TestRoundRootRenderer(name) {
                         this.statusRenderer = new TestRoundStatusRenderer();
-                        this.commandLine = makeText("");
+                        var commandLineNode = makeElement("code", { }, [])
                         this.tracebackRenderer = new OptionalRenderer(
                             "Traceback",
                             function () {
@@ -861,7 +859,7 @@ def round(name, round):
                         this.element = makeElement("div", { }, [
                             makeElement("p", { }, [
                                 makeText("Command line: "),
-                                makeElement("code", { }, [this.commandLine])
+                                commandLineNode
                             ]),
                             makeElement("p", { }, [
                                 makeText("Status: "),
@@ -876,7 +874,7 @@ def round(name, round):
                             this.tracebackRenderer.setData(round.traceback);
                         };
                         this.setTestData = function (test) {
-                            this.commandLine.replaceWholeText(test.command_line);
+                            commandLineNode.textContent = test.command_line;
                         };
                         this.setOutput = function (output) {
                             this.logRenderer.setData(output);

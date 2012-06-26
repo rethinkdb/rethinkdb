@@ -3,15 +3,14 @@
 
 #include <map>
 
-#include "errors.hpp"
-#include <boost/uuid/uuid.hpp>
-
 #include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/printf_buffer.hpp"
+#include "containers/uuid.hpp"
 #include "protocol_api.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/joins/map.hpp"
@@ -31,7 +30,7 @@ public:
     version_t(branch_id_t bid, state_timestamp_t ts) :
         branch(bid), timestamp(ts) { }
     static version_t zero() {
-        return version_t(boost::uuids::nil_generator()(), state_timestamp_t::zero());
+        return version_t(nil_uuid(), state_timestamp_t::zero());
     }
 
     bool operator==(const version_t &v) const{
@@ -46,6 +45,14 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_2(branch, timestamp);
 };
+
+inline void debug_print(append_only_printf_buffer_t *buf, const version_t& v) {
+    buf->appendf("v{");
+    debug_print(buf, v.branch);
+    buf->appendf(", ");
+    debug_print(buf, v.timestamp);
+    buf->appendf("}");
+}
 
 /* `version_range_t` is a pair of `version_t`s. It's used to keep track of
 backfills; when a backfill is interrupted, the state of the individual keys is
@@ -74,6 +81,14 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_2(earliest, latest);
 };
 
+inline void debug_print(append_only_printf_buffer_t *buf, const version_range_t& vr) {
+    buf->appendf("vr{earliest=");
+    debug_print(buf, vr.earliest);
+    buf->appendf(", latest=");
+    debug_print(buf, vr.latest);
+    buf->appendf("}");
+}
+
 /* Every `listener_t` constructs a `listener_business_card_t` and sends it to
 the `broadcaster_t`. */
 
@@ -84,45 +99,41 @@ public:
     /* These are the types of mailboxes that the master uses to communicate with
     the mirrors. */
 
-    typedef mailbox_t< void(
-        typename protocol_t::write_t, transition_timestamp_t, fifo_enforcer_write_token_t,
-        mailbox_addr_t<void()>
-        )> write_mailbox_t;
+    typedef mailbox_t<void(typename protocol_t::write_t,
+                            transition_timestamp_t,
+                            order_token_t,
+                            fifo_enforcer_write_token_t,
+                            mailbox_addr_t<void()>)> write_mailbox_t;
 
-    typedef mailbox_t< void(
-        typename protocol_t::write_t, transition_timestamp_t, fifo_enforcer_write_token_t,
-        mailbox_addr_t<void(typename protocol_t::write_response_t)>
-        )> writeread_mailbox_t;
+    typedef mailbox_t<void(typename protocol_t::write_t,
+                           transition_timestamp_t,
+                           order_token_t,
+                           fifo_enforcer_write_token_t,
+                           mailbox_addr_t<void(typename protocol_t::write_response_t)>)> writeread_mailbox_t;
 
-    typedef mailbox_t< void(
-        typename protocol_t::read_t, state_timestamp_t, fifo_enforcer_read_token_t,
-        mailbox_addr_t<void(typename protocol_t::read_response_t)>
-        )> read_mailbox_t;
+    typedef mailbox_t<void(typename protocol_t::read_t,
+                           state_timestamp_t,
+                           order_token_t,
+                           fifo_enforcer_read_token_t,
+                           mailbox_addr_t<void(typename protocol_t::read_response_t)>)> read_mailbox_t;
 
     /* The master sends a single message to `intro_mailbox` at the very
     beginning. This tells the mirror what timestamp it's at, and also tells
     it where to send upgrade/downgrade messages. */
 
-    typedef mailbox_t< void(
-        typename writeread_mailbox_t::address_t,
-        typename read_mailbox_t::address_t
-        )> upgrade_mailbox_t;
+    typedef mailbox_t<void(typename writeread_mailbox_t::address_t,
+                           typename read_mailbox_t::address_t)> upgrade_mailbox_t;
 
-    typedef mailbox_t< void(
-        mailbox_addr_t<void()>
-        )> downgrade_mailbox_t;
+    typedef mailbox_t<void(mailbox_addr_t<void()>)> downgrade_mailbox_t;
 
-    typedef mailbox_t< void(
-        state_timestamp_t,
-        typename upgrade_mailbox_t::address_t,
-        typename downgrade_mailbox_t::address_t
-        )> intro_mailbox_t;
+    typedef mailbox_t<void(state_timestamp_t,
+                           typename upgrade_mailbox_t::address_t,
+                           typename downgrade_mailbox_t::address_t)> intro_mailbox_t;
 
     listener_business_card_t() { }
-    listener_business_card_t(
-            const typename intro_mailbox_t::address_t &im,
-            const typename write_mailbox_t::address_t &wm) :
-        intro_mailbox(im), write_mailbox(wm) { }
+    listener_business_card_t(const typename intro_mailbox_t::address_t &im,
+                             const typename write_mailbox_t::address_t &wm)
+        : intro_mailbox(im), write_mailbox(wm) { }
 
     typename intro_mailbox_t::address_t intro_mailbox;
     typename write_mailbox_t::address_t write_mailbox;

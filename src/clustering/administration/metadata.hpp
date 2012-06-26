@@ -7,6 +7,7 @@
 #include "clustering/administration/machine_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
+#include "clustering/administration/metadata_change_handler.hpp"
 #include "http/json/json_adapter.hpp"
 #include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
@@ -75,9 +76,10 @@ public:
             machine_id_t mid,
             const std::vector<std::string> &_ips,
             const get_stats_mailbox_address_t& _stats_mailbox,
+            const metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t& _semilattice_change_mailbox,
             const log_server_business_card_t &lmb,
             cluster_directory_peer_type_t _peer_type) :
-        machine_id(mid), ips(_ips), get_stats_mailbox_address(_stats_mailbox),log_mailbox(lmb),peer_type(_peer_type) { }
+        machine_id(mid), ips(_ips), get_stats_mailbox_address(_stats_mailbox), semilattice_change_mailbox(_semilattice_change_mailbox), log_mailbox(lmb), peer_type(_peer_type) { }
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
@@ -90,11 +92,12 @@ public:
     std::vector<std::string> ips;
 
     get_stats_mailbox_address_t get_stats_mailbox_address;
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t semilattice_change_mailbox;
     log_server_business_card_t log_mailbox;
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_9(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, ips, get_stats_mailbox_address, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_10(dummy_namespaces, memcached_namespaces, rdb_namespaces, machine_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
 };
 
 // json adapter concept for directory_echo_wrapper_t

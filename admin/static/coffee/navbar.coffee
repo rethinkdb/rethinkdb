@@ -9,7 +9,6 @@ class NavBarView extends Backbone.View
     initialize: ->
         log_initial '(initializing) NavBarView'
         # rerender when route changes
-        window.app.on "all", @render
 
     init_typeahead: ->
         @.$('input.search-query').typeahead
@@ -46,7 +45,7 @@ class NavBarView extends Backbone.View
             else if route is 'route:logs'
                 $('ul.nav li#nav-logs').addClass('active')
 
-        if @first_render?
+        if @first_render is true
             # Initialize typeahead
             @init_typeahead()
             @first_render = false

@@ -1,14 +1,15 @@
 #ifndef RPC_SEMILATTICE_JOINS_VCLOCK_HPP_
 #define RPC_SEMILATTICE_JOINS_VCLOCK_HPP_
 
-#include "errors.hpp"
-#include <boost/uuid/uuid.hpp>
-
+#include "containers/uuid.hpp"
 #include "containers/map_sentries.hpp"
 #include "http/json.hpp"
 #include "rpc/serialize_macros.hpp"
 
 namespace vclock_details {
+
+// TODO: This should _NOT_ be an int.
+// TODO: There are other things named version_map_t.  Some of these need to change.
 typedef std::map<boost::uuids::uuid, int> version_map_t;
 
 bool dominates(const version_map_t &, const version_map_t &);

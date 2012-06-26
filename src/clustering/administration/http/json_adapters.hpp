@@ -112,6 +112,10 @@ void apply_json_to(cJSON *, region_map_t<protocol_t, value_t> *, const ctx_t &);
 template <class protocol_t, class value_t, class ctx_t>
 void on_subfield_change(region_map_t<protocol_t, value_t> *, const ctx_t &);
 
+// FIXME: this should probably be moved to a different file
+template <class protocol_t, class ctx_t>
+std::string render_region_as_string(typename protocol_t::region_t *region, const ctx_t &ctx);
+
 #include "clustering/administration/http/json_adapters.tcc"
 
 #endif /* CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_HPP_ */

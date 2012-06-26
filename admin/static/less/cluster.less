@@ -342,6 +342,11 @@
         }
     }
 }
+#modal-dialog {
+    .error_answer{
+        display: none;
+    }
+}
 
 /*
     ----------------------------
@@ -823,6 +828,10 @@
     .user-tip {
         color: grey;
     }
+    .title_center{
+        text-align: center;
+        margin-bottom: 5px;
+    }
 }
 
 .alert .name {
@@ -875,33 +884,48 @@
     .section {
         border-bottom: thin solid #CCC;
         padding-bottom: 10px;
-        padding-top: 10px;
+        padding-top: 0;
         overflow:hidden;
+        h3.title { margin-bottom: 10px; }    
     }
+    ul.nav-tabs { 
+        margin-bottom: 15px; 
+        margin-top: 15px;
+    }
+
     .namespace-shards{
         position: relative;
+        .alert_for_sharding{
+            display: none;
+        }
+
+ 
     }
     .namespace-shards-blackout{
-        opacity: 0.8;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        -khtml-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-    }
+        .sharding{
+            opacity: 0.7;
+            opacity: 0.7;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+   }
     .blackout-active{
         position: absolute;
         top: 0px;
         left: 0px;
         background: #000;
-        opacity: 0.8;
+        opacity: 0.3;
         height: 100%;
         width: 100%;
         z-index: 10;
-        padding: 10px 0px 20px 0px;
-        margin: -10px 0px 0px 0px;
+        padding: 0px 0px 20px 0px;
+        margin: 40px 0px 0px 0px;
     }
+
 
     h3.title {
         margin-bottom: 10px;
@@ -1085,6 +1109,7 @@
     /* End override */
     .list_stats {
         list-style: none;
+        margin-left: 0;
         li {
             display: inline-block;
             padding: 5px 0px 0px 0px;
@@ -1373,7 +1398,9 @@
             }
         }
     }
-
+    .invalid_shard_alert{
+        display: none;
+    }
     .sharding-scheme {
         p.suggest_shards_pathway {
             margin-top: 1em;
@@ -1616,10 +1643,12 @@
 
 .stats_panel {
     margin-left: 1em;
-    text-transform: uppercase;
-    color: @gray;
-    font-size: 0.85em;
-    line-height: 2em;
+    li {
+        text-transform: uppercase; 
+        color: @gray;
+        font-size: 0.85em;
+        line-height: 2em;
+    }
     td.minichart {
         width: 75px;
         padding-left: 5px;
@@ -1631,5 +1660,90 @@
     width: 100%;
     .title-moved{
         margin-left: 30px;
+    }
+}
+
+/*
+    ----------------------------
+    Walkthrough
+    ----------------------------
+*/
+
+.walkthrough-popup {
+    position: absolute;
+    top: 40px;
+
+    width: 350px;
+
+    z-index: 2000;
+    padding-top: 5px;
+    margin-top: 4px;
+
+    .arrow {
+        position: absolute;
+        width: 0;
+        height: 0;
+        top: 0;
+        left: 45px; 
+        margin-left: -5px;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-bottom: 5px solid black;
+    }
+    .popup-inner {
+        padding: 3px;
+        overflow: hidden;
+        background: rgba(0,0,0,0.8);
+        .border-radius(6px);
+        .box-shadow(0 3px 7px rgba(0,0,0,0.3));
+        padding: 5px;
+        p {
+            margin-bottom: 0;
+            &.show-walkthrough {
+                a { color: @grayLighter; }
+                margin-right: 30px;
+                font-size: 1.2em;
+                padding: 5px;
+            }
+            &.hide-popup {
+                a { color: @grayLighter; }
+                float: right;
+                font-size: 14px;
+                position: relative;
+                top: -9px;
+                font-weight: bold;
+                opacity: 0.7;
+                margin-top: 6px;
+                margin-right: 5px;
+            }
+            &.popup-text {
+                font-size: 13px;
+                color: @grayLighter;
+                padding: 5px;
+            }
+        }
+    }
+}
+
+#walkthrough {
+    .modal {
+        /* Override bootstrap */
+        width: 930px;
+        margin-left: -465px;
+        margin-top: -315px;
+        .modal-body { max-height: none; }
+        /* End override */
+        .modal-body {
+            background: rgba(0, 0, 0, 0.85);
+        }
+    }
+    .carousel {
+        width: 900px;
+        height: 600px;
+        margin-bottom: 0;
+        .carousel-caption p {
+            margin-top: 5px;
+            font-style: italic;
+        }
     }
 }

@@ -34,6 +34,7 @@ std::map<peer_id_t, machine_id_t> get_machine_id(const std::map<peer_id_t, clust
 administrative_http_server_manager_t::administrative_http_server_manager_t(
         int port,
         mailbox_manager_t *mbox_manager,
+        metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
         clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata,
         namespace_repo_t<memcached_protocol_t> *_namespace_repo,
@@ -52,6 +53,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/bootstrap/bootstrap-tab.js");
     white_list.insert("/js/bootstrap/bootstrap-typeahead.js");
     white_list.insert("/js/bootstrap/bootstrap-collapse.js");
+    white_list.insert("/js/bootstrap/bootstrap-carousel.js");
     white_list.insert("/js/bootstrap/bootstrap-button.js");
     white_list.insert("/js/bootstrap/bootstrap-dropdown.js");
     white_list.insert("/js/bootstrap/bootstrap-tooltip.js");
@@ -63,7 +65,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/flot/jquery.flot.js");
     white_list.insert("/js/flot/jquery.flot.resize.js");
     white_list.insert("/js/handlebars-1.0.0.beta.6.js");
-    white_list.insert("/js/jquery-1.7.1.min.js");
+    white_list.insert("/js/jquery-1.7.2.min.js");
     white_list.insert("/js/jquery.color.js");
     white_list.insert("/js/jquery.dataTables.min.js");
     white_list.insert("/js/jquery.form.js");
@@ -87,10 +89,15 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/glyphicons-halflings.png");
     white_list.insert("/images/glyphicons-halflings-white.png");
     white_list.insert("/images/loading.gif");
+    white_list.insert("/images/walkthrough/1.jpg");
+    white_list.insert("/images/walkthrough/2.jpg");
+    white_list.insert("/images/walkthrough/3.jpg");
+    white_list.insert("/images/walkthrough/4.jpg");
+    white_list.insert("/images/walkthrough/5.jpg");
     white_list.insert("/index.html");
     file_app.reset(new file_http_app_t(white_list, path));
 
-    semilattice_app.reset(new semilattice_http_app_t(_semilattice_metadata, _directory_metadata, _us));
+    semilattice_app.reset(new semilattice_http_app_t(_metadata_change_handler, _directory_metadata, _us));
     directory_app.reset(new directory_http_app_t(_directory_metadata));
     issues_app.reset(new issues_http_app_t(&_admin_tracker->issue_aggregator));
     stat_app.reset(new stat_http_app_t(mbox_manager, _directory_metadata));
@@ -101,7 +108,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
         ));
     progress_app.reset(new progress_app_t(_directory_metadata, mbox_manager));
     distribution_app.reset(new distribution_app_t(metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, _semilattice_metadata), _namespace_repo));
-    DEBUG_ONLY_CODE(cyanide_app.reset(new cyanide_http_app_t););
+    DEBUG_ONLY_CODE(cyanide_app.reset(new cyanide_http_app_t));
 
     std::map<std::string, http_app_t *> ajax_routes;
     ajax_routes["directory"] = directory_app.get();
@@ -112,7 +119,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     ajax_routes["progress"] = progress_app.get();
     ajax_routes["distribution"] = distribution_app.get();
     ajax_routes["semilattice"] = semilattice_app.get();
-    DEBUG_ONLY_CODE(ajax_routes["cyanide"] = cyanide_app.get(););
+    DEBUG_ONLY_CODE(ajax_routes["cyanide"] = cyanide_app.get());
 
     std::map<std::string, http_json_app_t *> default_views;
     default_views["semilattice"] = semilattice_app.get();

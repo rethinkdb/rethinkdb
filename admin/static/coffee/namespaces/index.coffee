@@ -21,7 +21,7 @@ module 'NamespaceView', ->
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
 
             super namespaces, NamespaceView.NamespaceListElement, 'tbody.list'
-
+            @to_unbind = []
         render: =>
             super
             @update_toolbar_buttons()
@@ -37,6 +37,7 @@ module 'NamespaceView', ->
             machine_list_element = super element
             machine_list_element.off 'selected'
             machine_list_element.on 'selected', @update_toolbar_buttons
+
 
         add_namespace: (event) =>
             event.preventDefault()
@@ -61,6 +62,10 @@ module 'NamespaceView', ->
             $remove_namespaces_button = @.$('.actions-bar a.btn.remove-namespace')
             $remove_namespaces_button.toggleClass 'disabled', @get_selected_elements().length < 1
 
+        destroy: =>
+             super()
+           
+
     # Namespace list element
     class @NamespaceListElement extends UIComponents.CheckboxListElement
         template: Handlebars.compile $('#namespace_list_element-template').html()
@@ -81,7 +86,6 @@ module 'NamespaceView', ->
 
         initialize: ->
             log_initial '(initializing) list view: namespace'
-            @model.on 'change', @render
             super @template
 
             # Initialize history
@@ -135,6 +139,10 @@ module 'NamespaceView', ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'namespace'
             rename_modal.render()
+
+        destroy: =>
+            @model.off()
+            machines.off()
 
     # A modal for adding namespaces
     class @AddNamespaceModal extends UIComponents.AbstractModal
@@ -210,6 +218,7 @@ module 'NamespaceView', ->
                         port : parseInt(formdata.port)
                         )
                     success: @on_success
+                    error: @on_error
 
         on_success: (response) =>
             super
@@ -230,6 +239,7 @@ module 'NamespaceView', ->
     class @RemoveNamespaceModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#remove_namespace-modal-template').html()
         alert_tmpl: Handlebars.compile $('#removed_namespace-alert-template').html()
+        template_remove_error: Handlebars.compile $('#fail_rename_namespace-template').html()
         class: 'remove-namespace-dialog'
 
         initialize: ->
@@ -256,6 +266,7 @@ module 'NamespaceView', ->
                     type: 'DELETE'
                     contentType: 'application/json'
                     success: @on_success
+                    error: @on_error
             # TODO: this should happen on success, but I'm hacking
             # this in here until we support multiple deletes in one
             # blow on the server. Remove the next two lines once
@@ -263,11 +274,23 @@ module 'NamespaceView', ->
             for namespace in @namespaces_to_delete
                 namespaces.remove(namespace.id)
 
-        on_success: (response) ->
-            super
+        on_success_with_error: =>
+            @.$('.error_answer').html @template_remove_error
 
+            if @.$('.error_answer').css('display') is 'none'
+                @.$('.error_answer').slideDown('fast')
+            else
+                @.$('.error_answer').css('display', 'none')
+                @.$('.error_answer').fadeIn()
+            @reset_buttons()
+
+
+        on_success: (response) ->
             if (response)
-                throw new Error("Received a non null response to a delete... this is incorrect")
+                @on_success_with_error()
+                return
+
+            super
 
             # TODO: hook this up once we have support for deleting
             # multiple items with one http request.

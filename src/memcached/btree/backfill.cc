@@ -3,6 +3,7 @@
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "containers/printf_buffer.hpp"
 #include "memcached/btree/btree_data_provider.hpp"
 #include "memcached/btree/node.hpp"
 #include "memcached/btree/value.hpp"
@@ -44,4 +45,15 @@ void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range, repl
     agnostic_memcached_backfill_callback_t agnostic_cb(callback, key_range);
     value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
     do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p);
+}
+
+
+void debug_print(append_only_printf_buffer_t *buf, const backfill_atom_t& atom) {
+    buf->appendf("bf_atom{key=");
+    debug_print(buf, atom.key);
+    buf->appendf(", value=");
+    debug_print(buf, atom.value);
+    buf->appendf(", recency=");
+    debug_print(buf, atom.recency);
+    buf->appendf(", ...}");
 }

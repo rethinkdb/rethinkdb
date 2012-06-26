@@ -7,7 +7,7 @@
 
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
 

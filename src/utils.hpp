@@ -9,9 +9,10 @@
 #include <string>
 #include <vector>
 
+#include "containers/printf_buffer.hpp"
 #include "errors.hpp"
+#include "config/args.hpp"
 
-class append_only_printf_buffer_t;
 
 struct const_charslice {
     const char *beg, *end;
@@ -30,6 +31,17 @@ public:
     const char *what() const throw () {
         return "interrupted";
     }
+};
+
+/* Pad a value to the size of a cache line to avoid false sharing.
+ * TODO: This is implemented as a struct with subtraction rather than a union
+ * so that it gives an error when trying to pad a value bigger than
+ * CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
+ */
+template<typename value_t>
+struct cache_line_padded_t {
+    value_t value;
+    char padding[CACHE_LINE_SIZE - sizeof(value_t)];
 };
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
@@ -71,12 +83,30 @@ int64_t get_ticks_res();
 double ticks_to_secs(ticks_t ticks);
 
 // HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
-// debug.hpp (and debug.cc).
+// debugf.hpp (and debugf.cc).
 /* Debugging printing API (prints current thread in addition to message) */
+void debug_print_quoted_string(append_only_printf_buffer_t *buf, const uint8_t *s, size_t n);
+void debugf_prefix_buf(printf_buffer_t<1000> *buf);
+void debugf_dump_buf(printf_buffer_t<1000> *buf);
+
+// Primitive debug_print declarations.
+void debug_print(append_only_printf_buffer_t *buf, uint64_t x);
+void debug_print(append_only_printf_buffer_t *buf, const std::string& s);
+
 #ifndef NDEBUG
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
+template <class T>
+void debugf_print(const char *msg, const T& obj) {
+    printf_buffer_t<1000> buf;
+    debugf_prefix_buf(&buf);
+    buf.appendf("%s: ", msg);
+    debug_print(&buf, obj);
+    buf.appendf("\n");
+    debugf_dump_buf(&buf);
+}
 #else
 #define debugf(...) ((void)0)
+#define debugf_print(...) ((void)0)
 #endif
 
 class rng_t {

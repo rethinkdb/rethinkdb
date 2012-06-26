@@ -4,7 +4,6 @@
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
-#include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
 #include "btree/operations.hpp"
@@ -67,9 +66,10 @@ struct rdb_protocol_t {
         RDB_MAKE_ME_SERIALIZABLE_1(response);
     };
 
-    struct point_read_t {
-        point_read_t() {}
-        explicit point_read_t(const store_key_t& key_) : key(key_) { }
+    class point_read_t {
+    public:
+        point_read_t() { }
+        explicit point_read_t(const store_key_t& _key) : key(_key) { }
 
         store_key_t key;
 
@@ -111,8 +111,9 @@ struct rdb_protocol_t {
         RDB_MAKE_ME_SERIALIZABLE_1(response);
     };
 
-    struct point_write_t {
-        point_write_t() {};
+    class point_write_t {
+    public:
+        point_write_t() { }
         point_write_t(const store_key_t& key_, boost::shared_ptr<scoped_cJSON_t> data_)
             : key(key_), data(data_) { }
 
@@ -178,6 +179,56 @@ struct rdb_protocol_t {
             return backfill_chunk_t(key_value_pair_t(key));
         }
 
+        static key_range_t monokey_region(const store_key_t &k) {
+            return key_range_t(key_range_t::closed, k, key_range_t::closed, k);
+        }
+
+        struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<key_range_t> {
+            key_range_t operator()(const backfill_chunk_t::delete_key_t &del) {
+                return monokey_region(del.key);
+            }
+
+            key_range_t operator()(const backfill_chunk_t::delete_range_t &del) {
+                return del.range;
+            }
+
+            key_range_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
+                return monokey_region(kv.backfill_atom.key);
+            }
+        };
+
+        region_t get_region() const {
+            backfill_chunk_get_region_visitor_t v;
+            return boost::apply_visitor(v, val);
+        }
+
+        struct backfill_chunk_shard_visitor_t : public boost::static_visitor<rdb_protocol_t::backfill_chunk_t> {
+        public:
+            explicit backfill_chunk_shard_visitor_t(const rdb_protocol_t::region_t &_region) : region(_region) { }
+            rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_key_t &del) {
+                rdb_protocol_t::backfill_chunk_t ret(del);
+                rassert(region_is_superset(region, ret.get_region()));
+                return ret;
+            }
+            rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::delete_range_t &del) {
+                rdb_protocol_t::region_t r = region_intersection(del.range, region);
+                rassert(!region_is_empty(r));
+                return rdb_protocol_t::backfill_chunk_t(rdb_protocol_t::backfill_chunk_t::delete_range_t(r));
+            }
+            rdb_protocol_t::backfill_chunk_t operator()(const rdb_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
+                rdb_protocol_t::backfill_chunk_t ret(kv);
+                rassert(region_is_superset(region, ret.get_region()));
+                return ret;
+            }
+        private:
+            const rdb_protocol_t::region_t &region;
+        };
+
+        rdb_protocol_t::backfill_chunk_t shard(const rdb_protocol_t::region_t &region) const THROWS_NOTHING {
+            backfill_chunk_shard_visitor_t v(region);
+            return boost::apply_visitor(v, val);
+        }
+
         RDB_MAKE_ME_SERIALIZABLE_0();
     };
 
@@ -205,28 +256,32 @@ struct rdb_protocol_t {
         void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);
 
         metainfo_t get_metainfo(
+                order_token_t order_token,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
         void set_metainfo(
                 const metainfo_t &new_metainfo,
+                order_token_t order_token,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                 signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
         rdb_protocol_t::read_response_t read(
-                DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+                DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
                 const rdb_protocol_t::read_t &read,
+                order_token_t order_token,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
         rdb_protocol_t::write_response_t write(
-                DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+                DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
                 const metainfo_t& new_metainfo,
                 const rdb_protocol_t::write_t &write,
                 transition_timestamp_t timestamp,
+                order_token_t order_token,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                 signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
@@ -248,7 +303,7 @@ struct rdb_protocol_t {
             THROWS_ONLY(interrupted_exc_t);
 
         void reset_data(
-                rdb_protocol_t::region_t subregion,
+                const rdb_protocol_t::region_t &subregion,
                 const metainfo_t &new_metainfo,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
                 signal_t *interruptor)
@@ -283,14 +338,14 @@ struct rdb_protocol_t {
                 THROWS_ONLY(interrupted_exc_t);
 
         void check_and_update_metainfo(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+            DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
             const metainfo_t &new_metainfo,
             transaction_t *txn,
             real_superblock_t *superbloc) const
             THROWS_NOTHING;
 
         metainfo_t check_metainfo(
-            DEBUG_ONLY(const metainfo_t& expected_metainfo, )
+            DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
             transaction_t *txn,
             real_superblock_t *superbloc) const
             THROWS_NOTHING;
@@ -299,6 +354,8 @@ struct rdb_protocol_t {
 
         perfmon_collection_t *perfmon_collection;
     };
+
+    static key_range_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 };
 
-#endif
+#endif  // RDB_PROTOCOL_PROTOCOL_HPP_

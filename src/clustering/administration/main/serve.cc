@@ -1,3 +1,5 @@
+#include "clustering/administration/main/serve.hpp"
+
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
 #include "clustering/administration/admin_tracker.hpp"
@@ -6,7 +8,7 @@
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/logger.hpp"
 #include "clustering/administration/main/initial_join.hpp"
-#include "clustering/administration/main/serve.hpp"
+#include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
@@ -31,13 +33,13 @@
 #include "rpc/semilattice/view/field.hpp"
 #include <stdio.h>
 
-bool serve_(
+bool do_serve(
     bool i_am_a_server,
     const std::string &logfilepath,
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
     const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file,
     const std::set<peer_address_t> &joins,
-    int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,)
+    int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, )
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
     std::string web_assets, signal_t *stop_cond)
 {
@@ -63,11 +65,14 @@ bool serve_(
     // stat_manager mailbox address
     stat_manager_t stat_manager(&mailbox_manager);
 
+    metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, semilattice_manager_cluster.get_root_view());
+
     watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(
         cluster_directory_metadata_t(
             machine_id,
             get_ips(),
             stat_manager.get_address(),
+            metadata_change_handler.get_request_mailbox_address(),
             log_server.get_business_card(),
             i_am_a_server ? SERVER_PEER : PROXY_PEER
         ));
@@ -81,8 +86,11 @@ bool serve_(
     connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run, client_port);
 
     // If (0 == port), then we asked the OS to give us a port number.
-    if (0 == port) port = connectivity_cluster_run.get_port();
-    else rassert(port == connectivity_cluster_run.get_port());
+    if (0 == port) {
+        port = connectivity_cluster_run.get_port();
+    } else {
+        rassert(port == connectivity_cluster_run.get_port());
+    }
     printf("Listening for intracluster traffic on port %d...\n", port);
 
     auto_reconnector_t auto_reconnector(
@@ -117,6 +125,7 @@ bool serve_(
 
     perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
+    file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(filepath);
     // Reactor drivers
 
     // Dummy
@@ -129,7 +138,7 @@ bool serve_(
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
             directory_read_manager.get_root_view()->subview(
                 field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-            filepath,
+            &dummy_svs_source,
             &perfmon_repo));
     boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
         dummy_reactor_directory_copier(!i_am_a_server ? NULL :
@@ -139,6 +148,7 @@ bool serve_(
                 &our_root_directory_variable));
 
     // Memcached
+    file_based_svs_by_namespace_t<memcached_protocol_t> memcached_svs_source(filepath);
     boost::scoped_ptr<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<memcached_protocol_t>(
             &mailbox_manager,
@@ -148,7 +158,7 @@ bool serve_(
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
             directory_read_manager.get_root_view()->subview(
                 field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-            filepath,
+            &memcached_svs_source,
             &perfmon_repo));
     boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
         memcached_reactor_directory_copier(!i_am_a_server ? NULL :
@@ -158,6 +168,7 @@ bool serve_(
                 &our_root_directory_variable));
 
     // RDB
+    file_based_svs_by_namespace_t<rdb_protocol_t> rdb_svs_source(filepath);
     boost::scoped_ptr<reactor_driver_t<rdb_protocol_t> > rdb_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<rdb_protocol_t>(
             &mailbox_manager,
@@ -167,7 +178,7 @@ bool serve_(
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
             directory_read_manager.get_root_view()->subview(
                 field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
-            filepath,
+            &rdb_svs_source,
             &perfmon_repo));
     boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t> >
         rdb_reactor_directory_copier(!i_am_a_server ? NULL :
@@ -195,14 +206,14 @@ bool serve_(
     parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
         &mailbox_manager,
         metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-        DEBUG_ONLY(port_offset,)
+        DEBUG_ONLY(port_offset, )
         &dummy_namespace_repo,
         &perfmon_repo);
 
     parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
         &mailbox_manager,
         metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-        DEBUG_ONLY(port_offset,)
+        DEBUG_ONLY(port_offset, )
         &memcached_namespace_repo,
         &perfmon_repo);
 
@@ -225,6 +236,7 @@ bool serve_(
         administrative_http_server_manager_t administrative_http_interface(
             http_port,
             &mailbox_manager,
+            &metadata_change_handler,
             semilattice_manager_cluster.get_root_view(),
             directory_read_manager.get_root_view(),
             &memcached_namespace_repo,
@@ -246,12 +258,12 @@ bool serve_(
     return true;
 }
 
-bool serve(const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve(const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, ) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     std::string logfilepath = filepath + "/log_file";
-    return serve_(true, logfilepath, filepath, persistent_file, joins, port, client_port, http_port, DEBUG_ONLY(port_offset,) machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(true, logfilepath, filepath, persistent_file, joins, port, client_port, http_port, DEBUG_ONLY(port_offset, ) machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
-bool serve_proxy(const std::string &logfilepath, const std::set<peer_address_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset,) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve_proxy(const std::string &logfilepath, const std::set<peer_address_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, ) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return serve_(false, logfilepath, "", NULL, joins, port, client_port, http_port, DEBUG_ONLY(port_offset,) machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(false, logfilepath, "", NULL, joins, port, client_port, http_port, DEBUG_ONLY(port_offset, ) machine_id, semilattice_metadata, web_assets, stop_cond);
 }

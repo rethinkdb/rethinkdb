@@ -35,7 +35,7 @@ struct test_driver_t {
     typedef conflict_resolving_diskmgr_t<core_action_t>::action_t action_t;
 
     int old_thread_id;
-    test_driver_t() : conflict_resolver(NULL) {
+    test_driver_t() : conflict_resolver(&get_global_perfmon_collection()) {
         /* Fake thread-context to make perfmons work. */
         old_thread_id = linux_thread_pool_t::thread_id;
         linux_thread_pool_t::thread_id = 0;

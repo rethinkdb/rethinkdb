@@ -4,6 +4,7 @@
 #include "errors.hpp"
 
 #include "clustering/suggester/suggester.hpp"
+#include "clustering/administration/metadata.hpp"
 
 struct missing_machine_exc_t : public std::exception {
     const char *what() const throw () {
@@ -36,5 +37,8 @@ void fill_in_blueprints_for_protocol(
         const machine_id_t &us)
         THROWS_ONLY(missing_machine_exc_t);
 
-#include "clustering/administration/suggester.tcc"
+void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
+                        std::map<peer_id_t, cluster_directory_metadata_t> directory,
+                        const boost::uuids::uuid &us);
+
 #endif /* CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_ */

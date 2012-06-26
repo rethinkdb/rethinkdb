@@ -78,6 +78,10 @@ module 'ServerView', ->
             $set_datacenter_button = @.$('.actions-bar a.btn.set-datacenter')
             $set_datacenter_button.toggleClass 'disabled', @get_selected_machines().length < 1
 
+        destroy: =>
+            super()
+            @unassigned_machines.destroy()
+
     class @MachineList extends UIComponents.AbstractList
         # Use a machine-specific template for the machine list
         template: Handlebars.compile $('#machine_list-template').html()
@@ -110,6 +114,10 @@ module 'ServerView', ->
         bind_callbacks_to_machine: (machine_list_element) =>
             machine_list_element.off 'selected'
             machine_list_element.on 'selected', => callback() for callback in @callbacks
+
+        destroy: ->
+            machines.off()
+
 
     # Machine list element
     class @MachineListElement extends UIComponents.CheckboxListElement
@@ -247,12 +255,25 @@ module 'ServerView', ->
                     json.machine_disk_has_problem = true if (json.machine_disk_data_percent>@threshold_alert) and @model.get_used_disk_space() isnt 0
                 else
                     json.machine_disk_percent = 0
+            else
+                json = _.extend json,
+                    # TODO: add a helper to upgrade/downgrade units dynamically depending on the values
+                    global_cpu_util: 'NA'
+                    mem_used: 'NA'
+                    mem_available: 'NA'
+                    global_net_sent: 'NA'
+                    global_total_net_sent: 'NA'
+                    global_net_recv: 'NA'
+                    global_total_net_recv: 'NA'
+                    machine_disk_space: 'NA'
+                    total_data: 'NA'
+                    machine_disk_available: 'NA'
+
+            # Displays bars and text in the popover
+            @.$('.machine.summary').html @summary_template json
 
 
-                # Displays bars and text in the popover
-                @.$('.machine.summary').html @summary_template json
-
-
+            if @model.get_stats().proc.global_cpu_util?
                 # Update data for the sparklines
                 if !isNaN(json.global_cpu_util)
                     @history.cpu.shift()
@@ -314,6 +335,10 @@ module 'ServerView', ->
 
         display_popover: (event) ->
             $(event.currentTarget).tooltip('show')
+
+        destroy: =>
+            @model.off()
+            directory.off()
 
     # Datacenter list element
     class @DatacenterListElement extends UIComponents.CollapsibleListElement
@@ -410,6 +435,11 @@ module 'ServerView', ->
             @callbacks = callbacks
             @machine_list.register_machine_callbacks callbacks
 
+        destroy: ->
+            @model.off()
+            directory.off()
+            @machine_list.off()
+
     # Equivalent of a DatacenterListElement, but for machines that haven't been assigned to a datacenter yet.
     class @UnassignedMachinesListElement extends UIComponents.CollapsibleListElement
         template: Handlebars.compile $('#unassigned_machines_list_element-template').html()
@@ -456,6 +486,10 @@ module 'ServerView', ->
         register_machine_callbacks: (callbacks) =>
             @callbacks = callbacks
             @machine_list.register_machine_callbacks callbacks
+
+        destroy: =>
+            machines.off()
+            @machine_list.off()
 
     class @AddDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#add_datacenter-modal-template').html()
@@ -504,6 +538,7 @@ module 'ServerView', ->
                     contentType: 'application/json'
                     data: JSON.stringify({"name" : @formdata.name})
                     success: @on_success
+                    error: @on_error
 
         on_success: (response) ->
             super
@@ -539,6 +574,7 @@ module 'ServerView', ->
                 type: 'DELETE'
                 contentType: 'application/json'
                 success: @on_success
+                error: @on_error
 
         on_success: (response) ->
             super
@@ -582,6 +618,7 @@ module 'ServerView', ->
                 contentType: 'application/json'
                 data: JSON.stringify(json)
                 success: @on_success
+                error: @on_error
 
         on_success: (response) =>
             super

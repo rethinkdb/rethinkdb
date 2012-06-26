@@ -9,7 +9,7 @@
 
 #include "config/args.hpp"
 #include "containers/bitset.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 /* The purpose of the conflict-resolving disk manager is to deal with the case
 where we have been sent a number of different reads or writes for overlapping
