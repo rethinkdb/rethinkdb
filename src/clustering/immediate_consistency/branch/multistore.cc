@@ -297,7 +297,7 @@ multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_
     }
 
     typename protocol_t::temporary_cache_t fake_cache;
-    return read.unshard(responses, &fake_cache);
+    return read.multistore_unshard(responses, &fake_cache);
 }
 
 // Because boost::bind only takes 10 arguments.
@@ -374,7 +374,7 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
     }
 
     typename protocol_t::temporary_cache_t fake_cache;
-    return write.unshard(responses, &fake_cache);
+    return write.multistore_unshard(responses, &fake_cache);
 }
 
 template <class protocol_t>

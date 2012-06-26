@@ -305,6 +305,10 @@ memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(std:
     return boost::apply_visitor(v, query);
 }
 
+memcached_protocol_t::read_response_t memcached_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
+    return unshard(responses, cache);
+}
+
 /* `memcached_protocol_t::write_t::get_region()` */
 
 struct write_get_region_visitor_t : public boost::static_visitor< hash_region_t<key_range_t> > {
@@ -334,6 +338,11 @@ memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(st
     rassert(responses.size() == 1);
     return responses[0];
 }
+
+memcached_protocol_t::write_response_t memcached_protocol_t::write_t::multistore_unshard(const std::vector<memcached_protocol_t::write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
+    return unshard(responses, cache);
+}
+
 
 struct backfill_chunk_get_region_visitor_t : public boost::static_visitor< hash_region_t<key_range_t> > {
     hash_region_t<key_range_t> operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t &del) {

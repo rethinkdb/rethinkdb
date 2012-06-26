@@ -51,6 +51,8 @@ public:
         region_t get_region() const;
         read_t shard(region_t region) const;
         read_response_t unshard(std::vector<read_response_t> resps, temporary_cache_t *cache) const;
+        read_response_t multistore_unshard(const std::vector<read_response_t>& resps, temporary_cache_t *cache) const;
+
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
         region_t keys;
     };
@@ -66,6 +68,8 @@ public:
         region_t get_region() const;
         write_t shard(region_t region) const;
         write_response_t unshard(std::vector<write_response_t> resps, temporary_cache_t *cache) const;
+        write_response_t multistore_unshard(const std::vector<write_response_t>& resps, temporary_cache_t *cache) const;
+
         RDB_MAKE_ME_SERIALIZABLE_1(values);
         std::map<std::string, std::string> values;
     };
