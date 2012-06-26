@@ -120,6 +120,15 @@ message Builtin {
         MAPREDUCE = 32;
     };
 
+    enum Comparison {
+        EQ = 1;
+        NE = 2;
+        LT = 3;
+        LE = 4;
+        GT = 5;
+        GE = 6;
+    };
+
     required BuiltinType type = 1;
 
     optional string attr = 2; //used if type is GETATTR of HASATTR
@@ -186,15 +195,6 @@ message Builtin {
     optional MapReduce map_reduce = 13;
 };
 
-enum Comparison {
-    EQ = 1;
-    NE = 2;
-    LT = 3;
-    LE = 4;
-    GT = 5;
-    GE = 6;
-}
-
 message Reduction {
     required Term base = 1;
     required Term var1 = 2;
@@ -208,7 +208,7 @@ message Mapping {
 };
 
 message Predicate {
-    required Term arg = 1;
+    required string arg = 1;
     required Term body = 2;
 };
 
