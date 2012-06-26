@@ -26,8 +26,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
     // TODO: We should use N slices on M serializers, not N slices
     // on N serializers.
 
-    //        stores_out->reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
-
     int res = access((file_name_base + "_" + strprintf("%d", 0)).c_str(), R_OK | W_OK);
     if (res == 0) {
         int num_stores = 1;
@@ -52,7 +50,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
 
         svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
     } else {
-        // num_stores randomization is commented out to simplify experiments with figuring out what's wrong with rebalance.
         const int num_stores = 4 + randint(4);
         debugf("creating %d hash-sharded stores\n", num_stores);
         stores_out->stores().reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
