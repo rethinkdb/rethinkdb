@@ -129,6 +129,7 @@ bool do_serve(
             &mailbox_manager,
             directory_read_manager.get_root_view()->subview(
                 field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
+            persistent_file->get_dummy_branch_history_manager(),
             metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
             directory_read_manager.get_root_view()->subview(
@@ -148,6 +149,7 @@ bool do_serve(
             &mailbox_manager,
             directory_read_manager.get_root_view()->subview(
                 field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
+            persistent_file->get_memcached_branch_history_manager(),
             metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()),
             directory_read_manager.get_root_view()->subview(
@@ -188,7 +190,7 @@ bool do_serve(
 
     boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
         new metadata_persistence::semilattice_watching_persister_t(
-            persistent_file, machine_id, semilattice_manager_cluster.get_root_view()));
+            persistent_file, semilattice_manager_cluster.get_root_view()));
 
     {
         if (0 == http_port)

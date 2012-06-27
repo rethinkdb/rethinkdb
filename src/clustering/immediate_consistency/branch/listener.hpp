@@ -5,6 +5,7 @@
 
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/semantic_checking.hpp"
+#include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/registrant.hpp"
@@ -58,7 +59,7 @@ public:
     listener_t(
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-            boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
+            branch_history_manager_t<protocol_t> *branch_history_manager,
             multistore_ptr_t<protocol_t> *svs,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
             backfill_session_id_t backfill_session_id,
@@ -71,7 +72,7 @@ public:
     listener_t(
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
+            branch_history_manager_t<protocol_t> *branch_history_manager,
             broadcaster_t<protocol_t> *broadcaster,
             perfmon_collection_t *backfill_stats_parent,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
@@ -182,7 +183,7 @@ private:
 
     mailbox_manager_t *mailbox_manager;
 
-    boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
+    branch_history_manager_t<protocol_t> *branch_history_manager;
 
     multistore_ptr_t<protocol_t> *svs;
 
