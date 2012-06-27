@@ -80,18 +80,38 @@ class db(object):
     def __getattr__(self, key):
         return Table(self, key)
 
-class View(object):
+class Stream(object):
+    def __init__(self):
+        self.parent_view = None
+        self.read_only = False
+
+    def is_readonly(self):
+        view = self
+        while view:
+            if view.read_only:
+                return True
+            else:
+                view = view.parent_view
+        return False
+
+    def check_readonly(self):
+        if self.is_readonly():
+            raise ValueError
+        
     def filter(self, selector, row=DEFAULT_ROW_BINDING):
         return Filter(self, selector, row)
     
-    def update(self, updater, row=DEFAULT_ROW_BINDING):
-        return Update(self, updater, row)
-
     def map(self, mapping, row=DEFAULT_ROW_BINDING):
         return Map(self, mapping, row)
+    
+    def update(self, updater, row=DEFAULT_ROW_BINDING):
+        self.check_readonly()
+        return Update(self, updater, row)
 
-class Table(View):
+
+class Table(Stream):
     def __init__(self, db, name):
+        super(Table, self).__init__()
         self.db = db
         self.name = name
 
@@ -132,8 +152,9 @@ class Insert(object):
         self.write_ast(write_query.insert)
         return write_query.insert
 
-class Filter(View):
+class Filter(Stream):
     def __init__(self, parent_view, selector, row):
+        super(Filter, self).__init__()
         if type(selector) is dict:
             self.selector = self._and_eq(selector)
         else:
@@ -141,20 +162,39 @@ class Filter(View):
         self.row = row # don't do to term so we can compare in self.filter without overriding bs
         self.parent_view = parent_view
 
-    # Try to collapse chained filters into conjunctions for performance
-    def filter(self, selector, row=DEFAULT_ROW_BINDING):
-        if row is self.row:
-            return Filter(self.parent_view, _and(self.selector, selector), row)
-        else:
-            return Filter(self, selector, row)
-
     def write_ast(self, parent):
+        if self.is_readonly():
+            self.write_term_ast(parent)
+        else:
+            self.write_view_ast(parent)
+    
+    def write_term_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.FILTER
+        predicate = parent.call.builtin.filter.predicate
+        predicate.arg = self.row
+        self.selector.write_ast(predicate.body)
+        self.parent_view.write_ast(parent.call.args.add())
+
+    def write_view_ast(self, parent):
         parent.type = p.View.FILTERVIEW
         self.parent_view.write_ast(parent.filter_view.view)
         parent.filter_view.predicate.arg = self.row
         self.selector.write_ast(parent.filter_view.predicate.body)
-
+    
     def _finalize_query(self, root):
+        if self.is_readonly():
+            res = self._finalize_term_query(root)
+        else:
+            res = self._finalize_view_query(root)
+        return res
+
+    def _finalize_term_query(self, root):
+        term = _finalize_internal(root, p.Term)
+        self.write_ast(term)
+        return term
+
+    def _finalize_view_query(self, root):
         term = _finalize_internal(root, p.Term)
         term.type = p.Term.VIEWASSTREAM
         self.write_ast(term.view_as_stream)
@@ -185,11 +225,13 @@ class Update(object):
         wq = _finalize_internal(root, p.WriteQuery)
         self.write_ast(wq)
 
-class Map(View):
+class Map(Stream):
     # Accepts a term that get evaluated on each row and returned
     # (i.e. json, extend, etc.). Alternatively accepts a term (such as
     # extend_json). Eventually also javascript.
     def __init__(self, parent_view, mapping, row):
+        super(Map, self).__init__()
+        self.read_only = True
         self.mapping = mapping
         self.row = row
         self.parent_view = parent_view
@@ -402,7 +444,7 @@ class Arithmetic(Term):
             op_term.write_ast(parent)
             return
         # Otherwise, do the op and recurse
-        Arithmetic([op_term] + self.terms[2:], self.op_type).write_ast(parent.call.args.add())
+        Arithmetic([op_term] + self.terms[2:], self.op_type).write_ast(parent)
 
 def add(*terms):
     return Arithmetic(list(terms), p.Builtin.ADD)
