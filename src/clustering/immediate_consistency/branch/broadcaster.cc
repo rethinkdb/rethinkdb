@@ -25,12 +25,13 @@ broadcaster_t<protocol_t>::write_callback_t::~write_callback_t() {
 
 template <class protocol_t>
 broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
-              boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
+              branch_history_manager_t<protocol_t> *bhm,
               multistore_ptr_t<protocol_t> *initial_svs,
               perfmon_collection_t *parent_perfmon_collection,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
+      branch_history_manager(bhm),
       registrar(mailbox_manager, this),
       broadcaster_collection("broadcaster", parent_perfmon_collection, true, true)
 {
@@ -63,14 +64,12 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     /* Make an entry for this branch in the global branch history
        semilattice */
     {
-        branch_birth_certificate_t<protocol_t> our_metadata;
-        our_metadata.region = initial_svs->get_multistore_joined_region();
-        our_metadata.initial_timestamp = initial_timestamp;
-        our_metadata.origin = origins;
+        branch_birth_certificate_t<protocol_t> birth_certificate;
+        birth_certificate.region = initial_svs->get_multistore_joined_region();
+        birth_certificate.initial_timestamp = initial_timestamp;
+        birth_certificate.origin = origins;
 
-        std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > singleton;
-        singleton[branch_id] = our_metadata;
-        metadata_field(&branch_history_t<protocol_t>::branches, branch_history)->join(singleton);
+        branch_history_manager->create_branch(branch_id, birth_certificate, interruptor);
     }
 
     /* Reset the store metadata. We should do this after making the branch
@@ -100,7 +99,9 @@ branch_id_t broadcaster_t<protocol_t>::get_branch_id() {
 
 template <class protocol_t>
 broadcaster_business_card_t<protocol_t> broadcaster_t<protocol_t>::get_business_card() {
-    return broadcaster_business_card_t<protocol_t>(branch_id, registrar.get_business_card());
+    branch_history_t<protocol_t> branch_id_associated_branch_history;
+    branch_history_manager->export_branch_history(branch_id, &branch_id_associated_branch_history);
+    return broadcaster_business_card_t<protocol_t>(branch_id, branch_id_associated_branch_history, registrar.get_business_card());
 }
 
 

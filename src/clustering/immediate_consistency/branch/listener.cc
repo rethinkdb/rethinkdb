@@ -39,7 +39,7 @@ private:
 template <class protocol_t>
 listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-                                   boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
+                                   branch_history_manager_t<protocol_t> *bhm,
                                    multistore_ptr_t<protocol_t> *_svs,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
                                    backfill_session_id_t backfill_session_id,
@@ -48,7 +48,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     mailbox_manager(mm),
-    branch_history(bh),
+    branch_history_manager(bhm),
     svs(_svs),
     uuid(generate_uuid()),
     perfmon_collection("backfill-serialization-" + uuid_to_str(uuid), backfill_stats_parent, true, true),
@@ -71,45 +71,27 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
         broadcaster_metadata->get();
-    if (business_card && business_card.get()) {
-        branch_id = business_card.get().get().branch_id;
-    } else {
+    if (!business_card || !business_card.get()) {
         throw broadcaster_lost_exc_t();
     }
+
+    branch_id = business_card.get().get().branch_id;
+    branch_history_manager->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
 
     const int num_stores = svs->num_stores();
 
 #ifndef NDEBUG
-
-    // We be paranoid and avoid calling branch_history->get() multiple
-    // times, so that we have one copy of the map and iterator
-    // comparisons work properly.
-
-    const std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > &actual_branches = branch_history->get().branches;
-
-    typename std::map<branch_id_t, branch_birth_certificate_t<protocol_t> >::const_iterator branches_iterator
-        = actual_branches.find(branch_id);
-
-    // This check has failed before, see issue #728.
-    guarantee(branches_iterator != actual_branches.end());
-
-    branch_birth_certificate_t<protocol_t> this_branch_history = branches_iterator->second;
-
-    guarantee(region_is_superset(this_branch_history.region, svs->get_multistore_joined_region()));
-
     /* Sanity-check to make sure we're on the same timeline as the thing
        we're trying to join. The backfiller will perform an equivalent check,
        but if there's an error it would be nice to catch it where the action
        was initiated. */
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
+
+    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager->get_branch(branch_id);
+    guarantee(region_is_superset(this_branch_history.region, svs->get_multistore_joined_region()));
 
     boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-
-
     svs->new_read_tokens(read_tokens.get(), num_stores);
-
     region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
-
 
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
          it != start_point.end();
@@ -119,7 +101,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
         rassert(
                 version.branch == branch_id ||
                 version_is_ancestor(
-                                    branch_history->get(),
+                                    branch_history_manager,
                                     version,
                                     version_t(branch_id, this_branch_history.initial_timestamp),
                                     it->first)
@@ -153,7 +135,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
         /* Backfill */
         backfillee<protocol_t>(mailbox_manager,
-                               branch_history,
+                               branch_history_manager,
                                svs,
                                svs->get_multistore_joined_region(),
                                replier->subview(&listener_t<protocol_t>::get_backfiller_from_replier_bcard),
@@ -206,12 +188,12 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 template <class protocol_t>
 listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-                                   boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
+                                   branch_history_manager_t<protocol_t> *bhm,
                                    broadcaster_t<protocol_t> *broadcaster,
                                    perfmon_collection_t *backfill_stats_parent,
                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager(mm),
-    branch_history(bh),
+    branch_history_manager(bhm),
     branch_id(broadcaster->branch_id),
     uuid(generate_uuid()),
     perfmon_collection("backfill-serialization-" + uuid_to_str(uuid), backfill_stats_parent, true, true),
@@ -247,10 +229,13 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     rassert(business_card && business_card.get());
     rassert(business_card.get().get().branch_id == broadcaster->branch_id);
 
-    /* Make sure the initial state of the store is sane */
-    branch_birth_certificate_t<protocol_t> this_branch_history =
-        branch_history->get().branches[branch_id];
+    /* Make sure the initial state of the store is sane. Note that we assume
+    that we're using the same `branch_history_manager_t` as the broadcaster, so
+    an entry should already be present for the branch we're trying to join, and
+    we skip calling `import_branch_history()`. */
+    branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager->get_branch(branch_id);
     rassert(svs->get_multistore_joined_region() == this_branch_history.region);
+
     /* Snapshot the metainfo before we start receiving writes */
     boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
     svs->new_read_tokens(read_tokens.get(), num_stores);
@@ -367,7 +352,7 @@ void listener_t<protocol_t>::on_write(typename protocol_t::write_t write,
         order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
-    rassert(region_is_superset(branch_history->get().branches[branch_id].region, write.get_region()));
+    rassert(region_is_superset(branch_history_manager->get_branch(branch_id).region, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
 
     coro_t::spawn_sometime(boost::bind(
@@ -440,7 +425,7 @@ void listener_t<protocol_t>::on_writeread(typename protocol_t::write_t write,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr)
         THROWS_NOTHING
 {
-    rassert(region_is_superset(branch_history->get().branches[branch_id].region, write.get_region()));
+    rassert(region_is_superset(branch_history_manager->get_branch(branch_id).region, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
     rassert(region_is_superset(svs->get_multistore_joined_region(), write.get_region()));
 
@@ -514,7 +499,7 @@ void listener_t<protocol_t>::on_read(typename protocol_t::read_t read,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
         THROWS_NOTHING
 {
-    rassert(region_is_superset(branch_history->get().branches[branch_id].region, read.get_region()));
+    rassert(region_is_superset(branch_history_manager->get_branch(branch_id).region, read.get_region()));
     rassert(!region_is_empty(read.get_region()));
     rassert(region_is_superset(svs->get_multistore_joined_region(), read.get_region()));
 

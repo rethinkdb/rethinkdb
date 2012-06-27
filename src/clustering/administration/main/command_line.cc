@@ -60,8 +60,7 @@ void run_rethinkdb_create(const std::string &filepath, std::string &machine_name
     }
 
     perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-    metadata_persistence::persistent_file_t store(metadata_file(filepath), true, &metadata_perfmon_collection);
-    store.update(our_machine_id, metadata, true);
+    metadata_persistence::persistent_file_t store(metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
 
     printf("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
 
@@ -109,30 +108,32 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
         return;
     }
 
-    machine_id_t persisted_machine_id;
-    cluster_semilattice_metadata_t persisted_semilattice_metadata;
-
     perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-    metadata_persistence::persistent_file_t store(metadata_file(filepath), false, &metadata_perfmon_collection);
-    store.read(&persisted_machine_id, &persisted_semilattice_metadata);
+    metadata_persistence::persistent_file_t store(metadata_file(filepath), &metadata_perfmon_collection);
 
-    *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, ) persisted_machine_id, persisted_semilattice_metadata, web_assets, &sigint_cond);
+    *result_out = serve(filepath, &store,
+        look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, )
+        store.read_machine_id(),
+        store.read_metadata(),
+        web_assets,
+        &sigint_cond);
 }
 
 void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, ) bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
-    machine_id_t our_machine_id;
-    cluster_semilattice_metadata_t semilattice_metadata;
 
     printf("Checking if directory '%s' already exists...\n", filepath.c_str());
     if (check_existence(filepath)) {
         printf("It already exists.  Loading data...\n");
 
         perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-        metadata_persistence::persistent_file_t store(metadata_file(filepath), false, &metadata_perfmon_collection);
-        store.read(&our_machine_id, &semilattice_metadata);
+        metadata_persistence::persistent_file_t store(metadata_file(filepath), &metadata_perfmon_collection);
 
-        *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, ) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
+        *result_out = serve(filepath, &store,
+            look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, )
+            store.read_machine_id(), store.read_metadata(),
+            web_assets,
+            &sigint_cond);
 
     } else {
         printf("It does not already exist. Creating it...\n");
@@ -143,7 +144,9 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             return;
         }
 
-        our_machine_id = generate_uuid();
+        machine_id_t our_machine_id = generate_uuid();
+
+        cluster_semilattice_metadata_t semilattice_metadata;
 
         if (joins.empty()) {
             printf("Creating a default namespace and default data center "
@@ -206,20 +209,25 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         }
 
         perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-        metadata_persistence::persistent_file_t store(metadata_file(filepath), true, &metadata_perfmon_collection);
-        store.update(our_machine_id, semilattice_metadata, true);
+        metadata_persistence::persistent_file_t store(metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
 
-        *result_out = serve(filepath, &store, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, ) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
+        *result_out = serve(filepath, &store,
+            look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, )
+            our_machine_id, semilattice_metadata,
+            web_assets,
+            &sigint_cond);
     }
 }
 
 void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, ) bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
-    cluster_semilattice_metadata_t semilattice_metadata;
-    machine_id_t our_machine_id = generate_uuid();
     rassert(!joins.empty());
 
-    *result_out = serve_proxy(logfilepath, look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, ) our_machine_id, semilattice_metadata, web_assets, &sigint_cond);
+    *result_out = serve_proxy(logfilepath,
+        look_up_peers_addresses(joins), port, client_port, http_port, DEBUG_ONLY(port_offset, )
+        generate_uuid(), cluster_semilattice_metadata_t(),
+        web_assets,
+        &sigint_cond);
 }
 
 po::options_description get_machine_options() {

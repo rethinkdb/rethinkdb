@@ -3,6 +3,7 @@
 
 #include <map>
 
+#include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 
 template <class> class semilattice_read_view_t;
@@ -15,8 +16,8 @@ template <class protocol_t>
 class backfiller_t : public home_thread_mixin_t {
 public:
     backfiller_t(mailbox_manager_t *mm,
-		 boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
-		 multistore_ptr_t<protocol_t> *svs);
+                 branch_history_manager_t<protocol_t> *bhm,
+                 multistore_ptr_t<protocol_t> *svs);
 
     backfiller_business_card_t<protocol_t> get_business_card();
 
@@ -24,12 +25,13 @@ public:
 
 private:
     bool confirm_and_send_metainfo(typename store_view_t<protocol_t>::metainfo_t metainfo, UNUSED region_map_t<protocol_t, version_range_t> start_point,
-				   mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>)> end_point_cont);
+                                   mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont);
 
     void on_backfill(
             backfill_session_id_t session_id,
-            region_map_t<protocol_t, version_range_t> start_point,
-            mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>)> end_point_cont,
+            const region_map_t<protocol_t, version_range_t> &start_point,
+            const branch_history_t<protocol_t> &start_point_associated_branch_history,
+            mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_cont,
             mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_cont,
             mailbox_addr_t<void(fifo_enforcer_write_token_t)> done_cont,
             mailbox_addr_t<void(mailbox_addr_t<void(int)>)> allocation_registration_box,
@@ -42,7 +44,7 @@ private:
                                    auto_drainer_t::lock_t);
 
     mailbox_manager_t *mailbox_manager;
-    boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
+    branch_history_manager_t<protocol_t> *branch_history_manager;
 
     multistore_ptr_t<protocol_t> *svs;
 

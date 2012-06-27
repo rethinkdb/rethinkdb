@@ -8,6 +8,7 @@
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/mailbox/mailbox.hpp"
@@ -38,6 +39,7 @@ class reactor_driver_t {
 public:
     reactor_driver_t(mailbox_manager_t *_mbox_manager,
                      const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
+                     branch_history_manager_t<protocol_t> *_branch_history_manager,
                      boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
                      boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                      const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
@@ -61,7 +63,7 @@ private:
 
     mailbox_manager_t *mbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > directory_view;
-    boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
+    branch_history_manager_t<protocol_t> *branch_history_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;

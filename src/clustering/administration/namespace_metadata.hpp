@@ -88,16 +88,14 @@ public:
     typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > namespace_map_t;
     namespace_map_t namespaces;
 
-    branch_history_t<protocol_t> branch_history;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(namespaces, branch_history);
+    RDB_MAKE_ME_SERIALIZABLE_1(namespaces);
 };
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_2(namespaces_semilattice_metadata_t<protocol_t>, namespaces, branch_history);
+RDB_MAKE_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t<protocol_t>, namespaces);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_2(namespaces_semilattice_metadata_t<protocol_t>, namespaces, branch_history);
+RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t<protocol_t>, namespaces);
 
 // json adapter concept for namespaces_semilattice_metadata_t
 

@@ -89,6 +89,33 @@ inline void debug_print(append_only_printf_buffer_t *buf, const version_range_t&
     buf->appendf("}");
 }
 
+/* `branch_history_t` is a record of some set of branches. They are stored on
+disk and passed back and forth between machines in such a way that each machine
+always has history for every branch that it has to work with. */
+
+template<class protocol_t>
+class branch_birth_certificate_t {
+public:
+    /* The region covered by the branch */
+    typename protocol_t::region_t region;
+
+    /* The timestamp of the first state on the branch */
+    state_timestamp_t initial_timestamp;
+
+    /* Where the branch's initial data came from */
+    region_map_t<protocol_t, version_range_t> origin;
+
+    RDB_MAKE_ME_SERIALIZABLE_3(region, initial_timestamp, origin);
+};
+
+template<class protocol_t>
+class branch_history_t {
+public:
+    std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > branches;
+
+    RDB_MAKE_ME_SERIALIZABLE_1(branches);
+};
+
 /* Every `listener_t` constructs a `listener_business_card_t` and sends it to
 the `broadcaster_t`. */
 
@@ -152,7 +179,11 @@ struct backfiller_business_card_t {
     typedef mailbox_t< void(
         backfill_session_id_t,
         region_map_t<protocol_t, version_range_t>,
-        mailbox_addr_t<void(region_map_t<protocol_t, version_range_t>)>,
+        branch_history_t<protocol_t>,
+        mailbox_addr_t<void(
+            region_map_t<protocol_t, version_range_t>,
+            branch_history_t<protocol_t>
+            )>,
         mailbox_addr_t<void(typename protocol_t::backfill_chunk_t, fifo_enforcer_write_token_t)>,
         mailbox_t<void(fifo_enforcer_write_token_t)>::address_t,
         mailbox_t<void(mailbox_addr_t<void(int)>)>::address_t
@@ -163,6 +194,8 @@ struct backfiller_business_card_t {
 
     /* Mailboxes used for requesting the progress of a backfill */
     typedef mailbox_t<void(backfill_session_id_t, mailbox_addr_t<void(std::pair<int, int>)>)> request_progress_mailbox_t;
+
+    /* TODO tim: investigate this */
     typedef mailbox_t<void(float)> receive_progress_mailbox_t;
 
     backfiller_business_card_t() { }
@@ -180,6 +213,7 @@ struct backfiller_business_card_t {
     RDB_MAKE_ME_SERIALIZABLE_3(backfill_mailbox, cancel_backfill_mailbox, request_progress_mailbox);
 };
 
+/* TODO tim: investigate this */
 template <class protocol_t>
 void request_backfiller_progress(const backfiller_business_card_t<protocol_t> &backfiller_bcard, mailbox_manager_t *mbox_manager, backfill_session_id_t id, promise_t<float> *out) {
     send(mbox_manager, backfiller_bcard.request_progress_mailbox, id, boost::bind(&promise_t<float>::pulse, out, _1));
@@ -191,16 +225,19 @@ It appears in the directory. */
 template<class protocol_t>
 struct broadcaster_business_card_t {
 
-    broadcaster_business_card_t(branch_id_t bid, const registrar_business_card_t<listener_business_card_t<protocol_t> > &r) :
-        branch_id(bid), registrar(r) { }
+    broadcaster_business_card_t(branch_id_t bid,
+            const branch_history_t<protocol_t> &bh,
+            const registrar_business_card_t<listener_business_card_t<protocol_t> > &r) :
+        branch_id(bid), branch_id_associated_branch_history(bh), registrar(r) { }
 
     broadcaster_business_card_t() { }
 
     branch_id_t branch_id;
+    branch_history_t<protocol_t> branch_id_associated_branch_history;
 
     registrar_business_card_t<listener_business_card_t<protocol_t> > registrar;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(branch_id, registrar);
+    RDB_MAKE_ME_SERIALIZABLE_3(branch_id, branch_id_associated_branch_history, registrar);
 };
 
 template<class protocol_t>
@@ -222,53 +259,5 @@ struct replier_business_card_t {
 
     RDB_MAKE_ME_SERIALIZABLE_2(synchronize_mailbox, backfiller_bcard);
 };
-
-/* `branch_history_t` is a record of all of the branches that have ever been
-created. It appears in the semilattice metadata. */
-
-template<class protocol_t>
-class branch_birth_certificate_t {
-public:
-    /* The region covered by the branch */
-    typename protocol_t::region_t region;
-
-    /* The timestamp of the first state on the branch */
-    state_timestamp_t initial_timestamp;
-
-    /* Where the branch's initial data came from */
-    region_map_t<protocol_t, version_range_t> origin;
-
-    RDB_MAKE_ME_SERIALIZABLE_3(region, initial_timestamp, origin);
-};
-
-template<class protocol_t>
-class branch_history_t {
-public:
-    std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > branches;
-
-    RDB_MAKE_ME_SERIALIZABLE_1(branches);
-};
-
-template<class protocol_t>
-bool operator==(const branch_birth_certificate_t<protocol_t> &a,
-        const branch_birth_certificate_t<protocol_t> &b) {
-    return a.region == b.region && a.initial_timestamp == b.initial_timestamp;
-}
-
-template<class protocol_t>
-void semilattice_join(UNUSED branch_birth_certificate_t<protocol_t> *a,
-                      UNUSED const branch_birth_certificate_t<protocol_t> &b) {
-    rassert(*a == b);
-}
-
-template<class protocol_t>
-bool operator==(const branch_history_t<protocol_t> &a, const branch_history_t<protocol_t> &b) {
-    return a.branches == b.branches;
-}
-
-template<class protocol_t>
-void semilattice_join(branch_history_t<protocol_t> *a, const branch_history_t<protocol_t> &b) {
-    semilattice_join(&a->branches, b.branches);
-}
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_ */
