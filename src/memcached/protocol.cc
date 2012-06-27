@@ -453,8 +453,8 @@ memcached_protocol_t::store_t::store_t(const std::string& filename, bool create,
         // Initialize metainfo to an empty `binary_blob_t` because its domain is
         // required to be `hash_region_t<key_range_t>::universe()` at all times
         /* Wow, this is a lot of lines of code for a simple concept. Can we do better? */
-        boost::scoped_ptr<real_superblock_t> superblock;
         boost::scoped_ptr<transaction_t> txn;
+        boost::scoped_ptr<real_superblock_t> superblock;
         order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::store_t");
         order_token = btree->order_checkpoint_.check_through(order_token);
         get_btree_superblock(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, txn);
