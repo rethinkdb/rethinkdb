@@ -444,9 +444,7 @@ class Arithmetic(Term):
             op_term.write_ast(parent)
             return
         # Otherwise, do the op and recurse
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = self.op_type
-        Arithmetic([op_term] + self.terms[2:], self.op_type).write_ast(parent.call.args.add())
+        Arithmetic([op_term] + self.terms[2:], self.op_type).write_ast(parent)
 
 def add(*terms):
     return Arithmetic(list(terms), p.Builtin.ADD)
