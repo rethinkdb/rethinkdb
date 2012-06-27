@@ -23,6 +23,6 @@ Response query_server_t::handle(const Query &q) {
         return res;
     }
 
-    query_language::variable_val_scope_t val_scope;
-    return eval(q, &val_scope);
+    query_language::runtime_environment_t runtime_environment(ns_repo, semilattice_metadata);
+    return eval(q, &runtime_environment);
 }

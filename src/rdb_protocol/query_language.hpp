@@ -8,8 +8,11 @@
 #include <boost/variant.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "rdb_protocol/query_language.pb.h"
+#include "clustering/administration/metadata.hpp"
+#include "clustering/administration/namespace_interface_repository.hpp"
 #include "http/json.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/query_language.pb.h"
 
 //TODO maybe we can merge well definedness and type checking. */
 
@@ -201,15 +204,31 @@ private:
     std::string what_happened;
 };
 
-Response eval(const Query &q, variable_val_scope_t *);
+class runtime_environment_t {
+public:
+    runtime_environment_t(namespace_repo_t<rdb_protocol_t> *_ns_repo, 
+                          boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata)
+        : ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata)
+    { }
 
-Response eval(const ReadQuery &r, variable_val_scope_t *) THROWS_ONLY(runtime_exc_t);
+    variable_val_scope_t scope;
+    namespace_repo_t<rdb_protocol_t> *ns_repo;
+    //TODO this should really just be the namespace metadata... but
+    //constructing views is too hard :-/
+    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+};
 
-Response eval(const WriteQuery &r, variable_val_scope_t *) THROWS_ONLY(runtime_exc_t);
+Response eval(const Query &q, runtime_environment_t *);
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, variable_val_scope_t *) THROWS_ONLY(runtime_exc_t);
+Response eval(const ReadQuery &r, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t *) THROWS_ONLY(runtime_exc_t);
+Response eval(const WriteQuery &r, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+
+boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+
+boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+
+namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
 } //namespace query_language
 
