@@ -145,7 +145,6 @@ typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_region(int i) co
 template <class protocol_t>
 store_view_t<protocol_t> *multistore_ptr_t<protocol_t>::get_store_view(int i) const {
     guarantee(0 <= i && i < num_stores());
-    guarantee(false, "Every use of this function is unsafe, you need to get threading right.");
 
     return store_views[i];
 }
@@ -169,13 +168,15 @@ void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol
 }
 
 template <class protocol_t>
-class multistore_send_backfill_should_backfill_t {
+class multistore_send_backfill_should_backfill_t : public home_thread_mixin_t {
 public:
     multistore_send_backfill_should_backfill_t(int num_stores, const typename protocol_t::region_t &start_point_region,
                                                const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill_func)
         : countdown_(num_stores), should_backfill_func_(should_backfill_func), combined_metainfo_(start_point_region) { }
 
     bool should_backfill(const typename protocol_t::store_t::metainfo_t &metainfo) {
+        on_thread_t th(home_thread());
+
         combined_metainfo_.update(metainfo);
 
         --countdown_;
@@ -206,7 +207,10 @@ private:
 };
 
 template <class protocol_t>
-void regionwrap_chunkfun(const boost::function<void(typename protocol_t::backfill_chunk_t)> &wrappee, const typename protocol_t::region_t& region, typename protocol_t::backfill_chunk_t chunk) {
+void regionwrap_chunkfun(const boost::function<void(typename protocol_t::backfill_chunk_t)> &wrappee, int target_thread, const typename protocol_t::region_t& region, typename protocol_t::backfill_chunk_t chunk) {
+    // TODO: Is chunkfun supposed to block like this?
+    on_thread_t th(target_thread);
+
     // TODO: This is a borderline hack for memcached delete_range_t chunks.
     wrappee(chunk.shard(region));
 }
@@ -225,6 +229,8 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
 
     store_view_t<protocol_t> *store = store_views[i];
 
+    int chunk_fun_target_hread = get_thread_id();
+
     on_thread_t th(store->home_thread());
 
     // TODO: We need a cross thread signal for the interruptor.
@@ -233,7 +239,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
     try {
         store->send_backfill(start_point.mask(get_region(i)),
                              boost::bind(&multistore_send_backfill_should_backfill_t<protocol_t>::should_backfill, helper, _1),
-                             boost::bind(regionwrap_chunkfun<protocol_t>, chunk_fun, get_region(i), _1),
+                             boost::bind(regionwrap_chunkfun<protocol_t>, chunk_fun, chunk_fun_target_hread, get_region(i), _1),
                              progress,
                              read_tokens[i],
                              &dummy_cond);
