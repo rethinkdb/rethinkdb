@@ -118,7 +118,7 @@ void fill_in_blueprints_for_protocol(
 
 void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
                         std::map<peer_id_t, cluster_directory_metadata_t> directory,
-                        const boost::uuids::uuid &us) {
+                        const uuid_t &us) {
     std::map<machine_id_t, datacenter_id_t> machine_assignments;
 
     for (std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::iterator it = cluster_metadata->machines.machines.begin();

@@ -1,20 +1,20 @@
 #!/usr/bin/python
 import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner
+import http_admin, driver, workload_runner, scenario_common
 from vcoptparse import *
 
 op = OptParser()
 op["workload"] = PositionalArg()
-op["mode"] = StringFlag("--mode", "debug")
+scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
-    executable_path = driver.find_rethinkdb_executable(opts["mode"])
-    database_machine = driver.Process(cluster, driver.Files(metacluster, db_path = "db-database"), log_path = "serve-output-database", executable_path = executable_path)
-    access_machine = driver.Process(cluster, driver.Files(metacluster, db_path = "db-access"), log_path = "serve-output-access", executable_path = executable_path)
+    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    database_machine = driver.Process(cluster, driver.Files(metacluster, db_path = "db-database", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-database", executable_path = executable_path, command_prefix = command_prefix)
+    access_machine = driver.Process(cluster, driver.Files(metacluster, db_path = "db-access", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-access", executable_path = executable_path, command_prefix = command_prefix)
     database_machine.wait_until_started_up
     access_machine.wait_until_started_up()
 

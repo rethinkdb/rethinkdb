@@ -11,7 +11,7 @@
 #include "containers/bitset.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/types.hpp"
-#include "perfmon/perfmon_types.hpp"
+#include "perfmon/types.hpp"
 
 class log_serializer_t;
 

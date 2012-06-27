@@ -6,7 +6,6 @@
 #include <stdio.h>
 
 #include <map>
-#include <iostream>
 #include <stdexcept>
 
 #include "errors.hpp"
@@ -24,7 +23,7 @@
 #include "memcached/protocol_json_adapter.hpp"
 #include "do_on_thread.hpp"
 #include "perfmon/perfmon.hpp"
-#include "perfmon/perfmon_archive.hpp"
+#include "perfmon/archive.hpp"
 
 std::string admin_cluster_link_t::peer_id_to_machine_name(const std::string& peer_id) {
     std::string result(peer_id);
@@ -76,7 +75,7 @@ void admin_cluster_link_t::admin_stats_to_table(const std::string& machine,
                 std::string postfix(i->first);
                 // Try to convert any uuids to a name, if that fails, ignore
                 try {
-                    boost::uuids::uuid temp = str_to_uuid(postfix);
+                    uuid_t temp = str_to_uuid(postfix);
                     postfix = get_info_from_id(uuid_to_str(temp))->name;
                 } catch (...) {
                     postfix = peer_id_to_machine_name(postfix);
@@ -100,7 +99,7 @@ std::string admin_value_to_string(int value) {
     return strprintf("%i", value);
 }
 
-std::string admin_value_to_string(const boost::uuids::uuid& uuid) {
+std::string admin_value_to_string(const uuid_t& uuid) {
     return uuid_to_str(uuid);
 }
 
@@ -108,10 +107,10 @@ std::string admin_value_to_string(const std::string& str) {
     return "\"" + str + "\"";
 }
 
-std::string admin_value_to_string(const std::map<boost::uuids::uuid, int>& value) {
+std::string admin_value_to_string(const std::map<uuid_t, int>& value) {
     std::string result;
     size_t count = 0;
-    for (std::map<boost::uuids::uuid, int>::const_iterator i = value.begin(); i != value.end(); ++i) {
+    for (std::map<uuid_t, int>::const_iterator i = value.begin(); i != value.end(); ++i) {
         ++count;
         result += strprintf("%s: %i%s", uuid_to_str(i->first).c_str(), i->second, count == value.size() ? "" : ", ");
     }
@@ -139,10 +138,10 @@ std::string admin_value_to_string(const std::set<hash_region_t<key_range_t> >& v
 }
 
 template <class protocol_t>
-std::string admin_value_to_string(const region_map_t<protocol_t, boost::uuids::uuid>& value) {
+std::string admin_value_to_string(const region_map_t<protocol_t, uuid_t>& value) {
     std::string result;
     size_t count = 0;
-    for (typename region_map_t<protocol_t, boost::uuids::uuid>::const_iterator i = value.begin(); i != value.end(); ++i) {
+    for (typename region_map_t<protocol_t, uuid_t>::const_iterator i = value.begin(); i != value.end(); ++i) {
         ++count;
         result += strprintf("%s: %s%s", admin_value_to_string(i->first).c_str(), uuid_to_str(i->second).c_str(), count == value.size() ? "" : ", ");
     }
@@ -150,10 +149,10 @@ std::string admin_value_to_string(const region_map_t<protocol_t, boost::uuids::u
 }
 
 template <class protocol_t>
-std::string admin_value_to_string(const region_map_t<protocol_t, std::set<boost::uuids::uuid> >& value) {
+std::string admin_value_to_string(const region_map_t<protocol_t, std::set<uuid_t> >& value) {
     std::string result;
     size_t count = 0;
-    for (typename region_map_t<protocol_t, std::set<boost::uuids::uuid> >::const_iterator i = value.begin(); i != value.end(); ++i) {
+    for (typename region_map_t<protocol_t, std::set<uuid_t> >::const_iterator i = value.begin(); i != value.end(); ++i) {
         ++count;
         //TODO: print more detail
         result += strprintf("%s: %ld machine%s%s", admin_value_to_string(i->first).c_str(), i->second.size(), i->second.size() == 1 ? "" : "s", count == value.size() ? "" : ", ");
@@ -198,7 +197,7 @@ void admin_print_table(const std::vector<std::vector<std::string> >& table) {
 }
 
 // Truncate a uuid for easier user-interface
-std::string admin_cluster_link_t::truncate_uuid(const boost::uuids::uuid& uuid) {
+std::string admin_cluster_link_t::truncate_uuid(const uuid_t& uuid) {
     if (uuid.is_nil()) {
         return std::string("none");
     } else {
@@ -952,7 +951,7 @@ void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& d
         list_all(long_format, cluster_metadata);
     } else {
         metadata_info_t *info = get_info_from_id(obj_str);
-        boost::uuids::uuid obj_id = info->uuid;
+        uuid_t obj_id = info->uuid;
         if (info->path[0] == "datacenters") {
             datacenters_semilattice_metadata_t::datacenter_map_t::iterator i = cluster_metadata.datacenters.datacenters.find(obj_id);
             if (i == cluster_metadata.datacenters.datacenters.end() || i->second.is_deleted()) {
@@ -1168,7 +1167,7 @@ void admin_cluster_link_t::do_admin_list_stats(admin_command_parser_t::command_d
                         // Try to convert the uuid to a (unique) name
                         std::string id = i->first;
                         try {
-                            boost::uuids::uuid temp = str_to_uuid(id);
+                            uuid_t temp = str_to_uuid(id);
                             id = get_info_from_id(uuid_to_str(temp))->name;
                         } catch (...) {
                         }
@@ -1692,17 +1691,15 @@ void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::com
     std::string protocol(data.params["protocol"][0]);
     std::string port_str(data.params["port"][0]);
     std::string name(data.params["name"][0]);
-    int port = atoi(port_str.c_str());
+    uint64_t port;
     std::string datacenter_id(data.params["primary"][0]);
     metadata_info_t *datacenter_info(get_info_from_id(datacenter_id));
     datacenter_id_t primary(str_to_uuid(datacenter_info->path[1]));
     namespace_id_t new_id;
 
     // Make sure port is a number
-    for (size_t i = 0; i < port_str.length(); ++i) {
-        if (port_str[i] < '0' || port_str[i] > '9') {
-            throw admin_parse_exc_t("port is not a number");
-        }
+    if (!strtou64_strict(port_str, 10, &port)) {
+        throw admin_parse_exc_t("port is not a number");
     }
 
     if (port > 65536) {
@@ -1793,7 +1790,7 @@ void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::comma
 
 template <class obj_map>
 void admin_cluster_link_t::do_admin_set_datacenter_namespace(obj_map& metadata,
-                                                             const boost::uuids::uuid obj_uuid,
+                                                             const uuid_t obj_uuid,
                                                              const datacenter_id_t dc) {
     typename obj_map::iterator i = metadata.find(obj_uuid);
     if (i == metadata.end() || i->second.is_deleted()) {
@@ -1807,7 +1804,7 @@ void admin_cluster_link_t::do_admin_set_datacenter_namespace(obj_map& metadata,
 }
 
 void admin_cluster_link_t::do_admin_set_datacenter_machine(machines_semilattice_metadata_t::machine_map_t& metadata,
-                                                           const boost::uuids::uuid obj_uuid,
+                                                           const uuid_t obj_uuid,
                                                            const datacenter_id_t dc,
                                                            cluster_semilattice_metadata_t& cluster_metadata) {
     machines_semilattice_metadata_t::machine_map_t::iterator i = metadata.find(obj_uuid);
@@ -1902,7 +1899,7 @@ void admin_cluster_link_t::do_admin_set_name(admin_command_parser_t::command_dat
 }
 
 template <class map_type>
-void admin_cluster_link_t::do_admin_set_name_internal(map_type& obj_map, const boost::uuids::uuid& id, const std::string& name) {
+void admin_cluster_link_t::do_admin_set_name_internal(map_type& obj_map, const uuid_t& id, const std::string& name) {
     typename map_type::iterator i = obj_map.find(id);
     if (!i->second.is_deleted() && !i->second.get().name.in_conflict()) {
         i->second.get_mutable().name.get_mutable() = name;
@@ -1917,12 +1914,11 @@ void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_dat
     metadata_info_t *ns_info(get_info_from_id(data.params["namespace"][0]));
     metadata_info_t *dc_info(get_info_from_id(data.params["datacenter"][0]));
     std::string acks_str = data.params["num-acks"][0].c_str();
+    uint64_t acks_num;
 
     // Make sure num-acks is a number
-    for (size_t i = 0; i < acks_str.length(); ++i) {
-        if (acks_str[i] < '0' || acks_str[i] > '9') {
-            throw admin_parse_exc_t("num-acks is not a number");
-        }
+    if (!strtou64_strict(acks_str, 10, &acks_num)) {
+        throw admin_parse_exc_t("num-acks is not a number");
     }
 
     if (dc_info->path[0] != "datacenters") {
@@ -1936,7 +1932,7 @@ void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_dat
         } else if (i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
         }
-        do_admin_set_acks_internal(i->second.get_mutable(), dc_info->uuid, atoi(acks_str.c_str()));
+        do_admin_set_acks_internal(i->second.get_mutable(), dc_info->uuid, acks_num);
 
     } else if (ns_info->path[0] == "memcached_namespaces") {
         namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(ns_info->uuid);
@@ -1945,7 +1941,7 @@ void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_dat
         } else if (i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected error, namespace has been deleted");
         }
-        do_admin_set_acks_internal(i->second.get_mutable(), dc_info->uuid, atoi(acks_str.c_str()));
+        do_admin_set_acks_internal(i->second.get_mutable(), dc_info->uuid, acks_num);
 
     } else {
         throw admin_parse_exc_t(data.params["namespace"][0] + " is not a namespace");
@@ -1991,13 +1987,11 @@ void admin_cluster_link_t::do_admin_set_replicas(admin_command_parser_t::command
     metadata_info_t *ns_info(get_info_from_id(data.params["namespace"][0]));
     metadata_info_t *dc_info(get_info_from_id(data.params["datacenter"][0]));
     std::string replicas_str = data.params["num-replicas"][0].c_str();
-    int num_replicas = atoi(replicas_str.c_str());
+    uint64_t num_replicas;
 
-    // Make sure num-acks is a number
-    for (size_t i = 0; i < replicas_str.length(); ++i) {
-        if (replicas_str[i] < '0' || replicas_str[i] > '9') {
-            throw admin_parse_exc_t("num-replicas is not a number");
-        }
+    // Make sure num-replicas is a number
+    if (!strtou64_strict(replicas_str, 10, &num_replicas)) {
+        throw admin_parse_exc_t("num-replicas is not a number");
     }
 
     if (dc_info->path[0] != "datacenters") {
@@ -2128,8 +2122,8 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
 }
 
 template <class T>
-void admin_cluster_link_t::do_admin_remove_internal(std::map<boost::uuids::uuid, T>& obj_map, const boost::uuids::uuid& key) {
-    typename std::map<boost::uuids::uuid, T>::iterator i = obj_map.find(key);
+void admin_cluster_link_t::do_admin_remove_internal(std::map<uuid_t, T>& obj_map, const uuid_t& key) {
+    typename std::map<uuid_t, T>::iterator i = obj_map.find(key);
 
     if (i == obj_map.end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("object not found");
@@ -2599,6 +2593,37 @@ void admin_cluster_link_t::do_admin_resolve(admin_command_parser_t::command_data
     }
 }
 
+// Reads from stream until a newline is occurred.  Reads the newline
+// but does not store it in out.  Returns true upon success.
+bool getline(FILE *stream, std::string *out) {
+    out->clear();
+
+    const int size = 1024;
+    char buf[size];
+
+    for (;;) {
+        char *res = fgets(buf, size, stream);
+
+        if (!res) {
+            return false;
+        }
+
+        if (res) {
+            int len = strlen(buf);
+            guarantee(len < size);
+            guarantee(len > 0);
+
+            if (buf[len - 1] == '\n') {
+                buf[len - 1] = '\0';
+                out->append(buf);
+                return true;
+            } else {
+                out->append(buf);
+            }
+        }
+    }
+}
+
 template <class T>
 void admin_cluster_link_t::resolve_value(vclock_t<T>& field) {
     if (!field.in_conflict()) {
@@ -2615,10 +2640,13 @@ void admin_cluster_link_t::resolve_value(vclock_t<T>& field) {
     printf("select: ");
 
     std::string selection;
-    getline(std::cin, selection);
-    int index = atoi(selection.c_str());
+    bool getline_res = getline(stdin, &selection);
+    if (!getline_res) {
+        throw admin_cluster_exc_t("could not read from stdin");
+    }
 
-    if (index < 0 || (size_t)index > values.size()) {
+    uint64_t index;
+    if (!strtou64_strict(selection, 10, &index) || index > values.size()) {
         throw admin_cluster_exc_t("invalid selection");
     } else if (index == 0) {
         throw admin_cluster_exc_t("cancelled");

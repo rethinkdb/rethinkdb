@@ -77,7 +77,7 @@ public:
 
 private:
 
-    static std::string truncate_uuid(const boost::uuids::uuid& uuid);
+    static std::string truncate_uuid(const uuid_t& uuid);
 
     static const size_t minimum_uuid_substring = 4;
     static const size_t uuid_output_length = 8;
@@ -89,7 +89,7 @@ private:
     size_t get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter);
 
     template <class map_type>
-    void do_admin_set_name_internal(map_type& obj_map, const boost::uuids::uuid& id);
+    void do_admin_set_name_internal(map_type& obj_map, const uuid_t& id);
 
     template <class protocol_t>
     void do_admin_set_acks_internal(namespace_semilattice_metadata_t<protocol_t>& ns,
@@ -102,11 +102,11 @@ private:
 
     template <class obj_map>
     void do_admin_set_name_internal(obj_map& metadata,
-                                    const boost::uuids::uuid& uuid,
+                                    const uuid_t& uuid,
                                     const std::string& new_name);
 
     template <class T>
-    void do_admin_remove_internal(std::map<boost::uuids::uuid, T>& obj_map, const boost::uuids::uuid& key);
+    void do_admin_remove_internal(std::map<uuid_t, T>& obj_map, const uuid_t& key);
 
     template <class protocol_t>
     void remove_machine_pinnings(const machine_id_t& machine,
@@ -120,11 +120,11 @@ private:
 
     template <class obj_map>
     void do_admin_set_datacenter_namespace(obj_map& metadata,
-                                           const boost::uuids::uuid obj_uuid,
+                                           const uuid_t obj_uuid,
                                            const datacenter_id_t dc);
 
     void do_admin_set_datacenter_machine(machines_semilattice_metadata_t::machine_map_t& metadata,
-                                         const boost::uuids::uuid obj_uuid,
+                                         const uuid_t obj_uuid,
                                          const datacenter_id_t dc,
                                          cluster_semilattice_metadata_t& cluster_metadata);
 
@@ -314,7 +314,7 @@ private:
     peer_id_t sync_peer_id;
 
     struct metadata_info_t {
-        boost::uuids::uuid uuid;
+        uuid_t uuid;
         std::string name;
         std::vector<std::string> path;
     };

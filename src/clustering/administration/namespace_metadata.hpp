@@ -23,7 +23,7 @@
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
 
-typedef boost::uuids::uuid namespace_id_t;
+typedef uuid_t namespace_id_t;
 
 /* This is the metadata for a single namespace of a specific protocol. */
 
@@ -138,8 +138,8 @@ public:
 };
 
 struct namespace_metadata_ctx_t {
-    boost::uuids::uuid us;
-    explicit namespace_metadata_ctx_t(boost::uuids::uuid _us)
+    uuid_t us;
+    explicit namespace_metadata_ctx_t(uuid_t _us)
         : us(_us)
     { }
 };

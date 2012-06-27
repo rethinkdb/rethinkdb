@@ -153,7 +153,7 @@ private:
         perfmon_collection_t *perfmon_collection = parent->perfmon_collection_repo->get_perfmon_collection_for_namespace(namespace_id);
 
         // TODO: We probably shouldn't have to pass in this perfmon collection.
-        svs_by_namespace->get_svs(perfmon_collection, namespace_id, &stores, &svs);
+        svs_by_namespace->get_svs(perfmon_collection, namespace_id, &stores_lifetimer, &svs);
 
         reactor.reset(new reactor_t<protocol_t>(
             parent->mbox_manager,
@@ -194,7 +194,7 @@ private:
     const namespace_id_t namespace_id;
     svs_by_namespace_t<protocol_t> *const svs_by_namespace;
 
-    boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > stores;
+    stores_lifetimer_t<protocol_t> stores_lifetimer;
     boost::scoped_ptr<multistore_ptr_t<protocol_t> > svs;
     boost::scoped_ptr<reactor_t<protocol_t> > reactor;
 

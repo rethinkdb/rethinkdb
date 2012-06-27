@@ -1,32 +1,26 @@
+#include "errors.hpp"
+#include <boost/bind.hpp>
+#include <boost/scoped_ptr.hpp>
+
 #include "perfmon/core.hpp"
-#include "arch/spinlock.hpp"
-
-// TODO (rntz) remove lock, not necessary with perfmon static initialization restrictions
-
-/* The var lock protects the global perfmon collection when it is being
- * modified. In theory, this should all work automagically because the
- * constructor of every perfmon_t calls get_var_lock(), causing the var lock to
- * be constructed before the first perfmon, so it is destroyed after the last
- * perfmon.
- */
-static spinlock_t &get_var_lock() {
-    /* To avoid static initialization fiasco */
-    static spinlock_t lock;
-    return lock;
-}
+#include "arch/runtime/coroutines.hpp"
 
 /* Constructor and destructor register and deregister the perfmon. */
 perfmon_t::perfmon_t(perfmon_collection_t *_parent, bool _insert)
     : parent(_parent), insert(_insert)
 {
     if (insert) {
-        // FIXME maybe get rid of this spinlock, especially when parent isn't global
-        // According to jdoliner, you can't just remove this, because that breaks some unit-tests.
-        // This should be investigated.
-        spinlock_acq_t acq(&get_var_lock());
-        if (!parent) {
-            crash("Parent can't be NULL when adding a perfmon to a collection");
+        guarantee(_parent != NULL, "Global perfmon collection must be specified explicitly instead of using NULL");
+        if (coroutines_have_been_initialized()) {
+            // We spawn a coroutine which will add the current perfmon into the parent perfmon collection. We do
+            // it in order to avoid adding an incompletely constructed object into the perfmon collection which
+            // could be queried concurrently. It is assumed here that the constructor of the deriving class
+            // cannot block. If it can, it's a bug!
+            coro_t::spawn_sometime(boost::bind(&perfmon_collection_t::add, parent, this));
         } else {
+            // There are no other coroutines and, we assume, no other threads that can access the parent perfmon
+            // collection, so we add `this` into `parent` right now, even though the current object hasn't been
+            // completely constructed.
             parent->add(this);
         }
     }
@@ -34,35 +28,47 @@ perfmon_t::perfmon_t(perfmon_collection_t *_parent, bool _insert)
 
 perfmon_t::~perfmon_t() {
     if (insert) {
-        spinlock_acq_t acq(&get_var_lock());
-        if (!parent) {
-            crash("Parent can't be NULL when adding a perfmon to a collection");
-        } else {
-            parent->remove(this);
-        }
+        parent->remove(this);
     }
 }
+
+struct stats_collection_context_t : public home_thread_mixin_t {
+    stats_collection_context_t(rwi_lock_t *constituents_lock, size_t size)
+        : contexts(new void *[size]), lock_sentry(constituents_lock) { }
+
+    ~stats_collection_context_t() {
+        delete[] contexts;
+    }
+
+    void **contexts;
+private:
+    rwi_lock_t::read_acq_t lock_sentry;
+};
 
 void *perfmon_collection_t::begin_stats() {
-    constituents_access.co_lock(rwi_read); // FIXME that should be scoped somehow, so that we unlock in case the results collection fail
-    void **contexts = new void *[constituents.size()];
+    stats_collection_context_t *ctx;
+    {
+        on_thread_t thread_switcher(home_thread());
+        ctx = new stats_collection_context_t(&constituents_access, constituents.size());
+    }
+
     size_t i = 0;
     for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
-        contexts[i] = p->begin_stats();
+        ctx->contexts[i] = p->begin_stats();
     }
-    return contexts;
+    return ctx;
 }
 
-void perfmon_collection_t::visit_stats(void *_contexts) {
-    void **contexts = reinterpret_cast<void **>(_contexts);
+void perfmon_collection_t::visit_stats(void *_context) {
+    stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
     size_t i = 0;
     for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
-        p->visit_stats(contexts[i]);
+        p->visit_stats(ctx->contexts[i]);
     }
 }
 
-void perfmon_collection_t::end_stats(void *_contexts, perfmon_result_t *result) {
-    void **contexts = reinterpret_cast<void **>(_contexts);
+void perfmon_collection_t::end_stats(void *_context, perfmon_result_t *result) {
+    stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
 
     // TODO: This is completely fucked up shitty code.
     perfmon_result_t *map;
@@ -76,19 +82,32 @@ void perfmon_collection_t::end_stats(void *_contexts, perfmon_result_t *result) 
 
     size_t i = 0;
     for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
-        p->end_stats(contexts[i], map);
+        assert_thread();
+        p->end_stats(ctx->contexts[i], map);
     }
 
-    delete[] contexts;
-    constituents_access.unlock();
+    {
+        on_thread_t thread_switcher(home_thread());
+        delete ctx; // cleans up, unlocks
+    }
 }
 
 void perfmon_collection_t::add(perfmon_t *perfmon) {
+    boost::scoped_ptr<on_thread_t> thread_switcher;
+    if (coroutines_have_been_initialized()) {
+        thread_switcher.reset(new on_thread_t(home_thread()));
+    }
+
     rwi_lock_t::write_acq_t write_acq(&constituents_access);
     constituents.push_back(perfmon);
 }
 
 void perfmon_collection_t::remove(perfmon_t *perfmon) {
+    boost::scoped_ptr<on_thread_t> thread_switcher;
+    if (coroutines_have_been_initialized()) {
+        thread_switcher.reset(new on_thread_t(home_thread()));
+    }
+
     rwi_lock_t::write_acq_t write_acq(&constituents_access);
     constituents.remove(perfmon);
 }
@@ -216,6 +235,7 @@ perfmon_collection_t &get_global_perfmon_collection() {
     before it is needed, as advised by the C++ FAQ. Otherwise, a `perfmon_t`
     might be initialized before `collection` was initialized. */
 
+    // FIXME: probably use "new" to create the perfmon_collection_t. For more info check out C++ FAQ Lite answer 10.16.
     static perfmon_collection_t collection("Global", NULL, false, false);
     return collection;
 }
