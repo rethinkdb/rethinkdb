@@ -80,18 +80,33 @@ class db(object):
     def __getattr__(self, key):
         return Table(self, key)
 
-class View(object):
+class Stream(object):
+    def __init__(self):
+        self.parent_view = None
+        self.read_only = False
+
+    def check_readonly(self):
+        view = self
+        while view:
+            if view.read_only:
+                raise ValueError
+            else:
+                view = view.parent_view
+        
     def filter(self, selector, row=DEFAULT_ROW_BINDING):
         return Filter(self, selector, row)
     
-    def update(self, updater, row=DEFAULT_ROW_BINDING):
-        return Update(self, updater, row)
-
     def map(self, mapping, row=DEFAULT_ROW_BINDING):
         return Map(self, mapping, row)
+    
+    def update(self, updater, row=DEFAULT_ROW_BINDING):
+        self.check_readonly()
+        return Update(self, updater, row)
 
-class Table(View):
+
+class Table(Stream):
     def __init__(self, db, name):
+        super(Table, self).__init__()
         self.db = db
         self.name = name
 
@@ -132,8 +147,9 @@ class Insert(object):
         self.write_ast(write_query.insert)
         return write_query.insert
 
-class Filter(View):
+class Filter(Stream):
     def __init__(self, parent_view, selector, row):
+        super(Filter, self).__init__()
         if type(selector) is dict:
             self.selector = self._and_eq(selector)
         else:
@@ -185,11 +201,13 @@ class Update(object):
         wq = _finalize_internal(root, p.WriteQuery)
         self.write_ast(wq)
 
-class Map(View):
+class Map(Stream):
     # Accepts a term that get evaluated on each row and returned
     # (i.e. json, extend, etc.). Alternatively accepts a term (such as
     # extend_json). Eventually also javascript.
     def __init__(self, parent_view, mapping, row):
+        super(Map, self).__init__()
+        self.read_only = True
         self.mapping = mapping
         self.row = row
         self.parent_view = parent_view
@@ -402,6 +420,8 @@ class Arithmetic(Term):
             op_term.write_ast(parent)
             return
         # Otherwise, do the op and recurse
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = self.op_type
         Arithmetic([op_term] + self.terms[2:], self.op_type).write_ast(parent.call.args.add())
 
 def add(*terms):
