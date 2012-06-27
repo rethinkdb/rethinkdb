@@ -2,6 +2,7 @@
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
+#include <math.h>
 
 #include "http/json.hpp"
 
@@ -904,21 +905,56 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 }
 
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(lhs->get()->valuedouble + rhs->get()->valuedouble)));
-                rassert(res->get()->valueint == rhs->get()->valueint + lhs->get()->valueint, "If this gets tripped joe doesn't understand how floating points work.");
                 return res;
             }
             break;
         case Builtin::SUBTRACT:
-            crash("Not implemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), scope),
+                    rhs = eval(c.args(1), scope);
+                if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
+                    throw runtime_exc_t("Both operands to SUB must be numbers.");
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(lhs->get()->valuedouble - rhs->get()->valuedouble)));
+                return res;
+            }
             break;
         case Builtin::MULTIPLY:
-            crash("Not implemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), scope),
+                    rhs = eval(c.args(1), scope);
+                if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
+                    throw runtime_exc_t("Both operands to MUL must be numbers.");
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(lhs->get()->valuedouble * rhs->get()->valuedouble)));
+                return res;
+            }
             break;
         case Builtin::DIVIDE:
-            crash("Not implemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), scope),
+                    rhs = eval(c.args(1), scope);
+                if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
+                    throw runtime_exc_t("Both operands to DIV must be numbers.");
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(lhs->get()->valuedouble / rhs->get()->valuedouble)));
+                return res;
+            }
             break;
         case Builtin::MODULO:
-            crash("Not implemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), scope),
+                    rhs = eval(c.args(1), scope);
+                if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
+                    throw runtime_exc_t("Both operands to MOD must be numbers.");
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(fmod(lhs->get()->valuedouble, rhs->get()->valuedouble))));
+                return res;
+            }
             break;
         case Builtin::COMPARE:
             crash("Not implemented");
