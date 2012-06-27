@@ -176,7 +176,20 @@ store_view_t<protocol_t> *multistore_ptr_t<protocol_t>::get_store_view(int i) co
     return store_views[i];
 }
 
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::do_set_a_metainfo(int i,
+                                                     const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
+                                                     order_token_t order_token,
+                                                     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                                     signal_t *interruptor) {
 
+    const int dest_thread = store_views[i]->home_thread();
+    cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
+
+    on_thread_t th(dest_thread);
+
+    store_views[i]->set_metainfo(new_metainfo.mask(get_region(i)), order_token, write_tokens[i], &ct_interruptor);
+}
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
@@ -186,16 +199,8 @@ void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol
                                                      signal_t *interruptor) {
     guarantee(num_write_tokens == num_stores());
 
-    for (int i = 0; i < num_stores(); ++i) {
-
-        const int dest_thread = store_views[i]->home_thread();
-        cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
-
-        // TODO: Obviously this is ridiculous, at _least_ it should be pmap.
-        on_thread_t th(dest_thread);
-
-        store_views[i]->set_metainfo(new_metainfo.mask(get_region(i)), order_token, write_tokens[i], &ct_interruptor);
-    }
+    pmap(num_stores(),
+         boost::bind(&multistore_ptr_t<protocol_t>::do_set_a_metainfo, this, _1, boost::ref(new_metainfo), order_token, write_tokens, interruptor));
 }
 
 template <class protocol_t>

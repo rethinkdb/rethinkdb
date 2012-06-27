@@ -142,6 +142,12 @@ private:
                            region_map_t<protocol_t, version_range_t> *updatee,
                            mutex_t *updatee_mutex);
 
+    void do_set_a_metainfo(int i,
+                           const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
+                           order_token_t order_token,
+                           boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                           signal_t *interruptor);
+
 
     // Used by the constructors.
     void initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask) THROWS_NOTHING;
