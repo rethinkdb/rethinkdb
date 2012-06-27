@@ -74,6 +74,7 @@ def term_eval(self, env):
             return value
     raise ValueError(str(self))
 
+
 @extend(p.Term.Call)
 def builtin_eval(self, env):
     t = self.builtin.type
@@ -87,8 +88,15 @@ def builtin_eval(self, env):
     elif t == p.Builtin.GETATTR:
         return args[0].get(self.builtin.attr, None)
     elif t == p.Builtin.COMPARE:
-        if self.builtin.comparison == p.Builtin.EQ:
-            return args[0] == args[1]
+        comparators = {
+            p.Builtin.EQ: operator.eq,
+            p.Builtin.NE: operator.ne,
+            p.Builtin.LT: operator.lt,
+            p.Builtin.LE: operator.le,
+            p.Builtin.GT: operator.gt,
+            p.Builtin.GE: operator.ge
+        }
+        return comparators[self.builtin.comparison](args[0], args[1])
     elif t == p.Builtin.MAPMERGE:
         ret = dict(args[0])
         ret.update(args[1])
@@ -152,19 +160,27 @@ class RDBHandler(SocketServer.BaseRequestHandler):
             query_serialized = self.recv(msglen)
             query = p.Query()
             query.ParseFromString(query_serialized)
+            try:
+                print "RECEIVED:", str(query)
 
-            print "RECEIVED:", str(query)
+                res = query.eval([])
 
-            res = query.eval([])
+                response = p.Response()
+                response.token = query.token
+                response.status_code = 200
+                response.response.append(json.dumps(res))
+                response_serialized = response.SerializeToString()
 
-            response = p.Response()
-            response.token = query.token
-            response.status_code = 200
-            response.response.append(json.dumps(res))
-            response_serialized = response.SerializeToString()
+                header = struct.pack("<L", len(response_serialized))
+                self.send(header + response_serialized)
+            except Exception, e:                
+                response = p.Response()
+                response.token = query.token
+                response.status_code = 500
+                response.response.append(str(e))
 
-            header = struct.pack("<L", len(response_serialized))
-            self.send(header + response_serialized)
+                header = struct.pack("<L", len(response_serialized))
+                self.send(header + response_serialized)
 
     def send(self, msg):
         self.request.sendall(msg)
