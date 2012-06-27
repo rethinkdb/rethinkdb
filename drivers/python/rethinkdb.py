@@ -326,7 +326,7 @@ class val(Term):
         if isinstance(self.value, bool):
             parent.type = p.Term.BOOL
             parent.valuebool = self.value
-        elif isinstance(self.value, int):
+        elif isinstance(self.value, (int, float)):
             parent.type = p.Term.NUMBER
             parent.number = self.value
         elif isinstance(self.value, str):
@@ -515,7 +515,7 @@ def let(*args):
 def toTerm(value):
     if isinstance(value, Term):
         return value
-    if isinstance(value, (bool, int, dict)):
+    if isinstance(value, (bool, int, float, dict)):
         return val(value)
     if isinstance(value, str):
         return parseStringTerm(value)
