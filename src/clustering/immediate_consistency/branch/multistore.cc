@@ -29,31 +29,35 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inn
 }
 
 template <class protocol_t>
+void do_initialize(int i, store_view_t<protocol_t> **store_views, store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region) {
+    rassert(store_views[i] == NULL);
+
+    on_thread_t th(_store_views[i]->home_thread());
+
+    // We do a region intersection because store_subview_t requires that the region mask be a subset of the store region.
+    store_views[i] = new store_subview_t<protocol_t>(_store_views[i],
+                                                     region_intersection(_region, _store_views[i]->get_region()));
+}
+
+template <class protocol_t>
 void multistore_ptr_t<protocol_t>::initialize(store_view_t<protocol_t> **_store_views,
                                               const typename protocol_t::region_t &_region) THROWS_NOTHING {
-    // TODO: This should obviously use pmap.
+    pmap(store_views.size(), boost::bind(do_initialize<protocol_t>, _1, store_views.data(), _store_views, boost::ref(_region)));
+}
 
-    for (int i = 0, e = store_views.size(); i < e; ++i) {
-        rassert(store_views[i] == NULL);
+template <class protocol_t>
+void do_destroy(int i, store_view_t<protocol_t> **store_views) {
+    guarantee(store_views[i] != NULL);
 
-        on_thread_t th(_store_views[i]->home_thread());
+    on_thread_t th(store_views[i]->home_thread());
 
-        // We do a region intersection because store_subview_t requires that the region mask be a subset of the store region.
-        store_views[i] = new store_subview_t<protocol_t>(_store_views[i],
-                                                         region_intersection(_region, _store_views[i]->get_region()));
-    }
+    delete store_views[i];
+    store_views[i] = NULL;
 }
 
 template <class protocol_t>
 multistore_ptr_t<protocol_t>::~multistore_ptr_t() {
-    // TODO: This should use pmap.
-    for (int i = 0, e = store_views.size(); i < e; ++i) {
-        guarantee(store_views[i] != NULL);
-
-        on_thread_t th(store_views[i]->home_thread());
-
-        delete store_views[i];
-    }
+    pmap(store_views.size(), boost::bind(do_destroy<protocol_t>, _1, store_views.data()));
 }
 
 template <class protocol_t>
@@ -62,27 +66,32 @@ typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_multistore_joine
 }
 
 template <class protocol_t>
+void do_get_read_token(int i, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out, store_view_t<protocol_t> **store_views) {
+    // TODO: This is obviously _complete_ crap.  Get the token source back to our thread.
+    on_thread_t th(store_views[i]->home_thread());
+
+    store_views[i]->new_read_token(read_tokens_out[i]);
+}
+
+template <class protocol_t>
 void multistore_ptr_t<protocol_t>::new_read_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out,
                                                    int size) {
     guarantee(int(store_views.size()) == size);
-    for (int i = 0; i < size; ++i) {
-        // TODO: This is obviously _complete_ crap.  Get the token source back to our thread.
-        on_thread_t th(store_views[i]->home_thread());
+    pmap(size, boost::bind(do_get_read_token<protocol_t>, _1, read_tokens_out, store_views.data()));
+}
 
-        store_views[i]->new_read_token(read_tokens_out[i]);
-    }
+template <class protocol_t>
+void do_get_write_token(int i, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens_out, store_view_t<protocol_t> **store_views) {
+    on_thread_t th(store_views[i]->home_thread());
+
+    store_views[i]->new_write_token(write_tokens_out[i]);
 }
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::new_write_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens_out,
                                                    int size) {
     guarantee(int(store_views.size()) == size);
-    for (int i = 0; i < size; ++i) {
-        // TODO: This is obviously _complete_ crap.  Get the token source back to our thread.
-        on_thread_t th(store_views[i]->home_thread());
-
-        store_views[i]->new_write_token(write_tokens_out[i]);
-    }
+    pmap(size, boost::bind(do_get_write_token<protocol_t>, _1, write_tokens_out, store_views.data()));
 }
 
 template <class protocol_t>
