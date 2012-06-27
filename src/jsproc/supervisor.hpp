@@ -14,6 +14,25 @@ class supervisor_t :
     private home_thread_mixin_t
 {
   public:
+    class info_t {
+        friend class supervisor_t;
+        int socket_fd;
+    };
+
+    // Must be called within a thread pool, exactly once.
+    supervisor_t(const info_t &info);
+    ~supervisor_t();
+
+    // Called to create the supervisor process and make us its child. Must be
+    // called *OUTSIDE* of a thread pool (ie. before run_in_thread_pool).
+    //
+    // On success, returns 0 and initializes `*info` in the child process, and
+    // does not return in the parent (instead the parent runs the supervisor).
+    //
+    // On failure, returns -1 in the parent process (the child is dead or never
+    // existed).
+    static int spawn(info_t *info);
+
     // Spawns `job` off and initializes `stream` with a connection to the job.
     // Thread-safe, but connect() involves switching threads temporarily.
     template<typename instance_t>
@@ -27,15 +46,6 @@ class supervisor_t :
         }
         return res;
     }
-
-    // Called to create the supervisor process and make us its child.
-    //
-    // On success, returns 0 and initializes `*proc` in the child process, and
-    // does not return in the parent (instead the parent runs the supervisor).
-    //
-    // On failure, returns -1 in the parent process (the child is dead or never
-    // existed).
-    static int spawn(supervisor_t *proc);
 
   private:
     // Connects us to a worker. Private; used only by spawn_job.

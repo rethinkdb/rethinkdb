@@ -19,6 +19,14 @@
 
 namespace jsproc {
 
+supervisor_t::supervisor_t(const info_t &info) :
+    stream_(new unix_socket_stream_t(info.socket_fd))
+{
+    // TODO (rntz): install us as thread-local data on all threads.
+}
+
+supervisor_t::~supervisor_t() {}
+
 int supervisor_t::connect(boost::scoped_ptr<unix_socket_stream_t> &stream) {
     // Spawn a socket pair.
     int fds[2];
@@ -48,7 +56,7 @@ int supervisor_t::connect(boost::scoped_ptr<unix_socket_stream_t> &stream) {
     return 0;
 }
 
-int supervisor_t::spawn(supervisor_t *proc) {
+int supervisor_t::spawn(info_t *info) {
     int fds[2];
     int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
     if (res) return res;
