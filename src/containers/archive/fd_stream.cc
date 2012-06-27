@@ -263,7 +263,7 @@ void socket_stream_t::on_read_error(int errsv) {
 void socket_stream_t::on_write_error(int errsv) {
     if (errsv != EPIPE && errsv != ENOTCONN && errsv != ECONNRESET) {
         // Unexpected error (not just "we closed")
-        logERR("Could not read from socket: %s", strerror(errsv));
+        logERR("Could not write to socket: %s", strerror(errsv));
     }
 }
 
