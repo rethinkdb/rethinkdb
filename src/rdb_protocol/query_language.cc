@@ -688,13 +688,13 @@ type_t get_type(const Query &q, variable_type_scope_t *scope) {
     crash("unreachable");
 }
 
-Response eval(const Query &q, variable_val_scope_t *scope) {
+Response eval(const Query &q, runtime_environment_t *env) {
     switch (q.type()) {
         case Query::READ:
-            return eval(q.read_query(), scope);
+            return eval(q.read_query(), env);
             break;
         case Query::WRITE:
-            return eval(q.write_query(), scope);
+            return eval(q.write_query(), env);
             break;
         default:
             crash("unreachable");
@@ -702,9 +702,9 @@ Response eval(const Query &q, variable_val_scope_t *scope) {
     crash("unreachable");
 }
 
-Response eval(const ReadQuery &r, variable_val_scope_t *scope) THROWS_ONLY(runtime_exc_t) {
+Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     Response res;
-    boost::shared_ptr<scoped_cJSON_t> json = eval(r.term(), scope);
+    boost::shared_ptr<scoped_cJSON_t> json = eval(r.term(), env);
 
     res.set_status_code(0);
     res.set_token(0);
@@ -712,7 +712,7 @@ Response eval(const ReadQuery &r, variable_val_scope_t *scope) THROWS_ONLY(runti
     return res;
 }
 
-Response eval(const WriteQuery &, variable_val_scope_t *) THROWS_ONLY(runtime_exc_t) {
+Response eval(const WriteQuery &, runtime_environment_t *) THROWS_ONLY(runtime_exc_t) {
     Response res;
     res.set_status_code(-3);
     res.set_token(0);
@@ -720,7 +720,7 @@ Response eval(const WriteQuery &, variable_val_scope_t *) THROWS_ONLY(runtime_ex
     return res;
 }
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, variable_val_scope_t *scope) THROWS_ONLY(runtime_exc_t) {
+boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (t.type()) {
         case Term::VAR:
             crash("unimplemented");
@@ -729,7 +729,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, variable_val_scope_t *scop
             crash("unimplemented");
             break;
         case Term::CALL:
-            return eval(t.call(), scope);
+            return eval(t.call(), env);
             break;
         case Term::IF:
             crash("unimplemented");
@@ -780,15 +780,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, variable_val_scope_t *scop
             break;
     }
     crash("unreachable");
-
 }
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t *scope) THROWS_ONLY(runtime_exc_t) {
+boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (c.builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
             {
-                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), scope);
+                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env);
 
                 if (data->get()->type == cJSON_False) {
                     data->get()->type = cJSON_True;
@@ -802,7 +801,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t
             break;
         case Builtin::GETATTR:
             {
-                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), scope);
+                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env);
 
                 if (!data->get()->type == cJSON_Object) {
                     throw runtime_exc_t("Data must be an object");
@@ -819,7 +818,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t
 			break;
         case Builtin::HASATTR:
             {
-                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), scope);
+                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env);
 
                 if (!data->get()->type == cJSON_Object) {
                     throw runtime_exc_t("Data must be an object");
@@ -836,7 +835,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t
 			break;
         case Builtin::PICKATTRS:
             {
-                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), scope);
+                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env);
 
                 if (!data->get()->type == cJSON_Object) {
                     throw runtime_exc_t("Data must be an object");
@@ -862,8 +861,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t
 			break;
         case Builtin::MAPMERGE:
             {
-                boost::shared_ptr<scoped_cJSON_t> left  = eval(c.args(0), scope),
-                                                  right = eval(c.args(1), scope);
+                boost::shared_ptr<scoped_cJSON_t> left  = eval(c.args(0), env),
+                                                  right = eval(c.args(1), env);
                 if (left->get()->type != cJSON_Object) {
                     throw runtime_exc_t("Data must be an object");
                 }
@@ -899,8 +898,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t
             break;
         case Builtin::ADD:
             {
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), scope),
-                    rhs = eval(c.args(1), scope);
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env),
+                    rhs = eval(c.args(1), env);
                 if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
                     throw runtime_exc_t("Both operands to ADD must be numbers.");
                 }
@@ -979,5 +978,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t
     }
     crash("unreachable");
 }
+
+//namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t) {
+//}
 
 } //namespace query_language
