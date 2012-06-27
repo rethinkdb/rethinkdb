@@ -14,7 +14,7 @@ public:
     explicit file_based_svs_by_namespace_t(const std::string &file_path) : file_path_(file_path) { }
 
     void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
-                 boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > *stores_out,
+                 stores_lifetimer_t<protocol_t> *stores_out,
                  boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out);
 private:
     const std::string file_path_;

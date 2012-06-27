@@ -39,13 +39,19 @@ public:
     void actually_call_receive_backfill(const std::vector<int> *indices,
                                         const std::vector<typename protocol_t::backfill_chunk_t> *sharded_chunks,
                                         boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                        signal_t *interruptor,
+                                        UNUSED signal_t *interruptor,
                                         int i) {
         try {
             rassert(write_tokens[i].get() != NULL);
             rassert(interruptor != NULL);
 
-            svs->get_store_view((*indices)[i])->receive_backfill((*sharded_chunks)[i], write_tokens[i], interruptor);
+            // TODO: Move this code to multistore.cc.
+            on_thread_t th(svs->get_store_view((*indices)[i])->home_thread());
+
+            // TODO: Use a cross thread interruptor signal.
+            cond_t dummy_cond;
+
+            svs->get_store_view((*indices)[i])->receive_backfill((*sharded_chunks)[i], write_tokens[i], &dummy_cond);
         } catch (interrupted_exc_t&) {
             // We check if the thing was pulsed after pmap returns.
         }

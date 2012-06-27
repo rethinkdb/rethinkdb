@@ -1,20 +1,20 @@
 #!/usr/bin/python
 import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner
+import http_admin, driver, workload_runner, scenario_common
 from vcoptparse import *
 
 op = OptParser()
 workload_runner.prepare_option_parser_for_split_or_continuous_workload(op)
-op["mode"] = StringFlag("--mode", "debug")
+scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
-    executable_path = driver.find_rethinkdb_executable(opts["mode"])
-    primary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-primary"), log_path = "serve-output-primary", executable_path = executable_path)
-    secondary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-secondary"), log_path = "serve-output-secondary", executable_path = executable_path)
+    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    primary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-primary", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-primary", executable_path = executable_path, command_prefix = command_prefix)
+    secondary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-secondary", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-secondary", executable_path = executable_path, command_prefix = command_prefix)
     secondary.wait_until_started_up()
 
     print "Creating namespace..."
