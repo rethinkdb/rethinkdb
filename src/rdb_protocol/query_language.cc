@@ -872,12 +872,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t
                     throw runtime_exc_t("Data must be an object");
                 }
 
-                json_object_iterator_t it(right->get());
-
                 cJSON *item;
-                while ((item = it.next())) {
-                    cJSON_DeleteItemFromObject(left->get(), item->string);
-                    cJSON_AddItemToObject(left->get(), item->string, cJSON_DetachItemFromObject(right->get(), item->string));
+                while ((item = right->get()->child)) {
+                    std::string item_name(item->string);
+                    cJSON_DeleteItemFromObject(left->get(), item_name.c_str());
+                    cJSON_AddItemToObject(left->get(), item_name.c_str(), cJSON_DetachItemFromObject(right->get(), item_name.c_str()));
                 }
                 return left;
             }
