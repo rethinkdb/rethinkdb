@@ -195,9 +195,6 @@ struct backfiller_business_card_t {
     /* Mailboxes used for requesting the progress of a backfill */
     typedef mailbox_t<void(backfill_session_id_t, mailbox_addr_t<void(std::pair<int, int>)>)> request_progress_mailbox_t;
 
-    /* TODO tim: investigate this */
-    typedef mailbox_t<void(float)> receive_progress_mailbox_t;
-
     backfiller_business_card_t() { }
     backfiller_business_card_t(
             const typename backfill_mailbox_t::address_t &ba,
@@ -212,12 +209,6 @@ struct backfiller_business_card_t {
 
     RDB_MAKE_ME_SERIALIZABLE_3(backfill_mailbox, cancel_backfill_mailbox, request_progress_mailbox);
 };
-
-/* TODO tim: investigate this */
-template <class protocol_t>
-void request_backfiller_progress(const backfiller_business_card_t<protocol_t> &backfiller_bcard, mailbox_manager_t *mbox_manager, backfill_session_id_t id, promise_t<float> *out) {
-    send(mbox_manager, backfiller_bcard.request_progress_mailbox, id, boost::bind(&promise_t<float>::pulse, out, _1));
-}
 
 /* `broadcaster_business_card_t` is the way that listeners find the broadcaster.
 It appears in the directory. */
