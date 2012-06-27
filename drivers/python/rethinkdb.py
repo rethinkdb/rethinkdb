@@ -85,13 +85,18 @@ class Stream(object):
         self.parent_view = None
         self.read_only = False
 
-    def check_readonly(self):
+    def is_readonly(self):
         view = self
         while view:
             if view.read_only:
-                raise ValueError
+                return True
             else:
                 view = view.parent_view
+        return False
+
+    def check_readonly(self):
+        if self.is_readonly():
+            raise ValueError
         
     def filter(self, selector, row=DEFAULT_ROW_BINDING):
         return Filter(self, selector, row)
@@ -157,20 +162,39 @@ class Filter(Stream):
         self.row = row # don't do to term so we can compare in self.filter without overriding bs
         self.parent_view = parent_view
 
-    # Try to collapse chained filters into conjunctions for performance
-    def filter(self, selector, row=DEFAULT_ROW_BINDING):
-        if row is self.row:
-            return Filter(self.parent_view, _and(self.selector, selector), row)
-        else:
-            return Filter(self, selector, row)
-
     def write_ast(self, parent):
+        if self.is_readonly():
+            self.write_term_ast(parent)
+        else:
+            self.write_view_ast(parent)
+    
+    def write_term_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.FILTER
+        predicate = parent.call.builtin.filter.predicate
+        predicate.arg = self.row
+        self.selector.write_ast(predicate.body)
+        self.parent_view.write_ast(parent.call.args.add())
+
+    def write_view_ast(self, parent):
         parent.type = p.View.FILTERVIEW
         self.parent_view.write_ast(parent.filter_view.view)
         parent.filter_view.predicate.arg = self.row
         self.selector.write_ast(parent.filter_view.predicate.body)
-
+    
     def _finalize_query(self, root):
+        if self.is_readonly():
+            res = self._finalize_term_query(root)
+        else:
+            res = self._finalize_view_query(root)
+        return res
+
+    def _finalize_term_query(self, root):
+        term = _finalize_internal(root, p.Term)
+        self.write_ast(term)
+        return term
+
+    def _finalize_view_query(self, root):
         term = _finalize_internal(root, p.Term)
         term.type = p.Term.VIEWASSTREAM
         self.write_ast(term.view_as_stream)
