@@ -28,6 +28,8 @@ static void accept_job(
     (*jobfunc)(result, job_input, job_output);
 }
 
+// FIXME: currently assumes it gets a stream of jobs, when actually it gets a
+// stream of fds which carry jobs.
 void exec_worker(int sockfd) {
     unix_socket_stream_t sock(sockfd, new blocking_fd_watcher_t());
 
