@@ -458,146 +458,62 @@ function_t get_type(const Builtin &b, variable_type_scope_t *) {
     switch (b.type()) {
         //JSON -> JSON
         case Builtin::NOT:
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
         case Builtin::GETATTR:
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
         case Builtin::HASATTR:
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
         case Builtin::PICKATTRS:
+        case Builtin::ARRAYLENGTH:
+        case Builtin::JAVASCRIPT:
             res.push_back(JSON());
             res.push_back(JSON());
-			break;
+            break;
         case Builtin::MAPMERGE:
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
         case Builtin::ARRAYCONS:
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
         case Builtin::ARRAYCONCAT:
+        case Builtin::ARRAYNTH:
+        case Builtin::ADD:
+        case Builtin::SUBTRACT:
+        case Builtin::MULTIPLY:
+        case Builtin::DIVIDE:
+        case Builtin::MODULO:
+        case Builtin::COMPARE:
             res.push_back(JSON());
             res.push_back(JSON());
             res.push_back(JSON());
-			break;
+            break;
         case Builtin::ARRAYSLICE:
             res.push_back(JSON());
             res.push_back(JSON());
             res.push_back(JSON());
             res.push_back(JSON());
-			break;
-        case Builtin::ARRAYNTH:
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
-        case Builtin::ARRAYLENGTH:
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
-        case Builtin::ADD:
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
-        case Builtin::SUBTRACT:
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
-        case Builtin::MULTIPLY:
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
-        case Builtin::DIVIDE:
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
-        case Builtin::MODULO:
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
-        case Builtin::COMPARE:
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
+            break;
         case Builtin::FILTER:
-            res.push_back(STREAM());
-            res.push_back(STREAM());
-			break;
         case Builtin::MAP:
-            res.push_back(STREAM());
-            res.push_back(STREAM());
-			break;
         case Builtin::CONCATMAP:
-            res.push_back(STREAM());
-            res.push_back(STREAM());
-			break;
         case Builtin::ORDERBY:
-            res.push_back(STREAM());
-            res.push_back(STREAM());
-			break;
         case Builtin::DISTINCT:
-            res.push_back(STREAM());
-            res.push_back(STREAM());
-			break;
         case Builtin::LIMIT:
             res.push_back(STREAM());
             res.push_back(STREAM());
-			break;
+            break;
         case Builtin::LENGTH:
+        case Builtin::NTH:
+        case Builtin::STREAMTOARRAY:
+        case Builtin::REDUCE:
+        case Builtin::GROUPEDMAPREDUCE:
+        case Builtin::MAPREDUCE:
             res.push_back(STREAM());
             res.push_back(JSON());
-			break;
+            break;
         case Builtin::UNION:
             res.push_back(STREAM());
             res.push_back(STREAM());
             res.push_back(STREAM());
-			break;
-        case Builtin::NTH:
-            res.push_back(STREAM());
-            res.push_back(JSON());
-			break;
-        case Builtin::STREAMTOARRAY:
-            res.push_back(STREAM());
-            res.push_back(JSON());
-			break;
+            break;
         case Builtin::ARRAYTOSTREAM:
-            res.push_back(JSON());
-            res.push_back(STREAM());
-			break;
-        case Builtin::REDUCE:
-            res.push_back(STREAM());
-            res.push_back(JSON());
-			break;
-        case Builtin::GROUPEDMAPREDUCE:
-            res.push_back(STREAM());
-            res.push_back(JSON());
-			break;
-        case Builtin::JAVASCRIPT:
-            res.push_back(JSON());
-            res.push_back(JSON());
-			break;
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
             res.push_back(JSON());
             res.push_back(STREAM());
-			break;
-        case Builtin::MAPREDUCE:
-            res.push_back(STREAM());
-            res.push_back(JSON());
-			break;
+            break;
         default:
             crash("unreachable");
             break;
@@ -890,31 +806,31 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t
             break;
         case Builtin::GETATTR:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::HASATTR:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::PICKATTRS:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::MAPMERGE:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::ARRAYCONS:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::ARRAYCONCAT:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::ARRAYSLICE:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::ARRAYNTH:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::ARRAYLENGTH:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::ADD:
             {
                 boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), scope),
@@ -927,70 +843,70 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t
                 rassert(res->get()->valueint == rhs->get()->valueint + lhs->get()->valueint, "If this gets tripped joe doesn't understand how floating points work.");
                 return res;
             }
-			break;
+            break;
         case Builtin::SUBTRACT:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::MULTIPLY:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::DIVIDE:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::MODULO:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::COMPARE:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::FILTER:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::MAP:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::CONCATMAP:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::ORDERBY:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::DISTINCT:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::LIMIT:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::LENGTH:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::UNION:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::NTH:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::STREAMTOARRAY:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::ARRAYTOSTREAM:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::REDUCE:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::GROUPEDMAPREDUCE:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::JAVASCRIPT:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
             crash("Not implemented");
-			break;
+            break;
         case Builtin::MAPREDUCE:
             crash("Not implemented");
-			break;
+            break;
         default:
             crash("unreachable");
             break;
