@@ -12,6 +12,7 @@ namespace boost { template <class> class function; }
 class binary_blob_t;
 template <class> class metainfo_checker_t;
 template <class> class multistore_send_backfill_should_backfill_t;
+class mutex_t;
 template <class, class> class region_map_t;
 template <class> class store_view_t;
 template <class> class store_subview_t;
@@ -133,6 +134,14 @@ private:
                                      const typename protocol_t::store_t::metainfo_t &new_metainfo,
                                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                                      signal_t *interruptor) THROWS_NOTHING;
+
+    void do_get_a_metainfo(int i,
+                           order_token_t order_token,
+                           boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                           signal_t *interruptor,
+                           region_map_t<protocol_t, version_range_t> *updatee,
+                           mutex_t *updatee_mutex);
+
 
     // Used by the constructors.
     void initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask) THROWS_NOTHING;

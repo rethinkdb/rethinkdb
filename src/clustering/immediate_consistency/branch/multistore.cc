@@ -110,20 +110,15 @@ void multistore_ptr_t<protocol_t>::new_particular_write_tokens(int *indices, int
 }
 
 template <class protocol_t>
-region_map_t<protocol_t, version_range_t>  multistore_ptr_t<protocol_t>::
-get_all_metainfos(order_token_t order_token,
-                  boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                  int num_read_tokens,
-		  signal_t *interruptor) {
+void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
+                                                     order_token_t order_token,
+                                                     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                                                     signal_t *interruptor,
+                                                     region_map_t<protocol_t, version_range_t> *updatee,
+                                                     mutex_t *updatee_mutex) {
+    region_map_t<protocol_t, version_range_t> transformed;
 
-    guarantee(int(store_views.size()) == num_read_tokens);
-    // TODO: Replace this with pmap, or have the caller do this
-    // differently parallelly.
-
-    region_map_t<protocol_t, version_range_t> ret(get_multistore_joined_region());
-    for (int i = 0; i < num_read_tokens; ++i) {
-        // TODO: Complete crap, use pmap or something way better.
-
+    {
         const int dest_thread = store_views[i]->home_thread();
         cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
@@ -133,11 +128,33 @@ get_all_metainfos(order_token_t order_token,
             = store_views[i]->get_metainfo(order_token, read_tokens[i], &ct_interruptor);
         const region_map_t<protocol_t, binary_blob_t>& masked_metainfo
             = metainfo.mask(get_region(i));
-        const region_map_t<protocol_t, version_range_t>& transformed
+
+        transformed
             = region_map_transform<protocol_t, binary_blob_t, version_range_t>(masked_metainfo,
                                                                                &binary_blob_t::get<version_range_t>);
-        ret.update(transformed);
     }
+
+    // updatee->update doesn't block so the mutex is redundant, who cares.
+    mutex_t::acq_t acq(updatee_mutex, true);
+    updatee->update(transformed);
+}
+
+template <class protocol_t>
+region_map_t<protocol_t, version_range_t>  multistore_ptr_t<protocol_t>::
+get_all_metainfos(order_token_t order_token,
+                  boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                  int num_read_tokens,
+		  signal_t *interruptor) {
+
+    guarantee(int(store_views.size()) == num_read_tokens);
+
+    mutex_t ret_mutex;
+    region_map_t<protocol_t, version_range_t> ret(get_multistore_joined_region());
+
+    // TODO: For getting, we possibly want to cache things on the home
+    // thread, but wait until we want a multithreaded listener.
+
+    pmap(store_views.size(), boost::bind(&multistore_ptr_t<protocol_t>::do_get_a_metainfo, this, _1, order_token, read_tokens, interruptor, &ret, &ret_mutex));
 
     rassert(ret.get_domain() == region);
 
