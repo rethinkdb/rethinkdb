@@ -23,8 +23,6 @@ Response query_server_t::handle(const Query &q) {
         return res;
     }
 
-    res.set_status_code(0);
-    res.set_token(0);
-    res.add_response("Foo");
-    return res;
+    query_language::variable_val_scope_t val_scope;
+    return eval(q, &val_scope);
 }

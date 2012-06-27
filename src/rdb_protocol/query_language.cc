@@ -1,6 +1,9 @@
 #include "rdb_protocol/query_language.hpp"
 
 #include "errors.hpp"
+#include <boost/make_shared.hpp>
+
+#include "http/json.hpp"
 
 #define CHECK_WELL_DEFINED(x) if (! is_well_defined(x)) { return false; }
 
@@ -344,7 +347,7 @@ namespace query_language {
 type_t get_type(const Term &t, variable_type_scope_t *scope) {
     switch (t.type()) {
         case Term::VAR:
-            return scope->get_type(t.var());
+            return scope->get(t.var());
             break;
         case Term::LET:
             {
@@ -765,6 +768,232 @@ type_t get_type(const Query &q, variable_type_scope_t *scope) {
             break;
         default:
             crash("unreachable");
+    }
+    crash("unreachable");
+}
+
+Response eval(const Query &q, variable_val_scope_t *scope) {
+    switch (q.type()) {
+        case Query::READ:
+            return eval(q.read_query(), scope);
+            break;
+        case Query::WRITE:
+            return eval(q.write_query(), scope);
+            break;
+        default:
+            crash("unreachable");
+    }
+    crash("unreachable");
+}
+
+Response eval(const ReadQuery &r, variable_val_scope_t *scope) THROWS_ONLY(runtime_exc_t) {
+    Response res;
+    boost::shared_ptr<scoped_cJSON_t> json = eval(r.term(), scope);
+
+    res.set_status_code(0);
+    res.set_token(0);
+    res.add_response(cJSON_print_std_string(json->get()));
+    return res;
+}
+
+Response eval(const WriteQuery &, variable_val_scope_t *) THROWS_ONLY(runtime_exc_t) {
+    Response res;
+    res.set_status_code(-3);
+    res.set_token(0);
+    res.add_response("Unimplemented");
+    return res;
+}
+
+boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, variable_val_scope_t *scope) THROWS_ONLY(runtime_exc_t) {
+    switch (t.type()) {
+        case Term::VAR:
+            crash("unimplemented");
+            break;
+        case Term::LET:
+            crash("unimplemented");
+            break;
+        case Term::CALL:
+            return eval(t.call(), scope);
+            break;
+        case Term::IF:
+            crash("unimplemented");
+            break;
+        case Term::TRY:
+            crash("unimplemented");
+            break;
+        case Term::ERROR:
+            crash("unimplemented");
+            break;
+        case Term::NUMBER:
+            {
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(t.number())));
+            }
+            break;
+        case Term::STRING:
+            {
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateString(t.valuestring().c_str())));
+            }
+            break;
+        case Term::JSON:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_Parse(t.jsonstring().c_str())));
+            break;
+        case Term::BOOL:
+            {
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(t.valuebool())));
+            }
+            break;
+        case Term::JSON_NULL:
+            {
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNull()));
+            }
+            break;
+        case Term::ARRAY:
+            crash("unimplemented");
+            break;
+        case Term::MAP:
+            crash("unimplemented");
+            break;
+        case Term::VIEWASSTREAM:
+            crash("unimplemented");
+            break;
+        case Term::GETBYKEY:
+            crash("unimplemented");
+            break;
+        default:
+            crash("unreachable");
+            break;
+    }
+    crash("unreachable");
+
+}
+
+boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t *scope) THROWS_ONLY(runtime_exc_t) {
+    switch (c.builtin().type()) {
+        //JSON -> JSON
+        case Builtin::NOT:
+            {
+                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), scope);
+
+                if (!data.get()) {
+                    throw runtime_exc_t("Data failed to parse as json\n");
+                }
+
+                if (data->get()->type == cJSON_False) {
+                    data->get()->type = cJSON_True;
+                } else if (data->get()->type == cJSON_True) {
+                    data->get()->type = cJSON_False;
+                } else {
+                    throw runtime_exc_t("Not can only be called on a boolean\n");
+                }
+                return data;
+            }
+            break;
+        case Builtin::GETATTR:
+            crash("Not implemented");
+			break;
+        case Builtin::HASATTR:
+            crash("Not implemented");
+			break;
+        case Builtin::PICKATTRS:
+            crash("Not implemented");
+			break;
+        case Builtin::MAPMERGE:
+            crash("Not implemented");
+			break;
+        case Builtin::ARRAYCONS:
+            crash("Not implemented");
+			break;
+        case Builtin::ARRAYCONCAT:
+            crash("Not implemented");
+			break;
+        case Builtin::ARRAYSLICE:
+            crash("Not implemented");
+			break;
+        case Builtin::ARRAYNTH:
+            crash("Not implemented");
+			break;
+        case Builtin::ARRAYLENGTH:
+            crash("Not implemented");
+			break;
+        case Builtin::ADD:
+            {
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), scope),
+                    rhs = eval(c.args(1), scope);
+                if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
+                    throw runtime_exc_t("Both operands to ADD must be numbers.");
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(lhs->get()->valuedouble + rhs->get()->valuedouble)));
+                rassert(res->get()->valueint == rhs->get()->valueint + lhs->get()->valueint, "If this gets tripped joe doesn't understand how floating points work.");
+                return res;
+            }
+			break;
+        case Builtin::SUBTRACT:
+            crash("Not implemented");
+			break;
+        case Builtin::MULTIPLY:
+            crash("Not implemented");
+			break;
+        case Builtin::DIVIDE:
+            crash("Not implemented");
+			break;
+        case Builtin::MODULO:
+            crash("Not implemented");
+			break;
+        case Builtin::COMPARE:
+            crash("Not implemented");
+			break;
+        case Builtin::FILTER:
+            crash("Not implemented");
+			break;
+        case Builtin::MAP:
+            crash("Not implemented");
+			break;
+        case Builtin::CONCATMAP:
+            crash("Not implemented");
+			break;
+        case Builtin::ORDERBY:
+            crash("Not implemented");
+			break;
+        case Builtin::DISTINCT:
+            crash("Not implemented");
+			break;
+        case Builtin::LIMIT:
+            crash("Not implemented");
+			break;
+        case Builtin::LENGTH:
+            crash("Not implemented");
+			break;
+        case Builtin::UNION:
+            crash("Not implemented");
+			break;
+        case Builtin::NTH:
+            crash("Not implemented");
+			break;
+        case Builtin::STREAMTOARRAY:
+            crash("Not implemented");
+			break;
+        case Builtin::ARRAYTOSTREAM:
+            crash("Not implemented");
+			break;
+        case Builtin::REDUCE:
+            crash("Not implemented");
+			break;
+        case Builtin::GROUPEDMAPREDUCE:
+            crash("Not implemented");
+			break;
+        case Builtin::JAVASCRIPT:
+            crash("Not implemented");
+			break;
+        case Builtin::JAVASCRIPTRETURNINGSTREAM:
+            crash("Not implemented");
+			break;
+        case Builtin::MAPREDUCE:
+            crash("Not implemented");
+			break;
+        default:
+            crash("unreachable");
+            break;
     }
     crash("unreachable");
 }

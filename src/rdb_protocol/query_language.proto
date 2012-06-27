@@ -57,7 +57,7 @@ message Term {
         required VarTermTuple var_and_catch_term = 2;
     };
 
-    optional Try try_ = 6; //Underscore to avoic conflicting with c++ keyword
+    optional Try try_ = 6; //Underscore to avoid conflicting with c++ keyword
 
     optional string error = 7;
 

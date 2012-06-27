@@ -6,8 +6,10 @@
 
 #include "utils.hpp"
 #include <boost/variant.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "rdb_protocol/query_language.pb.h"
+#include "http/json.hpp"
 
 //TODO maybe we can merge well definedness and type checking. */
 
@@ -111,18 +113,19 @@ inline type_t QUERY() {
 
 typedef std::list<type_t> function_t;
 
-class variable_type_scope_t {
+template <class T>
+class variable_scope_t {
 public:
-    void put_in_scope(std::string name, type_t type) {
+    void put_in_scope(std::string name, T t) {
         rassert(!scopes.empty());
-        scopes.front()[name] = type;
+        scopes.front()[name] = t;
     }
 
-    type_t get_type(std::string name) {
-        for (scopes_t::iterator it  = scopes.begin();
-                                it != scopes.end();
-                                ++it) {
-            std::map<std::string, type_t>::iterator jt = it->find(name);
+    T get(std::string name) {
+        for (typename scopes_t::iterator it  = scopes.begin();
+                                         it != scopes.end();
+                                         ++it) {
+            typename std::map<std::string, T>::iterator jt = it->find(name);
             if (jt != it->end()) {
                 return jt->second;
             }
@@ -132,7 +135,7 @@ public:
     }
 
     void push() {
-        scopes.push_front(std::map<std::string, type_t>());
+        scopes.push_front(std::map<std::string, T>());
     }
 
     void pop() {
@@ -140,7 +143,7 @@ public:
     }
 
     struct new_scope_t {
-        new_scope_t(variable_type_scope_t *_parent) 
+        new_scope_t(variable_scope_t *_parent) 
             : parent(_parent)
         {
             parent->push();
@@ -149,12 +152,14 @@ public:
             parent->pop();
         }
 
-        variable_type_scope_t *parent;
+        variable_scope_t *parent;
     };
 private:
-    typedef std::deque<std::map<std::string, type_t> > scopes_t;
+    typedef std::deque<std::map<std::string, T> > scopes_t;
     scopes_t scopes;
 };
+
+typedef variable_scope_t<type_t> variable_type_scope_t;
 
 typedef variable_type_scope_t::new_scope_t new_scope_t;
 
@@ -176,6 +181,35 @@ type_t get_type(const ReadQuery &r, variable_type_scope_t *scope);
 type_t get_type(const WriteQuery &w, variable_type_scope_t *scope);
 
 type_t get_type(const Query &q, variable_type_scope_t *scope);
+
+/* functions to evaluate the queries */
+
+//typedef boost::variant<Response> eval_result;
+
+typedef variable_scope_t<Term> variable_val_scope_t;
+
+class runtime_exc_t {
+public:
+    runtime_exc_t(std::string _what)
+        : what_happened(_what)
+    { }
+
+    std::string what() const throw() {
+        return what_happened;
+    }
+private:
+    std::string what_happened;
+};
+
+Response eval(const Query &q, variable_val_scope_t *);
+
+Response eval(const ReadQuery &r, variable_val_scope_t *) THROWS_ONLY(runtime_exc_t);
+
+Response eval(const WriteQuery &r, variable_val_scope_t *) THROWS_ONLY(runtime_exc_t);
+
+boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, variable_val_scope_t *) THROWS_ONLY(runtime_exc_t);
+
+boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t *) THROWS_ONLY(runtime_exc_t);
 
 } //namespace query_language
 
