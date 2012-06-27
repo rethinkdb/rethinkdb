@@ -76,9 +76,8 @@ int supervisor_t::spawn(info_t *info) {
     }
 
     // We're the child. Set up proc->stream to speak to the supervisor.
-    guarantee_err(0 == close(fds[1]), "could not close fd");
-    proc->stream_.reset(new unix_socket_stream_t(fds[1]));
-
+    guarantee_err(0 == close(fds[0]), "could not close fd");
+    info->socket_fd = fds[1];
     return 0;
 }
 
