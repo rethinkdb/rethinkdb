@@ -20,8 +20,9 @@ void do_construct_existing_store(int i, perfmon_collection_t *perfmon_collection
     const std::string file_name = file_name_base + "_" + strprintf("%d", i);
 
     // TODO: Can we pass perfmon_collection across threads like this?
-    stores_out->stores()[i].reset(new typename protocol_t::store_t(file_name, false, perfmon_collection));
-    store_views[i] = stores_out->stores()[i].get();
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(file_name, false, perfmon_collection);
+    stores_out->stores()[i].reset(store);
+    store_views[i] = store;
 }
 
 template <class protocol_t>
@@ -31,8 +32,10 @@ void do_create_new_store(int i, perfmon_collection_t *perfmon_collection, const 
     on_thread_t th(i % num_db_threads);
 
     const std::string file_name = file_name_base + "_" + strprintf("%d", i);
-    stores_out->stores()[i].reset(new typename protocol_t::store_t(file_name, true, perfmon_collection));
-    store_views[i] = stores_out->stores()[i].get();
+
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(file_name, true, perfmon_collection);
+    stores_out->stores()[i].reset(store);
+    store_views[i] = store;
 }
 
 template <class protocol_t>
