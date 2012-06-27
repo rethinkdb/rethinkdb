@@ -7,6 +7,7 @@ import operator
 import socket
 import SocketServer
 import struct
+import sys
 import threading
 import uuid
 
@@ -180,6 +181,17 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 if __name__ == '__main__':
     import rethinkdb as r
+
+    if len(sys.argv) > 1:
+        # port specified
+        try:
+            port = int(sys.argv[1])
+            print "serving on port", port
+            ThreadedTCPServer(("localhost", port), RDBHandler).serve_forever()
+            sys.exit(0)
+        except ValueError:
+            print "usage: %s <port_number>" % sys.argv[0]
+
 
     server = ThreadedTCPServer(("localhost", 0), RDBHandler)
     ip, port = server.server_address
