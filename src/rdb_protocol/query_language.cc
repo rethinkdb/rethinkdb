@@ -874,31 +874,97 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, variable_val_scope_t
             {
                 boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), scope);
 
-                if (!data.get()) {
-                    throw runtime_exc_t("Data failed to parse as json\n");
-                }
-
                 if (data->get()->type == cJSON_False) {
                     data->get()->type = cJSON_True;
                 } else if (data->get()->type == cJSON_True) {
                     data->get()->type = cJSON_False;
                 } else {
-                    throw runtime_exc_t("Not can only be called on a boolean\n");
+                    throw runtime_exc_t("Not can only be called on a boolean");
                 }
                 return data;
             }
             break;
         case Builtin::GETATTR:
-            crash("Not implemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), scope);
+
+                if (!data->get()->type == cJSON_Object) {
+                    throw runtime_exc_t("Data must be an object");
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> attr = shared_scoped_json(cJSON_DetachItemFromObject(data->get(), c.builtin().attr().c_str()));
+
+                if (!attr->get()) {
+                    throw runtime_exc_t("Failed to find attribute");
+                } else {
+                    return attr;
+                }
+            }
 			break;
         case Builtin::HASATTR:
-            crash("Not implemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), scope);
+
+                if (!data->get()->type == cJSON_Object) {
+                    throw runtime_exc_t("Data must be an object");
+                }
+
+                cJSON *attr = cJSON_GetObjectItem(data->get(), c.builtin().attr().c_str());
+
+                if (attr) {
+                    return shared_scoped_json(cJSON_CreateTrue());
+                } else {
+                    return shared_scoped_json(cJSON_CreateFalse());
+                }
+            }
 			break;
         case Builtin::PICKATTRS:
-            crash("Not implemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), scope);
+
+                if (!data->get()->type == cJSON_Object) {
+                    throw runtime_exc_t("Data must be an object");
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res = shared_scoped_json(cJSON_CreateObject());
+
+                for (int i = 0; i < c.builtin().attrs_size(); ++i) {
+                    cJSON *item = cJSON_DetachItemFromObject(data->get(), c.builtin().attrs(i).c_str());
+                    if (!item) {
+                        if (cJSON_GetObjectItem(res->get(), c.builtin().attrs(i).c_str())) {
+                            //When we get here it means someone did pick with 2
+                            //copies of the same attr... we permit this for now
+                        } else {
+                            throw runtime_exc_t("Attempting to pick non existant attribute.");
+                        }
+                    } else {
+                        cJSON_AddItemToObject(res->get(), item->string, item);
+                    }
+                }
+                return res;
+            }
 			break;
         case Builtin::MAPMERGE:
-            crash("Not implemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> left  = eval(c.args(0), scope),
+                                                  right = eval(c.args(1), scope);
+                if (left->get()->type != cJSON_Object) {
+                    throw runtime_exc_t("Data must be an object");
+                }
+
+                if (right->get()->type != cJSON_Object) {
+                    throw runtime_exc_t("Data must be an object");
+                }
+
+                json_object_iterator_t it(right->get());
+
+                cJSON *item;
+                while ((item = it.next())) {
+                    cJSON_DeleteItemFromObject(left->get(), item->string);
+                    cJSON_AddItemToObject(left->get(), item->string, cJSON_DetachItemFromObject(right->get(), item->string));
+                }
+                return left;
+            }
 			break;
         case Builtin::ARRAYCONS:
             crash("Not implemented");

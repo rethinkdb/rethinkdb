@@ -265,3 +265,4 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, boost::shared_ptr<scoped
 
     return ARCHIVE_SUCCESS;
 }
+
