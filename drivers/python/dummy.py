@@ -58,10 +58,15 @@ def union_eval(self, env):
 @extend(p.Term)
 def term_eval(self, env):
     if self.type == p.Term.VAR:
-        print "env: ", env, self.var
         return env_find(env, self.var)
+    elif self.type == p.Term.JSON:
+        return json.loads(self.jsonstring)
+    elif self.type == p.Term.MAP:
+        ret = {}
+        for elem in self.map:
+            ret[elem.var] = elem.term.eval(env)
+        return ret
     for descriptor, value in self.ListFields():
-        print descriptor, value
         if descriptor.type == descriptor.TYPE_MESSAGE:
             return value.eval(env)
         elif descriptor.name != "type":
@@ -71,7 +76,6 @@ def term_eval(self, env):
 @extend(p.Term.Call)
 def builtin_eval(self, env):
     t = self.builtin.type
-    print self.args
     args = [arg.eval(env) for arg in self.args]
     if t == p.Builtin.ADD:
         return sum(args)
@@ -84,7 +88,21 @@ def builtin_eval(self, env):
     elif t == p.Builtin.COMPARE:
         if self.builtin.comparison == p.Builtin.EQ:
             return args[0] == args[1]
+    elif t == p.Builtin.MAPMERGE:
+        ret = dict(args[0])
+        ret.update(args[1])
+        return ret
+    elif t == p.Builtin.MAP:
+        return [self.builtin.map.mapping.eval(env, row) for row in args[0]]
     raise ValueError(str(self))
+
+@extend(p.Term.If)
+def if_eval(self, env):
+    test = self.test.eval(env)
+    if test is True:
+        return self.true_branch.eval(env)
+    else:
+        return self.false_branch.eval(env)
 
 @extend(p.View.Table)
 def table_eval(self, env):
@@ -97,11 +115,10 @@ def tr_eval(self, env):
 @extend(p.View.FilterView)
 def fv_eval(self, env):
     view = self.view.eval(env)
-    print self.view
-    print 'view: ', view
     return filter(lambda x: self.predicate.eval(env, x), view)
 
 @extend(p.Predicate)
+@extend(p.Mapping)
 def pred_eval(self, env, arg):
     env = env_update(env, self.arg, arg)
     return self.body.eval(env)
@@ -116,7 +133,16 @@ def insert_eval(self, env):
         if 'id' not in doc:
             doc['id'] = uuid.uuid4().get_hex()[:8] # random enough for testing
         tab[doc['id']] = doc
-    print tab
+
+@extend(p.WriteQuery.Update)
+def update_eval(self, env):
+    old_env = env
+    for row in self.view.eval(env):
+        new = self.mapping.eval(env, row)
+        if new['id'] != row['id']:
+            raise ValueError
+        row.clear()
+        row.update(new)
 
 class RDBHandler(SocketServer.BaseRequestHandler):
     def handle(self):
@@ -165,9 +191,13 @@ if __name__ == '__main__':
     conn = r.Connection(ip, port)
 
     t = r.db("foo").bar
-    q = t.insert([{"a": 1}, {"a": 3}])
-    f  = t.filter(r.eq("row.a", 1))
+    q = t.insert([{"a": 1, "b": 4}, {"a": 3, "b": 9}])
+    f  = t.filter({"row.a": 1, "row.b": 4})
+    u = f.update({"b": 6})
+    m = t.map({'a': 1, 'b': r.add('row.a', 'row.b')})
     print conn.run(q)
-    print "heyo"
     print conn.run(t)
     print conn.run(f)
+    print conn.run(u)
+    print conn.run(t)
+    print conn.run(m)
