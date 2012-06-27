@@ -733,7 +733,20 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             return eval(t.call(), env);
             break;
         case Term::IF:
-            crash("unimplemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> test = eval(t.if_().test(), env);
+                if (test->get()->type != cJSON_True && test->get()->type != cJSON_False) {
+                    throw runtime_exc_t("The IF test must evaluate to a boolean.");
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res;
+                if (test->get()->type == cJSON_True) {
+                    res = eval(t.if_().true_branch(), env);
+                } else {
+                    res = eval(t.if_().false_branch(), env);
+                }
+                return res;
+            }
             break;
         case Term::TRY:
             crash("unimplemented");
@@ -910,8 +923,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
         case Builtin::SUBTRACT:
             {
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), scope),
-                    rhs = eval(c.args(1), scope);
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env),
+                    rhs = eval(c.args(1), env);
                 if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
                     throw runtime_exc_t("Both operands to SUB must be numbers.");
                 }
@@ -922,8 +935,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
         case Builtin::MULTIPLY:
             {
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), scope),
-                    rhs = eval(c.args(1), scope);
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env),
+                    rhs = eval(c.args(1), env);
                 if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
                     throw runtime_exc_t("Both operands to MUL must be numbers.");
                 }
@@ -934,8 +947,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
         case Builtin::DIVIDE:
             {
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), scope),
-                    rhs = eval(c.args(1), scope);
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env),
+                    rhs = eval(c.args(1), env);
                 if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
                     throw runtime_exc_t("Both operands to DIV must be numbers.");
                 }
@@ -946,8 +959,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
         case Builtin::MODULO:
             {
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), scope),
-                    rhs = eval(c.args(1), scope);
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env),
+                    rhs = eval(c.args(1), env);
                 if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
                     throw runtime_exc_t("Both operands to MOD must be numbers.");
                 }
