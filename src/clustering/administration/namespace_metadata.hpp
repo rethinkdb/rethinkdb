@@ -88,6 +88,28 @@ public:
     typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > namespace_map_t;
     namespace_map_t namespaces;
 
+    /* If a name uniquely identifies a namespace then return it, otherwise
+     * return nothing. */
+    boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > > get_namespace_by_name(std::string name) {
+        boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > >  res;
+        for (typename namespace_map_t::iterator it  = namespaces.begin();
+                                                it != namespaces.end();
+                                                ++it) {
+            if (it->second.is_deleted() || it->second.get().name.in_conflict()) {
+                return boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > > ();
+            }
+
+            if (it->second.get().name.get() == name) {
+                if (!res) {
+                    *res = *it;
+                } else {
+                    return boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > >();
+                }
+            }
+        }
+        return res;
+    }
+
     branch_history_t<protocol_t> branch_history;
 
     RDB_MAKE_ME_SERIALIZABLE_2(namespaces, branch_history);

@@ -216,6 +216,7 @@ public:
     //TODO this should really just be the namespace metadata... but
     //constructing views is too hard :-/
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+    cond_t interruptor;
 };
 
 Response eval(const Query &q, runtime_environment_t *);
