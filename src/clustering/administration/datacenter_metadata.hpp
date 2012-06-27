@@ -12,7 +12,7 @@
 #include "rpc/serialize_macros.hpp"
 
 
-typedef boost::uuids::uuid datacenter_id_t;
+typedef uuid_t datacenter_id_t;
 
 class datacenter_semilattice_metadata_t {
 public:

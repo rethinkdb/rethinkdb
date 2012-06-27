@@ -87,6 +87,8 @@ class View(object):
     def update(self, updater, row=DEFAULT_ROW_BINDING):
         return Update(self, updater, row)
 
+    def map(self, mapping, row=DEFAULT_ROW_BINDING):
+        return Map(self, mapping, row)
 
 class Table(View):
     def __init__(self, db, name):
@@ -177,20 +179,36 @@ class Update(object):
         self.parent_view.write_ast(parent.update.view)
         parent.update.mapping.arg = self.row
         body = parent.update.mapping.body
-        body.type = p.Term.CALL
-        body.call.builtin.type = p.Builtin.MAPMERGE
-        toTerm(self.row).write_ast(body.call.args.add())
-        right = body.call.args.add()
-        right.type = p.Term.MAP
-        for key in self.updater:
-            value = self.updater[key]
-            pair = right.map.add()
-            pair.var = key
-            toTerm(value).write_ast(pair.term)
+        extend(self.row, self.updater).write_ast(body)
 
     def _finalize_query(self, root):
         wq = _finalize_internal(root, p.WriteQuery)
         self.write_ast(wq)
+
+class Map(View):
+    # Accepts a term that get evaluated on each row and returned
+    # (i.e. json, extend, etc.). Alternatively accepts a term (such as
+    # extend_json). Eventually also javascript.
+    def __init__(self, parent_view, mapping, row):
+        self.mapping = mapping
+        self.row = row
+        self.parent_view = parent_view
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.MAP
+        # Mapping
+        mapping = parent.call.builtin.map.mapping
+        mapping.arg = self.row
+        toTerm(self.mapping).write_ast(mapping.body)
+        # Parent stream
+        term = parent.call.args.add()
+        term.type = p.Term.VIEWASSTREAM
+        self.parent_view.write_ast(term.view_as_stream)
+
+    def _finalize_query(self, root):
+        term = _finalize_internal(root, p.Term)
+        self.write_ast(term)
 
 class Term(object):
     def _finalize_query(self, root):
@@ -273,10 +291,29 @@ class val(Term):
             parent.type = p.Term.STRING
             parent.valuestring = self.value
         elif isinstance(self.value, dict):
-            parent.type = p.Term.JSON
-            parent.jsonstring = json.dumps(self.value)
+            self.make_json(parent)
         else:
             raise ValueError
+
+    def make_json(self, parent):
+        # Check if the value has terms. If it does, construct a map
+        # term, otherwise, construct a json term.
+        hasTerms = False
+        for key in self.value:
+            _value = self.value[key]
+            if isinstance(_value, Term):
+                hasTerms = True
+                break
+        if hasTerms:
+            parent.type = p.Term.MAP
+            for key in self.value:
+                _value = self.value[key]
+                pair = parent.map.add()
+                pair.var = key
+                toTerm(_value).write_ast(pair.term)
+        else:
+            parent.type = p.Term.JSON
+            parent.jsonstring = json.dumps(self.value)
 
 class Comparison(Term):
     def __init__(self, terms, cmp_type):
@@ -456,3 +493,23 @@ def parseStringTerm(value):
     else:
         return var(terms[0])
 
+class Extend(Term):
+    # Merges json objects into a destination object
+    def __init__(self, dest, jsons):
+        self.dest = dest
+        self.jsons = jsons
+
+    def write_ast(self, parent):
+        if len(self.jsons) is 0:
+            toTerm(self.dest).write_ast(parent)
+            return
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.MAPMERGE
+        if len(self.jsons) is 1:
+            toTerm(self.dest).write_ast(parent.call.args.add())
+        else:
+            Extend(self.dest, self.jsons[:len(self.jsons)-1]).write_ast(parent.call.args.add())
+        toTerm(self.jsons[len(self.jsons)-1]).write_ast(parent.call.args.add())
+
+def extend(dest, *jsons):
+    return Extend(dest, list(jsons))

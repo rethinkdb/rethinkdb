@@ -79,7 +79,7 @@ public:
             /* Unused for our connection to ourself */
             mutex_t send_mutex;
 
-            boost::uuids::uuid session_id;
+            uuid_t session_id;
 
             perfmon_collection_t pm_collection;
             perfmon_sampler_t pm_bytes_sent;
@@ -186,7 +186,7 @@ public:
     /* `connectivity_service_t` public methods: */
     peer_id_t get_me() THROWS_NOTHING;
     std::set<peer_id_t> get_peers_list() THROWS_NOTHING;
-    boost::uuids::uuid get_connection_session_id(peer_id_t) THROWS_NOTHING;
+    uuid_t get_connection_session_id(peer_id_t) THROWS_NOTHING;
 
     /* `message_service_t` public methods: */
     connectivity_service_t *get_connectivity_service() THROWS_NOTHING;

@@ -22,7 +22,7 @@ message Term {
         BOOL = 9;
         JSON_NULL = 10; //can't use just "NULL" here we get in trouble
         ARRAY = 11;
-        MAP = 12;
+        MAP = 12;       // creates json objects (TODO: rename to something like make_object)
         VIEWASSTREAM = 13;
         GETBYKEY = 14;
     };
@@ -103,7 +103,7 @@ message Builtin {
         MODULO = 15;
         COMPARE = 16;
         FILTER = 17;
-        MAP = 18;
+        MAP = 18;          // operates over streams
         CONCATMAP = 19;
         ORDERBY = 20;
         DISTINCT = 21;

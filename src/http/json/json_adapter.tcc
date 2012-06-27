@@ -436,17 +436,14 @@ void apply_json_to(cJSON *change, bool *target, const ctx_t &) {
 template <class ctx_t>
 void on_subfield_change(bool *, const ctx_t &) { }
 
-namespace boost {
-
-namespace uuids {
-//JSON adapter for boost::uuids::uuid
+//JSON adapter for uuid_t
 template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(boost::uuids::uuid *, const ctx_t &) {
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(uuid_t *, const ctx_t &) {
     return std::map<std::string, boost::shared_ptr<json_adapter_if_t<ctx_t> > >();
 }
 
 template <class ctx_t>
-cJSON *render_as_json(const boost::uuids::uuid *uuid, const ctx_t &) {
+cJSON *render_as_json(const uuid_t *uuid, const ctx_t &) {
     if (uuid->is_nil()) {
         return cJSON_CreateNull();
     } else {
@@ -455,7 +452,7 @@ cJSON *render_as_json(const boost::uuids::uuid *uuid, const ctx_t &) {
 }
 
 template <class ctx_t>
-void apply_json_to(cJSON *change, boost::uuids::uuid *uuid, const ctx_t &) {
+void apply_json_to(cJSON *change, uuid_t *uuid, const ctx_t &) {
     if (change->type == cJSON_NULL) {
         *uuid = nil_uuid();
     } else {
@@ -468,8 +465,9 @@ void apply_json_to(cJSON *change, boost::uuids::uuid *uuid, const ctx_t &) {
 }
 
 template <class ctx_t>
-void on_subfield_change(boost::uuids::uuid *, const ctx_t &) { }
-} //namespace uuids
+void on_subfield_change(uuid_t *, const ctx_t &) { }
+
+namespace boost {
 
 //JSON adapter for boost::optional
 template <class T, class ctx_t>

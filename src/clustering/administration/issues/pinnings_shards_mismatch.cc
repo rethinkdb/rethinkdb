@@ -8,8 +8,8 @@ template <class protocol_t>
 pinnings_shards_mismatch_issue_t<protocol_t>::pinnings_shards_mismatch_issue_t(
         const namespace_id_t &_offending_namespace,
         const std::set<typename protocol_t::region_t> &_shards,
-        const region_map_t<protocol_t, boost::uuids::uuid> &_primary_pinnings,
-        const region_map_t<protocol_t, std::set<boost::uuids::uuid> > &_secondary_pinnings)
+        const region_map_t<protocol_t, uuid_t> &_primary_pinnings,
+        const region_map_t<protocol_t, std::set<uuid_t> > &_secondary_pinnings)
     : offending_namespace(_offending_namespace), shards(_shards),
       primary_pinnings(_primary_pinnings), secondary_pinnings(_secondary_pinnings)
 { }

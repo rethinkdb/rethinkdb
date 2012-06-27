@@ -519,7 +519,7 @@ std::set<peer_id_t> connectivity_cluster_t::get_peers_list() THROWS_NOTHING {
     return peers;
 }
 
-boost::uuids::uuid connectivity_cluster_t::get_connection_session_id(peer_id_t peer) THROWS_NOTHING {
+uuid_t connectivity_cluster_t::get_connection_session_id(peer_id_t peer) THROWS_NOTHING {
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> > *connection_map =
         &thread_info.get()->connection_map;
     std::map<peer_id_t, std::pair<run_t::connection_entry_t *, auto_drainer_t::lock_t> >::iterator it =
