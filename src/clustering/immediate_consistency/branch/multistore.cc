@@ -4,6 +4,7 @@
 #include <boost/function.hpp>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "concurrency/cross_thread_signal.hpp"
 #include "protocol_api.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 
@@ -104,7 +105,7 @@ region_map_t<protocol_t, version_range_t>  multistore_ptr_t<protocol_t>::
 get_all_metainfos(order_token_t order_token,
                   boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                   int num_read_tokens,
-		  UNUSED signal_t *interruptor) {
+		  signal_t *interruptor) {
 
     guarantee(int(store_views.size()) == num_read_tokens);
     // TODO: Replace this with pmap, or have the caller do this
@@ -114,13 +115,13 @@ get_all_metainfos(order_token_t order_token,
     for (int i = 0; i < num_read_tokens; ++i) {
         // TODO: Complete crap, use pmap or something way better.
 
-        on_thread_t th(store_views[i]->home_thread());
+        const int dest_thread = store_views[i]->home_thread();
+        cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-        // TODO: We need a cross thread signal for interruptor to work.
-        cond_t dummy_cond_t;
+        on_thread_t th(dest_thread);
 
         const region_map_t<protocol_t, binary_blob_t>& metainfo
-            = store_views[i]->get_metainfo(order_token, read_tokens[i], &dummy_cond_t);
+            = store_views[i]->get_metainfo(order_token, read_tokens[i], &ct_interruptor);
         const region_map_t<protocol_t, binary_blob_t>& masked_metainfo
             = metainfo.mask(get_region(i));
         const region_map_t<protocol_t, version_range_t>& transformed
@@ -160,10 +161,14 @@ void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol
     guarantee(num_write_tokens == num_stores());
 
     for (int i = 0; i < num_stores(); ++i) {
-        // TODO: Obviously this is ridiculous, at _least_ it should be pmap.
-        on_thread_t th(store_views[i]->home_thread());
 
-        store_views[i]->set_metainfo(new_metainfo.mask(get_region(i)), order_token, write_tokens[i], interruptor);
+        const int dest_thread = store_views[i]->home_thread();
+        cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
+
+        // TODO: Obviously this is ridiculous, at _least_ it should be pmap.
+        on_thread_t th(dest_thread);
+
+        store_views[i]->set_metainfo(new_metainfo.mask(get_region(i)), order_token, write_tokens[i], &ct_interruptor);
     }
 }
 
@@ -222,19 +227,19 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
                                                          const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
                                                          typename protocol_t::backfill_progress_t *progress,
                                                          boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                                                         UNUSED signal_t *interruptor) THROWS_NOTHING {
+                                                         signal_t *interruptor) THROWS_NOTHING {
     // TODO: This will be broken when things start being on multiple threads.
 
     // TODO: Blithely passing progress along might be broken.
 
     store_view_t<protocol_t> *store = store_views[i];
 
-    int chunk_fun_target_hread = get_thread_id();
+    const int chunk_fun_target_hread = get_thread_id();
+    const int dest_thread = store->home_thread();
 
-    on_thread_t th(store->home_thread());
+    cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-    // TODO: We need a cross thread signal for the interruptor.
-    cond_t dummy_cond;
+    on_thread_t th(dest_thread);
 
     try {
         store->send_backfill(start_point.mask(get_region(i)),
@@ -242,7 +247,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
                              boost::bind(regionwrap_chunkfun<protocol_t>, chunk_fun, chunk_fun_target_hread, get_region(i), _1),
                              progress,
                              read_tokens[i],
-                             &dummy_cond);
+                             &ct_interruptor);
     } catch (interrupted_exc_t& exc) {
         // do nothing
     }
@@ -296,7 +301,7 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
                                                      order_token_t order_token,
                                                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                                      std::vector<typename protocol_t::read_response_t> *responses,
-                                                     UNUSED signal_t *interruptor) THROWS_NOTHING {
+                                                     signal_t *interruptor) THROWS_NOTHING {
     DEBUG_ONLY_VAR const typename protocol_t::region_t ith_region = get_region(i);
     typename protocol_t::region_t ith_intersection = region_intersection(get_region(i), read.get_region());
 
@@ -305,17 +310,17 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
         return;
     }
 
-    on_thread_t th(store_views[i]->home_thread());
+    const int dest_thread = store_views[i]->home_thread();
+    cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-    // TODO: We need a cross thread signal for the interruptor.
-    cond_t dummy_cond;
+    on_thread_t th(dest_thread);
 
     try {
         responses->push_back(store_views[i]->read(DEBUG_ONLY(metainfo_checker.mask(ith_region), )
                                                   read.shard(ith_intersection),
                                                   order_token,
                                                   read_tokens[i],
-                                                  &dummy_cond));
+                                                  &ct_interruptor));
     } catch (interrupted_exc_t& exc) {
         // do nothing
     }
@@ -370,7 +375,7 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
                                                       order_token_t order_token,
                                                       boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                                                       std::vector<typename protocol_t::write_response_t> *responses,
-                                                      UNUSED signal_t *interruptor) THROWS_NOTHING {
+                                                      signal_t *interruptor) THROWS_NOTHING {
     const typename protocol_t::region_t &ith_region = get_region(i);
     typename protocol_t::region_t ith_intersection = region_intersection(ith_region, write.get_region());
     if (region_is_empty(ith_intersection)) {
@@ -378,11 +383,10 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
         return;
     }
 
+    const int dest_thread = store_views[i]->home_thread();
+    cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-    on_thread_t th(store_views[i]->home_thread());
-
-    // TODO: We need a cross thread signal for the interruptor.
-    cond_t dummy_cond;
+    on_thread_t th(dest_thread);
 
     // TODO: Have an assertion about the new_metainfo region?
 
@@ -393,7 +397,7 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
                                                    timestamp,
                                                    order_token,
                                                    write_tokens[i],
-                                                   &dummy_cond));
+                                                   &ct_interruptor));
     } catch (interrupted_exc_t& exc) {
         // do nothing
     }
@@ -435,22 +439,22 @@ void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
                                                                const typename protocol_t::region_t &subregion,
                                                                const typename protocol_t::store_t::metainfo_t &new_metainfo,
                                                                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                                               UNUSED signal_t *interruptor) THROWS_NOTHING {
+                                                               signal_t *interruptor) THROWS_NOTHING {
     if (!region_overlaps(get_region(i), subregion)) {
         write_tokens[i].reset();
         return;
     }
 
-    on_thread_t th(store_views[i]->home_thread());
+    const int dest_thread = store_views[i]->home_thread();
+    cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-    // TODO: We need a cross thread signal for the interruptor.
-    cond_t dummy_cond;
+    on_thread_t th(dest_thread);
 
     try {
         store_views[i]->reset_data(region_intersection(subregion, get_region(i)),
                                    new_metainfo.mask(get_region(i)),
                                    write_tokens[i],
-                                   &dummy_cond);
+                                   &ct_interruptor);
     } catch (interrupted_exc_t& exc) {
         // do nothing
     }
