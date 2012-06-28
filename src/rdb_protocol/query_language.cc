@@ -6,7 +6,7 @@
 
 #include "http/json.hpp"
 
-#define CHECK_WELL_DEFINED(x) if (! is_well_defined(x)) { return false; }
+#define CHECK_WELL_DEFINED(x) if (!is_well_defined(x)) { return false; }
 
 bool is_well_defined(const VarTermTuple &v) {
     return is_well_defined(v.term());
@@ -345,7 +345,7 @@ bool is_well_defined(const Query &q) {
 }
 
 namespace query_language {
-type_t get_type(const Term &t, variable_type_scope_t *scope) {
+const type_t get_type(const Term &t, variable_type_scope_t *scope) {
     switch (t.type()) {
         case Term::VAR:
             return scope->get(t.var());
@@ -383,7 +383,7 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
             }
         case Term::IF:
             {
-                if (!(get_type(t.if_().test(), scope) == JSON())) {
+                if (!(get_type(t.if_().test(), scope) == Type::JSON)) {
                     return error_t("Test in an if must be JSON\n");
                 }
                 type_t true_branch  = get_type(t.if_().true_branch(), scope),
@@ -399,7 +399,7 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
             {
                 type_t try_type = get_type(t.try_().try_term(), scope);
                 scope->push();
-                scope->put_in_scope(t.try_().var_and_catch_term().var(), primitive_t(primitive_t::ERROR));
+                scope->put_in_scope(t.try_().var_and_catch_term().var(), Type::ERROR);
                 type_t catch_type = get_type(t.try_().var_and_catch_term().term(), scope);
                 scope->pop();
                 if (!(try_type == catch_type)) {
@@ -410,39 +410,25 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
                 break;
             }
         case Term::ERROR:
-            return primitive_t(primitive_t::ERROR);
-            break;
+            return Type::ERROR;
         case Term::NUMBER:
-            return primitive_t(primitive_t::JSON);
-            break;
         case Term::STRING:
-            return primitive_t(primitive_t::JSON);
-            break;
         case Term::JSON:
-            return primitive_t(primitive_t::JSON);
-            break;
         case Term::BOOL:
-            return primitive_t(primitive_t::JSON);
-            break;
         case Term::JSON_NULL:
-            return primitive_t(primitive_t::JSON);
-            break;
         case Term::ARRAY:
-            return primitive_t(primitive_t::JSON);
-            break;
         case Term::MAP:
-            return primitive_t(primitive_t::JSON);
-            break;
+            return Type::JSON;
         case Term::VIEWASSTREAM:
-            if (get_type(t.view_as_stream(), scope) == VIEW()) {
-                return primitive_t(primitive_t::STREAM);
+            if (get_type(t.view_as_stream(), scope) == Type::VIEW) {
+                return Type::STREAM;
             } else {
                 return type_t(error_t());
             }
             break;
         case Term::GETBYKEY:
-            if (get_type(t.get_by_key().key(), scope) == JSON()) {
-                return primitive_t(primitive_t::JSON);
+            if (get_type(t.get_by_key().key(), scope) == Type::JSON) {
+                return Type::JSON;
             } else {
                 return error_t("Key must be a json value.");
             }
@@ -454,7 +440,7 @@ type_t get_type(const Term &t, variable_type_scope_t *scope) {
     crash("unreachable");
 }
 
-function_t get_type(const Builtin &b, variable_type_scope_t *) {
+const function_t get_type(const Builtin &b, variable_type_scope_t *) {
     function_t res;
     switch (b.type()) {
         //JSON -> JSON
@@ -464,8 +450,8 @@ function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::PICKATTRS:
         case Builtin::ARRAYLENGTH:
         case Builtin::JAVASCRIPT:
-            res.push_back(JSON());
-            res.push_back(JSON());
+            res.push_back(Type::JSON);
+            res.push_back(Type::JSON);
             break;
         case Builtin::MAPMERGE:
         case Builtin::ARRAYCONS:
@@ -477,15 +463,15 @@ function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::DIVIDE:
         case Builtin::MODULO:
         case Builtin::COMPARE:
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
+            res.push_back(Type::JSON);
+            res.push_back(Type::JSON);
+            res.push_back(Type::JSON);
             break;
         case Builtin::ARRAYSLICE:
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
-            res.push_back(JSON());
+            res.push_back(Type::JSON);
+            res.push_back(Type::JSON);
+            res.push_back(Type::JSON);
+            res.push_back(Type::JSON);
             break;
         case Builtin::FILTER:
         case Builtin::MAP:
@@ -493,8 +479,8 @@ function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::ORDERBY:
         case Builtin::DISTINCT:
         case Builtin::LIMIT:
-            res.push_back(STREAM());
-            res.push_back(STREAM());
+            res.push_back(Type::STREAM);
+            res.push_back(Type::STREAM);
             break;
         case Builtin::LENGTH:
         case Builtin::NTH:
@@ -502,18 +488,18 @@ function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::REDUCE:
         case Builtin::GROUPEDMAPREDUCE:
         case Builtin::MAPREDUCE:
-            res.push_back(STREAM());
-            res.push_back(JSON());
+            res.push_back(Type::STREAM);
+            res.push_back(Type::JSON);
             break;
         case Builtin::UNION:
-            res.push_back(STREAM());
-            res.push_back(STREAM());
-            res.push_back(STREAM());
+            res.push_back(Type::STREAM);
+            res.push_back(Type::STREAM);
+            res.push_back(Type::STREAM);
             break;
         case Builtin::ARRAYTOSTREAM:
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
-            res.push_back(JSON());
-            res.push_back(STREAM());
+            res.push_back(Type::JSON);
+            res.push_back(Type::STREAM);
             break;
         default:
             crash("unreachable");
@@ -522,61 +508,61 @@ function_t get_type(const Builtin &b, variable_type_scope_t *) {
     return res;
 }
 
-type_t get_type(const Reduction &r, variable_type_scope_t *scope) {
-    if (!(get_type(r.base(), scope) == JSON())) {
+const type_t get_type(const Reduction &r, variable_type_scope_t *scope) {
+    if (!(get_type(r.base(), scope) == Type::JSON)) {
         return type_t(error_t());
     }
 
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(r.var1(), JSON());
-    scope->put_in_scope(r.var2(), JSON());
+    scope->put_in_scope(r.var1(), Type::JSON);
+    scope->put_in_scope(r.var2(), Type::JSON);
 
-    if (!(get_type(r.body(), scope) == JSON())) {
+    if (!(get_type(r.body(), scope) == Type::JSON)) {
         return type_t(error_t());
     } else {
-        return JSON();
+        return Type::JSON;
     }
 }
 
-type_t get_type(const Mapping &m, variable_type_scope_t *scope) {
+const type_t get_type(const Mapping &m, variable_type_scope_t *scope) {
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(m.arg(), JSON());
+    scope->put_in_scope(m.arg(), Type::JSON);
 
-    if (!(get_type(m.body(), scope) == JSON())) {
+    if (!(get_type(m.body(), scope) == Type::JSON)) {
         return type_t(error_t());
     } else {
-        return JSON();
+        return Type::JSON;
     }
 }
 
-type_t get_type(const Predicate &p, variable_type_scope_t *scope) {
+const type_t get_type(const Predicate &p, variable_type_scope_t *scope) {
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(p.arg(), JSON());
+    scope->put_in_scope(p.arg(), Type::JSON);
 
-    if (!(get_type(p.body(), scope) == JSON())) {
+    if (!(get_type(p.body(), scope) == Type::JSON)) {
         return type_t(error_t());
     } else {
-        return JSON();
+        return Type::JSON;
     }
 }
 
-type_t get_type(const View &v, variable_type_scope_t *scope) {
+const type_t get_type(const View &v, variable_type_scope_t *scope) {
     switch(v.type()) {
         case View::TABLE:
             //no way for this to be incorrect
-            return VIEW();
+            return Type::VIEW;
             break;
         case View::FILTERVIEW:
-            if (get_type(v.filter_view().view(), scope) == VIEW() &&
-                get_type(v.filter_view().predicate(), scope) == JSON()) {
-                return VIEW();
+            if (get_type(v.filter_view().view(), scope) == Type::VIEW &&
+                get_type(v.filter_view().predicate(), scope) == Type::JSON) {
+                return Type::VIEW;
             }
             break;
         case View::RANGEVIEW:
-            if (get_type(v.range_view().view(), scope) == VIEW() &&
-                get_type(v.range_view().lowerbound(), scope) == JSON() &&
-                get_type(v.range_view().upperbound(), scope) == JSON()) {
-                return READ();
+            if (get_type(v.range_view().view(), scope) == Type::VIEW &&
+                get_type(v.range_view().lowerbound(), scope) == Type::JSON &&
+                get_type(v.range_view().upperbound(), scope) == Type::JSON) {
+                return Type::READ;
             }
             break;
         default:
@@ -585,83 +571,83 @@ type_t get_type(const View &v, variable_type_scope_t *scope) {
     crash("Unreachable");
 }
 
-type_t get_type(const ReadQuery &r, variable_type_scope_t *scope) {
+const type_t get_type(const ReadQuery &r, variable_type_scope_t *scope) {
     type_t res = get_type(r.term(), scope);
-    if (res == JSON() ||
-        res == STREAM()) {
-        return READ();
+    if (res == Type::JSON ||
+        res == Type::STREAM) {
+        return Type::READ;
     } else {
         return error_t("ReadQueries must produce either JSON or a STREAM.");
     }
 }
 
-type_t get_type(const WriteQuery &w, variable_type_scope_t *scope) {
+const type_t get_type(const WriteQuery &w, variable_type_scope_t *scope) {
     switch (w.type()) {
         case WriteQuery::UPDATE:
-            if (get_type(w.update().view(), scope) == VIEW() &&
-                get_type(w.update().mapping(), scope) == JSON()) {
-                return WRITE();
+            if (get_type(w.update().view(), scope) == Type::VIEW &&
+                get_type(w.update().mapping(), scope) == Type::JSON) {
+                return Type::WRITE;
             }
             break;
         case WriteQuery::DELETE:
-            if (get_type(w.update().view(), scope) == VIEW()) {
-                return WRITE();
+            if (get_type(w.update().view(), scope) == Type::VIEW) {
+                return Type::WRITE;
             }
             break;
         case WriteQuery::MUTATE:
-            if (get_type(w.mutate().view(), scope) == VIEW() &&
-                get_type(w.mutate().mapping(), scope) == JSON()) {
-                return WRITE();
+            if (get_type(w.mutate().view(), scope) == Type::VIEW &&
+                get_type(w.mutate().mapping(), scope) == Type::JSON) {
+                return Type::WRITE;
             }
             break;
         case WriteQuery::INSERT:
             for (int i = 0; i < w.insert().terms_size(); ++i) {
-                if (!(get_type(w.insert().terms(i), scope) == JSON())) {
+                if (!(get_type(w.insert().terms(i), scope) == Type::JSON)) {
                     return type_t(error_t("Trying to insert a non JSON term"));
                 }
             }
-            return WRITE();
+            return Type::WRITE;
             break;
         case WriteQuery::INSERTSTREAM:
-            if (!(get_type(w.insert_stream().stream(), scope) == STREAM())) {
-                return WRITE();
+            if (!(get_type(w.insert_stream().stream(), scope) == Type::STREAM)) {
+                return Type::WRITE;
             }
             break;
         case WriteQuery::FOREACH:
             {
-                if (!(get_type(w.for_each().stream(), scope) == STREAM())) {
+                if (!(get_type(w.for_each().stream(), scope) == Type::STREAM)) {
                     return type_t(error_t("Must pass a stream in to a FOREACH query."));
                 }
 
                 new_scope_t scope_maker(scope);
-                scope->put_in_scope(w.for_each().var(), JSON());
+                scope->put_in_scope(w.for_each().var(), Type::JSON);
                 for (int i = 0; i < w.for_each().queries_size(); ++i) {
-                    if (!(get_type(w.for_each().queries(i), scope) == WRITE())) {
+                    if (!(get_type(w.for_each().queries(i), scope) == Type::WRITE)) {
                         return type_t(error_t("Queries passed to a foreach must all be write queries\n"));
                     }
                 }
-                return WRITE();
+                return Type::WRITE;
             }
             break;
         case WriteQuery::POINTUPDATE:
-            if (!(get_type(w.point_update().key(), scope) == JSON()) ||
-                !(get_type(w.point_update().mapping(), scope) == JSON())) {
+            if (!(get_type(w.point_update().key(), scope) == Type::JSON) ||
+                !(get_type(w.point_update().mapping(), scope) == Type::JSON)) {
                 return type_t(error_t("Key and mapping must both be of type JSON\n"));
             }
-            return WRITE();
+            return Type::WRITE;
             break;
         case WriteQuery::POINTDELETE:
-            if (!(get_type(w.point_delete().key(), scope) == JSON())) {
+            if (!(get_type(w.point_delete().key(), scope) == Type::JSON)) {
                 return type_t(error_t("Key must be of type JSON\n"));
             }
-            return WRITE();
+            return Type::WRITE;
             break;
         case WriteQuery::POINTMUTATE:
-            if (!(get_type(w.point_mutate().key(), scope) == JSON()) ||
-                !(get_type(w.point_mutate().mapping(), scope) == JSON())) {
+            if (!(get_type(w.point_mutate().key(), scope) == Type::JSON) ||
+                !(get_type(w.point_mutate().mapping(), scope) == Type::JSON)) {
                 return type_t(error_t("Key and mapping must both be of type JSON\n"));
             }
-            return WRITE();
+            return Type::WRITE;
             break;
         default:
             break;
@@ -669,19 +655,19 @@ type_t get_type(const WriteQuery &w, variable_type_scope_t *scope) {
     crash("Unreachable");
 }
 
-type_t get_type(const Query &q, variable_type_scope_t *scope) {
+const type_t get_type(const Query &q, variable_type_scope_t *scope) {
     switch (q.type()) {
         case Query::READ:
-            if (!(get_type(q.read_query(), scope) == READ())) {
+            if (!(get_type(q.read_query(), scope) == Type::READ)) {
                 return type_t(error_t("Malformed read."));
             }
-            return QUERY();
+            return Type::QUERY;
             break;
         case Query::WRITE:
-            if (!(get_type(q.write_query(), scope) == WRITE())) {
+            if (!(get_type(q.write_query(), scope) == Type::WRITE)) {
                 return type_t(error_t("Malformed write."));
             }
-            return QUERY();
+            return Type::QUERY;
             break;
         default:
             crash("unreachable");
@@ -1050,7 +1036,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
         env->semilattice_metadata->get().rdb_namespaces.get_namespace_by_name(t.table_name());
-    
+
     if (namespace_info) {
         return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, namespace_info->first, &env->interruptor);
     } else {

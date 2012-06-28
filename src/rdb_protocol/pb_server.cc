@@ -16,7 +16,7 @@ Response query_server_t::handle(const Query &q) {
 
     query_language::variable_type_scope_t scope;
 
-    if (!(get_type(q, &scope) == query_language::QUERY())) {
+    if (!(get_type(q, &scope) == query_language::Type::QUERY)) {
         res.set_status_code(-2);
         res.set_token(0);
         res.add_response("Message failed to type check");

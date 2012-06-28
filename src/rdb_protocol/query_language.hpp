@@ -1,5 +1,5 @@
-#ifndef RDB_PROTOCOL_QUERY_LANGUAGE_HPP__
-#define RDB_PROTOCOL_QUERY_LANGUAGE_HPP__
+#ifndef RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
+#define RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
 
 #include <list>
 #include <deque>
@@ -48,7 +48,7 @@ struct primitive_t;
 
 typedef boost::variant<error_t, primitive_t> type_t;
 
-struct error_t { 
+struct error_t {
     error_t()
         : desc("Unknown error.")
     { }
@@ -86,32 +86,14 @@ struct primitive_t {
     }
 };
 
-inline type_t ERROR() {
-    return type_t(primitive_t(primitive_t::ERROR));
-}
-
-inline type_t JSON() {
-    return type_t(primitive_t(primitive_t::JSON));
-}
-
-inline type_t STREAM() {
-    return type_t(primitive_t(primitive_t::STREAM));
-}
-
-inline type_t VIEW() {
-    return type_t(primitive_t(primitive_t::VIEW));
-}
-
-inline type_t READ() {
-    return type_t(primitive_t(primitive_t::READ));
-}
-
-inline type_t WRITE() {
-    return type_t(primitive_t(primitive_t::WRITE));
-}
-
-inline type_t QUERY() {
-    return type_t(primitive_t(primitive_t::WRITE));
+namespace Type {
+    const type_t ERROR = primitive_t(primitive_t::ERROR);
+    const type_t JSON = primitive_t(primitive_t::JSON);
+    const type_t STREAM = primitive_t(primitive_t::STREAM);
+    const type_t VIEW = primitive_t(primitive_t::VIEW);
+    const type_t READ = primitive_t(primitive_t::READ);
+    const type_t WRITE = primitive_t(primitive_t::WRITE);
+    const type_t QUERY = primitive_t(primitive_t::WRITE);
 }
 
 typedef std::list<type_t> function_t;
@@ -133,7 +115,7 @@ public:
                 return jt->second;
             }
         }
-        
+
         return error_t(strprintf("Symbol %s is not in scope\n", name.c_str()));
     }
 
@@ -146,7 +128,7 @@ public:
     }
 
     struct new_scope_t {
-        new_scope_t(variable_scope_t *_parent) 
+        explicit new_scope_t(variable_scope_t *_parent)
             : parent(_parent)
         {
             parent->push();
@@ -167,23 +149,23 @@ typedef variable_scope_t<type_t> variable_type_scope_t;
 typedef variable_type_scope_t::new_scope_t new_scope_t;
 
 /* get_type functions assume that the contained value is well defined. */
-type_t get_type(const Term &t, variable_type_scope_t *scope);
+const type_t get_type(const Term &t, variable_type_scope_t *scope);
 
-function_t get_type(const Builtin &b, variable_type_scope_t *scope);
+const function_t get_type(const Builtin &b, variable_type_scope_t *scope);
 
-type_t get_type(const Reduction &r, variable_type_scope_t *scope);
+const type_t get_type(const Reduction &r, variable_type_scope_t *scope);
 
-type_t get_type(const Mapping &m, variable_type_scope_t *scope);
+const type_t get_type(const Mapping &m, variable_type_scope_t *scope);
 
-type_t get_type(const Predicate &p, variable_type_scope_t *scope);
+const type_t get_type(const Predicate &p, variable_type_scope_t *scope);
 
-type_t get_type(const View &v, variable_type_scope_t *scope);
+const type_t get_type(const View &v, variable_type_scope_t *scope);
 
-type_t get_type(const ReadQuery &r, variable_type_scope_t *scope);
+const type_t get_type(const ReadQuery &r, variable_type_scope_t *scope);
 
-type_t get_type(const WriteQuery &w, variable_type_scope_t *scope);
+const type_t get_type(const WriteQuery &w, variable_type_scope_t *scope);
 
-type_t get_type(const Query &q, variable_type_scope_t *scope);
+const type_t get_type(const Query &q, variable_type_scope_t *scope);
 
 /* functions to evaluate the queries */
 
@@ -193,7 +175,7 @@ typedef variable_scope_t<Term> variable_val_scope_t;
 
 class runtime_exc_t {
 public:
-    runtime_exc_t(std::string _what)
+    explicit runtime_exc_t(std::string _what)
         : what_happened(_what)
     { }
 
@@ -206,7 +188,7 @@ private:
 
 class runtime_environment_t {
 public:
-    runtime_environment_t(namespace_repo_t<rdb_protocol_t> *_ns_repo, 
+    runtime_environment_t(namespace_repo_t<rdb_protocol_t> *_ns_repo,
                           boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata)
         : ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata)
     { }
@@ -233,4 +215,4 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_envir
 
 } //namespace query_language
 
-#endif
+#endif /* RDB_PROTOCOL_QUERY_LANGUAGE_HPP_ */

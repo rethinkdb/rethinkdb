@@ -1,5 +1,5 @@
-#ifndef PROTOB_PROTOB_HPP__
-#define PROTOB_PROTOB_HPP__
+#ifndef PROTOB_PROTOB_HPP_
+#define PROTOB_PROTOB_HPP_
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -31,4 +31,4 @@ private:
 
 #include "protob/protob.tcc"
 
-#endif
+#endif /* PROTOB_PROTOB_HPP_ */

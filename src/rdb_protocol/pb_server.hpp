@@ -1,5 +1,5 @@
-#ifndef RDB_PROTOCOL_PB_SERVER_HPP__
-#define RDB_PROTOCOL_PB_SERVER_HPP__
+#ifndef RDB_PROTOCOL_PB_SERVER_HPP_
+#define RDB_PROTOCOL_PB_SERVER_HPP_
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -22,8 +22,8 @@ private:
     Response handle(const Query &q);
 
     protob_server_t<Query, Response> server;
-    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata; 
+    boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
     namespace_repo_t<rdb_protocol_t> *ns_repo;
 };
 
-#endif
+#endif /* RDB_PROTOCOL_PB_SERVER_HPP_ */
