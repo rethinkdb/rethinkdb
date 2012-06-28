@@ -70,7 +70,6 @@ void perfmon_collection_t::visit_stats(void *_context) {
 void perfmon_collection_t::end_stats(void *_context, perfmon_result_t *result) {
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
 
-    // TODO: This is completely fucked up shitty code.
     perfmon_result_t *map;
     if (create_submap) {
         perfmon_result_t::alloc_map_result(&map);

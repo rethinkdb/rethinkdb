@@ -109,11 +109,10 @@ private:
         RDB_MAKE_ME_SERIALIZABLE_4(write, order_token, transition_timestamp, fifo_token);
     };
 
-    // TODO: What the fuck is this boost optional boost optional shit?
+    // TODO: This boost optional boost optional crap is ... crap.  This isn't Haskell, this is *real* programming, people.
     static boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > get_backfiller_from_replier_bcard(const boost::optional<boost::optional<replier_business_card_t<protocol_t> > > &replier_bcard);
 
-    // TODO: Holy motherfucking fuck what in the name of Fuck is this
-    // boost optional boost optional shit?
+    // TODO: Boost boost optional optional business card business card protocol_tee tee tee tee piii kaaa chuuuuu!
     static boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t<protocol_t> > > > get_registrar_from_broadcaster_bcard(const boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > &broadcaster_bcard);
 
     /* `try_start_receiving_writes()` is called from within the constructors. It

@@ -45,9 +45,7 @@ public:
     void new_particular_write_tokens(int *indices, int num_indices, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens);
 
     // TODO: I'm pretty sure every time we call this function we are
-    // doing something completely fucking stupid.  This whole design
-    // looks broken (and it looked broken when we were operating on a
-    // single store.)
+    // doing something stupid.
     region_map_t<protocol_t, version_range_t>
     get_all_metainfos(order_token_t order_token,
                       boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
@@ -57,8 +55,9 @@ public:
     typename protocol_t::region_t get_region(int i) const;
     store_view_t<protocol_t> *get_store_view(int i) const;
 
-    // TODO: Perhaps all uses of set_all_metainfos are completely fucking stupid, too.  See get_all_metainfos.
-    // This is the opposite of get_all_metainfos but is a bit more scary.
+    // TODO: Perhaps all uses of set_all_metainfos are stupid, too.
+    // See get_all_metainfos.  This is the opposite of
+    // get_all_metainfos but is a bit more scary.
     void set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
                            order_token_t order_token,
                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
