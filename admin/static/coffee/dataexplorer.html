@@ -160,9 +160,17 @@
     <tr class="jta_tr">
         {{#each value}}
         <td class="col-{{col}}" data-col={{col}}>
+            {{#if data_to_expand}}
             <div class="jta_value value-{{col}} {{classname}}">
-                {{value}}
+                <span class="jta_arrow jta_arrow_v"></span>
+                <span class="jta_arrow jta_arrow_h"></span>
+                <span data-json_data="{{data_to_expand}}">{{print_safe value}}</span>
             </div>
+            {{else}}
+            <div class="jta_value value-{{col}} {{classname}}">
+                {{print_safe value}}
+            </div>
+            {{/if}}
         </td>
         {{/each}}
     </tr>

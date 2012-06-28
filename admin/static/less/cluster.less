@@ -1793,6 +1793,8 @@
     }
 
     .results{
+        width: 700px;
+        overflow: auto;
         .json_tree{
             font: 13px/18px monospace,mono,consolas;
             .jt_null{
@@ -1919,6 +1921,20 @@
                     padding: 7px 0px 5px 15px;
                     max-width: 125px; // smaller margin on the right in case of overflow
                     overflow: hidden;
+                }
+                .jta_arrow{
+                    width: 15px;
+                    height: 15px;
+                    margin: 3px 2px 0px 4px;
+                    display: block;
+                }
+                .jta_arrow_v{
+                    background: url('/images/arrow_down.gif') no-repeat;
+                    float: left;
+                }
+                .jta_arrow_h{
+                    background: url('/images/arrow_right.gif') no-repeat;
+                    float: right;
                 }
             }
             .resizing{

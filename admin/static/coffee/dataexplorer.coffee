@@ -25,6 +25,7 @@ generate_string = (n) ->
 
 
 #TODO destroy views
+#TODO maintain data
 module 'DataExplorerView', ->
     class @Container extends Backbone.View
         className: 'dataexplorer_container'
@@ -314,13 +315,6 @@ module 'DataExplorerView', ->
                 attr.push
                     key: element[0]
                     col: col
-
-            ###
-            for i in [0..keys_sorted.length-1]
-                attr.push
-                    key: keys_sorted[i][0]
-                    col: i
-            ###
  
             return @template_json_table.tr_attr 
                 attr: attr
@@ -338,8 +332,6 @@ module 'DataExplorerView', ->
                         value: value
                         col: col
 
-
-
                     value_type = typeof value
                     if value is null
                         new_document.value[new_document.value.length-1]['classname'] = 'jta_null'
@@ -347,44 +339,15 @@ module 'DataExplorerView', ->
                     else if value.constructor? and value.constructor is Array
                         if value.length is 0
                             return '[ ]'
-                        ###
                         else
-                            sub_values = []
-                            for element in value
-                                sub_values.push 
-                                    value: @json_to_node element
-                                if typeof element is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(element) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(element))
-                                    sub_values[sub_values.length-1]['no_comma'] = true
-
-
-                            sub_values[sub_values.length-1]['no_comma'] = true
-                            return @template_json_tree.array
-                                values: sub_values
-                        ###
+                            #TODO Build preview
+                            #TODO Add arrows for attributes
+                            new_document.value[new_document.value.length-1]['value'] = '[ ... ]'
+                            new_document.value[new_document.value.length-1]['data_to_expand'] = JSON.stringify(value)
                     else if value_type is 'object'
-                        console.log 'object found'
-                        ###
-                        sub_values = []
-                        for key of value
-                            last_key = key
-                            sub_values.push
-                                key: key
-                                value: @json_to_node value[key]
-                            #TODO Remove this check by sending whether the comma should be add or not
-                            if typeof value[key] is 'string' and (/^(http|https):\/\/[^\s]+$/i.test(value[key]) or  /^[a-z0-9._-]+@[a-z0-9]+.[a-z0-9._-]{2,4}/i.test(value[key]))
-                                sub_values[sub_values.length-1]['no_comma'] = true
 
-                        sub_values[sub_values.length-1]['no_comma'] = true
-
-                        data =
-                            no_values: false
-                            values: sub_values
-
-                        if sub_values.length is 0
-                            data.no_value = true
-
-                        return @template_json_tree.object data
-                        ###
+                        new_document.value[new_document.value.length-1]['value'] = '{ ... }'
+                        new_document.value[new_document.value.length-1]['data_to_expand'] = JSON.stringify(value)
                     else if value_type is 'number'
                         new_document.value[new_document.value.length-1]['classname'] = 'jta_num'
                     else if value_type is 'string'
@@ -398,7 +361,6 @@ module 'DataExplorerView', ->
                         new_document.value[new_document.value.length-1]['classname'] = 'jta_bool'
 
 
-                    console.log new_document.value[new_document.value.length-1]['classname']
                 document.push new_document
             return @template_json_table.tr_value
                 document: document
