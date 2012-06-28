@@ -6,8 +6,15 @@
 
 #include <v8.h>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
+#include "arch/runtime/starter.hpp"
+#include "clustering/administration/issues/local.hpp"
+#include "clustering/administration/logger.hpp"
 #include "containers/archive/fd_stream.hpp"
 #include "jsproc/job.hpp"
+#include "jsproc/supervisor.hpp"
 #include "jsproc/worker.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -81,41 +88,14 @@ class js_eval_job_t : public jsproc::job_t
     RDB_MAKE_ME_SERIALIZABLE_1(js_src);
 };
 
-int fork_worker(pid_t *pid, int *fd) {
-    int fds[2];
-    int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
-    if (res) return -1;
+void run_rethinkdb_js(jsproc::supervisor_t::info_t info, bool *result) {
+    fprintf(stderr, "ENGINE PROC: %d\n", getpid());
+    jsproc::supervisor_t supervisor(info);
 
-    *fd = fds[0];
-    *pid = fork();
+    local_issue_tracker_t tracker;
+    log_writer_t writer("example-log", &tracker);
 
-    if (*pid == -1) {
-        guarantee_err(0 == close(fds[0]), "could not close fd");
-        guarantee_err(0 == close(fds[1]), "could not close fd");
-        return -1;
-    }
-
-    if (!*pid) {
-        // We're the child.
-        guarantee_err(0 == close(fds[0]), "could not close fd");
-        jsproc::exec_worker(fds[1]);
-        unreachable();
-    }
-
-    // We're the parent
-    guarantee(pid);
-    guarantee_err(0 == close(fds[1]), "could not close fd");
-    return 0;
-}
-
-int main_rethinkdb_js(int argc, char *argv[]) {
-    (void) argc; (void) argv;
-
-    pid_t pid;
-    int fd;
-    guarantee_err (0 == fork_worker(&pid, &fd), "could not spawn worker");
-    unix_socket_stream_t stream(fd, new blocking_fd_watcher_t());
-
+    // Shell loop.
     char *line = NULL;
     size_t line_sz = 0;
 
@@ -130,15 +110,22 @@ int main_rethinkdb_js(int argc, char *argv[]) {
 
         // Send a job that evaluates the javascript.
         js_eval_job_t job(line);
-        if (-1 == jsproc::send_job(&stream, job)) {
-            printf("!! could not send job\n");
+        boost::scoped_ptr<unix_socket_stream_t> stream;
+        if(-1 == supervisor.spawn_job(job, stream)) {
+            printf("!! could not spawn job\n");
             break;
         }
 
         // Read back the result.
+        printf("waiting for result...\n");
         js_eval_job_t::result_t result;
-        if (ARCHIVE_SUCCESS != deserialize(&stream, &result)) {
-            printf("!! could not deserialize result\n");
+        archive_result_t ares = deserialize(stream.get(), &result);
+        if (ARCHIVE_SUCCESS != ares) {
+            printf("!! could not deserialize result: %s\n",
+                   ares == ARCHIVE_SOCK_ERROR ? "socket error" :
+                   ares == ARCHIVE_SOCK_EOF ? "EOF" :
+                   ares == ARCHIVE_RANGE_ERROR ? "range error" :
+                   "unknown error");
             break;
         }
 
@@ -147,6 +134,17 @@ int main_rethinkdb_js(int argc, char *argv[]) {
                result.message.c_str());
     }
 
-    // debugf("main exiting\n");
-    return -1;
+    *result = -1;
+}
+
+int main_rethinkdb_js(int argc, char *argv[]) {
+    (void) argc; (void) argv;
+
+    jsproc::supervisor_t::info_t info;
+    guarantee(0 == jsproc::supervisor_t::spawn(&info));
+    // NB. We're the child now.
+
+    bool result;
+    run_in_thread_pool(boost::bind(&run_rethinkdb_js, info, &result));
+    return result ? 0 : 1;
 }

@@ -22,9 +22,6 @@ enum job_result_type_t {
     // If writing failed at some point during the job's execution. No additional
     // data.
     JOB_WRITE_FAILURE,
-
-    // Indicates that the worker process executing this job should shut down.
-    JOB_SHUTDOWN,
 };
 
 struct job_result_t {

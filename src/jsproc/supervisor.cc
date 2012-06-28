@@ -335,7 +335,7 @@ void supervisor_proc_t::get_new_idle_procs() {
 
         if (res == 0 || res == -1) {
             // EOF or shut-down. Worker process is no longer active.
-            fprintf(stderr, "read from child %d failed (%s), killing it\n",
+            fprintf(stderr, "supervisor: read from child %d failed (%s), killing it\n",
                     it->pid, strerror(errno));
             kill_worker(*it);
             it = busy_workers_.erase(it);
@@ -397,7 +397,7 @@ void supervisor_proc_t::handle_requests() {
           case FD_RECV_ERROR:
           case FD_RECV_EOF:
           case FD_RECV_INVALID:
-            fprintf(stderr, "read from rethinkdb engine failed (%s), shutting down",
+            fprintf(stderr, "supervisor: read from rethinkdb engine failed (%s), shutting down",
                     res == FD_RECV_ERROR ? strerror(errno) :
                     res == FD_RECV_EOF ? "EOF received" :
                     "invalid request - PROBABLY A BUG, PLEASE REPORT");
@@ -423,7 +423,7 @@ bool supervisor_proc_t::send_request(workers_t::iterator *it, fd_t fd) {
         ++*it;
     } else {
         // Unknown error. Kill offending worker and update iterator.
-        fprintf(stderr, "write to child %d failed (%s), killing it\n",
+        fprintf(stderr, "supervisor: write to child %d failed (%s), killing it\n",
                 (*it)->pid, strerror(errno));
         kill_worker(**it);
         *it = idle_workers_.erase(*it);
@@ -451,7 +451,7 @@ void supervisor_proc_t::on_sigchild(siginfo_t *info) {
       case CLD_EXITED: case CLD_KILLED: case CLD_DUMPED: break; // normal
 
       case SI_USER: case SI_TKILL:
-        fprintf(stderr, "Received SIGCHLD from kill(2), tkill(2), "
+        fprintf(stderr, "supervisor: Received SIGCHLD from kill(2), tkill(2), "
                 "or tgkill(2); ignoring.\n");
         return;
 
