@@ -503,7 +503,7 @@ class Let(Term):
             binding = parent.let.binds.add()
             binding.var = pair[0]
             toTerm(pair[1]).write_ast(binding.term)
-        self.expr.write_ast(parent.let.expr)
+        toTerm(self.expr).write_ast(parent.let.expr)
 
 # Accepts an arbitrary number of pairs followed by a single
 # expression. Each pair is a variable followed by expression (binds

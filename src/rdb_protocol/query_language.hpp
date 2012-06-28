@@ -225,6 +225,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *) T
 
 boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
+boost::shared_ptr<scoped_cJSON_t> eval_cmp(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+
 namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
 } //namespace query_language

@@ -972,7 +972,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             }
             break;
         case Builtin::COMPARE:
-            crash("Not implemented");
+            return eval_cmp(c, env);
             break;
         case Builtin::FILTER:
             crash("Not implemented");
@@ -1027,6 +1027,123 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
     }
     crash("unreachable");
+}
+
+boost::shared_ptr<scoped_cJSON_t> eval_cmp(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
+    // Eval the left arg and make sure comparison is defined for this
+    // type (we do this in order to avoid evaluating right arg when it
+    // isn't necessary).
+    boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env);
+    if (lhs->get()->type != cJSON_Number &&
+        lhs->get()->type != cJSON_String &&
+        lhs->get()->type != cJSON_True &&
+        lhs->get()->type != cJSON_False)
+    {
+        throw runtime_exc_t("Comparison is undefined for this type.");
+    }
+    
+    // Evaluate right argument
+    boost::shared_ptr<scoped_cJSON_t> rhs = eval(c.args(1), env);
+    
+    // Select on types
+    if (lhs->get()->type == cJSON_Number) {
+        // Ensure the types are the same
+        if(lhs->get()->type != rhs->get()->type) {
+            throw runtime_exc_t("Cannot compare these types.");
+        }
+        
+        // Do the comparison
+        switch (c.builtin().comparison()) {
+        case Builtin_Comparison_EQ:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble == rhs->get()->valuedouble)));
+            break;
+        case Builtin_Comparison_NE:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble != rhs->get()->valuedouble)));
+            break;
+        case Builtin_Comparison_LT:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble < rhs->get()->valuedouble)));
+            break;
+        case Builtin_Comparison_LE:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble <= rhs->get()->valuedouble)));
+            break;
+        case Builtin_Comparison_GT:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble > rhs->get()->valuedouble)));
+            break;
+        case Builtin_Comparison_GE:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble >= rhs->get()->valuedouble)));
+            break;
+        default:
+            crash("Unknown comparison operator.");
+            break;
+        }
+    } else if (lhs->get()->type == cJSON_String) {
+        // Ensure the types are the same
+        if(lhs->get()->type != rhs->get()->type) {
+            throw runtime_exc_t("Cannot compare these types.");
+        }
+        
+        // Do the comparison
+        int res = strcmp(lhs->get()->valuestring, rhs->get()->valuestring);
+        switch (c.builtin().comparison()) {
+        case Builtin_Comparison_EQ:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res == 0)));
+            break;
+        case Builtin_Comparison_NE:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res != 0)));
+            break;
+        case Builtin_Comparison_LT:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res < 0)));
+            break;
+        case Builtin_Comparison_LE:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res <= 0)));
+            break;
+        case Builtin_Comparison_GT:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res > 0)));
+            break;
+        case Builtin_Comparison_GE:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res >= 0)));
+            break;
+        default:
+            crash("Unknown comparison operator.");
+            break;
+        }
+    } else if (lhs->get()->type == cJSON_True || lhs->get()->type == cJSON_False) {
+        // Ensure the types are the same
+        if(rhs->get()->type != cJSON_True && rhs->get()->type != cJSON_False) {
+            throw runtime_exc_t("Cannot compare these types.");
+        }
+        
+        // Do the comparison
+        switch (c.builtin().comparison()) {
+        case Builtin_Comparison_EQ:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type == rhs->get()->type)));
+            break;
+        case Builtin_Comparison_NE:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type != rhs->get()->type)));
+            break;
+        case Builtin_Comparison_LT:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type == cJSON_False
+                                                                                         && rhs->get()->type == cJSON_True)));
+            break;
+        case Builtin_Comparison_LE:
+            // False is always <= any bool
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type == cJSON_False)));
+            break;
+        case Builtin_Comparison_GT:
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type == cJSON_True
+                                                                                         && rhs->get()->type == cJSON_False)));
+            break;
+        case Builtin_Comparison_GE:
+            // True is always >= any bool
+            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type == cJSON_True)));
+            break;
+        default:
+            crash("Unknown comparison operator.");
+            break;
+        }
+    }
+
+    crash("Internal comparison failure.");
 }
 
 namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
