@@ -104,7 +104,7 @@ private:
         order_token_t order_token;
         fifo_enforcer_write_token_t fifo_token;
 
-        // TODO: Why does this need to be serializable?
+        // This is serializable because this gets written to a disk backed queue.
         RDB_MAKE_ME_SERIALIZABLE_4(write, order_token, transition_timestamp, fifo_token);
     };
 
