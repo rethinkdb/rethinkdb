@@ -276,10 +276,19 @@ po::options_description get_network_options() {
     return desc;
 }
 
+po::options_description get_system_options() {
+    po::options_description desc("System options");
+    desc.add_options()
+        ("io-backend", po::value<std::string>()->default_value("poll"), "event backend to use: epoll or poll")
+        ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
+    return desc;
+}
+
 po::options_description get_rethinkdb_create_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_machine_options());
+    desc.add(get_system_options());
     return desc;
 }
 
@@ -287,19 +296,14 @@ po::options_description get_rethinkdb_serve_options() {
     po::options_description desc("Allowed options");
     desc.add(get_file_options());
     desc.add(get_network_options());
+    desc.add(get_system_options());
     return desc;
 }
 
 po::options_description get_rethinkdb_proxy_options() {
     po::options_description desc("Allowed options");
-    desc.add_options()
-        ("port", po::value<int>()->default_value(0), "port for receiving connections from other nodes (defaults to randomly selected)")
-        DEBUG_ONLY(
-            ("port-offset,o", po::value<int>()->default_value(0), "port to use when connecting to other nodes")
-            ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes"))
-        ("http-port", po::value<int>()->default_value(0), "port for http admin console (defaults to `port + 1000`)")
-        ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
-        ("log-file", po::value<std::string>()->default_value("log_file"), "specify log file");
+    desc.add(get_network_options());
+    desc.add(get_system_options());
     return desc;
 }
 
@@ -310,6 +314,7 @@ po::options_description get_rethinkdb_admin_options() {
             ("client-port", po::value<int>()->default_value(0), "port to use when connecting to other nodes"))
         ("join,j", po::value<std::vector<host_and_port_t> >()->composing(), "host:port of a node that we will connect to")
         ("exit-failure,x", po::value<bool>()->zero_tokens(), "exit with an error code immediately if a command fails");
+    desc.add(get_system_options());
     return desc;
 }
 
