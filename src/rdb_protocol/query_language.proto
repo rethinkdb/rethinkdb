@@ -118,6 +118,8 @@ message Builtin {
         JAVASCRIPT = 30;
         JAVASCRIPTRETURNINGSTREAM = 31;
         MAPREDUCE = 32;
+        ANY = 33;
+        ALL = 34;
     };
 
     enum Comparison {

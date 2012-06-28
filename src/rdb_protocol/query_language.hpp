@@ -96,7 +96,20 @@ namespace Type {
     const type_t QUERY = primitive_t(primitive_t::WRITE);
 }
 
-typedef std::list<type_t> function_t;
+class function_t {
+public:
+    // _n_args==-1 indicates a variadic function
+    function_t(const type_t& _arg_type, int _n_args, const type_t& _return_type);
+
+    const type_t& get_arg_type() const;
+    const type_t& get_return_type() const;
+    bool is_variadic() const;
+    int get_n_args() const;
+private:
+    type_t arg_type;
+    int n_args;
+    type_t return_type;
+};
 
 template <class T>
 class variable_scope_t {
@@ -115,7 +128,7 @@ public:
                 return jt->second;
             }
         }
-        
+
         unreachable("Variable not in scope, probably because the code fails to call is_in_scope().");
     }
 

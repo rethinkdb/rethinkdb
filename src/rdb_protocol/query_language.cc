@@ -368,21 +368,20 @@ const type_t get_type(const Term &t, variable_type_scope_t *scope) {
         case Term::CALL:
             {
                 function_t signature = get_type(t.call().builtin(), scope);
-                if (t.call().args_size() + 1 > int(signature.size())) {
-                    return error_t(strprintf("Too many arguments passed to function. Expected %d but got %d", int(signature.size() - 1), t.call().args_size())); //TODO would be nice to have function names attached to errors
-                } else if (t.call().args_size() + 1 < int(signature.size())) {
-                    return error_t(strprintf("Too few  arguments passed to function. Expected %d but got %d", int(signature.size() - 1), t.call().args_size())); //TODO would be nice to have function names attached to errors
+                if (!signature.is_variadic()) {
+                    int n_args = signature.get_n_args();
+                    if (t.call().args_size() > n_args) {
+                        return error_t(strprintf("Too many arguments passed to function. Expected %d but got %d", n_args, t.call().args_size())); //TODO would be nice to have function names attached to errors
+                    } else if (t.call().args_size() < n_args) {
+                        return error_t(strprintf("Too few  arguments passed to function. Expected %d but got %d", n_args, t.call().args_size())); //TODO would be nice to have function names attached to errors
+                    }
                 }
                 for (int i = 0; i < t.call().args_size(); ++i) {
-                    if (get_type(t.call().args(i), scope) == signature.front()) {
-                        rassert(!signature.empty());
-                        signature.pop_front();
-                    } else {
+                    if (!(get_type(t.call().args(i), scope) == signature.get_arg_type())) {
                         return error_t("Type mismatch in function call\n"); //Need descriptions of types to give a more informative message
                     }
                 }
-                rassert(signature.size() == 1);
-                return signature.front();
+                return signature.get_return_type();
                 break;
             }
         case Term::IF:
@@ -444,8 +443,26 @@ const type_t get_type(const Term &t, variable_type_scope_t *scope) {
     crash("unreachable");
 }
 
+function_t::function_t(const type_t& _arg_type, int _n_args, const type_t& _return_type)
+    : arg_type(_arg_type), n_args(_n_args), return_type(_return_type) { }
+
+const type_t& function_t::get_arg_type() const {
+    return arg_type;
+}
+
+const type_t& function_t::get_return_type() const {
+    return return_type;
+}
+
+bool function_t::is_variadic() const {
+    return n_args == -1;
+}
+
+int function_t::get_n_args() const {
+    return n_args;
+}
+
 const function_t get_type(const Builtin &b, variable_type_scope_t *) {
-    function_t res;
     switch (b.type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -454,28 +471,24 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::PICKATTRS:
         case Builtin::ARRAYLENGTH:
         case Builtin::JAVASCRIPT:
-            res.push_back(Type::JSON);
-            res.push_back(Type::JSON);
+            return function_t(Type::JSON, 1, Type::JSON);
             break;
         case Builtin::MAPMERGE:
         case Builtin::ARRAYCONS:
         case Builtin::ARRAYCONCAT:
         case Builtin::ARRAYNTH:
+        case Builtin::MODULO:
+            return function_t(Type::JSON, 2, Type::JSON);
+            break;
         case Builtin::ADD:
         case Builtin::SUBTRACT:
         case Builtin::MULTIPLY:
         case Builtin::DIVIDE:
-        case Builtin::MODULO:
         case Builtin::COMPARE:
-            res.push_back(Type::JSON);
-            res.push_back(Type::JSON);
-            res.push_back(Type::JSON);
+            return function_t(Type::JSON, -1, Type::JSON);  // variadic JSON type
             break;
         case Builtin::ARRAYSLICE:
-            res.push_back(Type::JSON);
-            res.push_back(Type::JSON);
-            res.push_back(Type::JSON);
-            res.push_back(Type::JSON);
+            return function_t(Type::JSON, 3, Type::JSON);
             break;
         case Builtin::FILTER:
         case Builtin::MAP:
@@ -483,8 +496,7 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::ORDERBY:
         case Builtin::DISTINCT:
         case Builtin::LIMIT:
-            res.push_back(Type::STREAM);
-            res.push_back(Type::STREAM);
+            return function_t(Type::STREAM, 1, Type::STREAM);
             break;
         case Builtin::LENGTH:
         case Builtin::NTH:
@@ -492,24 +504,19 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::REDUCE:
         case Builtin::GROUPEDMAPREDUCE:
         case Builtin::MAPREDUCE:
-            res.push_back(Type::STREAM);
-            res.push_back(Type::JSON);
+            return function_t(Type::STREAM, 1, Type::JSON);
             break;
         case Builtin::UNION:
-            res.push_back(Type::STREAM);
-            res.push_back(Type::STREAM);
-            res.push_back(Type::STREAM);
+            return function_t(Type::STREAM, 2, Type::STREAM);
             break;
         case Builtin::ARRAYTOSTREAM:
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
-            res.push_back(Type::JSON);
-            res.push_back(Type::STREAM);
+            return function_t(Type::JSON, 1, Type::STREAM);
             break;
         default:
             crash("unreachable");
             break;
     }
-    return res;
 }
 
 const type_t get_type(const Reduction &r, variable_type_scope_t *scope) {
@@ -913,49 +920,89 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
         case Builtin::ADD:
             {
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env),
-                    rhs = eval(c.args(1), env);
-                if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
-                    throw runtime_exc_t("Both operands to ADD must be numbers.");
+                double result = 0.0;
+
+                for (int i = 0; i < c.args_size(); ++i) {
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
+                    if (arg->get()->type != cJSON_Number) {
+                        throw runtime_exc_t("All operands to ADD must be numbers.");
+                    }
+                    result += arg->get()->valuedouble;
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(lhs->get()->valuedouble + rhs->get()->valuedouble)));
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(result)));
                 return res;
             }
             break;
         case Builtin::SUBTRACT:
             {
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env),
-                    rhs = eval(c.args(1), env);
-                if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
-                    throw runtime_exc_t("Both operands to SUB must be numbers.");
+                double result = 0.0;
+
+                if (c.args_size() > 0) {
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(0), env);
+                    if (arg->get()->type != cJSON_Number) {
+                        throw runtime_exc_t("All operands to SUBTRACT must be numbers.");
+                    }
+                    if (c.args_size() == 1) {
+                        result = -arg->get()->valuedouble;  // (- x) is negate
+                    } else {
+                        result = arg->get()->valuedouble;
+                    }
+
+                    for (int i = 1; i < c.args_size(); ++i) {
+                        boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
+                        if (arg->get()->type != cJSON_Number) {
+                            throw runtime_exc_t("All operands to SUBTRACT must be numbers.");
+                        }
+                        result -= arg->get()->valuedouble;
+                    }
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(lhs->get()->valuedouble - rhs->get()->valuedouble)));
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(result)));
                 return res;
             }
             break;
         case Builtin::MULTIPLY:
             {
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env),
-                    rhs = eval(c.args(1), env);
-                if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
-                    throw runtime_exc_t("Both operands to MUL must be numbers.");
+                double result = 0.0;
+
+                for (int i = 0; i < c.args_size(); ++i) {
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
+                    if (arg->get()->type != cJSON_Number) {
+                        throw runtime_exc_t("All operands of MULTIPLY must be numbers.");
+                    }
+                    result *= arg->get()->valuedouble;
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(lhs->get()->valuedouble * rhs->get()->valuedouble)));
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(result)));
                 return res;
             }
             break;
         case Builtin::DIVIDE:
             {
-                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env),
-                    rhs = eval(c.args(1), env);
-                if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
-                    throw runtime_exc_t("Both operands to DIV must be numbers.");
+                double result = 0.0;
+
+                if (c.args_size() > 0) {
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(0), env);
+                    if (arg->get()->type != cJSON_Number) {
+                        throw runtime_exc_t("All operands to SUBTRACT must be numbers.");
+                    }
+                    if (c.args_size() == 1) {
+                        result = 1.0 / arg->get()->valuedouble;  // (/ x) is reciprocal
+                    } else {
+                        result = arg->get()->valuedouble;
+                    }
+
+                    for (int i = 1; i < c.args_size(); ++i) {
+                        boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
+                        if (arg->get()->type != cJSON_Number) {
+                            throw runtime_exc_t("All operands to DIVIDE must be numbers.");
+                        }
+                        result /= arg->get()->valuedouble;
+                    }
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(lhs->get()->valuedouble / rhs->get()->valuedouble)));
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateNumber(result)));
                 return res;
             }
             break;
@@ -972,7 +1019,135 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             }
             break;
         case Builtin::COMPARE:
-            return eval_cmp(c, env);
+            {
+                bool result = true;
+
+                boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env);
+
+                int type = lhs->get()->type;
+
+                if (type != cJSON_Number &&
+                    type != cJSON_String &&
+                    type != cJSON_True &&
+                    type != cJSON_False)
+                {
+                    throw runtime_exc_t("Comparison is undefined for this type.");
+                }
+
+                for (int i = 1; i < c.args_size(); ++i) {
+                    boost::shared_ptr<scoped_cJSON_t> rhs = eval(c.args(i), env);
+
+                    if (type == cJSON_Number) {
+                        if (rhs->get()->type != type) {
+                            throw runtime_exc_t("Cannot compare these types.");
+                        }
+
+                        double left = lhs->get()->valuedouble;
+                        double right = rhs->get()->valuedouble;
+
+                        switch (c.builtin().comparison()) {
+                        case Builtin_Comparison_EQ:
+                            result = (left == right);
+                            break;
+                        case Builtin_Comparison_NE:
+                            result = (left != right);
+                            break;
+                        case Builtin_Comparison_LT:
+                            result = (left < right);
+                            break;
+                        case Builtin_Comparison_LE:
+                            result = (left <= right);
+                            break;
+                        case Builtin_Comparison_GT:
+                            result = (left > right);
+                            break;
+                        case Builtin_Comparison_GE:
+                            result = (left >= right);
+                            break;
+                        default:
+                            crash("Unknown comparison operator.");
+                            break;
+                        }
+                    } else if (type == cJSON_String) {
+                        if (rhs->get()->type != type) {
+                            throw runtime_exc_t("Cannot compare these types.");
+                        }
+
+                        char *left = lhs->get()->valuestring;
+                        char *right = rhs->get()->valuestring;
+
+                        int res = strcmp(left, right);
+                        switch (c.builtin().comparison()) {
+                        case Builtin_Comparison_EQ:
+                            result = (res == 0);
+                            break;
+                        case Builtin_Comparison_NE:
+                            result = (res != 0);
+                            break;
+                        case Builtin_Comparison_LT:
+                            result = (res < 0);
+                            break;
+                        case Builtin_Comparison_LE:
+                            result = (res <= 0);
+                            break;
+                        case Builtin_Comparison_GT:
+                            result = (res > 0);
+                            break;
+                        case Builtin_Comparison_GE:
+                            result = (res >= 0);
+                            break;
+                        default:
+                            crash("Unknown comparison operator.");
+                            break;
+                        }
+                    } else { // cJSON_True / cJSON_False
+                        if (rhs->get()->type != cJSON_True && rhs->get()->type != cJSON_False) {
+                            throw runtime_exc_t("Cannot compare these types.");
+                        }
+
+                        int lefttype = lhs->get()->type;
+                        int righttype = rhs->get()->type;
+
+                        bool eq = (lefttype == righttype);
+                        bool lt = (lefttype == cJSON_False && righttype == cJSON_True);
+                        bool gt = (lefttype == cJSON_True && righttype == cJSON_False);
+
+                        switch (c.builtin().comparison()) {
+                        case Builtin_Comparison_EQ:
+                            result = eq;
+                            break;
+                        case Builtin_Comparison_NE:
+                            result = !eq;
+                            break;
+                        case Builtin_Comparison_LT:
+                            result = lt;
+                            break;
+                        case Builtin_Comparison_LE:
+                            // False is always <= any bool
+                            result = eq && lt;
+                            break;
+                        case Builtin_Comparison_GT:
+                            result = gt;
+                            break;
+                        case Builtin_Comparison_GE:
+                            result = eq && gt;
+                            break;
+                        default:
+                            crash("Unknown comparison operator.");
+                            break;
+                        }
+                    }
+
+                    if (!result) {
+                        break;
+                    }
+
+                    lhs = rhs;
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateBool(result)));
+                return res;
+            }
             break;
         case Builtin::FILTER:
             crash("Not implemented");
@@ -1022,128 +1197,49 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
         case Builtin::MAPREDUCE:
             crash("Not implemented");
             break;
+        case Builtin::ALL:
+            {
+                bool result = true;
+
+                for (int i = 0; i < c.args_size(); ++i) {
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
+                    if (arg->get()->type != cJSON_False || arg->get()->type != cJSON_True) {
+                        throw runtime_exc_t("All operands to ALL must be booleans.");
+                    }
+                    if (arg->get()->type != cJSON_True) {
+                        result = false;
+                        break;
+                    }
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateBool(result)));
+                return res;
+            }
+            break;
+        case Builtin::ANY:
+            {
+                bool result = false;
+
+                for (int i = 0; i < c.args_size(); ++i) {
+                    boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
+                    if (arg->get()->type != cJSON_False || arg->get()->type != cJSON_True) {
+                        throw runtime_exc_t("All operands to ANY must be booleans.");
+                    }
+                    if (arg->get()->type == cJSON_True) {
+                        result = true;
+                        break;
+                    }
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateBool(result)));
+                return res;
+            }
+            break;
         default:
             crash("unreachable");
             break;
     }
     crash("unreachable");
-}
-
-boost::shared_ptr<scoped_cJSON_t> eval_cmp(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
-    // Eval the left arg and make sure comparison is defined for this
-    // type (we do this in order to avoid evaluating right arg when it
-    // isn't necessary).
-    boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env);
-    if (lhs->get()->type != cJSON_Number &&
-        lhs->get()->type != cJSON_String &&
-        lhs->get()->type != cJSON_True &&
-        lhs->get()->type != cJSON_False)
-    {
-        throw runtime_exc_t("Comparison is undefined for this type.");
-    }
-    
-    // Evaluate right argument
-    boost::shared_ptr<scoped_cJSON_t> rhs = eval(c.args(1), env);
-    
-    // Select on types
-    if (lhs->get()->type == cJSON_Number) {
-        // Ensure the types are the same
-        if(lhs->get()->type != rhs->get()->type) {
-            throw runtime_exc_t("Cannot compare these types.");
-        }
-        
-        // Do the comparison
-        switch (c.builtin().comparison()) {
-        case Builtin_Comparison_EQ:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble == rhs->get()->valuedouble)));
-            break;
-        case Builtin_Comparison_NE:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble != rhs->get()->valuedouble)));
-            break;
-        case Builtin_Comparison_LT:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble < rhs->get()->valuedouble)));
-            break;
-        case Builtin_Comparison_LE:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble <= rhs->get()->valuedouble)));
-            break;
-        case Builtin_Comparison_GT:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble > rhs->get()->valuedouble)));
-            break;
-        case Builtin_Comparison_GE:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->valuedouble >= rhs->get()->valuedouble)));
-            break;
-        default:
-            crash("Unknown comparison operator.");
-            break;
-        }
-    } else if (lhs->get()->type == cJSON_String) {
-        // Ensure the types are the same
-        if(lhs->get()->type != rhs->get()->type) {
-            throw runtime_exc_t("Cannot compare these types.");
-        }
-        
-        // Do the comparison
-        int res = strcmp(lhs->get()->valuestring, rhs->get()->valuestring);
-        switch (c.builtin().comparison()) {
-        case Builtin_Comparison_EQ:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res == 0)));
-            break;
-        case Builtin_Comparison_NE:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res != 0)));
-            break;
-        case Builtin_Comparison_LT:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res < 0)));
-            break;
-        case Builtin_Comparison_LE:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res <= 0)));
-            break;
-        case Builtin_Comparison_GT:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res > 0)));
-            break;
-        case Builtin_Comparison_GE:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(res >= 0)));
-            break;
-        default:
-            crash("Unknown comparison operator.");
-            break;
-        }
-    } else if (lhs->get()->type == cJSON_True || lhs->get()->type == cJSON_False) {
-        // Ensure the types are the same
-        if(rhs->get()->type != cJSON_True && rhs->get()->type != cJSON_False) {
-            throw runtime_exc_t("Cannot compare these types.");
-        }
-        
-        // Do the comparison
-        switch (c.builtin().comparison()) {
-        case Builtin_Comparison_EQ:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type == rhs->get()->type)));
-            break;
-        case Builtin_Comparison_NE:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type != rhs->get()->type)));
-            break;
-        case Builtin_Comparison_LT:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type == cJSON_False
-                                                                                         && rhs->get()->type == cJSON_True)));
-            break;
-        case Builtin_Comparison_LE:
-            // False is always <= any bool
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type == cJSON_False)));
-            break;
-        case Builtin_Comparison_GT:
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type == cJSON_True
-                                                                                         && rhs->get()->type == cJSON_False)));
-            break;
-        case Builtin_Comparison_GE:
-            // True is always >= any bool
-            return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateBool(lhs->get()->type == cJSON_True)));
-            break;
-        default:
-            crash("Unknown comparison operator.");
-            break;
-        }
-    }
-
-    crash("Internal comparison failure.");
 }
 
 namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {

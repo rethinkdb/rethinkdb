@@ -97,13 +97,13 @@ class Stream(object):
     def check_readonly(self):
         if self.is_readonly():
             raise ValueError
-        
+
     def filter(self, selector, row=DEFAULT_ROW_BINDING):
         return Filter(self, selector, row)
-    
+
     def map(self, mapping, row=DEFAULT_ROW_BINDING):
         return Map(self, mapping, row)
-    
+
     def update(self, updater, row=DEFAULT_ROW_BINDING):
         self.check_readonly()
         return Update(self, updater, row)
@@ -167,7 +167,7 @@ class Filter(Stream):
             self.write_term_ast(parent)
         else:
             self.write_view_ast(parent)
-    
+
     def write_term_ast(self, parent):
         parent.type = p.Term.CALL
         parent.call.builtin.type = p.Builtin.FILTER
@@ -181,7 +181,7 @@ class Filter(Stream):
         self.parent_view.write_ast(parent.filter_view.view)
         parent.filter_view.predicate.arg = self.row
         self.selector.write_ast(parent.filter_view.predicate.body)
-    
+
     def _finalize_query(self, root):
         if self.is_readonly():
             res = self._finalize_term_query(root)
@@ -277,18 +277,13 @@ class Conjunction(Term):
         self.predicates = predicates
 
     def write_ast(self, parent):
-        # If there is one predicate left, we just write that and
-        # return
-        if len(self.predicates) == 1:
-            toTerm(self.predicates[0]).write_ast(parent)
-            return
-        # Otherwise, we need an if branch
-        _if(toTerm(self.predicates[0]),
-            Conjunction(self.predicates[1:]),
-            val(False)).write_ast(parent)
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.ALL
+        for predicate in self.predicates:
+            toTerm(predicate).write_ast(parent.call.args.add())
 
 def _and(*predicates):
-    return Conjunction(list(predicates))
+    return Conjunction(predicates)
 
 class Disjunction(Term):
     def __init__(self, predicates):
@@ -297,18 +292,13 @@ class Disjunction(Term):
         self.predicates = predicates
 
     def write_ast(self, parent):
-        # If there is one predicate left, we just write that and
-        # return
-        if len(self.predicates) == 1:
-            toTerm(self.predicates[0]).write_ast(parent)
-            return
-        # Otherwise, we need an if branch
-        _if(toTerm(self.predicates[0]),
-            val(True),
-            Disjunction(self.predicates[1:])).write_ast(parent)
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.ANY
+        for predicate in self.predicates:
+            toTerm(predicate).write_ast(parent.call.args.add())
 
 def _or(*predicates):
-    return Disjunction(list(predicates))
+    return Disjunction(predicates)
 
 class _not(Term):
     def __init__(self, term):
@@ -369,38 +359,29 @@ class Comparison(Term):
         if len(self.terms) == 1:
             val(True).write_ast(parent)
             return
-        # Otherwise we need to be able to actually compare
-        class Comparison2(Term):
-            def __init__(self, term1, term2, cmp_type):
-                self.term1 = toTerm(term1)
-                self.term2 = toTerm(term2)
-                self.cmp_type = cmp_type
-            def write_ast(self, parent):
-                parent.type = p.Term.CALL
-                parent.call.builtin.type = p.Builtin.COMPARE
-                parent.call.builtin.comparison = self.cmp_type
-                self.term1.write_ast(parent.call.args.add())
-                self.term2.write_ast(parent.call.args.add())
-        # If we only have two terms, we can just do the comparision
-        if len(self.terms) == 2:
-            Comparison2(self.terms[0], self.terms[1], self.cmp_type).write_ast(parent)
-            return
-        # If we have more than two, we have to resort to conjunctions
-        _and(Comparison2(self.terms[0], self.terms[1], self.cmp_type),
-             Comparison(self.terms[1:], self.cmp_type)).write_ast(parent)
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.COMPARE
+        parent.call.builtin.comparison = self.cmp_type
+        for term in self.terms:
+            toTerm(term).write_ast(parent.call.args.add())
 
 def eq(*terms):
-    return Comparison(list(terms), p.Builtin.EQ)
+    return Comparison(terms, p.Builtin.EQ)
+
 def neq(*terms):
-    return Comparison(list(terms), p.Builtin.NE)
+    return Comparison(terms, p.Builtin.NE)
+
 def lt(*terms):
-    return Comparison(list(terms), p.Builtin.LT)
+    return Comparison(terms, p.Builtin.LT)
+
 def lte(*terms):
-    return Comparison(list(terms), p.Builtin.LE)
+    return Comparison(terms, p.Builtin.LE)
+
 def gt(*terms):
-    return Comparison(list(terms), p.Builtin.GT)
+    return Comparison(terms, p.Builtin.GT)
+
 def gte(*terms):
-    return Comparison(list(terms), p.Builtin.GE)
+    return Comparison(terms, p.Builtin.GE)
 
 class Arithmetic(Term):
     def __init__(self, terms, op_type):
@@ -412,50 +393,25 @@ class Arithmetic(Term):
         self.op_type = op_type
     def write_ast(self, parent):
         # A class to actually do the op
-        class Arithmetic2(Term):
-            def __init__(self, term1, term2, op_type):
-                self.term1 = toTerm(term1)
-                self.term2 = toTerm(term2)
-                self.op_type = op_type
-            def write_ast(self, parent):
-                parent.type = p.Term.CALL
-                parent.call.builtin.type = self.op_type
-                self.term1.write_ast(parent.call.args.add())
-                self.term2.write_ast(parent.call.args.add())
-        # If we only have one term...
-        if len(self.terms) == 1:
-            # If we're adding or multiplying, just write it
-            if self.op_type is p.Builtin.ADD or self.op_type is p.Builtin.MULTIPLY:
-                toTerm(self.terms[0]).write_ast(parent)
-                return
-            # If we're dividing, do 1/X (like clisp)
-            if self.op_type is p.Builtin.DIVIDE:
-                Arithmetic2(val(1), toTerm(self.terms[0]), self.op_type).write_ast(parent)
-                return
-            # If we're subtracting, do 0-X (like lisp)
-            if self.op_type is p.Builtin.SUBTRACT:
-                Arithmetic2(val(0), toTerm(self.terms[0]), self.op_type).write_ast(parent)
-                return
-            return
-        # Encode the op
-        op_term = Arithmetic2(self.terms[0], self.terms[1], self.op_type)
-        # If we only have two terms, just do the op
-        if len(self.terms) == 2:
-            op_term.write_ast(parent)
-            return
-        # Otherwise, do the op and recurse
-        Arithmetic([op_term] + self.terms[2:], self.op_type).write_ast(parent)
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = self.op_type
+        for term in self.terms:
+            toTerm(term).write_ast(parent.call.args.add())
 
 def add(*terms):
-    return Arithmetic(list(terms), p.Builtin.ADD)
+    return Arithmetic(terms, p.Builtin.ADD)
+
 def sub(*terms):
-    return Arithmetic(list(terms), p.Builtin.SUBTRACT)
+    return Arithmetic(terms, p.Builtin.SUBTRACT)
+
 def div(*terms):
-    return Arithmetic(list(terms), p.Builtin.DIVIDE)
+    return Arithmetic(terms, p.Builtin.DIVIDE)
+
 def mul(*terms):
-    return Arithmetic(list(terms), p.Builtin.MULTIPLY)
+    return Arithmetic(terms, p.Builtin.MULTIPLY)
+
 def mod(*terms):
-    return Arithmetic(list(terms), p.Builtin.MODULO)
+    return Arithmetic(terms, p.Builtin.MODULO)
 
 class var(Term):
     def __init__(self, name):
@@ -474,13 +430,10 @@ class attr(Term):
     def __init__(self, name, parent):
         if not name:
             raise ValueError
-        attrs = name.split('.')
-        attrs.reverse()
-        self.name = attrs[0]
-        attrs = attrs[1:]
-        if len(attrs) > 0:
-            attrs.reverse()
-            self.parent = attr('.'.join(attrs), parent)
+        attrs = name.rsplit('.', 1)
+        self.name = attrs[-1]
+        if len(attrs) > 1:
+            self.parent = attr(attrs[0], parent)
         else:
             self.parent = parent
 
@@ -510,7 +463,7 @@ class Let(Term):
 # the latter to the former and evaluates the last expression in that
 # context).
 def let(*args):
-    return Let(args[:len(args) - 1], args[len(args) - 1])
+    return Let(args[:-1], args[-1])
 
 def toTerm(value):
     if isinstance(value, Term):
@@ -542,16 +495,16 @@ class Extend(Term):
         self.jsons = jsons
 
     def write_ast(self, parent):
-        if len(self.jsons) is 0:
+        if len(self.jsons) == 0:
             toTerm(self.dest).write_ast(parent)
             return
         parent.type = p.Term.CALL
         parent.call.builtin.type = p.Builtin.MAPMERGE
-        if len(self.jsons) is 1:
+        if len(self.jsons) == 1:
             toTerm(self.dest).write_ast(parent.call.args.add())
         else:
-            Extend(self.dest, self.jsons[:len(self.jsons)-1]).write_ast(parent.call.args.add())
-        toTerm(self.jsons[len(self.jsons)-1]).write_ast(parent.call.args.add())
+            Extend(self.dest, self.jsons[:-1]).write_ast(parent.call.args.add())
+        toTerm(self.jsons[-1]).write_ast(parent.call.args.add())
 
 def extend(dest, *jsons):
-    return Extend(dest, list(jsons))
+    return Extend(dest, jsons)
