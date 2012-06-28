@@ -77,6 +77,10 @@ void exec_worker(int sockfd) {
         } else {
             debugf("[%d] worker: successfully ran job\n", mypid);
         }
+
+        // Let the supervisor know that we're ready again.
+        char c = '\0';
+        guarantee(1 == sock.write(&c, 1));
     }
 
     // The way we are "supposed to" die is to be killed by the supervisor. So we
