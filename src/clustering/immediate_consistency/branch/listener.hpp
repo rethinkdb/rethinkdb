@@ -96,7 +96,6 @@ private:
 
     class write_queue_entry_t {
     public:
-        // TODO: Can we not remove the default constructor?
         write_queue_entry_t() { }
         write_queue_entry_t(const typename protocol_t::write_t &w, transition_timestamp_t tt, order_token_t _order_token, fifo_enforcer_write_token_t ft) :
             write(w), transition_timestamp(tt), order_token(_order_token), fifo_token(ft) { }
