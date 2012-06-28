@@ -1819,7 +1819,7 @@
                 color: #08c;
             }
             .jt_string{
-                padding: 2px 3px;
+                padding: 2px 0px;
                 color: green;
             }
             .jt_b{
@@ -1862,6 +1862,73 @@
                 display: inline;
                 margin-left: 0px;
             }   
+        }
+        .json_table_container{
+            padding: 10px 40px 10px 0px;
+            .json_table{
+                font: 13px/18px monospace,mono,consolas;
+                margin: 20px 0px;
+                padding: 0px;
+                table-layout: fixed;
+                white-space: nowrap;
+                overflow: hidden;
+                .td_attr{
+                    background: #d3dce3;
+                }
+               .jta_null{
+                    font-weight: bold;
+                    color: red
+                }
+                .jta_bool{
+                    font-weight: bold;
+                    color: blue;
+                }
+                .jta_num{
+                    font-weight: bold;
+                    color: blue;
+                }
+                .jta_link{
+                    font-weight: bold;
+                    text-decoration: none;
+                    color: #000;
+                }
+                .jta_url{
+                    color: #08c;
+                }
+                .jta_email{
+                    color: #08c;
+                }
+                .jta_string{
+                    //color: green;
+                }
+                td{
+                    max-width: 145px;
+                    padding: 0px 5px 0px 0px;
+                    vertical-align: top;
+                    border: 1px solid #333;
+                    overflow: hidden;
+                    cursor: e-resize
+                }
+                .jta_attr{
+                    padding: 7px 10px 5px 15px;
+                    font-weight: bold;
+                    cursor: auto;
+                }
+                .jta_value{
+                    cursor: auto;
+                    padding: 7px 0px 5px 15px;
+                    max-width: 125px; // smaller margin on the right in case of overflow
+                    overflow: hidden;
+                }
+            }
+            .resizing{
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -khtml-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
         }
     }
 }

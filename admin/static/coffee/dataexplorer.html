@@ -108,9 +108,7 @@
         </li>
         {{/each}}
     </ul>
-    <span class="jt_b jt_close">]</span>
-    {{/if}}
-</script>
+    <span class="jt_b jt_close">]</span>{{/if}}</script>
 
 <script id="dataexplorer_result_json_tree_object-template" type="text/x-handlebars-template">
     {{#if no_value}}
@@ -126,10 +124,50 @@
         </li>
         {{/each}}
     </ul>
-    <span class="jt_b jt_close">}</span>
-    {{/if}}
+    <span class="jt_b jt_close">}</span>{{/if}}</script>
+
+
+
+
+
+<script id="dataexplorer_result_json_table_container-template" type="text/x-handlebars-template">
+    <div class="json_table_container">
+        <table class="json_table">
+            {{print_safe table_attr}}
+            {{print_safe table_data}}
+        </table>
+    </div>
 </script>
 
+<script id="dataexplorer_result_json_table_tr_attr-template" type="text/xs-handlebars-template">
+    <tr class="jta_tr">
+        {{#each attr}}
+        <td class="td_attr col-{{col}}" data-col={{col}}>
+            <div class="jta_attr">
+                {{#if expand}} » {{/if}}
+                {{key}}
+                {{#if expand}} » {{/if}}
+        </div>
+        </td>
+        {{/each}}
+    </tr>
+</script>
+
+
+
+<script id="dataexplorer_result_json_table_tr_value-template" type="text/xs-handlebars-template">
+    {{#each document}}
+    <tr class="jta_tr">
+        {{#each value}}
+        <td class="col-{{col}}" data-col={{col}}>
+            <div class="jta_value value-{{col}} {{classname}}">
+                {{value}}
+            </div>
+        </td>
+        {{/each}}
+    </tr>
+    {{/each}}
+</script>
 
 
 
