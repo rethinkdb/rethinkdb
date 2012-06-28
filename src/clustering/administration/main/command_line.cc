@@ -111,7 +111,8 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
     perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
     metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
 
-    *result_out = serve(filepath, &store,
+    *result_out = serve(io_backend,
+                        filepath, &store,
                         look_up_peers_addresses(joins),
                         ports,
                         store.read_machine_id(),
@@ -130,7 +131,8 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
         metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
 
-        *result_out = serve(filepath, &store,
+        *result_out = serve(io_backend,
+                            filepath, &store,
                             look_up_peers_addresses(joins),
                             ports,
                             store.read_machine_id(), store.read_metadata(),
@@ -213,7 +215,8 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
         metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
 
-        *result_out = serve(filepath, &store,
+        *result_out = serve(io_backend,
+                            filepath, &store,
                             look_up_peers_addresses(joins),
                             ports,
                             our_machine_id, semilattice_metadata,
@@ -222,11 +225,12 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
     }
 }
 
-void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, UNUSED const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     rassert(!joins.empty());
 
-    *result_out = serve_proxy(logfilepath,
+    *result_out = serve_proxy(io_backend,
+                              logfilepath,
                               look_up_peers_addresses(joins),
                               ports,
                               generate_uuid(), cluster_semilattice_metadata_t(),
