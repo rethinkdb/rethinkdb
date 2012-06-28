@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 import sys, os, time, socket, random
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, http_admin
+import driver, http_admin, scenario_common
 from vcoptparse import *
 
 op = OptParser()
-op["mode"] = StringFlag("--mode", "debug")
+scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
 
 def garbage(n):
@@ -14,9 +14,9 @@ def garbage(n):
 with driver.Metacluster() as metacluster:
     print "Spinning up a process..."
     cluster = driver.Cluster(metacluster)
-    executable_path = driver.find_rethinkdb_executable(opts["mode"])
-    files = driver.Files(metacluster, db_path = "db-1", executable_path = executable_path)
-    proc = driver.Process(cluster, files, log_path = "serve-output-1", executable_path = executable_path)
+    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    files = driver.Files(metacluster, db_path = "db-1", executable_path = executable_path, command_prefix = command_prefix)
+    proc = driver.Process(cluster, files, log_path = "serve-output-1", executable_path = executable_path, command_prefix = command_prefix)
     proc.wait_until_started_up()
     cluster.check()
     print "Generating garbage traffic..."
@@ -36,9 +36,9 @@ print "Done."
 with driver.Metacluster() as metacluster:
     print "Spinning up another process..."
     cluster = driver.Cluster(metacluster)
-    executable_path = driver.find_rethinkdb_executable(opts["mode"])
-    files = driver.Files(metacluster, db_path = "db-2", executable_path = executable_path)
-    proc = driver.Process(cluster, files, log_path = "serve-output-2", executable_path = executable_path)
+    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    files = driver.Files(metacluster, db_path = "db-2", executable_path = executable_path, command_prefix = command_prefix)
+    proc = driver.Process(cluster, files, log_path = "serve-output-2", executable_path = executable_path, command_prefix = command_prefix)
     proc.wait_until_started_up()
     cluster.check()
     print "Opening and holding a connection..."

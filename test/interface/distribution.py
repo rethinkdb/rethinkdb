@@ -1,19 +1,19 @@
 #!/usr/bin/env python
 import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, http_admin
+import driver, http_admin, scenario_common
 from workload_common import MemcacheConnection
 from vcoptparse import *
 
 op = OptParser()
-op["mode"] = StringFlag("--mode", "debug")
+scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path = driver.find_rethinkdb_executable(opts["mode"])
+    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    processes = [driver.Process(cluster, driver.Files(metacluster, executable_path = executable_path), executable_path = executable_path)
+    processes = [driver.Process(cluster, driver.Files(metacluster, executable_path = executable_path, command_prefix = command_prefix), executable_path = executable_path, command_prefix = command_prefix)
         for i in xrange(2)]
     for process in processes:
         process.wait_until_started_up()
