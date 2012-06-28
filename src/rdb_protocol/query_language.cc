@@ -733,7 +733,20 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             return eval(t.call(), env);
             break;
         case Term::IF:
-            crash("unimplemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> test = eval(t.if_().test(), env);
+                if (test->get()->type != cJSON_True && test->get()->type != cJSON_False) {
+                    throw runtime_exc_t("The IF test must evaluate to a boolean.");
+                }
+
+                boost::shared_ptr<scoped_cJSON_t> res;
+                if (test->get()->type == cJSON_True) {
+                    res = eval(t.if_().true_branch(), env);
+                } else {
+                    res = eval(t.if_().false_branch(), env);
+                }
+                return res;
+            }
             break;
         case Term::TRY:
             crash("unimplemented");
