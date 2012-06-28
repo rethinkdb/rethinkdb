@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, os, time
+import sys, os, time, shlex
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import http_admin, driver, workload_runner, scenario_common
 from vcoptparse import *
@@ -10,13 +10,16 @@ op["workload1"] = PositionalArg()
 op["workload2"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
 op["num-nodes"] = IntFlag("--num-nodes", 3)
+op["serve-flags"] = StringFlag("--serve-flags", "")
 opts = op.parse(sys.argv)
+
+serve_flags = shlex.split(opts["serve-flags"])
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i, executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-%d" % i, executable_path = executable_path, command_prefix = command_prefix)
+    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i, executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-%d" % i, executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_flags)
         for i in xrange(opts["num-nodes"])]
     for process in processes:
         process.wait_until_started_up()
