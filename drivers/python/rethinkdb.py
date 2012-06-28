@@ -27,7 +27,7 @@ class Connection(object):
     def run(self, query):
         root_ast = p.Query()
         root_ast.token = self.get_token()
-        query._finalize_query(root_ast)
+        toTerm(query)._finalize_query(root_ast)
 
         serialized = root_ast.SerializeToString()
 
@@ -334,28 +334,23 @@ class val(Term):
             parent.valuestring = self.value
         elif isinstance(self.value, dict):
             self.make_json(parent)
+        elif isinstance(self.value, list):
+            self.make_array(parent)
         else:
             raise ValueError
 
     def make_json(self, parent):
-        # Check if the value has terms. If it does, construct a map
-        # term, otherwise, construct a json term.
-        hasTerms = False
+        parent.type = p.Term.MAP
         for key in self.value:
             _value = self.value[key]
-            if isinstance(_value, Term):
-                hasTerms = True
-                break
-        if hasTerms:
-            parent.type = p.Term.MAP
-            for key in self.value:
-                _value = self.value[key]
-                pair = parent.map.add()
-                pair.var = key
-                toTerm(_value).write_ast(pair.term)
-        else:
-            parent.type = p.Term.JSON
-            parent.jsonstring = json.dumps(self.value)
+            pair = parent.map.add()
+            pair.var = key
+            toTerm(_value).write_ast(pair.term)
+
+    def make_array(self, parent):
+        parent.type = p.Term.ARRAY
+        for value in self.value:
+            toTerm(value).write_ast(parent.array.add())
 
 class Comparison(Term):
     def __init__(self, terms, cmp_type):
@@ -513,14 +508,12 @@ def let(*args):
     return Let(args[:len(args) - 1], args[len(args) - 1])
 
 def toTerm(value):
-    if isinstance(value, Term):
-        return value
-    if isinstance(value, (bool, int, float, dict)):
+    if isinstance(value, (bool, int, float, dict, list)):
         return val(value)
     if isinstance(value, str):
         return parseStringTerm(value)
     else:
-        raise ValueError
+        return value
 
 def parseStringTerm(value):
     # If the string is quoted, it's a value

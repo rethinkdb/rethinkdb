@@ -780,10 +780,23 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             }
             break;
         case Term::ARRAY:
-            crash("unimplemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
+                for (int i = 0; i < t.array_size(); ++i) {
+                    cJSON_AddItemToArray(res->get(), eval(t.array(i), env)->release());
+                }
+                return res;
+            }
             break;
         case Term::MAP:
-            crash("unimplemented");
+            {
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateObject()));
+                for (int i = 0; i < t.map_size(); ++i) {
+                    std::string item_name(t.map(i).var());
+                    cJSON_AddItemToObject(res->get(), item_name.c_str(), eval(t.map(i).term(), env)->release());
+                }
+                return res;
+            }
             break;
         case Term::VIEWASSTREAM:
             crash("unimplemented");
