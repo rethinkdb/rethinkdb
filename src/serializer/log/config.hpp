@@ -45,9 +45,7 @@ struct log_serializer_dynamic_config_t {
         file_size = 0;   // Unlimited file size
         file_zone_size = GIGABYTE;
         read_ahead = true;
-        /* #if WE_ARE_ON_LINUX */
-        io_backend = aio_native;
-        /* #endif */
+        io_backend = aio_pool;
         io_batch_factor = DEFAULT_IO_BATCH_FACTOR;
     }
 
