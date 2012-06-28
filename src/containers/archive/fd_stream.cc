@@ -167,7 +167,7 @@ int64_t fd_stream_t::read(void *buf, int64_t size) {
             else
                 guarantee(res == 0); // sanity
             shutdown_read();
-            return -1;
+            return res;
         }
     }
 }
