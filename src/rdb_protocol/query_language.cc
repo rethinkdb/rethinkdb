@@ -348,7 +348,11 @@ namespace query_language {
 const type_t get_type(const Term &t, variable_type_scope_t *scope) {
     switch (t.type()) {
         case Term::VAR:
-            return scope->get(t.var());
+            if (scope->is_in_scope(t.var())) {
+                return scope->get(t.var());
+            } else {
+                return error_t(strprintf("Symbol %s is not in scope\n", t.var().c_str()));
+            }
             break;
         case Term::LET:
             {
@@ -710,10 +714,22 @@ Response eval(const WriteQuery &, runtime_environment_t *) THROWS_ONLY(runtime_e
 boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (t.type()) {
         case Term::VAR:
-            crash("unimplemented");
+            return eval(env->scope.get(t.var()), env);
             break;
         case Term::LET:
-            crash("unimplemented");
+            {
+                // Push the scope
+                variable_val_scope_t::new_scope_t new_scope(&env->scope);
+                // Go through the bindings in a let and add them one by one
+                for (int i = 0; i < t.let().binds_size(); ++i) {
+                    // TODO: we should evaluate the binding term right
+                    // here to avoid multiple reevaluations during
+                    // expression evaluation.
+                    new_scope.parent->put_in_scope(t.let().binds(i).var(),
+                                                   t.let().binds(i).term());
+                }
+                return eval(t.let().expr(), env);;
+            }
             break;
         case Term::CALL:
             return eval(t.call(), env);
