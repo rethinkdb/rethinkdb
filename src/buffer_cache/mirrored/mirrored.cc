@@ -657,8 +657,9 @@ mc_buf_lock_t::~mc_buf_lock_t() {
 
 void mc_buf_lock_t::release_if_acquired() {
     assert_thread();
-    if (acquired)
+    if (acquired) {
         release();
+    }
 }
 
 void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
@@ -740,6 +741,7 @@ void mc_buf_lock_t::swap(mc_buf_lock_t& swapee) {
 #ifndef NDEBUG
     std::swap(real_home_thread, swapee.real_home_thread);
 #endif
+    std::swap(parent_transaction, swapee.parent_transaction);
 }
 
 bool mc_buf_lock_t::is_acquired() const {
