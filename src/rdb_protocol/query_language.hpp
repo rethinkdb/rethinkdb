@@ -119,12 +119,12 @@ typedef std::list<type_t> function_t;
 template <class T>
 class variable_scope_t {
 public:
-    void put_in_scope(std::string name, T t) {
+    void put_in_scope(const std::string &name, const T &t) {
         rassert(!scopes.empty());
         scopes.front()[name] = t;
     }
 
-    T get(std::string name) {
+    T get(const std::string &name) {
         for (typename scopes_t::iterator it  = scopes.begin();
                                          it != scopes.end();
                                          ++it) {
@@ -134,7 +134,21 @@ public:
             }
         }
         
-        return error_t(strprintf("Symbol %s is not in scope\n", name.c_str()));
+        unreachable("Variable not in scope, probably because the code fails to call is_in_scope().");
+    }
+
+    // Calling this only makes sense in the typechecker. All variables
+    // are guranteed by the typechecker to be present at runtime.
+    bool is_in_scope(const std::string &name) {
+        for (typename scopes_t::iterator it  = scopes.begin();
+                                         it != scopes.end();
+                                         ++it) {
+            typename std::map<std::string, T>::iterator jt = it->find(name);
+            if (jt != it->end()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     void push() {

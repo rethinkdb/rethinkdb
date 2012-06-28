@@ -501,7 +501,7 @@ class Let(Term):
         parent.type = p.Term.LET
         for pair in self.pairs:
             binding = parent.let.binds.add()
-            toTerm(pair[0]).write_ast(binding.var)
+            binding.var = pair[0]
             toTerm(pair[1]).write_ast(binding.term)
         self.expr.write_ast(parent.let.expr)
 
