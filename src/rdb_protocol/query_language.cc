@@ -787,8 +787,28 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             crash("unimplemented");
             break;
         case Term::GETBYKEY:
-            crash("unimplemented");
-            break;
+            {
+                boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
+                    env->semilattice_metadata->get().rdb_namespaces.get_namespace_by_name(t.get_by_key().table_ref().table_name());
+
+                if (!namespace_info) {
+                    throw runtime_exc_t(strprintf("Namespace %s either not found, ambigious or namespace metadata in conflict.", t.get_by_key().table_ref().table_name().c_str()));
+                } else {
+                    if (t.get_by_key().attrname() != namespace_info->second.get().primary_key.get()) {
+                        throw runtime_exc_t(strprintf("Attribute: %s is not the primary key and thus cannot be selected upon.", t.get_by_key().attrname().c_str()));
+                    }
+                }
+
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t.get_by_key().table_ref(), env);
+
+                boost::shared_ptr<scoped_cJSON_t> key = eval(t.get_by_key().key(), env);
+                rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(cJSON_print_std_string(key->get()))));
+                rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
+
+                rdb_protocol_t::point_read_response_t *p_res = boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
+                return p_res->data;
+                break;
+            }
         default:
             crash("unreachable");
             break;

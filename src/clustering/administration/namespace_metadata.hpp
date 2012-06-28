@@ -42,15 +42,16 @@ public:
     vclock_t<int> port;
     vclock_t<region_map_t<protocol_t, machine_id_t> > primary_pinnings;
     vclock_t<region_map_t<protocol_t, std::set<machine_id_t> > > secondary_pinnings;
+    vclock_t<std::string> primary_key; //TODO this should actually never be changed...
 
-    RDB_MAKE_ME_SERIALIZABLE_9(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings);
+    RDB_MAKE_ME_SERIALIZABLE_10(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key);
 };
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_9(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings);
+RDB_MAKE_SEMILATTICE_JOINABLE_10(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_9(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings);
+RDB_MAKE_EQUALITY_COMPARABLE_10(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key);
 
 //json adapter concept for namespace_semilattice_metadata_t
 template <class ctx_t, class protocol_t>
@@ -65,6 +66,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespa
     res["port"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<int, ctx_t>(&target->port));
     res["primary_pinnings"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<region_map_t<protocol_t, machine_id_t>, ctx_t>(&target->primary_pinnings));
     res["secondary_pinnings"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_vclock_adapter_t<region_map_t<protocol_t, std::set<machine_id_t> >, ctx_t>(&target->secondary_pinnings));
+    res["primary_key"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_read_only_adapter_t<vclock_t<std::string>, ctx_t>(&target->primary_key));
     return res;
 }
 
