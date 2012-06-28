@@ -1,5 +1,5 @@
-#ifndef RDB_PROTOCOL_QUERY_LANGUAGE_HPP__
-#define RDB_PROTOCOL_QUERY_LANGUAGE_HPP__
+#ifndef RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
+#define RDB_PROTOCOL_QUERY_LANGUAGE_HPP_
 
 #include <list>
 #include <deque>
@@ -48,7 +48,7 @@ struct primitive_t;
 
 typedef boost::variant<error_t, primitive_t> type_t;
 
-struct error_t { 
+struct error_t {
     error_t()
         : desc("Unknown error.")
     { }
@@ -115,7 +115,7 @@ public:
                 return jt->second;
             }
         }
-        
+
         return error_t(strprintf("Symbol %s is not in scope\n", name.c_str()));
     }
 
@@ -128,7 +128,7 @@ public:
     }
 
     struct new_scope_t {
-        new_scope_t(variable_scope_t *_parent) 
+        explicit new_scope_t(variable_scope_t *_parent)
             : parent(_parent)
         {
             parent->push();
@@ -175,7 +175,7 @@ typedef variable_scope_t<Term> variable_val_scope_t;
 
 class runtime_exc_t {
 public:
-    runtime_exc_t(std::string _what)
+    explicit runtime_exc_t(std::string _what)
         : what_happened(_what)
     { }
 
@@ -188,7 +188,7 @@ private:
 
 class runtime_environment_t {
 public:
-    runtime_environment_t(namespace_repo_t<rdb_protocol_t> *_ns_repo, 
+    runtime_environment_t(namespace_repo_t<rdb_protocol_t> *_ns_repo,
                           boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata)
         : ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata)
     { }
@@ -215,4 +215,4 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_envir
 
 } //namespace query_language
 
-#endif
+#endif /* RDB_PROTOCOL_QUERY_LANGUAGE_HPP_ */

@@ -6,7 +6,7 @@
 
 #include "http/json.hpp"
 
-#define CHECK_WELL_DEFINED(x) if (! is_well_defined(x)) { return false; }
+#define CHECK_WELL_DEFINED(x) if (!is_well_defined(x)) { return false; }
 
 bool is_well_defined(const VarTermTuple &v) {
     return is_well_defined(v.term());
@@ -1016,7 +1016,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > > > namespace_info =
         env->semilattice_metadata->get().rdb_namespaces.get_namespace_by_name(t.table_name());
-    
+
     if (namespace_info) {
         return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, namespace_info->first, &env->interruptor);
     } else {
