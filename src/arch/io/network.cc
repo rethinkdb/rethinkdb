@@ -65,7 +65,6 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
             socklen_t error_size = sizeof(error);
             int getsockoptres = getsockopt(sock.get(), SOL_SOCKET, SO_ERROR, &error, &error_size);
             if (getsockoptres != 0) {
-                //Things are so fucked we can't even get an option here
                 throw linux_tcp_conn_t::connect_failed_exc_t(error);
             }
             if (error != 0) {
