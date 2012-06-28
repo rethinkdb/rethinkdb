@@ -1,5 +1,5 @@
-#ifndef RDB_PROTOCOL_BTREE_HPP__
-#define RDB_PROTOCOL_BTREE_HPP__
+#ifndef RDB_PROTOCOL_BTREE_HPP_
+#define RDB_PROTOCOL_BTREE_HPP_
 
 #include "errors.hpp"
 
@@ -119,4 +119,4 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                                  const key_range_t &keys,
                                  transaction_t *txn, superblock_t *superblock);
 
-#endif
+#endif /* RDB_PROTOCOL_BTREE_HPP_ */
