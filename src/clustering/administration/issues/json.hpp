@@ -29,8 +29,6 @@ void apply_json_to(cJSON *, issue_json_t *, const ctx_t &);
 template <class ctx_t>
 void on_subfield_change(issue_json_t *, const ctx_t &);
 
-// TODO: Why the fuck is this inheriting instead of using composition?
-//A local issue occurs on a single machine
 class local_issue_json_t : public issue_json_t {
 public:
     uuid_t machine;

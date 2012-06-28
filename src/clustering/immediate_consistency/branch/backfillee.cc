@@ -159,10 +159,17 @@ private:
     DISABLE_COPYING(chunk_callback_t);
 };
 
+template <class protocol_t>
+void receive_end_point_message(promise_t<std::pair<region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t> > > *promise,
+        const region_map_t<protocol_t, version_range_t> &end_point,
+        const branch_history_t<protocol_t> &associated_branch_history) {
+    promise->pulse(std::make_pair(end_point, associated_branch_history));
+}
+
 template<class protocol_t>
 void backfillee(
         mailbox_manager_t *mailbox_manager,
-        UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history,
+        branch_history_manager_t<protocol_t> *branch_history_manager,
         multistore_ptr_t<protocol_t> *svs,
         typename protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > > backfiller_metadata,
@@ -179,17 +186,20 @@ void backfillee(
     svs->new_read_tokens(read_tokens.get(), num_stores);
 
     region_map_t<protocol_t, version_range_t> start_point =
-	svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
+        svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
 
     start_point = start_point.mask(region);
+
+    branch_history_t<protocol_t> start_point_associated_history;
+    branch_history_manager->export_branch_history(start_point, &start_point_associated_history);
 
     /* The backfiller will send a message to `end_point_mailbox` before it sends
     any other messages; that message will tell us what the version will be when
     the backfill is over. */
-    promise_t<region_map_t<protocol_t, version_range_t> > end_point_cond;
-    mailbox_t<void(region_map_t<protocol_t, version_range_t>)> end_point_mailbox(
+    promise_t<std::pair<region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t> > > end_point_cond;
+    mailbox_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_mailbox(
         mailbox_manager,
-        boost::bind(&promise_t<region_map_t<protocol_t, version_range_t> >::pulse, &end_point_cond, _1),
+        boost::bind(&receive_end_point_message<protocol_t>, &end_point_cond, _1, _2),
         mailbox_callback_mode_inline);
 
     {
@@ -224,7 +234,7 @@ void backfillee(
         send(mailbox_manager,
             backfiller.access().backfill_mailbox,
             backfill_session_id,
-            start_point,
+            start_point, start_point_associated_history,
             end_point_mailbox.get_address(),
             chunk_mailbox.get_address(),
             done_mailbox.get_address(),
@@ -265,6 +275,13 @@ void backfillee(
             rassert(end_point_cond.get_ready_signal()->is_pulsed());
         }
 
+        /* Record the updated branch history information that we got. It's
+        essential that we call `record_branch_history()` before we update the
+        metainfo, because otherwise if we crashed at a bad time the data might
+        make it to disk as part of the metainfo but not as part of the branch
+        history, and that would lead to crashes. */
+        branch_history_manager->import_branch_history(end_point_cond.get_value().second, interruptor);
+
         /* Indicate in the metadata that a backfill is happening. We do this by
         marking every region as indeterminate between the current state and the
         backfill end state, since we don't know whether the backfill has reached
@@ -272,7 +289,7 @@ void backfillee(
 
         typedef region_map_t<protocol_t, version_range_t> version_map_t;
 
-        version_map_t end_point = end_point_cond.get_value();
+        version_map_t end_point = end_point_cond.get_value().first;
 
         std::vector<std::pair<typename protocol_t::region_t, version_range_t> > span_parts;
 
@@ -284,7 +301,7 @@ void backfillee(
                                                         jt++) {
                 typename protocol_t::region_t ixn = region_intersection(it->first, jt->first);
                 if (!region_is_empty(ixn)) {
-                    rassert(version_is_ancestor(branch_history->get(),
+                    rassert(version_is_ancestor(branch_history_manager,
                         it->second.earliest,
                         jt->second.latest,
                         ixn),
@@ -339,7 +356,7 @@ void backfillee(
 
     svs->set_all_metainfos(
         region_map_transform<protocol_t, version_range_t, binary_blob_t>(
-            end_point_cond.get_value(),
+            end_point_cond.get_value().first,
             &binary_blob_t::make<version_range_t>
             ),
         order_token_t::ignore,
@@ -355,7 +372,7 @@ void backfillee(
 
 template void backfillee<mock::dummy_protocol_t>(
         mailbox_manager_t *mailbox_manager,
-        UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<mock::dummy_protocol_t> > > branch_history,
+        branch_history_manager_t<mock::dummy_protocol_t> *branch_history_manager,
         multistore_ptr_t<mock::dummy_protocol_t> *svs,
         mock::dummy_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<mock::dummy_protocol_t> > > > > backfiller_metadata,
@@ -365,7 +382,7 @@ template void backfillee<mock::dummy_protocol_t>(
 
 template void backfillee<memcached_protocol_t>(
         mailbox_manager_t *mailbox_manager,
-        UNUSED boost::shared_ptr<semilattice_read_view_t<branch_history_t<memcached_protocol_t> > > branch_history,
+        branch_history_manager_t<memcached_protocol_t> *branch_history_manager,
         multistore_ptr_t<memcached_protocol_t> *svs,
         memcached_protocol_t::region_t region,
         clone_ptr_t<watchable_t<boost::optional<boost::optional<backfiller_business_card_t<memcached_protocol_t> > > > > backfiller_metadata,

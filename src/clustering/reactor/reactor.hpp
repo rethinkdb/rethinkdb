@@ -1,6 +1,7 @@
 #ifndef CLUSTERING_REACTOR_REACTOR_HPP_
 #define CLUSTERING_REACTOR_REACTOR_HPP_
 
+#include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/reactor/blueprint.hpp"
@@ -19,7 +20,7 @@ public:
             mailbox_manager_t *mailbox_manager,
             typename master_t<protocol_t>::ack_checker_t *ack_checker,
             clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > reactor_directory,
-            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
+            branch_history_manager_t<protocol_t> *branch_history_manager,
             clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable,
             multistore_ptr_t<protocol_t> *_underlying_svs,
             perfmon_collection_t *_parent_perfmon_collection) THROWS_NOTHING;
@@ -111,7 +112,7 @@ private:
 
     void update_best_backfiller(const region_map_t<protocol_t, version_range_t> &offered_backfill_versions,
                                 const typename backfill_candidate_t::backfill_location_t &backfiller,
-                                best_backfiller_map_t *best_backfiller_out, const branch_history_t<protocol_t> &branch_history);
+                                best_backfiller_map_t *best_backfiller_out);
 
     bool is_safe_for_us_to_be_primary(const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                       const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out);
@@ -153,7 +154,7 @@ private:
     clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > reactor_directory;
     directory_echo_writer_t<reactor_business_card_t<protocol_t> > directory_echo_writer;
     directory_echo_mirror_t<reactor_business_card_t<protocol_t> > directory_echo_mirror;
-    boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
+    branch_history_manager_t<protocol_t> *branch_history_manager;
 
     watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > master_directory;
     mutex_assertion_t master_directory_lock;

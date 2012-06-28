@@ -5,10 +5,10 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/namespace_interface.hpp"
+#include "mock/branch_history_manager.hpp"
+#include "mock/dummy_protocol.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "unittest/clustering_utils.hpp"
-#include "unittest/dummy_metadata_controller.hpp"
-#include "mock/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -35,9 +35,8 @@ static void run_read_write_test() {
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
 
-    /* Set up metadata meeting-places */
-    branch_history_t<dummy_protocol_t> initial_branch_metadata;
-    dummy_semilattice_controller_t<branch_history_t<dummy_protocol_t> > branch_history_controller(initial_branch_metadata);
+    /* Set up branch history tracker */
+    mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
     /* Set up a branch */
     test_store_t<dummy_protocol_t> initial_store;
@@ -46,7 +45,7 @@ static void run_read_write_test() {
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(
         cluster.get_mailbox_manager(),
-        branch_history_controller.get_view(),
+        &branch_history_manager,
         &multi_initial_store,
         &get_global_perfmon_collection(),
         &interruptor
@@ -58,7 +57,7 @@ static void run_read_write_test() {
     listener_t<dummy_protocol_t> initial_listener(
         cluster.get_mailbox_manager(),
         broadcaster_metadata_controller.get_watchable()->subview(&wrap_in_optional),
-        branch_history_controller.get_view(),
+        &branch_history_manager,
         &broadcaster,
         &get_global_perfmon_collection(),
         &interruptor
@@ -119,8 +118,7 @@ static void run_broadcaster_problem_test() {
     simple_mailbox_cluster_t cluster;
 
     /* Set up metadata meeting-places */
-    branch_history_t<dummy_protocol_t> initial_branch_metadata;
-    dummy_semilattice_controller_t<branch_history_t<dummy_protocol_t> > branch_history_controller(initial_branch_metadata);
+    mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
     /* Set up a branch */
     test_store_t<dummy_protocol_t> initial_store;
@@ -129,7 +127,7 @@ static void run_broadcaster_problem_test() {
     cond_t interruptor;
     broadcaster_t<dummy_protocol_t> broadcaster(
         cluster.get_mailbox_manager(),
-        branch_history_controller.get_view(),
+        &branch_history_manager,
         &multi_initial_store,
         &get_global_perfmon_collection(),
         &interruptor
@@ -141,7 +139,7 @@ static void run_broadcaster_problem_test() {
     listener_t<dummy_protocol_t> initial_listener(
         cluster.get_mailbox_manager(),
         broadcaster_metadata_controller.get_watchable(),
-        branch_history_controller.get_view(),
+        &branch_history_manager,
         &broadcaster,
         &get_global_perfmon_collection(),
         &interruptor

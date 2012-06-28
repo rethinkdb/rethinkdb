@@ -4,6 +4,41 @@
 #include "db_thread_info.hpp"
 
 template <class protocol_t>
+void do_construct_existing_store(int i, perfmon_collection_t *perfmon_collection, const std::string& file_name_base,
+                                 int num_db_threads, stores_lifetimer_t<protocol_t> *stores_out, store_view_t<protocol_t> **store_views) {
+
+    // TODO: Exceptions?  Can exceptions happen, and then this doesn't
+    // catch it, and the caller doesn't handle it.
+
+    // TODO: A problem with this is that all the stores get
+    // created on low-number threads.  What if there are
+    // multiple namespaces?  We need a global
+    // thread-distributor that evenly distributes stores about
+    // threads.
+    on_thread_t th(i % num_db_threads);
+
+    const std::string file_name = file_name_base + "_" + strprintf("%d", i);
+
+    // TODO: Can we pass perfmon_collection across threads like this?
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(file_name, false, perfmon_collection);
+    stores_out->stores()[i].reset(store);
+    store_views[i] = store;
+}
+
+template <class protocol_t>
+void do_create_new_store(int i, perfmon_collection_t *perfmon_collection, const std::string& file_name_base,
+                         int num_db_threads, stores_lifetimer_t<protocol_t> *stores_out, store_view_t<protocol_t> **store_views) {
+    // TODO: See the todo about thread distribution in do_construct_existing_store.  It is applicable here, too.
+    on_thread_t th(i % num_db_threads);
+
+    const std::string file_name = file_name_base + "_" + strprintf("%d", i);
+
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(file_name, true, perfmon_collection);
+    stores_out->stores()[i].reset(store);
+    store_views[i] = store;
+}
+
+template <class protocol_t>
 void
 file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon_collection,
                                                    namespace_id_t namespace_id,
@@ -36,24 +71,12 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
 
         debugf("loading %d hash-sharded stores\n", num_stores);
 
-        // TODO: Exceptions?  Can exceptions happen, and then store_views' values would leak.
+        // TODO: Exceptions?  Can exceptions happen, and then
+        // store_views' values would leak.  That is, are we handling
+        // them in the pmap?  No.
 
-        // TODO: This should use pmap.
-        for (int i = 0; i < num_stores; ++i) {
-
-            // TODO: A problem with this is that all the stores get
-            // created on low-number threads.  What if there are
-            // multiple namespaces?  We need a global
-            // thread-distributor that evenly distributes stores about
-            // threads.
-            on_thread_t th(i % num_db_threads);
-
-            const std::string file_name = file_name_base + "_" + strprintf("%d", i);
-
-            // TODO: Can we pass perfmon_collection across threads like this?
-            stores_out->stores()[i].reset(new typename protocol_t::store_t(file_name, false, perfmon_collection));
-            store_views[i] = stores_out->stores()[i].get();
-        }
+        pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>, _1, perfmon_collection,
+                                     boost::ref(file_name_base), num_db_threads, stores_out, store_views.get()));
 
         svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
     } else {
@@ -68,15 +91,9 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
         // The files do not exist, create them.
         // TODO: This should use pmap.
         boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
-        for (int i = 0; i < num_stores; ++i) {
 
-            // TODO: See the todo about thread distribution above.  It is applicable here, too.
-            on_thread_t th(i % num_db_threads);
-
-            const std::string file_name = file_name_base + "_" + strprintf("%d", i);
-            stores_out->stores()[i].reset(new typename protocol_t::store_t(file_name, true, perfmon_collection));
-            store_views[i] = stores_out->stores()[i].get();
-        }
+        pmap(num_stores, boost::bind(do_create_new_store<protocol_t>, _1, perfmon_collection, boost::ref(file_name_base),
+                                     num_db_threads, stores_out, store_views.get()));
 
         svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
 
