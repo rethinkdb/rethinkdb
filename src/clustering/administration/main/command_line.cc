@@ -332,11 +332,12 @@ po::options_description get_rethinkdb_porcelain_options() {
     desc.add(get_file_options());
     desc.add(get_machine_options());
     desc.add(get_network_options());
+    desc.add(get_disk_options());
     return desc;
 }
 
 // Returns true upon success.
-MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *out) {
+MUST_USE bool pull_io_backend_option(po::variables_map& vm, io_backend_t *out) {
     std::string io_backend = vm["io-backend"].as<std::string>();
     if (io_backend == "pool") {
         *out = aio_pool;
