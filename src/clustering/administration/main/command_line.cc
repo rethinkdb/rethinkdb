@@ -99,14 +99,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-struct port_trio_t {
-    port_trio_t(int _port, int _client_port, int _http_port) : port(_port), client_port(_client_port), http_port(_http_port) { }
-    const int port;
-    const int client_port;
-    const int http_port;
-};
-
-void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, port_trio_t ports, DEBUG_ONLY(int port_offset, ) const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
@@ -119,14 +112,15 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
     metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
 
     *result_out = serve(filepath, &store,
-        look_up_peers_addresses(joins), ports.port, ports.client_port, ports.http_port, DEBUG_ONLY(port_offset, )
-        store.read_machine_id(),
-        store.read_metadata(),
-        web_assets,
-        &sigint_cond);
+                        look_up_peers_addresses(joins),
+                        ports,
+                        store.read_machine_id(),
+                        store.read_metadata(),
+                        web_assets,
+                        &sigint_cond);
 }
 
-void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, port_trio_t ports, DEBUG_ONLY(int port_offset, ) const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     printf("Checking if directory '%s' already exists...\n", filepath.c_str());
@@ -137,10 +131,11 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
 
         *result_out = serve(filepath, &store,
-            look_up_peers_addresses(joins), ports.port, ports.client_port, ports.http_port, DEBUG_ONLY(port_offset, )
-            store.read_machine_id(), store.read_metadata(),
-            web_assets,
-            &sigint_cond);
+                            look_up_peers_addresses(joins),
+                            ports,
+                            store.read_machine_id(), store.read_metadata(),
+                            web_assets,
+                            &sigint_cond);
 
     } else {
         printf("It does not already exist. Creating it...\n");
@@ -219,22 +214,24 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
 
         *result_out = serve(filepath, &store,
-            look_up_peers_addresses(joins), ports.port, ports.client_port, ports.http_port, DEBUG_ONLY(port_offset, )
-            our_machine_id, semilattice_metadata,
-            web_assets,
-            &sigint_cond);
+                            look_up_peers_addresses(joins),
+                            ports,
+                            our_machine_id, semilattice_metadata,
+                            web_assets,
+                            &sigint_cond);
     }
 }
 
-void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, port_trio_t ports, DEBUG_ONLY(int port_offset, ) UNUSED const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, UNUSED const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     rassert(!joins.empty());
 
     *result_out = serve_proxy(logfilepath,
-        look_up_peers_addresses(joins), ports.port, ports.client_port, ports.http_port, DEBUG_ONLY(port_offset, )
-        generate_uuid(), cluster_semilattice_metadata_t(),
-        web_assets,
-        &sigint_cond);
+                              look_up_peers_addresses(joins),
+                              ports,
+                              generate_uuid(), cluster_semilattice_metadata_t(),
+                              web_assets,
+                              &sigint_cond);
 }
 
 po::options_description get_machine_options() {
@@ -411,8 +408,9 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     }
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins, port_trio_t(port, client_port, http_port),
-                                   DEBUG_ONLY(vm["port-offset"].as<int>(), )
+    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins,
+                                   service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())
+                                   ),
                                    io_backend,
                                    &result, render_as_path(web_path)));
 
@@ -497,8 +495,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
     }
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins, port_trio_t(port, client_port, http_port),
-                                   DEBUG_ONLY(vm["port-offset"].as<int>(), )
+    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins,
+                                   service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
                                    &result, render_as_path(web_path)));
 
@@ -538,7 +536,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins,
-                                   port_trio_t(port, client_port, http_port), DEBUG_ONLY(vm["port-offset"].as<int>(), )
+                                   service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
                                    &result, render_as_path(web_path)));
 

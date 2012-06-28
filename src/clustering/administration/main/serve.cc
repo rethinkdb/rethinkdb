@@ -36,7 +36,7 @@ bool do_serve(
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
     const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file,
     const std::set<peer_address_t> &joins,
-    int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, )
+    service_ports_t ports,
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
     std::string web_assets, signal_t *stop_cond)
 {
@@ -80,15 +80,15 @@ bool do_serve(
     message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_read_manager);
 
     message_multiplexer_t::run_t message_multiplexer_run(&message_multiplexer);
-    connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, port, &message_multiplexer_run, client_port);
+    connectivity_cluster_t::run_t connectivity_cluster_run(&connectivity_cluster, ports.port, &message_multiplexer_run, ports.client_port);
 
     // If (0 == port), then we asked the OS to give us a port number.
-    if (0 == port) {
-        port = connectivity_cluster_run.get_port();
+    if (0 == ports.port) {
+        ports.port = connectivity_cluster_run.get_port();
     } else {
-        rassert(port == connectivity_cluster_run.get_port());
+        rassert(ports.port == connectivity_cluster_run.get_port());
     }
-    printf("Listening for intracluster traffic on port %d...\n", port);
+    printf("Listening for intracluster traffic on port %d...\n", ports.port);
 
     auto_reconnector_t auto_reconnector(
         &connectivity_cluster,
@@ -177,14 +177,14 @@ bool do_serve(
     parser_maker_t<mock::dummy_protocol_t, mock::dummy_protocol_parser_t> dummy_parser_maker(
         &mailbox_manager,
         metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces, semilattice_manager_cluster.get_root_view()),
-        DEBUG_ONLY(port_offset, )
+        DEBUG_ONLY(ports.port_offset, )
         &dummy_namespace_repo,
         &perfmon_repo);
 
     parser_maker_t<memcached_protocol_t, memcache_listener_t> memcached_parser_maker(
         &mailbox_manager,
         metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, semilattice_manager_cluster.get_root_view()),
-        DEBUG_ONLY(port_offset, )
+        DEBUG_ONLY(ports.port_offset, )
         &memcached_namespace_repo,
         &perfmon_repo);
 
@@ -193,14 +193,15 @@ bool do_serve(
             persistent_file, semilattice_manager_cluster.get_root_view()));
 
     {
-        if (0 == http_port)
-            http_port = port + 1000;
+        if (0 == ports.http_port)
+            ports.http_port = ports.port + 1000;
 
-        guarantee(http_port < 65536);
+        // TODO: Pardon me what, but is this how we fail here?
+        guarantee(ports.http_port < 65536);
 
-        printf("Starting up administrative HTTP server on port %d...\n", http_port);
+        printf("Starting up administrative HTTP server on port %d...\n", ports.http_port);
         administrative_http_server_manager_t administrative_http_interface(
-            http_port,
+            ports.http_port,
             &mailbox_manager,
             &metadata_change_handler,
             semilattice_manager_cluster.get_root_view(),
@@ -224,12 +225,12 @@ bool do_serve(
     return true;
 }
 
-bool serve(const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, ) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve(const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     std::string logfilepath = filepath + "/log_file";
-    return do_serve(true, logfilepath, filepath, persistent_file, joins, port, client_port, http_port, DEBUG_ONLY(port_offset, ) machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(true, logfilepath, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
-bool serve_proxy(const std::string &logfilepath, const std::set<peer_address_t> &joins, int port, int client_port, int http_port, DEBUG_ONLY(int port_offset, ) machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve_proxy(const std::string &logfilepath, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return do_serve(false, logfilepath, "", NULL, joins, port, client_port, http_port, DEBUG_ONLY(port_offset, ) machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(false, logfilepath, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
