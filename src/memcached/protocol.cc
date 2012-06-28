@@ -549,8 +549,8 @@ memcached_protocol_t::store_t::metainfo_t
 memcached_protocol_t::store_t::get_metainfo(UNUSED order_token_t order_token,  // TODO
                                             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
+    boost::scoped_ptr<real_superblock_t> superblock;
     acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
 
     return get_metainfo_internal(txn.get(), superblock->get());
