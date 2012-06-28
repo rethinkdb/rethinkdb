@@ -43,6 +43,9 @@ with driver.Metacluster() as metacluster:
         os.chdir(os.path.dirname(test))
         process = subprocess.Popen(cl,stdout=subprocess.PIPE)
         stdout = process.stdout.readlines()
-        for i, line in enumerate(stdout):
-            cprint('[%s]' % test_name, attrs=['bold'], end=' ')
-            print line.rstrip('\n')
+        #for i, line in enumerate(stdout):
+        #    cprint('[%s]' % test_name, attrs=['bold'], end=' ')
+        #    print line.rstrip('\n')
+        print stdout
+        print '\033[0m'
+        print 'hello'

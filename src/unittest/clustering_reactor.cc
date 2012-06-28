@@ -189,7 +189,7 @@ public:
         int port = randport();
         for (int i = 0; i < n_machines; i++) {
             files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
-            stores.push_back(new typename protocol_t::store_t(files[i].name(), true, NULL));
+            stores.push_back(new typename protocol_t::store_t(aio_pool, files[i].name(), true, NULL));
             store_view_t<protocol_t> *store_ptr = &stores[i];
             svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
             stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));

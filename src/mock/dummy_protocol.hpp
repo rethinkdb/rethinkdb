@@ -9,6 +9,7 @@
 #include "utils.hpp"
 #include <boost/function.hpp>
 
+#include "arch/io/io_utils.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "protocol_api.hpp"
@@ -107,7 +108,7 @@ public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
         store_t();
-        store_t(const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
+        store_t(io_backend_t io_backend, const std::string& filename, bool create, perfmon_collection_t *collection = NULL);
         ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) THROWS_NOTHING;

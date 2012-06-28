@@ -58,13 +58,13 @@ static void read_blob(transaction_t *txn, const char *ref, int maxreflen, T *val
     guarantee(res == 0);
 }
 
-persistent_file_t::persistent_file_t(const std::string &filename, perfmon_collection_t *perfmon_parent) {
-    construct_serializer_and_cache(false, filename, perfmon_parent);
+persistent_file_t::persistent_file_t(const io_backend_t io_backend, const std::string &filename, perfmon_collection_t *perfmon_parent) {
+    construct_serializer_and_cache(io_backend, false, filename, perfmon_parent);
     construct_branch_history_managers(false);
 }
 
-persistent_file_t::persistent_file_t(const std::string& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
-    construct_serializer_and_cache(true, filename, perfmon_parent);
+persistent_file_t::persistent_file_t(const io_backend_t io_backend, const std::string& filename, perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id, const cluster_semilattice_metadata_t &initial_metadata) {
+    construct_serializer_and_cache(io_backend, true, filename, perfmon_parent);
 
     transaction_t txn(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past);
     buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
@@ -190,10 +190,13 @@ branch_history_manager_t<memcached_protocol_t> *persistent_file_t::get_memcached
     return memcached_branch_history_manager.get();
 }
 
-void persistent_file_t::construct_serializer_and_cache(bool create, const std::string &filename, perfmon_collection_t *perfmon_parent) {
+void persistent_file_t::construct_serializer_and_cache(const io_backend_t io_backend, const bool create, const std::string &filename, perfmon_collection_t *const perfmon_parent) {
+    standard_serializer_t::dynamic_config_t serializer_dynamic_config;
+    serializer_dynamic_config.io_backend = io_backend;
+
     if (create) {
         standard_serializer_t::create(
-            standard_serializer_t::dynamic_config_t(),
+            serializer_dynamic_config,
             standard_serializer_t::private_dynamic_config_t(filename),
             standard_serializer_t::static_config_t(),
             perfmon_parent
@@ -201,7 +204,7 @@ void persistent_file_t::construct_serializer_and_cache(bool create, const std::s
     }
 
     serializer.reset(new standard_serializer_t(
-        standard_serializer_t::dynamic_config_t(),
+        serializer_dynamic_config,
         standard_serializer_t::private_dynamic_config_t(filename),
         perfmon_parent
     ));
