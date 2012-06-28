@@ -9,6 +9,7 @@ import SocketServer
 import struct
 import sys
 import threading
+import traceback
 import uuid
 
 class FakeStore(object):
@@ -103,6 +104,8 @@ def builtin_eval(self, env):
         return ret
     elif t == p.Builtin.MAP:
         return [self.builtin.map.mapping.eval(env, row) for row in args[0]]
+    elif t == p.Builtin.ALL:
+        return all(arg == True for arg in args)
     raise ValueError(str(self))
 
 @extend(p.Term.If)
@@ -173,11 +176,13 @@ class RDBHandler(SocketServer.BaseRequestHandler):
 
                 header = struct.pack("<L", len(response_serialized))
                 self.send(header + response_serialized)
-            except Exception, e:                
+            except Exception as e:
                 response = p.Response()
                 response.token = query.token
                 response.status_code = 500
-                response.response.append(str(e))
+                traceback.print_exc()
+                #response.response.append(traceback.format_exc())
+                response_serialized = response.SerializeToString()
 
                 header = struct.pack("<L", len(response_serialized))
                 self.send(header + response_serialized)
