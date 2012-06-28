@@ -639,8 +639,8 @@ memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
+    boost::scoped_ptr<real_superblock_t> superblock;
     acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
 
     check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());
@@ -697,8 +697,8 @@ memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
+    boost::scoped_ptr<real_superblock_t> superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
     acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
 
@@ -799,8 +799,8 @@ bool memcached_protocol_t::store_t::send_backfill(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
+    boost::scoped_ptr<real_superblock_t> superblock;
     acquire_superblock_for_backfill(token, txn, superblock, interruptor);
 
     metainfo_t metainfo = get_metainfo_internal(txn.get(), superblock->get()).mask(start_point.get_domain());
@@ -870,8 +870,8 @@ void memcached_protocol_t::store_t::receive_backfill(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
+    boost::scoped_ptr<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
     acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
@@ -902,8 +902,8 @@ void memcached_protocol_t::store_t::reset_data(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    boost::scoped_ptr<real_superblock_t> superblock;
     boost::scoped_ptr<transaction_t> txn;
+    boost::scoped_ptr<real_superblock_t> superblock;
 
     // We're passing 2 for the expected_change_count based on the
     // reasoning that we're probably going to touch a leaf-node-sized
