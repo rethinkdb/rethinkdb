@@ -703,7 +703,49 @@ Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtim
     return res;
 }
 
-Response eval(const WriteQuery &, runtime_environment_t *) THROWS_ONLY(runtime_exc_t) {
+Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
+    switch (w.type()) {
+        case WriteQuery::UPDATE:
+            break;
+        case WriteQuery::DELETE:
+            break;
+        case WriteQuery::MUTATE:
+            break;
+        case WriteQuery::INSERT:
+            {
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w.insert().table_ref(), env);
+                for (int i = 0; i < w.insert().terms_size(); ++i) {
+                    boost::shared_ptr<scoped_cJSON_t> data = eval(w.insert().terms(i), env);
+
+                    if (!cJSON_GetObjectItem(data->get(), "id")) {
+                        throw runtime_exc_t("Must have a field named id.");
+                    }
+
+                    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(cJSON_GetObjectItem(data->get(), "id"))), data));
+                    ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
+                }
+                Response res;
+                res.set_status_code(0);
+                res.set_token(0);
+                res.add_response(strprintf("Inserted %d rows.", w.insert().terms_size()));
+                return res;
+            }
+            break;
+        case WriteQuery::INSERTSTREAM:
+            break;
+        case WriteQuery::FOREACH:
+            break;
+        case WriteQuery::POINTUPDATE:
+            break;
+        case WriteQuery::POINTDELETE:
+            break;
+        case WriteQuery::POINTMUTATE:
+            break;
+        default:
+            unreachable();
+            break;
+    }
+
     Response res;
     res.set_status_code(-3);
     res.set_token(0);
