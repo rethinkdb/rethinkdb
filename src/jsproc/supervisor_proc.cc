@@ -18,16 +18,15 @@
 #include "containers/intrusive_list.hpp"
 #include "logger.hpp"
 
-// TODO (rntz): a way to kill off unneeded worker processes if we have too many.
+// TODO(rntz): a way to kill off unneeded worker processes if we have too many.
 // Currently the number of JS procs we have grows monotonically until it hits
 // MAX_JS_PROCS.
+//
+// Currently MIN_JS_PROCS == MAX_JS_PROCS so this isn't an issue. Once we need a
+// more flexible policy for how many js processes to run, revisit this issue.
 
 // Maximum number of open requests for fds that the supervisor will accept.
 #define MAX_FD_REQUESTS         1
-
-// The supervisor will attempt to ensure that there are always at least this
-// many idle javascript processes.
-#define MIN_IDLE_JS_PROCS       1
 
 // The supervisor will attempt to ensure that there are always at least this
 // many total javascript processes. This is therefore the size of the initial
@@ -36,7 +35,11 @@
 
 // The supervisor will never spawn more than this many JS processes, period.
 // This takes priority over MIN_IDLE_JS_PROCS.
-#define MAX_JS_PROCS            20
+#define MAX_JS_PROCS            8
+
+// The supervisor will attempt to ensure that there are always at least this
+// many idle javascript processes.
+#define MIN_IDLE_JS_PROCS       0
 
 namespace jsproc {
 
