@@ -50,36 +50,17 @@ private:
 };
 
 template<class backend_t>
-struct linux_templated_disk_manager_t : public linux_disk_manager_t {
-
+class linux_templated_disk_manager_t : public linux_disk_manager_t {
     typedef stats_diskmgr_2_t<typename backend_t::action_t> backend_stats_t;
     typedef accounting_diskmgr_t<typename backend_stats_t::action_t> accounter_t;
     typedef conflict_resolving_diskmgr_t<typename accounter_t::action_t> conflict_resolver_t;
     typedef stats_diskmgr_t<typename conflict_resolver_t::action_t> stack_stats_t;
+
+public:
     struct action_t : public stack_stats_t::action_t {
         linux_iocallback_t *cb;
     };
 
-    /* These fields describe the entire IO stack. At the top level, we allocate a new
-    action_t object for each operation and record its callback. Then it passes through
-    the conflict resolver, which enforces ordering constraints between IO operations by
-    holding back operations that must be run after other, currently-running, operations.
-    Then it goes to the account manager, which queues up running IO operations according
-    to which account they are part of. Finally the backend (which may be either AIO-based
-    or thread-pool-based) pops the IO operations from the queue.
-
-    At two points in the process--once as soon as it is submitted, and again right
-    as the backend pops it off the queue--its statistics are recorded. The "stack stats"
-    will tell you how many IO operations are queued. The "backend stats" will tell you
-    how long the OS takes to perform the operations. Note that it's not perfect, because
-    it counts operations that have been queued by the backend but not sent to the OS yet
-    as having been sent to the OS. */
-
-    stack_stats_t stack_stats;
-    conflict_resolver_t conflict_resolver;
-    accounter_t accounter;
-    backend_stats_t backend_stats;
-    backend_t backend;
 
     linux_templated_disk_manager_t(linux_event_queue_t *queue, const int batch_factor, perfmon_collection_t *stats) :
         stack_stats(stats, "stack"),
@@ -108,18 +89,18 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
     }
 
     void *create_account(int pri, int outstanding_requests_limit) {
-        return reinterpret_cast<void*>(new typename accounter_t::account_t(&accounter, pri, outstanding_requests_limit));
+        return new typename accounter_t::account_t(&accounter, pri, outstanding_requests_limit);
     }
 
     void destroy_account(void *account) {
-        delete reinterpret_cast<typename accounter_t::account_t*>(account);
+        delete static_cast<typename accounter_t::account_t *>(account);
     }
 
     void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
         outstanding_txn++;
         action_t *a = new action_t;
         a->make_write(fd, buf, count, offset);
-        a->account = reinterpret_cast<typename accounter_t::account_t*>(account);
+        a->account = static_cast<typename accounter_t::account_t*>(account);
         a->cb = cb;
         stack_stats.submit(a);
     }
@@ -128,7 +109,7 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
         outstanding_txn++;
         action_t *a = new action_t;
         a->make_read(fd, buf, count, offset);
-        a->account = reinterpret_cast<typename accounter_t::account_t*>(account);
+        a->account = static_cast<typename accounter_t::account_t*>(account);
         a->cb = cb;
         stack_stats.submit(a);
     };
@@ -141,6 +122,28 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
     }
 
 private:
+    /* These fields describe the entire IO stack. At the top level, we allocate a new
+    action_t object for each operation and record its callback. Then it passes through
+    the conflict resolver, which enforces ordering constraints between IO operations by
+    holding back operations that must be run after other, currently-running, operations.
+    Then it goes to the account manager, which queues up running IO operations according
+    to which account they are part of. Finally the backend (which may be either AIO-based
+    or thread-pool-based) pops the IO operations from the queue.
+
+    At two points in the process--once as soon as it is submitted, and again right
+    as the backend pops it off the queue--its statistics are recorded. The "stack stats"
+    will tell you how many IO operations are queued. The "backend stats" will tell you
+    how long the OS takes to perform the operations. Note that it's not perfect, because
+    it counts operations that have been queued by the backend but not sent to the OS yet
+    as having been sent to the OS. */
+
+    stack_stats_t stack_stats;
+    conflict_resolver_t conflict_resolver;
+    accounter_t accounter;
+    backend_stats_t backend_stats;
+    backend_t backend;
+
+
     int outstanding_txn;
 
     DISABLE_COPYING(linux_templated_disk_manager_t);
