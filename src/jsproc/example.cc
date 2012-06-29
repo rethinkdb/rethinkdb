@@ -140,11 +140,13 @@ int main_rethinkdb_js(int argc, char *argv[]) {
     (void) argc; (void) argv;
 
     jsproc::supervisor_t::info_t info;
-    guarantee(0 == jsproc::supervisor_t::spawn(&info));
+    std::string errfuncname;
+    int errsv;
+    guarantee(0 == jsproc::supervisor_t::spawn(&info, &errfuncname, &errsv));
     // NB. We're the child now.
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_js, info, &result));
+    run_in_thread_pool(boost::bind(&run_rethinkdb_js, info, &result), 1);
     printf("main_rethinkdb_js exiting\n");
     return result ? 0 : 1;
 }

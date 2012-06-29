@@ -3,6 +3,7 @@
 
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
+#include <string>
 
 #include "containers/archive/fd_stream.hpp"
 
@@ -20,7 +21,7 @@ class supervisor_t :
     };
 
     // Must be called within a thread pool, exactly once.
-    supervisor_t(const info_t &info);
+    explicit supervisor_t(const info_t &info);
     ~supervisor_t();
 
     // Called to create the supervisor process and make us its child. Must be
@@ -30,8 +31,9 @@ class supervisor_t :
     // does not return in the parent (instead the parent runs the supervisor).
     //
     // On failure, returns -1 in the parent process (the child is dead or never
-    // existed).
-    static int spawn(info_t *info);
+    // existed), and initializes `*err_func_name` with the name of the function
+    // that failed and `*errsv` with the value of errno (if applicable).
+    static int spawn(info_t *info, std::string *err_func_name, int *errsv);
 
     // Spawns `job` off and initializes `stream` with a connection to the job.
     // Thread-safe, but connect() involves switching threads temporarily.

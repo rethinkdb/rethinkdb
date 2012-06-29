@@ -44,13 +44,19 @@ int supervisor_t::connect(boost::scoped_ptr<unix_socket_stream_t> &stream) {
     return 0;
 }
 
-int supervisor_t::spawn(info_t *info) {
+int supervisor_t::spawn(info_t *info, std::string *err_func_name, int *errsv) {
     int fds[2];
     int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
-    if (res) return res;
+    if (res) {
+        err_func_name->assign("socketpair");
+        *errsv = errno;
+        return -1;
+    }
 
     pid_t pid = fork();
     if (pid == -1) {
+        err_func_name->assign("fork");
+        *errsv = errno;
         guarantee_err(0 == close(fds[0]), "could not close fd");
         guarantee_err(0 == close(fds[1]), "could not close fd");
         return -1;

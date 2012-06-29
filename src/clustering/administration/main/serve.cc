@@ -1,5 +1,7 @@
 #include "clustering/administration/main/serve.hpp"
 
+#include <stdio.h>
+
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
 #include "clustering/administration/admin_tracker.hpp"
@@ -7,8 +9,8 @@
 #include "clustering/administration/http/server.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/logger.hpp"
-#include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
+#include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
@@ -17,7 +19,6 @@
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
-#include <stdio.h>
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
@@ -31,6 +32,7 @@
 #include "rpc/semilattice/view/field.hpp"
 
 bool do_serve(
+    const jsproc::supervisor_t::info_t *info,
     io_backend_t io_backend,
     bool i_am_a_server,
     const std::string &logfilepath,
@@ -41,6 +43,8 @@ bool do_serve(
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
     std::string web_assets, signal_t *stop_cond)
 {
+    boost::scoped_ptr<jsproc::supervisor_t> supervisor(info ? new jsproc::supervisor_t(*info) : NULL);
+
     local_issue_tracker_t local_issue_tracker;
 
     log_writer_t log_writer(logfilepath, &local_issue_tracker);
@@ -226,12 +230,12 @@ bool do_serve(
     return true;
 }
 
-bool serve(io_backend_t io_backend, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve(const jsproc::supervisor_t::info_t *info, io_backend_t io_backend, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     std::string logfilepath = filepath + "/log_file";
-    return do_serve(io_backend, true, logfilepath, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(info, io_backend, true, logfilepath, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
 bool serve_proxy(io_backend_t io_backend, const std::string &logfilepath, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return do_serve(io_backend, false, logfilepath, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(NULL, io_backend, false, logfilepath, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }

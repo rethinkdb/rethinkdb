@@ -3,13 +3,14 @@
 #include <boost/program_options.hpp>
 
 #include "arch/arch.hpp"
-#include "arch/runtime/starter.hpp"
 #include "arch/os_signal.hpp"
+#include "arch/runtime/starter.hpp"
+#include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/main/command_line.hpp"
 #include "clustering/administration/main/serve.hpp"
-#include "clustering/administration/cli/admin_command_parser.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
+#include "jsproc/supervisor.hpp"
 #include "mock/dummy_protocol.hpp"
 
 namespace po = boost::program_options;
@@ -99,7 +100,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_serve(const jsproc::supervisor_t::info_t *info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
@@ -111,7 +112,8 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
     perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
     metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
 
-    *result_out = serve(io_backend,
+    *result_out = serve(info,
+                        io_backend,
                         filepath, &store,
                         look_up_peers_addresses(joins),
                         ports,
@@ -121,7 +123,7 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
                         &sigint_cond);
 }
 
-void run_rethinkdb_porcelain(const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_porcelain(const jsproc::supervisor_t::info_t *info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     printf("Checking if directory '%s' already exists...\n", filepath.c_str());
@@ -131,7 +133,8 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
         metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
 
-        *result_out = serve(io_backend,
+        *result_out = serve(info,
+                            io_backend,
                             filepath, &store,
                             look_up_peers_addresses(joins),
                             ports,
@@ -215,7 +218,8 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
         metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
 
-        *result_out = serve(io_backend,
+        *result_out = serve(info,
+                            io_backend,
                             filepath, &store,
                             look_up_peers_addresses(joins),
                             ports,
@@ -361,6 +365,21 @@ int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::opti
     }
 }
 
+static MUST_USE bool try_spawn_supervisor(jsproc::supervisor_t::info_t *sup_info) {
+    std::string err_func_name;
+    int errsv = 0;
+    if (!jsproc::supervisor_t::spawn(sup_info, &err_func_name, &errsv))
+        return true;
+
+    if (!errsv)
+        fprintf(stderr, "could not spawn supervisor: %s() failed: %s\n",
+                err_func_name.c_str(), strerror(errsv));
+    else
+        fprintf(stderr, "could not spawn supervisor: %s() failed\n",
+                err_func_name.c_str());
+    return false;
+}
+
 int main_rethinkdb_create(int argc, char *argv[]) {
     po::variables_map vm;
     int res = parse_commands(argc, argv, &vm, get_rethinkdb_create_options());
@@ -415,10 +434,15 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    jsproc::supervisor_t::info_t sup_info;
+    if (!try_spawn_supervisor(&sup_info)) {
+        return EXIT_FAILURE;
+    }
+
     const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &sup_info, filepath, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())
                                    ),
                                    io_backend,
@@ -550,10 +574,15 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    jsproc::supervisor_t::info_t sup_info;
+    if (!try_spawn_supervisor(&sup_info)) {
+        return EXIT_FAILURE;
+    }
+
     const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &sup_info, filepath, machine_name, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
                                    &result, render_as_path(web_path)),
