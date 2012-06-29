@@ -1,13 +1,16 @@
-#include "jsproc/worker.hpp"
+#include "jsproc/worker_proc.hpp"
 
 #include <cstring>              // strerror
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include "containers/archive/fd_stream.hpp"
+#include "jsproc/job.hpp"
+
 namespace jsproc {
 
 // Accepts and runs a job.
-static void handle_job(job_result_t *result, fd_t fd) {
+static void handle_job(job_result_t *result, int fd) {
     unix_socket_stream_t stream(fd, new blocking_fd_watcher_t());
 
     // Try to receive the job.
@@ -18,7 +21,6 @@ static void handle_job(job_result_t *result, fd_t fd) {
         result->data.archive_result = res == -1 ? ARCHIVE_SOCK_ERROR : ARCHIVE_SOCK_EOF;
         return;
     }
-    debugf("[%d] worker: got job %p, running\n", getpid(), jobfunc);
 
     // The job should explicitly set result->type. Otherwise, something weird
     // happened.
@@ -40,17 +42,13 @@ static void handle_job(job_result_t *result, fd_t fd) {
     }
 }
 
-// FIXME: currently assumes it gets a stream of jobs, when actually it gets a
-// stream of fds which carry jobs.
 void exec_worker(int sockfd) {
     pid_t mypid = getpid();
     unix_socket_stream_t sock(sockfd, new blocking_fd_watcher_t());
 
     // Receive and run jobs until we get an error, or a job tells us to shut down.
     for (;;) {
-        debugf("[%d] worker: waiting for job\n", mypid);
-
-        fd_t fd;
+        int fd;
         archive_result_t res = sock.recv_fd(&fd);
         if (res != ARCHIVE_SUCCESS) {
             fprintf(stderr, "[%d] worker: unexpected %s trying to receive job\n",
@@ -62,8 +60,6 @@ void exec_worker(int sockfd) {
             break;
         }
 
-        debugf("[%d] worker: received job fd\n", mypid);
-
         job_result_t result;
         handle_job(&result, fd);
 
@@ -74,8 +70,6 @@ void exec_worker(int sockfd) {
                     result.type == JOB_READ_FAILURE ? "couldn't read data during job" :
                     result.type == JOB_WRITE_FAILURE ? "couldn't write data during job" :
                     "unknown error");
-        } else {
-            debugf("[%d] worker: successfully ran job\n", mypid);
         }
 
         // Let the supervisor know that we're ready again.
@@ -85,7 +79,6 @@ void exec_worker(int sockfd) {
 
     // The way we are "supposed to" die is to be killed by the supervisor. So we
     // always exit with failure.
-    debugf("[%d] worker: dying\n", mypid);
     exit(EXIT_FAILURE);
 }
 

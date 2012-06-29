@@ -15,7 +15,6 @@
 #include "containers/archive/fd_stream.hpp"
 #include "jsproc/job.hpp"
 #include "jsproc/supervisor.hpp"
-#include "jsproc/worker.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class js_eval_job_t : public jsproc::job_t
@@ -135,6 +134,7 @@ void run_rethinkdb_js(jsproc::supervisor_t::info_t info, bool *result) {
     }
 
     *result = -1;
+    printf("run_rethinkdb_js exiting\n");
 }
 
 int main_rethinkdb_js(int argc, char *argv[]) {
@@ -146,5 +146,6 @@ int main_rethinkdb_js(int argc, char *argv[]) {
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_js, info, &result));
+    printf("main_rethinkdb_js exiting\n");
     return result ? 0 : 1;
 }

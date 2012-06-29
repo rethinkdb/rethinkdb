@@ -52,6 +52,9 @@ class supervisor_t :
     // Returns -1 on error.
     int connect(boost::scoped_ptr<unix_socket_stream_t> &stream);
 
+    void install_on_thread(int i);
+    void uninstall_on_thread(int i);
+
     // Called by spawn() in the supervisor process.
     static void exec_supervisor(pid_t child, int sockfd) THROWS_NOTHING;
 
