@@ -485,6 +485,8 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::MULTIPLY:
         case Builtin::DIVIDE:
         case Builtin::COMPARE:
+        case Builtin::ANY:
+        case Builtin::ALL:
             return function_t(Type::JSON, -1, Type::JSON);  // variadic JSON type
             break;
         case Builtin::ARRAYSLICE:
