@@ -1374,6 +1374,8 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
 }
 
 mc_cache_t::~mc_cache_t() {
+    assert_thread();
+
     shutting_down = true;
     serializer->unregister_read_ahead_cb(this);
 

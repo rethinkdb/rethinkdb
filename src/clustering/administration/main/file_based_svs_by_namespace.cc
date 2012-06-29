@@ -68,6 +68,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
         // The files already exist, thus we don't create them.
         boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
         stores_out->stores().reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
+        stores_out->set_num_stores(num_stores);
 
         debugf("loading %d hash-sharded stores\n", num_stores);
 
@@ -83,6 +84,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
         const int num_stores = 4 + randint(4);
         debugf("creating %d hash-sharded stores\n", num_stores);
         stores_out->stores().reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
+        stores_out->set_num_stores(num_stores);
 
         // TODO: How do we specify what the stores' regions are?
 

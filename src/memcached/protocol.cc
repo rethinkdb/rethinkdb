@@ -477,7 +477,9 @@ memcached_protocol_t::store_t::store_t(const io_backend_t io_backend, const std:
     }
 }
 
-memcached_protocol_t::store_t::~store_t() { }
+memcached_protocol_t::store_t::~store_t() {
+    assert_thread();
+}
 
 void memcached_protocol_t::store_t::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) {
     fifo_enforcer_read_token_t token = token_source.enter_read();
