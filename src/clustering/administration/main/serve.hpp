@@ -6,9 +6,9 @@
 
 struct service_ports_t {
     service_ports_t(int _port, int _client_port, int _http_port DEBUG_ONLY(, int _port_offset))
-        : port(_port), client_port(_client_port), http_port(_http_port),
+        : port(_port), client_port(_client_port), http_port(_http_port)
 #ifndef NDEBUG
-          port_offset(_port_offset)
+        , port_offset(_port_offset)
 #endif
     { }
 
