@@ -12,6 +12,7 @@
 #include "clustering/reactor/metadata.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"
+#include "mock/branch_history_manager.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
@@ -19,7 +20,6 @@
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "unittest/clustering_utils.hpp"
-#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -101,10 +101,6 @@ public:
         mailbox_manager(&mailbox_manager_client),
         mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
 
-        semilattice_manager_client(&message_multiplexer, 'S'),
-        semilattice_manager_branch_history(&semilattice_manager_client, branch_history_t<protocol_t>()),
-        semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_branch_history),
-
         our_directory_variable(test_cluster_directory_t<protocol_t>()),
         directory_manager_client(&message_multiplexer, 'D'),
         directory_read_manager(&connectivity_cluster),
@@ -126,10 +122,6 @@ public:
     mailbox_manager_t mailbox_manager;
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
 
-    message_multiplexer_t::client_t semilattice_manager_client;
-    semilattice_manager_t<branch_history_t<protocol_t> > semilattice_manager_branch_history;
-    message_multiplexer_t::client_t::run_t semilattice_manager_client_run;
-
     watchable_variable_t<test_cluster_directory_t<protocol_t> > our_directory_variable;
     message_multiplexer_t::client_t directory_manager_client;
     directory_read_manager_t<test_cluster_directory_t<protocol_t> > directory_read_manager;
@@ -138,6 +130,8 @@ public:
 
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
+
+    mock::in_memory_branch_history_manager_t<protocol_t> branch_history_manager;
 };
 
 template<class protocol_t>
@@ -147,7 +141,7 @@ public:
         blueprint_watchable(initial_blueprint),
         reactor(&r->mailbox_manager, this,
               r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
-              r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection()),
+              &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection()),
         reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable),
         master_directory_copier(&test_cluster_directory_t<protocol_t>::master_directory, reactor.get_master_directory(), &r->our_directory_variable)
     {
@@ -195,7 +189,7 @@ public:
         int port = randport();
         for (int i = 0; i < n_machines; i++) {
             files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
-            stores.push_back(new typename protocol_t::store_t(files[i].name(), true, NULL));
+            stores.push_back(new typename protocol_t::store_t(aio_pool, files[i].name(), true, NULL));
             store_view_t<protocol_t> *store_ptr = &stores[i];
             svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
             stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));

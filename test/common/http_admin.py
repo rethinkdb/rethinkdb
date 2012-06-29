@@ -329,7 +329,7 @@ class ClusterAccess(object):
         uuid, json_data = next(info.iteritems())
         datacenter = Datacenter(uuid, json_data)
         self.datacenters[datacenter.uuid] = datacenter
-        self.update_cluster_data(3)
+        self.update_cluster_data(10)
         return datacenter
 
     def _find_thing(self, what, type_class, type_str, search_space):
@@ -376,14 +376,14 @@ class ClusterAccess(object):
         machine = self.find_machine(machine)
         del self.machines[machine.uuid]
         self.do_query("DELETE", "/ajax/semilattice/machines/" + machine.uuid)
-        self.update_cluster_data(3)
+        self.update_cluster_data(10)
 
     def move_server_to_datacenter(self, serv, datacenter):
         serv = self.find_machine(serv)
         datacenter = self.find_datacenter(datacenter)
         serv.datacenter_uuid = datacenter.uuid
         self.do_query("POST", "/ajax/semilattice/machines/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
-        self.update_cluster_data(3)
+        self.update_cluster_data(10)
 
     def move_namespace_to_datacenter(self, namespace, primary):
         namespace = self.find_namespace(namespace)
@@ -394,7 +394,7 @@ class ClusterAccess(object):
         else:
             name = "dummy_namespaces"
         self.do_query("POST", "/ajax/semilattice/%s/%s/primary_uuid" % (name, namespace.uuid), primary.uuid)
-        self.update_cluster_data(3)
+        self.update_cluster_data(10)
 
     def set_namespace_affinities(self, namespace, affinities = { }):
         namespace = self.find_namespace(namespace)
@@ -407,7 +407,7 @@ class ClusterAccess(object):
         else:
             name = "dummy_namespaces"
         self.do_query("POST", "/ajax/semilattice/%s/%s/replica_affinities" % (name, namespace.uuid), aff_dict)
-        self.update_cluster_data(3)
+        self.update_cluster_data(10)
 
     def set_namespace_ack_expectations(self, namespace, ack_expectations = { }):
         namespace = self.find_namespace(namespace)
@@ -420,9 +420,9 @@ class ClusterAccess(object):
         else:
             name = "dummy_namespaces"
         self.do_query("POST", "/ajax/semilattice/%s/%s/ack_expectations" % (name, namespace.uuid), ae_dict)
-        self.update_cluster_data(3)
+        self.update_cluster_data(10)
 
-    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }):
+    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, check = True):
         if port is None:
             port = random.randint(20000, 60000)
         if name is None:
@@ -445,8 +445,21 @@ class ClusterAccess(object):
         type_class = {"memcached": MemcachedNamespace, "dummy": DummyNamespace}[protocol]
         namespace = type_class(uuid, json_data)
         getattr(self, "%s_namespaces" % protocol)[namespace.uuid] = namespace
-        self.update_cluster_data(3)
+        self.update_cluster_data(10)
+        if check:
+            self._wait_for_namespace(namespace, 30)
         return namespace
+
+    def _wait_for_namespace(self, namespace, timeout):
+        while True:
+            try:
+                self.get_distribution(namespace)
+                return
+            except BadServerResponse:
+                time.sleep(1)
+                timeout = timeout - 1
+                if timeout <= 0:
+                    raise
 
     def rename(self, target, name):
         type_targets = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces, Machine: self.machines, Datacenter: self.datacenters }
@@ -470,7 +483,7 @@ class ClusterAccess(object):
         # Remove the conflict and update the field in the target
         self.conflicts.remove(conflict)
         setattr(conflict.target, conflict.field, value) # TODO: this probably won't work for certain things like shards that we represent differently locally than the strict json format
-        self.update_cluster_data(3)
+        self.update_cluster_data(10)
 
     def add_namespace_shard(self, namespace, split_point):
         namespace = self.find_namespace(namespace)
@@ -480,7 +493,7 @@ class ClusterAccess(object):
         protocol = type_protocols[type(namespace)]
         namespace.add_shard(split_point)
         info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
-        self.update_cluster_data(3)
+        self.update_cluster_data(10)
 
     def remove_namespace_shard(self, namespace, split_point):
         namespace = self.find_namespace(namespace)
@@ -490,7 +503,7 @@ class ClusterAccess(object):
         protocol = type_protocols[type(namespace)]
         namespace.remove_shard(split_point)
         info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
-        self.update_cluster_data(3)
+        self.update_cluster_data(10)
 
     def change_namespace_shards(self, namespace, adds=[], removes=[]):
         namespace = self.find_namespace(namespace)
@@ -503,7 +516,7 @@ class ClusterAccess(object):
         for split_point in removes:
             namespace.remove_shard(split_point)
         info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
-        self.update_cluster_data(3)
+        self.update_cluster_data(10)
 
     def get_datacenter_in_namespace(self, namespace, primary = None):
         namespace = self.find_namespace(namespace)

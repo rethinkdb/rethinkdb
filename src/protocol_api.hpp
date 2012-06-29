@@ -272,8 +272,8 @@ of metadata which is keyed by region. The metadata is currently implemented as
 opaque binary blob (`binary_blob_t`).
 */
 
-template<class protocol_t>
-class store_view_t {
+template <class protocol_t>
+class store_view_t : public home_thread_mixin_t {
 public:
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 

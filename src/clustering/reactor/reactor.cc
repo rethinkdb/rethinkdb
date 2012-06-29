@@ -21,7 +21,7 @@ reactor_t<protocol_t>::reactor_t(
         mailbox_manager_t *mm,
         typename master_t<protocol_t>::ack_checker_t *ack_checker_,
         clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > rd,
-        boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
+        branch_history_manager_t<protocol_t> *bhm,
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,
         multistore_ptr_t<protocol_t> *_underlying_svs,
         perfmon_collection_t *_parent_perfmon_collection) THROWS_NOTHING :
@@ -30,7 +30,7 @@ reactor_t<protocol_t>::reactor_t(
     reactor_directory(rd),
     directory_echo_writer(mailbox_manager, reactor_business_card_t<protocol_t>()),
     directory_echo_mirror(mailbox_manager, rd->subview(&collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >)),
-    branch_history(bh),
+    branch_history_manager(bhm),
     master_directory(std::map<master_id_t, master_business_card_t<protocol_t> >()),
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),

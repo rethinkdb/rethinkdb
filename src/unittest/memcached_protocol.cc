@@ -25,7 +25,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
     for (int i = 0; i < (int)shards.size(); i++) {
-        underlying_stores.push_back(new memcached_protocol_t::store_t(temp_files[i].name(), true, &get_global_perfmon_collection()));
+        underlying_stores.push_back(new memcached_protocol_t::store_t(aio_pool, temp_files[i].name(), true, &get_global_perfmon_collection()));
     }
 
     std::vector<boost::shared_ptr<store_view_t<memcached_protocol_t> > > stores;

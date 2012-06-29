@@ -153,13 +153,13 @@ private:
         perfmon_collection_t *perfmon_collection = parent->perfmon_collection_repo->get_perfmon_collection_for_namespace(namespace_id);
 
         // TODO: We probably shouldn't have to pass in this perfmon collection.
-        svs_by_namespace->get_svs(perfmon_collection, namespace_id, &stores, &svs);
+        svs_by_namespace->get_svs(perfmon_collection, namespace_id, &stores_lifetimer, &svs);
 
         reactor.reset(new reactor_t<protocol_t>(
             parent->mbox_manager,
             this,
             parent->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
-            parent->branch_history,
+            parent->branch_history_manager,
             watchable.get_watchable(),
             svs.get(), perfmon_collection));
 
@@ -194,7 +194,7 @@ private:
     const namespace_id_t namespace_id;
     svs_by_namespace_t<protocol_t> *const svs_by_namespace;
 
-    boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > stores;
+    stores_lifetimer_t<protocol_t> stores_lifetimer;
     boost::scoped_ptr<multistore_ptr_t<protocol_t> > svs;
     boost::scoped_ptr<reactor_t<protocol_t> > reactor;
 
@@ -207,6 +207,7 @@ private:
 template <class protocol_t>
 reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
                  const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
+                 branch_history_manager_t<protocol_t> *_branch_history_manager,
                  boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
                  boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                  const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
@@ -214,7 +215,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
                  perfmon_collection_repo_t *_perfmon_collection_repo)
     : mbox_manager(_mbox_manager),
       directory_view(_directory_view),
-      branch_history(metadata_field(&namespaces_semilattice_metadata_t<protocol_t>::branch_history, _namespaces_view)),
+      branch_history_manager(_branch_history_manager),
       machine_id_translation_table(_machine_id_translation_table),
       namespaces_view(_namespaces_view),
       machines_view(machines_view_),
