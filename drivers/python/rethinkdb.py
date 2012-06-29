@@ -155,6 +155,18 @@ class Insert(object):
         self.write_ast(write_query.insert)
         return write_query.insert
 
+class Find(Stream):
+    def __init__(self, tableref, key, value):
+        self.tableref = tableref
+        self.key = key
+        self.value = value
+
+    def write_ast(self, parent):
+        parent.type = p.Term.GETBYKEY
+        self.tableref.write_ref_ast(parent.get_by_key.table_ref)
+        parent.get_by_key.attrname = self.key
+        toTerm(self.value).write_ast(parent.get_by_key.key)
+
 class Filter(Stream):
     def __init__(self, parent_view, selector, row):
         super(Filter, self).__init__()
@@ -261,6 +273,12 @@ class Term(object):
         self.write_ast(read_query.term)
         return read_query.term
 
+    def _write_call(self, parent, type, *args):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = type
+        for arg in args:
+            toTerm(arg).write_ast(parent.call.args.add())
+
 class _if(Term):
     def __init__(self, test, true_branch, false_branch):
         self.test = toTerm(test)
@@ -280,10 +298,7 @@ class Conjunction(Term):
         self.predicates = predicates
 
     def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.ALL
-        for predicate in self.predicates:
-            toTerm(predicate).write_ast(parent.call.args.add())
+        self._write_call(parent, p.Builtin.ALL, *self.predicates)
 
 def _and(*predicates):
     return Conjunction(predicates)
@@ -295,21 +310,17 @@ class Disjunction(Term):
         self.predicates = predicates
 
     def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.ANY
-        for predicate in self.predicates:
-            toTerm(predicate).write_ast(parent.call.args.add())
+        self._write_call(parent, p.Builtin.ANY, *self.predicates)
 
 def _or(*predicates):
     return Disjunction(predicates)
 
 class _not(Term):
     def __init__(self, term):
-        self.term = toTerm(term)
+        self.term = term
+
     def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.NOT
-        self.term.write_ast(parent.call.args.add())
+        self._write_call(parent, p.Builtin.NOT, self.term)
 
 class val(Term):
     def __init__(self, value):
@@ -353,15 +364,8 @@ class Comparison(Term):
         self.cmp_type = cmp_type
 
     def write_ast(self, parent):
-        # If we only have one term, the comparison compiles to true
-        if len(self.terms) == 1:
-            val(True).write_ast(parent)
-            return
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.COMPARE
+        self._write_call(parent, p.Builtin.COMPARE, *self.terms)
         parent.call.builtin.comparison = self.cmp_type
-        for term in self.terms:
-            toTerm(term).write_ast(parent.call.args.add())
 
 def eq(*terms):
     return Comparison(terms, p.Builtin.EQ)
@@ -390,11 +394,8 @@ class Arithmetic(Term):
         self.terms = terms
         self.op_type = op_type
     def write_ast(self, parent):
-        # A class to actually do the op
-        parent.type = p.Term.CALL
+        self._write_call(parent, p.Builtin.COMPARE, *self.terms)
         parent.call.builtin.type = self.op_type
-        for term in self.terms:
-            toTerm(term).write_ast(parent.call.args.add())
 
 def add(*terms):
     return Arithmetic(terms, p.Builtin.ADD)
@@ -439,10 +440,8 @@ class attr(Term):
         return attr(name, self)
 
     def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.GETATTR
+        self._write_call(parent, p.Builtin.GETATTR, self.parent)
         parent.call.builtin.attr = self.name
-        self.parent.write_ast(parent.call.args.add())
 
 class Let(Term):
     def __init__(self, pairs, expr):
@@ -491,9 +490,6 @@ class Extend(Term):
         self.jsons = jsons
 
     def write_ast(self, parent):
-        if len(self.jsons) == 0:
-            toTerm(self.dest).write_ast(parent)
-            return
         parent.type = p.Term.CALL
         parent.call.builtin.type = p.Builtin.MAPMERGE
         if len(self.jsons) == 1:
@@ -505,69 +501,23 @@ class Extend(Term):
 def extend(dest, *jsons):
     return Extend(dest, jsons)
 
-class nth(Term):
-    def __init__(self, array, index):
-        self.array = array
-        self.index = index
+def _make_builtin(name, builtin, *args):
+    n_args = len(args)
+    signature = "%s(%s)" % (name, ", ".join(args))
+
+    def __init__(self, *args):
+        if len(args) != n_args:
+            raise TypeError("%s takes exactly %d arguments (%d given)"
+                            % (signature, n_args, len(args)))
+        self.args = args
 
     def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.ARRAYNTH
-        toTerm(self.array).write_ast(parent.call.args.add())
-        toTerm(self.index).write_ast(parent.call.args.add())
+        self._write_call(parent, builtin, *self.args)
 
-class size(Term):
-    def __init__(self, array):
-        self.array = array
+    return type(name, (object,), {"__init__": __init__, "write_ast": write_ast})
 
-    def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.ARRAYLENGTH
-        toTerm(self.array).write_ast(parent.call.args.add())
-
-class append(Term):
-    def __init__(self, array, item):
-        self.array = array
-        self.item = item
-
-    def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.ARRAYAPPEND
-        toTerm(self.array).write_ast(parent.call.args.add())
-        toTerm(self.item).write_ast(parent.call.args.add())
-
-class concat(Term):
-    def __init__(self, array1, array2):
-        self.array1 = array1
-        self.array2 = array2
-
-    def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.ARRAYCONCAT
-        toTerm(self.array1).write_ast(parent.call.args.add())
-        toTerm(self.array2).write_ast(parent.call.args.add())
-
-class slice(Term):
-    def __init__(self, array, start, end):
-        self.array = array
-        self.start = start
-        self.end = end
-
-    def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.ARRAYSLICE
-        toTerm(self.array).write_ast(parent.call.args.add())
-        toTerm(self.start).write_ast(parent.call.args.add())
-        toTerm(self.end).write_ast(parent.call.args.add())
-
-class Find(Term):
-    def __init__(self, tableref, key, value):
-        self.tableref = tableref
-        self.key = key
-        self.value = value
-
-    def write_ast(self, parent):
-        parent.type = p.Term.GETBYKEY
-        self.tableref.write_ref_ast(parent.get_by_key.table_ref)
-        parent.get_by_key.attrname = self.key
-        toTerm(self.value).write_ast(parent.get_by_key.key)
+nth = _make_builtin("nth", p.Builtin.ARRAYNTH, "array", "index")
+size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
+append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
+concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
+slice = _make_builtin("slice", p.Builtin.ARRAYSLICE, "array", "start", "end")

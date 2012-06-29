@@ -1056,7 +1056,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 if (array->get()->type != cJSON_Array) {
                     throw runtime_exc_t("The first argument must be an array.");
                 }
-                
+
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> start  = eval(c.args(1), env);
                 if (start->get()->type != cJSON_Number) {
@@ -1073,7 +1073,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 if (int_start > cJSON_GetArraySize(array->get())) {
                     throw runtime_exc_t("The second argument cannot be greater than the size of the array.");
                 }
-                
+
                 // Check third arg type
                 boost::shared_ptr<scoped_cJSON_t> end  = eval(c.args(2), env);
                 if (end->get()->type != cJSON_Number) {
@@ -1110,7 +1110,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 if (array->get()->type != cJSON_Array) {
                     throw runtime_exc_t("The first argument must be an array.");
                 }
-                
+
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> index  = eval(c.args(1), env);
                 if (index->get()->type != cJSON_Number) {
@@ -1126,7 +1126,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 if (int_index >= cJSON_GetArraySize(array->get())) {
                     throw runtime_exc_t("The second argument must be an integer.");
                 }
-                
+
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(cJSON_GetArrayItem(array->get(),
                                                                                                               int_index))));
             }

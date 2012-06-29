@@ -139,9 +139,9 @@ def pred_eval(self, env, arg):
 def insert_eval(self, env):
     tab = self.table_ref.eval(env)
     for term in self.terms:
-        if term.type != p.Term.JSON:
-            raise ValueError, "invalid insert term type (expected JSON)"
-        doc = json.loads(term.jsonstring)
+        doc = term.eval(env)
+        if not isinstance(doc, dict):
+            raise ValueError, "invalid insert term type (expected JSON dict)"
         if 'id' not in doc:
             doc['id'] = uuid.uuid4().get_hex()[:8] # random enough for testing
         tab[doc['id']] = doc
