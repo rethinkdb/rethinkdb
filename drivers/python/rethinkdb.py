@@ -501,3 +501,59 @@ class Extend(Term):
 
 def extend(dest, *jsons):
     return Extend(dest, jsons)
+
+class nth(Term):
+    def __init__(self, array, index):
+        self.array = array
+        self.index = index
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.ARRAYNTH
+        toTerm(self.array).write_ast(parent.call.args.add())
+        toTerm(self.index).write_ast(parent.call.args.add())
+
+class size(Term):
+    def __init__(self, array):
+        self.array = array
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.ARRAYLENGTH
+        toTerm(self.array).write_ast(parent.call.args.add())
+
+class append(Term):
+    def __init__(self, array, item):
+        self.array = array
+        self.item = item
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.ARRAYAPPEND
+        toTerm(self.array).write_ast(parent.call.args.add())
+        toTerm(self.item).write_ast(parent.call.args.add())
+
+class concat(Term):
+    def __init__(self, array1, array2):
+        self.array1 = array1
+        self.array2 = array2
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.ARRAYCONCAT
+        toTerm(self.array1).write_ast(parent.call.args.add())
+        toTerm(self.array2).write_ast(parent.call.args.add())
+
+class slice(Term):
+    def __init__(self, array, start, end):
+        self.array = array
+        self.start = start
+        self.end = end
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.ARRAYSLICE
+        toTerm(self.array).write_ast(parent.call.args.add())
+        toTerm(self.start).write_ast(parent.call.args.add())
+        toTerm(self.end).write_ast(parent.call.args.add())
+

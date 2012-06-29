@@ -474,7 +474,7 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *) {
             return function_t(Type::JSON, 1, Type::JSON);
             break;
         case Builtin::MAPMERGE:
-        case Builtin::ARRAYCONS:
+        case Builtin::ARRAYAPPEND:
         case Builtin::ARRAYCONCAT:
         case Builtin::ARRAYNTH:
         case Builtin::MODULO:
@@ -980,20 +980,133 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 return left;
             }
 			break;
-        case Builtin::ARRAYCONS:
-            crash("Not implemented");
+        case Builtin::ARRAYAPPEND:
+            {
+                // Check first arg type
+                boost::shared_ptr<scoped_cJSON_t> array  = eval(c.args(0), env);
+                if (array->get()->type != cJSON_Array) {
+                    throw runtime_exc_t("The first argument must be an array.");
+                }
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_DeepCopy(array->get())));
+                cJSON_AddItemToArray(res->get(), eval(c.args(1), env)->release());
+                return res;
+            }
             break;
         case Builtin::ARRAYCONCAT:
-            crash("Not implemented");
+            {
+                // Check first arg type
+                boost::shared_ptr<scoped_cJSON_t> array1  = eval(c.args(0), env);
+                if (array1->get()->type != cJSON_Array) {
+                    throw runtime_exc_t("The first argument must be an array.");
+                }
+                // Check second arg type
+                boost::shared_ptr<scoped_cJSON_t> array2  = eval(c.args(1), env);
+                if (array2->get()->type != cJSON_Array) {
+                    throw runtime_exc_t("The first argument must be an array.");
+                }
+                // Create new array and deep copy all the elements
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
+                for(int i = 0; i < cJSON_GetArraySize(array1->get()); i++) {
+                    cJSON_AddItemToArray(res->get(), cJSON_DeepCopy(cJSON_GetArrayItem(array1->get(), i)));
+                }
+                for(int j = 0; j < cJSON_GetArraySize(array2->get()); j++) {
+                    cJSON_AddItemToArray(res->get(), cJSON_DeepCopy(cJSON_GetArrayItem(array2->get(), j)));
+                }
+
+                return res;
+            }
             break;
         case Builtin::ARRAYSLICE:
-            crash("Not implemented");
+            {
+                // Check first arg type
+                boost::shared_ptr<scoped_cJSON_t> array  = eval(c.args(0), env);
+                if (array->get()->type != cJSON_Array) {
+                    throw runtime_exc_t("The first argument must be an array.");
+                }
+                
+                // Check second arg type
+                boost::shared_ptr<scoped_cJSON_t> start  = eval(c.args(1), env);
+                if (start->get()->type != cJSON_Number) {
+                    throw runtime_exc_t("The second argument must be an integer.");
+                }
+                float float_start = start->get()->valuedouble;
+                int int_start = (int)float_start;
+                if (float_start != int_start) {
+                    throw runtime_exc_t("The second argument must be an integer.");
+                }
+                if (int_start < 0) {
+                    throw runtime_exc_t("The second argument cannot be smaller than zero.");
+                }
+                if (int_start > cJSON_GetArraySize(array->get())) {
+                    throw runtime_exc_t("The second argument cannot be greater than the size of the array.");
+                }
+                
+                // Check third arg type
+                boost::shared_ptr<scoped_cJSON_t> end  = eval(c.args(2), env);
+                if (end->get()->type != cJSON_Number) {
+                    throw runtime_exc_t("The third argument must be an integer.");
+                }
+                float float_end = end->get()->valuedouble;
+                int int_end = (int)float_end;
+                if (float_end != int_end) {
+                    throw runtime_exc_t("The third argument must be an integer.");
+                }
+                if (int_end < 0) {
+                    throw runtime_exc_t("The third argument cannot be smaller than zero.");
+                }
+                if (int_end > cJSON_GetArraySize(array->get())) {
+                    throw runtime_exc_t("The third argument cannot be greater than the size of the array.");
+                }
+
+                // Create a new array and slice the elements into it
+                if (int_start > int_end) {
+                    throw runtime_exc_t("The second argument cannot be greater than the third argument.");
+                }
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
+                for(int i = int_start; i < int_end; i++) {
+                    cJSON_AddItemToArray(res->get(), cJSON_DeepCopy(cJSON_GetArrayItem(array->get(), i)));
+                }
+
+                return res;
+            }
             break;
         case Builtin::ARRAYNTH:
-            crash("Not implemented");
+            {
+                // Check first arg type
+                boost::shared_ptr<scoped_cJSON_t> array  = eval(c.args(0), env);
+                if (array->get()->type != cJSON_Array) {
+                    throw runtime_exc_t("The first argument must be an array.");
+                }
+                
+                // Check second arg type
+                boost::shared_ptr<scoped_cJSON_t> index  = eval(c.args(1), env);
+                if (index->get()->type != cJSON_Number) {
+                    throw runtime_exc_t("The second argument must be an integer.");
+                }
+                float float_index = index->get()->valuedouble;
+                int int_index = (int)float_index;
+                if (float_index != int_index) {
+                    throw runtime_exc_t("The second argument must be an integer.");
+                }
+
+                // Size arg
+                if (int_index >= cJSON_GetArraySize(array->get())) {
+                    throw runtime_exc_t("The second argument must be an integer.");
+                }
+                
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(cJSON_GetArrayItem(array->get(),
+                                                                                                              int_index))));
+            }
             break;
         case Builtin::ARRAYLENGTH:
-            crash("Not implemented");
+            {
+                // Check first arg type
+                boost::shared_ptr<scoped_cJSON_t> array  = eval(c.args(0), env);
+                if (array->get()->type != cJSON_Array) {
+                    throw runtime_exc_t("The first argument must be an array.");
+                }
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(cJSON_GetArraySize(array->get()))));
+            }
             break;
         case Builtin::ADD:
             {

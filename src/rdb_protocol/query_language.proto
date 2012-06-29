@@ -91,7 +91,7 @@ message Builtin {
         HASATTR = 3;
         PICKATTRS = 4;
         MAPMERGE = 5;
-        ARRAYCONS = 6;
+        ARRAYAPPEND = 6;
         ARRAYCONCAT = 7;
         ARRAYSLICE = 8;
         ARRAYNTH  = 9;
