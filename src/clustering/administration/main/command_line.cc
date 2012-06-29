@@ -376,8 +376,11 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     std::string filepath = vm["directory"].as<std::string>();
     std::string machine_name = vm["name"].as<std::string>();
 
+    const int num_workers = get_cpu_count();
+
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, io_backend, &result));
+    run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, io_backend, &result),
+                       num_workers);
 
     return result ? 0 : 1;
 }
@@ -412,12 +415,15 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    const int num_workers = get_cpu_count();
+
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())
                                    ),
                                    io_backend,
-                                   &result, render_as_path(web_path)));
+                                   &result, render_as_path(web_path)),
+                       num_workers);
 
     return result ? 0 : 1;
 }
@@ -456,7 +462,9 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         if (last_arg == "-" || last_arg == "--")
             cmd_args.push_back(last_arg);
 
-        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result));
+        const int num_workers = get_cpu_count();
+        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result),
+                           num_workers);
 
     } catch (std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
@@ -499,11 +507,14 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    const int num_workers = get_cpu_count();
+
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
-                                   &result, render_as_path(web_path)));
+                                   &result, render_as_path(web_path)),
+                       num_workers);
 
     return result ? 0 : 1;
 }
@@ -539,11 +550,14 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    const int num_workers = get_cpu_count();
+
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
-                                   &result, render_as_path(web_path)));
+                                   &result, render_as_path(web_path)),
+                       num_workers);
 
     return result ? 0 : 1;
 }
