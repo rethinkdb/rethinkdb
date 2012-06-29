@@ -1,64 +1,62 @@
 #ifndef JSPROC_JOB_HPP_
 #define JSPROC_JOB_HPP_
 
+#include <stdarg.h>             // va_list
+
 #include "containers/archive/archive.hpp"
 
 namespace jsproc {
-
-// Declared out here so that its branches are visible at top-level. Only
-// actually used in job_result_t.
-enum job_result_type_t {
-    JOB_SUCCESS = 0,
-    JOB_UNKNOWN_ERROR,
-
-    // If we couldn't deserialize the initial job function or instance.
-    // `data.archive_result` contains more info.
-    JOB_INITIAL_READ_FAILURE,
-
-    // If we couldn't deserialize something during the job's execution itself.
-    // `data.archive_result` contains more info.
-    JOB_READ_FAILURE,
-
-    // If writing failed at some point during the job's execution. No additional
-    // data.
-    JOB_WRITE_FAILURE,
-};
-
-struct job_result_t {
-    job_result_type_t type;
-    // Extra data regarding the failure mode.
-    union {
-        archive_result_t archive_result;
-    } data;
-};
-
-typedef void (*job_func_t)(job_result_t *result, read_stream_t *read, write_stream_t *write);
 
 // Abstract base class for jobs.
 class job_t {
   public:
     virtual ~job_t() {}
 
+    // Passed in to a job.
+    class control_t : public read_stream_t, public write_stream_t {
+      private:
+        friend void exec_worker(int sockfd);
+        control_t(pid_t pid, int fd);
+        ~control_t();
+
+      public:
+        virtual int64_t read(void *p, int64_t n) { return socket_.read(p, n); }
+        virtual int64_t write(const void *p, int64_t n) { return socket_.write(p, n); }
+
+        void vlog(const char *fmt, va_list ap);
+        void log(const char *fmt, ...)
+            __attribute__((format (printf, 2, 3)));
+
+      private:
+        pid_t pid_;
+        unix_socket_stream_t socket_;
+    };
+
+    typedef void (*func_t)(control_t *);
+
     // Called on worker process side.
-    virtual void run_job(job_result_t *result, read_stream_t *input, write_stream_t *output) = 0;
+    virtual void run_job(control_t *control) = 0;
 };
 
 // Returns 0 on success, -1 on failure.
 template <typename instance_t>
 int send_job(write_stream_t *stream, const instance_t &job) {
     struct garbage {
-        static void job_runner(job_result_t *result, read_stream_t *input, write_stream_t *output) {
+        static void job_runner(job_t::control_t *control) {
             // Get the job instance.
             instance_t job;
-            archive_result_t res = deserialize(input, &job);
+            archive_result_t res = deserialize(control, &job);
             if (res != ARCHIVE_SUCCESS) {
-                result->type = JOB_INITIAL_READ_FAILURE;
-                result->data.archive_result = res;
+                control->log("Could not deserialize job: %s",
+                             res == ARCHIVE_SOCK_ERROR ? "socket error" :
+                             res == ARCHIVE_SOCK_EOF ? "end of file" :
+                             res == ARCHIVE_RANGE_ERROR ? "range error" :
+                             "unknown error");
                 return;
             }
 
             // Run it.
-            job.run_job(result, input, output);
+            job.run_job(control);
         }
     };
 
@@ -70,7 +68,7 @@ int send_job(write_stream_t *stream, const instance_t &job) {
     // job_runner). This works only because the address of job_runner is
     // statically known and the worker processes we are sending to are
     // fork()s of ourselves, and so have the same address space layout.
-    const job_func_t funcptr = &garbage::job_runner;
+    const job_t::func_t funcptr = &garbage::job_runner;
     msg.append(&funcptr, sizeof funcptr);
 
     // We send the job over as well; job_runner will deserialize it.

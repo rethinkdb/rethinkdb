@@ -1,45 +1,58 @@
 #include "jsproc/worker_proc.hpp"
 
+#include <cstdio>               // fprintf, stderr
 #include <cstring>              // strerror
-#include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 
 #include "containers/archive/fd_stream.hpp"
 #include "jsproc/job.hpp"
+#include "utils.hpp"
 
 namespace jsproc {
 
-// Accepts and runs a job.
-static void handle_job(job_result_t *result, int fd) {
-    unix_socket_stream_t stream(fd, new blocking_fd_watcher_t());
+job_t::control_t::control_t(int pid, int fd) :
+    pid_(pid), socket_(fd, new blocking_fd_watcher_t()) {}
 
+job_t::control_t::~control_t() {}
+
+void job_t::control_t::vlog(const char *fmt, va_list ap) {
+    std::string real_fmt = strprintf("[%d] worker: %s\n", pid_, fmt);
+    vfprintf(stderr, real_fmt.c_str(), ap);
+}
+
+void job_t::control_t::log(const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vlog(fmt, ap);
+    va_end(ap);
+}
+
+// Accepts and runs a job.
+static void handle_job(job_t::control_t *control) {
     // Try to receive the job.
-    job_func_t jobfunc;
-    int64_t res = force_read(&stream, &jobfunc, sizeof jobfunc);
+    job_t::func_t jobfunc;
+    int64_t res = force_read(control, &jobfunc, sizeof jobfunc);
     if (res < (int64_t) sizeof jobfunc) {
-        result->type = JOB_INITIAL_READ_FAILURE;
-        result->data.archive_result = res == -1 ? ARCHIVE_SOCK_ERROR : ARCHIVE_SOCK_EOF;
+        control->log("Couldn't read job function: %s",
+                      res == -1 ? strerror(errno) : "end-of-file received");
         return;
     }
 
-    // The job should explicitly set result->type. Otherwise, something weird
-    // happened.
-    result->type = JOB_UNKNOWN_ERROR;
-    (*jobfunc)(result, &stream, &stream);
+    // Run the job.
+    (*jobfunc)(control);
 
-    if (result->type == JOB_SUCCESS) {
-        // Wait for the other side to shut down. This ensures that it has gotten
-        // all of the data we sent. TODO(rntz): figure out if there's a better
-        // way to make sure our data gets delivered.
-        char c;
-        res = stream.read(&c, 1);
+    // Wait for the other side to shut down. This ensures that it has gotten all
+    // of the data we sent. TODO(rntz): figure out if there's a better way to
+    // make sure our data gets delivered.
+    char c;
+    res = control->read(&c, 1);
 
-        // TODO(rntz): receiving data on the connection after the job function
-        // finishes indicates a bug in the code on the other end (ie. in the
-        // rethinkdb engine), and this should ideally be propagated somehow.
-        guarantee(res != 1, "received extra data after job finished");
-        guarantee(res == 0, "other end of job didn't shut down properly");
-    }
+    // TODO(rntz): receiving data on the connection after the job function
+    // finishes indicates a bug in the code on the other end (ie. in the
+    // rethinkdb engine), and this should ideally be propagated somehow.
+    guarantee(res != 1, "received extra data after job finished");
+    guarantee(res == 0, "other end of job didn't shut down properly");
 }
 
 void exec_worker(int sockfd) {
@@ -60,16 +73,9 @@ void exec_worker(int sockfd) {
             break;
         }
 
-        job_result_t result;
-        handle_job(&result, fd);
-
-        if (result.type != JOB_SUCCESS) {
-            fprintf(stderr, "[%d] worker: failed to run job: %s\n",
-                    mypid,
-                    result.type == JOB_INITIAL_READ_FAILURE ? "couldn't read job" :
-                    result.type == JOB_READ_FAILURE ? "couldn't read data during job" :
-                    result.type == JOB_WRITE_FAILURE ? "couldn't write data during job" :
-                    "unknown error");
+        {
+            job_t::control_t control(mypid, fd);
+            handle_job(&control);
         }
 
         // Let the supervisor know that we're ready again.

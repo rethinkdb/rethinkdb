@@ -59,8 +59,8 @@ class js_eval_job_t : public jsproc::job_t
     }
 
   public:
-    virtual void run_job(jsproc::job_result_t *result, UNUSED read_stream_t *input, write_stream_t *output) {
-        printf("running job\n");
+    virtual void run_job(control_t *control) {
+        control->log("Running js_eval_job_t");
 
         result_t res;
         res.success = false;
@@ -74,10 +74,9 @@ class js_eval_job_t : public jsproc::job_t
         // Send back the result.
         write_message_t msg;
         msg << res;
-        if (!send_write_message(output, &msg))
-            result->type = jsproc::JOB_SUCCESS;
-        else
-            result->type = jsproc::JOB_WRITE_FAILURE;
+        if (send_write_message(control, &msg)) {
+            control->log("js_eval_job_t: Could not send back evaluated JS.");
+        }
     }
 
   private:
