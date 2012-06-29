@@ -1,6 +1,3 @@
-#ifndef CLUSTERING_SUGGESTER_SUGGESTER_TCC_
-#define CLUSTERING_SUGGESTER_SUGGESTER_TCC_
-
 #include "clustering/suggester/suggester.hpp"
 
 #include "stl_utils.hpp"
@@ -272,4 +269,31 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
     return blueprint;
 }
 
-#endif /* CLUSTERING_SUGGESTER_SUGGESTER_TCC_ */
+#include "mock/dummy_protocol.hpp"
+
+
+template
+persistable_blueprint_t<mock::dummy_protocol_t> suggest_blueprint<mock::dummy_protocol_t>(
+        const std::map<machine_id_t, reactor_business_card_t<mock::dummy_protocol_t> > &directory,
+        const datacenter_id_t &primary_datacenter,
+        const std::map<datacenter_id_t, int> &datacenter_affinities,
+        const std::set<mock::dummy_protocol_t::region_t> &shards,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
+        const region_map_t<mock::dummy_protocol_t, machine_id_t> &primary_pinnings,
+        const region_map_t<mock::dummy_protocol_t, std::set<machine_id_t> > &secondary_pinnings
+        );
+
+
+#include "memcached/protocol.hpp"
+
+template
+persistable_blueprint_t<memcached_protocol_t> suggest_blueprint<memcached_protocol_t>(
+        const std::map<machine_id_t, reactor_business_card_t<memcached_protocol_t> > &directory,
+        const datacenter_id_t &primary_datacenter,
+        const std::map<datacenter_id_t, int> &datacenter_affinities,
+        const std::set<memcached_protocol_t::region_t> &shards,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
+        const region_map_t<memcached_protocol_t, machine_id_t> &primary_pinnings,
+        const region_map_t<memcached_protocol_t, std::set<machine_id_t> > &secondary_pinnings
+        );
+

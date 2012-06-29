@@ -1,10 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_DATACENTER_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_DATACENTER_METADATA_HPP_
 
-#include "errors.hpp"
-#include <boost/uuid/uuid.hpp>
-
 #include "clustering/administration/http/json_adapters.hpp"
+#include "containers/uuid.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
@@ -14,7 +12,7 @@
 #include "rpc/serialize_macros.hpp"
 
 
-typedef boost::uuids::uuid datacenter_id_t;
+typedef uuid_t datacenter_id_t;
 
 class datacenter_semilattice_metadata_t {
 public:

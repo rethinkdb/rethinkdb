@@ -1,7 +1,7 @@
-#ifndef CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC_
-#define CLUSTERING_REACTOR_REACTOR_BE_NOTHING_TCC_
+#include "clustering/reactor/reactor.hpp"
 
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
+#include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 
 
@@ -58,25 +58,25 @@ bool reactor_t<protocol_t>::is_safe_for_us_to_be_nothing(const std::map<peer_id_
 
 template<class protocol_t>
 void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
-        store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint,
+        multistore_ptr_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint,
         signal_t *interruptor) THROWS_NOTHING {
     try {
         directory_entry_t directory_entry(this, region);
 
+        const int num_stores = svs->num_stores();
+
         {
             /* We offer backfills while waiting for it to be safe to shutdown
              * in case another peer needs a copy of the data */
-            backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history, store);
+            backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history_manager, svs);
 
             /* Tell the other peers that we are looking to shutdown and
              * offering backfilling until we do. */
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> order_token;
-            store->new_read_token(order_token);
-            typename reactor_business_card_t<protocol_t>::nothing_when_safe_t activity(region_map_transform<protocol_t,
-                                                                                                            binary_blob_t,
-                                                                                                            version_range_t>(store->get_metainfo(order_token, interruptor),
-                                                                                                                             &binary_blob_t::get<version_range_t>),
-                                                                                       backfiller.get_business_card());
+            boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
+            svs->new_read_tokens(read_tokens.get(), num_stores);
+            typename reactor_business_card_t<protocol_t>::nothing_when_safe_t
+                activity(svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor),
+                         backfiller.get_business_card());
             directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
 
             /* Make sure everyone sees that we're trying to erase our data,
@@ -114,10 +114,10 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
 
         /* This actually erases the data. */
         {
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
-            store->new_write_token(token);
+            boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+            svs->new_write_tokens(write_tokens.get(), num_stores);
 
-            store->reset_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), token, interruptor);
+            svs->reset_all_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), write_tokens.get(), num_stores, interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,
@@ -130,4 +130,9 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
     }
 }
 
-#endif
+
+#include "mock/dummy_protocol.hpp"
+#include "memcached/protocol.hpp"
+
+template class reactor_t<mock::dummy_protocol_t>;
+template class reactor_t<memcached_protocol_t>;

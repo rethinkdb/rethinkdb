@@ -4,7 +4,6 @@
 #include <map>
 
 #include "utils.hpp"
-#include <boost/uuid/uuid.hpp>
 #include <boost/bind.hpp>
 
 #include "clustering/administration/datacenter_metadata.hpp"
@@ -16,6 +15,7 @@
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/json_adapters.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "containers/uuid.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
@@ -23,7 +23,7 @@
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
 
-typedef boost::uuids::uuid namespace_id_t;
+typedef uuid_t namespace_id_t;
 
 /* This is the metadata for a single namespace of a specific protocol. */
 
@@ -88,16 +88,14 @@ public:
     typedef std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > namespace_map_t;
     namespace_map_t namespaces;
 
-    branch_history_t<protocol_t> branch_history;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(namespaces, branch_history);
+    RDB_MAKE_ME_SERIALIZABLE_1(namespaces);
 };
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_2(namespaces_semilattice_metadata_t<protocol_t>, namespaces, branch_history);
+RDB_MAKE_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t<protocol_t>, namespaces);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_2(namespaces_semilattice_metadata_t<protocol_t>, namespaces, branch_history);
+RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t<protocol_t>, namespaces);
 
 // json adapter concept for namespaces_semilattice_metadata_t
 
@@ -140,8 +138,8 @@ public:
 };
 
 struct namespace_metadata_ctx_t {
-    boost::uuids::uuid us;
-    explicit namespace_metadata_ctx_t(boost::uuids::uuid _us)
+    uuid_t us;
+    explicit namespace_metadata_ctx_t(uuid_t _us)
         : us(_us)
     { }
 };

@@ -2,8 +2,8 @@
 #define RDB_PROTOCOL_PROTOCOL_HPP_
 
 #include "utils.hpp"
-#include "boost/shared_ptr.hpp"
-#include "boost/variant.hpp"
+#include <boost/shared_ptr.hpp>
+#include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
 #include "http/json.hpp"
@@ -24,8 +24,8 @@ struct rdb_protocol_t {
 
     class point_read_t {
     public:
-        point_read_t() {};
-        explicit point_read_t(const store_key_t& key_) : key(key_) { };
+        point_read_t() { }
+        explicit point_read_t(const store_key_t& key_) : key(key_) { }
 
         store_key_t key;
     };
@@ -48,7 +48,7 @@ struct rdb_protocol_t {
 
     class point_write_t {
     public:
-        point_write_t() {};
+        point_write_t() { }
         point_write_t(const store_key_t& key_, boost::shared_ptr<scoped_cJSON_t> data_)
             : key(key_), data(data_) { }
 
@@ -62,4 +62,4 @@ struct rdb_protocol_t {
     };
 };
 
-#endif
+#endif  // RDB_PROTOCOL_PROTOCOL_HPP_

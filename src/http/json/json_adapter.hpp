@@ -10,10 +10,7 @@
 #include <boost/function.hpp>
 #include <boost/variant.hpp>
 #include <boost/optional/optional.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-
+#include "containers/uuid.hpp"
 #include "http/json.hpp"
 
 /* A note about json adapter exceptions: When an operation throws an exception
@@ -361,23 +358,20 @@ void apply_json_to(cJSON *, bool *, const ctx_t &);
 template <class ctx_t>
 void on_subfield_change(bool *, const ctx_t &);
 
+//JSON adapter for uuid_t
+template <class ctx_t>
+typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(uuid_t *, const ctx_t &);
+
+template <class ctx_t>
+cJSON *render_as_json(const uuid_t *, const ctx_t &);
+
+template <class ctx_t>
+void apply_json_to(cJSON *, uuid_t *, const ctx_t &);
+
+template <class ctx_t>
+void on_subfield_change(uuid_t *, const ctx_t &);
+
 namespace boost {
-
-namespace uuid {
-//JSON adapter for boost::uuids::uuid
-template <class ctx_t>
-typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(boost::uuids::uuid *, const ctx_t &);
-
-template <class ctx_t>
-cJSON *render_as_json(const boost::uuids::uuid *, const ctx_t &);
-
-template <class ctx_t>
-void apply_json_to(cJSON *, boost::uuids::uuid *, const ctx_t &);
-
-template <class ctx_t>
-void on_subfield_change(boost::uuids::uuid *, const ctx_t &);
-
-} // namespace uuid
 
 //JSON adapter for boost::optional
 template <class T, class ctx_t>

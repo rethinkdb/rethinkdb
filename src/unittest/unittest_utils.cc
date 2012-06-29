@@ -33,4 +33,9 @@ int randport() {
     return 10000 + randint(20000);
 }
 
+void run_in_thread_pool(const boost::function<void()>& fun, int num_workers) {
+    ::run_in_thread_pool(fun, num_workers);
+}
+
+
 }  // namespace unittest

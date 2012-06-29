@@ -263,7 +263,7 @@ class ClusterAccess(object):
         self.memcached_namespaces = { }
         self.conflicts = [ ]
 
-        self.update_cluster_data()
+        self.update_cluster_data(0)
 
     def do_query(self, method, route, payload = None):
         host, http_port = random.choice(self.addresses)
@@ -290,9 +290,6 @@ class ClusterAccess(object):
             return response.read()
         else:
             raise BadServerResponse(response.status, response.reason)
-
-    def wait_for_propagation(self):
-        time.sleep(1)
 
     def __str__(self):
         retval = "Machines:"
@@ -328,12 +325,11 @@ class ClusterAccess(object):
         info = self.do_query("POST", "/ajax/semilattice/datacenters/new", {
             "name": name
             })
-        self.wait_for_propagation()
         assert len(info) == 1
         uuid, json_data = next(info.iteritems())
         datacenter = Datacenter(uuid, json_data)
         self.datacenters[datacenter.uuid] = datacenter
-        self.update_cluster_data()
+        self.update_cluster_data(10)
         return datacenter
 
     def _find_thing(self, what, type_class, type_str, search_space):
@@ -380,16 +376,14 @@ class ClusterAccess(object):
         machine = self.find_machine(machine)
         del self.machines[machine.uuid]
         self.do_query("DELETE", "/ajax/semilattice/machines/" + machine.uuid)
-        self.wait_for_propagation()
-        self.update_cluster_data()
+        self.update_cluster_data(10)
 
     def move_server_to_datacenter(self, serv, datacenter):
         serv = self.find_machine(serv)
         datacenter = self.find_datacenter(datacenter)
         serv.datacenter_uuid = datacenter.uuid
         self.do_query("POST", "/ajax/semilattice/machines/" + serv.uuid + "/datacenter_uuid", datacenter.uuid)
-        self.wait_for_propagation()
-        self.update_cluster_data()
+        self.update_cluster_data(10)
 
     def move_namespace_to_datacenter(self, namespace, primary):
         namespace = self.find_namespace(namespace)
@@ -400,8 +394,7 @@ class ClusterAccess(object):
         else:
             name = "dummy_namespaces"
         self.do_query("POST", "/ajax/semilattice/%s/%s/primary_uuid" % (name, namespace.uuid), primary.uuid)
-        self.wait_for_propagation()
-        self.update_cluster_data()
+        self.update_cluster_data(10)
 
     def set_namespace_affinities(self, namespace, affinities = { }):
         namespace = self.find_namespace(namespace)
@@ -414,8 +407,7 @@ class ClusterAccess(object):
         else:
             name = "dummy_namespaces"
         self.do_query("POST", "/ajax/semilattice/%s/%s/replica_affinities" % (name, namespace.uuid), aff_dict)
-        self.wait_for_propagation()
-        self.update_cluster_data()
+        self.update_cluster_data(10)
 
     def set_namespace_ack_expectations(self, namespace, ack_expectations = { }):
         namespace = self.find_namespace(namespace)
@@ -428,10 +420,9 @@ class ClusterAccess(object):
         else:
             name = "dummy_namespaces"
         self.do_query("POST", "/ajax/semilattice/%s/%s/ack_expectations" % (name, namespace.uuid), ae_dict)
-        self.wait_for_propagation()
-        self.update_cluster_data()
+        self.update_cluster_data(10)
 
-    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }):
+    def add_namespace(self, protocol = "memcached", name = None, port = None, primary = None, affinities = { }, check = True):
         if port is None:
             port = random.randint(20000, 60000)
         if name is None:
@@ -449,14 +440,26 @@ class ClusterAccess(object):
             "primary_uuid": primary,
             "replica_affinities": aff_dict
             })
-        self.wait_for_propagation()
         assert len(info) == 1
         uuid, json_data = next(info.iteritems())
         type_class = {"memcached": MemcachedNamespace, "dummy": DummyNamespace}[protocol]
         namespace = type_class(uuid, json_data)
         getattr(self, "%s_namespaces" % protocol)[namespace.uuid] = namespace
-        self.update_cluster_data()
+        self.update_cluster_data(10)
+        if check:
+            self._wait_for_namespace(namespace, 30)
         return namespace
+
+    def _wait_for_namespace(self, namespace, timeout):
+        while True:
+            try:
+                self.get_distribution(namespace)
+                return
+            except BadServerResponse:
+                time.sleep(1)
+                timeout = timeout - 1
+                if timeout <= 0:
+                    raise
 
     def rename(self, target, name):
         type_targets = { MemcachedNamespace: self.memcached_namespaces, DummyNamespace: self.dummy_namespaces, Machine: self.machines, Datacenter: self.datacenters }
@@ -480,8 +483,7 @@ class ClusterAccess(object):
         # Remove the conflict and update the field in the target
         self.conflicts.remove(conflict)
         setattr(conflict.target, conflict.field, value) # TODO: this probably won't work for certain things like shards that we represent differently locally than the strict json format
-        self.wait_for_propagation()
-        self.update_cluster_data()
+        self.update_cluster_data(10)
 
     def add_namespace_shard(self, namespace, split_point):
         namespace = self.find_namespace(namespace)
@@ -491,8 +493,7 @@ class ClusterAccess(object):
         protocol = type_protocols[type(namespace)]
         namespace.add_shard(split_point)
         info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
-        self.wait_for_propagation()
-        self.update_cluster_data()
+        self.update_cluster_data(10)
 
     def remove_namespace_shard(self, namespace, split_point):
         namespace = self.find_namespace(namespace)
@@ -502,8 +503,7 @@ class ClusterAccess(object):
         protocol = type_protocols[type(namespace)]
         namespace.remove_shard(split_point)
         info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
-        self.wait_for_propagation()
-        self.update_cluster_data()
+        self.update_cluster_data(10)
 
     def change_namespace_shards(self, namespace, adds=[], removes=[]):
         namespace = self.find_namespace(namespace)
@@ -516,8 +516,7 @@ class ClusterAccess(object):
         for split_point in removes:
             namespace.remove_shard(split_point)
         info = self.do_query("POST", "/ajax/semilattice/%s_namespaces/%s/shards" % (protocol, namespace.uuid), namespace.shards_to_json())
-        self.wait_for_propagation()
-        self.update_cluster_data()
+        self.update_cluster_data(10)
 
     def get_datacenter_in_namespace(self, namespace, primary = None):
         namespace = self.find_namespace(namespace)
@@ -600,14 +599,30 @@ class ClusterAccess(object):
         assert len(cluster_data) == len(local_data)
 
     # Get the list of machines/namespaces from the cluster, verify that it is consistent across each machine
-    def _verify_consistent_cluster(self):
-        expected = self.do_query_specific(self.addresses[0][0], self.addresses[0][1], "GET", "/ajax/semilattice")
-        del expected[u"me"]
-        for address in self.addresses:
-            actual = self.do_query_specific(address[0], address[1], "GET", "/ajax/semilattice")
-            del actual[u"me"]
-            if actual != expected:
-                raise BadClusterData(expected, actual)
+    def _verify_consistent_cluster(self, timeout):
+        timeout = max(1, timeout)
+        last_error = ("", "")
+        consistent = False
+
+        while timeout > 0 and not consistent:
+            time.sleep(1)
+            expected = self.do_query_specific(self.addresses[0][0], self.addresses[0][1], "GET", "/ajax/semilattice")
+            del expected[u"me"]
+            matches = 0
+            for address in self.addresses:
+                actual = self.do_query_specific(address[0], address[1], "GET", "/ajax/semilattice")
+                del actual[u"me"]
+                if actual == expected:
+                    matches = matches + 1
+                else:
+                    last_error = (actual, expected)
+            if matches == len(self.addresses):
+                consistent = True
+            timeout = timeout - 1
+
+        if not consistent:
+            raise BadClusterData(last_error[0], last_error[1])
+
         def remove_nones(d):
             for key in d.keys():
                 if d[key] is None:
@@ -642,8 +657,8 @@ class ClusterAccess(object):
         self._verify_cluster_data_chunk(self.dummy_namespaces, data[u"dummy_namespaces"])
         self._verify_cluster_data_chunk(self.memcached_namespaces, data[u"memcached_namespaces"])
 
-    def update_cluster_data(self):
-        data = self._verify_consistent_cluster()
+    def update_cluster_data(self, timeout):
+        data = self._verify_consistent_cluster(timeout)
         self._pull_cluster_data(data[u"machines"], self.machines, Machine)
         self._pull_cluster_data(data[u"datacenters"], self.datacenters, Datacenter)
         self._pull_cluster_data(data[u"dummy_namespaces"], self.dummy_namespaces, DummyNamespace)

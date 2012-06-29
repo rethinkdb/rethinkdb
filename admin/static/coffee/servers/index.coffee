@@ -538,6 +538,7 @@ module 'ServerView', ->
                     contentType: 'application/json'
                     data: JSON.stringify({"name" : @formdata.name})
                     success: @on_success
+                    error: @on_error
 
         on_success: (response) ->
             super
@@ -573,6 +574,7 @@ module 'ServerView', ->
                 type: 'DELETE'
                 contentType: 'application/json'
                 success: @on_success
+                error: @on_error
 
         on_success: (response) ->
             super
@@ -616,6 +618,7 @@ module 'ServerView', ->
                 contentType: 'application/json'
                 data: JSON.stringify(json)
                 success: @on_success
+                error: @on_error
 
         on_success: (response) =>
             super

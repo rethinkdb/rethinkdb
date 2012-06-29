@@ -7,6 +7,7 @@
 #include "clustering/administration/machine_metadata.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/administration/stat_manager.hpp"
+#include "clustering/administration/metadata_change_handler.hpp"
 #include "http/json/json_adapter.hpp"
 #include "memcached/protocol.hpp"
 #include "memcached/protocol_json_adapter.hpp"
@@ -38,7 +39,7 @@ typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(cluster
     res["memcached_namespaces"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<namespaces_semilattice_metadata_t<memcached_protocol_t>, ctx_t>(&target->memcached_namespaces));
     res["machines"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<machines_semilattice_metadata_t, ctx_t>(&target->machines));
     res["datacenters"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_adapter_t<datacenters_semilattice_metadata_t, ctx_t>(&target->datacenters));
-    res["me"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<boost::uuids::uuid, ctx_t>(ctx.us));
+    res["me"] = boost::shared_ptr<json_adapter_if_t<ctx_t> >(new json_temporary_adapter_t<uuid_t, ctx_t>(ctx.us));
     return res;
 }
 
@@ -71,9 +72,10 @@ public:
             machine_id_t mid,
             const std::vector<std::string> &_ips,
             const get_stats_mailbox_address_t& _stats_mailbox,
+            const metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t& _semilattice_change_mailbox,
             const log_server_business_card_t &lmb,
             cluster_directory_peer_type_t _peer_type) :
-        machine_id(mid), ips(_ips), get_stats_mailbox_address(_stats_mailbox),log_mailbox(lmb),peer_type(_peer_type) { }
+        machine_id(mid), ips(_ips), get_stats_mailbox_address(_stats_mailbox), semilattice_change_mailbox(_semilattice_change_mailbox), log_mailbox(lmb), peer_type(_peer_type) { }
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
@@ -85,11 +87,12 @@ public:
     std::vector<std::string> ips;
 
     get_stats_mailbox_address_t get_stats_mailbox_address;
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t semilattice_change_mailbox;
     log_server_business_card_t log_mailbox;
     std::list<local_issue_t> local_issues;
     cluster_directory_peer_type_t peer_type;
 
-    RDB_MAKE_ME_SERIALIZABLE_8(dummy_namespaces, memcached_namespaces, machine_id, ips, get_stats_mailbox_address, log_mailbox, local_issues, peer_type);
+    RDB_MAKE_ME_SERIALIZABLE_9(dummy_namespaces, memcached_namespaces, machine_id, ips, get_stats_mailbox_address, semilattice_change_mailbox, log_mailbox, local_issues, peer_type);
 };
 
 // json adapter concept for directory_echo_wrapper_t

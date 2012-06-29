@@ -11,6 +11,7 @@ class blocking_read_file_stream_t : public read_stream_t {
 public:
     blocking_read_file_stream_t();
 
+    // Returns true upon success.
     MUST_USE bool init(const char *path);
     virtual ~blocking_read_file_stream_t();
 

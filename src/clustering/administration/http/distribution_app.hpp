@@ -18,6 +18,7 @@ public:
 private:
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<memcached_protocol_t> > > namespaces_sl_metadata;
     namespace_repo_t<memcached_protocol_t> *ns_repo;
+    order_source_t order_source;
 
     DISABLE_COPYING(distribution_app_t);
 };

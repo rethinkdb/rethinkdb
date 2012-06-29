@@ -3,7 +3,7 @@
 #include "utils.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "arch/arch.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 #include "serializer/log/stats.hpp"
 
 lba_list_t::lba_list_t(extent_manager_t *em)

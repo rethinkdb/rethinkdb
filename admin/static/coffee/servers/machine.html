@@ -1,25 +1,34 @@
 <script id="machine_view-container-template" type="text/x-handlebars-template">
-  <div class="main_title"></div>
-  <div id="user-alert-space"></div>
+    <div class="main_title"></div>
+    <div id="user-alert-space"></div>
 
-  <div class="two-panel-section">
-    <div class="panel-left-unbalanced profile">
+    <div class="two-panel-section">
+        <div class="panel-left-unbalanced profile"></div>
+
+        <div class="panel-right-unbalanced performance">
+          <h3 class="title">Performance</h3>
+          <div class="performance-graph"></div>
+        </div>
     </div>
 
-    <div class="panel-right-unbalanced performance">
-      <h3 class="title">Performance</h3>
-      <div class="performance-graph"></div>
+    <ul class="nav nav-tabs">
+        <li class="active"><a href="#machine-statistics" data-toggle="tab">Statistics</a></li>
+        <li><a href="#machine-data" data-toggle="tab">Data</a></li>
+        <li><a href="#machine-log-entries" data-toggle="tab">Recent log entries</a></li>
+    </ul>
+    <div class="tab-content">  
+        <div class="tab-pane active" id="machine-statistics">
+            <div class="section machine-stats"></div>
+        </div>
+        <div class="tab-pane" id="machine-data">
+            <div class="section data"></div>
+        </div>
+        <div class="tab-pane" id="machine-log-entries">
+            <div class="section machine-log-entries">
+                <h3 class="title">Recent log entries for this machine</h3>
+            </div>
+        </div>
     </div>
-  </div>
-
-  <h3 class="title">Statistics</h3>
-  <div class="section machine-stats"></div>
-
-  <h3 class="title">Data on this machine</h3>
-  <div class="section data"></div>
-
-  <h3 class="title">Recent log entries for this machine</h3>
-  <div class="section recent-log-entries"></div>
 </script>
 
 <script id="machine_view-not_found-template" type="text/x-handlebars-template">
@@ -48,6 +57,7 @@
 </script>
 
 <script id="machine_view_data-template" type="text/x-handlebars-template">
+    <h3 class="title">Data on this machine</h3>
     {{#unless data.namespaces}}
     <p>No data found on this machine.</p>
     {{/unless}}

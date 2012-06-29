@@ -1,8 +1,6 @@
-#ifndef CLUSTERING_ADMINISTRATION_SUGGESTER_TCC_
-#define CLUSTERING_ADMINISTRATION_SUGGESTER_TCC_
+#include "clustering/administration/suggester.hpp"
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
-#include "clustering/administration/suggester.hpp"
 
 template<class protocol_t>
 persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
@@ -117,4 +115,86 @@ void fill_in_blueprints_for_protocol(
     }
 }
 
-#endif  // CLUSTERING_ADMINISTRATION_SUGGESTER_TCC_
+
+void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
+                        std::map<peer_id_t, cluster_directory_metadata_t> directory,
+                        const uuid_t &us) {
+    std::map<machine_id_t, datacenter_id_t> machine_assignments;
+
+    for (std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::iterator it = cluster_metadata->machines.machines.begin();
+            it != cluster_metadata->machines.machines.end();
+            it++) {
+        if (!it->second.is_deleted()) {
+            machine_assignments[it->first] = it->second.get().datacenter.get();
+        }
+    }
+
+    std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > reactor_directory;
+    std::map<peer_id_t, machine_id_t> machine_id_translation_table;
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator it = directory.begin(); it != directory.end(); it++) {
+        reactor_directory.insert(std::make_pair(it->first, it->second.memcached_namespaces));
+        machine_id_translation_table.insert(std::make_pair(it->first, it->second.machine_id));
+    }
+
+    fill_in_blueprints_for_protocol<memcached_protocol_t>(&cluster_metadata->memcached_namespaces,
+            reactor_directory,
+            machine_id_translation_table,
+            machine_assignments,
+            us);
+}
+
+
+#include "mock/dummy_protocol.hpp"
+
+template
+persistable_blueprint_t<mock::dummy_protocol_t> suggest_blueprint_for_namespace<mock::dummy_protocol_t>(
+        const namespace_semilattice_metadata_t<mock::dummy_protocol_t> &ns_goals,
+        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<mock::dummy_protocol_t> > > > &reactor_directory_view,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
+        THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);
+
+template
+std::map<namespace_id_t, persistable_blueprint_t<mock::dummy_protocol_t> > suggest_blueprints_for_protocol<mock::dummy_protocol_t>(
+        const namespaces_semilattice_metadata_t<mock::dummy_protocol_t> &ns_goals,
+        const std::map<peer_id_t, namespaces_directory_metadata_t<mock::dummy_protocol_t> > &reactor_directory_view,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
+        THROWS_ONLY(missing_machine_exc_t);
+
+template
+void fill_in_blueprints_for_protocol<mock::dummy_protocol_t>(
+        namespaces_semilattice_metadata_t<mock::dummy_protocol_t> *ns_goals,
+        const std::map<peer_id_t, namespaces_directory_metadata_t<mock::dummy_protocol_t> > &reactor_directory_view,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
+        const machine_id_t &us)
+        THROWS_ONLY(missing_machine_exc_t);
+
+
+#include "memcached/protocol.hpp"
+
+template
+persistable_blueprint_t<memcached_protocol_t> suggest_blueprint_for_namespace<memcached_protocol_t>(
+        const namespace_semilattice_metadata_t<memcached_protocol_t> &ns_goals,
+        const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<memcached_protocol_t> > > > &reactor_directory_view,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
+        THROWS_ONLY(cannot_satisfy_goals_exc_t, in_conflict_exc_t, missing_machine_exc_t);
+
+template
+std::map<namespace_id_t, persistable_blueprint_t<memcached_protocol_t> > suggest_blueprints_for_protocol<memcached_protocol_t>(
+        const namespaces_semilattice_metadata_t<memcached_protocol_t> &ns_goals,
+        const std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > &reactor_directory_view,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers)
+        THROWS_ONLY(missing_machine_exc_t);
+
+template
+void fill_in_blueprints_for_protocol<memcached_protocol_t>(
+        namespaces_semilattice_metadata_t<memcached_protocol_t> *ns_goals,
+        const std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > &reactor_directory_view,
+        const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
+        const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
+        const machine_id_t &us)
+        THROWS_ONLY(missing_machine_exc_t);

@@ -14,9 +14,9 @@ namespace {
 
 void run_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *)> fun) {
     /* Pick shards */
-    std::vector<key_range_t> shards;
-    shards.push_back(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n")));
-    shards.push_back(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") ));
+    std::vector< hash_region_t<key_range_t> > shards;
+    shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n"))));
+    shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") )));
 
     boost::ptr_vector<temp_file_t> temp_files;
     for (int i = 0; i < (int)shards.size(); i++) {
@@ -25,7 +25,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
     for (int i = 0; i < (int)shards.size(); i++) {
-        underlying_stores.push_back(new memcached_protocol_t::store_t(temp_files[i].name(), true, &get_global_perfmon_collection()));
+        underlying_stores.push_back(new memcached_protocol_t::store_t(aio_pool, temp_files[i].name(), true, &get_global_perfmon_collection()));
     }
 
     std::vector<boost::shared_ptr<store_view_t<memcached_protocol_t> > > stores;

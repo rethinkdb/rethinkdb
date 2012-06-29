@@ -26,15 +26,17 @@ def unblock_path(source_port, dest_port):
     conn.sendall("unblock %s %s\n" % (str(source_port), str(dest_port)))
     conn.close()
 
-def find_rethinkdb_executable(mode = "debug"):
-    subpath = "build/%s/rethinkdb" % (mode)
+def find_subpath(subpath):
     paths = [subpath, "../" + subpath, "../../" + subpath, "../../../" + subpath]
     if "RETHINKDB" in os.environ:
         paths.append(os.path.join(os.environ["RETHINKDB"], subpath))
     for path in paths:
         if os.path.exists(path):
             return path
-    raise RuntimeError("Can't find RethinkDB executable. Tried these paths: %s" % paths)
+    raise RuntimeError("Can't find path %s.  Tried these paths: %s" % (subpath, paths))
+
+def find_rethinkdb_executable(mode = "debug"):
+    return find_subpath("build/%s/rethinkdb" % mode)
 
 def get_namespace_host(port, processes):
     return 'localhost', port + random.choice(processes).port_offset
@@ -307,7 +309,7 @@ class Process(_Process):
     """A `Process` object represents a running RethinkDB server. It cannot be
     restarted; stop it and then create a new one instead. """
 
-    def __init__(self, cluster, files, log_path = None, executable_path = None, command_prefix = []):
+    def __init__(self, cluster, files, log_path = None, executable_path = None, command_prefix = [], extra_options = []):
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
         assert isinstance(files, Files)
@@ -323,7 +325,7 @@ class Process(_Process):
                    "--directory=" + self.files.db_path,
                    "--port=" + str(self.cluster_port),
                    "--port-offset=" + str(self.port_offset),
-                   "--client-port=" + str(self.local_cluster_port)]
+                   "--client-port=" + str(self.local_cluster_port)] + extra_options
 
         _Process.__init__(self, cluster, options,
             log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)

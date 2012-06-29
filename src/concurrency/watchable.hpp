@@ -10,7 +10,7 @@
 #include "concurrency/signal.hpp"
 #include "containers/clone_ptr.hpp"
 
-// TODO: Add a fucking explanation of what the fuck watchable_t is.
+// TODO: Put comments here explaining how to use this.
 
 template <class value_t>
 class watchable_t {

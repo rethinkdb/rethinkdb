@@ -4,9 +4,11 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/mailbox/mailbox.hpp"
@@ -17,18 +19,65 @@
 
 class perfmon_collection_repo_t;
 
+template <class> class watchable_and_reactor_t;
+
+template <class> class multistore_ptr_t;
+
+// This type holds some protocol_t::store_t objects, and doesn't let anybody _casually_ touch them.
 template <class protocol_t>
-class watchable_and_reactor_t;
+class stores_lifetimer_t {
+public:
+    stores_lifetimer_t() : num_stores_(-1) { }
+    ~stores_lifetimer_t() {
+        if (num_stores_ != -1) {
+            for (int i = 0; i < num_stores_; ++i) {
+                // TODO: This should use pmap.
+                on_thread_t th(stores_[i]->home_thread());
+
+                stores_[i].reset();
+            }
+        }
+    }
+
+    boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> >& stores() {
+        return stores_;
+    }
+
+    void set_num_stores(int n) {
+        guarantee(n > 0);
+        guarantee(num_stores_ == -1);
+        num_stores_ = n;
+    }
+
+
+private:
+    boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > stores_;
+    int num_stores_;
+
+    DISABLE_COPYING(stores_lifetimer_t);
+};
+
+template <class protocol_t>
+class svs_by_namespace_t {
+public:
+    virtual void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
+                         stores_lifetimer_t<protocol_t> *stores_out,
+                         boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) = 0;
+
+protected:
+    virtual ~svs_by_namespace_t() { }
+};
 
 template <class protocol_t>
 class reactor_driver_t {
 public:
     reactor_driver_t(mailbox_manager_t *_mbox_manager,
                      const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
+                     branch_history_manager_t<protocol_t> *_branch_history_manager,
                      boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
                      boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
                      const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
-                     std::string _file_path,
+                     svs_by_namespace_t<protocol_t> *_svs_by_namespace,
                      perfmon_collection_repo_t *);
 
     ~reactor_driver_t();
@@ -48,11 +97,11 @@ private:
 
     mailbox_manager_t *mbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > directory_view;
-    boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history;
+    branch_history_manager_t<protocol_t> *branch_history_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
-    std::string file_path;
+    svs_by_namespace_t<protocol_t> *const svs_by_namespace;
 
     watchable_variable_t<namespaces_directory_metadata_t<protocol_t> > watchable_variable;
     mutex_assertion_t watchable_variable_lock;

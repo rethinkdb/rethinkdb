@@ -12,7 +12,7 @@ public:
     name_conflict_issue_t(
             const std::string &_type,
             const std::string &_contested_name,
-            const std::set<boost::uuids::uuid> &_contestants);
+            const std::set<uuid_t> &_contestants);
 
     std::string get_description() const;
 
@@ -22,7 +22,7 @@ public:
 
     std::string type;
     std::string contested_name;
-    std::set<boost::uuids::uuid> contestants;
+    std::set<uuid_t> contestants;
 
 private:
     DISABLE_COPYING(name_conflict_issue_t);

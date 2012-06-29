@@ -5,7 +5,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "concurrency/cond_var.hpp"
 #include "utils.hpp"
-#include "perfmon.hpp"
+#include "perfmon/perfmon.hpp"
 
 perfmon_duration_sampler_t pm_eventloop("eventloop", secs_to_ticks(1.0), &get_global_perfmon_collection());
 

@@ -1,14 +1,14 @@
 #ifndef CLUSTERING_REGISTRATION_METADATA_HPP_
 #define CLUSTERING_REGISTRATION_METADATA_HPP_
 
+#include "containers/uuid.hpp"
 #include "rpc/mailbox/typed.hpp"
-#include <boost/uuid/uuid.hpp>
 
 template<class business_card_t>
 class registrar_business_card_t {
 
 public:
-    typedef boost::uuids::uuid registration_id_t;
+    typedef uuid_t registration_id_t;
 
     typedef mailbox_t<void(registration_id_t, peer_id_t, business_card_t)> create_mailbox_t;
     typename create_mailbox_t::address_t create_mailbox;

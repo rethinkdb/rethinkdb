@@ -10,8 +10,8 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "rpc/mailbox/typed.hpp"
 
-typedef boost::uuids::uuid master_id_t;
-typedef boost::uuids::uuid namespace_interface_id_t;
+typedef uuid_t master_id_t;
+typedef uuid_t namespace_interface_id_t;
 
 /* There is one `master_business_card_t` per branch. It's created by the master.
 Parsers use it to find the master. */
