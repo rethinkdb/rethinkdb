@@ -287,7 +287,7 @@ po::options_description get_network_options() {
 po::options_description get_disk_options() {
     po::options_description desc("Disk I/O options");
     desc.add_options()
-        ("io-backend", po::value<std::string>()->default_value("pool"), "event backend to use: native or pool.  Defaults to pool.");
+        ("io-backend", po::value<std::string>()->default_value("native"), "event backend to use: native or pool.  Defaults to native.");
     return desc;
 }
 
