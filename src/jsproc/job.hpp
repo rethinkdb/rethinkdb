@@ -4,6 +4,7 @@
 #include <stdarg.h>             // va_list
 
 #include "containers/archive/archive.hpp"
+#include "containers/archive/fd_stream.hpp"
 
 namespace jsproc {
 
@@ -13,23 +14,18 @@ class job_t {
     virtual ~job_t() {}
 
     // Passed in to a job.
-    class control_t : public read_stream_t, public write_stream_t {
+    class control_t : public unix_socket_stream_t {
       private:
         friend void exec_worker(int sockfd);
         control_t(pid_t pid, int fd);
-        ~control_t();
 
       public:
-        virtual int64_t read(void *p, int64_t n) { return socket_.read(p, n); }
-        virtual int64_t write(const void *p, int64_t n) { return socket_.write(p, n); }
-
         void vlog(const char *fmt, va_list ap);
         void log(const char *fmt, ...)
             __attribute__((format (printf, 2, 3)));
 
       private:
         pid_t pid_;
-        unix_socket_stream_t socket_;
     };
 
     typedef void (*func_t)(control_t *);

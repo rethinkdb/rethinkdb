@@ -12,9 +12,7 @@
 namespace jsproc {
 
 job_t::control_t::control_t(int pid, int fd) :
-    pid_(pid), socket_(fd, new blocking_fd_watcher_t()) {}
-
-job_t::control_t::~control_t() {}
+    unix_socket_stream_t(fd, new blocking_fd_watcher_t()), pid_(pid) {}
 
 void job_t::control_t::vlog(const char *fmt, va_list ap) {
     std::string real_fmt = strprintf("[%d] worker: %s\n", pid_, fmt);
