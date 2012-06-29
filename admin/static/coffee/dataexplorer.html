@@ -62,7 +62,12 @@
 
 
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
-    <div class="change_view_container">Go home - Json view - Tree view - Raw view</div>
+    <div class="change_view_container">
+        <input type="button" value="Home" class="btn button_query home_view" />
+        <input type="button" value="Tree view" class="btn button_query tree_view" />
+        <input type="button" value="Table view" class="btn button_query table_view" />
+        <input type="button" value="Raw view" class="btn button_query raw_view" />
+    </div>
     <h2>Results</h2>
     <p>For query {{query}}</p>
     <div class="results">

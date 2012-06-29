@@ -36,6 +36,9 @@ module 'DataExplorerView', ->
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
             'click .namespace_link': 'write_query'
+            'click .home_view': 'display_home'
+
+
 
         handle_keypress: (event) =>
             if event.which is 13 and !event.shiftKey
@@ -133,6 +136,10 @@ module 'DataExplorerView', ->
 
             return @
 
+        display_home: =>
+            console.log 'fdes'
+            @.$el.append @data_container.render().el
+            return @
 
         destroy: =>
             @input_query.destroy()
