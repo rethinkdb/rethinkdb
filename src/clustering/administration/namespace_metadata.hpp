@@ -103,7 +103,7 @@ public:
 
             if (it->second.get().name.get() == name) {
                 if (!res) {
-                    *res = *it;
+                    res = *it;
                 } else {
                     return boost::optional<std::pair<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > > >();
                 }

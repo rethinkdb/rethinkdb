@@ -486,7 +486,7 @@ static cJSON *create_reference(cJSON *item) {cJSON *ref=cJSON_New_Item();if (!re
 //TODO all of these functions take time linear in the number of elements in the
 //array. This needs to be fixed.
 void   cJSON_AddItemToArray(cJSON *array, cJSON *item)						{cJSON *c=array->child;if (!item) return; if (!c) {array->child=item;} else {while (c && c->next) c=c->next; suffix_object(c,item);}}
-void   cJSON_AddItemToObject(cJSON *object,const char *string,cJSON *item)	{if (!item) return; if (item->string) cJSON_free(item->string);item->string=cJSON_strdup(string);cJSON_AddItemToArray(object,item);}
+void   cJSON_AddItemToObject(cJSON *object,const char *string,cJSON *item)	{if (!item) return; char *tmp = cJSON_strdup(string); if (item->string) cJSON_free(item->string);item->string=tmp;cJSON_AddItemToArray(object,item);}
 void	cJSON_AddItemReferenceToArray(cJSON *array, cJSON *item)						{cJSON_AddItemToArray(array,create_reference(item));}
 void	cJSON_AddItemReferenceToObject(cJSON *object,const char *string,cJSON *item)	{cJSON_AddItemToObject(object,string,create_reference(item));}
 

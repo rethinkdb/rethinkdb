@@ -174,6 +174,9 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
 
             cJSON *hd = cjson.child;
             while (hd) { 
+                if (cjson.type == cJSON_Object) {
+                    msg << std::string(hd->string);
+                }
                 msg << *hd;
                 hd = hd->next; 
             }
@@ -236,10 +239,16 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
             res = deserialize(s, &size);
             CHECK_RES(res);
             for (int i = 0; i < size; ++i) {
+                //grab the key
+                std::string key;
+                res = deserialize(s, &key);
+                CHECK_RES(res);
+
+                //grab the item
                 cJSON *item = cJSON_CreateBlank();
                 res = deserialize(s, item);
                 CHECK_RES(res);
-                cJSON_AddItemToObject(cjson, item->string, item);
+                cJSON_AddItemToObject(cjson, key.c_str(), item);
             }
             return ARCHIVE_SUCCESS;
         }

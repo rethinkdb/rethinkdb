@@ -121,6 +121,9 @@ class Table(Stream):
         else:
             return Insert(self, [docs])
 
+    def find(self, value, key='id'):
+        return Find(self, key, value)
+
     def write_ref_ast(self, parent):
         parent.db_name = self.db.name
         parent.table_name = self.name
@@ -557,3 +560,14 @@ class slice(Term):
         toTerm(self.start).write_ast(parent.call.args.add())
         toTerm(self.end).write_ast(parent.call.args.add())
 
+class Find(Term):
+    def __init__(self, tableref, key, value):
+        self.tableref = tableref
+        self.key = key
+        self.value = value
+
+    def write_ast(self, parent):
+        parent.type = p.Term.GETBYKEY
+        self.tableref.write_ref_ast(parent.get_by_key.table_ref)
+        parent.get_by_key.attrname = self.key
+        toTerm(self.value).write_ast(parent.get_by_key.key)
