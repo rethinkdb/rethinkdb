@@ -376,7 +376,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     std::string filepath = vm["directory"].as<std::string>();
     std::string machine_name = vm["name"].as<std::string>();
 
-    const int num_workers = get_cpu_count();
+    const int num_workers = 1;  // get_cpu_count(); // TODO: uncomment
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, io_backend, &result),
@@ -415,7 +415,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    const int num_workers = get_cpu_count();
+    const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins,
@@ -462,7 +462,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         if (last_arg == "-" || last_arg == "--")
             cmd_args.push_back(last_arg);
 
-        const int num_workers = get_cpu_count();
+        const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
         run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result),
                            num_workers);
 
@@ -507,7 +507,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    const int num_workers = get_cpu_count();
+    const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins,
@@ -550,7 +550,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    const int num_workers = get_cpu_count();
+    const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins,
