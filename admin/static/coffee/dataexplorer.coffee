@@ -15,7 +15,7 @@ generate_number = (n) ->
 generate_string = (n) ->
     chars = 'qwertasdfgzxcvbyuioplkjhnm'
     result = ''
-    limit = Math.floor(Math.random()*n)
+    limit = Math.floor(Math.random()*n)+3
     for i in [Math.floor(limit/2)..limit]
         num = Math.floor(Math.random()*(chars.length+1))
         result += chars.substring(num, num+1)
@@ -95,8 +95,8 @@ module 'DataExplorerView', ->
                     for p in [0..limit]
                         element['last_scores'].push generate_number(100)
                     element['phone'] =
-                        home: generate_number(10)
-                        mobile: generate_number(10)
+                        home: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
+                        mobile: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
                     element['website'] = 'http://www.'+generate_string(12)+'.com'
                     #element[generate_string(10)] = generate_string(10)
 
@@ -192,17 +192,27 @@ module 'DataExplorerView', ->
         template_json_table:
             'container' : Handlebars.compile $('#dataexplorer_result_json_table_container-template').html()
             'tr_attr': Handlebars.compile $('#dataexplorer_result_json_table_tr_attr-template').html()
+            'td_attr': Handlebars.compile $('#dataexplorer_result_json_table_td_attr-template').html()
             'tr_value': Handlebars.compile $('#dataexplorer_result_json_table_tr_value-template').html()
-
+            'td_value': Handlebars.compile $('#dataexplorer_result_json_table_td_value-template').html()
  
         #TODO Fix unbinding when view changes
         events: ->
+            # For Tree view
             'click .jt_arrow': 'toggle_collapse'
             'keypress .jt_editable': 'handle_keypress'
             'blur .jt_editable': 'send_update'
+            
+            # For Table view
             'mousedown td': 'handle_mousedown'
+            'click .jta_arrow_v': 'expand_tree_in_table'
+            'click .jta_arrow_h': 'expand_table_in_table'
 
         current_result: []
+
+        initialize: =>
+            $(document).mousemove @handle_mousemove
+            $(document).mouseup @handle_mouseup
 
         json_to_tree: (result) =>
             return @template_json_tree.container 
@@ -345,7 +355,6 @@ module 'DataExplorerView', ->
                             new_document.value[new_document.value.length-1]['value'] = '[ ... ]'
                             new_document.value[new_document.value.length-1]['data_to_expand'] = JSON.stringify(value)
                     else if value_type is 'object'
-
                         new_document.value[new_document.value.length-1]['value'] = '{ ... }'
                         new_document.value[new_document.value.length-1]['data_to_expand'] = JSON.stringify(value)
                     else if value_type is 'number'
@@ -365,11 +374,95 @@ module 'DataExplorerView', ->
             return @template_json_table.tr_value
                 document: document
 
- 
+        expand_tree_in_table: (event) ->
+            dom_element = @.$(event.target).nextAll('.jta_object')
+            data = dom_element.data('json_data')
+            result = @json_to_tree data
+            dom_element.html result
+            @.$(event.target).remove()
 
-        initialize: =>
-            $(document).mousemove @handle_mousemove
-            $(document).mouseup @handle_mouseup
+        expand_table_in_table: (event) ->
+            dom_element = @.$(event.target).nextAll('.jta_object')
+            parent = dom_element.parent()
+            classname = dom_element.parent().attr('class').split(' ')[0] #TODO Use a regex
+            data = dom_element.data('json_data')
+            if data.constructor? and data.constructor is Array
+                classcolumn = dom_element.parent().parent().attr('class')
+                $('.'+classcolumn).css 'max-width', 'none'
+                $('.'+classname).each ->
+                    new_data = $(this).children('.jta_object').data('json_data')
+                    if new_data? and new_data.constructor? and new_data.constructor is Array
+                        $(this).children('.jta_object').html new_data.join ', '
+                        $(this).children('.jta_arrow_h').css 'display', 'none'
+                        
+                    $(this).css 'max-width', 'none'
+
+
+
+                data = data.join(', ') #TODO Make the join considering the type of element
+            else if typeof data is 'object'
+                classcolumn = dom_element.parent().parent().attr('class')
+                map = {}
+                $('.'+classname).each ->
+                    new_data = $(this).children('.jta_object').data('json_data')
+                    if new_data? and typeof new_data is 'object'
+                        for key of new_data
+                            if map[key]?
+                                map[key]++
+                            else
+                                map[key] = 1
+                            
+                keys_sorted = []
+                for key of map
+                    keys_sorted.push [key, map[key]]
+
+                # TODO Use a stable sort, Mozilla doesn't use a stable sort for .sort
+                keys_sorted.sort (a, b) ->
+                    if a[1] < b[1]
+                        return 1
+                    else if a[1] > b[1]
+                        return -1
+                    else
+                        if a[0] < b[0]
+                            return -1
+                        else if a[0] > b[0]
+                            return 1
+                        else return 0
+                for i in [keys_sorted.length-1..0] by -1
+                    key = keys_sorted[i]
+                    collection = $('.'+classcolumn)
+
+                    is_description = true
+                    template_json_table_td_attr = @template_json_table.td_attr
+                    template_json_table_td_value = @template_json_table.td_value
+
+                    collection.each ->
+                        if is_description
+                            is_description = false
+                            prefix = $(this).children('.jta_attr').html()
+                            $(this).after template_json_table_td_attr
+                                classtd: classcolumn+'-'+i
+                                key: prefix+'.'+key[0]
+                        else
+                            new_data = $(this).children().children('.jta_object').data('json_data')
+                            if new_data? and new_data[key[0]]?
+                                to_print = new_data[key[0]]
+                            else
+                                to_print = 'undefined'
+                            $(this).after template_json_table_td_value
+                                classtd: classcolumn+'-'+i
+                                value: to_print
+                                data_to_expand: false
+                                col: 0
+                                classname: 'noclass'
+                        return true
+
+                $('.'+classcolumn) .remove();
+
+
+        insert_columns: (column) ->
+            console.log
+
 
         #TODO change cursor
         mouse_down: false
@@ -422,7 +515,7 @@ module 'DataExplorerView', ->
                      @.$('.results').html @json_to_table @current_result
                 when  'raw'
                      @.$('.results').html @json_to_tree @current_result
-   
+
             return @
 
         toggle_collapse: (event) =>

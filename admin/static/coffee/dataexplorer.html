@@ -143,11 +143,7 @@
     <tr class="jta_tr">
         {{#each attr}}
         <td class="td_attr col-{{col}}" data-col={{col}}>
-            <div class="jta_attr">
-                {{#if expand}} » {{/if}}
-                {{key}}
-                {{#if expand}} » {{/if}}
-        </div>
+            <div class="jta_attr">{{key}}</div>
         </td>
         {{/each}}
     </tr>
@@ -161,10 +157,10 @@
         {{#each value}}
         <td class="col-{{col}}" data-col={{col}}>
             {{#if data_to_expand}}
-            <div class="jta_value value-{{col}} {{classname}}">
+            <div class="value-{{col}} jta_value {{classname}}">
                 <span class="jta_arrow jta_arrow_v"></span>
                 <span class="jta_arrow jta_arrow_h"></span>
-                <span data-json_data="{{data_to_expand}}">{{print_safe value}}</span>
+                <span data-json_data="{{data_to_expand}}" class="jta_object"><strong>{{print_safe value}}</strong></span>
             </div>
             {{else}}
             <div class="jta_value value-{{col}} {{classname}}">
@@ -177,5 +173,25 @@
     {{/each}}
 </script>
 
+<script id="dataexplorer_result_json_table_td_attr-template" type="text/xs-handlebars-template">
+    <td class="td_attr {{classtd}}" data-col={{col}}>
+        <div class="jta_attr">{{key}}</div>
+    </td>
+</script>
 
+<script id="dataexplorer_result_json_table_td_value-template" type="text/xs-handlebars-template">
+    <td class="{{classtd}}" data-col={{col}}>
+        {{#if data_to_expand}}
+        <div class="value-{{col}} jta_value {{classname}}">
+            <span class="jta_arrow jta_arrow_v"></span>
+            <span class="jta_arrow jta_arrow_h"></span>
+            <span data-json_data="{{data_to_expand}}" class="jta_object"><strong>{{print_safe value}}</strong></span>
+        </div>
+        {{else}}
+        <div class="jta_value value-{{col}} {{classname}}">
+            {{print_safe value}}
+        </div>
+        {{/if}}
+    </td>
+</script>
 
