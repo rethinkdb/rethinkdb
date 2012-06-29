@@ -143,13 +143,22 @@ void supervisor_proc_t::wait_for_events() {
     fd_set readfds, writefds, exceptfds;
     init_fdsets(&nfds, &readfds, &writefds, &exceptfds);
 
-    sigset_t emptymask;
-    sigemptyset(&emptymask);
+    // Allow signals to get at us while we're waiting for events. pselect()
+    // exists for this purpose, but it's less portable than select() and the
+    // atomicity issues it solves aren't a problem here.
+    //
+    // The reason we unmask SIGCHLD here but not anywhere else is to avoid race
+    // conditions: this ensures that the SIGCHLD handler doesn't get run while
+    // we're eg. manipulating a process list.
+    sigset_t emptymask, oldmask;
+    guarantee_err(0 == sigemptyset(&emptymask), "Could not create empty signal set");
+    guarantee_err(0 == sigprocmask(SIG_SETMASK, &emptymask, &oldmask), "Could not unblock signals");
 
-    // FIXME: think about signals and select/pselect/sigprocmask and races
+    // Wait for events.
+    int res = select(nfds, &readfds, &writefds, &exceptfds, NULL);
 
-    // int res = select(nfds, &readfds, &writefds, &exceptfds, NULL);
-    int res = pselect(nfds, &readfds, &writefds, &exceptfds, NULL, &emptymask);
+    // Restore old signal mask; no more SIGCHLD.
+    guarantee_err(0 == sigprocmask(SIG_SETMASK, &oldmask, NULL), "Could not block signals");
 
     if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
         // Not a problem; just loop round again and we'll handle it.
@@ -157,12 +166,6 @@ void supervisor_proc_t::wait_for_events() {
     }
 
     guarantee_err(res != -1, "Waiting for select() failed");
-
-    // Allow signals to get at us.
-    // sigset_t emptymask, oldmask;
-    // guarantee_err(0 == sigemptyset(&emptymask), "Could not create empty signal set");
-    // guarantee_err(0 == sigprocmask(SIG_SETMASK, &emptymask, &oldmask), "Could not unblock signals");
-    // guarantee_err(0 == sigprocmask(SIG_SETMASK, &oldmask, NULL), "Could not block signals");
 }
 
 static inline void addfd(int fd, fd_set *fdset, int *nfds) {
