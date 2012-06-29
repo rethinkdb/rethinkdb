@@ -6,14 +6,14 @@ code (ie. if it involves calling `serve()`; `main_rethinkdb_porcelain()` and
 the `run_in_thread_pool()` is called, we spawn off a supervisor process by
 calling `supervisor_t::spawn()`.
 
-`supervisor_t::spawn()` calls `fork(2)`. On failure, we die. On success,
+`supervisor_t::spawn()` calls `fork()`. On failure, we die. On success,
 `supervisor_t::spawn()` returns _in the child process only_. In the parent, it
 runs `exec_supervisor()` instead, which does not return.
 
 The parent process becomes a "supervisor process" whose job it is to manage the
 RethinkDB engine process and a pool of worker processes (in which JS is run).
 The worker processes are themselves forked off from the supervisor, and run
-`exec_worker()`. Note that although we `fork(2)`, we never call `exec(3)` or a
+`exec_worker()`. Note that although we `fork()`, we never call `exec()` or a
 variant: all processes involved are images of the same RethinkDB binary.
 
 In sum, there are three kinds of process: the "supervisor" parent process, the
