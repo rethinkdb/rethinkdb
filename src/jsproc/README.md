@@ -67,7 +67,5 @@ pointer, giving it a handle to the file descriptor it received.
 
 - Killing the supervisor process won't kill the children. Idle workers will die
   when they try to get a new job from the supervisor, but the rethinkdb engine
-  will probably continue oblivious.
-
-  (The supervisor *does* handle shut-down of the rethinkdb engine process
-  correctly, by killing the worker processes and exiting.)
+  will probably continue oblivious. (The supervisor *does* act correctly if the
+  rethinkdb engine process dies; it kills the worker processes and exits.)
