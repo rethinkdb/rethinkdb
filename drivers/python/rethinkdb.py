@@ -315,13 +315,6 @@ class Disjunction(Term):
 def _or(*predicates):
     return Disjunction(predicates)
 
-class _not(Term):
-    def __init__(self, term):
-        self.term = term
-
-    def write_ast(self, parent):
-        self._write_call(parent, p.Builtin.NOT, self.term)
-
 class val(Term):
     def __init__(self, value):
         self.value = value
@@ -356,61 +349,45 @@ class val(Term):
         for value in self.value:
             toTerm(value).write_ast(parent.array.add())
 
-class Comparison(Term):
-    def __init__(self, terms, cmp_type):
-        if not terms:
-            raise ValueError
-        self.terms = terms
-        self.cmp_type = cmp_type
+def make_comparison(cmp_type):
+    class Comparison(Term):
+        def __init__(self, *terms):
+            if not terms:
+                raise ValueError
+            self.terms = terms
 
-    def write_ast(self, parent):
-        self._write_call(parent, p.Builtin.COMPARE, *self.terms)
-        parent.call.builtin.comparison = self.cmp_type
+        def write_ast(self, parent):
+            self._write_call(parent, p.Builtin.COMPARE, *self.terms)
+            parent.call.builtin.comparison = cmp_type
 
-def eq(*terms):
-    return Comparison(terms, p.Builtin.EQ)
+    return Comparison
 
-def neq(*terms):
-    return Comparison(terms, p.Builtin.NE)
+eq = make_comparison(p.Builtin.EQ)
+neq = make_comparison(p.Builtin.NE)
+lt = make_comparison(p.Builtin.LT)
+lte = make_comparison(p.Builtin.LE)
+gt = make_comparison(p.Builtin.GT)
+gte = make_comparison(p.Builtin.GE)
 
-def lt(*terms):
-    return Comparison(terms, p.Builtin.LT)
+def make_arithmetic(op_type):
+    class Arithmetic(Term):
+        def __init__(self, *terms):
+            if not terms:
+                raise ValueError
+            if op_type is p.Builtin.MODULO and len(terms) != 2:
+                raise ValueError
+            self.terms = terms
 
-def lte(*terms):
-    return Comparison(terms, p.Builtin.LE)
+        def write_ast(self, parent):
+            self._write_call(parent, op_type, *self.terms)
 
-def gt(*terms):
-    return Comparison(terms, p.Builtin.GT)
+    return Arithmetic
 
-def gte(*terms):
-    return Comparison(terms, p.Builtin.GE)
-
-class Arithmetic(Term):
-    def __init__(self, terms, op_type):
-        if not terms:
-            raise ValueError
-        if op_type is p.Builtin.MODULO and len(terms) != 2:
-            raise ValueError
-        self.terms = terms
-        self.op_type = op_type
-    def write_ast(self, parent):
-        self._write_call(parent, p.Builtin.COMPARE, *self.terms)
-        parent.call.builtin.type = self.op_type
-
-def add(*terms):
-    return Arithmetic(terms, p.Builtin.ADD)
-
-def sub(*terms):
-    return Arithmetic(terms, p.Builtin.SUBTRACT)
-
-def div(*terms):
-    return Arithmetic(terms, p.Builtin.DIVIDE)
-
-def mul(*terms):
-    return Arithmetic(terms, p.Builtin.MULTIPLY)
-
-def mod(*terms):
-    return Arithmetic(terms, p.Builtin.MODULO)
+add = make_arithmetic(p.Builtin.ADD)
+sub = make_arithmetic(p.Builtin.SUBTRACT)
+div = make_arithmetic(p.Builtin.DIVIDE)
+mul = make_arithmetic(p.Builtin.MULTIPLY)
+mod = make_arithmetic(p.Builtin.MODULO)
 
 class var(Term):
     def __init__(self, name):
@@ -516,6 +493,7 @@ def _make_builtin(name, builtin, *args):
 
     return type(name, (object,), {"__init__": __init__, "write_ast": write_ast})
 
+_not = _make_builtin("_not", p.Builtin.NOT, "term")
 nth = _make_builtin("nth", p.Builtin.ARRAYNTH, "array", "index")
 size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
