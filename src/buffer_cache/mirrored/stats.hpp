@@ -6,6 +6,7 @@
 /* A class to hold all the stats we care about for this cache. */
 struct mc_cache_stats_t {
     perfmon_collection_t cache_collection;
+    perfmon_membership_t cache_membership;
 
     explicit mc_cache_stats_t(perfmon_collection_t *parent);
 
@@ -57,14 +58,16 @@ struct mc_cache_stats_t {
     /* This is for exposing the block size */
     struct perfmon_cache_custom_t : public perfmon_t {
     public:
-        explicit perfmon_cache_custom_t(perfmon_collection_t *parent = NULL);
+        explicit perfmon_cache_custom_t();
         void *begin_stats();
         void visit_stats(void *);
-        void end_stats(void *, perfmon_result_t *dest);
+        perfmon_result_t *end_stats(void *);
     public:
         uint32_t block_size;
     };
     perfmon_cache_custom_t pm_block_size;
+
+    perfmon_multi_membership_t cache_collection_membership;
 };
 
 #endif // BUFFER_CACHE_MIRRORED_STATS_HPP_

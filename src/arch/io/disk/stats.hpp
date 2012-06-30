@@ -11,8 +11,13 @@ and passive producer. */
 template<class payload_t>
 struct stats_diskmgr_t {
     stats_diskmgr_t(perfmon_collection_t *stats, const std::string &name) :
-        read_sampler(name + "_read", secs_to_ticks(1), stats),
-        write_sampler(name + "_write", secs_to_ticks(1), stats) { }
+        read_sampler(secs_to_ticks(1)),
+        write_sampler(secs_to_ticks(1)),
+        stats_membership(stats,
+            &read_sampler, (name + "_read").c_str(),
+            &write_sampler, (name + "_write").c_str(),
+            NULL)
+    { }
 
     struct action_t : public payload_t {
         ticks_t start_time;
@@ -43,6 +48,7 @@ struct stats_diskmgr_t {
 
 private:
     perfmon_duration_sampler_t read_sampler, write_sampler;
+    perfmon_multi_membership_t stats_membership;
 };
 
 template<class payload_t>
@@ -63,8 +69,12 @@ struct stats_diskmgr_2_t :
         passive_producer_t<payload_t *>(_source->available),
         producer(this),
         source(_source),
-        read_sampler(name + "_read", secs_to_ticks(1), stats),
-        write_sampler(name + "_write", secs_to_ticks(1), stats)
+        read_sampler(secs_to_ticks(1)),
+        write_sampler(secs_to_ticks(1)),
+        stats_membership(stats,
+            &read_sampler, (name + "_read").c_str(),
+            &write_sampler, (name + "_write").c_str(),
+            NULL)
         { }
     boost::function<void (action_t *)> done_fun;
 
@@ -91,6 +101,7 @@ private:
     }
     passive_producer_t<action_t *> *source;
     perfmon_duration_sampler_t read_sampler, write_sampler;
+    perfmon_multi_membership_t stats_membership;
 };
 
 #endif /* ARCH_IO_DISK_STATS_HPP_ */

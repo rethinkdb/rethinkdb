@@ -96,6 +96,7 @@ private:
     std::map<int, std::deque<action_t*> > chunk_queues;
 
     perfmon_sampler_t conflict_sampler;
+    perfmon_membership_t conflict_sampler_membership;
 };
 
 #include "arch/io/disk/conflict_resolving.tcc"

@@ -17,17 +17,25 @@ class key_tester_t;
 class btree_stats_t {
 public:
     explicit btree_stats_t(perfmon_collection_t *parent)
-        : btree_collection("btree", parent, true, true),
-          pm_keys_read("keys_read", secs_to_ticks(1), &btree_collection),
-          pm_keys_set("keys_set", secs_to_ticks(1), &btree_collection),
-          pm_keys_expired("keys_expired", secs_to_ticks(1), &btree_collection)
+        : btree_collection(),
+          btree_collection_membership(parent, &btree_collection, "btree"),
+          pm_keys_read(secs_to_ticks(1)),
+          pm_keys_set(secs_to_ticks(1)),
+          pm_keys_expired(secs_to_ticks(1)),
+          pm_keys_membership(&btree_collection,
+              &pm_keys_read, "keys_read",
+              &pm_keys_set, "keys_set",
+              &pm_keys_expired, "keys_expired",
+              NULL)
     { }
 
     perfmon_collection_t btree_collection;
+    perfmon_collection_t::membership_t btree_collection_membership;
     perfmon_rate_monitor_t
         pm_keys_read,
         pm_keys_set,
         pm_keys_expired;
+    perfmon_multi_membership_t pm_keys_membership;
 };
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer

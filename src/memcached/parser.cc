@@ -1064,10 +1064,8 @@ void memcached_stats(int argc, char **argv, std::vector<std::string>& stat_respo
         names_to_match.insert(argv[i]);
     }
 
-    perfmon_result_t stats(perfmon_result_t::make_map());
-    perfmon_get_stats(&stats);
-
-    format_stats(&stats, std::string(), names_to_match, stat_response_lines);
+    boost::scoped_ptr<perfmon_result_t> stats(perfmon_get_stats());
+    format_stats(stats.get(), std::string(), names_to_match, stat_response_lines);
     stat_response_lines.push_back(end_marker);
 }
 

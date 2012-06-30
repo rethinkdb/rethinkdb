@@ -3,8 +3,12 @@
 #include <stdio.h>
 #include <perfmon.hpp>
 
-perfmon_duration_sampler_t pm_operator_new("operator_new", secs_to_ticks(1.0)),
-                           pm_operator_delete("operator_delete", secs_to_ticks(1.0));
+perfmon_duration_sampler_t pm_operator_new(secs_to_ticks(1.0)),
+                           pm_operator_delete(secs_to_ticks(1.0));
+static perfmon_multi_membership_t pm_new_delete_membership(&get_global_perfmon_collection(),
+    &pm_operator_new, "operator_new",
+    &pm_operator_delete, "operator_delete",
+    NULL);
 
 void* operator new(size_t size) {
     block_pm_duration set_timer(&pm_operator_new);

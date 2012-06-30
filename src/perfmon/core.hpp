@@ -22,12 +22,9 @@ class perfmon_result_t;
  * to create a perfmon_t after the server starts up because the global list is
  * not thread-safe.
  */
-class perfmon_t : public intrusive_list_node_t<perfmon_t> {
+class perfmon_t {
 public:
-    perfmon_collection_t *parent;
-    bool insert;
-public:
-    explicit perfmon_t(perfmon_collection_t *parent, bool insert = true);
+    perfmon_t();
     virtual ~perfmon_t();
 
     /* To get a value from a given perfmon: Call begin_stats(). On each core,
@@ -39,29 +36,63 @@ public:
      * methods directly.
      */
     virtual void *begin_stats() = 0;
-    virtual void visit_stats(void *) = 0;
-    virtual void end_stats(void *, perfmon_result_t *) = 0;
+    virtual void visit_stats(void *ctx) = 0;
+    virtual perfmon_result_t *end_stats(void *ctx) = 0;
 };
 
 /* A perfmon collection allows you to add hierarchy to stats. */
 class perfmon_collection_t : public perfmon_t, public home_thread_mixin_t {
 public:
-    perfmon_collection_t(const std::string &_name, perfmon_collection_t *parent, bool insert, bool _create_submap)
-        : perfmon_t(parent, insert), name(_name), create_submap(_create_submap) { }
+    class membership_t : public intrusive_list_node_t<membership_t> {
+    public:
+        // If the name argument is NULL or an empty string, then the perfmon
+        // must be a perfmon_t that returns a map result from `end_stats` and
+        // its contents will be spliced into the parent collection.
+        membership_t(perfmon_collection_t *parent_, perfmon_t *perfmon_, const char *name_, bool own_the_perfmon_ = false);
+        membership_t(perfmon_collection_t *parent_, perfmon_t *perfmon_, const std::string &name_, bool own_the_perfmon_ = false);
+        ~membership_t();
+        perfmon_t *get();
+        perfmon_t *operator->();
+        bool splice();
+
+        std::string name;
+    private:
+        perfmon_collection_t *parent;
+        perfmon_t *perfmon;
+        bool own_the_perfmon;
+
+        DISABLE_COPYING(membership_t);
+    };
+public:
+    perfmon_collection_t();
 
     /* Perfmon interface */
     void *begin_stats();
     void visit_stats(void *_contexts);
-    void end_stats(void *_contexts, perfmon_result_t *result);
+    perfmon_result_t *end_stats(void *_contexts);
 
-    void add(perfmon_t *perfmon);
-    void remove(perfmon_t *perfmon);
 private:
-    rwi_lock_t constituents_access;
+    friend class membership_t;
 
-    std::string name;
-    bool create_submap;
-    intrusive_list_t<perfmon_t> constituents;
+    void add(membership_t *perfmon);
+    void remove(membership_t *perfmon);
+
+    rwi_lock_t constituents_access;
+    intrusive_list_t<membership_t> constituents;
+};
+
+typedef perfmon_collection_t::membership_t perfmon_membership_t;
+
+class perfmon_multi_membership_t {
+public:
+    perfmon_multi_membership_t(perfmon_collection_t *collection,
+        perfmon_t *perfmon, const char *name,   // This block of (perfmon, name) is to be repeated as 
+        ...);                                   // many times as needed, and then followed by NULL.
+    ~perfmon_multi_membership_t();
+private:
+    std::vector<perfmon_membership_t*> memberships;
+
+    DISABLE_COPYING(perfmon_multi_membership_t);
 };
 
 class perfmon_result_t {
@@ -105,6 +136,8 @@ public:
     const_iterator begin() const;
     const_iterator end() const;
 
+    // Splices the contents of the internal map into `map` and thus passes ownership to `map`.
+    void splice_into(perfmon_result_t *map);
 private:
     void clear_map();
     explicit perfmon_result_t(const internal_map_t &);
