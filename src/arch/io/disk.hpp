@@ -6,7 +6,7 @@
 
 #include "config/args.hpp"
 #include "arch/io/io_utils.hpp"
-
+#include "arch/runtime/event_queue.hpp"
 #include "arch/types.hpp"
 
 class linux_iocallback_t;
@@ -15,7 +15,6 @@ struct linux_disk_manager_t;
 class linux_file_t;
 
 class perfmon_collection_t;
-
 
 /* Disk manager object takes care of queueing operations, collecting statistics, preventing
    conflicts, and actually sending them to the disk. */
@@ -37,17 +36,34 @@ private:
 };
 
 
-class io_backend_constructor_t {
+class io_backender_t {
 public:
-    virtual void make_disk_manager(boost::scoped_ptr<linux_disk_manager_t> *out) = 0;
+    virtual void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
+                                   perfmon_collection_t *stats,
+                                   boost::scoped_ptr<linux_disk_manager_t> *out) = 0;
 
 protected:
-    io_backend_constructor_t() { }
-    virtual ~io_backend_constructor_t() { }
+    io_backender_t() { }
+    virtual ~io_backender_t() { }
 
 private:
-    DISABLE_COPYING(io_backend_constructor_t);
+    DISABLE_COPYING(io_backender_t);
 };
+
+class native_io_backender_t : public io_backender_t {
+public:
+    void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
+                           perfmon_collection_t *stats,
+                           boost::scoped_ptr<linux_disk_manager_t> *out);
+};
+
+class pool_io_backender_t : public io_backender_t {
+public:
+    void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
+                           perfmon_collection_t *stats,
+                           boost::scoped_ptr<linux_disk_manager_t> *out);
+};
+
 
 class linux_file_account_t {
 public:

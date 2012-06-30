@@ -129,6 +129,22 @@ private:
     DISABLE_COPYING(linux_templated_disk_manager_t);
 };
 
+
+void native_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
+                                              perfmon_collection_t *stats,
+                                              boost::scoped_ptr<linux_disk_manager_t> *out) {
+    out->reset(new linux_templated_disk_manager_t<linux_diskmgr_aio_t>(queue, batch_factor, stats));
+}
+
+void pool_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
+                                            perfmon_collection_t *stats,
+                                            boost::scoped_ptr<linux_disk_manager_t> *out) {
+    out->reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue, batch_factor, stats));
+}
+
+
+
+
 /* Disk account object */
 
 linux_file_account_t::linux_file_account_t(linux_file_t *par, int pri, int outstanding_requests_limit) :
@@ -336,3 +352,5 @@ void linux_file_t::verify(UNUSED size_t offset, UNUSED size_t length, UNUSED con
     rassert(divides(DEVICE_BLOCK_SIZE, offset));
     rassert(divides(DEVICE_BLOCK_SIZE, length));
 }
+
+
