@@ -31,7 +31,7 @@
 #include "rpc/semilattice/view/field.hpp"
 
 bool do_serve(
-    io_backend_t io_backend,
+    io_backender_t *io_backender,
     bool i_am_a_server,
     const std::string &logfilepath,
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
@@ -123,10 +123,11 @@ bool do_serve(
 
     perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
-    file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(io_backend, filepath);
+    file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(io_backender, filepath);
     // Reactor drivers
     boost::scoped_ptr<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<mock::dummy_protocol_t>(
+            io_backender,
             &mailbox_manager,
             directory_read_manager.get_root_view()->subview(
                 field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
@@ -144,9 +145,10 @@ bool do_serve(
                 dummy_reactor_driver->get_watchable(),
                 &our_root_directory_variable));
 
-    file_based_svs_by_namespace_t<memcached_protocol_t> memcached_svs_source(io_backend, filepath);
+    file_based_svs_by_namespace_t<memcached_protocol_t> memcached_svs_source(io_backender, filepath);
     boost::scoped_ptr<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<memcached_protocol_t>(
+            io_backender,
             &mailbox_manager,
             directory_read_manager.get_root_view()->subview(
                 field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
@@ -226,12 +228,12 @@ bool do_serve(
     return true;
 }
 
-bool serve(io_backend_t io_backend, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve(io_backender_t *io_backender, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     std::string logfilepath = filepath + "/log_file";
-    return do_serve(io_backend, true, logfilepath, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(io_backender, true, logfilepath, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
-bool serve_proxy(io_backend_t io_backend, const std::string &logfilepath, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve_proxy(io_backender_t *io_backender, const std::string &logfilepath, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return do_serve(io_backend, false, logfilepath, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(io_backender, false, logfilepath, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }

@@ -139,17 +139,17 @@ struct knowledge_t {
     nondirect_file_t *metadata_file;
     file_knowledge_t *metadata_file_knog;
 
-    knowledge_t(const std::vector<std::string>& filenames, const std::string &metadata_filename, io_backend_t io_backend)
+    knowledge_t(const std::vector<std::string>& filenames, const std::string &metadata_filename, io_backender_t *io_backender)
         : files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
 
         for (int i = 0, n = filenames.size(); i < n; ++i) {
-            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read, NULL, io_backend);
+            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read, NULL, io_backender);
             files[i] = file;
             file_knog[i] = new file_knowledge_t(filenames[i]);
         }
 
         if (!metadata_filename.empty()) {
-            metadata_file = new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read, NULL, io_backend);
+            metadata_file = new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read, NULL, io_backender);
             metadata_file_knog = new file_knowledge_t(metadata_filename);
         } else {
             metadata_file = NULL;
@@ -1487,8 +1487,11 @@ std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config
 }
 
 bool check_files(const config_t *cfg) {
+    boost::scoped_ptr<io_backender_t> backender;
+    make_io_backender(cfg->io_backend, &backender);
+
     // 1. Open.
-    knowledge_t knog(cfg->input_filenames, cfg->metadata_filename, cfg->io_backend);
+    knowledge_t knog(cfg->input_filenames, cfg->metadata_filename, backender.get());
 
     int num_files = knog.num_files();
 

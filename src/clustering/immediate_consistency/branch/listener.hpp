@@ -57,6 +57,7 @@ public:
     };
 
     listener_t(
+            io_backender_t *io_backender,
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             branch_history_manager_t<protocol_t> *branch_history_manager,
@@ -70,6 +71,7 @@ public:
     becoming the first mirror of a new branch. It should only be called once for
     each `broadcaster_t`. */
     listener_t(
+            io_backender_t *io_backender,
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             branch_history_manager_t<protocol_t> *branch_history_manager,

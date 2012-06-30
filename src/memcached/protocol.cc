@@ -416,17 +416,16 @@ hash_region_t<key_range_t> memcached_protocol_t::cpu_sharding_subspace(int subre
     return hash_region_t<key_range_t>(beg, end, key_range_t::universe());
 }
 
-memcached_protocol_t::store_t::store_t(const io_backend_t io_backend, const std::string& filename,
+memcached_protocol_t::store_t::store_t(io_backender_t *io_backender, const std::string& filename,
                                        bool create, perfmon_collection_t *_perfmon_collection)
     : store_view_t<memcached_protocol_t>(hash_region_t<key_range_t>::universe()),
       perfmon_collection(filename, _perfmon_collection, true, true) {
-    standard_serializer_t::dynamic_config_t dynamic_config;
-    dynamic_config.io_backend = io_backend;
 
     if (create) {
 
         standard_serializer_t::create(
-            dynamic_config,
+            standard_serializer_t::dynamic_config_t(),
+            io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
             standard_serializer_t::static_config_t(),
             &perfmon_collection
@@ -434,7 +433,8 @@ memcached_protocol_t::store_t::store_t(const io_backend_t io_backend, const std:
     }
 
     serializer.reset(new standard_serializer_t(
-        dynamic_config,
+        standard_serializer_t::dynamic_config_t(),
+        io_backender,
         standard_serializer_t::private_dynamic_config_t(filename),
         &perfmon_collection
         ));

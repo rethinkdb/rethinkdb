@@ -18,6 +18,7 @@ std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::
 
 template<class protocol_t>
 reactor_t<protocol_t>::reactor_t(
+        io_backender_t *_io_backender,
         mailbox_manager_t *mm,
         typename master_t<protocol_t>::ack_checker_t *ack_checker_,
         clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > rd,
@@ -25,6 +26,7 @@ reactor_t<protocol_t>::reactor_t(
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,
         multistore_ptr_t<protocol_t> *_underlying_svs,
         perfmon_collection_t *_parent_perfmon_collection) THROWS_NOTHING :
+    io_backender(_io_backender),
     mailbox_manager(mm),
     ack_checker(ack_checker_),
     reactor_directory(rd),

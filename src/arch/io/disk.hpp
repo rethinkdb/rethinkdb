@@ -42,9 +42,10 @@ public:
                                    perfmon_collection_t *stats,
                                    boost::scoped_ptr<linux_disk_manager_t> *out) = 0;
 
+    virtual ~io_backender_t() { }
+
 protected:
     io_backender_t() { }
-    virtual ~io_backender_t() { }
 
 private:
     DISABLE_COPYING(io_backender_t);
@@ -64,6 +65,7 @@ public:
                            boost::scoped_ptr<linux_disk_manager_t> *out);
 };
 
+void make_io_backender(io_backend_t backend, boost::scoped_ptr<io_backender_t> *out);
 
 class linux_file_account_t {
 public:
@@ -89,7 +91,7 @@ public:
         mode_create = 1 << 2
     };
 
-    linux_file_t(const char *path, int mode, bool is_really_direct, perfmon_collection_t *stats, const linux_io_backend_t io_backend, const int batch_factor);
+    linux_file_t(const char *path, int mode, bool is_really_direct, perfmon_collection_t *stats, io_backender_t *io_backender, const int batch_factor);
 
     bool exists();
     bool is_block_device();
@@ -126,8 +128,8 @@ file is opened in O_DIRECT mode, and there are restrictions on the
 alignment of the chunks being written and read to and from the file. */
 class linux_direct_file_t : public linux_file_t {
 public:
-    linux_direct_file_t(const char *path, int mode, perfmon_collection_t *stats, const linux_io_backend_t io_backend, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
-        linux_file_t(path, mode, true, stats, io_backend, batch_factor) { }
+    linux_direct_file_t(const char *path, int mode, perfmon_collection_t *stats, io_backender_t *io_backender, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
+        linux_file_t(path, mode, true, stats, io_backender, batch_factor) { }
 
 private:
     DISABLE_COPYING(linux_direct_file_t);
@@ -135,8 +137,8 @@ private:
 
 class linux_nondirect_file_t : public linux_file_t {
 public:
-    linux_nondirect_file_t(const char *path, int mode, perfmon_collection_t *stats, const linux_io_backend_t io_backend, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
-        linux_file_t(path, mode, false, stats, io_backend, batch_factor) { }
+    linux_nondirect_file_t(const char *path, int mode, perfmon_collection_t *stats, io_backender_t *io_backender, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
+        linux_file_t(path, mode, false, stats, io_backender, batch_factor) { }
 
 private:
     DISABLE_COPYING(linux_nondirect_file_t);

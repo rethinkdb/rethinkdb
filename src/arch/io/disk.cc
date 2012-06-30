@@ -143,6 +143,17 @@ void pool_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const in
 }
 
 
+void make_io_backender(io_backend_t backend, boost::scoped_ptr<io_backender_t> *out) {
+    if (backend == aio_native) {
+        out->reset(new native_io_backender_t);
+    } else if (backend == aio_pool) {
+        out->reset(new pool_io_backender_t);
+    } else {
+        crash("impossible io_backend_t value: %d\n", backend);
+    }
+}
+
+
 
 
 /* Disk account object */
@@ -157,7 +168,7 @@ linux_file_account_t::~linux_file_account_t() {
 
 /* Disk file object */
 
-linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, perfmon_collection_t *stats, const linux_io_backend_t io_backend, const int batch_factor)
+linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, perfmon_collection_t *stats, io_backender_t *io_backender, const int batch_factor)
     : fd(INVALID_FD), file_size(0)
 {
     // Determine if it is a block device
@@ -248,11 +259,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, pe
     // Construct a disk manager. (given that we have an event pool)
     if (linux_thread_pool_t::thread) {
         linux_event_queue_t *queue = &linux_thread_pool_t::thread->queue;
-        if (io_backend == aio_native) {
-            diskmgr.reset(new linux_templated_disk_manager_t<linux_diskmgr_aio_t>(queue, batch_factor, stats));
-        } else {
-            diskmgr.reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue, batch_factor, stats));
-        }
+        io_backender->make_disk_manager(queue, batch_factor, stats, &diskmgr);
 
         default_account.reset(new linux_file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }

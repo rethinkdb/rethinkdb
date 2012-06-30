@@ -37,7 +37,8 @@ private:
 #endif // NDEBUG
 
 template <class protocol_t>
-listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
+listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
+                                   mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
                                    branch_history_manager_t<protocol_t> *bhm,
                                    multistore_ptr_t<protocol_t> *_svs,
@@ -53,7 +54,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     uuid(generate_uuid()),
     perfmon_collection("backfill-serialization-" + uuid_to_str(uuid), backfill_stats_parent, true, true),
     /* TODO: Put the file in the data directory, not here */
-    write_queue("backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
+    write_queue(io_backender, "backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
     write_queue_semaphore(SEMAPHORE_NO_LIMIT),
     write_mailbox(mailbox_manager,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
@@ -186,7 +187,8 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
 
 
 template <class protocol_t>
-listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
+listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
+                                   mailbox_manager_t *mm,
                                    clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
                                    branch_history_manager_t<protocol_t> *bhm,
                                    broadcaster_t<protocol_t> *broadcaster,
@@ -198,7 +200,7 @@ listener_t<protocol_t>::listener_t(mailbox_manager_t *mm,
     uuid(generate_uuid()),
     perfmon_collection("backfill-serialization-" + uuid_to_str(uuid), backfill_stats_parent, true, true),
     /* TODO: Put the file in the data directory, not here */
-    write_queue("backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
+    write_queue(io_backender, "backfill-serialization-" + uuid_to_str(uuid), &perfmon_collection),
     write_queue_semaphore(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY),
     write_mailbox(mailbox_manager,
         boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
