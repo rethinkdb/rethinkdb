@@ -16,6 +16,39 @@ class linux_file_t;
 
 class perfmon_collection_t;
 
+
+/* Disk manager object takes care of queueing operations, collecting statistics, preventing
+   conflicts, and actually sending them to the disk. */
+struct linux_disk_manager_t {
+    linux_disk_manager_t() { }
+
+    virtual ~linux_disk_manager_t() { }
+
+    virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
+    virtual void destroy_account(void *account) = 0;
+
+    virtual void submit_write(fd_t fd, const void *buf, size_t count, size_t offset,
+        void *account, linux_iocallback_t *cb) = 0;
+    virtual void submit_read(fd_t fd, void *buf, size_t count, size_t offset,
+        void *account, linux_iocallback_t *cb) = 0;
+
+private:
+    DISABLE_COPYING(linux_disk_manager_t);
+};
+
+
+class io_backend_constructor_t {
+public:
+    virtual void make_disk_manager(boost::scoped_ptr<linux_disk_manager_t> *out) = 0;
+
+protected:
+    io_backend_constructor_t() { }
+    virtual ~io_backend_constructor_t() { }
+
+private:
+    DISABLE_COPYING(io_backend_constructor_t);
+};
+
 class linux_file_account_t {
 public:
     linux_file_account_t(linux_file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);

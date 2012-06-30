@@ -26,28 +26,8 @@
 
 // #define DEBUG_DUMP_WRITES 1
 
-/* Disk manager object takes care of queueing operations, collecting statistics, preventing
-conflicts, and actually sending them to the disk. Defined as an abstract class so that different
-actual implementations can be swapped in at runtime. */
 
 // TODO: If two files are on the same disk, should they share part of the IO stack?
-
-struct linux_disk_manager_t {
-    linux_disk_manager_t() { }
-
-    virtual ~linux_disk_manager_t() { }
-
-    virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
-    virtual void destroy_account(void *account) = 0;
-
-    virtual void submit_write(fd_t fd, const void *buf, size_t count, size_t offset,
-        void *account, linux_iocallback_t *cb) = 0;
-    virtual void submit_read(fd_t fd, void *buf, size_t count, size_t offset,
-        void *account, linux_iocallback_t *cb) = 0;
-
-private:
-    DISABLE_COPYING(linux_disk_manager_t);
-};
 
 template<class backend_t>
 class linux_templated_disk_manager_t : public linux_disk_manager_t {
