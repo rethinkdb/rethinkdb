@@ -232,13 +232,13 @@ log_serializer_t::~log_serializer_t() {
     rassert(active_write_count == 0);
 }
 
-void ls_check_existing(const char *filename, log_serializer_t::check_callback_t *cb) {
-    direct_file_t df(filename, file_t::mode_read, NULL);
+void ls_check_existing(const char *filename, io_backend_t io_backend, log_serializer_t::check_callback_t *cb) {
+    direct_file_t df(filename, file_t::mode_read, NULL, io_backend);
     cb->on_serializer_check(static_header_check(&df));
 }
 
-void log_serializer_t::check_existing(const char *filename, check_callback_t *cb) {
-    coro_t::spawn(boost::bind(ls_check_existing, filename, cb));
+void log_serializer_t::check_existing(const char *filename, io_backend_t io_backend, check_callback_t *cb) {
+    coro_t::spawn(boost::bind(ls_check_existing, filename, io_backend, cb));
 }
 
 void *log_serializer_t::malloc() {

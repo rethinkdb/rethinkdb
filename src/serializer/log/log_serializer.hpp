@@ -105,7 +105,7 @@ public:
         virtual void on_serializer_check(bool is_existing) = 0;
         virtual ~check_callback_t() {}
     };
-    static void check_existing(const char *filename, check_callback_t *cb);
+    static void check_existing(const char *filename, io_backend_t io_backend, check_callback_t *cb);
 
 public:
     /* Implementation of the serializer_t API */

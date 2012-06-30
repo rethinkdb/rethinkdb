@@ -110,7 +110,7 @@ file is opened in O_DIRECT mode, and there are restrictions on the
 alignment of the chunks being written and read to and from the file. */
 class linux_direct_file_t : public linux_file_t {
 public:
-    linux_direct_file_t(const char *path, int mode, perfmon_collection_t *stats, const linux_io_backend_t io_backend = aio_native, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
+    linux_direct_file_t(const char *path, int mode, perfmon_collection_t *stats, const linux_io_backend_t io_backend, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
         linux_file_t(path, mode, true, stats, io_backend, batch_factor) { }
 
 private:
@@ -119,7 +119,7 @@ private:
 
 class linux_nondirect_file_t : public linux_file_t {
 public:
-    linux_nondirect_file_t(const char *path, int mode, perfmon_collection_t *stats, const linux_io_backend_t io_backend = aio_native, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
+    linux_nondirect_file_t(const char *path, int mode, perfmon_collection_t *stats, const linux_io_backend_t io_backend, const int batch_factor = DEFAULT_IO_BATCH_FACTOR) :
         linux_file_t(path, mode, false, stats, io_backend, batch_factor) { }
 
 private:
