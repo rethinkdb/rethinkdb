@@ -81,7 +81,6 @@ void perfmon_collection_t::end_stats(void *_context, perfmon_result_t *result) {
 
     size_t i = 0;
     for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
-        assert_thread();
         p->end_stats(ctx->contexts[i], map);
     }
 

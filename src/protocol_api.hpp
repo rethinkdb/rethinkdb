@@ -277,7 +277,9 @@ class store_view_t : public home_thread_mixin_t {
 public:
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
-    virtual ~store_view_t() { }
+    virtual ~store_view_t() {
+        assert_thread();
+    }
 
     typename protocol_t::region_t get_region() {
         return region;
