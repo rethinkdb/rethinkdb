@@ -40,7 +40,7 @@
         {{#if has_old_queries}}
         <ul class="history_queries_list">
             {{#each old_queries}}
-            <li class="namespace_element"><a href="#" data-id="{{this.id}}">{{this.name}}</a></li>
+            <li class="query_element"><a href="#" class="old_query" data-query="{{this}}">{{this}}</a></li>
             {{/each}}
         </ul>
         {{else}}
@@ -67,6 +67,7 @@
         <input type="button" value="Tree view" class="btn button_query tree_view" />
         <input type="button" value="Table view" class="btn button_query table_view" />
         <input type="button" value="Raw view" class="btn button_query raw_view" />
+        <input type="button" value="Full view" class="btn button_query full_view" />
     </div>
     <h2>Results</h2>
     <p>For query {{query}}</p>
@@ -159,44 +160,56 @@
 <script id="dataexplorer_result_json_table_tr_value-template" type="text/xs-handlebars-template">
     {{#each document}}
     <tr class="jta_tr">
-        {{#each value}}
-        <td class="col-{{col}}" data-col={{col}}>
-            {{#if data_to_expand}}
-            <div class="value-{{col}} jta_value {{classname}}">
-                <span class="jta_arrow jta_arrow_v"></span>
-                <span class="jta_arrow jta_arrow_h"></span>
-                <span data-json_data="{{data_to_expand}}" class="jta_object"><strong>{{print_safe value}}</strong></span>
-            </div>
-            {{else}}
-            <div class="jta_value value-{{col}} {{classname}}">
-                {{print_safe value}}
-            </div>
-            {{/if}}
-        </td>
+        {{#each cells}}
+            {{print_safe this}}
         {{/each}}
     </tr>
     {{/each}}
 </script>
 
 <script id="dataexplorer_result_json_table_td_attr-template" type="text/xs-handlebars-template">
-    <td class="td_attr {{classtd}}" data-col={{col}}>
+    <td class="td_attr {{classtd}}">
         <div class="jta_attr">{{key}}</div>
     </td>
 </script>
 
 <script id="dataexplorer_result_json_table_td_value-template" type="text/xs-handlebars-template">
-    <td class="{{classtd}}" data-col={{col}}>
+    <td class="{{class_td}}">
+        {{print_safe cell_content}}
+    </td>
+</script>
+
+<script id="dataexplorer_result_json_table_td_value_content-template" type="text/xs-handlebars-template">
         {{#if data_to_expand}}
-        <div class="value-{{col}} jta_value {{classname}}">
-            <span class="jta_arrow jta_arrow_v"></span>
-            <span class="jta_arrow jta_arrow_h"></span>
-            <span data-json_data="{{data_to_expand}}" class="jta_object"><strong>{{print_safe value}}</strong></span>
+        <div class="{{class_value}} jta_value {{classname}}">       
+            <span data-json_data="{{data_to_expand}}" class="jta_object">
+                <span class="jta_arrow jta_arrow_v"></span>
+                <span class="jta_arrow jta_arrow_h"></span>
+                <strong>{{print_safe value}}</strong>
+            </span>
         </div>
         {{else}}
-        <div class="jta_value value-{{col}} {{classname}}">
-            {{print_safe value}}
+        <div class="jta_value {{class_value}} {{classname}}">
+            <span contenteditable="true">
+                {{print_safe value}}
+            </span>
         </div>
         {{/if}}
-    </td>
+</script>
+
+
+
+<!-- Ugly indentation to avoid extra spaces before comma -->
+<script id="dataexplorer_result_json_table_data_inline-template" type="text/xs-handlebars-template">
+    {{#if data_to_expand}}
+    <span data-json_data="{{data_to_expand}}" class="jta_object">
+        <span class="jta_arrow jta_arrow_v"></span>
+        {{#unless is_inline}}<span class="jta_arrow jta_arrow_h"></span>{{/unless}}
+        <strong>{{print_safe value}}</strong>
+        {{#if need_comma}}, {{/if}}
+    </span>
+    {{else}}
+    <span contenteditable="true" class={{classname}}>{{print_safe value}}{{#if need_comma}}, {{/if}}</span>
+    {{/if}}
 </script>
 

@@ -35,9 +35,10 @@ module 'DataExplorerView', ->
             'keypress .input_query': 'handle_keypress'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
-            'click .namespace_link': 'write_query'
+            'click .namespace_link': 'write_query_namespace'
+            'click .old_query': 'write_query_old'
             'click .home_view': 'display_home'
-
+            'click .full_view': 'display_full'
 
 
         handle_keypress: (event) =>
@@ -55,7 +56,7 @@ module 'DataExplorerView', ->
                 result = []
             else if query is '1'
                 result =  [
-                    id: '_97a54c09-112e-4e32-86f8-24522e6e1df4'
+                    _id: '97a54c09-112e-4e32-86f8-24522e6e1df4'
                     login: 'michel'
                     first_name: 'Michel'
                     last_name: 'Tu'
@@ -105,21 +106,37 @@ module 'DataExplorerView', ->
 
 
                     result.push element
+
+                delete result[result.length-1]['phone']['mobile']
+                delete result[result.length-1]['website']
             @data_container.render(query, result)
 
+        # Make suggestions when the user is writing
+        # TODO: Everything
         make_suggestion: ->
             console.log 'suggestion'
             return @
 
+        # Clear the input
         clear_query: =>
             @.$('.input_query').val ''
             @.$('.input_query').focus()
 
- 
-        write_query: (event) =>
+    
+        # Write a query for the namespace clicked
+        write_query_namespace: (event) =>
             event.preventDefault()
             query = 'r.'+event.target.dataset.name+'.find()'
             @.$('.input_query').val query
+            @.$('.input_query').focus()
+            #TODO give focus at the end of the textarea
+
+        # Write an old query in the input
+        write_query_old: (event) =>
+            event.preventDefault()
+            @.$('.input_query').val event.target.dataset.query
+            @.$('.input_query').focus()
+            #TODO give focus at the end of the textarea
 
         initialize: =>
             log_initial '(initializing) sidebar view:'
@@ -136,10 +153,25 @@ module 'DataExplorerView', ->
 
             return @
 
+        # Go home
         display_home: =>
-            console.log 'fdes'
             @.$el.append @data_container.render().el
             return @
+
+        display_full: =>
+            $('.container').css 'width', '100%'
+            $('.container').css 'height', '100%'
+
+            $('.container').css 'height', '100%'
+            $('#cluster').css 'width', '100%'
+            $('#cluster').css 'height', '100%'
+            $('.dataexplorer_container').css 'width', '100%'
+            $('.dataexplorer_container').css 'height', '100%'
+            $('.results').css 'width', '100%'
+            $('.results').css 'height', '100%'
+
+
+
 
         destroy: =>
             @input_query.destroy()
@@ -202,9 +234,11 @@ module 'DataExplorerView', ->
             'td_attr': Handlebars.compile $('#dataexplorer_result_json_table_td_attr-template').html()
             'tr_value': Handlebars.compile $('#dataexplorer_result_json_table_tr_value-template').html()
             'td_value': Handlebars.compile $('#dataexplorer_result_json_table_td_value-template').html()
- 
+            'td_value_content': Handlebars.compile $('#dataexplorer_result_json_table_td_value_content-template').html()
+            'data_inline': Handlebars.compile $('#dataexplorer_result_json_table_data_inline-template').html()
+
         #TODO Fix unbinding when view changes
-        events: ->
+        events:
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
             'keypress .jt_editable': 'handle_keypress'
@@ -337,76 +371,99 @@ module 'DataExplorerView', ->
                 attr: attr
 
         json_to_table_get_values: (result, keys_stored) ->
-            document = []
+            document_list = []
             for element in result
                 new_document = {}
-                new_document.value = []
+                new_document.cells = []
                 for key_container, col in keys_stored
                     key = key_container[0]
                     value = element[key]
 
-                    new_document.value.push 
-                        value: value
-                        col: col
+                    new_document.cells.push @json_to_table_get_td_value value, col
 
-                    value_type = typeof value
-                    if value is null
-                        new_document.value[new_document.value.length-1]['classname'] = 'jta_null'
-                        new_document.value[new_document.value.length-1]['value'] = 'null'
-                    else if value.constructor? and value.constructor is Array
-                        if value.length is 0
-                            return '[ ]'
-                        else
-                            #TODO Build preview
-                            #TODO Add arrows for attributes
-                            new_document.value[new_document.value.length-1]['value'] = '[ ... ]'
-                            new_document.value[new_document.value.length-1]['data_to_expand'] = JSON.stringify(value)
-                    else if value_type is 'object'
-                        new_document.value[new_document.value.length-1]['value'] = '{ ... }'
-                        new_document.value[new_document.value.length-1]['data_to_expand'] = JSON.stringify(value)
-                    else if value_type is 'number'
-                        new_document.value[new_document.value.length-1]['classname'] = 'jta_num'
-                    else if value_type is 'string'
-                        if /^(http|https):\/\/[^\s]+$/i.test(value)
-                            new_document.value[new_document.value.length-1]['classname'] = 'jta_url'
-                        else if /^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value) # We don't handle .museum extension and special characters
-                            new_document.value[new_document.value.length-1]['classname'] = 'jta_email'
-                        else
-                            new_document.value[new_document.value.length-1]['classname'] = 'jta_string'
-                    else if value_type is 'boolean'
-                        new_document.value[new_document.value.length-1]['classname'] = 'jta_bool'
-
-
-                document.push new_document
+                document_list.push new_document
             return @template_json_table.tr_value
-                document: document
+                document: document_list
 
-        expand_tree_in_table: (event) ->
-            dom_element = @.$(event.target).nextAll('.jta_object')
+        json_to_table_get_td_value: (value, col) =>
+            data = @compute_data_for_type(value, col)
+
+            return @template_json_table.td_value
+                class_td: 'col-'+col
+                cell_content: @template_json_table.td_value_content data
+            
+        compute_data_for_type: (value,  col) =>
+            data =
+                value: value
+                class_value: 'value-'+col
+
+            value_type = typeof value
+            if value is null
+                data['value'] = 'null'
+                data['classname'] = 'jta_null'
+            else if value is undefined
+                data['value'] = 'undefined'
+                data['classname'] = 'jta_undefined'
+            else if value.constructor? and value.constructor is Array
+                if value.length is 0
+                    data['value'] = '[ ]'
+                    data['classname'] = 'empty array'
+                else
+                    #TODO Build preview
+                    #TODO Add arrows for attributes
+                    data['value'] = '[ ... ]'
+                    data['data_to_expand'] = JSON.stringify(value)
+            else if value_type is 'object'
+                data['value'] = '{ ... }'
+                data['data_to_expand'] = JSON.stringify(value)
+            else if value_type is 'number'
+                data['classname'] = 'jta_num'
+            else if value_type is 'string'
+                if /^(http|https):\/\/[^\s]+$/i.test(value)
+                    data['classname'] = 'jta_url'
+                else if /^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value) # We don't handle .museum extension and special characters
+                    data['classname'] = 'jta_email'
+                else
+                    data['classname'] = 'jta_string'
+            else if value_type is 'boolean'
+                data['classname'] = 'jta_bool'
+
+            return data
+
+
+        expand_tree_in_table: (event) =>
+            dom_element = @.$(event.target).parent()
             data = dom_element.data('json_data')
             result = @json_to_tree data
             dom_element.html result
-            @.$(event.target).remove()
+            classname_to_change = dom_element.parent().attr('class').split(' ')[0] #TODO Use a Regex
+            $('.'+classname_to_change).css 'max-width', 'none'
+            classname_to_change = dom_element.parent().parent().attr('class')
+            $('.'+classname_to_change).css 'max-width', 'none'
+ 
+            @.$(event.target).parent().css 'max-width', 'none'
+            @.$(event.target).remove() #TODO Fix this trick
+
+
 
         expand_table_in_table: (event) ->
-            dom_element = @.$(event.target).nextAll('.jta_object')
+            dom_element = @.$(event.target).parent()
             parent = dom_element.parent()
             classname = dom_element.parent().attr('class').split(' ')[0] #TODO Use a regex
             data = dom_element.data('json_data')
             if data.constructor? and data.constructor is Array
                 classcolumn = dom_element.parent().parent().attr('class')
                 $('.'+classcolumn).css 'max-width', 'none'
+                join_table = @join_table
                 $('.'+classname).each ->
+
+                    $(this).children('.jta_arrow_v').remove()
                     new_data = $(this).children('.jta_object').data('json_data')
                     if new_data? and new_data.constructor? and new_data.constructor is Array
-                        $(this).children('.jta_object').html new_data.join ', '
-                        $(this).children('.jta_arrow_h').css 'display', 'none'
-                        
+                        $(this).children('.jta_object').html join_table(new_data)
+                        $(this).children('.jta_arrow_h').remove()
                     $(this).css 'max-width', 'none'
-
-
-
-                data = data.join(', ') #TODO Make the join considering the type of element
+                        
             else if typeof data is 'object'
                 classcolumn = dom_element.parent().parent().attr('class')
                 map = {}
@@ -418,7 +475,7 @@ module 'DataExplorerView', ->
                                 map[key]++
                             else
                                 map[key] = 1
-                            
+                    $(this).css 'max-width', 'none'
                 keys_sorted = []
                 for key of map
                     keys_sorted.push [key, map[key]]
@@ -441,7 +498,7 @@ module 'DataExplorerView', ->
 
                     is_description = true
                     template_json_table_td_attr = @template_json_table.td_attr
-                    template_json_table_td_value = @template_json_table.td_value
+                    json_to_table_get_td_value = @json_to_table_get_td_value
 
                     collection.each ->
                         if is_description
@@ -453,19 +510,29 @@ module 'DataExplorerView', ->
                         else
                             new_data = $(this).children().children('.jta_object').data('json_data')
                             if new_data? and new_data[key[0]]?
-                                to_print = new_data[key[0]]
-                            else
-                                to_print = 'undefined'
-                            $(this).after template_json_table_td_value
-                                classtd: classcolumn+'-'+i
-                                value: to_print
-                                data_to_expand: false
-                                col: 0
-                                classname: 'noclass'
+                                value = new_data[key[0]]
+                                    
+                            full_class = classname+'-'+i
+                            col = full_class.slice(full_class.indexOf('-')+1) #TODO Replace this trick
+
+                            $(this).after json_to_table_get_td_value(value, col)
+                            
                         return true
 
                 $('.'+classcolumn) .remove();
 
+
+        join_table: (data) =>
+            result = ''
+            for value, i in data
+                data_cell = @compute_data_for_type(value, 'float')
+                data_cell['is_inline'] = true
+                if i isnt data.length-1
+                    data_cell['need_comma'] = true
+
+                result += @template_json_table.data_inline data_cell
+                 
+            return result
 
         insert_columns: (column) ->
             console.log
@@ -523,6 +590,7 @@ module 'DataExplorerView', ->
                 when  'raw'
                      @.$('.results').html @json_to_tree @current_result
 
+            @delegateEvents()
             return @
 
         toggle_collapse: (event) =>
