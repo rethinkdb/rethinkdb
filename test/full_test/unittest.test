@@ -1,5 +1,5 @@
 do_test(
-    "$RETHINKDB/build/debug/rethinkdb-unittest",
+    "$RETHINKDB/build/debug/rethinkdb-unittest --gtest_filter=-RPCConnectivityTest.PeerIDSemantics:RPCConnectivityTest.PeerIDSemanticsMultiThread",
     repeat = 1,
     inputs = ["build/debug/rethinkdb-unittest"]
     )

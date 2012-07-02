@@ -52,7 +52,7 @@ public:
 
 private:
     boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > stores_;
-    const int num_stores_;
+    int num_stores_;
 
     DISABLE_COPYING(stores_lifetimer_t);
 };

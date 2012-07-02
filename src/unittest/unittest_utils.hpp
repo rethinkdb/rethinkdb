@@ -32,6 +32,8 @@ void let_stuff_happen();
 
 int randport();
 
+void run_in_thread_pool(const boost::function<void()>& fun, int num_workers = 1);
+
 }  // namespace unittest
 
 #endif  // UNITTEST_UNITTEST_UTILS_HPP_

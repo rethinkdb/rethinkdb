@@ -256,13 +256,9 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
                                                          multistore_send_backfill_should_backfill_t<protocol_t> *helper,
                                                          const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                                          const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
-                                                         typename protocol_t::backfill_progress_t *progress,
+                                                         UNUSED typename protocol_t::backfill_progress_t *progress,
                                                          boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                                          signal_t *interruptor) THROWS_NOTHING {
-    // TODO: This will be broken when things start being on multiple threads.
-
-    // TODO: Blithely passing progress along might be broken.
-
     store_view_t<protocol_t> *store = store_views[i];
 
     const int chunk_fun_target_hread = get_thread_id();
@@ -272,11 +268,14 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
 
     on_thread_t th(dest_thread);
 
+    // TODO: Fix the passing of progress.
+    typename protocol_t::backfill_progress_t tmp_progress;
+
     try {
         store->send_backfill(start_point.mask(get_region(i)),
                              boost::bind(&multistore_send_backfill_should_backfill_t<protocol_t>::should_backfill, helper, _1),
                              boost::bind(regionwrap_chunkfun<protocol_t>, chunk_fun, chunk_fun_target_hread, get_region(i), _1),
-                             progress,
+                             &tmp_progress,
                              read_tokens[i],
                              &ct_interruptor);
     } catch (interrupted_exc_t& exc) {
@@ -344,17 +343,25 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
     const int dest_thread = store_views[i]->home_thread();
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-    on_thread_t th(dest_thread);
-
     try {
-        responses->push_back(store_views[i]->read(DEBUG_ONLY(metainfo_checker.mask(ith_region), )
-                                                  read.shard(ith_intersection),
-                                                  order_token,
-                                                  read_tokens[i],
-                                                  &ct_interruptor));
+        typename protocol_t::read_response_t response;
+
+        {
+            on_thread_t th(dest_thread);
+
+            response = store_views[i]->read(DEBUG_ONLY(metainfo_checker.mask(ith_region), )
+                                            read.shard(ith_intersection),
+                                            order_token,
+                                            read_tokens[i],
+                                            &ct_interruptor);
+        }
+
+        responses->push_back(response);
     } catch (interrupted_exc_t& exc) {
         // do nothing
     }
+
+    
 }
 
 template <class protocol_t>
