@@ -100,7 +100,10 @@ class target():
             return repr(self.str)
 
     def start_vm(self):
-        return VM(self.build_uuid, self.build_hostname, self.username)
+        return VM(self.build_uuid, self.build_hostname, self.username) # startup = True
+
+    def get_vm(self):
+        return VM(self.build_uuid, self.build_hostname, self.username, startup = False)
 
     def interact(self, short_name):
         build_vm = self.start_vm()
@@ -214,7 +217,7 @@ class target():
 
         #clean up is used to just shutdown the machine, kind of a hack but oh well
     def clean_up(self):
-        build_vm = VM(self.build_uuid, self.build_hostname, self.username, startup=False)
+        build_vm = get_vm()
         return #this calls the build_vms __del__ method which shutsdown the machine
 
 def build(targets):

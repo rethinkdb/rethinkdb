@@ -3,6 +3,7 @@ from vcoptparse import *
 import vm_build
 import sys
 from threading import Thread, Semaphore
+import socket, os
 
 class Builder(Thread):
     def __init__(self, name, branch, target, semaphore):
@@ -44,6 +45,10 @@ def help():
     print >>sys.stderr, "                 Requires a target."
     print >>sys.stderr, "     --clean-up"
     print >>sys.stderr, "                 Shutdown all running vms"
+    print >>sys.stderr, "     --username"
+    print >>sys.stderr, "                 Starts the Virtual Machine from the specified username."
+    print >>sys.stderr, "     --hostname"
+    print >>sys.stderr, "                 Starts the Virtual Machine from the specified host computer."
 
 o = OptParser()
 o["help"] = BoolFlag("--help")
@@ -54,7 +59,8 @@ o["threads"] = IntFlag("--threads", 3)
 o["clean-up"] = BoolFlag("--clean-up")
 o["interact"] = BoolFlag("--interact")
 o["debug"] = BoolFlag("--debug");
-
+o["username"] = StringFlag("--username", os.getusername())
+o["hostname"] = StringFlag("--hostname", socket.gethostname())
 
 try:
     opts = o.parse(sys.argv)
@@ -85,7 +91,6 @@ if opts["debug"]:
     flags += " DEBUG=1 UNIT_TESTS=0"
 else:
     flags += " DEBUG=0"
-
 
 suse = vm_build.target('765127b8-2007-43ff-8668-fe4c60176a2b', '192.168.0.173', 'rethinkdb', 'LANG=C make LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 rpm-suse10 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
 redhat5_1 = vm_build.target('32340f79-cea9-42ca-94d5-2da13d408d02', '192.168.0.159', 'rethinkdb', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
