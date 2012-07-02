@@ -377,7 +377,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
     {
         wait_interruptible(lock, interruptor);
         mutex_assertion_t::acq_t mutex_acq(&mutex);
-        lock->reset();
+        lock->end();
 
         pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
         timestamp = current_timestamp;
@@ -418,7 +418,7 @@ void broadcaster_t<protocol_t>::spawn_write(typename protocol_t::write_t write, 
     by the loop further down in this very function. */
     mutex_assertion_t::acq_t mutex_acq(&mutex);
 
-    lock->reset();
+    lock->end();
 
     transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
     current_timestamp = timestamp.timestamp_after();
