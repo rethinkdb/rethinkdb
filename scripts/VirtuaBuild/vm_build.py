@@ -104,10 +104,10 @@ class target():
             return repr(self.str)
 
     def start_vm(self):
-        return VM(self.build_uuid, self.build_hostname, self.username, self.vbox_username, self.vbox_hostname) # startup = True
+        return VM(self.build_uuid, self.build_hostname, self.username, vbox_username = self.vbox_username, vbox_hostname = self.vbox_hostname) # startup = True
 
     def get_vm(self):
-        return VM(self.build_uuid, self.build_hostname, self.username, self.vbox_username, self.vbox_hostname, startup = False)
+        return VM(self.build_uuid, self.build_hostname, self.username, vbox_username = self.vbox_username, vbox_hostname = self.vbox_hostname, startup = False)
 
     def interact(self, short_name):
         build_vm = self.start_vm()
