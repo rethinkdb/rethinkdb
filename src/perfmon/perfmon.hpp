@@ -32,7 +32,7 @@ extern bool global_full_perfmon;
 // Abstract perfmon subclass that implements perfmon tracking by combining per-thread values.
 template<typename thread_stat_t, typename combined_stat_t = thread_stat_t>
 struct perfmon_perthread_t : public perfmon_t {
-    explicit perfmon_perthread_t() { }
+    perfmon_perthread_t() { }
 
     void *begin_stats() {
         return new thread_stat_t[get_num_threads()];
@@ -204,7 +204,7 @@ private:
     double combine_stats(double *);
     perfmon_result_t *output_stat(const double&);
 public:
-    perfmon_rate_monitor_t(ticks_t length);
+    explicit perfmon_rate_monitor_t(ticks_t length);
     void record(double value = 1.0);
 };
 
@@ -264,7 +264,7 @@ private:
 
     bool ignore_global_full_perfmon;
 public:
-    perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon = false);
+    explicit perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon = false);
     void begin(ticks_t *v);
     void end(ticks_t *v);
 

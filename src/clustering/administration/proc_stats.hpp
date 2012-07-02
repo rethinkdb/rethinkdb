@@ -11,7 +11,7 @@ public:
 private:
     class instantaneous_stats_collector_t : public perfmon_t {
     public:
-        explicit instantaneous_stats_collector_t();
+        instantaneous_stats_collector_t();
         void *begin_stats();
         void visit_stats(void *);
         perfmon_result_t *end_stats(void *);

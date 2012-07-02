@@ -58,7 +58,7 @@ struct mc_cache_stats_t {
     /* This is for exposing the block size */
     struct perfmon_cache_custom_t : public perfmon_t {
     public:
-        explicit perfmon_cache_custom_t();
+        perfmon_cache_custom_t();
         void *begin_stats();
         void visit_stats(void *);
         perfmon_result_t *end_stats(void *);
