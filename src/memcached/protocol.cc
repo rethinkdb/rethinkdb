@@ -494,7 +494,7 @@ void memcached_protocol_t::store_t::new_write_token(boost::scoped_ptr<fifo_enfor
 
 void memcached_protocol_t::store_t::acquire_superblock_for_read(
         access_t access,
-        bool snapshot,
+        cache_snapshotted_t snapshot,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         boost::scoped_ptr<transaction_t> &txn_out,
         boost::scoped_ptr<real_superblock_t> &sb_out,
@@ -559,7 +559,7 @@ memcached_protocol_t::store_t::get_metainfo(UNUSED order_token_t order_token,  /
                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     boost::scoped_ptr<transaction_t> txn;
     boost::scoped_ptr<real_superblock_t> superblock;
-    acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
+    acquire_superblock_for_read(rwi_read, CACHE_SNAPSHOTTED_NO, token, txn, superblock, interruptor);
 
     return get_metainfo_internal(txn.get(), superblock->get());
 }
@@ -649,7 +649,7 @@ memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(
 
     boost::scoped_ptr<transaction_t> txn;
     boost::scoped_ptr<real_superblock_t> superblock;
-    acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
+    acquire_superblock_for_read(rwi_read, CACHE_SNAPSHOTTED_NO, token, txn, superblock, interruptor);
 
     check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());
 

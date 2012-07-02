@@ -7,6 +7,7 @@
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
+#include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"  // TODO: sigh
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
@@ -240,7 +241,7 @@ public:
 
         void acquire_superblock_for_read(
                 access_t access,
-                bool snapshot,
+                cache_snapshotted_t snapshot,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 boost::scoped_ptr<transaction_t> &txn_out,
                 boost::scoped_ptr<real_superblock_t> &sb_out,
