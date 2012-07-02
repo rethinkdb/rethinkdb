@@ -40,29 +40,10 @@ public:
     virtual perfmon_result_t *end_stats(void *ctx) = 0;
 };
 
+class perfmon_membership_t;
+
 /* A perfmon collection allows you to add hierarchy to stats. */
 class perfmon_collection_t : public perfmon_t, public home_thread_mixin_t {
-public:
-    class membership_t : public intrusive_list_node_t<membership_t> {
-    public:
-        // If the name argument is NULL or an empty string, then the perfmon
-        // must be a perfmon_t that returns a map result from `end_stats` and
-        // its contents will be spliced into the parent collection.
-        membership_t(perfmon_collection_t *parent_, perfmon_t *perfmon_, const char *name_, bool own_the_perfmon_ = false);
-        membership_t(perfmon_collection_t *parent_, perfmon_t *perfmon_, const std::string &name_, bool own_the_perfmon_ = false);
-        ~membership_t();
-        perfmon_t *get();
-        perfmon_t *operator->();
-        bool splice();
-
-        std::string name;
-    private:
-        perfmon_collection_t *parent;
-        perfmon_t *perfmon;
-        bool own_the_perfmon;
-
-        DISABLE_COPYING(membership_t);
-    };
 public:
     perfmon_collection_t();
 
@@ -72,16 +53,34 @@ public:
     perfmon_result_t *end_stats(void *_contexts);
 
 private:
-    friend class membership_t;
+    friend class perfmon_membership_t;
 
-    void add(membership_t *perfmon);
-    void remove(membership_t *perfmon);
+    void add(perfmon_membership_t *perfmon);
+    void remove(perfmon_membership_t *perfmon);
 
     rwi_lock_t constituents_access;
-    intrusive_list_t<membership_t> constituents;
+    intrusive_list_t<perfmon_membership_t> constituents;
 };
 
-typedef perfmon_collection_t::membership_t perfmon_membership_t;
+class perfmon_membership_t : public intrusive_list_node_t<perfmon_membership_t> {
+public:
+    // If the name argument is NULL or an empty string, then the perfmon
+    // must be a perfmon_t that returns a map result from `end_stats` and
+    // its contents will be spliced into the parent collection.
+    perfmon_membership_t(perfmon_collection_t *_parent, perfmon_t *_perfmon, const char *_name, bool _own_the_perfmon = false);
+    perfmon_membership_t(perfmon_collection_t *_parent, perfmon_t *_perfmon, const std::string &_name, bool _own_the_perfmon = false);
+    ~perfmon_membership_t();
+    perfmon_t *get();
+    bool splice();
+
+    std::string name;
+private:
+    perfmon_collection_t *parent;
+    perfmon_t *perfmon;
+    bool own_the_perfmon;
+
+    DISABLE_COPYING(perfmon_membership_t);
+};
 
 class perfmon_multi_membership_t {
 public:

@@ -30,7 +30,7 @@ public:
     { }
 
     perfmon_collection_t btree_collection;
-    perfmon_collection_t::membership_t btree_collection_membership;
+    perfmon_membership_t btree_collection_membership;
     perfmon_rate_monitor_t
         pm_keys_read,
         pm_keys_set,

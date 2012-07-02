@@ -38,8 +38,8 @@ void *perfmon_collection_t::begin_stats() {
     }
 
     size_t i = 0;
-    for (membership_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
-        ctx->contexts[i] = (*p)->begin_stats();
+    for (perfmon_membership_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
+        ctx->contexts[i] = p->get()->begin_stats();
     }
     return ctx;
 }
@@ -47,8 +47,8 @@ void *perfmon_collection_t::begin_stats() {
 void perfmon_collection_t::visit_stats(void *_context) {
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
     size_t i = 0;
-    for (membership_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
-        (*p)->visit_stats(ctx->contexts[i]);
+    for (perfmon_membership_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
+        p->get()->visit_stats(ctx->contexts[i]);
     }
 }
 
@@ -59,8 +59,8 @@ perfmon_result_t * perfmon_collection_t::end_stats(void *_context) {
     perfmon_result_t::alloc_map_result(&map);
 
     size_t i = 0;
-    for (membership_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
-        perfmon_result_t * stat = (*p)->end_stats(ctx->contexts[i]);
+    for (perfmon_membership_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
+        perfmon_result_t * stat = p->get()->end_stats(ctx->contexts[i]);
         if (p->splice()) {
             stat->splice_into(map);
             delete stat; // `stat` is empty now, we can delete it safely
@@ -97,33 +97,29 @@ void perfmon_collection_t::remove(perfmon_membership_t *perfmon) {
     constituents.remove(perfmon);
 }
 
-perfmon_collection_t::membership_t::membership_t(perfmon_collection_t *parent_, perfmon_t *perfmon_, const char *name_, bool own_the_perfmon_)
-    : name(name_ != NULL ? name_ : ""), parent(parent_), perfmon(perfmon_), own_the_perfmon(own_the_perfmon_)
+perfmon_membership_t::perfmon_membership_t(perfmon_collection_t *_parent, perfmon_t *_perfmon, const char *_name, bool _own_the_perfmon)
+    : name(_name != NULL ? _name : ""), parent(_parent), perfmon(_perfmon), own_the_perfmon(_own_the_perfmon)
 {
     parent->add(this);
 }
 
-perfmon_collection_t::membership_t::membership_t(perfmon_collection_t *parent_, perfmon_t *perfmon_, const std::string &name_, bool own_the_perfmon_)
-    : name(name_), parent(parent_), perfmon(perfmon_), own_the_perfmon(own_the_perfmon_)
+perfmon_membership_t::perfmon_membership_t(perfmon_collection_t *_parent, perfmon_t *_perfmon, const std::string &_name, bool _own_the_perfmon)
+    : name(_name), parent(_parent), perfmon(_perfmon), own_the_perfmon(_own_the_perfmon)
 {
     parent->add(this);
 }
 
-perfmon_collection_t::membership_t::~membership_t() {
+perfmon_membership_t::~perfmon_membership_t() {
     parent->remove(this);
     if (own_the_perfmon)
         delete perfmon;
 }
 
-perfmon_t *perfmon_collection_t::membership_t::get() {
+perfmon_t *perfmon_membership_t::get() {
     return perfmon;
 }
 
-perfmon_t *perfmon_collection_t::membership_t::operator->() {
-    return get();
-}
-
-bool perfmon_collection_t::membership_t::splice() {
+bool perfmon_membership_t::splice() {
     return name.length() == 0;
 }
 
