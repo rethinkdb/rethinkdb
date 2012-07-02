@@ -16,6 +16,8 @@ namespace po = boost::program_options;
 
 static const int default_peer_port = 20300;
 
+#define NUM_WORKER_THREADS 4
+
 class host_and_port_t {
 public:
     host_and_port_t(const std::string& h, int p) : host(h), port(p) { }
@@ -380,7 +382,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     std::string filepath = vm["directory"].as<std::string>();
     std::string machine_name = vm["name"].as<std::string>();
 
-    const int num_workers = 1;  // get_cpu_count(); // TODO: uncomment
+    const int num_workers = NUM_WORKER_THREADS;  // get_cpu_count(); // TODO: uncomment
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, io_backend, &result),
@@ -419,7 +421,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
+    const int num_workers = NUM_WORKER_THREADS;  // get_cpu_count();  // TODO: uncomment
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins,
@@ -466,7 +468,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         if (last_arg == "-" || last_arg == "--")
             cmd_args.push_back(last_arg);
 
-        const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
+        const int num_workers = NUM_WORKER_THREADS;  // get_cpu_count();  // TODO: uncomment
         run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result),
                            num_workers);
 
@@ -511,7 +513,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
+    const int num_workers = NUM_WORKER_THREADS;  // get_cpu_count();  // TODO: uncomment
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins,
@@ -554,7 +556,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
+    const int num_workers = NUM_WORKER_THREADS;  // get_cpu_count();  // TODO: uncomment
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins,
