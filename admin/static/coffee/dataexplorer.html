@@ -83,7 +83,7 @@
 
 <!-- Keep </script> without space/new line before so the comma stick to the value of the object-->
 <script id="dataexplorer_result_json_tree_container-template" type="text/x-handlebars-template">
-    <div class="json_tree">{{print_safe tree}}</div></script>
+    <span class="jta_arrow jta_arrow_h"></span><div class="json_tree">{{print_safe tree}}</div></script>
 
 <script id="dataexplorer_result_json_tree_span-template" type="text/x-handlebars-template">
     <span class="jt_editable {{classname}}" contentEditable="true">{{value}}</span></script>
@@ -168,7 +168,7 @@
 </script>
 
 <script id="dataexplorer_result_json_table_td_attr-template" type="text/xs-handlebars-template">
-    <td class="td_attr {{classtd}}">
+    <td class="td_attr {{classtd}}" data-col={{col}}>
         <div class="jta_attr">{{key}}</div>
     </td>
 </script>

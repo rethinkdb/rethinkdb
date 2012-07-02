@@ -432,7 +432,6 @@ module 'DataExplorerView', ->
 
 
         expand_tree_in_table: (event) =>
-            console.log 'expand'
             dom_element = @.$(event.target).parent()
             data = dom_element.data('json_data')
             result = @json_to_tree data
@@ -457,7 +456,6 @@ module 'DataExplorerView', ->
                 $('.'+classcolumn).css 'max-width', 'none'
                 join_table = @join_table
                 $('.'+classname).each ->
-
                     $(this).children('.jta_arrow_v').remove()
                     new_data = $(this).children('.jta_object').data('json_data')
                     if new_data? and new_data.constructor? and new_data.constructor is Array
@@ -508,6 +506,7 @@ module 'DataExplorerView', ->
                             $(this).after template_json_table_td_attr
                                 classtd: classcolumn+'-'+i
                                 key: prefix+'.'+key[0]
+                                col: $(this).data('col')+'-'+i
                         else
                             new_data = $(this).children().children('.jta_object').data('json_data')
                             if new_data? and new_data[key[0]]?
@@ -590,7 +589,6 @@ module 'DataExplorerView', ->
                 when  'raw'
                      @.$('.results').html @json_to_tree @current_result
 
-            debugger
             @delegateEvents()
 
             return @

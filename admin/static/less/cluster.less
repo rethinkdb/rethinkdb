@@ -1776,6 +1776,7 @@
         }
     }
     .data_container{
+    
         .namespaces_available_container{
             float: left;
             width: 330px;
@@ -1800,6 +1801,7 @@
         width: 700px;
         overflow: auto;
         .json_tree{
+            float: left; // Clear the horizontal arrow
             font: 13px/18px monospace,mono,consolas;
             .jt_null{
                 font-weight: bold;
@@ -1880,7 +1882,10 @@
                 .td_attr{
                     background: #d3dce3;
                 }
-               .jta_null{
+                .jta_undefined{
+                    color: #ccc;
+                }
+                .jta_null{
                     font-weight: bold;
                     color: red
                 }
