@@ -59,7 +59,8 @@ void run_rethinkdb_create(const std::string &filepath, std::string &machine_name
         return;
     }
 
-    perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
+    perfmon_collection_t metadata_perfmon_collection;
+    perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
     metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
 
     printf("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
@@ -108,7 +109,8 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
         return;
     }
 
-    perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
+    perfmon_collection_t metadata_perfmon_collection;
+    perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
     metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
 
     *result_out = serve(io_backend,
@@ -128,7 +130,8 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
     if (check_existence(filepath)) {
         printf("It already exists.  Loading data...\n");
 
-        perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
+        perfmon_collection_t metadata_perfmon_collection;
+        perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
         metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
 
         *result_out = serve(io_backend,
@@ -212,7 +215,8 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
         }
 
-        perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
+        perfmon_collection_t metadata_perfmon_collection;
+        perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
         metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
 
         *result_out = serve(io_backend,

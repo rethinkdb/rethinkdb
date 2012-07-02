@@ -83,6 +83,7 @@ public:
 
             perfmon_collection_t pm_collection;
             perfmon_sampler_t pm_bytes_sent;
+            perfmon_membership_t pm_collection_membership, pm_bytes_sent_membership;
 
         private:
             void install_this(int target_thread) THROWS_NOTHING;
@@ -239,6 +240,7 @@ private:
     run_t *current_run;
 
     perfmon_collection_t connectivity_collection;
+    perfmon_membership_t stats_membership;
 
     DISABLE_COPYING(connectivity_cluster_t);
 };

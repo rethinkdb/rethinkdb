@@ -13,23 +13,42 @@
 #include "perfmon/perfmon.hpp"
 
 log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 
-    : serializer_collection("serializer", parent, true, true),
-      pm_serializer_block_reads("serializer_block_reads", secs_to_ticks(1), &serializer_collection),
-      pm_serializer_index_reads("serializer_index_reads", &serializer_collection),
-      pm_serializer_block_writes("serializer_block_writes", &serializer_collection),
-      pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1), &serializer_collection),
-      pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1), false, &serializer_collection),
-      pm_extents_in_use("serializer_extents_in_use", &serializer_collection),
-      pm_bytes_in_use("serializer_bytes_in_use", &serializer_collection),
-      pm_serializer_lba_extents("serializer_lba_extents", &serializer_collection),
-      pm_serializer_data_extents("serializer_data_extents", &serializer_collection),
-      pm_serializer_data_extents_allocated("serializer_data_extents_allocated", &serializer_collection),
-      pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed", &serializer_collection),
-      pm_serializer_data_extents_gced("serializer_data_extents_gced", &serializer_collection),
-      pm_serializer_data_blocks_written("serializer_data_blocks_written", &serializer_collection),
-      pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks", &serializer_collection),
-      pm_serializer_old_total_blocks("serializer_old_total_blocks", &serializer_collection),
-      pm_serializer_lba_gcs("serializer_lba_gcs", &serializer_collection)
+    : serializer_collection(),
+      pm_serializer_block_reads(secs_to_ticks(1)),
+      pm_serializer_index_reads(),
+      pm_serializer_block_writes(),
+      pm_serializer_index_writes(secs_to_ticks(1)),
+      pm_serializer_index_writes_size(secs_to_ticks(1), false),
+      pm_extents_in_use(),
+      pm_bytes_in_use(),
+      pm_serializer_lba_extents(),
+      pm_serializer_data_extents(),
+      pm_serializer_data_extents_allocated(),
+      pm_serializer_data_extents_reclaimed(),
+      pm_serializer_data_extents_gced(),
+      pm_serializer_data_blocks_written(),
+      pm_serializer_old_garbage_blocks(),
+      pm_serializer_old_total_blocks(),
+      pm_serializer_lba_gcs(),
+      parent_collection_membership(parent, &serializer_collection, "serializer"),
+      stats_membership(&serializer_collection,
+          &pm_serializer_block_reads, "serializer_block_reads",
+          &pm_serializer_index_reads, "serializer_index_reads",
+          &pm_serializer_block_writes, "serializer_block_writes",
+          &pm_serializer_index_writes, "serializer_index_writes",
+          &pm_serializer_index_writes_size, "serializer_index_writes_size",
+          &pm_extents_in_use, "serializer_extents_in_use",
+          &pm_bytes_in_use, "serializer_bytes_in_use",
+          &pm_serializer_lba_extents, "serializer_lba_extents",
+          &pm_serializer_data_extents, "serializer_data_extents",
+          &pm_serializer_data_extents_allocated, "serializer_data_extents_allocated",
+          &pm_serializer_data_extents_reclaimed, "serializer_data_extents_reclaimed",
+          &pm_serializer_data_extents_gced, "serializer_data_extents_gced",
+          &pm_serializer_data_blocks_written, "serializer_data_blocks_written",
+          &pm_serializer_old_garbage_blocks, "serializer_old_garbage_blocks",
+          &pm_serializer_old_total_blocks, "serializer_old_total_blocks",
+          &pm_serializer_lba_gcs, "serializer_lba_gcs",
+          NULL)
 { }
 
 void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config, perfmon_collection_t *stats_parent) {
@@ -201,7 +220,8 @@ struct ls_start_existing_fsm_t :
 
 log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_, perfmon_collection_t *_perfmon_collection)
     : stats(new log_serializer_stats_t(_perfmon_collection)),
-      disk_stats_collection("disk", _perfmon_collection, true, true),
+      disk_stats_collection(),
+      disk_stats_membership(_perfmon_collection, &disk_stats_collection, "disk"),
 #ifndef NDEBUG
       expecting_no_more_tokens(false),
 #endif

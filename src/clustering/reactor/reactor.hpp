@@ -171,6 +171,7 @@ private:
 
     perfmon_collection_t *parent_perfmon_collection;
     perfmon_collection_t regions_perfmon_collection;
+    perfmon_membership_t regions_perfmon_membership;
 
     DISABLE_COPYING(reactor_t);
 };

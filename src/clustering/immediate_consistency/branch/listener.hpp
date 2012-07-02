@@ -195,8 +195,10 @@ private:
 
     uuid_t uuid;
     perfmon_collection_t perfmon_collection;
-    fifo_enforcer_sink_t write_queue_entrance_sink;
+    perfmon_membership_t perfmon_collection_membership;
     disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue;
+
+    fifo_enforcer_sink_t write_queue_entrance_sink;
     boost::scoped_ptr<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback;
     boost::scoped_ptr<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool;
     adjustable_semaphore_t write_queue_semaphore;

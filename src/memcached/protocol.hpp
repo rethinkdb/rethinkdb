@@ -275,6 +275,7 @@ public:
         void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
 
         perfmon_collection_t perfmon_collection;
+        perfmon_membership_t perfmon_collection_membership;
     };
 };
 
