@@ -91,7 +91,7 @@ suse = vm_build.target('765127b8-2007-43ff-8668-fe4c60176a2b', '192.168.0.173', 
 redhat5_1 = vm_build.target('32340f79-cea9-42ca-94d5-2da13d408d02', '192.168.0.159', 'rethinkdb', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
 ubuntu = vm_build.target('1f4521a0-6e74-4d20-b4b9-9ffd8e231423', '192.168.0.172', 'rethinkdb', 'LANG=C make deb' + flags, 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary)
 debian = vm_build.target('cc76e2a5-92c0-4208-be08-5c02429c2c50', '192.168.0.176', 'root', 'LANG=C make deb NO_EVENTFD=1 LEGACY_LINUX=1 ' + flags, 'deb', vm_build.deb_install, vm_build.deb_uninstall, vm_build.deb_get_binary)
-centos5_5 = vm_build.target('25710682-666f-4449-bd28-68b25abd8bea', '192.168.0.177', 'root', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
+centos5_5 = vm_build.target('25710682-666f-4449-bd28-68b25abd8bea', '192.168.0.153', 'root', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
 centos6 = vm_build.target('d9058650-a45a-44a5-953f-c2402253a614', '192.168.0.178', 'rethinkdb', 'LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 ' + flags, 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall, vm_build.rpm_get_binary)
 
 targets = {"suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5, "centos6" : centos6}
