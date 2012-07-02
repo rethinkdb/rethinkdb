@@ -206,6 +206,7 @@ module 'DataExplorerView', ->
         render: (query, result) =>
             if query? and result?
                 @.$el.html @result_view.render(query, result).el
+                @result_view.delegateEvents()
             else
                 @.$el.html @default_view.render().el
 
@@ -243,7 +244,6 @@ module 'DataExplorerView', ->
             'click .jt_arrow': 'toggle_collapse'
             'keypress .jt_editable': 'handle_keypress'
             'blur .jt_editable': 'send_update'
-            
             # For Table view
             'mousedown td': 'handle_mousedown'
             'click .jta_arrow_v': 'expand_tree_in_table'
@@ -432,6 +432,7 @@ module 'DataExplorerView', ->
 
 
         expand_tree_in_table: (event) =>
+            console.log 'expand'
             dom_element = @.$(event.target).parent()
             data = dom_element.data('json_data')
             result = @json_to_tree data
@@ -581,7 +582,6 @@ module 'DataExplorerView', ->
                     type = "json"
                 else
                     type = "table"
-
             switch type
                 when  'json'
                      @.$('.results').html @json_to_tree @current_result
@@ -590,7 +590,9 @@ module 'DataExplorerView', ->
                 when  'raw'
                      @.$('.results').html @json_to_tree @current_result
 
+            debugger
             @delegateEvents()
+
             return @
 
         toggle_collapse: (event) =>
