@@ -712,6 +712,15 @@ Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtim
     return res;
 }
 
+void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env) {
+    if (!cJSON_GetObjectItem(data->get(), "id")) {
+        throw runtime_exc_t("Must have a field named id.");
+    }
+
+    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(cJSON_GetObjectItem(data->get(), "id"))), data));
+    ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
+}
+
 Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (w.type()) {
         case WriteQuery::UPDATE:
@@ -726,12 +735,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                 for (int i = 0; i < w.insert().terms_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> data = eval(w.insert().terms(i), env);
 
-                    if (!cJSON_GetObjectItem(data->get(), "id")) {
-                        throw runtime_exc_t("Must have a field named id.");
-                    }
-
-                    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(cJSON_GetObjectItem(data->get(), "id"))), data));
-                    ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
+                    insert(ns_access, data, env);
                 }
                 Response res;
                 res.set_status_code(0);
@@ -745,6 +749,35 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
         case WriteQuery::FOREACH:
             break;
         case WriteQuery::POINTUPDATE:
+            {
+                //First we need to grab the value the easiest way to do this is to just construct a term and evaluate it.
+                Term get;
+                get.set_type(Term::GETBYKEY);
+                Term::GetByKey get_by_key;
+                *get_by_key.mutable_table_ref() = w.point_update().table_ref();
+                get_by_key.set_attrname(w.point_update().attrname());
+                *get_by_key.mutable_key() = w.point_update().key();
+                *get.mutable_get_by_key() = get_by_key;
+
+                rassert(is_well_defined(get));
+
+                boost::shared_ptr<scoped_cJSON_t> original_val = eval(get, env);
+                new_val_scope_t scope_maker(&env->scope);
+                env->scope.put_in_scope(w.point_update().mapping().arg(), original_val);
+
+                boost::shared_ptr<scoped_cJSON_t> new_val = eval(w.point_update().mapping().body(), env);
+
+                /* Now we insert the new value. */
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w.insert().table_ref(), env);
+
+                insert(ns_access, new_val, env);
+
+                Response res;
+                res.set_status_code(0);
+                res.set_token(0);
+                res.add_response("Updated 1 rows.");
+                return res;
+            }
             break;
         case WriteQuery::POINTDELETE:
             break;
@@ -765,7 +798,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
 boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (t.type()) {
         case Term::VAR:
-            return eval(env->scope.get(t.var()), env);
+            return env->scope.get(t.var());
             break;
         case Term::LET:
             {
@@ -776,8 +809,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
                     // TODO: we should evaluate the binding term right
                     // here to avoid multiple reevaluations during
                     // expression evaluation.
-                    new_scope.parent->put_in_scope(t.let().binds(i).var(),
-                                                   t.let().binds(i).term());
+                    env->scope.put_in_scope(t.let().binds(i).var(),
+                                            eval(t.let().binds(i).term(), env));
                 }
                 return eval(t.let().expr(), env);;
             }

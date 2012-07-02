@@ -155,7 +155,7 @@ public:
     }
 
     struct new_scope_t {
-        explicit new_scope_t(variable_scope_t *_parent)
+        explicit new_scope_t(variable_scope_t<T> *_parent)
             : parent(_parent)
         {
             parent->push();
@@ -164,7 +164,7 @@ public:
             parent->pop();
         }
 
-        variable_scope_t *parent;
+        variable_scope_t<T> *parent;
     };
 private:
     typedef std::deque<std::map<std::string, T> > scopes_t;
@@ -198,7 +198,9 @@ const type_t get_type(const Query &q, variable_type_scope_t *scope);
 
 //typedef boost::variant<Response> eval_result;
 
-typedef variable_scope_t<Term> variable_val_scope_t;
+typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;
+
+typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> >::new_scope_t new_val_scope_t;
 
 class runtime_exc_t {
 public:
