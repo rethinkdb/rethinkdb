@@ -53,19 +53,21 @@ def deb_uninstall(cmd_name):
     return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\\1/' | xargs dpkg -r" % cmd_name
 
 class VM():
-    def __init__(self, uuid, hostname, username = 'rethinkdb', rootname = 'root', startup = True):
+    def __init__(self, uuid, hostname, username = 'rethinkdb', rootname = 'root', vbox_username = 'rethinkdb', vbox_hostname = 'deadshot', startup = True):
         self.uuid = uuid
         self.hostname = hostname
         self.username = username
         self.rootname = rootname
+        self.vbox_username = vbox_username
+        self.vbox_hostname = vbox_hostname
         if (startup):
-            os.system("VBoxManage startvm %s --type headless" % self.uuid)
+            os.system("ssh %s@%s VBoxManage startvm %s --type headless" % (self.vbox_username, self.vbox_hostname, self.uuid))
             time.sleep(80)
             while (self.command("true") != 0):
                 time.sleep(3)
 
     def __del__(self):
-        os.system("VBoxManage controlvm %s poweroff" % self.uuid)
+        os.system("ssh %s@%s VBoxManage controlvm %s poweroff" % (self.vbox_username, self.vbox_hostname, self.uuid))
 
     def command(self, cmd_str, root = False, bg = False):
         str = "ssh -o ConnectTimeout=1000 %s@%s \"%s\"" % ((self.rootname if root else self.username), self.hostname, (cmd_str + ("&" if bg else ""))) + ("&" if bg else "")
@@ -83,7 +85,7 @@ class VM():
         return os.popen("ssh %s@%s \"%s\"" % (self.username, self.hostname, cmd_str), mode)
 
 class target():
-    def __init__(self, build_uuid, build_hostname, username, build_cl, res_ext, install_cl_f, uninstall_cl_f, get_binary_f):
+    def __init__(self, build_uuid, build_hostname, username, build_cl, res_ext, install_cl_f, uninstall_cl_f, get_binary_f, vbox_username, vbox_hostname):
         self.build_uuid = build_uuid 
         self.build_hostname = build_hostname 
         self.username = username
@@ -92,6 +94,8 @@ class target():
         self.install_cl_f = install_cl_f # path -> install cmd
         self.uninstall_cl_f = uninstall_cl_f
         self.get_binary_f = get_binary_f
+	self.vbox_username = vbox_username # username and hostname for running VirtualBox through ssh
+        self.vbox_hostname = vbox_hostname
 
     class RunError(Exception):
         def __init__(self, str):
@@ -100,10 +104,10 @@ class target():
             return repr(self.str)
 
     def start_vm(self):
-        return VM(self.build_uuid, self.build_hostname, self.username) # startup = True
+        return VM(self.build_uuid, self.build_hostname, self.username, self.vbox_username, self.vbox_hostname) # startup = True
 
     def get_vm(self):
-        return VM(self.build_uuid, self.build_hostname, self.username, startup = False)
+        return VM(self.build_uuid, self.build_hostname, self.username, self.vbox_username, self.vbox_hostname, startup = False)
 
     def interact(self, short_name):
         build_vm = self.start_vm()
