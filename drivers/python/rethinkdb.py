@@ -108,7 +108,6 @@ class Stream(object):
         self.check_readonly()
         return Update(self, updater, row)
 
-
 class Table(Stream):
     def __init__(self, db, name):
         super(Table, self).__init__()
@@ -123,6 +122,10 @@ class Table(Stream):
 
     def find(self, value, key='id'):
         return Find(self, key, value)
+
+    def set(self, value, updater, key='id', row=DEFAULT_ROW_BINDING):
+        self.check_readonly()
+        return Set(self, value, updater, key, row)
 
     def write_ref_ast(self, parent):
         parent.db_name = self.db.name
@@ -160,6 +163,9 @@ class Find(Stream):
         self.tableref = tableref
         self.key = key
         self.value = value
+
+    def set(self, updater, row=DEFAULT_ROW_BINDING):
+        return Set(self.tableref, self.value, updater, self.key, row)
 
     def write_ast(self, parent):
         parent.type = p.Term.GETBYKEY
@@ -235,6 +241,28 @@ class Update(object):
         parent.update.mapping.arg = self.row
         body = parent.update.mapping.body
         extend(self.row, self.updater).write_ast(body)
+
+    def _finalize_query(self, root):
+        wq = _finalize_internal(root, p.WriteQuery)
+        self.write_ast(wq)
+
+class Set(object):
+    # Accepts a dict, and eventually, javascript
+    def __init__(self, parent_view, value, updater, key, row):
+        self.parent_view = parent_view
+        self.value = value
+        self.updater = updater
+        self.key = key
+        self.row = row
+
+    def write_ast(self, parent):
+        parent.type = p.WriteQuery.POINTUPDATE
+        self.parent_view.write_ref_ast(parent.point_update.table_ref)
+        parent.point_update.attrname = self.key
+        toTerm(self.value).write_ast(parent.point_update.key)
+        parent.point_update.mapping.arg = self.row
+        body = parent.point_update.mapping.body
+        toTerm(self.updater).write_ast(body)
 
     def _finalize_query(self, root):
         wq = _finalize_internal(root, p.WriteQuery)
