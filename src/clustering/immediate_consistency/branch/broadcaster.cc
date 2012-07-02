@@ -33,7 +33,8 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
       branch_id(generate_uuid()),
       branch_history_manager(bhm),
       registrar(mailbox_manager, this),
-      broadcaster_collection("broadcaster", parent_perfmon_collection, true, true)
+      broadcaster_collection(),
+      broadcaster_membership(parent_perfmon_collection, &broadcaster_collection, "broadcaster")
 {
 
     order_checkpoint.set_tagappend("broadcaster_t");
@@ -182,7 +183,8 @@ class broadcaster_t<protocol_t>::dispatchee_t : public intrusive_list_node_t<dis
 public:
     dispatchee_t(broadcaster_t *c, listener_business_card_t<protocol_t> d) THROWS_NOTHING :
         write_mailbox(d.write_mailbox), is_readable(false),
-        queue_count(uuid_to_str(d.write_mailbox.get_peer().get_uuid()) + "_broadcast_queue_count", &c->broadcaster_collection),
+        queue_count(),
+        queue_count_membership(&c->broadcaster_collection, &queue_count, uuid_to_str(d.write_mailbox.get_peer().get_uuid()) + "_broadcast_queue_count"),
         background_write_queue(&queue_count),
         // TODO magic constant
         background_write_workers(100, &background_write_queue, &background_write_caller),
@@ -241,6 +243,7 @@ public:
     fifo_enforcer_source_t fifo_source;
 
     perfmon_counter_t queue_count;
+    perfmon_membership_t queue_count_membership;
     unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
     calling_callback_t background_write_caller;
     coro_pool_t<boost::function<void()> > background_write_workers;
@@ -377,7 +380,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
     {
         wait_interruptible(lock, interruptor);
         mutex_assertion_t::acq_t mutex_acq(&mutex);
-        lock->reset();
+        lock->end();
 
         pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
         timestamp = current_timestamp;
@@ -418,7 +421,7 @@ void broadcaster_t<protocol_t>::spawn_write(typename protocol_t::write_t write, 
     by the loop further down in this very function. */
     mutex_assertion_t::acq_t mutex_acq(&mutex);
 
-    lock->reset();
+    lock->end();
 
     transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
     current_timestamp = timestamp.timestamp_after();

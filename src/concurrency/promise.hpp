@@ -16,7 +16,7 @@ struct promise_t : public home_thread_mixin_t {
         value = new val_t(v);
         cond.pulse();
     }
-    val_t wait() {
+    const val_t &wait() {
         assert_thread();
         cond.wait_lazily_unordered();
         return *value;
@@ -24,7 +24,7 @@ struct promise_t : public home_thread_mixin_t {
     signal_t *get_ready_signal() {
         return &cond;
     }
-    val_t get_value() {
+    const val_t &get_value() {
         assert_thread();
         rassert(value);
         return *value;

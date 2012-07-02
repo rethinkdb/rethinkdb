@@ -108,7 +108,9 @@ bool do_serve(
     admin_tracker_t admin_tracker(
         semilattice_manager_cluster.get_root_view(), directory_read_manager.get_root_view());
 
-    perfmon_collection_t proc_stats_collection("proc", &get_global_perfmon_collection(), true, true);
+    perfmon_collection_t proc_stats_collection;
+    perfmon_membership_t proc_stats_membership(&get_global_perfmon_collection(), &proc_stats_collection, "proc");
+
     proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
 
     boost::scoped_ptr<initial_joiner_t> initial_joiner;

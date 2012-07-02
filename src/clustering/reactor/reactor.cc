@@ -38,7 +38,8 @@ reactor_t<protocol_t>::reactor_t(
     underlying_svs(_underlying_svs),
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
     parent_perfmon_collection(_parent_perfmon_collection),
-    regions_perfmon_collection("regions", parent_perfmon_collection, true, true)
+    regions_perfmon_collection(),
+    regions_perfmon_membership(parent_perfmon_collection, &regions_perfmon_collection, "regions")
 {
     {
         typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint_watchable);

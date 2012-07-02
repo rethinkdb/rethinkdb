@@ -10,6 +10,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "arch/timing.hpp"
+#include "clustering/immediate_consistency/query/master_access.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/registrant.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -17,24 +18,6 @@
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "protocol_api.hpp"
-
-#define THROTTLE_THRESHOLD 200
-
-
-template <class fifo_enforcer_token_type> fifo_enforcer_token_type get_fifo_enforcer_token(fifo_enforcer_source_t *source);
-
-template <>
-inline
-fifo_enforcer_read_token_t get_fifo_enforcer_token<fifo_enforcer_read_token_t>(fifo_enforcer_source_t *source) {
-    return source->enter_read();
-}
-
-template <>
-inline
-fifo_enforcer_write_token_t get_fifo_enforcer_token<fifo_enforcer_write_token_t>(fifo_enforcer_source_t *source) {
-    return source->enter_write();
-}
-
 
 template<class protocol_t>
 class cluster_namespace_interface_t :
@@ -46,7 +29,6 @@ public:
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<std::map<peer_id_t, master_map_t> > > mv) :
-        self_id(generate_uuid()),
         mailbox_manager(mm),
         masters_view(mv),
         start_count(0),
@@ -72,21 +54,21 @@ public:
     }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t r, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-        return generic_dispatch<typename protocol_t::read_t, fifo_enforcer_read_token_t, typename protocol_t::read_response_t>(
-            &master_connection_t::read_mailbox,
+        return generic_dispatch<typename protocol_t::read_t, fifo_enforcer_sink_t::exit_read_t, typename protocol_t::read_response_t>(
+            &master_access_t<protocol_t>::new_read_token, &master_access_t<protocol_t>::read,
             r, order_token, interruptor);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t w, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-        return generic_dispatch<typename protocol_t::write_t, fifo_enforcer_write_token_t, typename protocol_t::write_response_t>(
-            &master_connection_t::write_mailbox,
+        return generic_dispatch<typename protocol_t::write_t, fifo_enforcer_sink_t::exit_write_t, typename protocol_t::write_response_t>(
+            &master_access_t<protocol_t>::new_write_token, &master_access_t<protocol_t>::write,
             w, order_token, interruptor);
     }
 
     std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
         std::vector<typename protocol_t::region_t> s;
         for (typename std::map<master_id_t, master_connection_t *>::const_iterator it = open_connections.begin(); it != open_connections.end(); it++) {
-            s.push_back(it->second->region);
+            s.push_back(it->second->master_access->get_region());
         }
         typename protocol_t::region_t whole;
         region_join_result_t res = region_join(s, &whole);
@@ -99,87 +81,51 @@ public:
 private:
     class master_connection_t {
     public:
-        master_connection_t(peer_id_t p,
-                const typename protocol_t::region_t &r,
-                const typename master_business_card_t<protocol_t>::read_mailbox_t::address_t &rm,
-                const typename master_business_card_t<protocol_t>::write_mailbox_t::address_t &wm,
-                mailbox_manager_t *_mbox_manager)
-            : peer_id(p), region(r), 
-              read_mailbox(rm), write_mailbox(wm),
-              allocation_mailbox(_mbox_manager, boost::bind(&master_connection_t::recv_allocation, this, _1), mailbox_callback_mode_inline),
-              allocated_writes(0),
-              mbox_manager(_mbox_manager)
-        { }
-
-        void recv_allocation(int amount) {
-            allocated_writes += amount;
-        }
-
-
-        peer_id_t peer_id;
-        fifo_enforcer_source_t fifo_enforcer_source;
-        typename protocol_t::region_t region;
-        typename master_business_card_t<protocol_t>::read_mailbox_t::address_t read_mailbox;
-        typename master_business_card_t<protocol_t>::write_mailbox_t::address_t write_mailbox;
-        mailbox_t<void(int)> allocation_mailbox;
-
-        int allocated_writes;
-        mailbox_manager_t *mbox_manager;
+        master_access_t<protocol_t> *master_access;
         auto_drainer_t drainer;
     };
 
     /* The code for handling reads is 99% the same as the code for handling
     writes, so it's factored out into the `generic_dispatch()` function. */
 
-    template<class op_response_t>
-    class response_handler_functor_t : public boost::static_visitor<op_response_t> {
-    public:
-        op_response_t operator()(op_response_t response) const {
-            return response;
-        }
-        op_response_t operator()(UNUSED const std::string& error_message) const {
-            throw cannot_perform_query_exc_t(error_message);
-        }
-    };
-
     template<class fifo_enforcer_token_type>
     class master_info_t {
     public:
-        master_info_t(master_connection_t *m, const fifo_enforcer_token_type &et, auto_drainer_t::lock_t l) :
-            master(m), enforcement_token(et), keepalive(l) { }
-        master_connection_t *master;
+        master_access_t<protocol_t> *master_access;
         fifo_enforcer_token_type enforcement_token;
         auto_drainer_t::lock_t keepalive;
     };
 
     template<class op_type, class fifo_enforcer_token_type, class op_response_type>
     op_response_type generic_dispatch(
-            /* This is a pointer-to-member. It's always going to be either
-            `&master_connection_t::read_mailbox` or
-            `&master_connection_t::write_mailbox`. */
-            mailbox_addr_t<void(namespace_interface_id_t, op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> master_connection_t::*mailbox_field,
+            /* `how_to_make_token` and `how_to_run_query` have type pointer-to-
+            member-function. */
+            void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),
+            op_response_type (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
             op_type op, order_token_t order_token, signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t)
     {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
         std::vector<typename protocol_t::region_t> regions;
-        std::vector<master_info_t<fifo_enforcer_token_type> > masters_to_contact;
-        cover<fifo_enforcer_token_type>(op.get_region(), &regions, &masters_to_contact);
+        boost::ptr_vector<master_info_t<fifo_enforcer_token_type> > masters_to_contact;
+        cover<fifo_enforcer_token_type>(how_to_make_token, op.get_region(), &regions, &masters_to_contact);
         rassert(regions.size() == masters_to_contact.size());
 
         std::vector<boost::variant<op_response_type, std::string> > results_or_failures(masters_to_contact.size());
         pmap(masters_to_contact.size(), boost::bind(
             &cluster_namespace_interface_t::generic_perform<op_type, fifo_enforcer_token_type, op_response_type>, this,
-            mailbox_field, &regions, &masters_to_contact, &op, order_token, &results_or_failures, _1, interruptor));
+            how_to_run_query, &regions, &masters_to_contact, &op, order_token, &results_or_failures, _1, interruptor));
 
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
 
         std::vector<op_response_type> results;
         for (int i = 0; i < int(masters_to_contact.size()); i++) {
-            /* `response_handler_function_t` will throw an exception if there
-            was a failure. */
-            results.push_back(boost::apply_visitor(response_handler_functor_t<op_response_type>(), results_or_failures[i]));
+            if (std::string *error = boost::get<std::string>(&results_or_failures[i])) {
+                throw cannot_perform_query_exc_t(*error);
+            } else {
+                results.push_back(boost::get<op_response_type>(results_or_failures[i]));
+            }
         }
 
         return op.unshard(results, &temporary_cache);
@@ -187,9 +133,9 @@ private:
 
     template<class op_type, class fifo_enforcer_token_type, class op_response_type>
     void generic_perform(
-            mailbox_addr_t<void(namespace_interface_id_t, op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> master_connection_t::*mailbox_field,
+            op_response_type (master_access_t<protocol_t>::*how_to_run_query)(const op_type &, order_token_t, fifo_enforcer_token_type *, signal_t *) THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t),
             const std::vector<typename protocol_t::region_t> *regions,
-            const std::vector<master_info_t<fifo_enforcer_token_type> > *masters_to_contact,
+            boost::ptr_vector<master_info_t<fifo_enforcer_token_type> > *masters_to_contact,
             const op_type *operation,
             order_token_t order_token,
             std::vector<boost::variant<op_response_type, std::string> > *results_or_failures,
@@ -198,37 +144,20 @@ private:
             THROWS_NOTHING
     {
         const typename protocol_t::region_t &region = (*regions)[i];
-        const master_info_t<fifo_enforcer_token_type> &master_to_contact = (*masters_to_contact)[i];
+        master_info_t<fifo_enforcer_token_type> *master_to_contact = &(*masters_to_contact)[i];
         op_type shard = operation->shard(region);
         rassert(region_is_superset(region, shard.get_region()));
 
-        promise_t<boost::variant<op_response_type, std::string> > result_or_failure;
-        mailbox_t<void(boost::variant<op_response_type, std::string>)> result_or_failure_mailbox(
-            mailbox_manager,
-            boost::bind(&promise_t<boost::variant<op_response_type, std::string> >::pulse, &result_or_failure, _1),
-            mailbox_callback_mode_inline);
-
-        mailbox_addr_t<void(namespace_interface_id_t, op_type, order_token_t, fifo_enforcer_token_type, mailbox_addr_t<void(boost::variant<op_response_type, std::string>)>)> query_address =
-            master_to_contact.master->*mailbox_field;
-
-        fifo_enforcer_token_type enforcement_token = master_to_contact.enforcement_token;
-
-        get_throttled(shard, master_to_contact.master->allocated_writes);
-
         try {
-            master_to_contact.master->allocated_writes--;
-            send(mailbox_manager, query_address,
-                    self_id, shard, order_token, enforcement_token, result_or_failure_mailbox.get_address());
-
-            wait_any_t waiter(result_or_failure.get_ready_signal(), master_to_contact.keepalive.get_drain_signal());
-            wait_interruptible(&waiter, interruptor);
-
-            if (result_or_failure.get_ready_signal()->is_pulsed()) {
-                (*results_or_failures)[i] = result_or_failure.get_value();
-            } else {
-                (*results_or_failures)[i] = "lost contact with master";
-            }
-
+            (*results_or_failures)[i] = (master_to_contact->master_access->*how_to_run_query)(
+                shard,
+                order_token,
+                &master_to_contact->enforcement_token,
+                interruptor);
+        } catch (resource_lost_exc_t) {
+            (*results_or_failures)[i] = "lost contact with master";
+        } catch (cannot_perform_query_exc_t e) {
+            (*results_or_failures)[i] = "master error: " + std::string(e.what());
         } catch (interrupted_exc_t) {
             rassert(interruptor->is_pulsed());
             /* Ignore `interrupted_exc_t` and just return immediately.
@@ -237,19 +166,12 @@ private:
         }
     }
 
-    void get_throttled(typename protocol_t::read_t, int) { }
-
-    void get_throttled(typename protocol_t::write_t, int allocated_writes) {
-        if (allocated_writes < THROTTLE_THRESHOLD) {
-            nap(std::min(1000.0, pow(2, -(float(allocated_writes)/100.0))));
-        }
-    }
-
     template<class fifo_enforcer_token_type>
     void cover(
+            void (master_access_t<protocol_t>::*how_to_make_token)(fifo_enforcer_token_type *),
             typename protocol_t::region_t target_region,
             std::vector<typename protocol_t::region_t> *regions_out,
-            std::vector<master_info_t<fifo_enforcer_token_type> > *info_out)
+            boost::ptr_vector<master_info_t<fifo_enforcer_token_type> > *info_out)
             THROWS_ONLY(cannot_perform_query_exc_t)
     {
         ASSERT_NO_CORO_WAITING;
@@ -259,14 +181,14 @@ private:
         /* Find all the masters that might possibly be relevant */
         for (typename std::map<master_id_t, master_connection_t *>::const_iterator it = open_connections.begin(); it != open_connections.end(); it++) {
             typename protocol_t::region_t intersection =
-                region_intersection(target_region, it->second->region);
+                region_intersection(target_region, it->second->master_access->get_region());
             if (!region_is_empty(intersection)) {
                 regions_out->push_back(intersection);
-                info_out->push_back(master_info_t<fifo_enforcer_token_type>(
-                    it->second,
-                    get_fifo_enforcer_token<fifo_enforcer_token_type>(&it->second->fifo_enforcer_source),
-                    auto_drainer_t::lock_t(&it->second->drainer)
-                    ));
+                master_info_t<fifo_enforcer_token_type> *mi = new master_info_t<fifo_enforcer_token_type>;
+                mi->master_access = it->second->master_access;
+                (it->second->master_access->*how_to_make_token)(&mi->enforcement_token);
+                mi->keepalive = auto_drainer_t::lock_t(&it->second->drainer);
+                info_out->push_back(mi);
             }
         }
 
@@ -307,7 +229,7 @@ private:
                     /* Now handle it. */
                     coro_t::spawn_sometime(boost::bind(
                         &cluster_namespace_interface_t::registrant_coroutine, this,
-                        it->first, id, mmit->second, is_start,
+                        it->first, id, is_start,
                         auto_drainer_t::lock_t(&registrant_coroutine_auto_drainer)
                         ));
                 }
@@ -315,46 +237,48 @@ private:
         }
     }
 
-    static boost::optional<boost::optional<registrar_business_card_t<namespace_interface_business_card_t> > > extract_registrar_business_card(const std::map<peer_id_t, master_map_t> &map, const peer_id_t &peer, const master_id_t &master) {
-        boost::optional<boost::optional<registrar_business_card_t<namespace_interface_business_card_t> > > ret;
+    static boost::optional<boost::optional<master_business_card_t<protocol_t> > > extract_master_business_card(const std::map<peer_id_t, master_map_t> &map, const peer_id_t &peer, const master_id_t &master) {
+        boost::optional<boost::optional<master_business_card_t<protocol_t> > > ret;
         typename std::map<peer_id_t, master_map_t>::const_iterator it = map.find(peer);
         if (it != map.end()) {
-            ret = boost::optional<registrar_business_card_t<namespace_interface_business_card_t> >();
+            ret = boost::optional<master_business_card_t<protocol_t> >();
             typename master_map_t::const_iterator jt = it->second.find(master);
             if (jt != it->second.end()) {
-                ret.get() = jt->second.namespace_interface_registration_business_card;
+                ret.get() = jt->second;
             }
         }
         return ret;
     }
 
-    void registrant_coroutine(peer_id_t peer_id, master_id_t master_id, master_business_card_t<protocol_t> initial_bcard, bool is_start, auto_drainer_t::lock_t lock) {
-        // this function is responsible for removing master_id from handled_master_ids before it returns.
-        master_connection_t connection(
-            peer_id,
-            initial_bcard.region,
-            initial_bcard.read_mailbox,
-            initial_bcard.write_mailbox,
-            mailbox_manager
-            );
+    void registrant_coroutine(peer_id_t peer_id, master_id_t master_id, bool is_start, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+        try {
+            master_access_t<protocol_t> master_access(
+                mailbox_manager,
+                masters_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, _1, peer_id, master_id)),
+                lock.get_drain_signal());
 
-        cond_t ack_signal;
-        namespace_interface_business_card_t::ack_mailbox_type ack_mailbox(
-            mailbox_manager,
-            boost::bind(&cond_t::pulse, &ack_signal),
-            mailbox_callback_mode_inline);
+            master_connection_t master_connection_record;
+            master_connection_record.master_access = &master_access;
 
-        registrant_t<namespace_interface_business_card_t>
-            registrant(mailbox_manager,
-                       masters_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_registrar_business_card, _1, peer_id, master_id)),
-                       namespace_interface_business_card_t(self_id, ack_mailbox.get_address(), connection.allocation_mailbox.get_address()));
+            map_insertion_sentry_t<master_id_t, master_connection_t *> map_insertion(
+                &open_connections, master_id, &master_connection_record);
 
-        signal_t *drain_signal = lock.get_drain_signal();
-        signal_t *failed_signal = registrant.get_failed_signal();
+            if (is_start) {
+                rassert(start_count > 0);
+                start_count--;
+                if (start_count == 0) {
+                    start_cond.pulse();
+                }
+                is_start = false;
+            }
 
-        {
-            wait_any_t ack_waiter(&ack_signal, drain_signal, failed_signal);
-            ack_waiter.wait_lazily_unordered();
+            wait_any_t waiter(master_access.get_failed_signal(), lock.get_drain_signal());
+            waiter.wait_lazily_unordered();
+
+        } catch (resource_lost_exc_t e) {
+            /* ignore */
+        } catch (interrupted_exc_t e) {
+            /* ignore */
         }
 
         if (is_start) {
@@ -365,25 +289,16 @@ private:
             }
         }
 
-        if (ack_signal.is_pulsed()) {
-            map_insertion_sentry_t<master_id_t, master_connection_t *> map_insertion(
-                &open_connections, master_id, &connection);
-
-            wait_any_t waiter(failed_signal, drain_signal);
-            waiter.wait_lazily_unordered();
-        }
-
         handled_master_ids.erase(master_id);
 
         // Maybe we got reconnected really quickly, and didn't handle
         // the reconnection, because `handled_master_ids` already noted
         // ourselves as handled.
-        if (!drain_signal->is_pulsed()) {
+        if (!lock.get_drain_signal()->is_pulsed()) {
             update_registrants(false);
         }
     }
 
-    namespace_interface_id_t self_id;
     mailbox_manager_t *mailbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, master_map_t> > > masters_view;
 

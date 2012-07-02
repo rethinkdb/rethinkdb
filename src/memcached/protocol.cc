@@ -419,7 +419,8 @@ hash_region_t<key_range_t> memcached_protocol_t::cpu_sharding_subspace(int subre
 memcached_protocol_t::store_t::store_t(io_backender_t *io_backender, const std::string& filename,
                                        bool create, perfmon_collection_t *_perfmon_collection)
     : store_view_t<memcached_protocol_t>(hash_region_t<key_range_t>::universe()),
-      perfmon_collection(filename, _perfmon_collection, true, true) {
+      perfmon_collection(),
+      perfmon_collection_membership(_perfmon_collection, &perfmon_collection, filename) {
 
     if (create) {
 
