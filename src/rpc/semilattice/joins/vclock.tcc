@@ -13,17 +13,14 @@ vclock_t<T>::vclock_t(const stamped_value_t &_value) {
 template <class T>
 void vclock_t<T>::cull_old_values() {
     rassert(!values.empty(), "As a precondition, values should never be empty\n");
-    typedef vclock_t<T>::value_map_t value_map_t;
     value_map_t to_delete;
 
-    cartesian_product_iterator_t<value_map_t, value_map_t> pairs_iterator(values.begin(), values.end(), values.begin(), values.end());
-
-    boost::optional<std::pair<typename value_map_t::iterator, typename value_map_t::iterator> > pair;
-    while ((pair = *pairs_iterator)) {
-        if (vclock_details::dominates(pair->first->first, pair->second->first)) {
-            to_delete.insert(*pair->first);
+    for (typename value_map_t::iterator p = values.begin(); p != values.end(); ++p) {
+        for (typename value_map_t::iterator q = values.begin(); q != values.end(); ++q) {
+            if (vclock_details::dominates(p->first, q->first)) {
+                to_delete.insert(*p);
+            }
         }
-        pairs_iterator.increment();
     }
 
     for (typename value_map_t::iterator d_it =  to_delete.begin();
