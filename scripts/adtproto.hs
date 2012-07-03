@@ -69,8 +69,7 @@ In particular:
 -}
 
 {- EXAMPLE SYNTAX
-
-data Bool { branch True; branch False; };
+data Bool { branch True, False; };
 
 data Tree {
   branch Node { repeated Tree children; };
@@ -112,7 +111,7 @@ message Reduction { Term base; string var1; string var2; Term body; };
 
 data Builtin {
   branch Not;
-  branch Add; branch Subtract; branch Multiply; branch Divide;
+  branch Add, Subtract, Multiply, Divide;
 
   branch Limit = int32;
 
@@ -130,9 +129,7 @@ data Builtin {
 
   // we can optimize encoding of these branches by reusing the same field for
   // all of them.
-  branch GetAttr;
-  branch HasAttr;
-  branch PickAttrs;
+  branch GetAttr, HasAttr, PickAttrs;
   repeated string attrs;        // <-- namely, this field
 
   // etc, etc...
@@ -149,7 +146,7 @@ import Data.List (findIndices, intercalate, intersperse)
 import Control.Monad.State
 import Control.Applicative ((<$>), (<*>), (<*), (<$))
 
-import Text.PrettyPrint hiding (char, semi, equals, braces)
+import Text.PrettyPrint hiding (char, semi, equals, braces, comma)
 import qualified Text.PrettyPrint as PP
 
 import Text.Parsec hiding (State)
@@ -181,23 +178,24 @@ data DeclType = TypeDeclADT DeclADT
 data DeclADT = ADT { adtName :: Ident, adtBody :: [ADTDecl] }
                deriving Show
 
-data ADTDecl = ADTDeclBranch DeclBranch
+data ADTDecl = ADTDeclBranches DeclBranches
              | ADTDeclType DeclType
              | ADTDeclField DeclField
                deriving Show
 
-data DeclBranch = Branch { branchName :: Ident, branchBody :: BranchBody }
-                  deriving Show
-
-data BranchBody
+data DeclBranches
     -- branch Foo { fields... };
-    = BranchMessage [MessageDecl]
+    = BranchMessage Ident [MessageDecl]
     -- branch Foo = int;
-    -- branch Foo = repeated int;
-    | BranchIsType Type Modifier
-    -- branch Quux;
-    | BranchEmpty
+    | BranchIsType Ident Type Modifier
+    -- branch Quux, Xyzzy, Plugh;
+    | BranchesEmpty [Ident]
       deriving Show
+
+branchNames :: DeclBranches -> [Ident]
+branchNames (BranchMessage i _) = [i]
+branchNames (BranchIsType i _ _) = [i]
+branchNames (BranchesEmpty is) = is
 
 -- Messages
 data DeclMessage = Message { messageName :: Ident
@@ -231,28 +229,27 @@ compileADT (ADT name decls) = Message name mdecls
                    MessageDeclField enumField :
                    concatMap transDecl decls
           enumName = name ++ "Type"
-          enumTags = [EnumDeclTag (map toUpper (branchName b))
-                          | ADTDeclBranch b <- decls]
+          enumTags = [EnumDeclTag (map toUpper bname)
+                          | ADTDeclBranches b <- decls, bname <- branchNames b]
           enumField = Field "type" (TypeName enumName) Required
           transDecl :: ADTDecl -> [MessageDecl]
           transDecl (ADTDeclType t) = [MessageDeclType t]
-          transDecl (ADTDeclBranch b) = compileBranch b
+          transDecl (ADTDeclBranches b) = compileBranches b
           transDecl (ADTDeclField d) = [MessageDeclField d]
 
-compileBranch :: DeclBranch -> [MessageDecl]
-compileBranch (Branch name body) =
-    case body of BranchEmpty -> []
-                 BranchIsType t m -> [field t m]
-                 BranchMessage ds ->
-                     [ MessageDeclType (TypeDeclMessage (Message mtypename ds))
-                     , field (TypeName mtypename) Required ]
+compileBranches :: DeclBranches -> [MessageDecl]
+compileBranches b =
+    case b of BranchesEmpty _ -> []
+              BranchIsType name typ mod -> [field name typ mod]
+              BranchMessage name decls ->
+                  [ MessageDeclType (TypeDeclMessage (Message name decls))
+                  , field name (TypeName name) Required ]
      where
        -- NB. "Required" on a branch gets turned into "Optional" b/c it really
        -- means "the field is required IF the branch tag indicates this branch"
-       field typ mod = MessageDeclField (Field (toFieldName name) typ mod')
+       field name typ mod = MessageDeclField (Field (toFieldName name) typ mod')
            where mod' = case mod of Required -> Optional
                                     _ -> mod
-       mtypename = name
 
 -- Transforms a type name "FooBarBaz" to a field name "foo_bar_baz"
 toFieldName :: Ident -> Ident
@@ -334,13 +331,15 @@ languageDef = javaStyle { P.nestedComments = False
                         }
 
 lexer = P.makeTokenParser languageDef
-parens = P.parens lexer
+
 braces = P.braces lexer
+comma = P.comma lexer
+equals = P.reservedOp lexer "="
 ident = P.identifier lexer
+parens = P.parens lexer
 reserved = P.reserved lexer
 semi = P.semi lexer
 whiteSpace = P.whiteSpace lexer
-equals = P.reservedOp lexer "="
 
 parseBlock p = braces p <* semi
 
@@ -361,21 +360,20 @@ parseDeclADT = do reserved "data"
                   ADT <$> ident <*> parseBlock (many parseADTDecl)
 
 parseADTDecl :: Parse ADTDecl
-parseADTDecl = choice [ ADTDeclBranch <$> parseDeclBranch
+parseADTDecl = choice [ ADTDeclBranches <$> parseDeclBranches
                       , ADTDeclType <$> parseDeclType
                       , ADTDeclField <$> parseDeclField ]
 
-parseDeclBranch :: Parse DeclBranch
-parseDeclBranch = do reserved "branch"
-                     Branch <$> ident <*> parseBranchBody
-
-parseBranchBody :: Parse BranchBody
-parseBranchBody = choice [ BranchMessage <$> parseMessageBody
-                         , equals >> isType <* semi
-                         , BranchEmpty <$ semi ]
-    where isType = do mod <- option Required parseModifier
-                      typ <- parseType
-                      return $ BranchIsType typ mod
+parseDeclBranches :: Parse DeclBranches
+parseDeclBranches = do reserved "branch"
+                       id <- ident
+                       choice [ BranchMessage id <$> parseMessageBody
+                              , equals >> branchIsType id <* semi
+                              , branchesEmpty id <* semi ]
+    where branchIsType id = do mod <- option Required parseModifier
+                               typ <- parseType
+                               return $ BranchIsType id typ mod
+          branchesEmpty id = BranchesEmpty . (id:) <$> many (comma >> ident)
 
 -- messages
 parseDeclMessage :: Parse DeclMessage
