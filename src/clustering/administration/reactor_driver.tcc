@@ -47,7 +47,8 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
 template <class protocol_t>
 class watchable_and_reactor_t : private master_t<protocol_t>::ack_checker_t {
 public:
-    watchable_and_reactor_t(reactor_driver_t<protocol_t> *parent_,
+    watchable_and_reactor_t(io_backender_t *io_backender,
+                            reactor_driver_t<protocol_t> *parent_,
                             namespace_id_t _namespace_id,
                             const blueprint_t<protocol_t> &bp,
                             svs_by_namespace_t<protocol_t> *_svs_by_namespace) :
@@ -56,7 +57,7 @@ public:
         namespace_id(_namespace_id),
         svs_by_namespace(_svs_by_namespace)
     {
-        coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this));
+        coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this, io_backender));
     }
 
     ~watchable_and_reactor_t() {
@@ -139,13 +140,14 @@ private:
         parent->watchable_variable.set_value(directory);
     }
 
-    void initialize_reactor() {
+    void initialize_reactor(io_backender_t *io_backender) {
         perfmon_collection_t *perfmon_collection = parent->perfmon_collection_repo->get_perfmon_collection_for_namespace(namespace_id);
 
         // TODO: We probably shouldn't have to pass in this perfmon collection.
         svs_by_namespace->get_svs(perfmon_collection, namespace_id, &stores_lifetimer, &svs);
 
         reactor.reset(new reactor_t<protocol_t>(
+            io_backender,
             parent->mbox_manager,
             this,
             parent->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
@@ -186,15 +188,17 @@ private:
 };
 
 template <class protocol_t>
-reactor_driver_t<protocol_t>::reactor_driver_t(mailbox_manager_t *_mbox_manager,
-                 const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
-                 branch_history_manager_t<protocol_t> *_branch_history_manager,
-                 boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
-                 boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
-                 const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
-                 svs_by_namespace_t<protocol_t> *_svs_by_namespace,
-                 perfmon_collection_repo_t *_perfmon_collection_repo)
-    : mbox_manager(_mbox_manager),
+reactor_driver_t<protocol_t>::reactor_driver_t(io_backender_t *_io_backender,
+                                               mailbox_manager_t *_mbox_manager,
+                                               const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
+                                               branch_history_manager_t<protocol_t> *_branch_history_manager,
+                                               boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
+                                               boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
+                                               const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
+                                               svs_by_namespace_t<protocol_t> *_svs_by_namespace,
+                                               perfmon_collection_repo_t *_perfmon_collection_repo)
+    : io_backender(_io_backender),
+      mbox_manager(_mbox_manager),
       directory_view(_directory_view),
       branch_history_manager(_branch_history_manager),
       machine_id_translation_table(_machine_id_translation_table),
@@ -259,7 +263,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(this, it->first, bp, svs_by_namespace));
+                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(io_backender, this, it->first, bp, svs_by_namespace));
                 } else {
                     reactor_data.find(it->first)->second->watchable.set_value(bp);
                 }

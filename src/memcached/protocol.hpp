@@ -6,9 +6,8 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
-#include "arch/io/io_utils.hpp"
 #include "btree/backfill.hpp"
-#include "btree/parallel_traversal.hpp"  // TODO: sigh
+// #include "btree/parallel_traversal.hpp"  // TODO: sigh
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -22,7 +21,9 @@
 #include "perfmon/types.hpp"
 #include "repli_timestamp.hpp"
 
+class io_backender_t;
 class real_superblock_t;
+class traversal_progress_combiner_t;
 
 write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf);
 archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);
@@ -181,7 +182,7 @@ public:
         // TODO: This was originally private.  Do we still want it to be private?
         typedef region_map_t<memcached_protocol_t, binary_blob_t> metainfo_t;
 
-        store_t(io_backend_t io_backend, const std::string& filename, bool create, perfmon_collection_t *collection);
+        store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection);
         ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
@@ -240,7 +241,6 @@ public:
 
         void acquire_superblock_for_read(
                 access_t access,
-                bool snapshot,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 boost::scoped_ptr<transaction_t> &txn_out,
                 boost::scoped_ptr<real_superblock_t> &sb_out,
@@ -275,6 +275,7 @@ public:
         void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
 
         perfmon_collection_t perfmon_collection;
+        perfmon_membership_t perfmon_collection_membership;
     };
 };
 

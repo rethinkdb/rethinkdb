@@ -11,13 +11,13 @@
 template <class protocol_t>
 class file_based_svs_by_namespace_t : public svs_by_namespace_t<protocol_t> {
 public:
-    explicit file_based_svs_by_namespace_t(io_backend_t io_backend, const std::string &file_path) : io_backend_(io_backend), file_path_(file_path) { }
+    file_based_svs_by_namespace_t(io_backender_t *io_backender, const std::string &file_path) : io_backender_(io_backender), file_path_(file_path) { }
 
     void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
                  stores_lifetimer_t<protocol_t> *stores_out,
                  boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out);
 private:
-    io_backend_t io_backend_;
+    io_backender_t *io_backender_;
     const std::string file_path_;
 
     DISABLE_COPYING(file_based_svs_by_namespace_t);

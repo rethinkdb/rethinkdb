@@ -337,7 +337,8 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
         }
 
         std::string region_name(render_region_as_string(&region, 0));
-        perfmon_collection_t region_perfmon_collection(region_name, &regions_perfmon_collection, true, true);
+        perfmon_collection_t region_perfmon_collection;
+        perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, & region_perfmon_collection, region_name);
 
         broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history_manager, svs, &region_perfmon_collection, interruptor);
 
@@ -352,7 +353,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
-        listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history_manager, &broadcaster, &region_perfmon_collection, interruptor);
+        listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster_business_card, branch_history_manager, &broadcaster, &region_perfmon_collection, interruptor);
         replier_t<protocol_t> replier(&listener);
         master_t<protocol_t> master(mailbox_manager, ack_checker, region, &broadcaster);
 

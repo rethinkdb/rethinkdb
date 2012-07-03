@@ -71,7 +71,8 @@ protected:
 template <class protocol_t>
 class reactor_driver_t {
 public:
-    reactor_driver_t(mailbox_manager_t *_mbox_manager,
+    reactor_driver_t(io_backender_t *io_backender,
+                     mailbox_manager_t *_mbox_manager,
                      const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
                      branch_history_manager_t<protocol_t> *_branch_history_manager,
                      boost::shared_ptr<semilattice_readwrite_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_view,
@@ -95,6 +96,7 @@ private:
     void delete_reactor_data(auto_drainer_t::lock_t lock, typename reactor_map_t::auto_type *thing_to_delete);
     void on_change();
 
+    io_backender_t *io_backender;
     mailbox_manager_t *mbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > directory_view;
     branch_history_manager_t<protocol_t> *branch_history_manager;

@@ -135,9 +135,9 @@ public:
 template<class protocol_t>
 class test_reactor_t : private master_t<protocol_t>::ack_checker_t {
 public:
-    test_reactor_t(reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs) :
+    test_reactor_t(io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs) :
         blueprint_watchable(initial_blueprint),
-        reactor(&r->mailbox_manager, this,
+        reactor(io_backender, &r->mailbox_manager, this,
               r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
               &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection()),
         reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable)
@@ -173,6 +173,7 @@ template<class protocol_t>
 class test_cluster_group_t {
 public:
     boost::ptr_vector<temp_file_t> files;
+    boost::scoped_ptr<io_backender_t> io_backender;
     boost::ptr_vector<typename protocol_t::store_t> stores;
     boost::ptr_vector<multistore_ptr_t<protocol_t> > svses;
     boost::ptr_vector<reactor_test_cluster_t<protocol_t> > test_clusters;
@@ -183,9 +184,11 @@ public:
 
     explicit test_cluster_group_t(int n_machines) {
         int port = randport();
+        make_io_backender(aio_default, &io_backender);
+
         for (int i = 0; i < n_machines; i++) {
             files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
-            stores.push_back(new typename protocol_t::store_t(aio_pool, files[i].name(), true, NULL));
+            stores.push_back(new typename protocol_t::store_t(io_backender.get(), files[i].name(), true, NULL));
             store_view_t<protocol_t> *store_ptr = &stores[i];
             svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
             stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
@@ -199,7 +202,7 @@ public:
 
     void construct_all_reactors(const blueprint_t<protocol_t> &bp) {
         for (unsigned i = 0; i < test_clusters.size(); i++) {
-            test_reactors.push_back(new test_reactor_t<protocol_t>(&test_clusters[i], bp, &svses[i]));
+            test_reactors.push_back(new test_reactor_t<protocol_t>(io_backender.get(), &test_clusters[i], bp, &svses[i]));
         }
     }
 
