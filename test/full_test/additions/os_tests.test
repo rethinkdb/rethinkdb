@@ -4,5 +4,5 @@ for os_name in os_names:
     do_test(
         "$RETHINKDB/scripts/VirtuaBuild/builder.py --tag v1.1.8 --target %s" % os_name,
         repeat = 1,
-        inputs = ["scripts/VirtuaBuild"]
+        inputs = ["test/common", "scripts/VirtuaBuild"]
         )

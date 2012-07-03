@@ -1,4 +1,4 @@
-import memcache
+import workload_common #import memcache
 import time
 
 num_keys = 10000
@@ -11,33 +11,33 @@ class TestError(Exception):
 
 # simple test to make sure that an installation has basic functionality
 def test_against(host, port):
-    mc = memcache.Client(['%s:%d' % (host, port)])
-    while (mc.set("test", "test") == 0):
-        time.sleep(5)
+    with workload_common.make_memcache_connection(host, port) as mc:
+        while (mc.set("test", "test") == 0):
+            time.sleep(5)
 
-    for i in range(num_keys):
-        if mc.set(str(i), str(i)) == 0:
-            return False
-    for i in range(num_keys):
-        if mc.get(str(i)) != str(i):
-            return False
-    return True
+        for i in range(num_keys):
+            if mc.set(str(i), str(i)) == 0:
+                return False
+        for i in range(num_keys):
+            if mc.get(str(i)) != str(i):
+                return False
+        return True
 
 # put some known data in the
 def throw_migration_data(host, port):
-    mc = memcache.Client(['%s:%d' % (host, port)])
-    while (mc.set("test", "test") == 0):
-        time.sleep(5)
+    with workload_common.make_memcache_connection(host, port) as mc:
+        while (mc.set("test", "test") == 0):
+            time.sleep(5)
 
-    for i in range(num_keys):
-        if mc.set(str(i), str(i)) == 0:
-            raise TestError("Write failed")
+        for i in range(num_keys):
+            if mc.set(str(i), str(i)) == 0:
+                raise TestError("Write failed")
 
 def check_migration_data(host, port):
-    mc = memcache.Client(['%s:%d' % (host, port)])
-    while (mc.set("test", "test") == 0):
-        time.sleep(5)
+    with workload_common.make_memcache_connection(host, port) as mc:
+        while (mc.set("test", "test") == 0):
+            time.sleep(5)
 
-    for i in range(num_keys):
-        if mc.get(str(i)) != str(i):
-            raise TestError("Incorrect value")
+        for i in range(num_keys):
+            if mc.get(str(i)) != str(i):
+                raise TestError("Incorrect value")
