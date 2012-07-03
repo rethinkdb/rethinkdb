@@ -47,6 +47,7 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         @current_view = new NamespaceView.NamespaceList
         @$container.html @current_view.render().el
+        @sidebar.set_type_view()
 
     index_servers: ->
         log_router '/index_servers'
@@ -54,6 +55,7 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         @current_view = new ServerView.DatacenterList
         @$container.html @current_view.render().el
+        @sidebar.set_type_view()
 
     dashboard: ->
         log_router '/dashboard'
@@ -61,6 +63,7 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         @current_view = new DashboardView.Container
         @$container.html @current_view.render().el
+        @sidebar.set_type_view()
 
     resolve_issues: ->
         log_router '/resolve_issues'
@@ -68,6 +71,7 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         @current_view = new ResolveIssuesView.Container
         @$container.html @current_view.render().el
+        @sidebar.set_type_view()
 
     logs: ->
         log_router '/logs'
@@ -75,6 +79,7 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         @current_view = new LogView.Container
         @$container.html @current_view.render().el
+        @sidebar.set_type_view()
 
     dataexplorer: ->
         log_router '/dataexplorer'
@@ -82,7 +87,7 @@ class BackboneCluster extends Backbone.Router
         @current_view.destroy()
         @current_view = new DataExplorerView.Container
         @$container.html @current_view.render().el
-
+        @sidebar.set_type_view('dataexplorer')
 
     namespace: (id) ->
         log_router '/namespaces/' + id
@@ -94,6 +99,7 @@ class BackboneCluster extends Backbone.Router
         else @current_view = new NamespaceView.NotFound id
 
         @$container.html @current_view.render().el
+        @sidebar.set_type_view()
 
     datacenter: (id) ->
         log_router '/datacenters/' + id
@@ -105,6 +111,7 @@ class BackboneCluster extends Backbone.Router
         else @current_view = new DatacenterView.NotFound id
 
         @$container.html @current_view.render().el
+        @sidebar.set_type_view()
 
     machine: (id) ->
         log_router '/machines/' + id
@@ -116,3 +123,4 @@ class BackboneCluster extends Backbone.Router
         else @current_view = new MachineView.NotFound id
 
         @$container.html @current_view.render().el
+        @sidebar.set_type_view()

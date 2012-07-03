@@ -57,7 +57,8 @@ module 'DataExplorerView', ->
 
         execute_query: =>
             query = @.$('.input_query').val() 
-            @data_container.add_query(query)
+            @data_container.add_query(query) #TODO remove because it's redundant?
+            window.router.sidebar.add_query(query)
             #TODO ajax call + loading
             if query is '0'
                 result = []

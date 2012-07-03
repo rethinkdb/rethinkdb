@@ -77,3 +77,25 @@
     <p class="from-machine">From <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
     <p class="datetime"><abbr class="timeago" title="{{timeago_timestamp}}">{{timeago_timestamp}}</abbr></p>
 </script>
+
+<script id="sidebar-dataexplorer_container-template" type="text/x-handlebars-template">
+    <div class="section cluster-status">
+        <div class="issues"></div>
+    </div>
+    <div class="section last">
+        <h3>Quick start</h3>
+        <h4>Namespaces</h4>
+        <ul>
+            {{#each namespaces}}
+                <li class="constrained_li"><a href="#" data-id="{{id}}">{{this.name}}</a></li>
+            {{/each}}
+        </ul>
+
+        <h4>Previous queries</h4>
+        <ul>
+            {{#each previous_queries}}
+                <li class="constrained_li"><a href="#{{this}}">{{this}}</a></li>
+            {{/each}}
+        </ul>
+    </div>
+</script>

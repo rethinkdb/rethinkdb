@@ -4,7 +4,11 @@ module 'Sidebar', ->
     class @Container extends Backbone.View
         className: 'sidebar-container'
         template: Handlebars.compile $('#sidebar-container-template').html()
+        template_dataexplorer: Handlebars.compile $('#sidebar-dataexplorer_container-template').html()
+
         max_recent_log_entries: 5
+        type_view: 'default'
+        previous_queries: []
 
         initialize: =>
             log_initial '(initializing) sidebar view: container'
@@ -19,21 +23,52 @@ module 'Sidebar', ->
             # Render when roude changes
             window.app.on 'all', @render
 
-        render: (route) =>
-            @.$('.recent-log-entries').html ''
-            @.$el.html @template({})
+        set_type_view: (type = 'default') =>
+            if type isnt @type_view
+                @type_view = type
+                @render()
+                if type is 'default'
+                    recent_log_entries.on 'reset', @render
+                else if type is 'dataexplorer'
+                    recent_log_entries.off()
 
-            # Render connectivity status
-            @.$('.client-connection-status').html @client_connectivity_status.render().el
-            @.$('.connectivity-status').html @connectivity_status.render().el
+        add_query: (query) =>
+            @previous_queries.push query
+            @render()
 
-            # Render issue summary
-            @.$('.issues').html @issues.render().el
-            
-            # Render each event view and add it to the list of recent events
-            for view in recent_log_entries_view
-                @.$('.recent-log-entries').append view.render().el
-            return @
+        render: =>
+            if @type_view is 'default'
+                @.$('.recent-log-entries').html ''
+                @.$el.html @template({})
+    
+                # Render connectivity status
+                @.$('.client-connection-status').html @client_connectivity_status.render().el
+                @.$('.connectivity-status').html @connectivity_status.render().el
+    
+                # Render issue summary
+                @.$('.issues').html @issues.render().el
+                
+                # Render each event view and add it to the list of recent events
+                for view in recent_log_entries_view
+                    @.$('.recent-log-entries').append view.render().el
+                return @
+            else
+                namespaces_data = []
+                for namespace in namespaces.models
+                    namespaces_data.push
+                        name: namespace.get('name')
+                        id: namespace.get('id')
+
+                
+                @.$el.html @template_dataexplorer
+                    namespaces: namespaces_data
+                    previous_queries: @previous_queries
+
+                # Render issue summary
+                @.$('.issues').html @issues.render().el
+
+                return @
+
 
 
     # Sidebar.ClientConnectionStatus
