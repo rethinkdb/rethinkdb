@@ -94,6 +94,8 @@ public:
                 boost::function<void(peer_id_t)>,
                 boost::function<void(peer_id_t)>
                 > >::subscription_t subs;
+
+        DISABLE_COPYING(peers_list_subscription_t);
     };
 
     /* `get_me()` returns the `peer_id_t` for this cluster node.
