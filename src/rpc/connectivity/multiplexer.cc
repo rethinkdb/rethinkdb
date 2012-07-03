@@ -2,6 +2,7 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
 
 #include "rpc/connectivity/connectivity.hpp"
 

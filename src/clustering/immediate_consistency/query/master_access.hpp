@@ -1,6 +1,10 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_ACCESS_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_ACCESS_HPP_
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+#include <boost/scoped_ptr.hpp>
+
 #include "clustering/immediate_consistency/query/metadata.hpp"
 #include "clustering/registrant.hpp"
 #include "protocol_api.hpp"

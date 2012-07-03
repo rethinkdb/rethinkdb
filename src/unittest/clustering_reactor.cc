@@ -4,12 +4,11 @@
 #include <boost/tokenizer.hpp>
 
 #include "clustering/administration/main/watchable_fields.hpp"
-#include "clustering/immediate_consistency/query/namespace_interface.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
-#include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "clustering/reactor/namespace_interface.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"
 #include "mock/branch_history_manager.hpp"
@@ -82,9 +81,8 @@ template<class protocol_t>
 class test_cluster_directory_t {
 public:
     boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > reactor_directory;
-    std::map<master_id_t, master_business_card_t<protocol_t> > master_directory;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(reactor_directory, master_directory);
+    RDB_MAKE_ME_SERIALIZABLE_1(reactor_directory);
 };
 
 /* This is a cluster that is useful for reactor testing... but doesn't actually
@@ -142,8 +140,7 @@ public:
         reactor(io_backender, &r->mailbox_manager, this,
               r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
               &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection()),
-        reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable),
-        master_directory_copier(&test_cluster_directory_t<protocol_t>::master_directory, reactor.get_master_directory(), &r->our_directory_variable)
+        reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable)
     {
         rassert(svs->get_multistore_joined_region() == a_thru_z_region());
     }
@@ -155,7 +152,6 @@ public:
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
     reactor_t<protocol_t> reactor;
     field_copier_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >, test_cluster_directory_t<protocol_t> > reactor_directory_copier;
-    field_copier_t<std::map<master_id_t, master_business_card_t<protocol_t> >, test_cluster_directory_t<protocol_t> > master_directory_copier;
 
 private:
     static boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > wrap_in_optional(
@@ -264,13 +260,17 @@ public:
     //    test_reactors[i].blueprint_watchable.set_value(bp);
     //}
 
-    static std::map<peer_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > extract_master_directory(
+    static std::map<peer_id_t, reactor_business_card_t<protocol_t> > extract_reactor_business_cards_no_optional(
             const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input) {
-        std::map<peer_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > output;
+        std::map<peer_id_t, reactor_business_card_t<protocol_t> > out;
         for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = input.begin(); it != input.end(); it++) {
-            output.insert(std::make_pair(it->first, it->second.master_directory));
+            if (it->second.reactor_directory) {
+                out.insert(std::make_pair(it->first, it->second.reactor_directory->internal));
+            } else {
+                out.insert(std::make_pair(it->first, reactor_business_card_t<protocol_t>()));
+            }
         }
-        return output;
+        return out;
     }
 
     void run_queries() {
@@ -278,7 +278,7 @@ public:
         for (unsigned i = 0; i < test_clusters.size(); i++) {
             cluster_namespace_interface_t<protocol_t> namespace_if(&test_clusters[i].mailbox_manager,
                 (&test_clusters[i])->directory_read_manager.get_root_view()
-                    ->subview(&test_cluster_group_t::extract_master_directory));
+                    ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional));
             namespace_if.get_initial_ready_signal()->wait_lazily_unordered();
 
             order_source_t order_source;

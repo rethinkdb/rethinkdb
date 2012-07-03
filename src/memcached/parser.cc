@@ -831,7 +831,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 
     pipeliner_acq->done_argparsing();
 
-    coro_t::spawn_now_deprecated(boost::bind(&run_storage_command, rh, pipeliner_acq, sc, key, dp, metadata, noreply, token));
+    coro_t::spawn_now(boost::bind(&run_storage_command, rh, pipeliner_acq, sc, key, dp, metadata, noreply, token));
 }
 
 /* "incr" and "decr" commands */
@@ -1121,11 +1121,11 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
         /* Dispatch to the appropriate subclass */
         order_token_t token = order_source.check_in(std::string("handle_memcache+") + args[0]);
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
-            coro_t::spawn_now_deprecated(boost::bind(do_get, &rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode()));
+            coro_t::spawn_now(boost::bind(do_get, &rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode()));
         } else if (!strcmp(args[0], "gets")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_get, &rh, &pipeliner, true, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_get, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "rget")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_rget, &rh, &pipeliner, args.size(), args.data()));
+            coro_t::spawn_now(boost::bind(do_rget, &rh, &pipeliner, args.size(), args.data()));
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
             do_storage(&rh, &pipeliner, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {
@@ -1139,11 +1139,11 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
         } else if (!strcmp(args[0], "cas")) {
             do_storage(&rh, &pipeliner, cas_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "delete")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_delete, &rh, &pipeliner, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_delete, &rh, &pipeliner, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "incr")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_incr_decr, &rh, &pipeliner, true, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_incr_decr, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "decr")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_incr_decr, &rh, &pipeliner, false, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_incr_decr, &rh, &pipeliner, false, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "quit")) {
             // Make sure there's no more tokens (the kind in args, not
             // order tokens)

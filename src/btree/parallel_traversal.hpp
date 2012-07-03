@@ -55,7 +55,7 @@ public:
     int get_level();
 
 private:
-    scoped_malloc<internal_node_t> node_;
+    scoped_malloc_t<internal_node_t> node_;
     block_id_t forced_block_id_;
     const btree_key_t *left_exclusive_or_null_;
     const btree_key_t *right_inclusive_or_null_;

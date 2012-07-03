@@ -257,7 +257,7 @@ struct internal_node_releaser_t : public parent_releaser_t {
     traversal_state_t *state_;
     virtual void release() {
         state_->helper->postprocess_internal_node(buf_);
-        buf_->release();
+        delete buf_;
         delete this;
     }
     internal_node_releaser_t(buf_lock_t *buf, traversal_state_t *state) : buf_(buf), state_(state) { }

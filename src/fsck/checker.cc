@@ -920,12 +920,12 @@ void check_subtree_leaf_node(slicecx_t *cx, const leaf_node_t *buf,
     }
 
     struct : public block_getter_t {
-        bool get_block(block_id_t id, scoped_malloc<char>& buf_out) {
+        bool get_block(block_id_t id, scoped_malloc_t<char>& buf_out) {
             btree_block_t b;
             if (b.init(cx, id)) {
                 // TODO: This copies the block, and there's no reason
                 // we really have to do that.
-                scoped_malloc<char> tmp(reinterpret_cast<char *>(b.buf), reinterpret_cast<char *>(b.buf) + cx->block_size().value());
+                scoped_malloc_t<char> tmp(reinterpret_cast<char *>(b.buf), reinterpret_cast<char *>(b.buf) + cx->block_size().value());
                 buf_out.swap(tmp);
                 return true;
             } else {

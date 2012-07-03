@@ -47,7 +47,14 @@ wait_any_t::wait_any_t(signal_t *s1, signal_t *s2, signal_t *s3, signal_t *s4, s
     add(s5);
 }
 
-wait_any_t::~wait_any_t() { }
+wait_any_t::~wait_any_t() {
+    for (std::vector<wait_any_subscription_t *>::iterator p = subs.end(); p != subs.begin();) {
+        --p;
+        wait_any_subscription_t *sub = *p;
+
+        delete sub;
+    }
+}
 
 void wait_any_t::add(signal_t *s) {
     rassert(s);

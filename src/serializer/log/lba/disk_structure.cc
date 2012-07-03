@@ -85,7 +85,7 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
 
         /* Prepare the new superblock. */
 
-        scoped_malloc<char> buffer(ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
+        scoped_malloc_t<char> buffer(ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
         bzero(buffer.get(), ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
 
         lba_superblock_t *new_superblock = reinterpret_cast<lba_superblock_t *>(buffer.get());
