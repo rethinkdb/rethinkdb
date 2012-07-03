@@ -23,11 +23,15 @@
 namespace unittest {
 
 class temp_file_t {
-    scoped_array_t<char> filename;
 public:
     explicit temp_file_t(const char *tmpl);
     const char *name() { return filename.data(); }
     ~temp_file_t();
+
+private:
+    scoped_array_t<char> filename;
+
+    DISABLE_COPYING(temp_file_t);
 };
 
 void let_stuff_happen();
