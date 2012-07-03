@@ -1,6 +1,7 @@
 #include "unittest/gtest.hpp"
 
 #include "arch/runtime/context_switching.hpp"
+#include "containers/scoped.hpp"
 
 namespace unittest {
 
@@ -38,7 +39,9 @@ static void switch_context_test(void) {
 }
 
 TEST(ContextSwitchingTest, SwitchToContextRepeatedly) {
-    original_context = new context_ref_t;
+    scoped_ptr_t<context_ref_t> orig_context_local(new context_ref_t);
+    original_context = orig_context_local.get();
+
     test_int = 5;
     {
         artificial_stack_t a(&switch_context_test, 1024*1024);
@@ -54,7 +57,6 @@ TEST(ContextSwitchingTest, SwitchToContextRepeatedly) {
         EXPECT_FALSE(a.context.is_nil());
     }
     EXPECT_EQ(test_int, 11);
-    delete original_context;
     original_context = NULL;
 }
 
@@ -69,7 +71,8 @@ static void second_switch(void) {
 }
 
 TEST(ContextSwitchingTest, SwitchBetweenContexts) {
-    original_context = new context_ref_t;
+    scoped_ptr_t<context_ref_t> orig_context_local(new context_ref_t);
+    original_context = orig_context_local.get();
     test_int = 99;
     {
         artificial_stack_t a1(&first_switch, 1024*1024);
@@ -80,7 +83,6 @@ TEST(ContextSwitchingTest, SwitchBetweenContexts) {
         context_switch(original_context, artificial_stack_1_context);
     }
     EXPECT_EQ(test_int, 101);
-    delete original_context;
     original_context = NULL;
 }
 
