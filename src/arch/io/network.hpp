@@ -274,9 +274,8 @@ class linux_tcp_bound_socket_t {
 public:
     explicit linux_tcp_bound_socket_t(int _port);
     ~linux_tcp_bound_socket_t();
-    int get_port();
-    fd_t get_fd();
-    void reset();
+    int get_port() const;
+    MUST_USE fd_t release();
 private:
     fd_t sock_fd;
     int port;
