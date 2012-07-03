@@ -21,7 +21,7 @@ struct fake_fifo_enforcement_t {
 template<class protocol_t>
 class test_store_t {
 public:
-    test_store_t(io_backender_t *_io_backender) :
+    explicit test_store_t(io_backender_t *_io_backender) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
             io_backender(_io_backender),
             store(io_backender.get(), temp_file.name(), true, &get_global_perfmon_collection())
