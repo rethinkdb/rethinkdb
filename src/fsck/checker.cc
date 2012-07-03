@@ -175,7 +175,7 @@ public:
 struct slicecx_t {
     nondirect_file_t *file;
     file_knowledge_t *knog;
-    std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
+    std::map<block_id_t, std::list<buf_patch_t *> > patch_map;
     const config_t *cfg;
 
     int global_slice_id;
@@ -183,8 +183,8 @@ struct slicecx_t {
     int mod_count;
 
     void clear_buf_patches() {
-        for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches)
-            for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch)
+        for (std::map<block_id_t, std::list<buf_patch_t *> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches)
+            for (std::list<buf_patch_t *>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch)
                 delete *patch;
 
         patch_map.clear();
@@ -229,7 +229,7 @@ public:
 
     // Uses and modifies knog->block_info[cx->to_ser_block_id(block_id)].
     bool init(slicecx_t *cx, block_id_t block_id) {
-        std::list<buf_patch_t*> *patches_list = NULL;
+        std::list<buf_patch_t *> *patches_list = NULL;
         if (!cx->cfg->ignore_diff_log && cx->patch_map.find(block_id) != cx->patch_map.end()) {
             patches_list = &cx->patch_map.find(block_id)->second;
         }
@@ -237,7 +237,7 @@ public:
     }
 
     // Modifies knog->block_info[ser_block_id].
-    bool init(nondirect_file_t *file, file_knowledge_t *knog, block_id_t ser_block_id, std::list<buf_patch_t*> *patches_list = NULL) {
+    bool init(nondirect_file_t *file, file_knowledge_t *knog, block_id_t ser_block_id, std::list<buf_patch_t *> *patches_list = NULL) {
         block_knowledge_t info;
         {
             read_locker_t locker(knog);
@@ -274,7 +274,7 @@ public:
 
         if (patches_list) {
             // Replay patches
-            for (std::list<buf_patch_t*>::iterator patch = patches_list->begin(); patch != patches_list->end(); ++patch) {
+            for (std::list<buf_patch_t *>::iterator patch = patches_list->begin(); patch != patches_list->end(); ++patch) {
                 block_sequence_id_t first_matching_id = NULL_BLOCK_SEQUENCE_ID;
                 if ((*patch)->get_block_sequence_id() >= realbuf->block_sequence_id) {
                     if (first_matching_id == NULL_BLOCK_SEQUENCE_ID) {
@@ -793,14 +793,14 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
     }
 
 
-    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = cx->patch_map.begin(); patch_list != cx->patch_map.end(); ++patch_list) {
+    for (std::map<block_id_t, std::list<buf_patch_t *> >::iterator patch_list = cx->patch_map.begin(); patch_list != cx->patch_map.end(); ++patch_list) {
         // Sort the list to get patches in the right order
         patch_list->second.sort(dereferencing_buf_patch_compare_t());
 
         // Verify patches list
         block_sequence_id_t previous_block_sequence = 0;
         patch_counter_t previous_patch_counter = 0;
-        for(std::list<buf_patch_t*>::const_iterator p = patch_list->second.begin(); p != patch_list->second.end(); ++p) {
+        for(std::list<buf_patch_t *>::const_iterator p = patch_list->second.begin(); p != patch_list->second.end(); ++p) {
             if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
                 previous_patch_counter = 0;
             }
