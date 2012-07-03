@@ -99,10 +99,9 @@ connectivity_cluster_t::run_t::connection_entry_t::~connection_entry_t() THROWS_
     rassert(!send_mutex.is_locked());
 }
 
-static void ping_connection_watcher(peer_id_t peer,
-        const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb) THROWS_NOTHING {
-    if (connect_cb_and_disconnect_cb.first) {
-        connect_cb_and_disconnect_cb.first(peer);
+static void ping_connection_watcher(peer_id_t peer, const peers_list_callback_pair_t &connect_cb_and_disconnect_cb) THROWS_NOTHING {
+    if (connect_cb_and_disconnect_cb.on_connect) {
+        connect_cb_and_disconnect_cb.on_connect(peer);
     }
 }
 
@@ -120,10 +119,9 @@ void connectivity_cluster_t::run_t::connection_entry_t::install_this(int target_
     }
 }
 
-static void ping_disconnection_watcher(peer_id_t peer,
-        const std::pair<boost::function<void(peer_id_t)>, boost::function<void(peer_id_t)> > &connect_cb_and_disconnect_cb) THROWS_NOTHING {
-    if (connect_cb_and_disconnect_cb.second) {
-        connect_cb_and_disconnect_cb.second(peer);
+static void ping_disconnection_watcher(peer_id_t peer, const peers_list_callback_pair_t &connect_cb_and_disconnect_cb) THROWS_NOTHING {
+    if (connect_cb_and_disconnect_cb.on_disconnect) {
+        connect_cb_and_disconnect_cb.on_disconnect(peer);
     }
 }
 
@@ -637,9 +635,6 @@ rwi_lock_assertion_t *connectivity_cluster_t::get_peers_list_lock() THROWS_NOTHI
     return &thread_info.get()->lock;
 }
 
-publisher_t< std::pair<
-        boost::function<void(peer_id_t)>,
-        boost::function<void(peer_id_t)>
-        > > *connectivity_cluster_t::get_peers_list_publisher() THROWS_NOTHING {
+publisher_t<peers_list_callback_pair_t> *connectivity_cluster_t::get_peers_list_publisher() THROWS_NOTHING {
     return thread_info.get()->publisher.get_publisher();
 }

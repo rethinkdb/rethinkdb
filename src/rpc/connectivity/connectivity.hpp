@@ -48,6 +48,15 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(uuid);
 };
 
+struct peers_list_callback_pair_t {
+    peers_list_callback_pair_t(const boost::function<void(peer_id_t)> &_on_connect,
+                               const boost::function<void(peer_id_t)> &_on_disconnect)
+        : on_connect(_on_connect), on_disconnect(_on_disconnect) { }
+
+    const boost::function<void(peer_id_t)> on_connect;
+    const boost::function<void(peer_id_t)> on_disconnect;
+};
+
 /* A `connectivity_service_t` is an object that keeps track of peers that are
 connected to us. It's an abstract class because there may be multiple types of
 connected-ness between us and other peers. For example, we may be in contact
@@ -90,10 +99,7 @@ public:
         void reset();
         void reset(connectivity_service_t *, peers_list_freeze_t *proof);
     private:
-        publisher_t< std::pair<
-                boost::function<void(peer_id_t)>,
-                boost::function<void(peer_id_t)>
-                > >::subscription_t subs;
+        publisher_t<peers_list_callback_pair_t>::subscription_t subs;
 
         DISABLE_COPYING(peers_list_subscription_t);
     };
@@ -120,10 +126,7 @@ protected:
 
 private:
     virtual rwi_lock_assertion_t *get_peers_list_lock() = 0;
-    virtual publisher_t< std::pair<
-            boost::function<void(peer_id_t)>,
-            boost::function<void(peer_id_t)>
-            > > *get_peers_list_publisher() = 0;
+    virtual publisher_t<peers_list_callback_pair_t> *get_peers_list_publisher() = 0;
 };
 
 class connect_watcher_t : public signal_t {

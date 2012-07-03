@@ -13,13 +13,13 @@ void connectivity_service_t::peers_list_freeze_t::assert_is_holding(connectivity
 connectivity_service_t::peers_list_subscription_t::peers_list_subscription_t(
         const boost::function<void(peer_id_t)> &on_connect,
         const boost::function<void(peer_id_t)> &on_disconnect) :
-    subs(std::make_pair(on_connect, on_disconnect)) { }
+    subs(peers_list_callback_pair_t(on_connect, on_disconnect)) { }
 
 connectivity_service_t::peers_list_subscription_t::peers_list_subscription_t(
         const boost::function<void(peer_id_t)> &on_connect,
         const boost::function<void(peer_id_t)> &on_disconnect,
         connectivity_service_t *connectivity, peers_list_freeze_t *proof) :
-    subs(std::make_pair(on_connect, on_disconnect)) {
+    subs(peers_list_callback_pair_t(on_connect, on_disconnect)) {
     reset(connectivity, proof);
 }
 

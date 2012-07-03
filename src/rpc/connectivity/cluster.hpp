@@ -215,18 +215,12 @@ private:
 
         rwi_lock_assertion_t lock;
 
-        publisher_controller_t< std::pair<
-                boost::function<void(peer_id_t)>,
-                boost::function<void(peer_id_t)>
-                > > publisher;
+        publisher_controller_t<peers_list_callback_pair_t> publisher;
     };
 
     /* `connectivity_service_t` private methods: */
     rwi_lock_assertion_t *get_peers_list_lock() THROWS_NOTHING;
-    publisher_t< std::pair<
-            boost::function<void(peer_id_t)>,
-            boost::function<void(peer_id_t)>
-            > > *get_peers_list_publisher() THROWS_NOTHING;
+    publisher_t<peers_list_callback_pair_t> *get_peers_list_publisher() THROWS_NOTHING;
 
     /* `me` is our `peer_id_t`. */
     const peer_id_t me;
