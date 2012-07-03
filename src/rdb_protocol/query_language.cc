@@ -738,6 +738,11 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_
     ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
 }
 
+void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> id, runtime_environment_t *env) {
+    rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id->get()))));
+    ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
+}
+
 Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (w.type()) {
         case WriteQuery::UPDATE:
@@ -785,7 +790,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                 boost::shared_ptr<scoped_cJSON_t> new_val = eval(w.point_update().mapping().body(), env);
 
                 /* Now we insert the new value. */
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w.insert().table_ref(), env);
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w.point_update().table_ref(), env);
 
                 insert(ns_access, new_val, env);
 
@@ -797,6 +802,18 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
             }
             break;
         case WriteQuery::POINTDELETE:
+            {
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w.point_delete().table_ref(), env);
+                boost::shared_ptr<scoped_cJSON_t> id = eval(w.point_delete().key(), env);
+                point_delete(ns_access, id, env);
+                
+                Response res;
+                res.set_status_code(0);
+                res.set_token(0);
+                res.add_response("Deleted 1 rows.");
+                
+                return res;
+            }
             break;
         case WriteQuery::POINTMUTATE:
             break;
@@ -1047,7 +1064,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     throw runtime_exc_t("Data must be an object");
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> attr = shared_scoped_json(cJSON_DetachItemFromObject(data->get(), c.builtin().attr().c_str()));
+                boost::shared_ptr<scoped_cJSON_t> attr
+                    = shared_scoped_json(cJSON_DeepCopy(cJSON_GetObjectItem(data->get(), c.builtin().attr().c_str())));
 
                 if (!attr->get()) {
                     throw runtime_exc_t("Failed to find attribute");
@@ -1055,7 +1073,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     return attr;
                 }
             }
-			break;
+            break;
         case Builtin::HASATTR:
             {
                 boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env);
@@ -1072,7 +1090,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     return shared_scoped_json(cJSON_CreateFalse());
                 }
             }
-			break;
+            break;
         case Builtin::PICKATTRS:
             {
                 boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env);
@@ -1084,21 +1102,16 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 boost::shared_ptr<scoped_cJSON_t> res = shared_scoped_json(cJSON_CreateObject());
 
                 for (int i = 0; i < c.builtin().attrs_size(); ++i) {
-                    cJSON *item = cJSON_DetachItemFromObject(data->get(), c.builtin().attrs(i).c_str());
+                    cJSON *item = cJSON_DeepCopy(cJSON_GetObjectItem(data->get(), c.builtin().attrs(i).c_str()));
                     if (!item) {
-                        if (cJSON_GetObjectItem(res->get(), c.builtin().attrs(i).c_str())) {
-                            //When we get here it means someone did pick with 2
-                            //copies of the same attr... we permit this for now
-                        } else {
-                            throw runtime_exc_t("Attempting to pick non existant attribute.");
-                        }
+                        throw runtime_exc_t("Attempting to pick non existant attribute.");
                     } else {
                         cJSON_AddItemToObject(res->get(), item->string, item);
                     }
                 }
                 return res;
             }
-			break;
+            break;
         case Builtin::MAPMERGE:
             {
                 boost::shared_ptr<scoped_cJSON_t> left  = eval(c.args(0), env),
@@ -1111,15 +1124,18 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     throw runtime_exc_t("Data must be an object");
                 }
 
-                cJSON *item;
-                while ((item = right->get()->child)) {
-                    std::string item_name(item->string);
-                    cJSON_DeleteItemFromObject(left->get(), item_name.c_str());
-                    cJSON_AddItemToObject(left->get(), item_name.c_str(), cJSON_DetachItemFromObject(right->get(), item_name.c_str()));
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_DeepCopy(left->get())));
+                
+                // Extend with the right side (and overwrite if necessary)
+                for(int i = 0; i < cJSON_GetArraySize(right->get()); i++) {
+                    cJSON *item = cJSON_GetArrayItem(right->get(), i);
+                    cJSON_DeleteItemFromObject(res->get(), item->string);
+                    cJSON_AddItemToObject(res->get(), item->string, cJSON_DeepCopy(item));
                 }
-                return left;
+                
+                return res;
             }
-			break;
+            break;
         case Builtin::ARRAYAPPEND:
             {
                 // Check first arg type
@@ -1294,7 +1310,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
         case Builtin::MULTIPLY:
             {
-                double result = 0.0;
+                double result = 1.0;
 
                 for (int i = 0; i < c.args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
@@ -1533,7 +1549,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 for (int i = 0; i < c.args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
-                    if (arg->get()->type != cJSON_False || arg->get()->type != cJSON_True) {
+                    if (arg->get()->type != cJSON_False && arg->get()->type != cJSON_True) {
                         throw runtime_exc_t("All operands to ALL must be booleans.");
                     }
                     if (arg->get()->type != cJSON_True) {
@@ -1552,7 +1568,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 for (int i = 0; i < c.args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
-                    if (arg->get()->type != cJSON_False || arg->get()->type != cJSON_True) {
+                    if (arg->get()->type != cJSON_False && arg->get()->type != cJSON_True) {
                         throw runtime_exc_t("All operands to ANY must be booleans.");
                     }
                     if (arg->get()->type == cJSON_True) {
