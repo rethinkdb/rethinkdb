@@ -192,7 +192,8 @@ data BranchBody
     -- branch Foo { fields... };
     = BranchMessage [MessageDecl]
     -- branch Foo = int;
-    | BranchIsType Type
+    -- branch Foo = repeated int;
+    | BranchIsType Type Modifier
     -- branch Quux;
     | BranchEmpty
       deriving Show
@@ -239,12 +240,16 @@ compileADT (ADT name decls) = Message name mdecls
 compileBranch :: DeclBranch -> [MessageDecl]
 compileBranch (Branch name body) =
     case body of BranchEmpty -> []
-                 BranchIsType t -> [field t]
+                 BranchIsType t m -> [field t m]
                  BranchMessage ds ->
                      [ MessageDeclType (TypeDeclMessage (Message mtypename ds))
-                     , field (TypeName mtypename) ]
+                     , field (TypeName mtypename) Required ]
      where
-       field typ = MessageDeclField (Field (toFieldName name) typ Optional)
+       -- NB. "Required" on a branch gets turned into "Optional" b/c it really
+       -- means "the field is required IF the branch tag indicates this branch"
+       field typ mod = MessageDeclField (Field (toFieldName name) typ mod')
+           where mod' = case mod of Required -> Optional
+                                    _ -> mod
        mtypename = name
 
 -- Transforms a type name "FooBarBaz" to a field name "foo_bar_baz"
@@ -363,8 +368,11 @@ parseDeclBranch = do reserved "branch"
 
 parseBranchBody :: Parse BranchBody
 parseBranchBody = choice [ BranchMessage <$> parseMessageBody
-                         , BranchIsType <$> (equals >> parseType <* semi)
+                         , equals >> isType <* semi
                          , BranchEmpty <$ semi ]
+    where isType = do mod <- option Required parseModifier
+                      typ <- parseType
+                      return $ BranchIsType typ mod
 
 -- messages
 parseDeclMessage :: Parse DeclMessage
