@@ -20,7 +20,7 @@ struct starter_t : public thread_message_t {
         tp->shutdown();
     }
     void on_thread_switch() {
-        coro_t::spawn_now_deprecated(boost::bind(&starter_t::run, this));
+        coro_t::spawn_now(boost::bind(&starter_t::run, this));
     }
 };
 
@@ -314,9 +314,9 @@ struct watcher_t : private peers_list_callback_t {
         EXPECT_TRUE(list.find(p) != list.end());
 
         /* Make sure messages sent from connection events are delivered
-        properly. We must use `coro_t::spawn_now_deprecated()` because `send_message()`
+        properly. We must use `coro_t::spawn_now()` because `send_message()`
         may block. */
-        coro_t::spawn_now_deprecated(boost::bind(&recording_test_application_t::send, application, 89765, p));
+        coro_t::spawn_now(boost::bind(&recording_test_application_t::send, application, 89765, p));
     }
 
     void on_disconnect(peer_id_t p) {

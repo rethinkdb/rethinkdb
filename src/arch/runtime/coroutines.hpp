@@ -26,7 +26,7 @@ public:
     friend bool is_coroutine_stack_overflow(void *);
 
     template<class Callable>
-    static void spawn_now_deprecated(const Callable &action) {
+    static void spawn_now(const Callable &action) {
         get_and_init_coro(action)->notify_now_deprecated();
     }
 
