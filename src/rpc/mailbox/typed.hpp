@@ -5,6 +5,7 @@
 Please modify '../scripts/generate_rpc_templates.py' instead of modifying this file.*/
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/function.hpp>
 
 #include "containers/archive/archive.hpp"

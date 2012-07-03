@@ -104,6 +104,7 @@ if __name__ == "__main__":
     print
 
     print "#include \"errors.hpp\""
+    print "#include <boost/bind.hpp>"
     print "#include <boost/function.hpp>"
     print
     print "#include \"containers/archive/archive.hpp\""

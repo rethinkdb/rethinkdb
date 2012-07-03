@@ -1,5 +1,8 @@
 #include "clustering/administration/main/initial_join.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "concurrency/wait_any.hpp"
 #include "logger.hpp"
 

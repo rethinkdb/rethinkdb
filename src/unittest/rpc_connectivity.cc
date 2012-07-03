@@ -1,5 +1,8 @@
 #include "unittest/gtest.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
 #include "unittest/unittest_utils.hpp"
