@@ -1,5 +1,73 @@
 module Main where
 
+{- DOCUMENTATION
+
+To compile:
+
+    $ ghc --make adtproto
+
+Takes input from stdin, writes to stdout. Input is approximately protobuf
+syntax, with a few extensions and a few missing parts. Output is protobuf
+syntax.
+
+In particular:
+
+1. Fields are "required" by default and are automatically given tags based on
+   their order in the file. So instead of:
+
+       required int foo = 1;
+       optional string bar = 2;
+
+   You write:
+
+       int foo;
+       optional string bar;
+
+   These are arguably misfeatures.
+
+2. Adds a "data" construct to define an algebraic data type / variant / tagged
+   union. Inside of "data" you define "branches". Branches can have associated
+   data, which can either be a message, another type, or nothing.
+
+   Example:
+
+       data Example {
+           branch Branch1 {
+               // A message body goes here.
+               int foo;
+               string blah;
+               repeated Example children;
+           };
+
+           // this branch is just an int, no message type
+           branch Branch2 = int;
+
+           // this branch has no associated data
+           branch Branch3;
+       };
+
+   This turns into the following protobuf code:
+
+       message Example {
+           enum ExampleType {
+               BRANCH1 = 0;
+               BRANCH2 = 1;
+               BRANCH3 = 2;
+           };
+           required ExampleType example_type = 1;
+
+           message Branch1 {
+               required int foo = 1;
+               required string blah = 2;
+               repeated Example children = 3;
+           };
+           optional Branch1 branch1;
+
+           optional int branch2;
+       };
+
+-}
+
 {-
 
 -- EXAMPLE SYNTAX
