@@ -940,7 +940,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     throw runtime_exc_t("Data must be an object");
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> attr = shared_scoped_json(cJSON_DetachItemFromObject(data->get(), c.builtin().attr().c_str()));
+                boost::shared_ptr<scoped_cJSON_t> attr
+                    = shared_scoped_json(cJSON_DeepCopy(cJSON_GetObjectItem(data->get(), c.builtin().attr().c_str())));
 
                 if (!attr->get()) {
                     throw runtime_exc_t("Failed to find attribute");
