@@ -32,7 +32,7 @@ module 'DataExplorerView', ->
         template: Handlebars.compile $('#dataexplorer_view-template').html()
 
         events: ->
-            'keypress .input_query': 'handle_keypress'
+            'keyup .input_query': 'handle_keypress'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
             'click .namespace_link': 'write_query_namespace'
@@ -46,7 +46,13 @@ module 'DataExplorerView', ->
                 event.preventDefault()
                 @execute_query()
             else
+                @expand_textarea()
                 @make_suggestion()
+
+        expand_textarea: (event) =>
+            if $('.input_query').length is 1
+                height = $('.input_query').prop('scrollHeight')-8
+                $('.input_query').height(height)
 
         execute_query: =>
             query = @.$('.input_query').val() 
