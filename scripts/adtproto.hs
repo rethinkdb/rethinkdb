@@ -68,75 +68,75 @@ In particular:
 
 -}
 
-{-
+{- EXAMPLE SYNTAX
 
--- EXAMPLE SYNTAX
+data Bool { branch True; branch False; };
 
-  data Bool { branch True; branch False; };
+data Tree {
+  branch Node { repeated Tree children; };
+  branch Leaf = string;
+};
 
-  data Tree {
-    branch Node { repeated Tree children; };
-    branch Leaf = string;
+message VarTermTuple { string var; Term term; };
+
+data Term {
+  branch Var = string;
+  branch Number = int32;
+  branch String = string;
+  branch Json_Null;
+
+  branch Let {
+    repeated VarTermTuple binds;
+    Term expr;
   };
 
-  message VarTermTuple { string var; Term term; };
-
-  data Term {
-    branch Var = string;
-    branch Number = int32;
-    branch String = string;
-    branch Json_Null;
-
-    branch Let {
-      repeated VarTermTuple binds;
-      Term expr;
-    };
-
-    branch If_ {
-      Term test;
-      Term true_branch;
-      Term false_branch;
-    };
-
-    // TODO: Ideally this could be "branch Array = repeated Term".
-    branch Array = {
-      repeated Term elements;
-    };
-
-    branch Call {
-      Builtin builtin;
-      repeated Term args;
-    };
-
+  branch If {
+    Term test;
+    Term true_branch;
+    Term false_branch;
   };
 
-  enum OrderDirection { Ascending; Descending; };
-  message Mapping { string arg; Term body; };
-  message Predicate { string arg; Term body; };
-  message Reduction { Term base; string var1; string var2; Term body; };
+  branch Array = repeated Term;
 
-  data Builtin {
-    branch Not;
-    branch GetAttr { string attr; };
-    branch HasAttr { string attr; };
-    branch PickAttrs { repeated string attrs; };
-    branch MapMerge;
-    // etc, etc...
-
-    enum Comparison { EQ; NE; LT; LE; GT; GE; };
-    branch Comparison = Comparison;
-
-    branch Filter { Predicate predicate; };
-    branch Map { Mapping mapping; };
-    branch ConcatMap { Mapping mapping; };
-    branch Reduce { Reduction reduction; };
-    branch OrderBy {
-      OrderDirection order_direction;
-      Mapping mapping;
-    };
-
-    // etc, etc...
+  branch Call {
+    Builtin builtin;
+    repeated Term args;
   };
+
+};
+
+enum OrderDirection { Ascending; Descending; };
+message Mapping { string arg; Term body; };
+message Predicate { string arg; Term body; };
+message Reduction { Term base; string var1; string var2; Term body; };
+
+data Builtin {
+  branch Not;
+  branch Add; branch Subtract; branch Multiply; branch Divide;
+
+  branch Limit = int32;
+
+  branch Filter { Predicate predicate; };
+  branch Map { Mapping mapping; };
+  branch Reduce { Reduction reduction; };
+  branch OrderBy {
+    OrderDirection order_direction;
+    Mapping mapping;
+  };
+
+  // We can declare types inline and use them for branches
+  enum Comparison { EQ; NE; LT; LE; GT; GE; };
+  branch Comparison = Comparison;
+
+  // we can optimize encoding of these branches by reusing the same field for
+  // all of them.
+  branch GetAttr;
+  branch HasAttr;
+  branch PickAttrs;
+  repeated string attrs;        // <-- namely, this field
+
+  // etc, etc...
+};
 
 -}
 
@@ -183,6 +183,7 @@ data DeclADT = ADT { adtName :: Ident, adtBody :: [ADTDecl] }
 
 data ADTDecl = ADTDeclBranch DeclBranch
              | ADTDeclType DeclType
+             | ADTDeclField DeclField
                deriving Show
 
 data DeclBranch = Branch { branchName :: Ident, branchBody :: BranchBody }
@@ -236,6 +237,7 @@ compileADT (ADT name decls) = Message name mdecls
           transDecl :: ADTDecl -> [MessageDecl]
           transDecl (ADTDeclType t) = [MessageDeclType t]
           transDecl (ADTDeclBranch b) = compileBranch b
+          transDecl (ADTDeclField d) = [MessageDeclField d]
 
 compileBranch :: DeclBranch -> [MessageDecl]
 compileBranch (Branch name body) =
@@ -359,8 +361,9 @@ parseDeclADT = do reserved "data"
                   ADT <$> ident <*> parseBlock (many parseADTDecl)
 
 parseADTDecl :: Parse ADTDecl
-parseADTDecl = (ADTDeclBranch <$> parseDeclBranch) <|>
-               (ADTDeclType <$> parseDeclType)
+parseADTDecl = choice [ ADTDeclBranch <$> parseDeclBranch
+                      , ADTDeclType <$> parseDeclType
+                      , ADTDeclField <$> parseDeclField ]
 
 parseDeclBranch :: Parse DeclBranch
 parseDeclBranch = do reserved "branch"
