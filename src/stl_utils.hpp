@@ -37,8 +37,7 @@ public:
     cartesian_product_iterator_t(typename left_container_t::iterator _left, typename left_container_t::iterator _left_end,
                                  typename right_container_t::iterator _right, typename right_container_t::iterator _right_end);
     boost::optional<std::pair<typename left_container_t::iterator, typename right_container_t::iterator> > operator*() const;
-    cartesian_product_iterator_t operator+(int);
-    cartesian_product_iterator_t &operator++(int);
+    void increment();
 
     bool operator==(const cartesian_product_iterator_t &);
 };

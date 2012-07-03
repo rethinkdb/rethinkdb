@@ -68,24 +68,12 @@ cartesian_product_iterator_t<left_container_t, right_container_t>::operator*() c
 }
 
 template <class left_container_t, class right_container_t>
-cartesian_product_iterator_t<left_container_t, right_container_t>
-cartesian_product_iterator_t<left_container_t, right_container_t>::operator+(int val) {
-    cartesian_product_iterator_t<left_container_t, right_container_t> res = *this;
-    while (val --> 0) {
-        res.left++;
-        if (res.left == res.left_end) {
-            res.right++;
-            res.left = res.left_start;
-        }
+void cartesian_product_iterator_t<left_container_t, right_container_t>::increment() {
+    ++left;
+    if (left == left_end) {
+        ++right;
+        left = left_start;
     }
-
-    return res;
-}
-
-template <class left_container_t, class right_container_t>
-cartesian_product_iterator_t<left_container_t, right_container_t> &
-cartesian_product_iterator_t<left_container_t, right_container_t>::operator++(int) {
-    return *this = *this + 1;
 }
 
 template <class It>

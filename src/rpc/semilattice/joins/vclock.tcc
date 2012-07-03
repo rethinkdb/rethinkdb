@@ -23,7 +23,7 @@ void vclock_t<T>::cull_old_values() {
         if (vclock_details::dominates(pair->first->first, pair->second->first)) {
             to_delete.insert(*pair->first);
         }
-        pairs_iterator++;
+        pairs_iterator.increment();
     }
 
     for (typename value_map_t::iterator d_it =  to_delete.begin();
