@@ -65,14 +65,11 @@ public:
         reactor_has_been_initialized.wait_lazily_unordered();
 
         reactor_directory_subscription.reset();
-        master_directory_subscription.reset();
         {
             mutex_assertion_t::acq_t acq(&parent->watchable_variable_lock);
             namespaces_directory_metadata_t<protocol_t> directory = parent->watchable_variable.get_watchable()->get();
             rassert(directory.reactor_bcards.count(namespace_id) == 1);
-            rassert(directory.master_maps.count(namespace_id) == 1);
             directory.reactor_bcards.erase(namespace_id);
-            directory.master_maps.erase(namespace_id);
             parent->watchable_variable.set_value(directory);
         }
 
@@ -142,13 +139,6 @@ private:
         parent->watchable_variable.set_value(directory);
     }
 
-    void on_change_master_directory() {
-        mutex_assertion_t::acq_t acq(&parent->watchable_variable_lock);
-        namespaces_directory_metadata_t<protocol_t> directory = parent->watchable_variable.get_watchable()->get();
-        directory.master_maps.find(namespace_id)->second = reactor->get_master_directory()->get();
-        parent->watchable_variable.set_value(directory);
-    }
-
     void initialize_reactor() {
         perfmon_collection_t *perfmon_collection = parent->perfmon_collection_repo->get_perfmon_collection_for_namespace(namespace_id);
 
@@ -170,18 +160,10 @@ private:
                     boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
                     reactor->get_reactor_directory(), &reactor_directory_freeze
                 ));
-            typename watchable_t<std::map<master_id_t, master_business_card_t<protocol_t> > >::freeze_t master_directory_freeze(reactor->get_master_directory());
-            master_directory_subscription.reset(
-                new typename watchable_t<std::map<master_id_t, master_business_card_t<protocol_t> > >::subscription_t(
-                    boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_master_directory, this),
-                    reactor->get_master_directory(), &master_directory_freeze
-                ));
             mutex_assertion_t::acq_t acq(&parent->watchable_variable_lock);
             namespaces_directory_metadata_t<protocol_t> directory = parent->watchable_variable.get_watchable()->get();
             rassert(directory.reactor_bcards.count(namespace_id) == 0);
-            rassert(directory.master_maps.count(namespace_id) == 0);
             directory.reactor_bcards.insert(std::make_pair(namespace_id, reactor->get_reactor_directory()->get()));
-            directory.master_maps.insert(std::make_pair(namespace_id, reactor->get_master_directory()->get()));
             parent->watchable_variable.set_value(directory);
         }
 
@@ -199,7 +181,6 @@ private:
     boost::scoped_ptr<reactor_t<protocol_t> > reactor;
 
     boost::scoped_ptr<typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t> reactor_directory_subscription;
-    boost::scoped_ptr<typename watchable_t<std::map<master_id_t, master_business_card_t<protocol_t> > >::subscription_t> master_directory_subscription;
 
     DISABLE_COPYING(watchable_and_reactor_t);
 };

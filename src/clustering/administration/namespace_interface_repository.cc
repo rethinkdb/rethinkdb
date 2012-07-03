@@ -11,16 +11,18 @@ namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manag
 { }
 
 template <class protocol_t>
-std::map<peer_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > get_master_map(
+std::map<peer_id_t, reactor_business_card_t<protocol_t> > get_reactor_business_cards(
         const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, namespace_id_t n_id) {
-    std::map<peer_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > res;
+    std::map<peer_id_t, reactor_business_card_t<protocol_t> > res;
     for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it  = ns_directory_metadata.begin();
                                                                                                     it != ns_directory_metadata.end();
                                                                                                     it++) {
-        if (std_contains(it->second.master_maps, n_id)) {
-            res[it->first] = it->second.master_maps.find(n_id)->second;
+        typename namespaces_directory_metadata_t<protocol_t>::reactor_bcards_map_t::const_iterator jt =
+            it->second.reactor_bcards.find(n_id);
+        if (jt != it->second.reactor_bcards.end()) {
+            res[it->first] = jt->second.internal;
         } else {
-            res[it->first] = std::map<master_id_t, master_business_card_t<protocol_t> >();
+            res[it->first] = reactor_business_card_t<protocol_t>();
         }
     }
 
@@ -34,7 +36,7 @@ namespace_repo_t<protocol_t>::access_t::access_t(namespace_repo_t *parent, names
     if (it == parent->interface_map.end()) {
         ns_if = new cluster_namespace_interface_t<protocol_t>(parent->mailbox_manager,
             parent->namespaces_directory_metadata->
-                subview(boost::bind(&get_master_map<protocol_t>, _1, ns_id))
+                subview(boost::bind(&get_reactor_business_cards<protocol_t>, _1, ns_id))
             );
         parent->interface_map.insert(ns_id, ns_if);
     } else {

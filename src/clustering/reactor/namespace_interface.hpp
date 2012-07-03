@@ -11,7 +11,7 @@
 
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
-#include "clustering/immediate_consistency/query/metadata.hpp"
+#include "clustering/reactor/metadata.hpp"
 #include "clustering/registrant.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/pmap.hpp"
@@ -24,20 +24,18 @@ class cluster_namespace_interface_t :
     public namespace_interface_t<protocol_t>
 {
 public:
-    typedef std::map<master_id_t, master_business_card_t<protocol_t> > master_map_t;
-
     cluster_namespace_interface_t(
             mailbox_manager_t *mm,
-            clone_ptr_t<watchable_t<std::map<peer_id_t, master_map_t> > > mv) :
+            clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > dv) :
         mailbox_manager(mm),
-        masters_view(mv),
+        directory_view(dv),
         start_count(0),
         watcher_subscription(boost::bind(&cluster_namespace_interface_t::update_registrants, this, false))
     {
         {
-            typename watchable_t< std::map<peer_id_t, master_map_t> >::freeze_t freeze(masters_view);
+            typename watchable_t< std::map<peer_id_t, reactor_business_card_t<protocol_t> > >::freeze_t freeze(directory_view);
             update_registrants(true);
-            watcher_subscription.reset(masters_view, &freeze);
+            watcher_subscription.reset(directory_view, &freeze);
         }
         if (start_count == 0) {
             start_cond.pulse();
@@ -67,7 +65,7 @@ public:
 
     std::set<typename protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t) {
         std::vector<typename protocol_t::region_t> s;
-        for (typename std::map<master_id_t, master_connection_t *>::const_iterator it = open_connections.begin(); it != open_connections.end(); it++) {
+        for (typename std::map<reactor_activity_id_t, master_connection_t *>::const_iterator it = open_connections.begin(); it != open_connections.end(); it++) {
             s.push_back(it->second->master_access->get_region());
         }
         typename protocol_t::region_t whole;
@@ -179,7 +177,7 @@ private:
         rassert(info_out->empty());
 
         /* Find all the masters that might possibly be relevant */
-        for (typename std::map<master_id_t, master_connection_t *>::const_iterator it = open_connections.begin(); it != open_connections.end(); it++) {
+        for (typename std::map<reactor_activity_id_t, master_connection_t *>::const_iterator it = open_connections.begin(); it != open_connections.end(); it++) {
             typename protocol_t::region_t intersection =
                 region_intersection(target_region, it->second->master_access->get_region());
             if (!region_is_empty(intersection)) {
@@ -213,55 +211,63 @@ private:
 
     void update_registrants(bool is_start) {
         ASSERT_NO_CORO_WAITING;
-        std::map<peer_id_t, master_map_t> existings = masters_view->get();
+        std::map<peer_id_t, reactor_business_card_t<protocol_t> > existings = directory_view->get();
 
-        for (typename std::map<peer_id_t, master_map_t>::const_iterator it = existings.begin(); it != existings.end(); ++it) {
-            for (typename master_map_t::const_iterator mmit = it->second.begin(); mmit != it->second.end(); ++mmit) {
-                master_id_t id = mmit->first;
-                if (handled_master_ids.find(id) == handled_master_ids.end()) {
-                    // We have an unhandled master id.  Say it's handled NOW!  And handle it.
-                    handled_master_ids.insert(id);  // We said it.
+        for (typename std::map<peer_id_t, reactor_business_card_t<protocol_t> >::const_iterator it = existings.begin(); it != existings.end(); ++it) {
+            for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator amit = it->second.activities.begin(); amit != it->second.activities.end(); ++amit) {
+                if (boost::get<reactor_business_card_details::primary_t<protocol_t> >(&amit->second.second)) {
+                    reactor_activity_id_t id = amit->first;
+                    if (handled_activity_ids.find(id) == handled_activity_ids.end()) {
+                        // We have an unhandled activity id.  Say it's handled NOW!  And handle it.
+                        handled_activity_ids.insert(id);  // We said it.
 
-                    if (is_start) {
-                        start_count++;
+                        if (is_start) {
+                            start_count++;
+                        }
+
+                        /* Now handle it. */
+                        coro_t::spawn_sometime(boost::bind(
+                            &cluster_namespace_interface_t::registrant_coroutine, this,
+                            it->first, id, is_start,
+                            auto_drainer_t::lock_t(&registrant_coroutine_auto_drainer)
+                            ));
                     }
-
-                    /* Now handle it. */
-                    coro_t::spawn_sometime(boost::bind(
-                        &cluster_namespace_interface_t::registrant_coroutine, this,
-                        it->first, id, is_start,
-                        auto_drainer_t::lock_t(&registrant_coroutine_auto_drainer)
-                        ));
                 }
             }
         }
     }
 
-    static boost::optional<boost::optional<master_business_card_t<protocol_t> > > extract_master_business_card(const std::map<peer_id_t, master_map_t> &map, const peer_id_t &peer, const master_id_t &master) {
+    static boost::optional<boost::optional<master_business_card_t<protocol_t> > > extract_master_business_card(
+            const std::map<peer_id_t, reactor_business_card_t<protocol_t> > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
         boost::optional<boost::optional<master_business_card_t<protocol_t> > > ret;
-        typename std::map<peer_id_t, master_map_t>::const_iterator it = map.find(peer);
+        typename std::map<peer_id_t, reactor_business_card_t<protocol_t> >::const_iterator it = map.find(peer);
         if (it != map.end()) {
             ret = boost::optional<master_business_card_t<protocol_t> >();
-            typename master_map_t::const_iterator jt = it->second.find(master);
-            if (jt != it->second.end()) {
-                ret.get() = jt->second;
+            typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second.activities.find(activity_id);
+            if (jt != it->second.activities.end()) {
+                if (const reactor_business_card_details::primary_t<protocol_t> *primary_record =
+                        boost::get<reactor_business_card_details::primary_t<protocol_t> >(&jt->second.second)) {
+                    if (primary_record->master) {
+                        ret.get() = primary_record->master.get();
+                    }
+                }
             }
         }
         return ret;
     }
 
-    void registrant_coroutine(peer_id_t peer_id, master_id_t master_id, bool is_start, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+    void registrant_coroutine(peer_id_t peer_id, reactor_activity_id_t activity_id, bool is_start, auto_drainer_t::lock_t lock) THROWS_NOTHING {
         try {
             master_access_t<protocol_t> master_access(
                 mailbox_manager,
-                masters_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, _1, peer_id, master_id)),
+                directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, _1, peer_id, activity_id)),
                 lock.get_drain_signal());
 
             master_connection_t master_connection_record;
             master_connection_record.master_access = &master_access;
 
-            map_insertion_sentry_t<master_id_t, master_connection_t *> map_insertion(
-                &open_connections, master_id, &master_connection_record);
+            map_insertion_sentry_t<reactor_activity_id_t, master_connection_t *> map_insertion(
+                &open_connections, activity_id, &master_connection_record);
 
             if (is_start) {
                 rassert(start_count > 0);
@@ -289,10 +295,10 @@ private:
             }
         }
 
-        handled_master_ids.erase(master_id);
+        handled_activity_ids.erase(activity_id);
 
         // Maybe we got reconnected really quickly, and didn't handle
-        // the reconnection, because `handled_master_ids` already noted
+        // the reconnection, because `handled_activity_ids` already noted
         // ourselves as handled.
         if (!lock.get_drain_signal()->is_pulsed()) {
             update_registrants(false);
@@ -300,12 +306,12 @@ private:
     }
 
     mailbox_manager_t *mailbox_manager;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, master_map_t> > > masters_view;
+    clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > directory_view;
 
     typename protocol_t::temporary_cache_t temporary_cache;
 
-    std::set<master_id_t> handled_master_ids;
-    std::map<master_id_t, master_connection_t *> open_connections;
+    std::set<reactor_activity_id_t> handled_activity_ids;
+    std::map<reactor_activity_id_t, master_connection_t *> open_connections;
 
     /* `start_cond` will be pulsed when we have either successfully connected to
     or tried and failed to connect to every peer present when the constructor
@@ -315,7 +321,7 @@ private:
 
     auto_drainer_t registrant_coroutine_auto_drainer;
 
-    typename watchable_t< std::map<peer_id_t, master_map_t> >::subscription_t watcher_subscription;
+    typename watchable_t< std::map<peer_id_t, reactor_business_card_t<protocol_t> > >::subscription_t watcher_subscription;
 
     DISABLE_COPYING(cluster_namespace_interface_t);
 };

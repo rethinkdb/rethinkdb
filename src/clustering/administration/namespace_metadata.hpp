@@ -129,12 +129,10 @@ template <class protocol_t>
 class namespaces_directory_metadata_t {
 public:
     typedef std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > reactor_bcards_map_t;
-    typedef std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > master_maps_map_t;
 
     reactor_bcards_map_t reactor_bcards;
-    master_maps_map_t master_maps;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(reactor_bcards, master_maps);
+    RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
 };
 
 struct namespace_metadata_ctx_t {
