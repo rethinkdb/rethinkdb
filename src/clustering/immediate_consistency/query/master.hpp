@@ -5,7 +5,6 @@
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
-#include "containers/uuid.hpp"
 
 #define ALLOCATION_CHUNK 50
 #define TARGET_OPERATION_QUEUE_LENGTH 5000
@@ -29,41 +28,29 @@ public:
     master_t(
             mailbox_manager_t *mm,
             ack_checker_t *ac,
-            watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > *md,
-            mutex_assertion_t *mdl,
-            typename protocol_t::region_t region,
+            typename protocol_t::region_t r,
             broadcaster_t<protocol_t> *b)
             THROWS_ONLY(interrupted_exc_t) :
         mailbox_manager(mm),
         ack_checker(ac),
         broadcaster(b),
+        region(r),
         enqueued_writes(0),
         registrar(mm, this),
         read_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_read,
                                                   this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
         write_mailbox(mailbox_manager, boost::bind(&master_t<protocol_t>::on_write,
-                                                   this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer))),
-        master_directory(md), master_directory_lock(mdl),
-        uuid(generate_uuid())
+                                                   this, _1, _2, _3, _4, _5, auto_drainer_t::lock_t(&drainer)))
     {
         rassert(ack_checker);
-
-        master_business_card_t<protocol_t> bcard(
-            region,
-            read_mailbox.get_address(), 
-            write_mailbox.get_address(),
-            registrar.get_business_card());
-        mutex_assertion_t::acq_t master_directory_lock_acq(master_directory_lock);
-        std::map<master_id_t, master_business_card_t<protocol_t> > master_map = master_directory->get_watchable()->get();
-        master_map.insert(std::make_pair(uuid, bcard));
-        master_directory->set_value(master_map);
     }
 
-    ~master_t() {
-        mutex_assertion_t::acq_t master_directory_lock_acq(master_directory_lock);
-        std::map<master_id_t, master_business_card_t<protocol_t> > master_map = master_directory->get_watchable()->get();
-        master_map.erase(uuid);
-        master_directory->set_value(master_map);
+    master_business_card_t<protocol_t> get_business_card() {
+        return master_business_card_t<protocol_t>(
+            region,
+            read_mailbox.get_address(),
+            write_mailbox.get_address(),
+            registrar.get_business_card());
     }
 
 private:
@@ -224,6 +211,8 @@ private:
     mailbox_manager_t *mailbox_manager;
     ack_checker_t *ack_checker;
     broadcaster_t<protocol_t> *broadcaster;
+    typename protocol_t::region_t region;
+
     std::map<master_access_id_t, parser_lifetime_t *> sink_map;
     int enqueued_writes;
 
@@ -234,10 +223,6 @@ private:
     typename master_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
 
     typename master_business_card_t<protocol_t>::write_mailbox_t write_mailbox;
-
-    watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > *master_directory;
-    mutex_assertion_t *master_directory_lock;
-    master_id_t uuid;
 
     DISABLE_COPYING(master_t);
 };

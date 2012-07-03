@@ -31,10 +31,6 @@ public:
         return directory_echo_writer.get_watchable();
     }
 
-    clone_ptr_t<watchable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > get_master_directory() {
-        return master_directory.get_watchable();
-    }
-
 private:
     /* a directory_entry_t is a sentry that in its contructor inserts an entry
      * into the directory for a role that we are performing (a role that we
@@ -159,9 +155,6 @@ private:
     directory_echo_writer_t<reactor_business_card_t<protocol_t> > directory_echo_writer;
     directory_echo_mirror_t<reactor_business_card_t<protocol_t> > directory_echo_mirror;
     branch_history_manager_t<protocol_t> *branch_history_manager;
-
-    watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > master_directory;
-    mutex_assertion_t master_directory_lock;
 
     clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable;
 

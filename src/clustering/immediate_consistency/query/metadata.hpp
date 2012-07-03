@@ -10,7 +10,6 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "rpc/mailbox/typed.hpp"
 
-typedef uuid_t master_id_t;
 typedef uuid_t master_access_id_t;
 
 struct master_access_business_card_t {

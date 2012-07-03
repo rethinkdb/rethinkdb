@@ -33,7 +33,6 @@ reactor_t<protocol_t>::reactor_t(
     directory_echo_writer(mailbox_manager, reactor_business_card_t<protocol_t>()),
     directory_echo_mirror(mailbox_manager, rd->subview(&collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >)),
     branch_history_manager(bhm),
-    master_directory(std::map<master_id_t, master_business_card_t<protocol_t> >()),
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
