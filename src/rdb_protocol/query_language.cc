@@ -795,6 +795,25 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
     return res;
 }
 
+//This doesn't create a scope for the evals
+void eval_let_binds(const Term::Let &let, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
+    // Go through the bindings in a let and add them one by one
+    for (int i = 0; i < let.binds_size(); ++i) {
+        type_t type = get_type(let.binds(i).term(), &env->type_scope);
+
+        if (type == Type::JSON) {
+            env->scope.put_in_scope(let.binds(i).var(),
+                    eval(let.binds(i).term(), env));
+        } else if (type == Type::STREAM) {
+            env->stream_scope.put_in_scope(let.binds(i).var(),
+                    eval_stream(let.binds(i).term(), env));
+        }
+
+        env->type_scope.put_in_scope(let.binds(i).var(),
+                                     type);
+    }
+}
+
 boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (t.type()) {
         case Term::VAR:
@@ -804,14 +823,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             {
                 // Push the scope
                 variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                // Go through the bindings in a let and add them one by one
-                for (int i = 0; i < t.let().binds_size(); ++i) {
-                    // TODO: we should evaluate the binding term right
-                    // here to avoid multiple reevaluations during
-                    // expression evaluation.
-                    env->scope.put_in_scope(t.let().binds(i).var(),
-                                            eval(t.let().binds(i).term(), env));
-                }
+                variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope); 
+                variable_type_scope_t::new_scope_t new_type_scope(&env->type_scope);
+
+                eval_let_binds(t.let(), env);
+
                 return eval(t.let().expr(), env);;
             }
             break;
@@ -913,6 +929,80 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             break;
     }
     crash("unreachable");
+}
+
+json_stream_t eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
+    switch (t.type()) {
+        case Term::VAR:
+            return env->stream_scope.get(t.var());
+            break;
+        case Term::LET:
+            {
+                // Push the scope
+                variable_val_scope_t::new_scope_t new_scope(&env->scope);
+                variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope);
+                variable_type_scope_t::new_scope_t new_type_scope(&env->type_scope);
+
+                eval_let_binds(t.let(), env);
+
+                return eval_stream(t.let().expr(), env);;
+            }
+            break;
+        case Term::CALL:
+            return eval_stream(t.call(), env);
+            break;
+        case Term::IF:
+            {
+                boost::shared_ptr<scoped_cJSON_t> test = eval(t.if_().test(), env);
+                if (test->get()->type != cJSON_True && test->get()->type != cJSON_False) {
+                    throw runtime_exc_t("The IF test must evaluate to a boolean.");
+                }
+
+                if (test->get()->type == cJSON_True) {
+                    return eval_stream(t.if_().true_branch(), env);
+                } else {
+                    return eval_stream(t.if_().false_branch(), env);
+                }
+            }
+            break;
+        case Term::TRY:
+            crash("unimplemented");
+            break;
+        case Term::ERROR:
+            crash("unimplemented");
+            break;
+        case Term::NUMBER:
+            unreachable("A NUMBER term should never be evaluated with eval_stream");
+            break;
+        case Term::STRING:
+            unreachable("A STRING term should never be evaluated with eval_stream");
+            break;
+        case Term::JSON:
+            unreachable("A JSON term should never be evaluated with eval_stream");
+            break;
+        case Term::BOOL:
+            unreachable("A BOOL term should never be evaluated with eval_stream");
+            break;
+        case Term::JSON_NULL:
+            unreachable("A NULL term should never be evaluated with eval_stream");
+            break;
+        case Term::ARRAY:
+            unreachable("A ARRAY term should never be evaluated with eval_stream");
+            break;
+        case Term::MAP:
+            unreachable("A MAP term should never be evaluated with eval_stream");
+            break;
+        case Term::VIEWASSTREAM:
+            crash("unimplemented");
+            break;
+        case Term::GETBYKEY:
+            unreachable("A GETBYKEY term should never be evaluated with eval_stream");
+        default:
+            crash("unreachable");
+            break;
+    }
+    crash("unreachable");
+
 }
 
 boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
@@ -1463,6 +1553,71 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
     }
     crash("unreachable");
+}
+
+json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t) {
+    switch (c.builtin().type()) {
+        //JSON -> JSON
+        case Builtin::NOT:
+        case Builtin::GETATTR:
+        case Builtin::HASATTR:
+        case Builtin::PICKATTRS:
+        case Builtin::MAPMERGE:
+        case Builtin::ARRAYAPPEND:
+        case Builtin::ARRAYCONCAT:
+        case Builtin::ARRAYSLICE:
+        case Builtin::ARRAYNTH:
+        case Builtin::ARRAYLENGTH:
+        case Builtin::ADD:
+        case Builtin::SUBTRACT:
+        case Builtin::MULTIPLY:
+        case Builtin::DIVIDE:
+        case Builtin::MODULO:
+        case Builtin::COMPARE:
+        case Builtin::LENGTH:
+        case Builtin::NTH:
+        case Builtin::STREAMTOARRAY:
+        case Builtin::REDUCE:
+        case Builtin::GROUPEDMAPREDUCE:
+        case Builtin::JAVASCRIPT:
+        case Builtin::MAPREDUCE:
+        case Builtin::ALL:
+        case Builtin::ANY:
+            unreachable("eval stream called on a function that does not return a stream.\n");
+            break;
+        case Builtin::FILTER:
+            crash("Not implemented");
+            break;
+        case Builtin::MAP:
+            crash("Not implemented");
+            break;
+        case Builtin::CONCATMAP:
+            crash("Not implemented");
+            break;
+        case Builtin::ORDERBY:
+            crash("Not implemented");
+            break;
+        case Builtin::DISTINCT:
+            crash("Not implemented");
+            break;
+        case Builtin::LIMIT:
+            crash("Not implemented");
+            break;
+        case Builtin::UNION:
+            crash("Not implemented");
+            break;
+        case Builtin::ARRAYTOSTREAM:
+            crash("Not implemented");
+            break;
+        case Builtin::JAVASCRIPTRETURNINGSTREAM:
+            crash("Not implemented");
+            break;
+        default:
+            crash("unreachable");
+            break;
+    }
+    crash("unreachable");
+
 }
 
 namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {

@@ -196,11 +196,17 @@ const type_t get_type(const Query &q, variable_type_scope_t *scope);
 
 /* functions to evaluate the queries */
 
-//typedef boost::variant<Response> eval_result;
+typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_stream_t;
 
+//Scopes for single pieces of json
 typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;
 
-typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> >::new_scope_t new_val_scope_t;
+typedef variable_val_scope_t::new_scope_t new_val_scope_t;
+
+//scopes for json streams
+typedef variable_scope_t<json_stream_t> variable_stream_scope_t;
+
+typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
 
 class runtime_exc_t {
 public:
@@ -223,12 +229,17 @@ public:
     { }
 
     variable_val_scope_t scope;
+    variable_stream_scope_t stream_scope;
+    variable_type_scope_t type_scope;
+
     namespace_repo_t<rdb_protocol_t> *ns_repo;
     //TODO this should really just be the namespace metadata... but
     //constructing views is too hard :-/
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
     cond_t interruptor;
 };
+
+//TODO most of these functions that are supposed to only throw runtime exceptions
 
 Response eval(const Query &q, runtime_environment_t *);
 
@@ -238,7 +249,11 @@ Response eval(const WriteQuery &r, runtime_environment_t *) THROWS_ONLY(runtime_
 
 boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
+json_stream_t eval_stream(const Term &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+
 boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+
+json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
 boost::shared_ptr<scoped_cJSON_t> eval_cmp(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
