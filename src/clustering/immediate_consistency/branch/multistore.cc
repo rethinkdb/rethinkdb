@@ -3,6 +3,7 @@
 #include "errors.hpp"
 #include <boost/function.hpp>
 
+#include "btree/parallel_traversal.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "protocol_api.hpp"

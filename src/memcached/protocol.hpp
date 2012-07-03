@@ -7,7 +7,7 @@
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
-#include "btree/parallel_traversal.hpp"  // TODO: sigh
+// #include "btree/parallel_traversal.hpp"  // TODO: sigh
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -23,6 +23,7 @@
 
 class io_backender_t;
 class real_superblock_t;
+class traversal_progress_combiner_t;
 
 write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf);
 archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);

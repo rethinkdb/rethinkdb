@@ -1,5 +1,6 @@
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 
+#include "btree/parallel_traversal.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/fifo_enforcer.hpp"

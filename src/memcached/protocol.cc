@@ -1,8 +1,11 @@
-#include <errors.hpp>
+#include "memcached/protocol.hpp"
+
+#include "errors.hpp"
 #include <boost/variant.hpp>
 #include <boost/bind.hpp>
 
 #include "btree/operations.hpp"
+#include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/pmap.hpp"
@@ -18,7 +21,6 @@
 #include "memcached/btree/incr_decr.hpp"
 #include "memcached/btree/rget.hpp"
 #include "memcached/btree/set.hpp"
-#include "memcached/protocol.hpp"
 #include "memcached/queries.hpp"
 #include "stl_utils.hpp"
 #include "serializer/config.hpp"
