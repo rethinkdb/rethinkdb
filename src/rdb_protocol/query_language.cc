@@ -991,7 +991,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 }
                 return res;
             }
-			break;
+            break;
         case Builtin::MAPMERGE:
             {
                 boost::shared_ptr<scoped_cJSON_t> left  = eval(c.args(0), env),
@@ -1012,7 +1012,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 }
                 return left;
             }
-			break;
+            break;
         case Builtin::ARRAYAPPEND:
             {
                 // Check first arg type
