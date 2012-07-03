@@ -1183,7 +1183,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
         case Builtin::MULTIPLY:
             {
-                double result = 0.0;
+                double result = 1.0;
 
                 for (int i = 0; i < c.args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
@@ -1422,7 +1422,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 for (int i = 0; i < c.args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
-                    if (arg->get()->type != cJSON_False || arg->get()->type != cJSON_True) {
+                    if (arg->get()->type != cJSON_False && arg->get()->type != cJSON_True) {
                         throw runtime_exc_t("All operands to ALL must be booleans.");
                     }
                     if (arg->get()->type != cJSON_True) {
@@ -1441,7 +1441,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 for (int i = 0; i < c.args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
-                    if (arg->get()->type != cJSON_False || arg->get()->type != cJSON_True) {
+                    if (arg->get()->type != cJSON_False && arg->get()->type != cJSON_True) {
                         throw runtime_exc_t("All operands to ANY must be booleans.");
                     }
                     if (arg->get()->type == cJSON_True) {
