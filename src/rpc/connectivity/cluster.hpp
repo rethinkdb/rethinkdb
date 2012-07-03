@@ -105,7 +105,7 @@ public:
             ourselves on each thread. Things that want to send a message via
             this `connection_entry_t` acquire the drainer for their thread when
             they look us up in `thread_info_t::connection_map`. */
-            one_per_thread_t<entry_installation_t> *entries;
+            scoped_ptr_t<one_per_thread_t<entry_installation_t> > entries;
         };
 
         /* Sets a variable to a value in its constructor; sets it to NULL in its

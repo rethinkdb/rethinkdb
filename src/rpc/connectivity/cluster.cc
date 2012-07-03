@@ -88,7 +88,8 @@ connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, 
 }
 
 connectivity_cluster_t::run_t::connection_entry_t::~connection_entry_t() THROWS_NOTHING {
-    delete entries;
+    // Delete entries early just so we can make the assertion below.
+    entries.reset();
 
     /* `~entry_installation_t` destroys the `auto_drainer_t`'s in entries,
     so nothing can be holding the `send_mutex`. */
