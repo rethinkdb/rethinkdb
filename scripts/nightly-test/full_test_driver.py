@@ -241,7 +241,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
             "repeat": repeat
             })
 
-    for (dirpath, dirname, filenames) in os.walk(os.path.join("rethinkdb", options.test_dir):
+    for (dirpath, dirname, filenames) in os.walk(os.path.join("rethinkdb", options.test_dir)):
         for filename in filenames:
             full_path = os.path.join(dirpath, filename)
             print "Reading specification file %r" % full_path
