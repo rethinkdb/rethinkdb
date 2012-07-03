@@ -53,6 +53,12 @@ def deb_uninstall(cmd_name):
     return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\\1/' | xargs dpkg -r" % cmd_name
 
 class VM():
+    class VMError(Exception):
+        def __init__(self, str):
+            self.str = str
+        def __str__(self):
+            return repr(self.str)
+
     def __init__(self, uuid, hostname, username = 'rethinkdb', rootname = 'root', vbox_username = 'rethinkdb', vbox_hostname = 'deadshot', startup = True):
         self.uuid = uuid
         self.hostname = hostname
@@ -62,9 +68,12 @@ class VM():
         self.vbox_hostname = vbox_hostname
         if (startup):
             os.system("ssh %s@%s VBoxManage startvm %s --type headless" % (self.vbox_username, self.vbox_hostname, self.uuid))
+            start_time = time.time()
             time.sleep(80)
-            while (self.command("true") != 0):
+            while (self.command("true") != 0) and time.time() - start_time < 5 * 60: # give up after some number of seconds
                 time.sleep(3)
+            if self.command("true") != 0:
+                raise VMError("Failed to connect to Virtual Machine %s." % uuid)
 
     def __del__(self):
         os.system("ssh %s@%s VBoxManage controlvm %s poweroff" % (self.vbox_username, self.vbox_hostname, self.uuid))
