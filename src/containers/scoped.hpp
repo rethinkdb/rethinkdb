@@ -72,6 +72,10 @@ public:
         init(n);
     }
 
+    scoped_array_t(T *ptr, ssize_t size) : ptr_(NULL), size_(0) {
+        init(ptr, size);
+    }
+
     ~scoped_array_t() {
         reset();
     }
