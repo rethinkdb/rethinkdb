@@ -8,11 +8,13 @@
 #include <unistd.h>
 
 #include "utils.hpp"
+#include <boost/ptr_container/ptr_vector.hpp>
+
 #include "arch/types.hpp"
 #include "config/args.hpp"
+#include "containers/scoped.hpp"
 #include "serializer/log/config.hpp"
 #include "containers/segmented_vector.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
 
 #define NULL_OFFSET off64_t(-1)
 
@@ -39,9 +41,22 @@ public:
 public:
     class transaction_t
     {
+    public:
         friend class extent_manager_t;
-        transaction_t() { }
-        free_queue_t free_queue;
+        transaction_t() : free_queue_() { }
+        ~transaction_t() {
+            rassert(!free_queue_.has());
+        }
+
+        void init() { free_queue_.init(new free_queue_t); }
+        void reset() { free_queue_.reset(); }
+
+        free_queue_t &free_queue() const { return *free_queue_.get(); }
+
+    private:
+        scoped_ptr_t<free_queue_t> free_queue_;
+
+        DISABLE_COPYING(transaction_t);
     };
 
 public:
@@ -75,10 +90,10 @@ public:
     has been written. This guarantees that we will not overwrite extents that the
     most recent metablock points to. */
 
-    MUST_USE transaction_t *begin_transaction();
+    void begin_transaction(transaction_t *out);
     off64_t gen_extent();
     void release_extent(off64_t extent);
-    void end_transaction(transaction_t *t);
+    void end_transaction(const transaction_t &t);
     void commit_transaction(transaction_t *t);
 
 public:

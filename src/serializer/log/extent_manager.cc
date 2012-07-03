@@ -237,10 +237,10 @@ void extent_manager_t::shutdown() {
     state = state_shut_down;
 }
 
-extent_manager_t::transaction_t *extent_manager_t::begin_transaction() {
+void extent_manager_t::begin_transaction(transaction_t *out) {
     rassert(!current_transaction);
-    transaction_t *t = current_transaction = new transaction_t();
-    return t;
+    current_transaction = out;
+    out->init();
 }
 
 off64_t extent_manager_t::gen_extent() {
@@ -283,21 +283,20 @@ void extent_manager_t::release_extent(off64_t extent) {
     rassert(current_transaction);
     --stats->pm_extents_in_use;
     stats->pm_bytes_in_use -= extent_size;
-    current_transaction->free_queue.push_back(extent);
+    current_transaction->free_queue().push_back(extent);
 }
 
-void extent_manager_t::end_transaction(UNUSED transaction_t *t) {
-    rassert(current_transaction == t);
-    rassert(t);
+void extent_manager_t::end_transaction(const transaction_t &t) {
+    rassert(current_transaction == &t);
     current_transaction = NULL;
 }
 
 void extent_manager_t::commit_transaction(transaction_t *t) {
-    for (free_queue_t::iterator it = t->free_queue.begin(); it != t->free_queue.end(); it++) {
+    for (free_queue_t::iterator it = t->free_queue().begin(); it != t->free_queue().end(); it++) {
         off64_t extent = *it;
         zone_for_offset(extent)->release_extent(extent);
     }
-    delete t;
+    t->reset();
 }
 
 int extent_manager_t::held_extents() {

@@ -410,7 +410,7 @@ void log_serializer_t::index_write_prepare(index_write_context_t &context, file_
     active_write_count++;
 
     /* Start an extent manager transaction so we can allocate and release extents */
-    context.extent_txn = extent_manager->begin_transaction();
+    extent_manager->begin_transaction(&context.extent_txn);
 
     /* Just to make sure that the LBA GC gets exercised */
     lba_index->consider_gc(io_account);
@@ -467,7 +467,7 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
     active_write_count--;
 
     /* End the extent manager transaction so the extents can actually get reused. */
-    extent_manager->commit_transaction(context.extent_txn);
+    extent_manager->commit_transaction(&context.extent_txn);
 
     //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
     consider_start_gc();
@@ -492,10 +492,11 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     // TODO: Implement a duration sampler perfmon for this
     ++stats->pm_serializer_block_writes;
 
-    extent_manager_t::transaction_t *em_trx = extent_manager->begin_transaction();
+    extent_manager_t::transaction_t em_trx;
+    extent_manager->begin_transaction(&em_trx);
     const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb);
     extent_manager->end_transaction(em_trx);
-    extent_manager->commit_transaction(em_trx);
+    extent_manager->commit_transaction(&em_trx);
 
     return generate_block_token(offset);
 }
