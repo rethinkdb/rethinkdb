@@ -73,7 +73,7 @@ class VM():
             while (self.command("true") != 0) and time.time() - start_time < 5 * 60: # give up after some number of seconds
                 time.sleep(3)
             if self.command("true") != 0:
-                raise VMError("Failed to connect to Virtual Machine %s." % uuid)
+                raise self.VMError("Failed to connect to Virtual Machine %s." % uuid)
 
     def __del__(self):
         os.system("ssh %s@%s VBoxManage controlvm %s poweroff" % (self.vbox_username, self.vbox_hostname, self.uuid))
