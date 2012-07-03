@@ -59,8 +59,8 @@ o["threads"] = IntFlag("--threads", 3)
 o["clean-up"] = BoolFlag("--clean-up")
 o["interact"] = BoolFlag("--interact")
 o["debug"] = BoolFlag("--debug");
-o["username"] = StringFlag("--username", os.getlogin())
-o["hostname"] = StringFlag("--hostname", socket.gethostname())
+o["username"] = StringFlag("--username", "rethinkdb") # For now, these default values should always be the ones you should use
+o["hostname"] = StringFlag("--hostname", "deadshot") # because the UUID values below are hard-coded to correspond with rethinkdb@deadshot
 
 try:
     opts = o.parse(sys.argv)
@@ -134,3 +134,4 @@ else:
         print name, "." * (20 - len(name)), colored("[Pass]", "green") if val else colored("[Fail]", "red")
         if (not val):
             print "Failed on: ", exception[name]
+            raise exception[name]
