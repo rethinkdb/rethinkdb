@@ -24,10 +24,13 @@ class Connection(object):
 
         self.socket = socket.create_connection((hostname, port))
 
-    def run(self, query):
+    def run(self, query, debug=False):
         root_ast = p.Query()
         root_ast.token = self.get_token()
         toTerm(query)._finalize_query(root_ast)
+
+        if debug:
+            print "sending:", root_ast
 
         serialized = root_ast.SerializeToString()
 
@@ -38,6 +41,9 @@ class Connection(object):
         response_serialized = self._recvall(msglen)
         response = p.Response()
         response.ParseFromString(response_serialized)
+
+        if debug:
+            print "response:", response
 
         return response
 
@@ -157,21 +163,6 @@ class Insert(object):
         write_query.type = p.WriteQuery.INSERT
         self.write_ast(write_query.insert)
         return write_query.insert
-
-class Find(Stream):
-    def __init__(self, tableref, key, value):
-        self.tableref = tableref
-        self.key = key
-        self.value = value
-
-    def set(self, updater, row=DEFAULT_ROW_BINDING):
-        return Set(self.tableref, self.value, updater, self.key, row)
-
-    def write_ast(self, parent):
-        parent.type = p.Term.GETBYKEY
-        self.tableref.write_ref_ast(parent.get_by_key.table_ref)
-        parent.get_by_key.attrname = self.key
-        toTerm(self.value).write_ast(parent.get_by_key.key)
 
 class Filter(Stream):
     def __init__(self, parent_view, selector, row):
@@ -307,6 +298,21 @@ class Term(object):
         for arg in args:
             toTerm(arg).write_ast(parent.call.args.add())
 
+class Find(Term):
+    def __init__(self, tableref, key, value):
+        self.tableref = tableref
+        self.key = key
+        self.value = value
+
+    def set(self, updater, row=DEFAULT_ROW_BINDING):
+        return Set(self.tableref, self.value, updater, self.key, row)
+
+    def write_ast(self, parent):
+        parent.type = p.Term.GETBYKEY
+        self.tableref.write_ref_ast(parent.get_by_key.table_ref)
+        parent.get_by_key.attrname = self.key
+        toTerm(self.value).write_ast(parent.get_by_key.key)
+
 class _if(Term):
     def __init__(self, test, true_branch, false_branch):
         self.test = toTerm(test)
@@ -331,6 +337,8 @@ class Conjunction(Term):
 def _and(*predicates):
     return Conjunction(predicates)
 
+all = _and
+
 class Disjunction(Term):
     def __init__(self, predicates):
         if not predicates:
@@ -342,6 +350,8 @@ class Disjunction(Term):
 
 def _or(*predicates):
     return Disjunction(predicates)
+
+any = _or
 
 class val(Term):
     def __init__(self, value):
