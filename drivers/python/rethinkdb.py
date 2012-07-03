@@ -129,6 +129,9 @@ class Table(Stream):
     def find(self, value, key='id'):
         return Find(self, key, value)
 
+    def delete(self, value, key='id'):
+        return Delete(self, key, value)
+
     def set(self, value, updater, key='id', row=DEFAULT_ROW_BINDING):
         self.check_readonly()
         return Set(self, value, updater, key, row)
@@ -312,6 +315,22 @@ class Find(Term):
         self.tableref.write_ref_ast(parent.get_by_key.table_ref)
         parent.get_by_key.attrname = self.key
         toTerm(self.value).write_ast(parent.get_by_key.key)
+
+class Delete(Term):
+    def __init__(self, tableref, key, value):
+        self.tableref = tableref
+        self.key = key
+        self.value = value
+
+    def write_ast(self, parent):
+        parent.type = p.WriteQuery.POINTDELETE
+        self.tableref.write_ref_ast(parent.point_delete.table_ref)
+        parent.point_delete.attrname = self.key
+        toTerm(self.value).write_ast(parent.point_delete.key)
+
+    def _finalize_query(self, root):
+        wq = _finalize_internal(root, p.WriteQuery)
+        self.write_ast(wq)
 
 class _if(Term):
     def __init__(self, test, true_branch, false_branch):

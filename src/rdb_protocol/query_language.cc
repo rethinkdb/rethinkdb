@@ -721,6 +721,11 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_
     ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
 }
 
+void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> id, runtime_environment_t *env) {
+    rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id->get()))));
+    ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
+}
+
 Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (w.type()) {
         case WriteQuery::UPDATE:
@@ -780,6 +785,18 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
             }
             break;
         case WriteQuery::POINTDELETE:
+            {
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w.point_delete().table_ref(), env);
+                boost::shared_ptr<scoped_cJSON_t> id = eval(w.point_delete().key(), env);
+                point_delete(ns_access, id, env);
+                
+                Response res;
+                res.set_status_code(0);
+                res.set_token(0);
+                res.add_response("Deleted 1 rows.");
+                
+                return res;
+            }
             break;
         case WriteQuery::POINTMUTATE:
             break;

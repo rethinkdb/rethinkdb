@@ -26,6 +26,9 @@ typedef rdb_protocol_t::write_response_t write_response_t;
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
+typedef rdb_protocol_t::point_delete_t point_delete_t;
+typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
+
 typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
@@ -78,6 +81,10 @@ struct w_get_region_visitor : public boost::static_visitor<key_range_t> {
     key_range_t operator()(const point_write_t &pw) const {
         return key_range_t(key_range_t::closed, pw.key, key_range_t::closed, pw.key);
     }
+    
+    key_range_t operator()(const point_delete_t &pd) const {
+        return key_range_t(key_range_t::closed, pd.key, key_range_t::closed, pd.key);
+    }
 };
 
 key_range_t write_t::get_region() const THROWS_NOTHING {
@@ -94,6 +101,10 @@ struct w_shard_visitor : public boost::static_visitor<write_t> {
     write_t operator()(const point_write_t &pw) const {
         rassert(key_range_t(key_range_t::closed, pw.key, key_range_t::closed, pw.key) == key_range);
         return write_t(pw);
+    }
+    write_t operator()(const point_delete_t &pd) const {
+        rassert(key_range_t(key_range_t::closed, pd.key, key_range_t::closed, pd.key) == key_range);
+        return write_t(pd);
     }
     const key_range_t &key_range;
 };
@@ -338,6 +349,11 @@ struct write_visitor_t : public boost::static_visitor<write_response_t> {
     write_response_t operator()(const point_write_t &w) {
         return write_response_t(
             rdb_set(w.key, w.data, btree, timestamp, txn.get(), superblock));
+    }
+
+    write_response_t operator()(const point_delete_t &d) {
+        return write_response_t(
+            rdb_delete(d.key, btree, timestamp, txn.get(), superblock));
     }
 
     write_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t>& txn_, superblock_t *superblock_, repli_timestamp_t timestamp_) : btree(btree_), txn(txn_), superblock(superblock_), timestamp(timestamp_) { }
