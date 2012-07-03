@@ -9,7 +9,6 @@
 
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
-#include "do_on_thread.hpp"
 #include "perfmon/perfmon.hpp"
 
 log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 

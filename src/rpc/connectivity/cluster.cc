@@ -13,7 +13,6 @@
 #include "concurrency/pmap.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/uuid.hpp"
-#include "do_on_thread.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
 

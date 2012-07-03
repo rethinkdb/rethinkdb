@@ -5,7 +5,6 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
-#include "do_on_thread.hpp"
 #include "arch/arch.hpp"
 #include "utils.hpp"            // randint
 
