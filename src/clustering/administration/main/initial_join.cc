@@ -10,9 +10,8 @@ initial_joiner_t::initial_joiner_t(
         int timeout_ms) :
     cluster(cluster_),
     peers_not_heard_from(peers),
-    subs(peers_list_callback_pair_t(boost::bind(&initial_joiner_t::on_connect, this, _1), 0)),
-    successful_connection(false)
-{
+    subs(this),
+    successful_connection(false) {
     rassert(!peers.empty());
 
     if (peers_not_heard_from.erase(cluster->get_peer_address(cluster->get_me())) != 0) {

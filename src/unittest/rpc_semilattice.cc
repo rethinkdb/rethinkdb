@@ -87,8 +87,13 @@ void run_metadata_exchange_test() {
 
     /* Block until the connection is established */
     {
-        cond_t connection_established;
-        connectivity_service_t::peers_list_subscription_t subs(peers_list_callback_pair_t(boost::bind(&cond_t::pulse, &connection_established), 0));
+        struct : public cond_t, public peers_list_callback_t {
+            void on_connect(UNUSED peer_id_t peer) {
+                pulse();
+            }
+            void on_disconnect(UNUSED peer_id_t peer) { }
+        } connection_established;
+        connectivity_service_t::peers_list_subscription_t subs(&connection_established);
 
         {
             ASSERT_FINITE_CORO_WAITING;
@@ -139,8 +144,14 @@ void run_sync_from_test() {
 
     /* Block until the connection is established */
     {
-        cond_t connection_established;
-        connectivity_service_t::peers_list_subscription_t subs(peers_list_callback_pair_t(boost::bind(&cond_t::pulse, &connection_established), 0));
+        struct : public cond_t, public peers_list_callback_t {
+            void on_connect(UNUSED peer_id_t peer) {
+                pulse();
+            }
+            void on_disconnect(UNUSED peer_id_t peer) { }
+        } connection_established;
+
+        connectivity_service_t::peers_list_subscription_t subs(&connection_established);
 
         {
             ASSERT_FINITE_CORO_WAITING;

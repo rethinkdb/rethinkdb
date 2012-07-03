@@ -3,9 +3,6 @@
 
 #include <set>
 
-#include "utils.hpp"
-#include <boost/function.hpp>
-
 #include "arch/address.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/signal.hpp"
@@ -48,13 +45,18 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(uuid);
 };
 
-struct peers_list_callback_pair_t {
-    peers_list_callback_pair_t(const boost::function<void(peer_id_t)> &_on_connect,
-                               const boost::function<void(peer_id_t)> &_on_disconnect)
-        : on_connect(_on_connect), on_disconnect(_on_disconnect) { }
+struct peers_list_callback_t {
+public:
+    peers_list_callback_t() { }
 
-    const boost::function<void(peer_id_t)> on_connect;
-    const boost::function<void(peer_id_t)> on_disconnect;
+    virtual void on_connect(peer_id_t peer_id) = 0;
+    virtual void on_disconnect(peer_id_t peer_id) = 0;
+
+protected:
+    virtual ~peers_list_callback_t() { }
+
+private:
+    DISABLE_COPYING(peers_list_callback_t);
 };
 
 /* A `connectivity_service_t` is an object that keeps track of peers that are
@@ -89,11 +91,11 @@ public:
     connects or disconnects. */
     class peers_list_subscription_t {
     public:
-        peers_list_subscription_t(const peers_list_callback_pair_t &connect_disconnect_pair);
+        peers_list_subscription_t(peers_list_callback_t *connect_disconnect_cb);
         void reset();
         void reset(connectivity_service_t *, peers_list_freeze_t *proof);
     private:
-        publisher_t<peers_list_callback_pair_t>::subscription_t subs;
+        publisher_t<peers_list_callback_t *>::subscription_t subs;
 
         DISABLE_COPYING(peers_list_subscription_t);
     };
@@ -120,14 +122,15 @@ protected:
 
 private:
     virtual rwi_lock_assertion_t *get_peers_list_lock() = 0;
-    virtual publisher_t<peers_list_callback_pair_t> *get_peers_list_publisher() = 0;
+    virtual publisher_t<peers_list_callback_t *> *get_peers_list_publisher() = 0;
 };
 
-class disconnect_watcher_t : public signal_t {
+class disconnect_watcher_t : public signal_t, private peers_list_callback_t {
 public:
     disconnect_watcher_t(connectivity_service_t *, peer_id_t);
 private:
-    void on_disconnect(peer_id_t);
+    void on_disconnect(peer_id_t p);
+    void on_connect(UNUSED peer_id_t p) { }
     connectivity_service_t::peers_list_subscription_t subs;
     peer_id_t peer;
 };

@@ -12,7 +12,7 @@ At that point, it stops trying to connect to the other addresses and pulses
 successfully connected to one of the other addresses, it calls `logWRN()` with
 a warning message. */
 
-struct initial_joiner_t {
+class initial_joiner_t : private peers_list_callback_t {
 public:
     initial_joiner_t(
             connectivity_cluster_t *cluster,
@@ -31,6 +31,7 @@ public:
 private:
     void main_coro(connectivity_cluster_t::run_t *cluster_run, auto_drainer_t::lock_t keepalive);
     void on_connect(peer_id_t peer);
+    void on_disconnect(UNUSED peer_id_t peer) { }
 
     connectivity_cluster_t *cluster;
     std::set<peer_address_t> peers_not_heard_from;

@@ -251,8 +251,13 @@ void run_event_watchers_test() {
     boost::scoped_ptr<connectivity_cluster_t::run_t> cr2(new connectivity_cluster_t::run_t(&c2, port+1, NULL));
 
     /* Make sure `c1` notifies us when `c2` connects */
-    cond_t connection_established;
-    connectivity_service_t::peers_list_subscription_t subs(peers_list_callback_pair_t(boost::bind(&cond_t::pulse, &connection_established), 0));
+    struct : public cond_t, public peers_list_callback_t {
+        void on_connect(UNUSED peer_id_t peer) {
+            pulse();
+        }
+        void on_disconnect(UNUSED peer_id_t peer) { }
+    } connection_established;
+    connectivity_service_t::peers_list_subscription_t subs(&connection_established);
 
     {
         connectivity_service_t::peers_list_freeze_t freeze(&c1);
@@ -289,13 +294,12 @@ TEST(RPCConnectivityTest, EventWatchersMultiThread) {
 /* `EventWatcherOrdering` confirms that information delivered via event
 notification is consistent with information delivered via `get_peers_list()`. */
 
-struct watcher_t {
+struct watcher_t : private peers_list_callback_t {
 
     watcher_t(connectivity_cluster_t *c, recording_test_application_t *a) :
         cluster(c),
         application(a),
-        event_watcher(peers_list_callback_pair_t(boost::bind(&watcher_t::on_connect, this, _1),
-                                                 boost::bind(&watcher_t::on_disconnect, this, _1))) {
+        event_watcher(this) {
         connectivity_service_t::peers_list_freeze_t freeze(cluster);
         event_watcher.reset(cluster, &freeze);
     }
