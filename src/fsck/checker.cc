@@ -135,17 +135,17 @@ private:
 // All the files' file_knowledge_t.
 struct knowledge_t {
     scoped_array_t<scoped_ptr_t<nondirect_file_t> > files;
-    std::vector<file_knowledge_t *> file_knog;
+    scoped_array_t<scoped_ptr_t<file_knowledge_t> > file_knog;
     nondirect_file_t *metadata_file;
     file_knowledge_t *metadata_file_knog;
 
     knowledge_t(const std::vector<std::string>& filenames, const std::string &metadata_filename, io_backender_t *io_backender)
-        : files(filenames.size()), file_knog(filenames.size(), NULL) {
+        : files(filenames.size()), file_knog(filenames.size()) {
 
         for (int i = 0, n = filenames.size(); i < n; ++i) {
             nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read, NULL, io_backender);
             files[i].init(file);
-            file_knog[i] = new file_knowledge_t(filenames[i]);
+            file_knog[i].init(new file_knowledge_t(filenames[i]));
         }
 
         if (!metadata_filename.empty()) {
@@ -158,9 +158,6 @@ struct knowledge_t {
     }
 
     ~knowledge_t() {
-        for (int i = 0, n = files.size(); i < n; ++i) {
-            delete file_knog[i];
-        }
         delete metadata_file;
         delete metadata_file_knog;
     }
@@ -1507,13 +1504,13 @@ bool check_files(const config_t *cfg) {
 
     /* A few early exits if we want some specific pieces of information */
     if (cfg->print_file_version) {
-        printf("VERSION: %s\n", extract_static_config_version(knog.files[0].get(), knog.file_knog[0]).c_str());
+        printf("VERSION: %s\n", extract_static_config_version(knog.files[0].get(), knog.file_knog[0].get()).c_str());
         return true;
     }
 
     bool success = true;
     for (int i = 0; i < num_files; ++i)
-        success &= check_and_report_to_config_block(knog.files[i].get(), knog.file_knog[i], cfg);
+        success &= check_and_report_to_config_block(knog.files[i].get(), knog.file_knog[i].get(), cfg);
 
     if (knog.metadata_file)
         success &= check_and_report_to_config_block(knog.metadata_file, knog.metadata_file_knog, cfg);
@@ -1531,7 +1528,7 @@ bool check_files(const config_t *cfg) {
 
     if (cfg->print_command_line) {
         std::string flags("FLAGS: ");
-        flags.append(extract_static_config_flags(knog.files[0].get(), knog.file_knog[0]));
+        flags.append(extract_static_config_flags(knog.files[0].get(), knog.file_knog[0].get()));
         flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
         flags.append(extract_cache_flags(knog.files[0].get(), *knog.file_knog[0]->config_block, *knog.file_knog[0]->mc_config_block));
         printf("%s\n", flags.c_str());
@@ -1545,7 +1542,7 @@ bool check_files(const config_t *cfg) {
     std::vector<pthread_t> threads;
     all_slices_errors slices_errs(n_slices, knog.metadata_file != NULL);
     for (int i = 0; i < num_files; ++i) {
-        launch_check_after_config_block(knog.files[i].get(), threads, knog.file_knog[i], &slices_errs, cfg);
+        launch_check_after_config_block(knog.files[i].get(), threads, knog.file_knog[i].get(), &slices_errs, cfg);
     }
 
     // ... and one for the metadata slice
