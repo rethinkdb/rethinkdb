@@ -66,6 +66,15 @@
 
 /*
     ----------------------------
+    Main container
+    ----------------------------
+*/
+#cluster{
+    background: #fff; // Need it for full screen
+}
+
+/*
+    ----------------------------
     Log view
     ----------------------------
 */
@@ -1757,12 +1766,18 @@
             padding: 0px;
             margin: 10px 0px;
             .input_query{
-                width: 500px;
-                height: 18px;
+                width: 678px;
+                height: 36px;
                 padding: 4px 10px;
             }
             .button_query{
                 width: 80px;
+            }
+            .clear_query{
+                margin: 0px 0px 0px 528px;
+            }
+            .execute_query{
+                margin: 0px 0px 0px 7px;
             }
         }
         .loading_query{
@@ -1776,7 +1791,6 @@
         }
     }
     .data_container{
-    
         .namespaces_available_container{
             float: left;
             width: 330px;
@@ -1787,9 +1801,19 @@
             width: 330px;
             padding: 20px 10px 10px 10px;
         }
-
-        .change_view_container{
+        .options_container{
             float: right;
+        }
+        .change_view_container{
+            margin: 0px;
+            padding: 0px 10px 0px 0px;
+            float: right;
+        }
+        .nav-tabs{
+            border: none;
+        }
+        .tab-content{
+            border-top: 1px solid #ccc;
         }
 
         .helper_view{
@@ -1799,6 +1823,7 @@
 
     .results{
         width: 700px;
+        margin: 15px 0px 0px 0px;
         overflow: auto;
         .json_tree{
             float: left; // Clear the horizontal arrow
@@ -1872,11 +1897,10 @@
             }   
         }
         .json_table_container{
-            padding: 10px 40px 10px 0px;
             .json_table{
                 font: 13px/18px monospace,mono,consolas;
-                margin: 20px 0px;
                 padding: 0px;
+                margin: 0px 0px 15px 0px;
                 table-layout: fixed;
                 white-space: nowrap;
                 .td_attr{
@@ -1914,7 +1938,7 @@
                 .jta_object{
                     vertical-align: top;
                     display: inline-block;
-                }  
+                }
                 td{
                     max-width: 145px;
                     padding: 0px 5px 0px 0px;
@@ -1960,6 +1984,10 @@
                 -ms-user-select: none;
                 user-select: none;
             }
+        }
+        .raw_view_textarea{
+            width: 690px;
+            height: auto;
         }
     }
 }

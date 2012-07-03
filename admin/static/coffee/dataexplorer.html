@@ -62,16 +62,31 @@
 
 
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
-    <div class="change_view_container">
-        <input type="button" value="Home" class="btn button_query home_view" />
-        <input type="button" value="Tree view" class="btn button_query tree_view" />
-        <input type="button" value="Table view" class="btn button_query table_view" />
-        <input type="button" value="Raw view" class="btn button_query raw_view" />
-        <input type="button" value="Full view" class="btn button_query full_view" />
-    </div>
-    <h2>Results</h2>
-    <p>For query {{query}}</p>
-    <div class="results">
+    <div class="results_header">
+        <div class="options_container">
+            <input type="button" value="Home" class="btn button_query home_view" />
+            <input type="button" value="Full view" class="btn button_query full_view" />
+        </div>
+
+        <h2>Results</h2>
+        <p class="query_executed">For query: {{query}}</p>
+
+        <ul class="nav nav-tabs change_view_container"">
+            <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view">Tree view</a></li>
+            <li><a href="#table_view" data-toggle="tab" class="link_to_table_view">Table view</a></li>
+            <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view">Raw view</a></li>
+        </ul>
+ 
+   </div>
+
+   <div class="tab-content">  
+        <div class="tab-pane results" id="tree_view">
+        </div>
+        <div class="tab-pane results" id="table_view">
+        </div>
+        <div class="tab-pane results" id="raw_view">
+            <textarea class="raw_view_textarea"></textarea>
+        </div>
     </div>
 </script>
 
@@ -209,7 +224,7 @@
         {{#if need_comma}}, {{/if}}
     </span>
     {{else}}
-    <span contenteditable="true" class={{classname}}>{{print_safe value}}{{#if need_comma}}, {{/if}}</span>
+    <span contenteditable="true" class={{classname}}>{{print_safe value}}</span>{{#if need_comma}}, {{/if}}
     {{/if}}
 </script>
 

@@ -159,19 +159,18 @@ module 'DataExplorerView', ->
             return @
 
         display_full: =>
-            $('.container').css 'width', '100%'
-            $('.container').css 'height', '100%'
 
-            $('.container').css 'height', '100%'
-            $('#cluster').css 'width', '100%'
-            $('#cluster').css 'height', '100%'
-            $('.dataexplorer_container').css 'width', '100%'
-            $('.dataexplorer_container').css 'height', '100%'
-            $('.results').css 'width', '100%'
-            $('.results').css 'height', '100%'
+            $('.main-container').css 'width', '100%'
+            $('#cluster').css 'width', 'auto'
 
+            $('#cluster').css 'position', 'absolute'
 
+            $('.dataexplorer_container').css 'padding', '0px 50px'
 
+            $('.dataexplorer_container').css 'width', 'auto'
+            #$('.dataexplorer_container').css 'height', '100%'
+            $('.results').css 'width', 'auto'
+            #$('.results').css 'height', '100%'
 
         destroy: =>
             @input_query.destroy()
@@ -240,6 +239,8 @@ module 'DataExplorerView', ->
 
         #TODO Fix unbinding when view changes
         events:
+            # Global events
+            'click .link_to_raw_view': 'expand_raw_textarea'
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
             'keypress .jt_editable': 'handle_keypress'
@@ -248,6 +249,7 @@ module 'DataExplorerView', ->
             'mousedown td': 'handle_mousedown'
             'click .jta_arrow_v': 'expand_tree_in_table'
             'click .jta_arrow_h': 'expand_table_in_table'
+
 
         current_result: []
 
@@ -570,24 +572,41 @@ module 'DataExplorerView', ->
 
             @.$el.html @template
                 query: query
-
+            
             if @current_result.length is 0
                 @.$('.results').html @template_no_result
+                @.$('#tree_view').addClass 'active'
                 return @
 
-            #type = "json", "table", "raw"
+            @.$('#tree_view').html @json_to_tree @current_result
+            @.$('#table_view').html @json_to_table @current_result
+            @.$('.raw_view_textarea').html JSON.stringify @current_result
+ 
             if !type?
                 if @current_result.length is 1
                     type = "json"
                 else
                     type = "table"
+
+
+            #TODO We should really remove bootstraps...
             switch type
                 when  'json'
-                     @.$('.results').html @json_to_tree @current_result
+                    @.$('.link_to_tree_view').tab 'show'
+                    @.$('#tree_view').addClass 'active'
+                    @.$('#table_view').removeClass 'active'
+                    @.$('#raw_view').removeClass 'active'
                 when  'table'
-                     @.$('.results').html @json_to_table @current_result
+                    @.$('.link_to_table_view').tab 'show'
+                    @.$('#table_view').addClass 'active'
+                    @.$('#tree_view').removeClass 'active'
+                    @.$('#raw_view').removeClass 'active'
                 when  'raw'
-                     @.$('.results').html @json_to_tree @current_result
+                    @.$('.link_to_raw_view').tab 'show'
+                    @.$('#raw_view').addClass 'active'
+                    @.$('#table_view').removeClass 'active'
+                    @.$('#tree_view').removeClass 'active'
+ 
 
             @delegateEvents()
 
@@ -607,6 +626,17 @@ module 'DataExplorerView', ->
 
         on_editable_blur: (data) ->
             @send_update(data)
+
+        expand_raw_textarea: =>
+            setTimeout(@test, 0) #TODO remove this trick when we will remove bootstrap's tab 
+        test: =>
+            @expand_textarea 'raw_view_textarea'
+            return @
+
+        expand_textarea: (classname) =>
+            if $('.'+classname).length > 0
+                height = $('.'+classname)[0].scrollHeight
+                $('.'+classname).height(height)
 
         #TODO complete method
         #TODO change color
