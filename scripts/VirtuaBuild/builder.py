@@ -5,6 +5,9 @@ import sys
 from threading import Thread, Semaphore
 import socket, os
 
+x = 5
+print x.asdf
+
 class Builder(Thread):
     def __init__(self, name, branch, target, semaphore):
         Thread.__init__(self)
