@@ -89,7 +89,7 @@ data Term {
     Term expr;
   };
 
-  branch If {
+  branch If_ {
     Term test;
     Term true_branch;
     Term false_branch;
