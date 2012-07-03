@@ -1000,13 +1000,16 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     throw runtime_exc_t("Data must be an object");
                 }
 
-                cJSON *item;
-                while ((item = right->get()->child)) {
-                    std::string item_name(item->string);
-                    cJSON_DeleteItemFromObject(left->get(), item_name.c_str());
-                    cJSON_AddItemToObject(left->get(), item_name.c_str(), cJSON_DetachItemFromObject(right->get(), item_name.c_str()));
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_DeepCopy(left->get())));
+                
+                // Extend with the right side (and overwrite if necessary)
+                for(int i = 0; i < cJSON_GetArraySize(right->get()); i++) {
+                    cJSON *item = cJSON_GetArrayItem(right->get(), i);
+                    cJSON_DeleteItemFromObject(res->get(), item->string);
+                    cJSON_AddItemToObject(res->get(), item->string, cJSON_DeepCopy(item));
                 }
-                return left;
+                
+                return res;
             }
             break;
         case Builtin::ARRAYAPPEND:
