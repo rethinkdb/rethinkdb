@@ -89,13 +89,7 @@ public:
     connects or disconnects. */
     class peers_list_subscription_t {
     public:
-        peers_list_subscription_t(
-                const boost::function<void(peer_id_t)> &on_connect,
-                const boost::function<void(peer_id_t)> &on_disconnect);
-        peers_list_subscription_t(
-                const boost::function<void(peer_id_t)> &on_connect,
-                const boost::function<void(peer_id_t)> &on_disconnect,
-                connectivity_service_t *, peers_list_freeze_t *proof);
+        peers_list_subscription_t(const peers_list_callback_pair_t &connect_disconnect_pair);
         void reset();
         void reset(connectivity_service_t *, peers_list_freeze_t *proof);
     private:
@@ -127,15 +121,6 @@ protected:
 private:
     virtual rwi_lock_assertion_t *get_peers_list_lock() = 0;
     virtual publisher_t<peers_list_callback_pair_t> *get_peers_list_publisher() = 0;
-};
-
-class connect_watcher_t : public signal_t {
-public:
-    connect_watcher_t(connectivity_service_t *, peer_id_t);
-private:
-    void on_connect(peer_id_t);
-    connectivity_service_t::peers_list_subscription_t subs;
-    peer_id_t peer;
 };
 
 class disconnect_watcher_t : public signal_t {

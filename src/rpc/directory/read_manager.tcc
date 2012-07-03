@@ -7,11 +7,8 @@ template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_service_t *conn_serv) THROWS_NOTHING :
     connectivity_service(conn_serv),
     variable(std::map<peer_id_t, metadata_t>()),
-    connectivity_subscription(
-        boost::bind(&directory_read_manager_t::on_connect, this, _1),
-        boost::bind(&directory_read_manager_t::on_disconnect, this, _1)
-        )
-{
+    connectivity_subscription(peers_list_callback_pair_t(boost::bind(&directory_read_manager_t::on_connect, this, _1),
+                                                         boost::bind(&directory_read_manager_t::on_disconnect, this, _1))) {
     connectivity_service_t::peers_list_freeze_t freeze(connectivity_service);
     rassert(connectivity_service->get_peers_list().empty());
     connectivity_subscription.reset(connectivity_service, &freeze);
