@@ -978,14 +978,9 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 boost::shared_ptr<scoped_cJSON_t> res = shared_scoped_json(cJSON_CreateObject());
 
                 for (int i = 0; i < c.builtin().attrs_size(); ++i) {
-                    cJSON *item = cJSON_DetachItemFromObject(data->get(), c.builtin().attrs(i).c_str());
+                    cJSON *item = cJSON_DeepCopy(cJSON_GetObjectItem(data->get(), c.builtin().attrs(i).c_str()));
                     if (!item) {
-                        if (cJSON_GetObjectItem(res->get(), c.builtin().attrs(i).c_str())) {
-                            //When we get here it means someone did pick with 2
-                            //copies of the same attr... we permit this for now
-                        } else {
-                            throw runtime_exc_t("Attempting to pick non existant attribute.");
-                        }
+                        throw runtime_exc_t("Attempting to pick non existant attribute.");
                     } else {
                         cJSON_AddItemToObject(res->get(), item->string, item);
                     }
