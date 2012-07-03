@@ -1,9 +1,6 @@
 #ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
 #define RPC_CONNECTIVITY_CLUSTER_HPP_
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
@@ -13,6 +10,8 @@
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
 #include "containers/uuid.hpp"
+
+namespace boost { template <class> class optional; }
 
 extern const char *const cluster_proto_header;
 

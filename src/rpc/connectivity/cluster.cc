@@ -1,10 +1,13 @@
 #include "rpc/connectivity/cluster.hpp"
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "arch/io/network.hpp"
 
 #ifndef NDEBUG
 #include "arch/timing.hpp"
-#endif  // NDEBUG
+#endif
 
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
