@@ -120,8 +120,6 @@ else:
     semaphore = Semaphore(opts["threads"])
 
     builders = map(lambda x: Builder(x[0], rspec, x[1], semaphore), targets.iteritems())
-    for b in builders:
-        x = b.exception
     map(lambda x: x.start(), builders)
     map(lambda x: x.join(), builders)
 
