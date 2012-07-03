@@ -120,7 +120,7 @@ public:
     bool there_originally_was_value;
     // If the key/value pair was found, a pointer to a copy of the
     // value, otherwise NULL.
-    scoped_malloc<Value> value;
+    scoped_malloc_t<Value> value;
 
     void swap(keyvalue_location_t& other) {
         std::swap(superblock, other.superblock);
@@ -148,7 +148,7 @@ template <class Value>
 class key_modification_callback_t {
 public:
     // Perhaps this modifies the kv_loc in place, swapping in its own
-    // scoped_malloc.  It's the caller's responsibility to have
+    // scoped_malloc_t.  It's the caller's responsibility to have
     // destroyed any blobs that the value might reference, before
     // calling this here, so that this callback can reacquire them.
     virtual key_modification_proof_t value_modification(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;

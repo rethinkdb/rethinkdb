@@ -15,7 +15,7 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         : increment(_increment), delta(_delta)
     { }
 
-    bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t>& value) {
         // If the key didn't exist before, we fail.
         if (!value) {
             result.res = incr_decr_result_t::idr_not_found;

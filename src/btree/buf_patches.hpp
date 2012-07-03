@@ -31,7 +31,7 @@ private:
     leaf_insert_patch_t(block_id_t block_id, repli_timestamp_t block_timestamp, patch_counter_t patch_counter, uint16_t value_size, const void *value, const btree_key_t *key, repli_timestamp_t insertion_time);
 
     uint16_t value_size;
-    scoped_malloc<char> value_buf;
+    scoped_malloc_t<char> value_buf;
     store_key_t key;
     repli_timestamp_t insertion_time;
 };

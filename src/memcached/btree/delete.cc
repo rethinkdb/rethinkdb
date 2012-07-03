@@ -10,7 +10,7 @@ struct memcached_delete_oper_t : public memcached_modify_oper_t {
     bool dont_put_in_delete_queue;
     btree_slice_t *slice;
 
-    bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t>& value) {
         if (value) {
             result = dr_deleted;
             {
