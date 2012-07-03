@@ -704,11 +704,28 @@ Response eval(const Query &q, runtime_environment_t *env) {
 
 Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     Response res;
-    boost::shared_ptr<scoped_cJSON_t> json = eval(r.term(), env);
+
+    type_t type = get_type(r.term(), &env->type_scope);
+
+    if (type == Type::JSON) {
+        boost::shared_ptr<scoped_cJSON_t> json = eval(r.term(), env);
+        res.add_response(cJSON_print_std_string(json->get()));
+    } else if (type == Type::STREAM) {
+        json_stream_t stream = eval_stream(r.term(), env);
+
+        for (json_stream_t::iterator it  = stream.begin();
+                                     it != stream.end();
+                                     ++it) {
+            res.add_response(cJSON_print_std_string((*it)->get()));
+        }
+    } else {
+        unreachable("The type checker should have caught use before we got" \
+                "here. (A read query with a term that doesn't evaluate to JSON" \
+                    "or STREAM isn't allowed.");
+    }
 
     res.set_status_code(0);
     res.set_token(0);
-    res.add_response(cJSON_print_std_string(json->get()));
     return res;
 }
 
@@ -1555,7 +1572,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
     crash("unreachable");
 }
 
-json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t) {
+json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (c.builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -1601,13 +1618,39 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *) THROWS_O
             crash("Not implemented");
             break;
         case Builtin::LIMIT:
-            crash("Not implemented");
+            {
+                json_stream_t stream = eval_stream(c.args(0), env);
+
+                if (int(stream.size()) > c.builtin().limit().limit()) {
+                    json_stream_t::iterator it = stream.begin();
+                    for (int i = 0; i < c.builtin().limit().limit(); ++i) {
+                        ++it;
+                    }
+                    stream.erase(it, stream.end());
+                }
+
+                return stream;
+            }
             break;
         case Builtin::UNION:
-            crash("Not implemented");
+            {
+                json_stream_t stream1 = eval_stream(c.args(0), env),
+                              stream2 = eval_stream(c.args(1), env);
+
+                stream1.splice(stream1.end(), stream2);
+                return stream1;
+            }
             break;
         case Builtin::ARRAYTOSTREAM:
-            crash("Not implemented");
+            {
+                json_stream_t res;
+
+                for (int i = 0; i < c.args_size(); ++i) {
+                    res.push_back(eval(c.args(i), env));
+                }
+
+                return res;
+            }
             break;
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
             crash("Not implemented");
