@@ -48,7 +48,7 @@ def help():
     print >>sys.stderr, "     --username"
     print >>sys.stderr, "                 Starts the Virtual Machine using VirtualBox from the specified username."
     print >>sys.stderr, "     --hostname"
-    print >>sys.stderr, "                 Starts the Virtual Machine using VirtualBox from the specified host computer."
+    print >>sys.stderr, "                 Starts the Virtual Machine using VirtualBox from the specified host machine."
 
 o = OptParser()
 o["help"] = BoolFlag("--help")
