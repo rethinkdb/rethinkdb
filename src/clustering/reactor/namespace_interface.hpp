@@ -8,6 +8,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"

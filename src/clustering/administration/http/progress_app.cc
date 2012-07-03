@@ -1,10 +1,12 @@
+#include "clustering/administration/http/progress_app.hpp"
+
 #include "errors.hpp"
 #include <boost/optional.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/static_visitor.hpp>
 
 #include "arch/timing.hpp"
-#include "clustering/administration/http/progress_app.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/reactor/metadata.hpp"
 #include "containers/uuid.hpp"

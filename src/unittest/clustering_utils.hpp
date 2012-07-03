@@ -22,10 +22,9 @@ struct fake_fifo_enforcement_t {
 template<class protocol_t>
 class test_store_t {
 public:
-    explicit test_store_t(io_backender_t *_io_backender) :
+    explicit test_store_t(io_backender_t *io_backender) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            io_backender(_io_backender),
-            store(io_backender.get(), temp_file.name(), true, &get_global_perfmon_collection())
+            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection())
     {
         /* Initialize store metadata */
         cond_t non_interruptor;
@@ -39,7 +38,6 @@ public:
     }
 
     temp_file_t temp_file;
-    boost::scoped_ptr<io_backender_t> io_backender;
     typename protocol_t::store_t store;
 };
 
