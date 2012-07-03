@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "concurrency/signal.hpp"
+#include "containers/intrusive_list.hpp"
 
 
 /* Monitors multiple signals; becomes pulsed if any individual signal becomes
@@ -27,7 +28,7 @@ private:
     friend class wait_any_subscription_t;
     void pulse_if_not_already_pulsed();
 
-    std::vector<wait_any_subscription_t *> subs;
+    intrusive_list_t<wait_any_subscription_t> subs;
 
     DISABLE_COPYING(wait_any_t);
 };
