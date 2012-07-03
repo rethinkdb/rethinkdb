@@ -391,7 +391,14 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clo
             num_snapshots_affected = cache->calculate_snapshots_affected(version_id, new_version);
         }
     }
-    rassert(snap_refcount <= num_snapshots_affected); // sanity check
+
+    // This "sanity check" is commented out because it is now wrong.
+    // It is possible for multiple buf_lock_t's from the same
+    // transaction to be held at the same time (for example, when
+    // backfilling).  That invalidates this assertion, without meaning
+    // the rest of the code is broken.
+
+    // commented out: rassert(snap_refcount <= num_snapshots_affected); // sanity check
 
     // check whether snapshot refcount is > 0
     if (0 == num_snapshots_affected + cow_refcount)

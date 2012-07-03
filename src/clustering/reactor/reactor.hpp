@@ -11,12 +11,14 @@
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/semilattice/view.hpp"
 
+class io_backender_t;
 template <class> class multistore_ptr_t;
 
 template<class protocol_t>
 class reactor_t {
 public:
     reactor_t(
+            io_backender_t *io_backender,
             mailbox_manager_t *mailbox_manager,
             typename master_t<protocol_t>::ack_checker_t *ack_checker,
             clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > reactor_directory,
@@ -147,6 +149,8 @@ private:
     template <class activity_t>
     clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);
 
+    io_backender_t *io_backender;
+
     mailbox_manager_t *mailbox_manager;
 
     typename master_t<protocol_t>::ack_checker_t *ack_checker;
@@ -171,6 +175,7 @@ private:
 
     perfmon_collection_t *parent_perfmon_collection;
     perfmon_collection_t regions_perfmon_collection;
+    perfmon_membership_t regions_perfmon_membership;
 
     DISABLE_COPYING(reactor_t);
 };

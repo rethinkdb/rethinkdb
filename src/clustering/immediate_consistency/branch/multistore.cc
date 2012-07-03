@@ -335,12 +335,16 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
     DEBUG_ONLY_VAR const typename protocol_t::region_t ith_region = get_region(i);
     typename protocol_t::region_t ith_intersection = region_intersection(get_region(i), read.get_region());
 
+    const int dest_thread = store_views[i]->home_thread();
+
     if (region_is_empty(ith_intersection)) {
+        // TODO Obviously this is ridiculous.
+        on_thread_t th(dest_thread);
+
         read_tokens[i].reset();
         return;
     }
 
-    const int dest_thread = store_views[i]->home_thread();
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
     try {
@@ -416,12 +420,16 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
                                                       signal_t *interruptor) THROWS_NOTHING {
     const typename protocol_t::region_t &ith_region = get_region(i);
     typename protocol_t::region_t ith_intersection = region_intersection(ith_region, write.get_region());
+
+    const int dest_thread = store_views[i]->home_thread();
+
     if (region_is_empty(ith_intersection)) {
+        // TODO: This on_thread_t is obviously ridiculous.
+        on_thread_t th(dest_thread);
         write_tokens[i].reset();
         return;
     }
 
-    const int dest_thread = store_views[i]->home_thread();
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
     on_thread_t th(dest_thread);
@@ -478,12 +486,15 @@ void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
                                                                const typename protocol_t::store_t::metainfo_t &new_metainfo,
                                                                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                                                                signal_t *interruptor) THROWS_NOTHING {
+    const int dest_thread = store_views[i]->home_thread();
+
     if (!region_overlaps(get_region(i), subregion)) {
+        // TODO: Obviously this on_thread_t is ridiculous.
+        on_thread_t th(dest_thread);
         write_tokens[i].reset();
         return;
     }
 
-    const int dest_thread = store_views[i]->home_thread();
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
     on_thread_t th(dest_thread);

@@ -20,9 +20,10 @@
 
 #include "serializer/log/stats.hpp"
 
-class log_serializer_t;
 class cond_t;
 struct block_magic_t;
+class io_backender_t;
+class log_serializer_t;
 
 /**
  * This is the log-structured serializer, the holiest of holies of
@@ -92,10 +93,10 @@ public:
 public:
 
     /* Blocks. Does not check for an existing database--use check_existing for that. */
-    static void create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config, perfmon_collection_t *stats_parent);
+    static void create(dynamic_config_t dynamic_config, io_backender_t *backender, private_dynamic_config_t private_dynamic_config, static_config_t static_config, perfmon_collection_t *stats_parent);
 
     /* Blocks. */
-    log_serializer_t(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, perfmon_collection_t *perfmon_collection);
+    log_serializer_t(dynamic_config_t dynamic_config, io_backender_t *io_backender, private_dynamic_config_t private_dynamic_config, perfmon_collection_t *perfmon_collection);
 
     /* Blocks. */
     virtual ~log_serializer_t();
@@ -105,7 +106,7 @@ public:
         virtual void on_serializer_check(bool is_existing) = 0;
         virtual ~check_callback_t() {}
     };
-    static void check_existing(const char *filename, check_callback_t *cb);
+    static void check_existing(const char *filename, io_backender_t *io_backend, check_callback_t *cb);
 
 public:
     /* Implementation of the serializer_t API */
@@ -143,6 +144,7 @@ private:
     std::multimap<off64_t, ls_block_token_pointee_t*> offset_tokens;
     boost::scoped_ptr<log_serializer_stats_t> stats;
     perfmon_collection_t disk_stats_collection;
+    perfmon_membership_t disk_stats_membership;
 
 #ifndef NDEBUG
     // Makes sure we get no tokens after we thought that
@@ -237,6 +239,8 @@ private:
     int active_write_count;
 
     block_sequence_id_t latest_block_sequence_id;
+
+    io_backender_t *const io_backender;
 
     DISABLE_COPYING(log_serializer_t);
 };

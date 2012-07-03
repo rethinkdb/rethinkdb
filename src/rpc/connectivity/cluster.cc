@@ -78,8 +78,10 @@ void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING 
 
 connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, peer_id_t id, tcp_conn_stream_t *c, peer_address_t a) THROWS_NOTHING :
     conn(c), address(a), session_id(generate_uuid()),
-    pm_collection(uuid_to_str(id.get_uuid()), &p->parent->connectivity_collection, true, true),
-    pm_bytes_sent("bytes_sent", secs_to_ticks(1), true, &pm_collection),
+    pm_collection(),
+    pm_bytes_sent(secs_to_ticks(1), true),
+    pm_collection_membership(&p->parent->connectivity_collection, &pm_collection, uuid_to_str(id.get_uuid())),
+    pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
     parent(p), peer(id),
     drainers(new boost::scoped_ptr<auto_drainer_t>[get_num_threads()])
 {
@@ -497,7 +499,8 @@ void connectivity_cluster_t::run_t::handle(
 connectivity_cluster_t::connectivity_cluster_t() THROWS_NOTHING :
     me(peer_id_t(generate_uuid())),
     current_run(NULL),
-    connectivity_collection("connectivity", &get_global_perfmon_collection(), true, true)
+    connectivity_collection(),
+    stats_membership(&get_global_perfmon_collection(), &connectivity_collection, "connectivity")
     { }
 
 connectivity_cluster_t::~connectivity_cluster_t() THROWS_NOTHING {

@@ -13,6 +13,8 @@
 
 class btree_slice_t;
 
+enum cache_snapshotted_t { CACHE_SNAPSHOTTED_NO, CACHE_SNAPSHOTTED_YES };
+
 /* An abstract superblock provides the starting point for performing btree operations */
 class superblock_t {
 public:
@@ -252,9 +254,9 @@ void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t
 
 void get_btree_superblock(transaction_t *txn, access_t access, boost::scoped_ptr<real_superblock_t> *got_superblock_out);
 
-void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, 
-                          repli_timestamp_t tstamp, order_token_t token, bool snapshotted, 
-                          const boost::shared_ptr<cache_account_t> &cache_account, 
+void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count,
+                          repli_timestamp_t tstamp, order_token_t token, cache_snapshotted_t snapshotted,
+                          const boost::shared_ptr<cache_account_t> &cache_account,
                           boost::scoped_ptr<real_superblock_t> *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out);
 
 void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, 
@@ -266,9 +268,9 @@ void get_btree_superblock_for_backfilling(btree_slice_t *slice, order_token_t to
                                                  boost::scoped_ptr<real_superblock_t> *got_superblock_out, 
                                                  boost::scoped_ptr<transaction_t>& txn_out);
 
-void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token, 
-                                             bool snapshotted, boost::scoped_ptr<real_superblock_t> *got_superblock_out, 
-                                             boost::scoped_ptr<transaction_t>& txn_out);
+void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
+                                      cache_snapshotted_t snapshotted, boost::scoped_ptr<real_superblock_t> *got_superblock_out,
+                                      boost::scoped_ptr<transaction_t>& txn_out);
 
 #include "btree/operations.tcc"
 

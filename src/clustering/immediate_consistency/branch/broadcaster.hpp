@@ -119,6 +119,7 @@ private:
     registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
 
     perfmon_collection_t broadcaster_collection;
+    perfmon_membership_t broadcaster_membership;
 
     DISABLE_COPYING(broadcaster_t);
 };

@@ -1,6 +1,7 @@
 #ifndef UNITTEST_CLUSTERING_UTILS_HPP_
 #define UNITTEST_CLUSTERING_UTILS_HPP_
 
+#include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "memcached/protocol.hpp"
@@ -20,9 +21,10 @@ struct fake_fifo_enforcement_t {
 template<class protocol_t>
 class test_store_t {
 public:
-    test_store_t() :
+    test_store_t(io_backender_t *_io_backender) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            store(aio_pool, temp_file.name(), true, &get_global_perfmon_collection())
+            io_backender(_io_backender),
+            store(io_backender.get(), temp_file.name(), true, &get_global_perfmon_collection())
     {
         /* Initialize store metadata */
         cond_t non_interruptor;
@@ -36,6 +38,7 @@ public:
     }
 
     temp_file_t temp_file;
+    boost::scoped_ptr<io_backender_t> io_backender;
     typename protocol_t::store_t store;
 };
 

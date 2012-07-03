@@ -203,7 +203,7 @@ dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_prot
     initialize_empty();
 }
 
-dummy_protocol_t::store_t::store_t(UNUSED const io_backend_t io_backend, const std::string& fn, bool create, perfmon_collection_t *) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
+dummy_protocol_t::store_t::store_t(UNUSED io_backender_t *io_backend, const std::string& fn, bool create, perfmon_collection_t *) : store_view_t<dummy_protocol_t>(dummy_protocol_t::region_t('a', 'z')), filename(fn) {
     if (create) {
         initialize_empty();
     } else {

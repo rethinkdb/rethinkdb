@@ -26,6 +26,7 @@ boost::optional<boost::optional<replier_business_card_t<dummy_protocol_t> > > wr
 // TODO: Make this's argument take the multistore_ptr_t in addition to the test_store_t.
 void run_with_broadcaster(
         boost::function< void(
+            io_backender_t *,
             simple_mailbox_cluster_t *,
             branch_history_manager_t<dummy_protocol_t> *,
             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
@@ -40,8 +41,11 @@ void run_with_broadcaster(
     /* Set up branch history manager */
     mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
+    boost::scoped_ptr<io_backender_t> io_backender;
+    make_io_backender(aio_default, &io_backender);
+
     /* Set up a broadcaster and initial listener */
-    test_store_t<dummy_protocol_t> initial_store;
+    test_store_t<dummy_protocol_t> initial_store(io_backender.get());
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
     multistore_ptr_t<dummy_protocol_t> initial_svs(&initial_store_ptr, 1);
     cond_t interruptor;
@@ -60,6 +64,7 @@ void run_with_broadcaster(
 
     boost::scoped_ptr<listener_t<dummy_protocol_t> > initial_listener(
         new listener_t<dummy_protocol_t>(
+            io_backender.get(),
             cluster.get_mailbox_manager(),
             broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
             &branch_history_manager,
@@ -68,7 +73,8 @@ void run_with_broadcaster(
             &interruptor
         ));
 
-    fun(&cluster,
+    fun(io_backender.get(),
+        &cluster,
         &branch_history_manager,
         broadcaster_directory_controller.get_watchable(),
         &broadcaster,
@@ -78,6 +84,7 @@ void run_with_broadcaster(
 
 void run_in_thread_pool_with_broadcaster(
         boost::function< void(
+            io_backender_t *,
             simple_mailbox_cluster_t *,
             branch_history_manager_t<dummy_protocol_t> *,
             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
@@ -94,12 +101,13 @@ void run_in_thread_pool_with_broadcaster(
 /* The `ReadWrite` test just sends some reads and writes via the broadcaster to a
 single mirror. */
 
-void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
-        UNUSED branch_history_manager_t<dummy_protocol_t> *,
-        UNUSED clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
-        boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
-        UNUSED test_store_t<dummy_protocol_t> *store,
-        boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
+void run_read_write_test(UNUSED io_backender_t *io_backender,
+                         UNUSED simple_mailbox_cluster_t *cluster,
+                         UNUSED branch_history_manager_t<dummy_protocol_t> *,
+                         UNUSED clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
+                         boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
+                         UNUSED test_store_t<dummy_protocol_t> *store,
+                         boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
 {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
@@ -174,13 +182,13 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
     write_callback.wait_lazily_unordered();
 }
 
-void run_backfill_test(simple_mailbox_cluster_t *cluster,
-        branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
-        clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
-        boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
-        test_store_t<dummy_protocol_t> *store1,
-        boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
-{
+void run_backfill_test(io_backender_t *io_backender,
+                       simple_mailbox_cluster_t *cluster,
+                       branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
+                       clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
+                       boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
+                       test_store_t<dummy_protocol_t> *store1,
+                       boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
@@ -202,11 +210,12 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
     nap(100);
 
     /* Set up a second mirror */
-    test_store_t<dummy_protocol_t> store2;
+    test_store_t<dummy_protocol_t> store2(io_backender);
     store_view_t<dummy_protocol_t> *store2_ptr = &store2.store;
     multistore_ptr_t<dummy_protocol_t> store2_multi_ptr(&store2_ptr, 1);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
+        io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_manager,
@@ -239,13 +248,13 @@ TEST(ClusteringBranch, Backfill) {
 
 /* `PartialBackfill` backfills only in a specific sub-region. */
 
-void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
-        branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
-        clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
-        boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
-        test_store_t<dummy_protocol_t> *store1,
-        boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
-{
+void run_partial_backfill_test(io_backender_t *io_backender,
+                               simple_mailbox_cluster_t *cluster,
+                               branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
+                               clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
+                               boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
+                               test_store_t<dummy_protocol_t> *store1,
+                               boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
@@ -267,12 +276,13 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     nap(100);
 
     /* Set up a second mirror */
-    test_store_t<dummy_protocol_t> store2;
+    test_store_t<dummy_protocol_t> store2(io_backender);
     store_view_t<dummy_protocol_t> *store2_ptr = &store2.store;
     dummy_protocol_t::region_t subregion('a', 'm');
     multistore_ptr_t<dummy_protocol_t> store_ptr(&store2_ptr, 1, subregion);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
+        io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_manager,
