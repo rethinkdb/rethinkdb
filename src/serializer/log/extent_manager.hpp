@@ -29,8 +29,6 @@ public:
     };
 
 private:
-    typedef std::deque<off64_t> free_queue_t;
-
     log_serializer_on_disk_static_config_t *static_config;
     log_serializer_dynamic_config_t *dynamic_config;
 
@@ -39,22 +37,28 @@ public:
     const uint64_t extent_size;   /* Same as static_config->extent_size */
 
 public:
-    class transaction_t
-    {
+    class transaction_t {
     public:
         friend class extent_manager_t;
-        transaction_t() : free_queue_() { }
+        transaction_t() : active_(false) { }
         ~transaction_t() {
-            rassert(!free_queue_.has());
+            rassert(!active_);
         }
 
-        void init() { free_queue_.init(new free_queue_t); }
-        void reset() { free_queue_.reset(); }
+        void init() { active_ = true; }
+        void reset() {
+            free_queue_.clear();
+            active_ = false;
+        }
 
-        free_queue_t &free_queue() const { return *free_queue_.get(); }
+        std::deque<off64_t> &free_queue() {
+            rassert(active_);
+            return free_queue_;
+        }
 
     private:
-        scoped_ptr_t<free_queue_t> free_queue_;
+        bool active_;
+        std::deque<off64_t> free_queue_;
 
         DISABLE_COPYING(transaction_t);
     };

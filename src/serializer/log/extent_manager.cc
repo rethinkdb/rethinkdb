@@ -292,7 +292,7 @@ void extent_manager_t::end_transaction(const transaction_t &t) {
 }
 
 void extent_manager_t::commit_transaction(transaction_t *t) {
-    for (free_queue_t::iterator it = t->free_queue().begin(); it != t->free_queue().end(); it++) {
+    for (std::deque<off64_t>::iterator it = t->free_queue().begin(); it != t->free_queue().end(); it++) {
         off64_t extent = *it;
         zone_for_offset(extent)->release_extent(extent);
     }
