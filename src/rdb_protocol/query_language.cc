@@ -948,7 +948,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     return attr;
                 }
             }
-			break;
+            break;
         case Builtin::HASATTR:
             {
                 boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env);
@@ -965,7 +965,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     return shared_scoped_json(cJSON_CreateFalse());
                 }
             }
-			break;
+            break;
         case Builtin::PICKATTRS:
             {
                 boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env);
