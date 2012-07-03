@@ -136,8 +136,8 @@ private:
 struct knowledge_t {
     scoped_array_t<scoped_ptr_t<nondirect_file_t> > files;
     scoped_array_t<scoped_ptr_t<file_knowledge_t> > file_knog;
-    nondirect_file_t *metadata_file;
-    file_knowledge_t *metadata_file_knog;
+    scoped_ptr_t<nondirect_file_t> metadata_file;
+    scoped_ptr_t<file_knowledge_t> metadata_file_knog;
 
     knowledge_t(const std::vector<std::string>& filenames, const std::string &metadata_filename, io_backender_t *io_backender)
         : files(filenames.size()), file_knog(filenames.size()) {
@@ -149,17 +149,9 @@ struct knowledge_t {
         }
 
         if (!metadata_filename.empty()) {
-            metadata_file = new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read, NULL, io_backender);
-            metadata_file_knog = new file_knowledge_t(metadata_filename);
-        } else {
-            metadata_file = NULL;
-            metadata_file_knog = NULL;
+            metadata_file.init(new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read, NULL, io_backender));
+            metadata_file_knog.init(new file_knowledge_t(metadata_filename));
         }
-    }
-
-    ~knowledge_t() {
-        delete metadata_file;
-        delete metadata_file_knog;
     }
 
     int num_files() const { return files.size(); }
@@ -1499,7 +1491,7 @@ bool check_files(const config_t *cfg) {
         }
     }
 
-    if (knog.metadata_file && !knog.metadata_file->exists())
+    if (knog.metadata_file.has() && !knog.metadata_file->exists())
         fail_due_to_user_error("No such file \"%s\"", knog.metadata_file_knog->filename.c_str());
 
     /* A few early exits if we want some specific pieces of information */
@@ -1512,8 +1504,8 @@ bool check_files(const config_t *cfg) {
     for (int i = 0; i < num_files; ++i)
         success &= check_and_report_to_config_block(knog.files[i].get(), knog.file_knog[i].get(), cfg);
 
-    if (knog.metadata_file)
-        success &= check_and_report_to_config_block(knog.metadata_file, knog.metadata_file_knog, cfg);
+    if (knog.metadata_file.has())
+        success &= check_and_report_to_config_block(knog.metadata_file.get(), knog.metadata_file_knog.get(), cfg);
 
     if (!success) return false;
 
@@ -1540,14 +1532,14 @@ bool check_files(const config_t *cfg) {
     // A thread for every slice.
     int n_slices = knog.file_knog[0]->config_block->n_proxies;
     std::vector<pthread_t> threads;
-    all_slices_errors slices_errs(n_slices, knog.metadata_file != NULL);
+    all_slices_errors slices_errs(n_slices, knog.metadata_file.has());
     for (int i = 0; i < num_files; ++i) {
         launch_check_after_config_block(knog.files[i].get(), threads, knog.file_knog[i].get(), &slices_errs, cfg);
     }
 
     // ... and one for the metadata slice
-    if (knog.metadata_file) {
-        launch_check_slice(threads, new slicecx_t(knog.metadata_file, knog.metadata_file_knog, 0, cfg),
+    if (knog.metadata_file.has()) {
+        launch_check_slice(threads, new slicecx_t(knog.metadata_file.get(), knog.metadata_file_knog.get(), 0, cfg),
                            slices_errs.metadata_slice);
     }
 
