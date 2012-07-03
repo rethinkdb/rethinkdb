@@ -163,6 +163,8 @@ class target():
                 os.mkdir(os.path.join(dest, short_name))
 
             #install antiquated packages here
+            if not os.path.exists('old_versions'):
+                os.makedirs('old_versions')
             for old_version in os.listdir('old_versions'):
                 pkg = os.listdir(os.path.join('old_versions', old_version, short_name))[0]
                 build_vm.copy_to_tmp(os.path.join('old_versions', old_version, short_name, pkg))
