@@ -105,7 +105,7 @@ public:
             ourselves on each thread. Things that want to send a message via
             this `connection_entry_t` acquire the drainer for their thread when
             they look us up in `thread_info_t::connection_map`. */
-            one_per_thread_t<entry_installation_t> *entries;
+            scoped_ptr_t<one_per_thread_t<entry_installation_t> > entries;
         };
 
         /* Sets a variable to a value in its constructor; sets it to NULL in its
@@ -171,7 +171,8 @@ public:
         mutex_t new_connection_mutex;
 
         int cluster_client_port;
-        tcp_bound_socket_t* cluster_listener_socket;
+        int cluster_listener_port;
+        scoped_ptr_t<tcp_bound_socket_t> cluster_listener_socket;
 
         variable_setter_t register_us_with_parent;
 
@@ -184,7 +185,7 @@ public:
         auto_drainer_t drainer;
 
         /* This must be destroyed before `drainer` is. */
-        tcp_listener_t *listener;
+        scoped_ptr_t<tcp_listener_t> listener;
 
         /* A place to put our stats */
     };

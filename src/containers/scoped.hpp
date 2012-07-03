@@ -16,15 +16,18 @@ public:
     }
 
     // reset with a sanity-check for first-time use.
-    void init(T *value = NULL) {
+    void init(T *value) {
         rassert(ptr_ == NULL);
-        reset(value);
-    }
 
-    void reset(T *value = NULL) {
-        rassert(value == NULL || value != ptr_);
+        // This is like reset with an assert.
         T *tmp = ptr_;
         ptr_ = value;
+        delete tmp;
+    }
+
+    void reset() {
+        T *tmp = ptr_;
+        ptr_ = NULL;
         delete tmp;
     }
 
