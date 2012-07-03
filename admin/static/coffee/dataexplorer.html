@@ -5,9 +5,11 @@
 
 <script id="dataexplorer_input_query-template" type="text/x-handlebars-template">
     <div class="input_query_container" >
-    <textarea class="input_query"></textarea>
-    <input type="button" value="clear" class="btn button_query clear_query" />
-    <input type="button" value="execute" class="btn button_query execute_query" />
+        <textarea class="input_query"></textarea>
+        <div class="button_container">
+            <input type="button" value="clear" class="btn button_query clear_query" />
+            <input type="button" value="execute" class="btn button_query execute_query" />
+        </div>
     </div>
     <div class="loading_query">
         <img src="/images/ajax-loader.gif" class="loading_query_img"/>
@@ -65,16 +67,16 @@
     <div class="results_header">
         <div class="options_container">
             <input type="button" value="Home" class="btn button_query home_view" />
-            <input type="button" value="Full view" class="btn button_query full_view" />
+            <input type="button" value="Full view" class="btn button_query change_size" />
         </div>
 
         <h2>Results</h2>
         <p class="query_executed">For query: {{query}}</p>
 
         <ul class="nav nav-tabs change_view_container"">
-            <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view">Tree view</a></li>
-            <li><a href="#table_view" data-toggle="tab" class="link_to_table_view">Table view</a></li>
             <li><a href="#raw_view" data-toggle="tab" class="link_to_raw_view">Raw view</a></li>
+            <li><a href="#table_view" data-toggle="tab" class="link_to_table_view">Table view</a></li>
+            <li class="active"><a href="#tree_view" data-toggle="tab" class="link_to_tree_view">Tree view</a></li>
         </ul>
  
    </div>

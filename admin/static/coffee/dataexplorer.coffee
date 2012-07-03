@@ -32,27 +32,28 @@ module 'DataExplorerView', ->
         template: Handlebars.compile $('#dataexplorer_view-template').html()
 
         events: ->
-            'keyup .input_query': 'handle_keypress'
+            'keypress .input_query': 'handle_keypress'
+            'keyup .input_query': 'expand_textarea'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
             'click .namespace_link': 'write_query_namespace'
             'click .old_query': 'write_query_old'
             'click .home_view': 'display_home'
-            'click .full_view': 'display_full'
-
+            'click .change_size': 'toggle_size'
+        displaying_full_view: false
 
         handle_keypress: (event) =>
             if event.which is 13 and !event.shiftKey
                 event.preventDefault()
                 @execute_query()
             else
-                @expand_textarea()
                 @make_suggestion()
 
         expand_textarea: (event) =>
             if $('.input_query').length is 1
-                height = $('.input_query').prop('scrollHeight')-8
-                $('.input_query').height(height)
+                height = $('.input_query').prop('scrollHeight')-8 # -8 is for padding
+                $('.input_query').height(height) if $('.input_query').height() isnt height
+
 
         execute_query: =>
             query = @.$('.input_query').val() 
@@ -108,8 +109,9 @@ module 'DataExplorerView', ->
                         home: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
                         mobile: generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)+'-'+generate_number(10)+''+generate_number(10)+''+generate_number(10)+''+generate_number(10)
                     element['website'] = 'http://www.'+generate_string(12)+'.com'
-                    #element[generate_string(10)] = generate_string(10)
-
+                    if query is '100'
+                        element[generate_string(10)] = generate_string(10)
+                    
 
                     result.push element
 
@@ -164,19 +166,30 @@ module 'DataExplorerView', ->
             @.$el.append @data_container.render().el
             return @
 
+        toggle_size: =>
+            if @displaying_full_view
+                @display_normal()
+                @displaying_full_view = false
+            else
+                @display_full()
+                @displaying_full_view = true
+
+        display_normal: =>
+            $('.main-container').width '940'
+            $('#cluster').width 700
+            $('.input_query').width 678
+            $('.dataexplorer_container').removeClass 'full_container'
+            $('.dataexplorer_container').css 'margin', '0px'
+            $('.change_size').val 'Full view'
+
         display_full: =>
-
-            $('.main-container').css 'width', '100%'
-            $('#cluster').css 'width', 'auto'
-
-            $('#cluster').css 'position', 'absolute'
-
-            $('.dataexplorer_container').css 'padding', '0px 50px'
-
-            $('.dataexplorer_container').css 'width', 'auto'
-            #$('.dataexplorer_container').css 'height', '100%'
-            $('.results').css 'width', 'auto'
-            #$('.results').css 'height', '100%'
+            width = $(window).width() - 220 -40
+            $('.main-container').width '100%'
+            $('#cluster').width width
+            $('.input_query').width width-45
+            $('.dataexplorer_container').addClass 'full_container'
+            $('.dataexplorer_container').css 'margin', '0px 0px 0px 20px'
+            $('.change_size').val 'Smaller view'
 
         destroy: =>
             @input_query.destroy()
@@ -633,6 +646,8 @@ module 'DataExplorerView', ->
         on_editable_blur: (data) ->
             @send_update(data)
 
+
+        #TODO Fix it for Firefox
         expand_raw_textarea: =>
             setTimeout(@test, 0) #TODO remove this trick when we will remove bootstrap's tab 
         test: =>

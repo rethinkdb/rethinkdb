@@ -151,7 +151,6 @@
     Sidebar
     ----------------------------
 */
-
 #sidebar {
     border-left: thin solid @grayLighter;
     padding-left: 20px;
@@ -1760,24 +1759,23 @@
 /* Data Explorer */
 .dataexplorer_container{
     width: 700px;
+    margin: 0px;
     overflow: auto;
     .query_control{
         .input_query_container{
             padding: 0px;
             margin: 10px 0px;
+            overflow: auto;
             .input_query{
                 width: 678px;
                 height: 36px;
                 padding: 4px 10px;
             }
-            .button_query{
-                width: 80px;
-            }
-            .clear_query{
-                margin: 0px 0px 0px 528px;
-            }
-            .execute_query{
-                margin: 0px 0px 0px 7px;
+            .button_container{
+                float: right;
+                .button_query{
+                    width: 80px;
+                }
             }
         }
         .loading_query{
@@ -1791,6 +1789,9 @@
         }
     }
     .data_container{
+        .results_header{
+            overflow: hidden;
+        }
         .namespaces_available_container{
             float: left;
             width: 330px;
@@ -1807,13 +1808,10 @@
         .change_view_container{
             margin: 0px;
             padding: 0px 10px 0px 0px;
+            width: 100%;
+        }
+        .nav-tabs > li {
             float: right;
-        }
-        .nav-tabs{
-            border: none;
-        }
-        .tab-content{
-            border-top: 1px solid #ccc;
         }
 
         .helper_view{
@@ -1989,5 +1987,12 @@
             width: 690px;
             height: auto;
         }
+    }
+}
+
+.full_container{
+    width: auto;
+    .results{
+        width: auto;
     }
 }
