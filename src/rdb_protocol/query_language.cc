@@ -713,6 +713,7 @@ Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtim
 }
 
 void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env) {
+    printf("yo: %s\n", cJSON_Print(data->get()));
     if (!cJSON_GetObjectItem(data->get(), "id")) {
         throw runtime_exc_t("Must have a field named id.");
     }
@@ -768,7 +769,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                 boost::shared_ptr<scoped_cJSON_t> new_val = eval(w.point_update().mapping().body(), env);
 
                 /* Now we insert the new value. */
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w.insert().table_ref(), env);
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w.point_update().table_ref(), env);
 
                 insert(ns_access, new_val, env);
 
