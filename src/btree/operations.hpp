@@ -5,7 +5,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "utils.hpp"
-#include "containers/scoped_malloc.hpp"
+#include "containers/scoped.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "buffer_cache/buffer_cache.hpp"

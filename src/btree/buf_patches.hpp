@@ -5,7 +5,7 @@
 
 #include "btree/keys.hpp"
 #include "buffer_cache/buf_patch.hpp"
-#include "containers/scoped_malloc.hpp"
+#include "containers/scoped.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 

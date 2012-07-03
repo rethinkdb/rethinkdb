@@ -6,7 +6,7 @@
 #include <algorithm>
 
 #include "arch/arch.hpp"
-#include "containers/scoped_malloc.hpp"
+#include "containers/scoped.hpp"
 #include "containers/segmented_vector.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "btree/slice.hpp"

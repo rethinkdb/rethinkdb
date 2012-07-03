@@ -1,5 +1,5 @@
 #include "serializer/log/lba/disk_structure.hpp"
-#include "containers/scoped_malloc.hpp"
+#include "containers/scoped.hpp"
 
 lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, direct_file_t *_file)
     : em(_em), file(_file), superblock_extent(NULL), last_extent(NULL)

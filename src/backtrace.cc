@@ -12,7 +12,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
-#include "containers/scoped_malloc.hpp"
+#include "containers/scoped.hpp"
 
 
 
