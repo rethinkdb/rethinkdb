@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"

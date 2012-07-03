@@ -2,6 +2,7 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"

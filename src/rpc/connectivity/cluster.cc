@@ -86,19 +86,15 @@ connectivity_cluster_t::run_t::connection_entry_t::connection_entry_t(run_t *p, 
     pm_collection_membership(&p->parent->connectivity_collection, &pm_collection, uuid_to_str(id.get_uuid())),
     pm_bytes_sent_membership(&pm_collection, &pm_bytes_sent, "bytes_sent"),
     parent(p), peer(id),
-    drainers(new boost::scoped_ptr<auto_drainer_t>[get_num_threads()])
-{
-    /* This can be created and destroyed on any thread. */
-    pmap(get_num_threads(),
-        boost::bind(&connectivity_cluster_t::run_t::connection_entry_t::install_this, this, _1));
+    entries(new one_per_thread_t<entry_installation_t>(this)) {
+
 }
 
 connectivity_cluster_t::run_t::connection_entry_t::~connection_entry_t() THROWS_NOTHING {
-    pmap(get_num_threads(),
-        boost::bind(&connectivity_cluster_t::run_t::connection_entry_t::uninstall_this, this, _1));
+    delete entries;
 
-    /* `uninstall_this()` destroys the `auto_drainer_t`, so nothing can be
-    holding the `send_mutex`. */
+    /* `~entry_installation_t` destroys the `auto_drainer_t`'s in entries,
+    so nothing can be holding the `send_mutex`. */
     rassert(!send_mutex.is_locked());
 }
 
@@ -107,36 +103,32 @@ static void ping_connection_watcher(peer_id_t peer, peers_list_callback_t *conne
     connect_disconnect_cb->on_connect(peer);
 }
 
-void connectivity_cluster_t::run_t::connection_entry_t::install_this(int target_thread) THROWS_NOTHING {
-    on_thread_t switcher(target_thread);
-    thread_info_t *ti = parent->parent->thread_info.get();
-    drainers[get_thread_id()].reset(new auto_drainer_t);
-    {
-        ASSERT_FINITE_CORO_WAITING;
-        rwi_lock_assertion_t::write_acq_t acq(&ti->lock);
-        rassert(ti->connection_map.find(peer) == ti->connection_map.end());
-        ti->connection_map[peer] =
-            std::make_pair(this, auto_drainer_t::lock_t(drainers[get_thread_id()].get()));
-        ti->publisher.publish(boost::bind(&ping_connection_watcher, peer, _1));
-    }
-}
-
 static void ping_disconnection_watcher(peer_id_t peer, peers_list_callback_t *connect_disconnect_cb) THROWS_NOTHING {
     rassert(connect_disconnect_cb != NULL);
     connect_disconnect_cb->on_disconnect(peer);
 }
 
-void connectivity_cluster_t::run_t::connection_entry_t::uninstall_this(int target_thread) THROWS_NOTHING {
-    on_thread_t switcher(target_thread);
-    thread_info_t *ti = parent->parent->thread_info.get();
+connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::entry_installation_t(connection_entry_t *that) : that_(that) {
+    thread_info_t *ti = that_->parent->parent->thread_info.get();
     {
         ASSERT_FINITE_CORO_WAITING;
         rwi_lock_assertion_t::write_acq_t acq(&ti->lock);
-        rassert(ti->connection_map[peer].first == this);
-        ti->connection_map.erase(peer);
-        ti->publisher.publish(boost::bind(&ping_disconnection_watcher, peer, _1));
+        rassert(ti->connection_map.find(that_->peer) == ti->connection_map.end());
+        ti->connection_map[that_->peer] =
+            std::make_pair(that_, auto_drainer_t::lock_t(&drainer_));
+        ti->publisher.publish(boost::bind(&ping_connection_watcher, that_->peer, _1));
     }
-    drainers[get_thread_id()].reset();
+}
+
+connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::~entry_installation_t() {
+    thread_info_t *ti = that_->parent->parent->thread_info.get();
+    {
+        ASSERT_FINITE_CORO_WAITING;
+        rwi_lock_assertion_t::write_acq_t acq(&ti->lock);
+        rassert(ti->connection_map[that_->peer].first == that_);
+        ti->connection_map.erase(that_->peer);
+        ti->publisher.publish(boost::bind(&ping_disconnection_watcher, that_->peer, _1));
+    }
 }
 
 void connectivity_cluster_t::run_t::on_new_connection(boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {

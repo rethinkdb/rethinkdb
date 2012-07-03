@@ -1,6 +1,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_INITIAL_JOIN_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_INITIAL_JOIN_HPP_
 
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
 #include "arch/timing.hpp"
 #include "rpc/connectivity/cluster.hpp"
 
