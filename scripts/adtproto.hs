@@ -92,7 +92,7 @@ In particular:
       Term expr;
     };
 
-    branch If {
+    branch If_ {
       Term test;
       Term true_branch;
       Term false_branch;
@@ -144,7 +144,7 @@ import System.IO
 import System.Exit
 
 import Data.Char (toUpper, toLower, isUpper)
-import Data.List (findIndices, intercalate)
+import Data.List (findIndices, intercalate, intersperse)
 
 import Control.Monad.State
 import Control.Applicative ((<$>), (<*>), (<*), (<$))
@@ -231,7 +231,7 @@ compileADT (ADT name decls) = Message name mdecls
           enumName = name ++ "Type"
           enumTags = [EnumDeclTag (map toUpper (branchName b))
                           | ADTDeclBranch b <- decls]
-          enumField = Field (toFieldName enumName) (TypeName enumName) Required
+          enumField = Field "type" (TypeName enumName) Required
           transDecl :: ADTDecl -> [MessageDecl]
           transDecl (ADTDeclType t) = [MessageDeclType t]
           transDecl (ADTDeclBranch b) = compileBranch b
@@ -264,9 +264,10 @@ splitOn p s = splitter is s
 -- Pretty-printer (outputs protobuf)
 indent = nest 4
 block preamble body = vcat [preamble <+> lbrace, indent body, rbrace <> PP.semi]
+vsep = vcat . intersperse (text "")
 
 prettyProgram :: Program -> Doc
-prettyProgram decls = vcat $ map prettyDeclType decls
+prettyProgram decls = vsep $ map prettyDeclType decls
 
 prettyDeclType :: DeclType -> Doc
 prettyDeclType (TypeDeclADT d) = prettyDeclADT d
