@@ -757,16 +757,16 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     logINF("Listening on port %d", port);
 }
 
-linux_tcp_listener_t::linux_tcp_listener_t(linux_tcp_bound_socket_t& bound_socket,
+linux_tcp_listener_t::linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
                                            boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> cb) :
-    sock(bound_socket.get_fd()),
+    sock(bound_socket->get_fd()),
     event_watcher(sock.get(), this),
     callback(cb),
     log_next_error(true)
 {
-    bound_socket.reset();
+    bound_socket->reset();
     initialize_internal();
-    logINF("Listening on port %d", bound_socket.get_port());
+    logINF("Listening on port %d", bound_socket->get_port());
 }
 
 void linux_tcp_listener_t::initialize_internal() {

@@ -29,6 +29,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     cluster_client_port(client_port),
 
     /* Create the socket to use when listening for connections from peers */
+    cluster_listener_port(port),
     cluster_listener_socket(new tcp_bound_socket_t(port)),
 
     /* This sets `parent->current_run` to `this`. It's necessary to do it in the
@@ -41,7 +42,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
 
     /* This constructor makes an entry for us in `routing_table`. The destructor
     will remove the entry. */
-    routing_table_entry_for_ourself(&routing_table, parent->me, peer_address_t(ip_address_t::us(), cluster_listener_socket->get_port())),
+    routing_table_entry_for_ourself(&routing_table, parent->me, peer_address_t(ip_address_t::us(), port)),
 
     /* The `connection_entry_t` constructor takes care of putting itself in the
     `connection_map` on each thread and notifying any listeners that we're now
@@ -49,21 +50,18 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     `connection_map` and again notify any listeners. */
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
 
-    listener(new tcp_listener_t(*cluster_listener_socket, boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
-                                                                      this,
-                                                                      _1,
-                                                                      auto_drainer_t::lock_t(&drainer))))
+    listener(new tcp_listener_t(cluster_listener_socket.get(), boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
+                                                                           this,
+                                                                           _1,
+                                                                           auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
 
-connectivity_cluster_t::run_t::~run_t() {
-    delete cluster_listener_socket;
-    delete listener;
-}
+connectivity_cluster_t::run_t::~run_t() { }
 
 int connectivity_cluster_t::run_t::get_port() {
-    return cluster_listener_socket->get_port();
+    return cluster_listener_port;
 }
 
 void connectivity_cluster_t::run_t::join(peer_address_t address) THROWS_NOTHING {

@@ -290,7 +290,7 @@ class linux_tcp_listener_t : public linux_event_callback_t {
 public:
     linux_tcp_listener_t(int port,
                          boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
-    linux_tcp_listener_t(linux_tcp_bound_socket_t& bound_socket,
+    linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
                          boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
     ~linux_tcp_listener_t();
 
