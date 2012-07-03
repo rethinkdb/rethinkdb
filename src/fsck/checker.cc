@@ -1196,25 +1196,25 @@ struct all_slices_errors_t {
 };
 
 struct slice_parameter_t {
-    slicecx_t *cx;
+    scoped_ptr_t<slicecx_t> cx;
     slice_errors *errs;
 };
 
 void *do_check_slice(void *slice_param) {
-    slice_parameter_t *p = reinterpret_cast<slice_parameter_t *>(slice_param);
-    check_slice(p->cx, p->errs);
-    delete p->cx;
+    slice_parameter_t *p = static_cast<slice_parameter_t *>(slice_param);
+    check_slice(p->cx.get(), p->errs);
     delete p;
     return NULL;
 }
 
-void launch_check_slice(std::vector<pthread_t>& threads, slicecx_t *cx, slice_errors *errs) {
+void launch_check_slice(std::vector<pthread_t>& threads, scoped_ptr_t<slicecx_t> *cx, slice_errors *errs) {
     // add another thread.
     threads.resize(threads.size() + 1);
     slice_parameter_t *param = new slice_parameter_t;
-    param->cx = cx;
+    param->cx.init(cx->release());
     param->errs = errs;
-    guarantee_err(!pthread_create(&threads[threads.size() - 1], NULL, do_check_slice, param), "pthread_create not working");
+    int res = pthread_create(&threads[threads.size() - 1], NULL, do_check_slice, param);
+    guarantee_err(res == 0, "pthread_create not working");
 }
 
 void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t>& threads, file_knowledge_t *knog, all_slices_errors_t *errs, const config_t *cfg) {
@@ -1222,7 +1222,8 @@ void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread
     for (int i = knog->config_block->this_serializer; i < errs->n_slices(); i += step) {
         errs->slice[i].global_slice_number = i;
         errs->slice[i].home_filename = knog->filename;
-        launch_check_slice(threads, new slicecx_t(file, knog, i, cfg), &errs->slice[i]);
+        scoped_ptr_t<slicecx_t> cx(new slicecx_t(file, knog, i, cfg));
+        launch_check_slice(threads, &cx, &errs->slice[i]);
     }
 }
 
@@ -1541,8 +1542,8 @@ bool check_files(const config_t *cfg) {
 
     // ... and one for the metadata slice
     if (knog.metadata_file.has()) {
-        launch_check_slice(threads, new slicecx_t(knog.metadata_file.get(), knog.metadata_file_knog.get(), 0, cfg),
-                           slices_errs.metadata_slice.get());
+        scoped_ptr_t<slicecx_t> cx(new slicecx_t(knog.metadata_file.get(), knog.metadata_file_knog.get(), 0, cfg));
+        launch_check_slice(threads, &cx, slices_errs.metadata_slice.get());
     }
 
     // Wait for all threads to finish.
