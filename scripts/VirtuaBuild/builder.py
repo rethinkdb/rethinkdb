@@ -5,9 +5,6 @@ import sys
 from threading import Thread, Semaphore
 import socket, os
 
-x = 5
-print x.asdf
-
 class Builder(Thread):
     def __init__(self, name, branch, target, semaphore):
         Thread.__init__(self)
@@ -123,6 +120,8 @@ else:
     semaphore = Semaphore(opts["threads"])
 
     builders = map(lambda x: Builder(x[0], rspec, x[1], semaphore), targets.iteritems())
+    for b in builders:
+        x = b.exception
     map(lambda x: x.start(), builders)
     map(lambda x: x.join(), builders)
 
