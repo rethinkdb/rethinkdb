@@ -75,7 +75,7 @@ public:
     has been written. This guarantees that we will not overwrite extents that the
     most recent metablock points to. */
 
-    transaction_t *begin_transaction();
+    MUST_USE transaction_t *begin_transaction();
     off64_t gen_extent();
     void release_extent(off64_t extent);
     void end_transaction(transaction_t *t);
