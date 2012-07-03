@@ -55,6 +55,7 @@ TEST(ContextSwitchingTest, SwitchToContextRepeatedly) {
     }
     EXPECT_EQ(test_int, 11);
     delete original_context;
+    original_context = NULL;
 }
 
 static void first_switch(void) {
@@ -80,6 +81,7 @@ TEST(ContextSwitchingTest, SwitchBetweenContexts) {
     }
     EXPECT_EQ(test_int, 101);
     delete original_context;
+    original_context = NULL;
 }
 
 }   /* namespace unittest */
