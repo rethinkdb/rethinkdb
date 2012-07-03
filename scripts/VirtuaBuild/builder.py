@@ -135,3 +135,5 @@ else:
         if (not val):
             print "Failed on: ", exception[name]
             raise exception[name]
+
+print "Done."
