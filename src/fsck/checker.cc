@@ -183,9 +183,11 @@ struct slicecx_t {
     int mod_count;
 
     void clear_buf_patches() {
-        for (std::map<block_id_t, std::list<buf_patch_t *> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches)
-            for (std::list<buf_patch_t *>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch)
+        for (std::map<block_id_t, std::list<buf_patch_t *> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches) {
+            for (std::list<buf_patch_t *>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
                 delete *patch;
+            }
+        }
 
         patch_map.clear();
     }
@@ -1177,19 +1179,19 @@ bool check_interfile(knowledge_t *knog, interfile_errors *errs) {
     return (errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_creation_timestamp && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->reused_serializer_numbers);
 }
 
-struct all_slices_errors {
-    int n_slices;
-    slice_errors *slice;
-    slice_errors *metadata_slice;
+struct all_slices_errors_t {
+    scoped_array_t<slice_errors> slice;
+    scoped_ptr_t<slice_errors> metadata_slice;
 
-    all_slices_errors(int n_slices_, bool has_metadata_file)
-        : n_slices(n_slices_), slice(new slice_errors[n_slices_]) {
-        metadata_slice = has_metadata_file ? new slice_errors : NULL;
+    all_slices_errors_t(int n_slices_, bool has_metadata_file)
+        : slice(n_slices_) {
+        if (has_metadata_file) {
+            metadata_slice.init(new slice_errors);
+        }
     }
 
-    ~all_slices_errors() {
-        delete[] slice;
-        delete metadata_slice;
+    int n_slices() const {
+        return slice.size();
     }
 };
 
@@ -1215,9 +1217,9 @@ void launch_check_slice(std::vector<pthread_t>& threads, slicecx_t *cx, slice_er
     guarantee_err(!pthread_create(&threads[threads.size() - 1], NULL, do_check_slice, param), "pthread_create not working");
 }
 
-void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t>& threads, file_knowledge_t *knog, all_slices_errors *errs, const config_t *cfg) {
+void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t>& threads, file_knowledge_t *knog, all_slices_errors_t *errs, const config_t *cfg) {
     int step = knog->config_block->n_files;
-    for (int i = knog->config_block->this_serializer; i < errs->n_slices; i += step) {
+    for (int i = knog->config_block->this_serializer; i < errs->n_slices(); i += step) {
         errs->slice[i].global_slice_number = i;
         errs->slice[i].home_filename = knog->filename;
         launch_check_slice(threads, new slicecx_t(file, knog, i, cfg), &errs->slice[i]);
@@ -1432,15 +1434,15 @@ bool report_slice_errors(const std::string &slice_name, const slice_errors *errs
     return no_diff_log_errors && no_subtree_errors && no_other_block_errors;
 }
 
-bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
+bool report_post_config_block_errors(const all_slices_errors_t& slices_errs) {
     bool ok = true;
-    for (int i = 0; i < slices_errs.n_slices; ++i) {
+    for (int i = 0; i < slices_errs.n_slices(); ++i) {
         ok &= report_slice_errors(strprintf("slice %d", i), &slices_errs.slice[i]);
     }
 
     // report errors in metadata file
-    if (slices_errs.metadata_slice)
-        ok &= report_slice_errors("metadata slice", slices_errs.metadata_slice);
+    if (slices_errs.metadata_slice.has())
+        ok &= report_slice_errors("metadata slice", slices_errs.metadata_slice.get());
 
     return ok;
 }
@@ -1532,7 +1534,7 @@ bool check_files(const config_t *cfg) {
     // A thread for every slice.
     int n_slices = knog.file_knog[0]->config_block->n_proxies;
     std::vector<pthread_t> threads;
-    all_slices_errors slices_errs(n_slices, knog.metadata_file.has());
+    all_slices_errors_t slices_errs(n_slices, knog.metadata_file.has());
     for (int i = 0; i < num_files; ++i) {
         launch_check_after_config_block(knog.files[i].get(), threads, knog.file_knog[i].get(), &slices_errs, cfg);
     }
@@ -1540,7 +1542,7 @@ bool check_files(const config_t *cfg) {
     // ... and one for the metadata slice
     if (knog.metadata_file.has()) {
         launch_check_slice(threads, new slicecx_t(knog.metadata_file.get(), knog.metadata_file_knog.get(), 0, cfg),
-                           slices_errs.metadata_slice);
+                           slices_errs.metadata_slice.get());
     }
 
     // Wait for all threads to finish.

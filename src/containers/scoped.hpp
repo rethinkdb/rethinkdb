@@ -127,7 +127,7 @@ public:
 
 
 
-    T& operator[](ssize_t i) {
+    T& operator[](ssize_t i) const {
         rassert(ptr_);
         rassert(0 <= i && i < size_);
         return ptr_[i];
