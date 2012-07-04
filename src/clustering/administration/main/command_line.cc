@@ -221,6 +221,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         } else {
             machine_semilattice_metadata_t our_machine_metadata;
             our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
+            our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
             semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
         }
 
