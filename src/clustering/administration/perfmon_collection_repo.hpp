@@ -10,7 +10,7 @@ public:
     perfmon_collection_t *get_perfmon_collection_for_namespace(namespace_id_t);
 private:
     perfmon_collection_t *parent;
-    boost::ptr_map<namespace_id_t, perfmon_collection_t> perfmon_collections;
+    boost::ptr_map<namespace_id_t, perfmon_membership_t> perfmon_collections;
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP_ */

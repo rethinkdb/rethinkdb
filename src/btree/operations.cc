@@ -459,7 +459,7 @@ void get_btree_superblock(transaction_t *txn, access_t access, boost::scoped_ptr
 }
 
 void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count, repli_timestamp_t tstamp,
-        order_token_t token, bool snapshotted, const boost::shared_ptr<cache_account_t> &cache_account,
+        order_token_t token, cache_snapshotted_t snapshotted, const boost::shared_ptr<cache_account_t> &cache_account,
         boost::scoped_ptr<real_superblock_t> *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
     slice->assert_thread();
 
@@ -474,7 +474,7 @@ void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_ch
     if (cache_account) {
         txn_out->set_account(cache_account);
     }
-    if (snapshotted) {
+    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
         txn_out->snapshot();
     }
 
@@ -484,16 +484,16 @@ void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_ch
 void get_btree_superblock(btree_slice_t *slice, access_t access, int expected_change_count,
         repli_timestamp_t tstamp, order_token_t token, boost::scoped_ptr<real_superblock_t> *got_superblock_out,
         boost::scoped_ptr<transaction_t>& txn_out) {
-    get_btree_superblock(slice, access, expected_change_count, tstamp, token, false, boost::shared_ptr<cache_account_t>(), got_superblock_out, txn_out);
+    get_btree_superblock(slice, access, expected_change_count, tstamp, token, CACHE_SNAPSHOTTED_NO, boost::shared_ptr<cache_account_t>(), got_superblock_out, txn_out);
 }
 
 void get_btree_superblock_for_backfilling(btree_slice_t *slice, order_token_t token,
         boost::scoped_ptr<real_superblock_t> *got_superblock_out, boost::scoped_ptr<transaction_t>& txn_out) {
-    get_btree_superblock(slice, rwi_read_sync, 0, repli_timestamp_t::distant_past, token, true, slice->get_backfill_account(), got_superblock_out, txn_out);
+    get_btree_superblock(slice, rwi_read_sync, 0, repli_timestamp_t::distant_past, token, CACHE_SNAPSHOTTED_YES, slice->get_backfill_account(), got_superblock_out, txn_out);
 }
 
 void get_btree_superblock_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
-        bool snapshotted, boost::scoped_ptr<real_superblock_t> *got_superblock_out,
+        cache_snapshotted_t snapshotted, boost::scoped_ptr<real_superblock_t> *got_superblock_out,
         boost::scoped_ptr<transaction_t>& txn_out) {
     rassert(is_read_mode(access));
     get_btree_superblock(slice, access, 0, repli_timestamp_t::distant_past, token, snapshotted, boost::shared_ptr<cache_account_t>(), got_superblock_out, txn_out);

@@ -1,13 +1,15 @@
+#include "clustering/administration/http/progress_app.hpp"
+
 #include "errors.hpp"
 #include <boost/optional.hpp>
-#include <boost/uuid/uuid.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/static_visitor.hpp>
 
 #include "arch/timing.hpp"
-#include "clustering/administration/http/progress_app.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "containers/scoped.hpp"
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
@@ -19,17 +21,13 @@ static const uint64_t MAX_PROGRESS_REQ_TIMEOUT_MS = 60*1000;
 /* A record of a request made to another peer for progress on a backfill. */
 class request_record_t {
 public:
-    promise_t<std::pair<int, int> > *promise;
-    mailbox_t<void(std::pair<int, int>)> *resp_mbox;
+    scoped_ptr_t<promise_t<std::pair<int, int> > > promise;
+    scoped_ptr_t<mailbox_t<void(std::pair<int, int>)> > resp_mbox;
 
+    // TODO: We take ownership of these pointers?  Look at users.
     request_record_t(promise_t<std::pair<int, int> > *_promise, mailbox_t<void(std::pair<int, int>)> *_resp_mbox)
         : promise(_promise), resp_mbox(_resp_mbox)
     { }
-
-    ~request_record_t() {
-        delete promise;
-        delete resp_mbox;
-    }
 };
 
 

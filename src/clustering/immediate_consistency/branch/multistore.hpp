@@ -7,11 +7,13 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "concurrency/fifo_enforcer.hpp"
+#include "containers/scoped.hpp"
 
 namespace boost { template <class> class function; }
 class binary_blob_t;
 template <class> class metainfo_checker_t;
 template <class> class multistore_send_backfill_should_backfill_t;
+class mutex_t;
 template <class, class> class region_map_t;
 template <class> class store_view_t;
 template <class> class store_subview_t;
@@ -44,9 +46,7 @@ public:
     void new_particular_write_tokens(int *indices, int num_indices, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens);
 
     // TODO: I'm pretty sure every time we call this function we are
-    // doing something completely fucking stupid.  This whole design
-    // looks broken (and it looked broken when we were operating on a
-    // single store.)
+    // doing something stupid.
     region_map_t<protocol_t, version_range_t>
     get_all_metainfos(order_token_t order_token,
                       boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
@@ -56,8 +56,9 @@ public:
     typename protocol_t::region_t get_region(int i) const;
     store_view_t<protocol_t> *get_store_view(int i) const;
 
-    // TODO: Perhaps all uses of set_all_metainfos are completely fucking stupid, too.  See get_all_metainfos.
-    // This is the opposite of get_all_metainfos but is a bit more scary.
+    // TODO: Perhaps all uses of set_all_metainfos are stupid, too.
+    // See get_all_metainfos.  This is the opposite of
+    // get_all_metainfos but is a bit more scary.
     void set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
                            order_token_t order_token,
                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
@@ -134,11 +135,25 @@ private:
                                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
                                      signal_t *interruptor) THROWS_NOTHING;
 
+    void do_get_a_metainfo(int i,
+                           order_token_t order_token,
+                           boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                           signal_t *interruptor,
+                           region_map_t<protocol_t, version_range_t> *updatee,
+                           mutex_t *updatee_mutex);
+
+    void do_set_a_metainfo(int i,
+                           const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
+                           order_token_t order_token,
+                           boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                           signal_t *interruptor);
+
+
     // Used by the constructors.
     void initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask) THROWS_NOTHING;
 
     // We _own_ these pointers and must delete them at destruction.
-    std::vector<store_view_t<protocol_t> *> store_views;
+    scoped_array_t<store_view_t<protocol_t> *> store_views;
 
     typename protocol_t::region_t region;
 

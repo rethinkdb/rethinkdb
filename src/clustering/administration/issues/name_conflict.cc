@@ -3,12 +3,12 @@
 name_conflict_issue_t::name_conflict_issue_t(
         const std::string &_type,
         const std::string &_contested_name,
-        const std::set<boost::uuids::uuid> &_contestants) :
+        const std::set<uuid_t> &_contestants) :
     type(_type), contested_name(_contested_name), contestants(_contestants) { }
 
 std::string name_conflict_issue_t::get_description() const {
     std::string message = "The following " + type + "s are all named '" + contested_name + "': ";
-    for (std::set<boost::uuids::uuid>::iterator it = contestants.begin(); it != contestants.end(); it++) {
+    for (std::set<uuid_t>::iterator it = contestants.begin(); it != contestants.end(); it++) {
         message += uuid_to_str(*it) + "; ";
     }
     return message;
@@ -18,7 +18,7 @@ cJSON *name_conflict_issue_t::get_json_description() {
     issue_json_t json;
     json.critical = false;
     json.description = "The following " + type + "s are all named '" + contested_name + "': ";
-    for (std::set<boost::uuids::uuid>::iterator it = contestants.begin(); it != contestants.end(); it++) {
+    for (std::set<uuid_t>::iterator it = contestants.begin(); it != contestants.end(); it++) {
         json.description += uuid_to_str(*it) + "; ";
     }
     json.type = "NAME_CONFLICT_ISSUE";
@@ -40,8 +40,8 @@ name_conflict_issue_t *name_conflict_issue_t::clone() const {
 class name_map_t {
 public:
     template<class object_metadata_t>
-    void file_away(const std::map<boost::uuids::uuid, deletable_t<object_metadata_t> > &map) {
-        for (typename std::map<boost::uuids::uuid, deletable_t<object_metadata_t> >::const_iterator it = map.begin();
+    void file_away(const std::map<uuid_t, deletable_t<object_metadata_t> > &map) {
+        for (typename std::map<uuid_t, deletable_t<object_metadata_t> >::const_iterator it = map.begin();
                 it != map.end(); it++) {
             if (!it->second.is_deleted()) {
                 if (!it->second.get().name.in_conflict()) {
@@ -53,7 +53,7 @@ public:
 
     void report(const std::string &type,
             std::list<clone_ptr_t<global_issue_t> > *out) {
-        for (std::map<std::string, std::set<boost::uuids::uuid>, case_insensitive_less_t>::iterator it =
+        for (std::map<std::string, std::set<uuid_t>, case_insensitive_less_t>::iterator it =
                 by_name.begin(); it != by_name.end(); it++) {
             if (it->second.size() > 1) {
                 out->push_back(clone_ptr_t<global_issue_t>(
@@ -71,7 +71,7 @@ private:
         }
     };
 
-    std::map<std::string, std::set<boost::uuids::uuid>, case_insensitive_less_t> by_name;
+    std::map<std::string, std::set<uuid_t>, case_insensitive_less_t> by_name;
 };
 
 std::list<clone_ptr_t<global_issue_t> > name_conflict_issue_tracker_t::get_issues() {

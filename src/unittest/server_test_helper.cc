@@ -16,9 +16,9 @@ const int server_test_helper_t::changed_value = 0x87654321;
 
 server_test_helper_t::server_test_helper_t()
     : serializer(NULL), thread_pool(new thread_pool_t(1, false)) { }
-server_test_helper_t::~server_test_helper_t() {
-    delete thread_pool;
-}
+
+// Destructor defined in the .cc so that thread_pool_t isn't an incomplete type.
+server_test_helper_t::~server_test_helper_t() { }
 
 void server_test_helper_t::run() {
     struct starter_t : public thread_message_t {
@@ -35,14 +35,19 @@ void server_test_helper_t::run() {
 void server_test_helper_t::setup_server_and_run_tests() {
     temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
+    boost::scoped_ptr<io_backender_t> io_backender;
+    make_io_backender(aio_native, &io_backender);
+
     {
         standard_serializer_t::create(
             standard_serializer_t::dynamic_config_t(),
+            io_backender.get(),
             standard_serializer_t::private_dynamic_config_t(db_file.name()),
             standard_serializer_t::static_config_t(),
             &get_global_perfmon_collection());
         standard_serializer_t log_serializer(
             standard_serializer_t::dynamic_config_t(),
+            io_backender.get(),
             standard_serializer_t::private_dynamic_config_t(db_file.name()),
             &get_global_perfmon_collection());
 

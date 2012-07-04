@@ -4,9 +4,9 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include "unittest/clustering_utils.hpp"
-#include "unittest/dummy_metadata_controller.hpp"
+#include "mock/branch_history_manager.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -32,25 +32,17 @@ void run_backfill_test() {
     dummy_protocol_t::store_t backfiller_store;
     dummy_protocol_t::store_t backfillee_store;
 
-    /* Make a dummy metadata view to hold a branch tree so branch history checks
-    can be performed */
-
-    dummy_semilattice_controller_t<branch_history_t<dummy_protocol_t> > branch_history_controller(
-        /* Parentheses prevent C++ from interpreting this as a function
-        declaration */
-        (branch_history_t<dummy_protocol_t>())
-        );
+    mock::in_memory_branch_history_manager_t<mock::dummy_protocol_t> branch_history_manager;
     branch_id_t dummy_branch_id = generate_uuid();
     {
         branch_birth_certificate_t<dummy_protocol_t> dummy_branch;
         dummy_branch.region = region;
         dummy_branch.initial_timestamp = state_timestamp_t::zero();
         dummy_branch.origin = region_map_t<dummy_protocol_t, version_range_t>(
-            region, version_range_t(version_t(boost::uuids::nil_generator()(), state_timestamp_t::zero()))
+            region, version_range_t(version_t(nil_uuid(), state_timestamp_t::zero()))
             );
-        std::map<branch_id_t, branch_birth_certificate_t<dummy_protocol_t> > singleton_map;
-        singleton_map[dummy_branch_id] = dummy_branch;
-        metadata_field(&branch_history_t<dummy_protocol_t>::branches, branch_history_controller.get_view())->join(singleton_map);
+        cond_t non_interruptor;
+        branch_history_manager.create_branch(dummy_branch_id, dummy_branch, &non_interruptor);
     }
 
     state_timestamp_t timestamp = state_timestamp_t::zero();
@@ -114,7 +106,7 @@ void run_backfill_test() {
 
     backfiller_t<dummy_protocol_t> backfiller(
         cluster.get_mailbox_manager(),
-        branch_history_controller.get_view(),
+        &branch_history_manager,
         &backfiller_multistore);
 
     watchable_variable_t<boost::optional<backfiller_business_card_t<dummy_protocol_t> > > pseudo_directory(
@@ -129,7 +121,7 @@ void run_backfill_test() {
     cond_t interruptor;
     backfillee<dummy_protocol_t>(
         cluster.get_mailbox_manager(),
-        branch_history_controller.get_view(),
+        &branch_history_manager,
         &backfillee_multistore,
         backfillee_store.get_region(),
         pseudo_directory.get_watchable()->subview(&wrap_in_optional),

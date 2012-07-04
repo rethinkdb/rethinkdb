@@ -25,7 +25,7 @@
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "containers/intrusive_list.hpp"
-#include "perfmon/perfmon_types.hpp"
+#include "perfmon/types.hpp"
 
 /* linux_tcp_conn_t provides a disgusting wrapper around a TCP network connection. */
 
@@ -274,9 +274,8 @@ class linux_tcp_bound_socket_t {
 public:
     explicit linux_tcp_bound_socket_t(int _port);
     ~linux_tcp_bound_socket_t();
-    int get_port();
-    fd_t get_fd();
-    void reset();
+    int get_port() const;
+    MUST_USE fd_t release();
 private:
     fd_t sock_fd;
     int port;
@@ -290,7 +289,7 @@ class linux_tcp_listener_t : public linux_event_callback_t {
 public:
     linux_tcp_listener_t(int port,
                          boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
-    linux_tcp_listener_t(linux_tcp_bound_socket_t& bound_socket,
+    linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
                          boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
     ~linux_tcp_listener_t();
 

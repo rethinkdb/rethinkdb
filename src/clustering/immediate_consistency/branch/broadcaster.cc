@@ -25,14 +25,16 @@ broadcaster_t<protocol_t>::write_callback_t::~write_callback_t() {
 
 template <class protocol_t>
 broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
-              boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
+              branch_history_manager_t<protocol_t> *bhm,
               multistore_ptr_t<protocol_t> *initial_svs,
               perfmon_collection_t *parent_perfmon_collection,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : mailbox_manager(mm),
       branch_id(generate_uuid()),
+      branch_history_manager(bhm),
       registrar(mailbox_manager, this),
-      broadcaster_collection("broadcaster", parent_perfmon_collection, true, true)
+      broadcaster_collection(),
+      broadcaster_membership(parent_perfmon_collection, &broadcaster_collection, "broadcaster")
 {
 
     order_checkpoint.set_tagappend("broadcaster_t");
@@ -63,14 +65,12 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     /* Make an entry for this branch in the global branch history
        semilattice */
     {
-        branch_birth_certificate_t<protocol_t> our_metadata;
-        our_metadata.region = initial_svs->get_multistore_joined_region();
-        our_metadata.initial_timestamp = initial_timestamp;
-        our_metadata.origin = origins;
+        branch_birth_certificate_t<protocol_t> birth_certificate;
+        birth_certificate.region = initial_svs->get_multistore_joined_region();
+        birth_certificate.initial_timestamp = initial_timestamp;
+        birth_certificate.origin = origins;
 
-        std::map<branch_id_t, branch_birth_certificate_t<protocol_t> > singleton;
-        singleton[branch_id] = our_metadata;
-        metadata_field(&branch_history_t<protocol_t>::branches, branch_history)->join(singleton);
+        branch_history_manager->create_branch(branch_id, birth_certificate, interruptor);
     }
 
     /* Reset the store metadata. We should do this after making the branch
@@ -100,7 +100,9 @@ branch_id_t broadcaster_t<protocol_t>::get_branch_id() {
 
 template <class protocol_t>
 broadcaster_business_card_t<protocol_t> broadcaster_t<protocol_t>::get_business_card() {
-    return broadcaster_business_card_t<protocol_t>(branch_id, registrar.get_business_card());
+    branch_history_t<protocol_t> branch_id_associated_branch_history;
+    branch_history_manager->export_branch_history(branch_id, &branch_id_associated_branch_history);
+    return broadcaster_business_card_t<protocol_t>(branch_id, branch_id_associated_branch_history, registrar.get_business_card());
 }
 
 
@@ -181,7 +183,8 @@ class broadcaster_t<protocol_t>::dispatchee_t : public intrusive_list_node_t<dis
 public:
     dispatchee_t(broadcaster_t *c, listener_business_card_t<protocol_t> d) THROWS_NOTHING :
         write_mailbox(d.write_mailbox), is_readable(false),
-        queue_count(uuid_to_str(d.write_mailbox.get_peer().get_uuid()) + "_broadcast_queue_count", &c->broadcaster_collection),
+        queue_count(),
+        queue_count_membership(&c->broadcaster_collection, &queue_count, uuid_to_str(d.write_mailbox.get_peer().get_uuid()) + "_broadcast_queue_count"),
         background_write_queue(&queue_count),
         // TODO magic constant
         background_write_workers(100, &background_write_queue, &background_write_caller),
@@ -240,6 +243,7 @@ public:
     fifo_enforcer_source_t fifo_source;
 
     perfmon_counter_t queue_count;
+    perfmon_membership_t queue_count_membership;
     unlimited_fifo_queue_t<boost::function<void()> > background_write_queue;
     calling_callback_t background_write_caller;
     coro_pool_t<boost::function<void()> > background_write_workers;
@@ -376,7 +380,7 @@ typename protocol_t::read_response_t broadcaster_t<protocol_t>::read(typename pr
     {
         wait_interruptible(lock, interruptor);
         mutex_assertion_t::acq_t mutex_acq(&mutex);
-        lock->reset();
+        lock->end();
 
         pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
         timestamp = current_timestamp;
@@ -417,7 +421,7 @@ void broadcaster_t<protocol_t>::spawn_write(typename protocol_t::write_t write, 
     by the loop further down in this very function. */
     mutex_assertion_t::acq_t mutex_acq(&mutex);
 
-    lock->reset();
+    lock->end();
 
     transition_timestamp_t timestamp = transition_timestamp_t::starting_from(current_timestamp);
     current_timestamp = timestamp.timestamp_after();

@@ -4,6 +4,7 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "memcached/protocol.hpp"
+#include "mock/branch_history_manager.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -12,8 +13,9 @@ namespace unittest {
 
 void run_with_broadcaster(
         boost::function< void(
+            io_backender_t *,
             simple_mailbox_cluster_t *,
-            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<memcached_protocol_t> > >,
+            branch_history_manager_t<memcached_protocol_t> *,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > > > >,
             boost::scoped_ptr<broadcaster_t<memcached_protocol_t> > *,
             test_store_t<memcached_protocol_t> *,
@@ -23,13 +25,15 @@ void run_with_broadcaster(
     /* Set up a cluster so mailboxes can be created */
     simple_mailbox_cluster_t cluster;
 
-    /* Set up metadata meeting-places */
-    branch_history_t<memcached_protocol_t> initial_branch_history;
-    dummy_semilattice_controller_t<branch_history_t<memcached_protocol_t> >
-        branch_history_controller(initial_branch_history);
+    /* Set up branch history manager */
+    mock::in_memory_branch_history_manager_t<memcached_protocol_t> branch_history_manager;
+
+    // io backender
+    boost::scoped_ptr<io_backender_t> io_backender;
+    make_io_backender(aio_default, &io_backender);
 
     /* Set up a broadcaster and initial listener */
-    test_store_t<memcached_protocol_t> initial_store;
+    test_store_t<memcached_protocol_t> initial_store(io_backender.get());
     store_view_t<memcached_protocol_t> *store_ptr = &initial_store.store;
     multistore_ptr_t<memcached_protocol_t> multi_store(&store_ptr, 1);
     cond_t interruptor;
@@ -37,7 +41,7 @@ void run_with_broadcaster(
     boost::scoped_ptr<broadcaster_t<memcached_protocol_t> > broadcaster(
         new broadcaster_t<memcached_protocol_t>(
             cluster.get_mailbox_manager(),
-            branch_history_controller.get_view(),
+            &branch_history_manager,
             &multi_store,
             &get_global_perfmon_collection(),
             &interruptor
@@ -48,16 +52,18 @@ void run_with_broadcaster(
 
     boost::scoped_ptr<listener_t<memcached_protocol_t> > initial_listener(
         new listener_t<memcached_protocol_t>(
+            io_backender.get(),
             cluster.get_mailbox_manager(),
             broadcaster_business_card_watchable_variable.get_watchable(),
-            branch_history_controller.get_view(),
+            &branch_history_manager,
             broadcaster.get(),
             &get_global_perfmon_collection(),
             &interruptor
         ));
 
-    fun(&cluster,
-        branch_history_controller.get_view(),
+    fun(io_backender.get(),
+        &cluster,
+        &branch_history_manager,
         broadcaster_business_card_watchable_variable.get_watchable(),
         &broadcaster,
         &initial_store,
@@ -66,8 +72,9 @@ void run_with_broadcaster(
 
 void run_in_thread_pool_with_broadcaster(
         boost::function< void(
+            io_backender_t *,
             simple_mailbox_cluster_t *,
-            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<memcached_protocol_t> > >,
+            branch_history_manager_t<memcached_protocol_t> *,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > > > >,
             boost::scoped_ptr<broadcaster_t<memcached_protocol_t> > *,
             test_store_t<memcached_protocol_t> *,
@@ -106,13 +113,13 @@ void write_to_broadcaster(broadcaster_t<memcached_protocol_t> *broadcaster, cons
     write_callback.wait_lazily_unordered();
 }
 
-void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
-                               boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<memcached_protocol_t> > > branch_history_view,
+void run_partial_backfill_test(io_backender_t *io_backender,
+                               simple_mailbox_cluster_t *cluster,
+                               branch_history_manager_t<memcached_protocol_t> *branch_history_manager,
                                clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<memcached_protocol_t> > > > > broadcaster_metadata_view,
                                boost::scoped_ptr<broadcaster_t<memcached_protocol_t> > *broadcaster,
                                test_store_t<memcached_protocol_t> *,
-                               boost::scoped_ptr<listener_t<memcached_protocol_t> > *initial_listener)
-{
+                               boost::scoped_ptr<listener_t<memcached_protocol_t> > *initial_listener) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<memcached_protocol_t> replier(initial_listener->get());
@@ -134,15 +141,16 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     nap(10000);
 
     /* Set up a second mirror */
-    test_store_t<memcached_protocol_t> store2;
+    test_store_t<memcached_protocol_t> store2(io_backender);
     store_view_t<memcached_protocol_t> *store2_ptr = &store2.store;
 
     multistore_ptr_t<memcached_protocol_t> multi_store2(&store2_ptr, 1, memcached_protocol_t::region_t::universe());
     cond_t interruptor;
     listener_t<memcached_protocol_t> listener2(
+        io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view,
-        branch_history_view,
+        branch_history_manager,
         &multi_store2,
         replier_business_card_variable.get_watchable(),
         generate_uuid(),

@@ -1,7 +1,8 @@
 #include "rpc/mailbox/mailbox.hpp"
 
 #include "errors.hpp"
-#include <boost/uuid/uuid_io.hpp>
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
 
 #include "logger.hpp"
 
@@ -23,7 +24,7 @@ peer_id_t raw_mailbox_t::address_t::get_peer() const {
 }
 
 std::string raw_mailbox_t::address_t::human_readable() const {
-    return strprintf("%s:%d:%d", boost::uuids::to_string(peer.get_uuid()).c_str(), thread, mailbox_id);
+    return strprintf("%s:%d:%d", uuid_to_str(peer.get_uuid()).c_str(), thread, mailbox_id);
 }
 
 raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, const boost::function<void(read_stream_t *)> &fun) :

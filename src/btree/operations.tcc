@@ -64,7 +64,7 @@ void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblo
     }
 
     {
-        scoped_malloc<Value> tmp(sizer.max_possible_size());
+        scoped_malloc_t<Value> tmp(sizer.max_possible_size());
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
         bool key_found = leaf::lookup(&sizer, reinterpret_cast<const leaf_node_t *>(buf.get_data_read()), key, tmp.get());
@@ -119,7 +119,7 @@ void find_keyvalue_location_for_read(transaction_t *txn, superblock_t *superbloc
 
     // Got down to the leaf, now probe it.
     const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(buf.get_data_read());
-    scoped_malloc<Value> value(sizer.max_possible_size());
+    scoped_malloc_t<Value> value(sizer.max_possible_size());
     if (leaf::lookup(&sizer, leaf, key, value.get())) {
         keyvalue_location_out->buf.swap(buf);
         keyvalue_location_out->there_originally_was_value = true;

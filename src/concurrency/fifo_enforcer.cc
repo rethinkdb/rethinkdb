@@ -19,9 +19,20 @@ fifo_enforcer_write_token_t fifo_enforcer_source_t::enter_write() THROWS_NOTHING
     return token;
 }
 
+fifo_enforcer_sink_t::exit_read_t::exit_read_t() THROWS_NOTHING : parent(NULL), ended(false) { }
+
 fifo_enforcer_sink_t::exit_read_t::exit_read_t(fifo_enforcer_sink_t *p, fifo_enforcer_read_token_t t) THROWS_NOTHING :
-    parent(p), token(t)
+    parent(NULL), ended(false)
 {
+    begin(p, t);
+}
+
+void fifo_enforcer_sink_t::exit_read_t::begin(fifo_enforcer_sink_t *p, fifo_enforcer_read_token_t t) THROWS_NOTHING {
+    rassert(parent == NULL);
+    rassert(p != NULL);
+    parent = p;
+    token = t;
+
     parent->assert_thread();
     mutex_assertion_t::acq_t acq(&parent->lock);
 
@@ -30,28 +41,39 @@ fifo_enforcer_sink_t::exit_read_t::exit_read_t(fifo_enforcer_sink_t *p, fifo_enf
     parent->pump();
 }
 
-void fifo_enforcer_sink_t::exit_read_t::reset() {
-    if (parent) {
-        parent->assert_thread();
-        mutex_assertion_t::acq_t acq(&parent->lock);
-        if (is_pulsed()) {
-            parent->finish_a_reader(token.timestamp);
-            parent->pump();
-        } else {
-            queue_position->second = NULL;
-        }
-
-        parent = NULL;
+void fifo_enforcer_sink_t::exit_read_t::end() THROWS_NOTHING {
+    rassert(parent && !ended);
+    parent->assert_thread();
+    mutex_assertion_t::acq_t acq(&parent->lock);
+    if (is_pulsed()) {
+        parent->finish_a_reader(token.timestamp);
+        parent->pump();
+    } else {
+        queue_position->second = NULL;
     }
+    ended = true;
 }
 
 fifo_enforcer_sink_t::exit_read_t::~exit_read_t() THROWS_NOTHING {
-    reset();
+    if (parent && !ended) {
+        end();
+    }
 }
 
+fifo_enforcer_sink_t::exit_write_t::exit_write_t() THROWS_NOTHING : parent(NULL), ended(false) { }
+
 fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t) THROWS_NOTHING :
-    parent(p), token(t)
+    parent(NULL), ended(false)
 {
+    begin(p, t);
+}
+
+void fifo_enforcer_sink_t::exit_write_t::begin(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t) THROWS_NOTHING {
+    rassert(parent == NULL);
+    rassert(p != NULL);
+    parent = p;
+    token = t;
+
     parent->assert_thread();
     mutex_assertion_t::acq_t acq(&parent->lock);
 
@@ -62,22 +84,22 @@ fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_e
     parent->pump();
 }
 
-void fifo_enforcer_sink_t::exit_write_t::reset() {
-    if (parent) {
-        mutex_assertion_t::acq_t acq(&parent->lock);
-        if (is_pulsed()) {
-            parent->finish_a_writer(token.timestamp, token.num_preceding_reads);
-            parent->pump();
-        } else {
-            queue_position->second.second = NULL;
-        }
-
-        parent = NULL;
+void fifo_enforcer_sink_t::exit_write_t::end() THROWS_NOTHING {
+    rassert(parent && !ended);
+    mutex_assertion_t::acq_t acq(&parent->lock);
+    if (is_pulsed()) {
+        parent->finish_a_writer(token.timestamp, token.num_preceding_reads);
+        parent->pump();
+    } else {
+        queue_position->second.second = NULL;
     }
+    ended = true;
 }
 
 fifo_enforcer_sink_t::exit_write_t::~exit_write_t() THROWS_NOTHING {
-    reset();
+    if (parent && !ended) {
+        end();
+    }
 }
 
 void fifo_enforcer_sink_t::pump() THROWS_NOTHING {

@@ -9,7 +9,6 @@
 #include "arch/arch.hpp"
 
 #include "buffer_cache/mirrored/mirrored.hpp"
-#include "do_on_thread.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/serializer.hpp"
 

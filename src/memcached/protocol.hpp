@@ -4,10 +4,11 @@
 #include <vector>
 
 #include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
-#include "btree/parallel_traversal.hpp"  // TODO: sigh
+// #include "btree/parallel_traversal.hpp"  // TODO: sigh
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -18,10 +19,12 @@
 #include "protocol_api.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
-#include "perfmon/perfmon_types.hpp"
+#include "perfmon/types.hpp"
 #include "repli_timestamp.hpp"
 
+class io_backender_t;
 class real_superblock_t;
+class traversal_progress_combiner_t;
 
 write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf);
 archive_result_t deserialize(read_stream_t *s, intrusive_ptr_t<data_buffer_t> *buf);
@@ -69,7 +72,8 @@ public:
 
         hash_region_t<key_range_t> get_region() const THROWS_NOTHING;
         read_t shard(const hash_region_t<key_range_t> &region) const THROWS_NOTHING;
-        read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        read_response_t unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        read_response_t multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : query(r.query), effective_time(r.effective_time) { }
@@ -96,7 +100,8 @@ public:
         typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> query_t;
         hash_region_t<key_range_t> get_region() const THROWS_NOTHING;
         write_t shard(const hash_region_t<key_range_t> &region) const THROWS_NOTHING;
-        write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        write_response_t unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        write_response_t multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         write_t() { }
         write_t(const write_t& w) : mutation(w.mutation), proposed_cas(w.proposed_cas), effective_time(w.effective_time) { }
@@ -178,7 +183,7 @@ public:
         // TODO: This was originally private.  Do we still want it to be private?
         typedef region_map_t<memcached_protocol_t, binary_blob_t> metainfo_t;
 
-        store_t(const std::string& filename, bool create, perfmon_collection_t *collection);
+        store_t(io_backender_t *io_backender, const std::string& filename, bool create, perfmon_collection_t *collection);
         ~store_t();
 
         void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
@@ -237,7 +242,6 @@ public:
 
         void acquire_superblock_for_read(
                 access_t access,
-                bool snapshot,
                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
                 boost::scoped_ptr<transaction_t> &txn_out,
                 boost::scoped_ptr<real_superblock_t> &sb_out,
@@ -272,6 +276,7 @@ public:
         void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
 
         perfmon_collection_t perfmon_collection;
+        perfmon_membership_t perfmon_collection_membership;
     };
 };
 

@@ -4,14 +4,14 @@
 #include <boost/tokenizer.hpp>
 
 #include "clustering/administration/main/watchable_fields.hpp"
-#include "clustering/immediate_consistency/query/namespace_interface.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
-#include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/directory_echo.hpp"
 #include "clustering/reactor/metadata.hpp"
+#include "clustering/reactor/namespace_interface.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"
+#include "mock/branch_history_manager.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_json_adapter.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
@@ -19,7 +19,6 @@
 #include "rpc/directory/write_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "unittest/clustering_utils.hpp"
-#include "unittest/dummy_metadata_controller.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
@@ -82,9 +81,8 @@ template<class protocol_t>
 class test_cluster_directory_t {
 public:
     boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > reactor_directory;
-    std::map<master_id_t, master_business_card_t<protocol_t> > master_directory;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(reactor_directory, master_directory);
+    RDB_MAKE_ME_SERIALIZABLE_1(reactor_directory);
 };
 
 /* This is a cluster that is useful for reactor testing... but doesn't actually
@@ -100,10 +98,6 @@ public:
         mailbox_manager_client(&message_multiplexer, 'M'),
         mailbox_manager(&mailbox_manager_client),
         mailbox_manager_client_run(&mailbox_manager_client, &mailbox_manager),
-
-        semilattice_manager_client(&message_multiplexer, 'S'),
-        semilattice_manager_branch_history(&semilattice_manager_client, branch_history_t<protocol_t>()),
-        semilattice_manager_client_run(&semilattice_manager_client, &semilattice_manager_branch_history),
 
         our_directory_variable(test_cluster_directory_t<protocol_t>()),
         directory_manager_client(&message_multiplexer, 'D'),
@@ -126,10 +120,6 @@ public:
     mailbox_manager_t mailbox_manager;
     message_multiplexer_t::client_t::run_t mailbox_manager_client_run;
 
-    message_multiplexer_t::client_t semilattice_manager_client;
-    semilattice_manager_t<branch_history_t<protocol_t> > semilattice_manager_branch_history;
-    message_multiplexer_t::client_t::run_t semilattice_manager_client_run;
-
     watchable_variable_t<test_cluster_directory_t<protocol_t> > our_directory_variable;
     message_multiplexer_t::client_t directory_manager_client;
     directory_read_manager_t<test_cluster_directory_t<protocol_t> > directory_read_manager;
@@ -138,18 +128,19 @@ public:
 
     message_multiplexer_t::run_t message_multiplexer_run;
     connectivity_cluster_t::run_t connectivity_cluster_run;
+
+    mock::in_memory_branch_history_manager_t<protocol_t> branch_history_manager;
 };
 
 template<class protocol_t>
 class test_reactor_t : private master_t<protocol_t>::ack_checker_t {
 public:
-    test_reactor_t(reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs) :
+    test_reactor_t(io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs) :
         blueprint_watchable(initial_blueprint),
-        reactor(&r->mailbox_manager, this,
+        reactor(io_backender, &r->mailbox_manager, this,
               r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
-              r->semilattice_manager_branch_history.get_root_view(), blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection()),
-        reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable),
-        master_directory_copier(&test_cluster_directory_t<protocol_t>::master_directory, reactor.get_master_directory(), &r->our_directory_variable)
+              &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection()),
+        reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable)
     {
         rassert(svs->get_multistore_joined_region() == a_thru_z_region());
     }
@@ -161,7 +152,6 @@ public:
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
     reactor_t<protocol_t> reactor;
     field_copier_t<boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >, test_cluster_directory_t<protocol_t> > reactor_directory_copier;
-    field_copier_t<std::map<master_id_t, master_business_card_t<protocol_t> >, test_cluster_directory_t<protocol_t> > master_directory_copier;
 
 private:
     static boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > wrap_in_optional(
@@ -183,6 +173,7 @@ template<class protocol_t>
 class test_cluster_group_t {
 public:
     boost::ptr_vector<temp_file_t> files;
+    boost::scoped_ptr<io_backender_t> io_backender;
     boost::ptr_vector<typename protocol_t::store_t> stores;
     boost::ptr_vector<multistore_ptr_t<protocol_t> > svses;
     boost::ptr_vector<reactor_test_cluster_t<protocol_t> > test_clusters;
@@ -193,9 +184,11 @@ public:
 
     explicit test_cluster_group_t(int n_machines) {
         int port = randport();
+        make_io_backender(aio_default, &io_backender);
+
         for (int i = 0; i < n_machines; i++) {
             files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
-            stores.push_back(new typename protocol_t::store_t(files[i].name(), true, NULL));
+            stores.push_back(new typename protocol_t::store_t(io_backender.get(), files[i].name(), true, NULL));
             store_view_t<protocol_t> *store_ptr = &stores[i];
             svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
             stores.back().metainfo.set(a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
@@ -209,7 +202,7 @@ public:
 
     void construct_all_reactors(const blueprint_t<protocol_t> &bp) {
         for (unsigned i = 0; i < test_clusters.size(); i++) {
-            test_reactors.push_back(new test_reactor_t<protocol_t>(&test_clusters[i], bp, &svses[i]));
+            test_reactors.push_back(new test_reactor_t<protocol_t>(io_backender.get(), &test_clusters[i], bp, &svses[i]));
         }
     }
 
@@ -267,13 +260,17 @@ public:
     //    test_reactors[i].blueprint_watchable.set_value(bp);
     //}
 
-    static std::map<peer_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > extract_master_directory(
+    static std::map<peer_id_t, reactor_business_card_t<protocol_t> > extract_reactor_business_cards_no_optional(
             const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input) {
-        std::map<peer_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > output;
+        std::map<peer_id_t, reactor_business_card_t<protocol_t> > out;
         for (typename std::map<peer_id_t, test_cluster_directory_t<protocol_t> >::const_iterator it = input.begin(); it != input.end(); it++) {
-            output.insert(std::make_pair(it->first, it->second.master_directory));
+            if (it->second.reactor_directory) {
+                out.insert(std::make_pair(it->first, it->second.reactor_directory->internal));
+            } else {
+                out.insert(std::make_pair(it->first, reactor_business_card_t<protocol_t>()));
+            }
         }
-        return output;
+        return out;
     }
 
     void run_queries() {
@@ -281,7 +278,7 @@ public:
         for (unsigned i = 0; i < test_clusters.size(); i++) {
             cluster_namespace_interface_t<protocol_t> namespace_if(&test_clusters[i].mailbox_manager,
                 (&test_clusters[i])->directory_read_manager.get_root_view()
-                    ->subview(&test_cluster_group_t::extract_master_directory));
+                    ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional));
             namespace_if.get_initial_ready_signal()->wait_lazily_unordered();
 
             order_source_t order_source;

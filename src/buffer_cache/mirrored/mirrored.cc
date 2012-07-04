@@ -196,8 +196,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_accou
 
     // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a
     // separate coro. We have to make sure that load_inner_buf() acquires the lock first
-    // however, so we use spawn_now_deprecated().
-    coro_t::spawn_now_deprecated(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
+    // however, so we use spawn_now().
+    coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
 
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     ++_cache->stats->pm_n_blocks_in_memory;
@@ -391,7 +391,14 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool leave_clo
             num_snapshots_affected = cache->calculate_snapshots_affected(version_id, new_version);
         }
     }
-    rassert(snap_refcount <= num_snapshots_affected); // sanity check
+
+    // This "sanity check" is commented out because it is now wrong.
+    // It is possible for multiple buf_lock_t's from the same
+    // transaction to be held at the same time (for example, when
+    // backfilling).  That invalidates this assertion, without meaning
+    // the rest of the code is broken.
+
+    // commented out: rassert(snap_refcount <= num_snapshots_affected); // sanity check
 
     // check whether snapshot refcount is > 0
     if (0 == num_snapshots_affected + cow_refcount)
@@ -477,23 +484,24 @@ mc_buf_lock_t::mc_buf_lock_t() :
     non_locking_access(false),
     inner_buf(NULL),
     data(NULL),
-    subtree_recency(repli_timestamp_t::invalid)
+    subtree_recency(repli_timestamp_t::invalid),
+    parent_transaction(NULL)
 { }
 
 
 /* Constructor to obtain a buffer lock within a transaction */
-mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id, access_t mode_, UNUSED buffer_cache_order_mode_t order_mode, lock_in_line_callback_t *call_when_in_line) :
+mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction, block_id_t block_id, access_t mode_, UNUSED buffer_cache_order_mode_t order_mode, lock_in_line_callback_t *call_when_in_line) THROWS_NOTHING :
     acquired(false),
     snapshotted(transaction->snapshotted),
     non_locking_access(snapshotted),
     mode(mode_),
     inner_buf(transaction->cache->find_buf(block_id)),
     data(NULL),
-    subtree_recency(repli_timestamp_t::invalid)
+    subtree_recency(repli_timestamp_t::invalid),
+    parent_transaction(transaction)
 {
     transaction->assert_thread();
     rassert(block_id != NULL_BLOCK_ID);
-    assert_thread();
 
     // Note that it is critical that between here and creating our buf_lock_t wrapper that we do nothing
     // blocking (unless it acquires a lock on inner_buf or otherwise prevents it from being
@@ -589,6 +597,9 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
     }
 
     inner_buf->cache->stats->pm_bufs_held.begin(&start_time);
+    if (parent_transaction) {
+        ++parent_transaction->num_buf_locks_acquired;
+    }
     acquired = true;
 }
 
@@ -617,14 +628,15 @@ mc_buf_lock_t * mc_buf_lock_t::acquire_non_locking_lock(mc_cache_t *cache, const
     return lock;
 }
 
-mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction) :
+mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction) THROWS_NOTHING :
     acquired(false),
     snapshotted(transaction->snapshotted),
     non_locking_access(snapshotted),
     mode(transaction->access),
     inner_buf(NULL),
     data(NULL),
-    subtree_recency(repli_timestamp_t::invalid)
+    subtree_recency(repli_timestamp_t::invalid),
+    parent_transaction(transaction)
 {
     transaction->assert_thread();
     rassert(mode == rwi_write);
@@ -652,8 +664,9 @@ mc_buf_lock_t::~mc_buf_lock_t() {
 
 void mc_buf_lock_t::release_if_acquired() {
     assert_thread();
-    if (acquired)
+    if (acquired) {
         release();
+    }
 }
 
 void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
@@ -735,6 +748,7 @@ void mc_buf_lock_t::swap(mc_buf_lock_t& swapee) {
 #ifndef NDEBUG
     std::swap(real_home_thread, swapee.real_home_thread);
 #endif
+    std::swap(parent_transaction, swapee.parent_transaction);
 }
 
 bool mc_buf_lock_t::is_acquired() const {
@@ -1039,6 +1053,9 @@ void mc_buf_lock_t::release() {
     }
 #endif
     acquired = false;
+    if (parent_transaction) {
+        --parent_transaction->num_buf_locks_acquired;
+    }
 }
 
 
@@ -1052,7 +1069,8 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
       access(_access),
       recency_timestamp(_recency_timestamp),
       snapshot_version(mc_inner_buf_t::faux_version_id),
-      snapshotted(false)
+      snapshotted(false),
+      num_buf_locks_acquired(0)
 {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
 
@@ -1124,7 +1142,8 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED int
     access(_access),
     recency_timestamp(repli_timestamp_t::distant_past),
     snapshot_version(mc_inner_buf_t::faux_version_id),
-    snapshotted(false)
+    snapshotted(false),
+    num_buf_locks_acquired(0)
 {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
@@ -1144,7 +1163,8 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED i_a
     access(_access),
     recency_timestamp(repli_timestamp_t::distant_past),
     snapshot_version(mc_inner_buf_t::faux_version_id),
-    snapshotted(false)
+    snapshotted(false),
+    num_buf_locks_acquired(0)
 {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
@@ -1167,6 +1187,9 @@ mc_transaction_t::~mc_transaction_t() {
     assert_thread();
 
     cache->stats->pm_transactions_active.end(&start_time);
+
+    rassert(num_buf_locks_acquired == 0, "num_buf_locks_acquired = %ld", num_buf_locks_acquired);
+    guarantee(num_buf_locks_acquired == 0);
 
     block_pm_duration commit_timer(&cache->stats->pm_transactions_committing);
 
@@ -1358,6 +1381,8 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
 }
 
 mc_cache_t::~mc_cache_t() {
+    assert_thread();
+
     shutting_down = true;
     serializer->unregister_read_ahead_cb(this);
 
@@ -1533,7 +1558,7 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
     if (read_ahead_registered && page_repl.is_full(dynamic_config.max_size / serializer->get_block_size().ser_value() / 10 + 1)) {
         read_ahead_registered = false;
         // unregister_read_ahead_cb requires a coro context, but we might not be in any
-        coro_t::spawn_now_deprecated(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
+        coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
 }
 

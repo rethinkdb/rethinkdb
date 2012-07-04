@@ -68,7 +68,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
         {
             /* We offer backfills while waiting for it to be safe to shutdown
              * in case another peer needs a copy of the data */
-            backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history, svs);
+            backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history_manager, svs);
 
             /* Tell the other peers that we are looking to shutdown and
              * offering backfilling until we do. */

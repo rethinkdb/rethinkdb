@@ -1,6 +1,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_LAST_SEEN_TRACKER_HPP_
 #define CLUSTERING_ADMINISTRATION_LAST_SEEN_TRACKER_HPP_
 
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
 #include "clustering/administration/machine_metadata.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/connectivity/connectivity.hpp"

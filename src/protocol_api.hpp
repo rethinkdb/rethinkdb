@@ -6,10 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
-
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/rwi_lock.hpp"
@@ -17,6 +13,11 @@
 #include "containers/binary_blob.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+
+namespace boost {
+template <class> class function;
+template <class> class scoped_ptr;
+}
 
 /* This file describes the relationship between the protocol-specific logic for
 each protocol and the protocol-agnostic logic that routes queries for all the
@@ -272,12 +273,14 @@ of metadata which is keyed by region. The metadata is currently implemented as
 opaque binary blob (`binary_blob_t`).
 */
 
-template<class protocol_t>
-class store_view_t {
+template <class protocol_t>
+class store_view_t : public home_thread_mixin_t {
 public:
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
-    virtual ~store_view_t() { }
+    virtual ~store_view_t() {
+        assert_thread();
+    }
 
     typename protocol_t::region_t get_region() {
         return region;
