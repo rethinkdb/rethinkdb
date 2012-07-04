@@ -53,18 +53,18 @@ private:
         command_info_t(std::string full_cmd,
                      std::string cmd,
                      std::string use,
-                     void (admin_cluster_link_t::* const fn)(command_data&)) :
+                     void (admin_cluster_link_t::*const fn)(command_data&)) :
             full_command(full_cmd), command(cmd), usage(use), do_function(fn) { }
 
         ~command_info_t();
 
-        param_options_t * add_flag(const std::string& name, int count, bool required);
-        param_options_t * add_positional(const std::string& name, int count, bool required);
+        param_options_t *add_flag(const std::string& name, int count, bool required);
+        param_options_t *add_positional(const std::string& name, int count, bool required);
 
         std::string full_command;
         std::string command;
         std::string usage;
-        void (admin_cluster_link_t::* do_function)(command_data&);
+        void (admin_cluster_link_t::*do_function)(command_data&);
 
         std::vector<param_options_t *> positionals;
         std::map<std::string, param_options_t *> flags;
@@ -75,7 +75,7 @@ public:
 
     struct command_data {
         explicit command_data(const command_info_t *cmd_info) : info(cmd_info) { }
-        const command_info_t * const info;
+        const command_info_t *const info;
         std::map<std::string, std::vector<std::string> > params;
     };
 
@@ -105,16 +105,16 @@ private:
 
     void build_command_descriptions();
     void destroy_command_descriptions(std::map<std::string, command_info_t *>& cmd_map);
-    command_info_t * add_command(std::map<std::string, command_info_t *>& cmd_map,
+    command_info_t *add_command(std::map<std::string, command_info_t *>& cmd_map,
                                const std::string& full_cmd,
                                const std::string& cmd,
                                const std::string& usage,
-                               void (admin_cluster_link_t::* const fn)(command_data&));
-    admin_cluster_link_t * get_cluster();
+                               void (admin_cluster_link_t::*const fn)(command_data&));
+    admin_cluster_link_t *get_cluster();
 
     void do_admin_help(command_data& data);
 
-    command_info_t * find_command(const std::map<std::string, command_info_t *>& cmd_map, const std::vector<std::string>& line, size_t& index);
+    command_info_t *find_command(const std::map<std::string, command_info_t *>& cmd_map, const std::vector<std::string>& line, size_t& index);
     command_data parse_command(command_info_t *info, const std::vector<std::string>& command_args);
     void run_command(command_data& data);
 
@@ -137,7 +137,7 @@ private:
     std::string join_peer;
     std::set<peer_address_t> joins_param;
     int client_port_param;
-    admin_cluster_link_t *cluster;
+    scoped_ptr_t<admin_cluster_link_t> cluster;
     bool console_mode;
     signal_t *interruptor;
 

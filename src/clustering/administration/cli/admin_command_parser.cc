@@ -400,7 +400,6 @@ admin_command_parser_t::~admin_command_parser_t() {
     rassert(instance == this);
     instance = NULL;
 
-    delete cluster;
     destroy_command_descriptions(commands);
 }
 
