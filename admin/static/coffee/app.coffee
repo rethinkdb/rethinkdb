@@ -157,7 +157,7 @@ set_stats = (stat_data) ->
 collections_ready = ->
     # Data is now ready, let's get rockin'!
     render_body()
-    cluster = new BackboneCluster
+    window.router = new BackboneCluster
     Backbone.history.start()
 
 # A helper function to collect data from all of our shitty

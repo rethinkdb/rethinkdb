@@ -2,7 +2,6 @@
 #define BUFFER_CACHE_MOCK_HPP_
 
 #include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "buffer_cache/buf_patch.hpp"
@@ -13,6 +12,7 @@
 #include "concurrency/coro_fifo.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
+#include "containers/scoped.hpp"
 #include "containers/segmented_vector.hpp"
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
@@ -148,14 +148,14 @@ private:
     friend class internal_buf_t;
 
     serializer_t *serializer;
-    boost::scoped_ptr<auto_drainer_t> transaction_counter;
+    scoped_ptr_t<auto_drainer_t> transaction_counter;
     block_size_t block_size;
 
     // Makes sure that write operations do not get reordered, which
     // throttling is supposed to do in the real buffer cache.
     coro_fifo_t write_operation_random_delay_fifo;
 
-    boost::scoped_ptr< segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> > bufs;
+    scoped_ptr_t< segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> > bufs;
 
     coro_fifo_t transaction_constructor_coro_fifo_;
 };

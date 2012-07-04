@@ -3,6 +3,8 @@
 
 #include "concurrency/cond_var.hpp"
 
+#include "containers/scoped.hpp"
+
 /* A promise_t is a condition variable combined with a "return value", of sorts, that
 is transmitted to the thing waiting on the condition variable. */
 
@@ -12,33 +14,30 @@ struct promise_t : public home_thread_mixin_t {
     promise_t() : value(NULL) { }
     void pulse(const val_t &v) {
         assert_thread();
-        rassert(value == NULL);
-        value = new val_t(v);
+        value.init(new val_t(v));
         cond.pulse();
     }
     const val_t &wait() {
         assert_thread();
         cond.wait_lazily_unordered();
-        return *value;
+        return *value.get();
     }
     signal_t *get_ready_signal() {
         return &cond;
     }
+    // TODO: get_value is very questionable.
     const val_t &get_value() {
         assert_thread();
-        rassert(value);
-        return *value;
+        return *value.get();
     }
     bool is_pulsed() {
         return cond.is_pulsed();
     }
-    ~promise_t() {
-        if (value) delete value;
-    }
 
 private:
     cond_t cond;
-    val_t *value;
+    // TODO: Does this need to be heap-allocated?
+    scoped_ptr_t<val_t> value;
 
     DISABLE_COPYING(promise_t);
 };

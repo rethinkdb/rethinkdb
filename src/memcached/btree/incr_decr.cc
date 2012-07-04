@@ -5,7 +5,7 @@
 
 #include "containers/buffer_group.hpp"
 #include "containers/printf_buffer.hpp"
-#include "containers/scoped_malloc.hpp"
+#include "containers/scoped.hpp"
 #include "memcached/btree/modify_oper.hpp"
 #include "repli_timestamp.hpp"
 

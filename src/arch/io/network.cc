@@ -707,10 +707,10 @@ void bind_socket(fd_t sock_fd, int port) {
 }
 
 /* Bound socket object, used for constructing a listener in two stages */
-linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
-    sock_fd(socket(AF_INET, SOCK_STREAM, 0)),
-    port(_port)
-{
+linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port)
+    : sock_fd(socket(AF_INET, SOCK_STREAM, 0)),
+      port(_port) {
+
     bind_socket(sock_fd, port);
     if (port == 0) {
         // Determine the port that was assigned
@@ -722,24 +722,19 @@ linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
     }
 }
 
-linux_tcp_bound_socket_t::~linux_tcp_bound_socket_t()
-{
+linux_tcp_bound_socket_t::~linux_tcp_bound_socket_t() {
     if (sock_fd != INVALID_FD)
         close(sock_fd);
 }
 
-fd_t linux_tcp_bound_socket_t::get_fd() {
-    return sock_fd;
-}
-
-int linux_tcp_bound_socket_t::get_port()
-{
-    return port;
-}
-
-void linux_tcp_bound_socket_t::reset()
-{
+fd_t linux_tcp_bound_socket_t::release() {
+    int tmp = sock_fd;
     sock_fd = INVALID_FD;
+    return tmp;
+}
+
+int linux_tcp_bound_socket_t::get_port() const {
+    return port;
 }
 
 /* Network listener object */
@@ -757,16 +752,15 @@ linux_tcp_listener_t::linux_tcp_listener_t(
     logINF("Listening on port %d", port);
 }
 
-linux_tcp_listener_t::linux_tcp_listener_t(linux_tcp_bound_socket_t& bound_socket,
+linux_tcp_listener_t::linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
                                            boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> cb) :
-    sock(bound_socket.get_fd()),
+    sock(bound_socket->release()),
     event_watcher(sock.get(), this),
     callback(cb),
     log_next_error(true)
 {
-    bound_socket.reset();
     initialize_internal();
-    logINF("Listening on port %d", bound_socket.get_port());
+    logINF("Listening on port %d", bound_socket->get_port());
 }
 
 void linux_tcp_listener_t::initialize_internal() {

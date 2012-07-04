@@ -7,6 +7,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "concurrency/fifo_enforcer.hpp"
+#include "containers/scoped.hpp"
 
 namespace boost { template <class> class function; }
 class binary_blob_t;
@@ -152,7 +153,7 @@ private:
     void initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask) THROWS_NOTHING;
 
     // We _own_ these pointers and must delete them at destruction.
-    std::vector<store_view_t<protocol_t> *> store_views;
+    scoped_array_t<store_view_t<protocol_t> *> store_views;
 
     typename protocol_t::region_t region;
 

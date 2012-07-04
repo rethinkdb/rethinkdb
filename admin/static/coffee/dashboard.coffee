@@ -26,7 +26,7 @@ module 'DashboardView', ->
         className: 'dashboard-view'
         template: Handlebars.compile $('#cluster_status-template').html()
 
-        events:->
+        events:
             'click a[rel=dashboard_details]': 'show_popover'
 
         show_popover: (event) =>

@@ -6,6 +6,8 @@
 // Include run_in_thread_pool for people.
 #include "arch/runtime/starter.hpp"
 
+#include "containers/scoped.hpp"
+
 #ifndef NDEBUG
 #define trace_call(fn, args...) do {                                          \
         debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
@@ -21,11 +23,15 @@
 namespace unittest {
 
 class temp_file_t {
-    char *filename;
 public:
     explicit temp_file_t(const char *tmpl);
-    const char *name() { return filename; }
+    const char *name() { return filename.data(); }
     ~temp_file_t();
+
+private:
+    scoped_array_t<char> filename;
+
+    DISABLE_COPYING(temp_file_t);
 };
 
 void let_stuff_happen();

@@ -3,6 +3,7 @@
 
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "containers/scoped.hpp"
 #include "memcached/protocol.hpp"
 #include "memcached/stats.hpp"
 
@@ -29,7 +30,7 @@ private:
     `memcached_listener_t` is destroyed. */
     auto_drainer_t drainer;
 
-    tcp_listener_t *tcp_listener;
+    scoped_ptr_t<tcp_listener_t> tcp_listener;
 
     perfmon_collection_t *parent;
 

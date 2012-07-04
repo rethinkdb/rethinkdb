@@ -8,7 +8,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
-#include "containers/scoped_malloc.hpp"
+#include "containers/scoped.hpp"
 
 struct btree_superblock_t;
 class traversal_state_t;
