@@ -338,7 +338,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
 
         std::string region_name(render_region_as_string(&region, 0));
         perfmon_collection_t region_perfmon_collection;
-        perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, & region_perfmon_collection, region_name);
+        perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
         broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history_manager, svs, &region_perfmon_collection, interruptor);
 
