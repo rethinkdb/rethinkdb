@@ -20,6 +20,8 @@ class Builder(Thread):
             self.success = True
         except self.target.RunError, err:
             self.exception = err
+        except vm_build.VMError, err:
+            self.exception = err
         finally:
             semaphore.release()
 
