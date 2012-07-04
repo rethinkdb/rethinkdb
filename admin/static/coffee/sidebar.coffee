@@ -9,6 +9,9 @@ module 'Sidebar', ->
         max_recent_log_entries: 5
         type_view: 'default'
         previous_queries: []
+        events:
+            'click .namespace_query': 'write_query_namespace'
+            'click .old_query': 'write_query_old'
 
         initialize: =>
             log_initial '(initializing) sidebar view: container'
@@ -17,10 +20,7 @@ module 'Sidebar', ->
             @connectivity_status = new Sidebar.ConnectivityStatus()
             @issues = new Sidebar.Issues()
 
-            #@reset_log_entries()
             recent_log_entries.on 'reset', @render
-
-            # Render when roude changes
             window.app.on 'all', @render
 
         set_type_view: (type = 'default') =>
@@ -35,6 +35,12 @@ module 'Sidebar', ->
         add_query: (query) =>
             @previous_queries.push query
             @render()
+
+        write_query_namespace: (event) ->
+            window.router.current_view.write_query_namespace(event)
+
+        write_query_old: (event) ->
+            window.router.current_view.write_query_old(event)
 
         render: =>
             if @type_view is 'default'
@@ -55,9 +61,7 @@ module 'Sidebar', ->
             else
                 namespaces_data = []
                 for namespace in namespaces.models
-                    namespaces_data.push
-                        name: namespace.get('name')
-                        id: namespace.get('id')
+                    namespaces_data.push namespace.get('name')
 
                 
                 @.$el.html @template_dataexplorer

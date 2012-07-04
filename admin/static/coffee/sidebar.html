@@ -87,14 +87,14 @@
         <h4>Namespaces</h4>
         <ul>
             {{#each namespaces}}
-                <li class="constrained_li"><a href="#" data-id="{{id}}">{{this.name}}</a></li>
+                <li class="constrained_li"><a href="#" class="namespace_query" data-name="{{this}}">{{this}}</a></li>
             {{/each}}
         </ul>
 
         <h4>Previous queries</h4>
         <ul>
             {{#each previous_queries}}
-                <li class="constrained_li"><a href="#{{this}}">{{this}}</a></li>
+            <li class="constrained_li"><a href="#{{this}}" class="old_query" data-query="{{this}}">{{this}}</a></li>
             {{/each}}
         </ul>
     </div>
