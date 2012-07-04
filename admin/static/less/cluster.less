@@ -66,6 +66,15 @@
 
 /*
     ----------------------------
+    Main container
+    ----------------------------
+*/
+#cluster{
+    background: #fff; // Need it for full screen
+}
+
+/*
+    ----------------------------
     Log view
     ----------------------------
 */
@@ -142,7 +151,6 @@
     Sidebar
     ----------------------------
 */
-
 #sidebar {
     border-left: thin solid @grayLighter;
     padding-left: 20px;
@@ -227,6 +235,10 @@
             background: url('/images/information-icon_small.png') no-repeat center center;
         }
     }
+    .constrained_li{
+        width: 150px;
+        overflow: hidden;
+    }
 
     .recent-log-entry {
         padding: 7px 0px;
@@ -263,6 +275,8 @@
                 }
             }
         }
+
+
 
         .datetime, .from-machine {
             color: @gray;
@@ -1745,5 +1759,246 @@
             margin-top: 5px;
             font-style: italic;
         }
+    }
+}
+
+/* Data Explorer */
+.dataexplorer_container{
+    width: 700px;
+    margin: 0px;
+    overflow: auto;
+    .query_control{
+        .input_query_container{
+            padding: 0px;
+            margin: 10px 0px;
+            overflow: auto;
+            .input_query{
+                width: 678px;
+                height: 36px;
+                padding: 4px 10px;
+            }
+            .button_container{
+                float: right;
+                .button_query{
+                    width: 80px;
+                }
+            }
+        }
+        .loading_query{
+            text-align: center;
+            height: 16px;
+            padding: 0px;
+            margin: 0px;
+            .loading_query_img{
+                display: none;
+            }
+        }
+    }
+    .data_container{
+        .results_header{
+            overflow: hidden;
+        }
+        .namespaces_available_container{
+            float: left;
+            width: 330px;
+            padding: 20px 10px 10px 10px;
+        }
+        .history_queries{
+            float: left;
+            width: 330px;
+            padding: 20px 10px 10px 10px;
+        }
+        .options_container{
+            float: right;
+        }
+        .change_view_container{
+            margin: 0px;
+            padding: 0px 10px 0px 0px;
+            width: 100%;
+        }
+        .nav-tabs > li {
+            float: right;
+        }
+
+        .helper_view{
+            overflow: auto;
+        }
+    }
+
+    .results{
+        width: 700px;
+        margin: 15px 0px 0px 0px;
+        overflow: auto;
+        .json_tree{
+            float: left; // Clear the horizontal arrow
+            font: 13px/18px monospace,mono,consolas;
+            .jt_null{
+                font-weight: bold;
+                color: red
+            }
+            .jt_bool{
+                font-weight: bold;
+                color: blue;
+            }
+            .jt_num{
+                font-weight: bold;
+                color: blue;
+            }
+            .jt_link{
+                font-weight: bold;
+                text-decoration: none;
+                color: #000;
+            }
+            .jt_url{
+                color: #08c;
+            }
+            .jt_email{
+                color: #08c;
+            }
+            .jt_string{
+                padding: 2px 0px;
+                color: green;
+            }
+            .jt_b{
+                font-weight: bold;
+            }
+            .jt_close{
+                margin-left: 24px;
+            }
+            .jt_array{
+                list-style: none;
+                padding-left: 19px;
+                border-left: 1px dotted #bbb;
+            }
+            .jt_object{
+                list-style: none;
+                padding-left: 19px;
+                border-left: 1px dotted #bbb;
+            }
+            .jt_arrow{
+                width: 15px;
+                height: 15px;
+                margin: 3px 2px 0px 2px;
+                float: left;
+                display: block;
+                background: url('/images/arrow_down.gif') no-repeat;
+            }
+            .jt_arrow_hidden{
+                background: url('/images/arrow_right.gif') no-repeat;
+            }
+            .jt_points{
+                display: none;
+            }
+            .jt_points_collapsed{
+                display: inline;
+            }
+            .jt_collapsed{
+                display: none;
+            }
+            .jt_b_collapsed{
+                display: inline;
+                margin-left: 0px;
+            }   
+        }
+        .json_table_container{
+            .json_table{
+                font: 13px/18px monospace,mono,consolas;
+                padding: 0px;
+                margin: 0px 0px 15px 0px;
+                table-layout: fixed;
+                white-space: nowrap;
+                .td_attr{
+                    background: #d3dce3;
+                }
+                .jta_undefined{
+                    color: #ccc;
+                }
+                .jta_null{
+                    font-weight: bold;
+                    color: red
+                }
+                .jta_bool{
+                    font-weight: bold;
+                    color: blue;
+                }
+                .jta_num{
+                    font-weight: bold;
+                    color: blue;
+                }
+                .jta_link{
+                    font-weight: bold;
+                    text-decoration: none;
+                    color: #000;
+                }
+                .jta_url{
+                    color: #08c;
+                }
+                .jta_email{
+                    color: #08c;
+                }
+                .jta_string{
+                    color: green;
+                }
+                .jta_object{
+                    vertical-align: top;
+                    display: inline-block;
+                }
+                td{
+                    max-width: 145px;
+                    padding: 0px 5px 0px 0px;
+                    vertical-align: top;
+                    border: 1px solid #333;
+                    overflow: hidden;
+                    cursor: e-resize
+                }
+                .jta_attr{
+                    padding: 7px 10px 5px 15px;
+                    font-weight: bold;
+                    cursor: auto;
+                }
+                .jta_value{
+                    cursor: auto;
+                    padding: 7px 0px 5px 15px;
+                    max-width: 125px; // smaller margin on the right in case of overflow
+                    overflow: hidden;
+                }
+                .jta_array{
+                    padding: 7px 0px 5px 0px;
+                }
+                .jta_arrow{
+                    width: 15px;
+                    height: 15px;
+                    margin: 3px 2px 0px 2px;
+                    display: block;
+                }
+                .jta_arrow_v{
+                    background: url('/images/arrow_down.gif') no-repeat;
+                    float: left;
+                }
+                .jta_arrow_h{
+                    background: url('/images/arrow_right.gif') no-repeat;
+                    float: right;
+                }
+            }
+            .resizing{
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -khtml-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
+        }
+        .raw_view_textarea{
+            width: 690px;
+            height: auto;
+        }
+    }
+}
+
+.full_container{
+    width: auto;
+    .results{
+        width: auto;
     }
 }

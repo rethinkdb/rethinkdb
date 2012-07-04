@@ -4,7 +4,7 @@
 #include "db_thread_info.hpp"
 
 template <class protocol_t>
-void do_construct_existing_store(int i, io_backender_t *io_backender, perfmon_collection_t *perfmon_collection, const std::string& file_name_base,
+void do_construct_existing_store(int i, io_backender_t *io_backender, perfmon_collection_t *serializers_perfmon_collection, const std::string& file_name_base,
                                  int num_db_threads, stores_lifetimer_t<protocol_t> *stores_out, store_view_t<protocol_t> **store_views) {
 
     // TODO: Exceptions?  Can exceptions happen, and then this doesn't
@@ -19,28 +19,28 @@ void do_construct_existing_store(int i, io_backender_t *io_backender, perfmon_co
 
     const std::string file_name = file_name_base + "_" + strprintf("%d", i);
 
-    // TODO: Can we pass perfmon_collection across threads like this?
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, false, perfmon_collection);
+    // TODO: Can we pass serializers_perfmon_collection across threads like this?
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, false, serializers_perfmon_collection);
     stores_out->stores()[i].reset(store);
     store_views[i] = store;
 }
 
 template <class protocol_t>
-void do_create_new_store(int i, io_backender_t *io_backender, perfmon_collection_t *perfmon_collection, const std::string& file_name_base,
+void do_create_new_store(int i, io_backender_t *io_backender, perfmon_collection_t *serializers_perfmon_collection, const std::string& file_name_base,
                          int num_db_threads, stores_lifetimer_t<protocol_t> *stores_out, store_view_t<protocol_t> **store_views) {
     // TODO: See the todo about thread distribution in do_construct_existing_store.  It is applicable here, too.
     on_thread_t th(i % num_db_threads);
 
     const std::string file_name = file_name_base + "_" + strprintf("%d", i);
 
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, true, perfmon_collection);
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, true, serializers_perfmon_collection);
     stores_out->stores()[i].reset(store);
     store_views[i] = store;
 }
 
 template <class protocol_t>
 void
-file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon_collection,
+file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *serializers_perfmon_collection,
                                                    namespace_id_t namespace_id,
                                                    stores_lifetimer_t<protocol_t> *stores_out,
                                                    boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
@@ -76,7 +76,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
         // store_views' values would leak.  That is, are we handling
         // them in the pmap?  No.
 
-        pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>, _1, io_backender_, perfmon_collection,
+        pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>, _1, io_backender_, serializers_perfmon_collection,
                                      boost::ref(file_name_base), num_db_threads, stores_out, store_views.get()));
 
         svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
@@ -94,7 +94,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
         // TODO: This should use pmap.
         boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
 
-        pmap(num_stores, boost::bind(do_create_new_store<protocol_t>, _1, io_backender_, perfmon_collection, boost::ref(file_name_base),
+        pmap(num_stores, boost::bind(do_create_new_store<protocol_t>, _1, io_backender_, serializers_perfmon_collection, boost::ref(file_name_base),
                                      num_db_threads, stores_out, store_views.get()));
 
         svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
