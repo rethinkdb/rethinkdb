@@ -264,7 +264,7 @@ void admin_cluster_link_t::update_metadata_maps() {
 
 void admin_cluster_link_t::clear_metadata_maps() {
     // All metadata infos will be in the name_map and uuid_map exactly one each
-    for (std::map<std::string, metadata_info_t*>::iterator i = uuid_map.begin(); i != uuid_map.end(); ++i) {
+    for (std::map<std::string, metadata_info_t *>::iterator i = uuid_map.begin(); i != uuid_map.end(); ++i) {
         delete i->second;
     }
 
@@ -279,7 +279,7 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, T& data_m
             continue;
         }
 
-        metadata_info_t* info = new metadata_info_t;
+        metadata_info_t * info = new metadata_info_t;
         info->uuid = i->first;
         std::string uuid_str = uuid_to_str(i->first);
         info->path.push_back(base);
@@ -287,9 +287,9 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, T& data_m
 
         if (!i->second.get().name.in_conflict()) {
             info->name = i->second.get().name.get();
-            name_map.insert(std::pair<std::string, metadata_info_t*>(info->name, info));
+            name_map.insert(std::pair<std::string, metadata_info_t *>(info->name, info));
         }
-        uuid_map.insert(std::pair<std::string, metadata_info_t*>(uuid_str, info));
+        uuid_map.insert(std::pair<std::string, metadata_info_t *>(uuid_str, info));
     }
 }
 
@@ -318,14 +318,14 @@ std::vector<std::string> admin_cluster_link_t::get_ids_internal(const std::strin
 
     // TODO: check for uuid collisions, give longer completions
     // Build completion values
-    for (std::map<std::string, metadata_info_t*>::iterator i = uuid_map.lower_bound(base);
+    for (std::map<std::string, metadata_info_t *>::iterator i = uuid_map.lower_bound(base);
          i != uuid_map.end() && i->first.find(base) == 0; ++i) {
         if (path.empty() || i->second->path[0] == path) {
             results.push_back(i->first.substr(0, uuid_output_length));
         }
     }
 
-    for (std::map<std::string, metadata_info_t*>::iterator i = name_map.lower_bound(base);
+    for (std::map<std::string, metadata_info_t *>::iterator i = name_map.lower_bound(base);
          i != name_map.end() && i->first.find(base) == 0; ++i) {
         if (path.empty() || i->second->path[0] == path) {
             results.push_back(i->first);
@@ -371,7 +371,7 @@ std::vector<std::string> admin_cluster_link_t::get_conflicted_ids(const std::str
     }
 
     for (std::set<std::string>::iterator i = unique_set.begin(); i != unique_set.end(); ++i) {
-        std::map<std::string, metadata_info_t*>::iterator info = uuid_map.find(*i);
+        std::map<std::string, metadata_info_t *>::iterator info = uuid_map.find(*i);
         if (info != uuid_map.end() && info->second->name.find(base) == 0) {
             results.push_back(info->second->name);
         }
@@ -400,10 +400,10 @@ boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > admin_cluster_li
     return json_adapter_head;
 }
 
-admin_cluster_link_t::metadata_info_t* admin_cluster_link_t::get_info_from_id(const std::string& id) {
+admin_cluster_link_t::metadata_info_t *admin_cluster_link_t::get_info_from_id(const std::string& id) {
     // Names must be an exact match, but uuids can be prefix substrings
     if (name_map.count(id) == 0) {
-        std::map<std::string, metadata_info_t*>::iterator item = uuid_map.lower_bound(id);
+        std::map<std::string, metadata_info_t *>::iterator item = uuid_map.lower_bound(id);
 
         if (id.length() < minimum_uuid_substring) {
             throw admin_parse_exc_t("identifier not found, too short to specify a uuid: " + id);
@@ -423,7 +423,7 @@ admin_cluster_link_t::metadata_info_t* admin_cluster_link_t::get_info_from_id(co
     } else if (name_map.count(id) != 1) {
         std::string exception_info(strprintf("'%s' not unique, possible objects:", id.c_str()));
 
-        for (std::map<std::string, metadata_info_t*>::iterator item = name_map.lower_bound(id);
+        for (std::map<std::string, metadata_info_t *>::iterator item = name_map.lower_bound(id);
              item != name_map.end() && item->first == id; ++item) {
             if (item->second->path[0] == "datacenters") {
                 exception_info += strprintf("\ndatacenter    %s", uuid_to_str(item->second->uuid).substr(0, uuid_output_length).c_str());
