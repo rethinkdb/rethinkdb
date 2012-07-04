@@ -19,7 +19,7 @@ class TestTableRef(unittest.TestCase):
 
     def expect(self, query, expected):
         res = self.conn.run(query)
-        self.assertEqual(res.status_code, 0)
+        self.assertEqual(res.status_code, 0, res.response[0])
         self.assertEqual(json.loads(res.response[0]), expected)
 
     def test_arith(self):
@@ -73,7 +73,7 @@ class TestTableRef(unittest.TestCase):
         expect(r.lt(5, 6, 7, 7), False)
 
         expect(r.eq(r.val("asdf"), r.val("asdf")), True)
-        expect(r.eq(r.val("asd"),r.val("asdf")), False)
+        expect(r.eq(r.val("asd"), r.val("asdf")), False)
 
         expect(r.eq(True, True), True)
         expect(r.lt(False, True), True)
@@ -88,6 +88,47 @@ class TestTableRef(unittest.TestCase):
         self.expect(r.all(True, False), False)
         self.expect(r.all(True, True), True)
         self.expect(r.all(True, True, True), True)
+
+    def test_let(self):
+        self.expect(r.let(("x", 3), "x"), 3)
+        self.expect(r.let(("x", 3), ("x", 4), "x"), 4)
+        self.expect(r.let(("x", 3), ("y", 4), "x"), 3)
+
+    def test_if(self):
+        self.expect(r.if_(True, 3, 4), 3)
+        self.expect(r.if_(False, 4, 5), 5)
+        self.expect(r.if_(r.eq(3, 3), r.val("foo"), r.val("bar")), "foo")
+
+    def test_attr(self):
+        #self.expect(r.get())
+        return
+
+        self.expect(r.has("foo", {"foo": 3}), True)
+        self.expect(r.has("bar", {"foo": 3}), False)
+
+    def test_extend(self):
+        self.expect(r.extend({"a": 5}, {"b": 3}), {"a": 5, "b": 3})
+        self.expect(r.extend({"a": 5}, {"a": 3}), {"a": 3})
+        self.expect(r.extend({"a": 5, "b": 1}, {"a": 3}, {"b": 6}), {"a": 3, "b": 6})
+
+    def test_array(self):
+        expect = self.expect
+
+        expect(r.append([], 2), [2])
+        expect(r.append([1], 2), [1, 2])
+
+        expect(r.concat([1], [2]), [1, 2])
+        expect(r.concat([1, 2], []), [1, 2])
+
+        arr = range(10)
+        expect(r.slice(arr, 0, 3), arr[0: 3])
+        expect(r.slice(arr, 0, 0), arr[0: 0])
+        expect(r.slice(arr, 5, 15), arr[5: 15])
+        expect(r.slice(arr, 5, -3), arr[5: -3])
+        expect(r.slice(arr, -5, -3), arr[-5: -3])
+
+        expect(r.nth(arr, 3), 3)
+        expect(r.nth(arr, -1), 9)
 
     def test_table_insert(self):
         q = self.table.insert(self.docs)
