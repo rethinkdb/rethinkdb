@@ -222,14 +222,14 @@ admin_command_parser_t::command_info_t::~command_info_t() {
     }
 }
 
-admin_command_parser_t::param_options_t * admin_command_parser_t::command_info_t::add_flag(const std::string& name, int count, bool required)
+admin_command_parser_t::param_options_t *admin_command_parser_t::command_info_t::add_flag(const std::string& name, int count, bool required)
 {
     param_options_t *option = new param_options_t(name, count, required);
     flags.insert(std::make_pair(name, option));
     return option;
 }
 
-admin_command_parser_t::param_options_t * admin_command_parser_t::command_info_t::add_positional(const std::string& name, int count, bool required)
+admin_command_parser_t::param_options_t *admin_command_parser_t::command_info_t::add_positional(const std::string& name, int count, bool required)
 {
     param_options_t *option = new param_options_t(name, count, required);
     positionals.push_back(option);
@@ -413,11 +413,11 @@ void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, 
     cmd_map.clear();
 }
 
-admin_command_parser_t::command_info_t * admin_command_parser_t::add_command(std::map<std::string, command_info_t *>& cmd_map,
+admin_command_parser_t::command_info_t *admin_command_parser_t::add_command(std::map<std::string, command_info_t *>& cmd_map,
                                                   const std::string& full_cmd,
                                                   const std::string& cmd,
                                                   const std::string& usage,
-                                                  void (admin_cluster_link_t::* const fn)(command_data&)) {
+                                                  void (admin_cluster_link_t::*const fn)(command_data&)) {
     command_info_t *info = NULL;
     size_t space_index = cmd.find_first_of(" \t\r\n");
 
@@ -527,12 +527,12 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("subcommand", 1, false);
 }
 
-admin_cluster_link_t * admin_command_parser_t::get_cluster() {
-    if (cluster == NULL) {
+admin_cluster_link_t *admin_command_parser_t::get_cluster() {
+    if (!cluster.has()) {
         if (joins_param.empty()) {
             throw admin_no_connection_exc_t("no join parameter specified");
         }
-        cluster = new admin_cluster_link_t(joins_param, client_port_param, interruptor);
+        cluster.init(new admin_cluster_link_t(joins_param, client_port_param, interruptor));
 
         // Spin for some time, trying to connect to the whole cluster
         for (uint64_t time_waited = 0; time_waited < cluster_join_timeout &&
@@ -552,11 +552,11 @@ admin_cluster_link_t * admin_command_parser_t::get_cluster() {
         }
     }
 
-    return cluster;
+    return cluster.get();
 }
 
 
-admin_command_parser_t::command_info_t * admin_command_parser_t::find_command(const std::map<std::string, admin_command_parser_t::command_info_t *>& cmd_map, const std::vector<std::string>& line, size_t& index) {
+admin_command_parser_t::command_info_t *admin_command_parser_t::find_command(const std::map<std::string, admin_command_parser_t::command_info_t *>& cmd_map, const std::vector<std::string>& line, size_t& index) {
     std::map<std::string, command_info_t *>::const_iterator i = cmd_map.find(line[0]);
 
     if (i == commands.end()) {
@@ -913,9 +913,9 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
 
 class linenoiseCallable {
 public:
-    linenoiseCallable(const char* _prompt, char** _raw_line_ptr) : prompt(_prompt), raw_line_ptr(_raw_line_ptr) { }
-    const char* prompt;
-    char** raw_line_ptr;
+    linenoiseCallable(const char*_prompt, char**_raw_line_ptr) : prompt(_prompt), raw_line_ptr(_raw_line_ptr) { }
+    const char *prompt;
+    char **raw_line_ptr;
 
     void operator () () const { *raw_line_ptr = linenoise(prompt); }
 };
@@ -926,7 +926,7 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
     get_cluster();
 
     char prompt[64];
-    char* raw_line;
+    char *raw_line;
     linenoiseCallable linenoise_blocker(prompt, &raw_line);
     std::string line;
 
