@@ -13,7 +13,7 @@ template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store_views,
                                                int num_store_views,
                                                const typename protocol_t::region_t &_region)
-    : store_views(num_store_views, NULL),
+    : store_views(num_store_views),
       region(_region) {
 
     initialize(_store_views, _region);
@@ -22,7 +22,7 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store
 template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inner,
                                                const typename protocol_t::region_t &_region)
-    : store_views(inner->num_stores(), NULL),
+    : store_views(inner->num_stores()),
       region(_region) {
     rassert(region_is_superset(inner->region, _region));
 
