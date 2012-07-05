@@ -610,7 +610,7 @@ void rdb_protocol_t::store_t::update_metainfo(const metainfo_t &old_metainfo, co
     }
 }
 
-key_range_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, int num_cpu_shards) {
+key_range_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, UNUSED int num_cpu_shards) {
     rassert(subregion_number >= 0);
     rassert(subregion_number < num_cpu_shards);
 
