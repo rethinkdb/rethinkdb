@@ -419,7 +419,17 @@ const type_t get_type(const Term &t, variable_type_scope_t *scope) {
         case Term::JSON:
         case Term::BOOL:
         case Term::JSON_NULL:
+            return Type::JSON;
         case Term::ARRAY:
+            {
+                for (int i = 0; i < t.array_size(); ++i) {
+                    if (!(get_type(t.array(i), scope) == Type::JSON)) {
+                        return error_t("Type mismatch in array\n"); //Need descriptions of types to give a more informative message
+                    }
+                }
+                return Type::JSON;
+            }
+            break;
         case Term::MAP:
             return Type::JSON;
         case Term::VIEWASSTREAM:
@@ -806,12 +816,12 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w.point_delete().table_ref(), env);
                 boost::shared_ptr<scoped_cJSON_t> id = eval(w.point_delete().key(), env);
                 point_delete(ns_access, id, env);
-                
+
                 Response res;
                 res.set_status_code(0);
                 res.set_token(0);
                 res.add_response("Deleted 1 rows.");
-                
+
                 return res;
             }
             break;
@@ -1125,14 +1135,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 }
 
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_DeepCopy(left->get())));
-                
+
                 // Extend with the right side (and overwrite if necessary)
                 for(int i = 0; i < cJSON_GetArraySize(right->get()); i++) {
                     cJSON *item = cJSON_GetArrayItem(right->get(), i);
                     cJSON_DeleteItemFromObject(res->get(), item->string);
                     cJSON_AddItemToObject(res->get(), item->string, cJSON_DeepCopy(item));
                 }
-                
+
                 return res;
             }
             break;
@@ -1175,51 +1185,56 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
         case Builtin::ARRAYSLICE:
             {
                 // Check first arg type
-                boost::shared_ptr<scoped_cJSON_t> array  = eval(c.args(0), env);
+                boost::shared_ptr<scoped_cJSON_t> array = eval(c.args(0), env);
                 if (array->get()->type != cJSON_Array) {
                     throw runtime_exc_t("The first argument must be an array.");
                 }
 
                 // Check second arg type
-                boost::shared_ptr<scoped_cJSON_t> start  = eval(c.args(1), env);
-                if (start->get()->type != cJSON_Number) {
+                boost::shared_ptr<scoped_cJSON_t> start_json  = eval(c.args(1), env);
+                if (start_json->get()->type != cJSON_Number) {
                     throw runtime_exc_t("The second argument must be an integer.");
                 }
-                float float_start = start->get()->valuedouble;
-                int int_start = (int)float_start;
-                if (float_start != int_start) {
+
+                float float_start = start_json->get()->valuedouble;
+                int start = (int)float_start;
+                if (float_start != start) {
                     throw runtime_exc_t("The second argument must be an integer.");
-                }
-                if (int_start < 0) {
-                    throw runtime_exc_t("The second argument cannot be smaller than zero.");
-                }
-                if (int_start > cJSON_GetArraySize(array->get())) {
-                    throw runtime_exc_t("The second argument cannot be greater than the size of the array.");
                 }
 
                 // Check third arg type
-                boost::shared_ptr<scoped_cJSON_t> end  = eval(c.args(2), env);
-                if (end->get()->type != cJSON_Number) {
+                boost::shared_ptr<scoped_cJSON_t> end_json  = eval(c.args(2), env);
+                if (end_json->get()->type != cJSON_Number) {
                     throw runtime_exc_t("The third argument must be an integer.");
                 }
-                float float_end = end->get()->valuedouble;
-                int int_end = (int)float_end;
-                if (float_end != int_end) {
+                float float_end = end_json->get()->valuedouble;
+                int stop = (int)float_end;
+                if (float_end != stop) {
                     throw runtime_exc_t("The third argument must be an integer.");
                 }
-                if (int_end < 0) {
-                    throw runtime_exc_t("The third argument cannot be smaller than zero.");
+
+                int length = cJSON_GetArraySize(array->get());
+
+                if (start < 0) {
+                    start = std::max(start + length, 0);
                 }
-                if (int_end > cJSON_GetArraySize(array->get())) {
-                    throw runtime_exc_t("The third argument cannot be greater than the size of the array.");
+                if (start > length) {
+                    start = length;
+                }
+
+                if (stop < 0) {
+                    stop = std::max(stop + length, 0);
+                }
+                if (stop > length) {
+                    stop = length;
                 }
 
                 // Create a new array and slice the elements into it
-                if (int_start > int_end) {
+                if (start > stop) {
                     throw runtime_exc_t("The second argument cannot be greater than the third argument.");
                 }
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
-                for(int i = int_start; i < int_end; i++) {
+                for(int i = start; i < stop; i++) {
                     cJSON_AddItemToArray(res->get(), cJSON_DeepCopy(cJSON_GetArrayItem(array->get(), i)));
                 }
 
@@ -1235,23 +1250,27 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 }
 
                 // Check second arg type
-                boost::shared_ptr<scoped_cJSON_t> index  = eval(c.args(1), env);
-                if (index->get()->type != cJSON_Number) {
+                boost::shared_ptr<scoped_cJSON_t> index_json  = eval(c.args(1), env);
+                if (index_json->get()->type != cJSON_Number) {
                     throw runtime_exc_t("The second argument must be an integer.");
                 }
-                float float_index = index->get()->valuedouble;
-                int int_index = (int)float_index;
-                if (float_index != int_index) {
+                float float_index = index_json->get()->valuedouble;
+                int index = (int)float_index;
+                if (float_index != index) {
                     throw runtime_exc_t("The second argument must be an integer.");
                 }
 
-                // Size arg
-                if (int_index >= cJSON_GetArraySize(array->get())) {
-                    throw runtime_exc_t("The second argument must be an integer.");
+                int length = cJSON_GetArraySize(array->get());
+
+                if (index < 0) {
+                    index += length;
+                }
+                if (index < 0 || index >= length) {
+                    throw runtime_exc_t("Array index out of bounds.");
                 }
 
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(cJSON_GetArrayItem(array->get(),
-                                                                                                              int_index))));
+                                                                                                              index))));
             }
             break;
         case Builtin::ARRAYLENGTH:

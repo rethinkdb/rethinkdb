@@ -290,6 +290,9 @@ class Map(Stream):
         self.write_ast(term)
 
 class Term(object):
+    def __init__(self):
+        raise NotImplemented
+
     def _finalize_query(self, root):
         read_query = _finalize_internal(root, p.ReadQuery)
         self.write_ast(read_query.term)
@@ -332,7 +335,7 @@ class Delete(Term):
         wq = _finalize_internal(root, p.WriteQuery)
         self.write_ast(wq)
 
-class _if(Term):
+class if_(Term):
     def __init__(self, test, true_branch, false_branch):
         self.test = toTerm(test)
         self.true_branch = toTerm(true_branch)
@@ -353,10 +356,10 @@ class Conjunction(Term):
     def write_ast(self, parent):
         self._write_call(parent, p.Builtin.ALL, *self.predicates)
 
-def _and(*predicates):
+def and_(*predicates):
     return Conjunction(predicates)
 
-all = _and
+all = and_
 
 class Disjunction(Term):
     def __init__(self, predicates):
@@ -483,10 +486,10 @@ class Let(Term):
         self.expr = expr
     def write_ast(self, parent):
         parent.type = p.Term.LET
-        for pair in self.pairs:
+        for var, value in self.pairs:
             binding = parent.let.binds.add()
-            binding.var = pair[0]
-            toTerm(pair[1]).write_ast(binding.term)
+            binding.var = var
+            toTerm(value).write_ast(binding.term)
         toTerm(self.expr).write_ast(parent.let.expr)
 
 # Accepts an arbitrary number of pairs followed by a single
@@ -548,7 +551,7 @@ def _make_builtin(name, builtin, *args):
     def write_ast(self, parent):
         self._write_call(parent, builtin, *self.args)
 
-    return type(name, (object,), {"__init__": __init__, "write_ast": write_ast})
+    return type(name, (Term,), {"__init__": __init__, "write_ast": write_ast})
 
 _not = _make_builtin("_not", p.Builtin.NOT, "term")
 nth = _make_builtin("nth", p.Builtin.ARRAYNTH, "array", "index")
@@ -556,3 +559,4 @@ size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
 concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
 slice = _make_builtin("slice", p.Builtin.ARRAYSLICE, "array", "start", "end")
+has = _make_builtin("has", p.Builtin.HASATTR, "object", "key")
