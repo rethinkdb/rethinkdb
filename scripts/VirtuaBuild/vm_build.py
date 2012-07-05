@@ -69,7 +69,6 @@ class VM():
         if (startup):
             os.system("ssh %s@%s VBoxManage startvm %s --type headless" % (self.vbox_username, self.vbox_hostname, self.uuid))
             start_time = time.time()
-            time.sleep(80)
             while (self.command("true") != 0) and time.time() - start_time < 5 * 60: # give up after some number of seconds
                 time.sleep(3)
             if self.command("true") != 0:
@@ -103,7 +102,7 @@ class target():
         self.install_cl_f = install_cl_f # path -> install cmd
         self.uninstall_cl_f = uninstall_cl_f
         self.get_binary_f = get_binary_f
-    	self.vbox_username = vbox_username # username and hostname for running VirtualBox through ssh
+        self.vbox_username = vbox_username # username and hostname for running VirtualBox through ssh
         self.vbox_hostname = vbox_hostname
 
     class RunError(Exception):
