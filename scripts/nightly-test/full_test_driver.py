@@ -16,7 +16,7 @@ if __name__ != "__main__":
     raise ImportError("It doesn't make any sense to import this as a module")
 
 parser = optparse.OptionParser()
-parser.add_option("--build-mode", action = "store", choices = ["minimal", "all"], dest = "build_mode")
+parser.add_option("--build-mode", action = "store", choices = ["minimal", "minimal-with-os", "all"], dest = "build_mode")
 parser.add_option("--git-branch", action = "store", dest = "git_branch")
 parser.add_option("--just-tests", action = "store_true", dest = "just_tests")
 parser.add_option("--test-dir", action="store", dest = "test_dir")
@@ -183,7 +183,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                         }
             generate_configs(config_bits, [], "")
 
-        elif options.build_mode == "minimal":
+        elif options.build_mode == "minimal" or options.build_mode == "minimal-with-os":
             builds["stress-client"] = {
                 "command_line": "cd rethinkdb/bench/stress-client; make -j12",
                 "products": ["rethinkdb/bench/stress-client/stress", "rethinkdb/bench/stress-client/libstress.so"]
@@ -196,6 +196,29 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                 "command_line": "cd rethinkdb/src; make -j12 DEBUG=0",
                 "products": ["rethinkdb/build/release/rethinkdb"]
                 }
+
+        if options.build_mode == "all" or options.build_mode == "minimal-with-os": # do the operating system builds
+            builds["ubuntu"] = {
+                "command_line": "LANG=C make deb DEBUG=0",
+                "products": [],
+                "target_os": "ubuntu"
+                }
+            builds["redhat5_1"] = {
+                "command_line": "LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1 DEBUG=0",
+                "products": [],
+                "target_os": "redhat5_1"
+                }
+            builds["debian"] = {
+                "command_line": "LANG=C make deb NO_EVENTFD=1 LEGACY_LINUX=1 DEBUG=0",
+                "products": [],
+                "target_os": "debian"
+                }
+            builds["centos5_5"] = {
+                "command_line": "LANG=C make rpm LEGACY_GCC=1 LEGACY_LINUX=1 DEBUG=0",
+                "target_os": "centos5_5"
+                }
+            # builds["suse"] = {}
+            # builds["centos6"] = {}
 
         # Run builds
 
@@ -217,7 +240,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
                             on_begin_transfer = lambda: result_log.write("builds", name, status = "uploading", start_time = time.time()),
                             on_begin_script = lambda: result_log.write("builds", name, status = "running", start_time = time.time()),
                             on_end_script = lambda: result_log.write("builds", name, status = "ok", end_time = time.time()),
-                            constraint = "build-ready"
+                            constraint = "build-ready&os_%s" % (build["target_os"] if "target_os" in build else "ubuntu")
                             )
                     except remotely.ScriptFailedError:
                         result_log.write("builds", name, status = "fail", end_time = time.time())
