@@ -31,8 +31,6 @@ multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inn
 
 template <class protocol_t>
 void do_initialize(int i, store_view_t<protocol_t> **store_views, store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region) {
-    rassert(store_views[i] == NULL);
-
     on_thread_t th(_store_views[i]->home_thread());
 
     // We do a region intersection because store_subview_t requires that the region mask be a subset of the store region.
