@@ -1747,10 +1747,41 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
             }
             break;
         case Builtin::MAP:
-            crash("Not implemented");
+            {
+                json_stream_t stream = eval_stream(c.args(0), env);
+                json_stream_t res;
+
+                for (json_stream_t::iterator it  = stream.begin();
+                                             it != stream.end();
+                                             ++it) {
+                    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                    env->scope.put_in_scope(c.builtin().map().mapping().arg(), *it);
+                    res.push_back(eval(c.builtin().map().mapping().body(), env));
+                }
+                return res;
+            }
             break;
         case Builtin::CONCATMAP:
-            crash("Not implemented");
+            {
+                json_stream_t stream = eval_stream(c.args(0), env);
+                json_stream_t res;
+
+                for (json_stream_t::iterator it  = stream.begin();
+                                             it != stream.end();
+                                             ++it) {
+                    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                    env->scope.put_in_scope(c.builtin().map().mapping().arg(), *it);
+
+                    json_stream_t inner_stream = eval_stream(c.builtin().map().mapping().body(), env);
+
+                    for (json_stream_t::iterator jt  = inner_stream.begin();
+                                                 jt != inner_stream.end();
+                                                 ++jt) {
+                        res.push_back(*it);
+                    }
+                }
+                return res;
+            }
             break;
         case Builtin::ORDERBY:
             {
