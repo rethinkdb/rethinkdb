@@ -1630,6 +1630,84 @@ private:
     runtime_environment_t *env;
 };
 
+bool less(cJSON *l, cJSON *r) {
+    switch (l->type) {
+        case cJSON_False:
+            if (r->type == cJSON_True) {
+                return true;
+            } else if (r->type == cJSON_False) {
+                return false;
+            } else {
+                throw runtime_exc_t("Comparing boolean to non boolean\n");
+            }
+            break;
+        case cJSON_True:
+            if (r->type == cJSON_True) {
+                return false;
+            } else if (r->type == cJSON_False) {
+                return false;
+            } else {
+                throw runtime_exc_t("Comparing boolean to non boolean\n");
+            }
+            break;
+        case cJSON_NULL:
+            throw runtime_exc_t("Can't compare null to anything\n");
+            break;
+        case cJSON_Number:
+            if (r->type == cJSON_Number) {
+                return l->valuedouble < r->valuedouble;
+            } else {
+                throw runtime_exc_t("Numbers can only be compared to other numbers.");
+            }
+            break;
+        case cJSON_String:
+            if (r->type == cJSON_String) {
+                return (strcmp(l->valuestring, r->valuestring) < 0);
+            } else {
+                throw runtime_exc_t("Strings can only be compared to other strings.");
+            }
+            break;
+        case cJSON_Array:
+            throw runtime_exc_t("Can't compare arrays.");
+            break;
+        case cJSON_Object:
+            throw runtime_exc_t("Can't compare objects.");
+            break;
+        default:
+            unreachable();
+            break;
+    }
+}
+
+class ordering_t {
+public:
+    ordering_t(const Mapping &_mapping,  runtime_environment_t *_env) 
+        : mapping(_mapping), env(_env)
+    { }
+
+    //returns true of x < y
+    bool operator()(boost::shared_ptr<scoped_cJSON_t> x, boost::shared_ptr<scoped_cJSON_t> y) {
+        boost::shared_ptr<scoped_cJSON_t> x_mapped, y_mapped;
+        {
+            variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+            env->scope.put_in_scope(mapping.arg(), x);
+            x_mapped = eval(mapping.body(), env);
+        }
+
+        {
+            variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+            env->scope.put_in_scope(mapping.arg(), y);
+            y_mapped = eval(mapping.body(), env);
+        }
+
+        return less(x_mapped->get(), y_mapped->get());
+    }
+
+private:
+    Mapping mapping;
+    runtime_environment_t *env;
+};
+
 json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (c.builtin().type()) {
         //JSON -> JSON
@@ -1675,6 +1753,12 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
             crash("Not implemented");
             break;
         case Builtin::ORDERBY:
+            {
+                ordering_t o(c.builtin().order_by().mapping(), env);
+                json_stream_t stream = eval_stream(c.args(0), env);
+                stream.sort(o);
+                return stream;
+            }
             break;
         case Builtin::DISTINCT:
             crash("Not implemented");
