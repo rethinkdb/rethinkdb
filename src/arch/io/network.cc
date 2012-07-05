@@ -268,11 +268,6 @@ bool linux_tcp_conn_t::is_read_open() {
     return !read_closed.is_pulsed();
 }
 
-void delete_char_vector(std::vector<char> *x) {
-    rassert(x);
-    delete x;
-}
-
 linux_tcp_conn_t::write_handler_t::write_handler_t(linux_tcp_conn_t *parent_) :
     parent(parent_)
 { }

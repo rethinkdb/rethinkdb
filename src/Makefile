@@ -333,7 +333,7 @@ FAVICON:=$(WEB_SOURCE_DIR)/favicon.ico
 #### Version number handling
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
 RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
-PACKAGING_ALTERNATIVES_PRIORITY:=$(shell echo $$(../scripts/gen-version.sh -r)/100 | bc)
+PACKAGING_ALTERNATIVES_PRIORITY:=$(shell expr $$(../scripts/gen-version.sh -r) / 100)
 
 # ifneq ($(TIMEBOMB),0)
 # RETHINKDB_VERSION:=$(RETHINKDB_VERSION)-trial
