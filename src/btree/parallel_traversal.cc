@@ -196,15 +196,15 @@ private:
 void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::shared_ptr<ranged_block_ids_t>& ids_source);
 void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null, lock_in_line_callback_t *acq_start_cb);
 
-void process_a_leaf_node(traversal_state_t *state, buf_lock_t *buf, int level,
+void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf, int level,
                          const btree_key_t *left_exclusive_or_null,
                          const btree_key_t *right_inclusive_or_null);
-void process_a_internal_node(traversal_state_t *state, buf_lock_t *buf, int level,
+void process_a_internal_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf, int level,
                              const btree_key_t *left_exclusive_or_null,
                              const btree_key_t *right_inclusive_or_null);
 
 struct node_ready_callback_t {
-    virtual void on_node_ready(buf_lock_t *buf) = 0;
+    virtual void on_node_ready(scoped_ptr_t<buf_lock_t> *buf) = 0;
 protected:
     virtual ~node_ready_callback_t() { }
 };
@@ -219,15 +219,15 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
 
     void you_may_acquire() {
 
-        buf_lock_t *block = new buf_lock_t(state->transaction_ptr,
-                                           block_id, state->helper->btree_node_mode(),
-                                           buffer_cache_order_mode_check,
-                                           acq_start_cb);
+        scoped_ptr_t<buf_lock_t> block(new buf_lock_t(state->transaction_ptr,
+                                                      block_id, state->helper->btree_node_mode(),
+                                                      buffer_cache_order_mode_check,
+                                                      acq_start_cb));
 
         rassert(coro_t::self());
         node_ready_callback_t *local_cb = node_ready_cb;
         delete this;
-        local_cb->on_node_ready(block);
+        local_cb->on_node_ready(&block);
     }
 };
 
@@ -253,14 +253,15 @@ protected:
 };
 
 struct internal_node_releaser_t : public parent_releaser_t {
-    buf_lock_t *buf_;
+    scoped_ptr_t<buf_lock_t> buf_;
     traversal_state_t *state_;
     virtual void release() {
-        state_->helper->postprocess_internal_node(buf_);
-        delete buf_;
+        state_->helper->postprocess_internal_node(buf_.get());
         delete this;
     }
-    internal_node_releaser_t(buf_lock_t *buf, traversal_state_t *state) : buf_(buf), state_(state) { }
+    internal_node_releaser_t(scoped_ptr_t<buf_lock_t> *buf, traversal_state_t *state) : state_(state) {
+        buf_.init(buf->release());
+    }
 
     virtual ~internal_node_releaser_t() { }
 };
@@ -327,9 +328,9 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
     store_key_t right_inclusive;
     bool right_unbounded;
 
-    void on_node_ready(buf_lock_t *buf) {
+    void on_node_ready(scoped_ptr_t<buf_lock_t> *buf) {
         rassert(coro_t::self());
-        const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
+        const node_t *node = reinterpret_cast<const node_t *>((*buf)->get_data_read());
 
         const btree_key_t *left_exclusive_or_null = left_unbounded ? NULL : left_exclusive.btree_key();
         const btree_key_t *right_inclusive_or_null = right_unbounded ? NULL : right_inclusive.btree_key();
@@ -339,8 +340,6 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
                 state->helper->progress->inform(level, traversal_progress_t::ACQUIRE, traversal_progress_t::LEAF);
             }
             process_a_leaf_node(state, buf, level, left_exclusive_or_null, right_inclusive_or_null);
-
-            delete this;
         } else {
             rassert(node::is_internal(node));
 
@@ -348,8 +347,9 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
                 state->helper->progress->inform(level, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
             }
             process_a_internal_node(state, buf, level, left_exclusive_or_null, right_inclusive_or_null);
-            delete this;
         }
+
+        delete this;
     }
 };
 
@@ -375,8 +375,8 @@ void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t bloc
 }
 
 // This releases its buf_lock_t parameter.
-void process_a_internal_node(traversal_state_t *state, buf_lock_t *buf, int level, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
-    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(buf->get_data_read());
+void process_a_internal_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf, int level, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>((*buf)->get_data_read());
 
     boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(state->slice->cache()->get_block_size(), node, left_exclusive_or_null, right_inclusive_or_null, level));
 
@@ -384,7 +384,7 @@ void process_a_internal_node(traversal_state_t *state, buf_lock_t *buf, int leve
 }
 
 // This releases its buf_lock_t parameter.
-void process_a_leaf_node(traversal_state_t *state, buf_lock_t *buf, int level,
+void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf, int level,
                          const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
     // TODO: The below comment is wrong because we acquire the stat block
     // This can be run in the scheduler thread.
@@ -392,18 +392,18 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t *buf, int level,
     //
     int population_change = 0;
 
-    state->helper->process_a_leaf(state->transaction_ptr, buf, left_exclusive_or_null, right_inclusive_or_null, &population_change);
+    state->helper->process_a_leaf(state->transaction_ptr, buf->get(), left_exclusive_or_null, right_inclusive_or_null, &population_change);
 
     if (state->helper->btree_node_mode() != rwi_write) {
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
     } else if (population_change != 0) {
         buf_lock_t stat_block(state->transaction_ptr, state->stat_block, rwi_write, buffer_cache_order_mode_ignore);
-        reinterpret_cast<btree_statblock_t *>(stat_block.get_data_major_write())->population += population_change;
+        static_cast<btree_statblock_t *>(stat_block.get_data_major_write())->population += population_change;
     } else {
         //don't aquire the block to not change the value
     }
 
-    delete buf;
+    buf->reset();
     if (state->helper->progress) {
         state->helper->progress->inform(level, traversal_progress_t::RELEASE, traversal_progress_t::LEAF);
     }
