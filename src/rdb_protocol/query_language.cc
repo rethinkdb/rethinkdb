@@ -1607,6 +1607,29 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
     crash("unreachable");
 }
 
+class predicate_t {
+public:
+    predicate_t(const Predicate &_pred, runtime_environment_t *_env)
+        : pred(_pred), env(_env)
+    { }
+    bool operator()(boost::shared_ptr<scoped_cJSON_t> json) {
+        variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+        env->scope.put_in_scope(pred.arg(), json);
+        boost::shared_ptr<scoped_cJSON_t> a_bool = eval(pred.body(), env);
+
+        if (a_bool->get()->type == cJSON_True) {
+            return true;
+        } else if (a_bool->get()->type == cJSON_False) {
+            return false;
+        } else {
+            throw runtime_exc_t("Predicate failed to evaluate to a bool\n");
+        }
+    }
+private:
+    Predicate pred;
+    runtime_environment_t *env;
+};
+
 json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (c.builtin().type()) {
         //JSON -> JSON
@@ -1638,7 +1661,12 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
             unreachable("eval stream called on a function that does not return a stream.\n");
             break;
         case Builtin::FILTER:
-            crash("Not implemented");
+            {
+                predicate_t p(c.builtin().filter().predicate(), env);
+                json_stream_t stream = eval_stream(c.args(0), env);
+                stream.remove_if(p);
+                return stream;
+            }
             break;
         case Builtin::MAP:
             crash("Not implemented");
@@ -1647,7 +1675,6 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
             crash("Not implemented");
             break;
         case Builtin::ORDERBY:
-            crash("Not implemented");
             break;
         case Builtin::DISTINCT:
             crash("Not implemented");
@@ -1680,8 +1707,12 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
             {
                 json_stream_t res;
 
-                for (int i = 0; i < c.args_size(); ++i) {
-                    res.push_back(eval(c.args(i), env));
+                boost::shared_ptr<scoped_cJSON_t> array = eval(c.args(0), env);
+                json_array_iterator_t it(array->get());
+
+                cJSON *elt;
+                while ((elt = it.next())) {
+                    res.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(elt))));
                 }
 
                 return res;
