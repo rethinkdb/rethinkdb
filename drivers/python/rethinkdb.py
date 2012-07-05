@@ -289,6 +289,21 @@ class Map(Stream):
         term = _finalize_internal(root, p.Term)
         self.write_ast(term)
 
+class ArrayToStream(Stream):
+    def __init__(self, array):
+        super(ArrayToStream, self).__init__()
+        self.read_only = True
+        self.array = array
+
+    def write_ast(self, parent):
+        ats = _make_builtin("arraytostream", p.Builtin.ARRAYTOSTREAM, "array")
+        s = ats(self.array)
+        s.write_ast(parent)
+
+    def _finalize_query(self, root):
+        term = _finalize_internal(root, p.Term)
+        self.write_ast(term)
+
 class Term(object):
     def __init__(self):
         raise NotImplemented
@@ -560,4 +575,7 @@ append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
 concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
 slice = _make_builtin("slice", p.Builtin.ARRAYSLICE, "array", "start", "end")
 has = _make_builtin("has", p.Builtin.HASATTR, "object", "key")
-arraytostream = _make_builtin("arraytostream", p.Builtin.ARRAYTOSTREAM, "array")
+
+def from_array(array):
+    return ArrayToStream(array)
+
