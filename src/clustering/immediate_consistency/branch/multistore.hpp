@@ -43,8 +43,6 @@ public:
 
     void new_write_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens_out, int num_stores_assertion);
 
-    void new_particular_write_tokens(int *indices, int num_indices, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens);
-
     // TODO: I'm pretty sure every time we call this function we are
     // doing something stupid.
     region_map_t<protocol_t, version_range_t>
@@ -54,7 +52,6 @@ public:
 		      signal_t *interruptor);
 
     typename protocol_t::region_t get_region(int i) const;
-    store_view_t<protocol_t> *get_store_view(int i) const;
 
     // TODO: Perhaps all uses of set_all_metainfos are stupid, too.
     // See get_all_metainfos.  This is the opposite of
@@ -73,6 +70,13 @@ public:
                                   int num_stores_assertion,
                                   signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
+
+    void receive_backfill(const typename protocol_t::backfill_chunk_t &chunk,
+                          boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                          int num_stores_assertion,
+                          signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+
 
     typename protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                                               const typename protocol_t::read_t &read,
@@ -109,6 +113,10 @@ private:
                                typename protocol_t::backfill_progress_t *progress,
                                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
                                signal_t *interruptor) THROWS_NOTHING;
+
+    void single_shard_receive_backfill(int i, const typename protocol_t::backfill_chunk_t &chunk,
+                                       boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                       signal_t *interruptor) THROWS_NOTHING;
 
     void single_shard_read(int i,
                            DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
