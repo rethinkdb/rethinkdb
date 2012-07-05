@@ -394,8 +394,6 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
     } catch (interrupted_exc_t& exc) {
         // do nothing
     }
-
-    
 }
 
 template <class protocol_t>
