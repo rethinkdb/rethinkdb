@@ -33,9 +33,8 @@ void direct_reader_t<protocol_t>::perform_read(
         const mailbox_addr_t<void(typename protocol_t::read_response_t)> &cont,
         auto_drainer_t::lock_t keepalive) {
     try {
-        const int num_stores = svs->num_stores();
-        boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-        svs->new_read_tokens(read_tokens.get(), num_stores);
+        scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
+        svs->new_read_tokens(&read_tokens);
 
 #ifndef NDEBUG
         class dummy_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
@@ -52,8 +51,7 @@ void direct_reader_t<protocol_t>::perform_read(
             DEBUG_ONLY(metainfo_checker, )
             read,
             order_token_t::ignore,
-            read_tokens.get(),
-            num_stores,
+            read_tokens,
             keepalive.get_drain_signal());
 
         send(mailbox_manager, cont, response);
