@@ -170,31 +170,25 @@ message Builtin {
 
     optional Distinct distinct = 9;
 
-    message Limit {
-        required  int32 limit = 1;
-    }
-
-    optional Limit limit = 10;
-
     message Reduce {
         required Reduction reduction = 1;
     };
 
-    optional Reduce reduce = 11;
+    optional Reduce reduce = 10;
 
     message GroupedMapReduce {
         required Mapping group_mapping = 1;
         required MapReduce map_reduce = 2;
     };
 
-    optional GroupedMapReduce grouped_map_reduce = 12;
+    optional GroupedMapReduce grouped_map_reduce = 11;
 
     message MapReduce {
         required Mapping change_mapping = 1;
         required Reduction reduction = 2;
     };
 
-    optional MapReduce map_reduce = 13;
+    optional MapReduce map_reduce = 12;
 };
 
 message Reduction {

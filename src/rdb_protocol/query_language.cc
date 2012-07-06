@@ -156,10 +156,6 @@ bool is_well_defined(const Builtin &b) {
         }
     }
 
-    if (b.has_limit() && b.type() != Builtin::LIMIT) {
-        return false;
-    }
-
     if (b.has_reduce()) {
         if (b.type() != Builtin::REDUCE) {
             return false;
@@ -377,7 +373,7 @@ const type_t get_type(const Term &t, variable_type_scope_t *scope) {
                     }
                 }
                 for (int i = 0; i < t.call().args_size(); ++i) {
-                    if (!(get_type(t.call().args(i), scope) == signature.get_arg_type())) {
+                    if (!(get_type(t.call().args(i), scope) == signature.get_arg_type(i))) {
                         return error_t("Type mismatch in function call\n"); //Need descriptions of types to give a more informative message
                     }
                 }
@@ -454,10 +450,25 @@ const type_t get_type(const Term &t, variable_type_scope_t *scope) {
 }
 
 function_t::function_t(const type_t& _arg_type, int _n_args, const type_t& _return_type)
-    : arg_type(_arg_type), n_args(_n_args), return_type(_return_type) { }
+    : n_args(_n_args), return_type(_return_type) {
+    arg_type[0] = _arg_type;
+    for (int i = 1; i < _n_args; ++i) {
+        arg_type[i] = _arg_type;
+    }
+}
 
-const type_t& function_t::get_arg_type() const {
-    return arg_type;
+function_t::function_t(const type_t& _arg1_type, const type_t& _arg2_type, const type_t& _return_type)
+    : n_args(2), return_type(_return_type) {
+    arg_type[0] = _arg1_type;
+    arg_type[1] = _arg2_type;
+}
+
+const type_t& function_t::get_arg_type(int n) const {
+    if (n >= 0 && n < n_args) {
+        return arg_type[n];
+    } else {
+        return arg_type[0];
+    }
 }
 
 const type_t& function_t::get_return_type() const {
@@ -507,11 +518,15 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::CONCATMAP:
         case Builtin::ORDERBY:
         case Builtin::DISTINCT:
-        case Builtin::LIMIT:
             return function_t(Type::STREAM, 1, Type::STREAM);
             break;
-        case Builtin::LENGTH:
+        case Builtin::LIMIT:
+            return function_t(Type::STREAM, Type::JSON, Type::STREAM);
+            break;
         case Builtin::NTH:
+            return function_t(Type::STREAM, Type::JSON, Type::JSON);
+            break;
+        case Builtin::LENGTH:
         case Builtin::STREAMTOARRAY:
         case Builtin::REDUCE:
         case Builtin::GROUPEDMAPREDUCE:
@@ -904,7 +919,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             {
                 // Push the scope
                 variable_val_scope_t::new_scope_t new_scope(&env->scope);
-                variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope); 
+                variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope);
                 variable_type_scope_t::new_scope_t new_type_scope(&env->type_scope);
 
                 eval_let_binds(t.let(), env);
@@ -932,10 +947,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             }
             break;
         case Term::TRY:
-            crash("unimplemented");
+            throw runtime_exc_t("Unimplemented: Term::TRY");
             break;
         case Term::ERROR:
-            crash("unimplemented");
+            throw runtime_exc_t("Unimplemented: Term::ERROR");
             break;
         case Term::NUMBER:
             {
@@ -1049,10 +1064,10 @@ json_stream_t eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY
             }
             break;
         case Term::TRY:
-            crash("unimplemented");
+            throw runtime_exc_t("Unimplemented: Term::TRY");
             break;
         case Term::ERROR:
-            crash("unimplemented");
+            throw runtime_exc_t("Unimplemented: Term::ERROR");
             break;
         case Term::NUMBER:
             unreachable("A NUMBER term should never be evaluated with eval_stream");
@@ -1075,7 +1090,7 @@ json_stream_t eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY
         case Term::MAP:
             unreachable("A MAP term should never be evaluated with eval_stream");
             break;
-    case Term::VIEWASSTREAM:
+        case Term::VIEWASSTREAM:
             {
                 return eval(t.view_as_stream(), env).stream;
             }
@@ -1556,52 +1571,52 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             }
             break;
         case Builtin::FILTER:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::FILTER");
             break;
         case Builtin::MAP:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::MAP");
             break;
         case Builtin::CONCATMAP:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::CONCATMAP");
             break;
         case Builtin::ORDERBY:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::ORDERBY");
             break;
         case Builtin::DISTINCT:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::DISTINCT");
             break;
         case Builtin::LIMIT:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::LIMIT");
             break;
         case Builtin::LENGTH:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::LENGTH");
             break;
         case Builtin::UNION:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::UNION");
             break;
         case Builtin::NTH:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::NTH");
             break;
         case Builtin::STREAMTOARRAY:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::STREAMTOARRAY");
             break;
         case Builtin::ARRAYTOSTREAM:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::ARRAYTOSTREAM");
             break;
         case Builtin::REDUCE:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::REDUCE");
             break;
         case Builtin::GROUPEDMAPREDUCE:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::GROUPEDMAPREDUCE");
             break;
         case Builtin::JAVASCRIPT:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPT");
             break;
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPTRETURNINGSTREAM");
             break;
         case Builtin::MAPREDUCE:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::MAPREDUCE");
             break;
         case Builtin::ALL:
             {
@@ -1722,7 +1737,7 @@ bool less(cJSON *l, cJSON *r) {
 
 class ordering_t {
 public:
-    ordering_t(const Mapping &_mapping,  runtime_environment_t *_env) 
+    ordering_t(const Mapping &_mapping,  runtime_environment_t *_env)
         : mapping(_mapping), env(_env)
     { }
 
@@ -1833,15 +1848,26 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
             }
             break;
         case Builtin::DISTINCT:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::DISTINCT");
             break;
         case Builtin::LIMIT:
             {
                 json_stream_t stream = eval_stream(c.args(0), env);
 
-                if (int(stream.size()) > c.builtin().limit().limit()) {
+                // Check second arg type
+                boost::shared_ptr<scoped_cJSON_t> limit_json  = eval(c.args(1), env);
+                if (limit_json->get()->type != cJSON_Number) {
+                    throw runtime_exc_t("The second argument must be an integer.");
+                }
+                float limit_float = limit_json->get()->valuedouble;
+                int limit = (int)limit_float;
+                if (limit_float != limit) {
+                    throw runtime_exc_t("The second argument must be an integer.");
+                }
+
+                if (int(stream.size()) > limit) {
                     json_stream_t::iterator it = stream.begin();
-                    for (int i = 0; i < c.builtin().limit().limit(); ++i) {
+                    for (int i = 0; i < limit; ++i) {
                         ++it;
                     }
                     stream.erase(it, stream.end());
@@ -1875,7 +1901,7 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
             }
             break;
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
-            crash("Not implemented");
+            throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPTRETURNINGSTREAM");
             break;
         default:
             crash("unreachable");
@@ -1921,7 +1947,7 @@ view_t eval(const View &v, runtime_environment_t *env) {
             }
             break;
         case View::RANGEVIEW:
-            crash("unimplemented");
+            throw runtime_exc_t("Unimplemented: View::RANGEVIEW");
             break;
         default:
             unreachable();

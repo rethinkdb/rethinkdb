@@ -127,8 +127,14 @@ class TestTableRef(unittest.TestCase):
         expect(r.slice(arr, 5, -3), arr[5: -3])
         expect(r.slice(arr, -5, -3), arr[-5: -3])
 
-        expect(r.nth(arr, 3), 3)
-        expect(r.nth(arr, -1), 9)
+        expect(r.element(arr, 3), 3)
+        expect(r.element(arr, -1), 9)
+
+    def test_stream(self):
+        expect = self.expect
+        arr = range(10)
+
+        expect(r.array(r.stream(arr)), arr)
 
     def test_table_insert(self):
         q = self.table.insert(self.docs)
