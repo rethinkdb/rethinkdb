@@ -91,7 +91,7 @@ public:
     connects or disconnects. */
     class peers_list_subscription_t {
     public:
-        peers_list_subscription_t(peers_list_callback_t *connect_disconnect_cb);
+        explicit peers_list_subscription_t(peers_list_callback_t *connect_disconnect_cb);
         void reset();
         void reset(connectivity_service_t *, peers_list_freeze_t *proof);
     private:

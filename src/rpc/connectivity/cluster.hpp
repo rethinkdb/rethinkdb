@@ -97,7 +97,7 @@ public:
                 auto_drainer_t drainer_;
                 connection_entry_t *that_;
 
-                entry_installation_t(connection_entry_t *that);
+                explicit entry_installation_t(connection_entry_t *that);
                 ~entry_installation_t();
             };
 

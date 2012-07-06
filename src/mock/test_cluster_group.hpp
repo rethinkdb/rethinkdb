@@ -326,4 +326,4 @@ public:
 
 }   /* namespace mock */
 
-#endif   /* MOCK_TEST_CLUSTER_GROUP_HPP_ */
+#endif  /* MOCK_TEST_CLUSTER_GROUP_HPP_ */

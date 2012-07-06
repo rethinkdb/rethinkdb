@@ -10,7 +10,7 @@ class one_per_thread_t {
 public:
     struct construct_0_t {
         one_per_thread_t *parent_;
-        construct_0_t(one_per_thread_t *p) : parent_(p) { }
+        explicit construct_0_t(one_per_thread_t *p) : parent_(p) { }
         void operator()(int thread) const {
             on_thread_t th(thread);
             parent_->array[thread].init(new inner_t);
@@ -60,7 +60,7 @@ public:
 
     struct destruct_t {
         one_per_thread_t *parent_;
-        destruct_t(one_per_thread_t *p) : parent_(p) { }
+        explicit destruct_t(one_per_thread_t *p) : parent_(p) { }
         void operator()(int thread) const {
             on_thread_t th(thread);
             parent_->array[thread].reset();

@@ -30,4 +30,4 @@ private:
     typename direct_reader_business_card_t<protocol_t>::read_mailbox_t read_mailbox;
 };
 
-#endif   /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_DIRECT_READER_HPP_ */
+#endif  // CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_DIRECT_READER_HPP_
