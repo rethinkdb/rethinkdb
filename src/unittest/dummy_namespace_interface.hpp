@@ -7,11 +7,10 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "concurrency/pmap.hpp"
+#include "mock/clustering_utils.hpp"
+#include "mock/unittest_utils.hpp"
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
-#include "unittest/clustering_utils.hpp"
-#include "unittest/unittest_utils.hpp"
-#include "protocol_api.hpp"
 
 namespace unittest {
 
@@ -29,7 +28,7 @@ public:
         store->new_read_token(read_token);
 
 #ifndef NDEBUG
-        equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback((binary_blob_t(expected_timestamp)));
+        mock::equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback((binary_blob_t(expected_timestamp)));
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
@@ -40,7 +39,7 @@ public:
         cond_t non_interruptor;
 
 #ifndef NDEBUG
-        equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(binary_blob_t(transition_timestamp.timestamp_before()));
+        mock::equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(binary_blob_t(transition_timestamp.timestamp_before()));
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 

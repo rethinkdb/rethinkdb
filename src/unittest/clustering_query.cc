@@ -6,10 +6,11 @@
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "mock/branch_history_manager.hpp"
+#include "mock/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "rpc/mailbox/mailbox.hpp"
-#include "unittest/clustering_utils.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "mock/unittest_utils.hpp"
+
+using mock::dummy_protocol_t;
 
 namespace unittest {
 
@@ -27,7 +28,7 @@ boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > 
 
 static void run_read_write_test() {
     /* Set up a cluster so mailboxes can be created */
-    simple_mailbox_cluster_t cluster;
+    mock::simple_mailbox_cluster_t cluster;
 
     /* Set up branch history tracker */
     mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
@@ -36,7 +37,7 @@ static void run_read_write_test() {
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a branch */
-    test_store_t<dummy_protocol_t> initial_store(io_backender.get());
+    mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get());
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
     multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
     cond_t interruptor;
@@ -70,7 +71,7 @@ static void run_read_write_test() {
             return set.size() >= 1;
         }
     } ack_checker;
-    master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, a_thru_z_region(), &broadcaster);
+    master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, mock::a_thru_z_region(), &broadcaster);
 
     /* Set up a master access */
     watchable_variable_t<boost::optional<boost::optional<master_business_card_t<dummy_protocol_t> > > > master_directory_view(
@@ -84,9 +85,9 @@ static void run_read_write_test() {
     /* Send some writes to the namespace */
     order_source_t order_source;
     std::map<std::string, std::string> inserter_state;
-    test_inserter_t inserter(
+    mock::test_inserter_t inserter(
         &master_access,
-        &dummy_key_gen,
+        &mock::dummy_key_gen,
         &order_source,
         "run_read_write_test(clustering_query.cc)/inserter",
         &inserter_state);
@@ -110,12 +111,12 @@ static void run_read_write_test() {
 }
 
 TEST(ClusteringQuery, ReadWrite) {
-    run_in_thread_pool(&run_read_write_test);
+    mock::run_in_thread_pool(&run_read_write_test);
 }
 
 static void run_broadcaster_problem_test() {
     /* Set up a cluster so mailboxes can be created */
-    simple_mailbox_cluster_t cluster;
+    mock::simple_mailbox_cluster_t cluster;
 
     /* Set up metadata meeting-places */
     mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
@@ -125,7 +126,7 @@ static void run_broadcaster_problem_test() {
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a branch */
-    test_store_t<dummy_protocol_t> initial_store(io_backender.get());
+    mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get());
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
     multistore_ptr_t<dummy_protocol_t> multi_initial_store(&initial_store_ptr, 1);
     cond_t interruptor;
@@ -160,7 +161,7 @@ static void run_broadcaster_problem_test() {
             return false;
         }
     } ack_checker;
-    master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, a_thru_z_region(), &broadcaster);
+    master_t<dummy_protocol_t> master(cluster.get_mailbox_manager(), &ack_checker, mock::a_thru_z_region(), &broadcaster);
 
     /* Set up a master access */
     watchable_variable_t<boost::optional<boost::optional<master_business_card_t<dummy_protocol_t> > > > master_directory_view(
@@ -191,7 +192,7 @@ static void run_broadcaster_problem_test() {
 }
 
 TEST(ClusteringQuery, BroadcasterProblem) {
-    run_in_thread_pool(&run_broadcaster_problem_test);
+    mock::run_in_thread_pool(&run_broadcaster_problem_test);
 }
 
 }   /* namespace unittest */

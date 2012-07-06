@@ -1,2 +1,2 @@
-This script will only work on Lex-Luthor. (The Mac Mini).  If you want to run
-it from somewhere else you should ssh in to lex.
+This script is configured for the VirtualBox on deadshot.
+ssh into deadshot to access the virtual machines.

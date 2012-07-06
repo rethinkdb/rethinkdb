@@ -8,6 +8,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
+#include "clustering/immediate_consistency/query/direct_reader.hpp"
 
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
@@ -355,12 +356,14 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
         listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster_business_card, branch_history_manager, &broadcaster, &region_perfmon_collection, interruptor);
         replier_t<protocol_t> replier(&listener);
         master_t<protocol_t> master(mailbox_manager, ack_checker, region, &broadcaster);
+        direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
 
         directory_entry.update_without_changing_id(
             typename reactor_business_card_t<protocol_t>::primary_t(
                 broadcaster.get_business_card(),
                 replier.get_business_card(),
-                master.get_business_card()
+                master.get_business_card(),
+                direct_reader.get_business_card()
             ));
 
         interruptor->wait_lazily_unordered();

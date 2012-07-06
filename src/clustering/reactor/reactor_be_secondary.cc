@@ -6,6 +6,7 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
+#include "clustering/immediate_consistency/query/direct_reader.hpp"
 
 template <class protocol_t>
 bool reactor_t<protocol_t>::find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
@@ -222,9 +223,11 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                  * us for backfills. */
                 replier_t<protocol_t> replier(&listener);
 
+                direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
+
                 /* Make the directory reflect the new role that we are filling.
                  * (Being a secondary). */
-                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t(branch_id, replier.get_business_card()));
+                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t(branch_id, replier.get_business_card(), direct_reader.get_business_card()));
 
                 /* Wait for something to change. */
                 wait_interruptible(listener.get_broadcaster_lost_signal(), interruptor);

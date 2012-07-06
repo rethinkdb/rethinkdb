@@ -2,8 +2,8 @@
 
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
+#include "mock/unittest_utils.hpp"
 #include "serializer/log/log_serializer.hpp"
-#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -35,7 +35,7 @@ std::string vector_to_string(const std::vector<char> &v) {
 }
 
 void run_metainfo_test() {
-    temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
+    mock::temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
 
     boost::scoped_ptr<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
@@ -179,7 +179,7 @@ void run_metainfo_test() {
 }
 
 TEST(BtreeMetainfo, MetainfoTest) {
-    run_in_thread_pool(&run_metainfo_test);
+    mock::run_in_thread_pool(&run_metainfo_test);
 }
 
 }   /* namespace unittest */

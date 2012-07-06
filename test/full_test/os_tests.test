@@ -1,0 +1,8 @@
+os_names = ['ubuntu', 'redhat5_1', 'debian', 'centos5_5', 'suse',] # 'centos6'] # the last two do not work
+
+for os_name in os_names:
+    do_test(
+        "$RETHINKDB/scripts/VirtuaBuild/builder.py --target %s" % os_name,
+        repeat = 1,
+        inputs = ["test/common", "scripts/VirtuaBuild"]
+        )
