@@ -198,9 +198,12 @@ module 'NamespaceView', ->
 
             @model.on 'change', @render_summary
             directory.on 'all', @render_summary
+            ###
             @namespace.on 'change:replica_affinities', @reset_list
             @namespace.on 'change:secondary_pinnings', @reset_list
             @namespace.on 'change:blueprint', @reset_list
+            ###
+            @namespace.on 'all', @reset_list
 
         reset_list: =>
             @machine_list.reset_element_views()
