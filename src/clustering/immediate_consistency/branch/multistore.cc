@@ -385,8 +385,8 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
                                                      const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
                                                      std::vector<typename protocol_t::read_response_t> *responses,
                                                      signal_t *interruptor) THROWS_NOTHING {
-    DEBUG_ONLY_VAR const typename protocol_t::region_t ith_region = get_region(i);
-    typename protocol_t::region_t ith_intersection = region_intersection(get_region(i), read.get_region());
+    const typename protocol_t::region_t ith_region = get_region(i);
+    typename protocol_t::region_t ith_intersection = region_intersection(ith_region, read.get_region());
 
     const int dest_thread = store_views_[i]->home_thread();
 
