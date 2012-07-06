@@ -41,7 +41,7 @@ public:
 
     void new_read_tokens(scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > *read_tokens_out);
 
-    void new_write_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens_out, int num_stores_assertion);
+    void new_write_tokens(scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > *write_tokens_out);
 
     // TODO: I'm pretty sure every time we call this function we are
     // doing something stupid.
@@ -57,8 +57,7 @@ public:
     // get_all_metainfos but is a bit more scary.
     void set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
                            order_token_t order_token,
-                           boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                           int num_write_tokens,
+                           const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > &write_tokens,
                            signal_t *interruptor);
 
     bool send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
@@ -70,8 +69,7 @@ public:
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(const typename protocol_t::backfill_chunk_t &chunk,
-                          boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                          int num_stores_assertion,
+                          const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > &write_tokens,
                           signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -88,15 +86,13 @@ public:
                                                 const typename protocol_t::write_t &write,
                                                 transition_timestamp_t timestamp,
                                                 order_token_t order_token,
-                                                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                                int num_stores_assertion,
+                                                const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > &write_tokens,
                                                 signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_all_data(const typename protocol_t::region_t &subregion,
                         const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                        int num_stores_assertion,
+                        const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > &write_tokens,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 

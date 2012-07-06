@@ -37,13 +37,11 @@ public:
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
-        const int num_stores = svs->num_stores();
-
-        boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
-        svs->new_write_tokens(write_tokens.get(), num_stores);
+        scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
+        svs->new_write_tokens(&write_tokens);
         chunk_queue->finish_write(chunk_token);
 
-        svs->receive_backfill(chunk, write_tokens.get(), num_stores, interruptor);
+        svs->receive_backfill(chunk, write_tokens, interruptor);
     }
 
     // TODO: Don't pass a std::pair of std::pair.
@@ -141,7 +139,6 @@ void backfillee(
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
-    const int num_stores = svs->num_stores();
     scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
     svs->new_read_tokens(&read_tokens);
 
@@ -274,9 +271,9 @@ void backfillee(
             }
         }
 
-        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+        scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
 
-        svs->new_write_tokens(write_tokens.get(), num_stores);
+        svs->new_write_tokens(&write_tokens);
 
         svs->set_all_metainfos(
             region_map_transform<protocol_t, version_range_t, binary_blob_t>(
@@ -284,8 +281,7 @@ void backfillee(
                 &binary_blob_t::make<version_range_t>
                 ),
             order_token_t::ignore,
-            write_tokens.get(),
-            num_stores,
+            write_tokens,
             interruptor
             );
 
@@ -309,9 +305,9 @@ void backfillee(
     }
 
     /* Update the metadata to indicate that the backfill occurred */
-    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+    scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
 
-    svs->new_write_tokens(write_tokens.get(), num_stores);
+    svs->new_write_tokens(&write_tokens);
 
     svs->set_all_metainfos(
         region_map_transform<protocol_t, version_range_t, binary_blob_t>(
@@ -319,8 +315,7 @@ void backfillee(
             &binary_blob_t::make<version_range_t>
             ),
         order_token_t::ignore,
-        write_tokens.get(),
-        num_stores,
+        write_tokens,
         interruptor
     );
 }

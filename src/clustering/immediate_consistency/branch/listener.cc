@@ -388,8 +388,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         write_queue_has_drained.pulse_if_not_already_pulsed();
     }
 
-    const int num_stores = svs->num_stores();
-    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+    scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink, qe.fifo_token);
         if (qe.transition_timestamp.timestamp_before() < backfill_end_timestamp) {
@@ -397,7 +396,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         }
         wait_interruptible(&fifo_exit, interruptor);
         advance_current_timestamp_and_pulse_waiters(qe.transition_timestamp);
-        svs->new_write_tokens(write_tokens.get(), num_stores);
+        svs->new_write_tokens(&write_tokens);
     }
 
 #ifndef NDEBUG
@@ -412,8 +411,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         qe.write.shard(region_intersection(qe.write.get_region(), svs->get_multistore_joined_region())),
         qe.transition_timestamp,
         qe.order_token,
-        write_tokens.get(),
-        num_stores,
+        write_tokens,
         interruptor);
 }
 
@@ -445,8 +443,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
         THROWS_NOTHING
 {
     try {
-        const int num_stores = svs->num_stores();
-        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+        scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink` in case we
@@ -459,7 +456,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 
             advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
-            svs->new_write_tokens(write_tokens.get(), num_stores);
+            svs->new_write_tokens(&write_tokens);
         }
 
         // Make sure we can serve the entire operation without masking it.
@@ -481,8 +478,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
                          write,
                          transition_timestamp,
                          order_token,
-                         write_tokens.get(),
-                         num_stores,
+                         write_tokens,
                          keepalive.get_drain_signal());
 
         send(mailbox_manager, ack_addr, response);
