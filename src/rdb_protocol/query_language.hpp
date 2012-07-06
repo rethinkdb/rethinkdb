@@ -259,6 +259,18 @@ boost::shared_ptr<scoped_cJSON_t> eval_cmp(const Term::Call &c, runtime_environm
 
 namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
+
+class view_t {
+public:
+    view_t(const namespace_repo_t<rdb_protocol_t>::access_t &,
+           const json_stream_t &stream);
+
+    namespace_repo_t<rdb_protocol_t>::access_t access;
+    json_stream_t stream;
+};
+
+view_t eval(const View &v, runtime_environment_t *env);
+
 } //namespace query_language
 
 #endif /* RDB_PROTOCOL_QUERY_LANGUAGE_HPP_ */

@@ -777,8 +777,39 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
             }
             break;
         case WriteQuery::INSERTSTREAM:
+            {
+                json_stream_t stream = eval_stream(w.insert_stream().stream(), env);
+
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w.insert_stream().table_ref(), env);
+
+                for (json_stream_t::iterator it  = stream.begin();
+                                             it != stream.end();
+                                             ++it) {
+                    insert(ns_access, *it, env);
+                }
+
+                Response res;
+                res.set_status_code(0);
+                res.set_token(0);
+                res.add_response(strprintf("Inserted %d rows.", int(stream.size())));
+                return res;
+            }
             break;
         case WriteQuery::FOREACH:
+            {
+                json_stream_t stream = eval_stream(w.for_each().stream(), env);
+
+                for (json_stream_t::iterator it  = stream.begin();
+                                             it != stream.end();
+                                             ++it) {
+                    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                    env->scope.put_in_scope(w.for_each().var(), *it);
+
+                    for (int i = 0; i < w.for_each().queries_size(); ++i) {
+                        eval(w.for_each().queries(i), env);
+                    }
+                }
+            }
             break;
         case WriteQuery::POINTUPDATE:
             {
@@ -1852,6 +1883,29 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_envir
         return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, namespace_info->first, &env->interruptor);
     } else {
         throw runtime_exc_t(strprintf("Namespace %s either not found, ambigious or namespace metadata in conflict.", t.table_name().c_str()));
+    }
+}
+
+view_t eval(const View &v, runtime_environment_t *env) {
+    switch (v.type()) {
+        case View::TABLE:
+            crash("unimplemented");
+            break;
+        case View::FILTERVIEW:
+            {
+                view_t subview = eval(v.filter_view().view(), env);
+
+                predicate_t p(v.filter_view().predicate(), env);
+                subview.stream.remove_if(p);
+                return subview;
+            }
+            break;
+        case View::RANGEVIEW:
+            crash("unimplemented");
+            break;
+        default:
+            unreachable();
+            break;
     }
 }
 
