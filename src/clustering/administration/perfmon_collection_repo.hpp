@@ -18,9 +18,12 @@ public:
     };
     explicit perfmon_collection_repo_t(perfmon_collection_t *);
     collections_t *get_perfmon_collections_for_namespace(namespace_id_t);
+
 private:
     perfmon_collection_t *parent;
-    boost::ptr_map<namespace_id_t,collections_t> perfmon_collections;
+    boost::ptr_map<namespace_id_t, collections_t> perfmon_collections;
+
+    DISABLE_COPYING(perfmon_collection_repo_t);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP_ */
