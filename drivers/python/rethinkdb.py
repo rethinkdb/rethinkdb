@@ -296,9 +296,9 @@ class ArrayToStream(Stream):
         self.array = array
 
     def write_ast(self, parent):
-        ats = _make_builtin("arraytostream", p.Builtin.ARRAYTOSTREAM, "array")
-        s = ats(self.array)
-        s.write_ast(parent)
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.ARRAYTOSTREAM
+        toTerm(self.array).write_ast(parent.call.args.add())
 
     def _finalize_query(self, root):
         term = _finalize_internal(root, p.Term)
@@ -568,14 +568,16 @@ def _make_builtin(name, builtin, *args):
 
     return type(name, (Term,), {"__init__": __init__, "write_ast": write_ast})
 
-_not = _make_builtin("_not", p.Builtin.NOT, "term")
-nth = _make_builtin("nth", p.Builtin.ARRAYNTH, "array", "index")
+not_ = _make_builtin("_not", p.Builtin.NOT, "term")
+element = _make_builtin("element", p.Builtin.ARRAYNTH, "array", "index")
 size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
 concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
 slice = _make_builtin("slice", p.Builtin.ARRAYSLICE, "array", "start", "end")
 has = _make_builtin("has", p.Builtin.HASATTR, "object", "key")
-
-def from_array(array):
-    return ArrayToStream(array)
-
+union = _make_builtin("union", p.Builtin.UNION, "a", "b")
+length = _make_builtin("length", p.Builtin.LENGTH, "stream")
+limit = _make_builtin("limit", p.Builtin.LIMIT, "stream", "count")
+nth = _make_builtin("nth", p.Builtin.NTH, "stream", "index")
+stream = ArrayToStream
+array = _make_builtin("array", p.Builtin.STREAMTOARRAY, "stream")
