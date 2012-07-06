@@ -40,6 +40,8 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t *_cache, block_id_t start_
     active_log_block = 0;
     next_patch_offset = 0;
 
+    log_block_bufs.init(number_of_blocks);
+
     // Read the existing config block & determine which blocks are alive
     {
         on_thread_t switcher(cache->serializer->home_thread());
@@ -86,8 +88,6 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t *_cache, block_id_t start_
         }
     }
 
-    log_block_bufs.init(number_of_blocks);
-
     // Load all log blocks into memory
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
         if (block_is_empty[current_block - first_block]) {
@@ -118,11 +118,10 @@ patch_disk_storage_t::~patch_disk_storage_t() {
 // Loads on-disk data into memory
 void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storage) {
     cache->assert_thread();
+    rassert(log_block_bufs.size() == number_of_blocks);
 
     if (number_of_blocks == 0)
         return;
-
-    rassert(log_block_bufs.size() == number_of_blocks);
 
     std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
 
