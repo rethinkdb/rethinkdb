@@ -1,4 +1,5 @@
-#include <algorithm>
+#include "arch/io/disk/aio.hpp"
+
 #include <fcntl.h>
 #include <linux/fs.h>
 #include <stdio.h>
@@ -6,7 +7,9 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include "arch/io/disk/aio.hpp"
+
+#include <algorithm>
+
 #include "arch/io/disk/aio/getevents_eventfd.hpp"
 #include "arch/io/disk/aio/getevents_noeventfd.hpp"
 #include "arch/io/disk/aio/submit_sync.hpp"

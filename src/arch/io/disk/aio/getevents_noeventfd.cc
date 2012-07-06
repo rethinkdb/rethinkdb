@@ -1,4 +1,5 @@
-#include <algorithm>
+#include "arch/io/disk/aio/getevents_noeventfd.hpp"
+
 #include <fcntl.h>
 #include <linux/fs.h>
 #include <stdio.h>
@@ -7,7 +8,9 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <signal.h>
-#include "arch/io/disk/aio/getevents_noeventfd.hpp"
+
+#include <algorithm>
+
 #include "config/args.hpp"
 #include "utils.hpp"
 #include "logger.hpp"
