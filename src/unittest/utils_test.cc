@@ -3,7 +3,7 @@
 #include "utils.hpp"
 #include "arch/address.hpp"
 #include "arch/runtime/runtime.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "mock/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -90,7 +90,7 @@ void run_ip_address_test() {
 TEST(UtilsTest, IPAddress)
 {
     // Since ip_address_t may block, it requires a thread_pool_t to exist
-    run_in_thread_pool(&run_ip_address_test);
+    mock::run_in_thread_pool(&run_ip_address_test);
 }
 
 }  // namespace unittest

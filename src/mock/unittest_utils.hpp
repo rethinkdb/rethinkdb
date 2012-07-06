@@ -1,5 +1,5 @@
-#ifndef UNITTEST_UNITTEST_UTILS_HPP_
-#define UNITTEST_UNITTEST_UTILS_HPP_
+#ifndef MOCK_UNITTEST_UTILS_HPP_
+#define MOCK_UNITTEST_UTILS_HPP_
 
 #include "errors.hpp"
 
@@ -18,7 +18,7 @@
 // TRACEPOINT is not defined in release, so that TRACEPOINTS do not linger in the code unnecessarily
 #endif
 
-namespace unittest {
+namespace mock {
 
 class temp_file_t {
     char *filename;
@@ -36,4 +36,4 @@ void run_in_thread_pool(const boost::function<void()>& fun, int num_workers = 1)
 
 }  // namespace unittest
 
-#endif  // UNITTEST_UNITTEST_UTILS_HPP_
+#endif /* MOCK_UNITTEST_UTILS_HPP_ */

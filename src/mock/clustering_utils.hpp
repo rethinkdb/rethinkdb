@@ -1,5 +1,5 @@
-#ifndef UNITTEST_CLUSTERING_UTILS_HPP_
-#define UNITTEST_CLUSTERING_UTILS_HPP_
+#ifndef MOCK_CLUSTERING_TEST_UTILS_HPP_
+#define MOCK_CLUSTERING_TEST_UTILS_HPP_
 
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
@@ -7,12 +7,9 @@
 #include "clustering/immediate_consistency/query/master_access.hpp"
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "mock/unittest_utils.hpp"
 
-namespace unittest {
-
-using mock::dummy_protocol_t;
-using mock::a_thru_z_region;
+namespace mock {
 
 struct fake_fifo_enforcement_t {
     fifo_enforcer_source_t source;
@@ -171,8 +168,8 @@ public:
                                it != values_inserted->end();
                                it++) {
             cond_t interruptor;
-            std::string response = rfun((*it).first, osource->check_in(strprintf("unittest::test_inserter_t::validate(%p)", this)), &interruptor);
-            EXPECT_EQ((*it).second, response);
+            std::string response = rfun((*it).first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)), &interruptor);
+            rassert((*it).second == response);
         }
     }
 
@@ -249,4 +246,4 @@ private:
 
 }   /* namespace unittest */
 
-#endif /* UNITTEST_CLUSTERING_UTILS_HPP_ */
+#endif   /* MOCK_CLUSTERING_TEST_UTILS_HPP_ */
