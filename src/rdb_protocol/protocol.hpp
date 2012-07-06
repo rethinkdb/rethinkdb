@@ -8,6 +8,7 @@
 #include "btree/keys.hpp"
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
+#include "btree/btree_store.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -48,6 +49,7 @@ struct backfill_atom_t {
 } // namespace rdb_protocol_details
 
 struct rdb_protocol_t {
+    static const std::string protocol_name;
     typedef key_range_t region_t;
 
     struct temporary_cache_t { };
@@ -267,125 +269,42 @@ struct rdb_protocol_t {
 
     typedef traversal_progress_combiner_t backfill_progress_t;
 
-    class store_t : public store_view_t<rdb_protocol_t> {
-    public:
-        typedef region_map_t<rdb_protocol_t, binary_blob_t> metainfo_t;
-    private:
-
-        boost::scoped_ptr<standard_serializer_t> serializer;
-        mirrored_cache_config_t cache_dynamic_config;
-        boost::scoped_ptr<cache_t> cache;
-        boost::scoped_ptr<btree_slice_t> btree;
-        order_source_t order_source;
-
-        fifo_enforcer_source_t token_source;
-        fifo_enforcer_sink_t token_sink;
+    class store_t : public btree_store_t<rdb_protocol_t> {
     public:
         store_t(const std::string& filename, bool create, perfmon_collection_t *collection);
-        ~store_t();
-
-        /* store_view_t interface */
-        void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
-        void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);
-
-        metainfo_t get_metainfo(
-                order_token_t order_token,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-
-        void set_metainfo(
-                const metainfo_t &new_metainfo,
-                order_token_t order_token,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-                signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-
-        rdb_protocol_t::read_response_t read(
-                DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
-                const rdb_protocol_t::read_t &read,
-                order_token_t order_token,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-
-        rdb_protocol_t::write_response_t write(
-                DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
-                const metainfo_t& new_metainfo,
-                const rdb_protocol_t::write_t &write,
-                transition_timestamp_t timestamp,
-                order_token_t order_token,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-                signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-
-        bool send_backfill(
-                const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-                const boost::function<bool(const metainfo_t&)> &should_backfill,
-                const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun,
-                rdb_protocol_t::backfill_progress_t *progress,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-
-
-        void receive_backfill(
-                const rdb_protocol_t::backfill_chunk_t &chunk,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-                signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-
-        void reset_data(
-                const rdb_protocol_t::region_t &subregion,
-                const metainfo_t &new_metainfo,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-                signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
+        virtual ~store_t();
 
     private:
-        region_map_t<rdb_protocol_t, binary_blob_t> get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf) const THROWS_NOTHING;
+        read_response_t protocol_read(const read_t &read,
+                                      order_token_t order_token,
+                                      btree_slice_t *btree,
+                                      transaction_t *txn,
+                                      superblock_t *superblock);
 
-        void acquire_superblock_for_read(
-                access_t access,
-                bool snapshot,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
+        write_response_t protocol_write(const write_t &write,
+                                        order_token_t order_token,
+                                        transition_timestamp_t timestamp,
+                                        btree_slice_t *btree,
+                                        transaction_t *txn,
+                                        superblock_t *superblock);
 
-        void acquire_superblock_for_backfill(
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
+        void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
+                                    const boost::function<void(backfill_chunk_t)> &chunk_fun,
+                                    superblock_t *superblock,
+                                    btree_slice_t *btree,
+                                    transaction_t *txn,
+                                    backfill_progress_t *progress);
 
-        void acquire_superblock_for_write(
-                access_t access,
-                int expected_change_count,
-                boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
-                signal_t *interruptor)
-                THROWS_ONLY(interrupted_exc_t);
+        void protocol_receive_backfill(btree_slice_t *btree,
+                                       transaction_t *txn,
+                                       superblock_t *superblock,
+                                       signal_t *interruptor,
+                                       const backfill_chunk_t &chunk);
 
-        void check_and_update_metainfo(
-            DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
-            const metainfo_t &new_metainfo,
-            transaction_t *txn,
-            real_superblock_t *superbloc) const
-            THROWS_NOTHING;
-
-        metainfo_t check_metainfo(
-            DEBUG_ONLY(const metainfo_checker_t<rdb_protocol_t>& metainfo_checker, )
-            transaction_t *txn,
-            real_superblock_t *superbloc) const
-            THROWS_NOTHING;
-
-        void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
-
-        perfmon_collection_t *perfmon_collection;
+        void protocol_reset_data(const region_t& subregion,
+                                 btree_slice_t *btree,
+                                 transaction_t *txn,
+                                 superblock_t *superblock);
     };
 
     static key_range_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
