@@ -86,10 +86,9 @@ void do_get_write_token(int i, boost::scoped_ptr<fifo_enforcer_sink_t::exit_writ
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::new_write_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens_out,
-                                                   int size) {
-    guarantee(int(store_views.size()) == size);
-    pmap(size, boost::bind(do_get_write_token<protocol_t>, _1, write_tokens_out, store_views.data()));
+void multistore_ptr_t<protocol_t>::new_write_tokens(scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > *write_tokens_out) {
+    write_tokens_out->init(num_stores());
+    pmap(num_stores(), boost::bind(do_get_write_token<protocol_t>, _1, write_tokens_out->data(), store_views.data()));
 }
 
 template <class protocol_t>
@@ -169,13 +168,12 @@ void multistore_ptr_t<protocol_t>::do_set_a_metainfo(int i,
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
                                                      order_token_t order_token,
-                                                     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                                     int num_write_tokens,
+                                                     const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > &write_tokens,
                                                      signal_t *interruptor) {
-    guarantee(num_write_tokens == num_stores());
+    guarantee(write_tokens.size() == num_stores());
 
     pmap(num_stores(),
-         boost::bind(&multistore_ptr_t<protocol_t>::do_set_a_metainfo, this, _1, boost::ref(new_metainfo), order_token, write_tokens, interruptor));
+         boost::bind(&multistore_ptr_t<protocol_t>::do_set_a_metainfo, this, _1, boost::ref(new_metainfo), order_token, write_tokens.data(), interruptor));
 }
 
 template <class protocol_t>
@@ -330,17 +328,16 @@ void multistore_ptr_t<protocol_t>::single_shard_receive_backfill(int i, const ty
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::receive_backfill(const typename protocol_t::backfill_chunk_t &chunk,
-                                                    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                                    int num_stores_assertion,
+                                                    const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > &write_tokens,
                                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    guarantee(num_stores() == num_stores_assertion);
+    guarantee(num_stores() == write_tokens.size());
     guarantee(region_is_superset(get_multistore_joined_region(), chunk.get_region()));
 
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_receive_backfill,
                                    this,
                                    _1,
                                    boost::ref(chunk),
-                                   write_tokens,
+                                   write_tokens.data(),
                                    interruptor));
 
     if (interruptor->is_pulsed()) {
@@ -480,11 +477,10 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
                                     const typename protocol_t::write_t &write,
                                     transition_timestamp_t timestamp,
                                     order_token_t order_token,
-                                    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                    int num_stores_assertion,
+                                    const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > &write_tokens,
                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    guarantee(num_stores() == write_tokens.size());
 
-    guarantee(num_stores() == num_stores_assertion);
     std::vector<typename protocol_t::write_response_t> responses;
     new_and_metainfo_checker_t<protocol_t> metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo);
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_write,
@@ -492,7 +488,7 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
                                    boost::ref(write),
                                    timestamp,
                                    order_token,
-                                   write_tokens,
+                                   write_tokens.data(),
                                    &responses,
                                    interruptor));
 
@@ -536,16 +532,15 @@ void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::reset_all_data(const typename protocol_t::region_t &subregion,
                                                   const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                                                  boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                                  int num_stores_assertion,
+                                                  const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > &write_tokens,
                                                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
-    guarantee(num_stores() == num_stores_assertion);
+    guarantee(num_stores() == write_tokens.size());
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_reset_all_data,
                                    this, _1,
                                    boost::ref(subregion),
                                    boost::ref(new_metainfo),
-                                   write_tokens,
+                                   write_tokens.data(),
                                    interruptor));
 
     if (interruptor->is_pulsed()) {
