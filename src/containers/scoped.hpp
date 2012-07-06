@@ -139,9 +139,13 @@ public:
     }
 
     ssize_t size() const {
+        rassert(ptr_);
         return size_;
     }
 
+    bool has() const {
+        return ptr_ != NULL;
+    }
 
 private:
     T *ptr_;
