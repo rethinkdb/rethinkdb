@@ -63,6 +63,7 @@ module 'NamespaceView', ->
 
             @check_has_unsatisfiable_goals()
             issues.on 'all', @check_has_unsatisfiable_goals
+            namespaces.on 'all', @render
 
         check_has_unsatisfiable_goals: =>
             if @should_be_hidden
@@ -310,7 +311,7 @@ module 'NamespaceView', ->
                     $('#user-alert-space').append (@alert_tmpl {})
                     
                     # Trigger a manual refresh of the data
-                    collect_server_data(true)
+                    collect_server_data_once(false)
             )
 
         get_available_machines_in_datacenter: =>
@@ -573,6 +574,8 @@ module 'NamespaceView', ->
             @.$el.remove()
             $('.namespace-view .sharding').show()
             $('#user-alert-space').append(@alert_tmpl({}))
+            #TODO Update data
+            collect_server_data_once(false)
 
         destroy: =>
             @namespace.off()

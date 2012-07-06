@@ -30,19 +30,41 @@ module 'DataExplorerView', ->
     class @Container extends Backbone.View
         className: 'dataexplorer_container'
         template: Handlebars.compile $('#dataexplorer_view-template').html()
+        template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
 
-        events: ->
-            'keypress .input_query': 'handle_keypress'
-            'keyup .input_query': 'expand_textarea'
+        events:
+            'keyup .input_query': 'handle_keypress'
+            'keydown .input_query': 'handle_tab'
+            'focus .input_query': 'make_suggestion'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
             'click .namespace_link': 'write_query_namespace'
             'click .old_query': 'write_query_old'
             'click .home_view': 'display_home'
             'click .change_size': 'toggle_size'
-        displaying_full_view: false
 
+        displaying_full_view: false
+        current_suggestions: []
+        current_completed_query: ''
+        current_highlighted_suggestion: -1
+        keypress_is_tab: false
+
+        handle_tab: (event) =>
+            if event.which is 9
+                @keypress_is_tab = true
+
+                event.preventDefault()
+                @.$('.suggestion_name_li').eq(@current_highlighted_suggestion).removeClass 'suggestion_name_li_hl'
+                @current_highlighted_suggestion++
+                if @current_highlighted_suggestion >= @current_suggestions.length
+                    @current_highlighted_suggestion = 0
+                if @current_suggestions[@current_highlighted_suggestion]? # In case there is no suggestion
+                    @.$('.suggestion_name_li').eq(@current_highlighted_suggestion).addClass 'suggestion_name_li_hl'
+                    @.$('.input_query').val @current_completed_query + @current_suggestions[@current_highlighted_suggestion]
+ 
         handle_keypress: (event) =>
+            @expand_textarea()
+            console.log event.which
             if event.which is 13 and !event.shiftKey
                 event.preventDefault()
                 @execute_query()
@@ -56,8 +78,8 @@ module 'DataExplorerView', ->
 
 
         execute_query: =>
-            query = @.$('.input_query').val() 
-            @data_container.add_query(query) #TODO remove because it's redundant?
+            query = @.$('.input_query').val()
+            @data_container.add_query(query)
             window.router.sidebar.add_query(query)
             #TODO ajax call + loading
             if query is '0'
@@ -120,15 +142,45 @@ module 'DataExplorerView', ->
                 delete result[result.length-1]['website']
             @data_container.render(query, result)
 
+
+
         # Make suggestions when the user is writing
         # TODO: Everything
-        make_suggestion: ->
-            console.log 'suggestion'
+        make_suggestion: =>
+            if @keypress_is_tab
+                @keypress_is_tab = false
+                return
+            @current_suggestions = []
+            @.$('.suggestion_name_list').html ''
+            console.log 'suggesting'
+            #TODO parse in case of multiple lines
+            query = @.$('.input_query').val()
+            if /^(r\.)[^\.]*$/.test query
+                #TODO get real list before
+                db_list = ["database", "donutman", "omega3", "dragonstrike", "datalog", "dartagnan"]
+
+                splitdata = query.split('.')
+                current_db = splitdata[1]
+                @current_completed_query = splitdata[0]+'.'
+
+                pattern = new RegExp('^('+current_db+')', 'i')
+                for db in db_list
+                    if pattern.test(db)
+                        @current_suggestions.push db+'.'
+                        @.$('.suggestion_name_list').append @template_suggestion_name db
+            else if /^(r\.)[^\.]*\.[^\.]*$/.test query
+                console.log 'suggest namespaces'
+            else if /^(r\.)[^\.]*\.[^\.]*\.[^\.]*$/.test query
+                console.log 'first function'
+            else if /^(r\.)[^\.]*\.[^\.]*\.[^\.]*\..*$/.test query
+                console.log 'rest'
+
+
             return @
 
         # Clear the input
         clear_query: =>
-            @.$('.input_query').val ''
+            @.$('.input_query').val 'r.'
             @.$('.input_query').focus()
 
     
@@ -159,7 +211,6 @@ module 'DataExplorerView', ->
             @.$el.html @template
             @.$el.append @input_query.render().el
             @.$el.append @data_container.render().el
-
             return @
 
         # Go home

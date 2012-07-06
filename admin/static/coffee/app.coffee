@@ -176,10 +176,11 @@ collections_ready = ->
     });
 }
 
-function collect_server_data_once(optional_callback) {
+function collect_server_data_once(async, optional_callback) {
     $.ajax({
         url: '/ajax',
         dataType: 'json',
+        async: async,
         success: function(updates) {
             if (window.is_disconnected != null) {
                 delete window.is_disconnected
@@ -218,7 +219,7 @@ function collect_server_data_once(optional_callback) {
 } 
 
 function collect_server_data(optional_callback) {
-    collect_server_data_once(optional_callback)
+    collect_server_data_once(true, optional_callback)
     setTimeout(collect_server_data, updateInterval) // The callback are used just once.
 }`
 
