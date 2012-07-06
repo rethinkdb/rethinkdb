@@ -142,11 +142,10 @@ void backfillee(
 
     /* Read the metadata to determine where we're starting from */
     const int num_stores = svs->num_stores();
-    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[svs->num_stores()]);
-    svs->new_read_tokens(read_tokens.get(), num_stores);
+    scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
+    svs->new_read_tokens(&read_tokens);
 
-    region_map_t<protocol_t, version_range_t> start_point =
-        svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
+    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(order_token_t::ignore, read_tokens, interruptor);
 
     start_point = start_point.mask(region);
 
@@ -169,7 +168,7 @@ void backfillee(
          * pool services these requests and poops them off one at a time to
          * perform them. */
 
-        typedef fifo_enforcer_queue_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > chunk_queue_t; 
+        typedef fifo_enforcer_queue_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > chunk_queue_t;
         chunk_queue_t chunk_queue;
 
         /* The backfiller will notify `done_mailbox` when the backfill is all over

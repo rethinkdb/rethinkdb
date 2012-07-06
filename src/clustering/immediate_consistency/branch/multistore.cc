@@ -73,10 +73,9 @@ void do_get_read_token(int i, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::new_read_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out,
-                                                   int size) {
-    guarantee(int(store_views.size()) == size);
-    pmap(size, boost::bind(do_get_read_token<protocol_t>, _1, read_tokens_out, store_views.data()));
+void multistore_ptr_t<protocol_t>::new_read_tokens(scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > *read_tokens_out) {
+    read_tokens_out->init(num_stores());
+    pmap(num_stores(), boost::bind(do_get_read_token<protocol_t>, _1, read_tokens_out->data(), store_views.data()));
 }
 
 template <class protocol_t>
@@ -126,11 +125,10 @@ void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
 template <class protocol_t>
 region_map_t<protocol_t, version_range_t>  multistore_ptr_t<protocol_t>::
 get_all_metainfos(order_token_t order_token,
-                  boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                  int num_read_tokens,
+                  const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > &read_tokens,
 		  signal_t *interruptor) {
 
-    guarantee(int(store_views.size()) == num_read_tokens);
+    guarantee(int(store_views.size()) == read_tokens.size());
 
     mutex_t ret_mutex;
     region_map_t<protocol_t, version_range_t> ret(get_multistore_joined_region());
@@ -138,7 +136,7 @@ get_all_metainfos(order_token_t order_token,
     // TODO: For getting, we possibly want to cache things on the home
     // thread, but wait until we want a multithreaded listener.
 
-    pmap(store_views.size(), boost::bind(&multistore_ptr_t<protocol_t>::do_get_a_metainfo, this, _1, order_token, read_tokens, interruptor, &ret, &ret_mutex));
+    pmap(store_views.size(), boost::bind(&multistore_ptr_t<protocol_t>::do_get_a_metainfo, this, _1, order_token, read_tokens.data(), interruptor, &ret, &ret_mutex));
 
     rassert(ret.get_domain() == region);
 
@@ -276,10 +274,9 @@ bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<p
                                                             const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,
                                                             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
                                                             typename protocol_t::backfill_progress_t *progress,
-                                                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                                                            int num_stores_assertion,
+                                                            const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > &read_tokens,
                                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    guarantee(num_stores() == num_stores_assertion);
+    guarantee(num_stores() == read_tokens.size());
     guarantee(region_is_superset(get_multistore_joined_region(), start_point.get_domain()));
 
     multistore_send_backfill_should_backfill_t<protocol_t> helper(num_stores(), start_point.get_domain(), should_backfill);
@@ -291,7 +288,7 @@ bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<p
                                    boost::ref(start_point),
                                    boost::ref(chunk_fun),
                                    progress,
-                                   read_tokens,
+                                   read_tokens.data(),
                                    interruptor));
 
     if (interruptor->is_pulsed()) {
@@ -401,16 +398,15 @@ typename protocol_t::read_response_t
 multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                                    const typename protocol_t::read_t &read,
                                    order_token_t order_token,
-                                   boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                                   int num_stores_assertion,
+                                   const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > &read_tokens,
                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    guarantee(num_stores() == num_stores_assertion);
+    guarantee(num_stores() == read_tokens.size());
     std::vector<typename protocol_t::read_response_t> responses;
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_read,
                                    this, _1, DEBUG_ONLY(boost::ref(metainfo_checker), )
                                    boost::ref(read),
                                    order_token,
-                                   read_tokens,
+                                   read_tokens.data(),
                                    &responses,
                                    interruptor));
 

@@ -39,7 +39,7 @@ public:
 
     int num_stores() const { return store_views.size(); }
 
-    void new_read_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out, int num_stores_assertion);
+    void new_read_tokens(scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > *read_tokens_out);
 
     void new_write_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens_out, int num_stores_assertion);
 
@@ -47,8 +47,7 @@ public:
     // doing something stupid.
     region_map_t<protocol_t, version_range_t>
     get_all_metainfos(order_token_t order_token,
-                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                      int num_read_tokens,
+                      const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > &read_tokens,
 		      signal_t *interruptor);
 
     typename protocol_t::region_t get_region(int i) const;
@@ -66,8 +65,7 @@ public:
                                   const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,
                                   const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
                                   typename protocol_t::backfill_progress_t *progress,
-                                  boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                                  int num_stores_assertion,
+                                  const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > &read_tokens,
                                   signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -81,8 +79,7 @@ public:
     typename protocol_t::read_response_t read(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                                               const typename protocol_t::read_t &read,
                                               order_token_t order_token,
-                                              boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                                              int num_stores_assertion,
+                                              const scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > &read_tokens,
                                               signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
