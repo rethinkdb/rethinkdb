@@ -39,8 +39,8 @@ public:
 
     int num_stores() const { return store_views_.size(); }
 
-    void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *read_token_out);
-    void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *write_token_out);
+    void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out);
+    void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out);
 
     // TODO: I'm pretty sure every time we call this function we are
     // doing something stupid.
@@ -91,7 +91,7 @@ public:
 
     void reset_all_data(const typename protocol_t::region_t &subregion,
                         const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *write_token,
+                        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
 
@@ -137,7 +137,7 @@ private:
 
     void do_get_a_metainfo(int i,
                            order_token_t order_token,
-                           const scoped_array_t<fifo_enforcer_read_token_t> &read_tokens,
+                           const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
                            signal_t *interruptor,
                            region_map_t<protocol_t, version_range_t> *updatee,
                            mutex_t *updatee_mutex) THROWS_NOTHING;
