@@ -37,7 +37,7 @@ public:
 
     typename protocol_t::region_t get_multistore_joined_region() const;
 
-    int num_stores() const { return store_views.size(); }
+    int num_stores() const { return store_views_.size(); }
 
     void new_read_tokens(scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > *read_tokens_out);
 
@@ -154,9 +154,9 @@ private:
     void initialize(store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region_mask) THROWS_NOTHING;
 
     // We _own_ these pointers and must delete them at destruction.
-    scoped_array_t<store_view_t<protocol_t> *> store_views;
+    scoped_array_t<store_view_t<protocol_t> *> store_views_;
 
-    typename protocol_t::region_t region;
+    typename protocol_t::region_t region_;
 
     DISABLE_COPYING(multistore_ptr_t);
 };
