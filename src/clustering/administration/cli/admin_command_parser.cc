@@ -194,11 +194,11 @@ std::vector<std::string> parse_line(const std::string& line) {
     return result;
 }
 
-void admin_command_parser_t::param_options::add_option(const char *term) {
+void admin_command_parser_t::param_options_t::add_option(const char *term) {
     valid_options.insert(term);
 }
 
-void admin_command_parser_t::param_options::add_options(const char *term, ...) {
+void admin_command_parser_t::param_options_t::add_options(const char *term, ...) {
     va_list terms;
     va_start(terms, term);
     while (term != NULL) {
@@ -208,30 +208,30 @@ void admin_command_parser_t::param_options::add_options(const char *term, ...) {
     va_end(terms);
 }
 
-admin_command_parser_t::command_info::~command_info() {
-    for(std::map<std::string, param_options *>::iterator i = flags.begin(); i != flags.end(); ++i) {
+admin_command_parser_t::command_info_t::~command_info_t() {
+    for(std::map<std::string, param_options_t *>::iterator i = flags.begin(); i != flags.end(); ++i) {
         delete i->second;
     }
 
-    for(std::vector<param_options *>::iterator i = positionals.begin(); i != positionals.end(); ++i) {
+    for(std::vector<param_options_t *>::iterator i = positionals.begin(); i != positionals.end(); ++i) {
         delete *i;
     }
 
-    for(std::map<std::string, command_info *>::iterator i = subcommands.begin(); i != subcommands.end(); ++i) {
+    for(std::map<std::string, command_info_t *>::iterator i = subcommands.begin(); i != subcommands.end(); ++i) {
         delete i->second;
     }
 }
 
-admin_command_parser_t::param_options * admin_command_parser_t::command_info::add_flag(const std::string& name, int count, bool required)
+admin_command_parser_t::param_options_t *admin_command_parser_t::command_info_t::add_flag(const std::string& name, int count, bool required)
 {
-    param_options *option = new param_options(name, count, required);
+    param_options_t *option = new param_options_t(name, count, required);
     flags.insert(std::make_pair(name, option));
     return option;
 }
 
-admin_command_parser_t::param_options * admin_command_parser_t::command_info::add_positional(const std::string& name, int count, bool required)
+admin_command_parser_t::param_options_t *admin_command_parser_t::command_info_t::add_positional(const std::string& name, int count, bool required)
 {
-    param_options *option = new param_options(name, count, required);
+    param_options_t *option = new param_options_t(name, count, required);
     positionals.push_back(option);
     return option;
 }
@@ -306,7 +306,7 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
                                                const std::string& header,
                                                bool console) {
     const char *prefix = console ? "" : "rethinkdb admin <ADMIN-OPTIONS> ";
-    Help_Pager *help = new Help_Pager();
+    scoped_ptr_t<help_pager_t> help(new help_pager_t());
 
     struct winsize ws;
     size_t width = 80;
@@ -358,8 +358,6 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
             help->pagef("%s\n\n", indent_and_underline(options[i].second, 8, 8, width).c_str());
         }
     }
-
-    delete help;
 }
 
 void admin_command_parser_t::do_usage(bool console) {
@@ -402,12 +400,11 @@ admin_command_parser_t::~admin_command_parser_t() {
     rassert(instance == this);
     instance = NULL;
 
-    delete cluster;
     destroy_command_descriptions(commands);
 }
 
-void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, command_info *>& cmd_map) {
-    for (std::map<std::string, command_info *>::iterator i = cmd_map.begin(); i != cmd_map.end(); ++i) {
+void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, command_info_t *>& cmd_map) {
+    for (std::map<std::string, command_info_t *>::iterator i = cmd_map.begin(); i != cmd_map.end(); ++i) {
         if (!i->second->subcommands.empty()) {
             destroy_command_descriptions(i->second->subcommands);
         }
@@ -416,29 +413,29 @@ void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, 
     cmd_map.clear();
 }
 
-admin_command_parser_t::command_info * admin_command_parser_t::add_command(std::map<std::string, command_info *>& cmd_map,
+admin_command_parser_t::command_info_t *admin_command_parser_t::add_command(std::map<std::string, command_info_t *>& cmd_map,
                                                   const std::string& full_cmd,
                                                   const std::string& cmd,
                                                   const std::string& usage,
-                                                  void (admin_cluster_link_t::* const fn)(command_data&)) {
-    command_info *info = NULL;
+                                                  void (admin_cluster_link_t::*const fn)(command_data&)) {
+    command_info_t *info = NULL;
     size_t space_index = cmd.find_first_of(" \t\r\n");
 
     // Parse out the beginning of the command, in case it's a multi-level command, and do the add recursively
     if (space_index != std::string::npos) {
         std::string fragment(cmd.substr(0, space_index));
-        std::map<std::string, command_info *>::iterator i = cmd_map.find(fragment);
+        std::map<std::string, command_info_t *>::iterator i = cmd_map.find(fragment);
 
         if (i == cmd_map.end()) {
-            i = cmd_map.insert(std::make_pair(fragment, new command_info(full_cmd, fragment, "", NULL))).first;
+            i = cmd_map.insert(std::make_pair(fragment, new command_info_t(full_cmd, fragment, "", NULL))).first;
         }
 
         info = add_command(i->second->subcommands, full_cmd, cmd.substr(space_index + 1), usage, fn);
     } else {
-        std::map<std::string, command_info *>::iterator i = cmd_map.find(cmd);
+        std::map<std::string, command_info_t *>::iterator i = cmd_map.find(cmd);
 
         if (i == cmd_map.end()) {
-            i = cmd_map.insert(std::make_pair(cmd, new command_info(full_cmd, cmd, usage, fn))).first;
+            i = cmd_map.insert(std::make_pair(cmd, new command_info_t(full_cmd, cmd, usage, fn))).first;
         } else {
             // This node already exists, but this command should overwrite the current values
             i->second->usage = usage;
@@ -453,7 +450,7 @@ admin_command_parser_t::command_info * admin_command_parser_t::add_command(std::
 
 void admin_command_parser_t::build_command_descriptions() {
     rassert(commands.empty());
-    command_info *info = NULL;
+    command_info_t *info = NULL;
 
     info = add_command(commands, pin_shard_command, pin_shard_command, pin_shard_usage, &admin_cluster_link_t::do_admin_pin_shard);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
@@ -530,12 +527,12 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("subcommand", 1, false);
 }
 
-admin_cluster_link_t * admin_command_parser_t::get_cluster() {
-    if (cluster == NULL) {
+admin_cluster_link_t *admin_command_parser_t::get_cluster() {
+    if (!cluster.has()) {
         if (joins_param.empty()) {
             throw admin_no_connection_exc_t("no join parameter specified");
         }
-        cluster = new admin_cluster_link_t(joins_param, client_port_param, interruptor);
+        cluster.init(new admin_cluster_link_t(joins_param, client_port_param, interruptor));
 
         // Spin for some time, trying to connect to the whole cluster
         for (uint64_t time_waited = 0; time_waited < cluster_join_timeout &&
@@ -555,19 +552,19 @@ admin_cluster_link_t * admin_command_parser_t::get_cluster() {
         }
     }
 
-    return cluster;
+    return cluster.get();
 }
 
 
-admin_command_parser_t::command_info * admin_command_parser_t::find_command(const std::map<std::string, admin_command_parser_t::command_info *>& cmd_map, const std::vector<std::string>& line, size_t& index) {
-    std::map<std::string, command_info *>::const_iterator i = cmd_map.find(line[0]);
+admin_command_parser_t::command_info_t *admin_command_parser_t::find_command(const std::map<std::string, admin_command_parser_t::command_info_t *>& cmd_map, const std::vector<std::string>& line, size_t& index) {
+    std::map<std::string, command_info_t *>::const_iterator i = cmd_map.find(line[0]);
 
     if (i == commands.end()) {
         return NULL;
     } else {
         // If any subcommands exist, either one is selected by the next substring, or we're at the final command
         for (index = 1; index < line.size() && !i->second->subcommands.empty(); ++index) {
-            std::map<std::string, command_info *>::iterator temp = i->second->subcommands.find(line[index]);
+            std::map<std::string, command_info_t *>::iterator temp = i->second->subcommands.find(line[index]);
             if (temp == i->second->subcommands.end()) {
                 break;
             }
@@ -578,7 +575,7 @@ admin_command_parser_t::command_info * admin_command_parser_t::find_command(cons
     return i->second;
 }
 
-admin_command_parser_t::command_data admin_command_parser_t::parse_command(command_info *info, const std::vector<std::string>& line)
+admin_command_parser_t::command_data admin_command_parser_t::parse_command(command_info_t *info, const std::vector<std::string>& line)
 {
     command_data data(info);
     size_t positional_index = 0;
@@ -587,9 +584,9 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
     // Parse out options and parameters
     for (size_t index = 0; index < line.size(); ++index) {
         if (line[index].find("--") == 0) { // If the argument starts with a "--", it must be a flag option
-            std::map<std::string, param_options *>::iterator opt_iter = info->flags.find(line[index].substr(2));
+            std::map<std::string, param_options_t *>::iterator opt_iter = info->flags.find(line[index].substr(2));
             if (opt_iter != info->flags.end()) {
-                param_options *option = opt_iter->second;
+                param_options_t *option = opt_iter->second;
                 if (option->count == 0) {  // Flag only
                     data.params[option->name] = std::vector<std::string>();
                 } else {
@@ -629,7 +626,7 @@ admin_command_parser_t::command_data admin_command_parser_t::parse_command(comma
         }
     }
 
-    for (std::map<std::string, param_options *>::iterator j = info->flags.begin(); j != info->flags.end(); ++j) {
+    for (std::map<std::string, param_options_t *>::iterator j = info->flags.begin(); j != info->flags.end(); ++j) {
         if (j->second->required && data.params.find(j->second->name) == data.params.end()) {
             throw admin_parse_exc_t("required flag not specified: " + j->second->name);
         }
@@ -679,8 +676,8 @@ void admin_command_parser_t::completion_generator_hook(const char *raw, linenois
     }
 }
 
-std::map<std::string, admin_command_parser_t::command_info *>::const_iterator admin_command_parser_t::find_command_with_completion(const std::map<std::string, command_info *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches) {
-    std::map<std::string, command_info *>::const_iterator i = commands.find(str);
+std::map<std::string, admin_command_parser_t::command_info_t *>::const_iterator admin_command_parser_t::find_command_with_completion(const std::map<std::string, command_info_t *>& commands, const std::string& str, linenoiseCompletions *completions, bool add_matches) {
+    std::map<std::string, command_info_t *>::const_iterator i = commands.find(str);
     if (add_matches) {
         if (i == commands.end()) {
             for (i = commands.lower_bound(str); i != commands.end() && i->first.find(str) == 0; ++i) {
@@ -695,7 +692,7 @@ std::map<std::string, admin_command_parser_t::command_info *>::const_iterator ad
     return i;
 }
 
-void admin_command_parser_t::add_option_matches(const param_options *option, const std::string& partial, linenoiseCompletions *completions) {
+void admin_command_parser_t::add_option_matches(const param_options_t *option, const std::string& partial, linenoiseCompletions *completions) {
 
     if (partial.find("!") == 0) {
         // Don't allow completions beginning with '!', as we use it as a special case
@@ -736,7 +733,7 @@ void admin_command_parser_t::add_option_matches(const param_options *option, con
     }
 }
 
-void admin_command_parser_t::add_positional_matches(const command_info *info, size_t offset, const std::string& partial, linenoiseCompletions *completions) {
+void admin_command_parser_t::add_positional_matches(const command_info_t *info, size_t offset, const std::string& partial, linenoiseCompletions *completions) {
     if (info->positionals.size() > offset) {
         add_option_matches(info->positionals[offset], partial, completions);
     }
@@ -748,14 +745,14 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
 
     if (line.empty()) {
         // No command specified, available completions are all basic commands
-        for (std::map<std::string, command_info *>::iterator i = commands.begin(); i != commands.end(); ++i) {
+        for (std::map<std::string, command_info_t *>::iterator i = commands.begin(); i != commands.end(); ++i) {
             linenoiseAddCompletion(completions, i->first.c_str());
         }
     } else {
         // Command specified, find a matching command/subcommand
         size_t index = 0;
-        std::map<std::string, command_info *>::const_iterator i = commands.find(line[0]);
-        std::map<std::string, command_info *>::const_iterator end = commands.end();
+        std::map<std::string, command_info_t *>::const_iterator i = commands.find(line[0]);
+        std::map<std::string, command_info_t *>::const_iterator end = commands.end();
 
         i = find_command_with_completion(commands, line[index], completions, partial && line.size() == 1);
         if (i == end) {
@@ -763,7 +760,7 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
         }
 
         for (index = 1; index < line.size() && !i->second->subcommands.empty(); ++index) {
-            std::map<std::string, command_info *>::const_iterator old = i;
+            std::map<std::string, command_info_t *>::const_iterator old = i;
             i = find_command_with_completion(i->second->subcommands, line[index], completions, partial && line.size() == index + 1);
             if (i == old->second->subcommands.end()) {
                 i = old;
@@ -771,7 +768,7 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
             }
         }
 
-        command_info *cmd = i->second;
+        command_info_t *cmd = i->second;
 
         if (index == line.size() && !cmd->subcommands.empty()) {
             // We're at the end of the line, and there are still more subcommands
@@ -800,7 +797,7 @@ void admin_command_parser_t::completion_generator(const std::vector<std::string>
 
         for (; index < line.size(); ++index) {
             if (line[index].find("--") == 0) { // This is a flag, skip any completed options
-                std::map<std::string, param_options *>::iterator opt_iter = cmd->flags.find(line[index].substr(2));
+                std::map<std::string, param_options_t *>::iterator opt_iter = cmd->flags.find(line[index].substr(2));
                 if (opt_iter != cmd->flags.end() && (index != line.size() - 1 || !partial)) {
                     if (line.size() <= index + opt_iter->second->count) { // Not enough params for this flag
                         if (!partial) {
@@ -870,7 +867,7 @@ void admin_command_parser_t::run_completion(const std::vector<std::string>& comm
     linenoiseFreeCompletions(&completions);
 }
 
-std::string admin_command_parser_t::get_subcommands_usage(command_info *info) {
+std::string admin_command_parser_t::get_subcommands_usage(command_info_t *info) {
     std::string result;
 
     if (!info->usage.empty()) {
@@ -878,7 +875,7 @@ std::string admin_command_parser_t::get_subcommands_usage(command_info *info) {
     }
 
     if (!info->subcommands.empty()) {
-        for (std::map<std::string, command_info *>::const_iterator i = info->subcommands.begin(); i != info->subcommands.end(); ++i) {
+        for (std::map<std::string, command_info_t *>::const_iterator i = info->subcommands.begin(); i != info->subcommands.end(); ++i) {
             result += get_subcommands_usage(i->second);
         }
     }
@@ -887,7 +884,7 @@ std::string admin_command_parser_t::get_subcommands_usage(command_info *info) {
 }
 
 void admin_command_parser_t::parse_and_run_command(const std::vector<std::string>& line) {
-    command_info *info = NULL;
+    command_info_t *info = NULL;
 
     try {
         size_t index;
@@ -916,9 +913,9 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
 
 class linenoiseCallable {
 public:
-    linenoiseCallable(const char* _prompt, char** _raw_line_ptr) : prompt(_prompt), raw_line_ptr(_raw_line_ptr) { }
-    const char* prompt;
-    char** raw_line_ptr;
+    linenoiseCallable(const char*_prompt, char**_raw_line_ptr) : prompt(_prompt), raw_line_ptr(_raw_line_ptr) { }
+    const char *prompt;
+    char **raw_line_ptr;
 
     void operator () () const { *raw_line_ptr = linenoise(prompt); }
 };
@@ -929,7 +926,7 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
     get_cluster();
 
     char prompt[64];
-    char* raw_line;
+    char *raw_line;
     linenoiseCallable linenoise_blocker(prompt, &raw_line);
     std::string line;
 

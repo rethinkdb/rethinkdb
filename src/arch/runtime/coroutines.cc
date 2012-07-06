@@ -261,7 +261,7 @@ void coro_t::notify_now_deprecated() {
 
 #ifndef NDEBUG
     rassert(cglobals->assert_no_coro_waiting_counter == 0,
-        "This code path is not supposed to use notify_now_deprecated() or spawn_now_deprecated().");
+        "This code path is not supposed to use notify_now_deprecated() or spawn_now().");
 
     /* Record old value of `assert_finite_coro_waiting_counter`. It must be legal to call
     `coro_t::wait()` within the coro we are going to jump to, or else we would never jump

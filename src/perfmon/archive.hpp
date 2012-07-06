@@ -2,7 +2,6 @@
 #define PERFMON_ARCHIVE_HPP_
 
 #include "perfmon/perfmon.hpp"
-#include "containers/archive/boost_types.hpp"
 #include "rpc/serialize_macros.hpp"
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(perfmon_result_t::perfmon_result_type_t, int8_t, perfmon_result_t::type_value, perfmon_result_t::type_map);

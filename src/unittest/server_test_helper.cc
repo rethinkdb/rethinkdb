@@ -16,9 +16,9 @@ const int server_test_helper_t::changed_value = 0x87654321;
 
 server_test_helper_t::server_test_helper_t()
     : serializer(NULL), thread_pool(new thread_pool_t(1, false)) { }
-server_test_helper_t::~server_test_helper_t() {
-    delete thread_pool;
-}
+
+// Destructor defined in the .cc so that thread_pool_t isn't an incomplete type.
+server_test_helper_t::~server_test_helper_t() { }
 
 void server_test_helper_t::run() {
     struct starter_t : public thread_message_t {

@@ -1,9 +1,6 @@
 #ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
 #define RPC_CONNECTIVITY_CLUSTER_HPP_
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
@@ -13,6 +10,12 @@
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
 #include "containers/uuid.hpp"
+
+namespace boost {
+template <class> class optional;
+template <class> class scoped_ptr;
+template <class> class function;
+}
 
 extern const char *const cluster_proto_header;
 
@@ -86,18 +89,23 @@ public:
             perfmon_membership_t pm_collection_membership, pm_bytes_sent_membership;
 
         private:
-            void install_this(int target_thread) THROWS_NOTHING;
-            void uninstall_this(int target_thread) THROWS_NOTHING;
-
             /* We only hold this information so we can deregister ourself */
             run_t *parent;
             peer_id_t peer;
+
+            struct entry_installation_t {
+                auto_drainer_t drainer_;
+                connection_entry_t *that_;
+
+                entry_installation_t(connection_entry_t *that);
+                ~entry_installation_t();
+            };
 
             /* These are one-per-thread; we destroy them as we deregister
             ourselves on each thread. Things that want to send a message via
             this `connection_entry_t` acquire the drainer for their thread when
             they look us up in `thread_info_t::connection_map`. */
-            boost::scoped_array<boost::scoped_ptr<auto_drainer_t> > drainers;
+            scoped_ptr_t<one_per_thread_t<entry_installation_t> > entries;
         };
 
         /* Sets a variable to a value in its constructor; sets it to NULL in its
@@ -163,7 +171,8 @@ public:
         mutex_t new_connection_mutex;
 
         int cluster_client_port;
-        tcp_bound_socket_t* cluster_listener_socket;
+        int cluster_listener_port;
+        scoped_ptr_t<tcp_bound_socket_t> cluster_listener_socket;
 
         variable_setter_t register_us_with_parent;
 
@@ -176,7 +185,7 @@ public:
         auto_drainer_t drainer;
 
         /* This must be destroyed before `drainer` is. */
-        tcp_listener_t *listener;
+        scoped_ptr_t<tcp_listener_t> listener;
 
         /* A place to put our stats */
     };
@@ -215,18 +224,12 @@ private:
 
         rwi_lock_assertion_t lock;
 
-        publisher_controller_t< std::pair<
-                boost::function<void(peer_id_t)>,
-                boost::function<void(peer_id_t)>
-                > > publisher;
+        publisher_controller_t<peers_list_callback_t *> publisher;
     };
 
     /* `connectivity_service_t` private methods: */
     rwi_lock_assertion_t *get_peers_list_lock() THROWS_NOTHING;
-    publisher_t< std::pair<
-            boost::function<void(peer_id_t)>,
-            boost::function<void(peer_id_t)>
-            > > *get_peers_list_publisher() THROWS_NOTHING;
+    publisher_t<peers_list_callback_t *> *get_peers_list_publisher() THROWS_NOTHING;
 
     /* `me` is our `peer_id_t`. */
     const peer_id_t me;

@@ -10,6 +10,7 @@
 #include "concurrency/coro_fifo.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
+#include "containers/scoped.hpp"
 #include "containers/two_level_array.hpp"
 #include "perfmon/types.hpp"
 #include "repli_timestamp.hpp"
@@ -67,7 +68,7 @@ public:
 private:
     bool snapshotted;
     bool has_been_changed;
-    typename inner_cache_t::buf_lock_t *internal_buf_lock;
+    scoped_ptr_t<typename inner_cache_t::buf_lock_t> internal_buf_lock;
     scc_cache_t<inner_cache_t> *cache;
 private:
     crc_t compute_crc() {

@@ -87,10 +87,14 @@ void run_metadata_exchange_test() {
 
     /* Block until the connection is established */
     {
-        cond_t connection_established;
-        connectivity_service_t::peers_list_subscription_t subs(
-            boost::bind(&cond_t::pulse, &connection_established),
-            NULL);
+        struct : public cond_t, public peers_list_callback_t {
+            void on_connect(UNUSED peer_id_t peer) {
+                pulse();
+            }
+            void on_disconnect(UNUSED peer_id_t peer) { }
+        } connection_established;
+        connectivity_service_t::peers_list_subscription_t subs(&connection_established);
+
         {
             ASSERT_FINITE_CORO_WAITING;
             connectivity_service_t::peers_list_freeze_t freeze(&cluster1);
@@ -100,6 +104,7 @@ void run_metadata_exchange_test() {
                 connection_established.pulse();
             }
         }
+
         connection_established.wait_lazily_unordered();
     }
 
@@ -139,10 +144,15 @@ void run_sync_from_test() {
 
     /* Block until the connection is established */
     {
-        cond_t connection_established;
-        connectivity_service_t::peers_list_subscription_t subs(
-            boost::bind(&cond_t::pulse, &connection_established),
-            NULL);
+        struct : public cond_t, public peers_list_callback_t {
+            void on_connect(UNUSED peer_id_t peer) {
+                pulse();
+            }
+            void on_disconnect(UNUSED peer_id_t peer) { }
+        } connection_established;
+
+        connectivity_service_t::peers_list_subscription_t subs(&connection_established);
+
         {
             ASSERT_FINITE_CORO_WAITING;
             connectivity_service_t::peers_list_freeze_t freeze(&cluster1);
@@ -152,6 +162,7 @@ void run_sync_from_test() {
                 connection_established.pulse();
             }
         }
+
         connection_established.wait_lazily_unordered();
     }
 

@@ -80,8 +80,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     branch_id = business_card.get().get().branch_id;
     branch_history_manager->import_branch_history(business_card.get().get().branch_id_associated_branch_history, interruptor);
 
-    const int num_stores = svs->num_stores();
-
 #ifndef NDEBUG
     /* Sanity-check to make sure we're on the same timeline as the thing
        we're trying to join. The backfiller will perform an equivalent check,
@@ -91,9 +89,9 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     branch_birth_certificate_t<protocol_t> this_branch_history = branch_history_manager->get_branch(branch_id);
     guarantee(region_is_superset(this_branch_history.region, svs->get_multistore_joined_region()));
 
-    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-    svs->new_read_tokens(read_tokens.get(), num_stores);
-    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
+    scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
+    svs->new_read_tokens(&read_tokens);
+    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(order_token_t::ignore, read_tokens, interruptor);
 
     for (typename region_map_t<protocol_t, version_range_t>::const_iterator it = start_point.begin();
          it != start_point.end();
@@ -148,10 +146,10 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
         throw backfiller_lost_exc_t();
     }
 
-    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens2(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-    svs->new_read_tokens(read_tokens2.get(), num_stores);
+    scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens2;
+    svs->new_read_tokens(&read_tokens2);
 
-    region_map_t<protocol_t, version_range_t> backfill_end_point = svs->get_all_metainfos(order_token_t::ignore, read_tokens2.get(), num_stores, interruptor);
+    region_map_t<protocol_t, version_range_t> backfill_end_point = svs->get_all_metainfos(order_token_t::ignore, read_tokens2, interruptor);
 
     /* Sanity checking. */
 
@@ -225,8 +223,6 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     broadcaster->bootstrap_svs = NULL;
 
 #ifndef NDEBUG
-    const int num_stores = svs->num_stores();
-
     /* Confirm that `broadcaster_metadata` corresponds to `broadcaster` */
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
         broadcaster_metadata->get();
@@ -241,9 +237,9 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     rassert(svs->get_multistore_joined_region() == this_branch_history.region);
 
     /* Snapshot the metainfo before we start receiving writes */
-    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-    svs->new_read_tokens(read_tokens.get(), num_stores);
-    region_map_t<protocol_t, version_range_t> initial_metainfo = svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
+    scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
+    svs->new_read_tokens(&read_tokens);
+    region_map_t<protocol_t, version_range_t> initial_metainfo = svs->get_all_metainfos(order_token_t::ignore, read_tokens, interruptor);
 #endif
 
     /* Attempt to register for writes */
@@ -392,8 +388,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         write_queue_has_drained.pulse_if_not_already_pulsed();
     }
 
-    const int num_stores = svs->num_stores();
-    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+    scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
     {
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&store_entrance_sink, qe.fifo_token);
         if (qe.transition_timestamp.timestamp_before() < backfill_end_timestamp) {
@@ -401,7 +396,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         }
         wait_interruptible(&fifo_exit, interruptor);
         advance_current_timestamp_and_pulse_waiters(qe.transition_timestamp);
-        svs->new_write_tokens(write_tokens.get(), num_stores);
+        svs->new_write_tokens(&write_tokens);
     }
 
 #ifndef NDEBUG
@@ -416,8 +411,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         qe.write.shard(region_intersection(qe.write.get_region(), svs->get_multistore_joined_region())),
         qe.transition_timestamp,
         qe.order_token,
-        write_tokens.get(),
-        num_stores,
+        write_tokens,
         interruptor);
 }
 
@@ -449,8 +443,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
         THROWS_NOTHING
 {
     try {
-        const int num_stores = svs->num_stores();
-        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+        scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink` in case we
@@ -463,7 +456,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
 
             advance_current_timestamp_and_pulse_waiters(transition_timestamp);
 
-            svs->new_write_tokens(write_tokens.get(), num_stores);
+            svs->new_write_tokens(&write_tokens);
         }
 
         // Make sure we can serve the entire operation without masking it.
@@ -485,8 +478,7 @@ void listener_t<protocol_t>::perform_writeread(typename protocol_t::write_t writ
                          write,
                          transition_timestamp,
                          order_token,
-                         write_tokens.get(),
-                         num_stores,
+                         write_tokens,
                          keepalive.get_drain_signal());
 
         send(mailbox_manager, ack_addr, response);
@@ -522,8 +514,7 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING
 {
     try {
-        const int num_stores = svs->num_stores();
-        boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
+        scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
         {
             {
                 /* Briefly pass through `write_queue_entrance_sink` in case we
@@ -536,7 +527,7 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
 
             rassert(current_timestamp == expected_timestamp);
 
-            svs->new_read_tokens(read_tokens.get(), num_stores);
+            svs->new_read_tokens(&read_tokens);
         }
 
 #ifndef NDEBUG
@@ -549,8 +540,7 @@ void listener_t<protocol_t>::perform_read(typename protocol_t::read_t read,
             DEBUG_ONLY(metainfo_checker, )
             read,
             order_token,
-            read_tokens.get(),
-            num_stores,
+            read_tokens,
             keepalive.get_drain_signal());
 
         send(mailbox_manager, ack_addr, response);

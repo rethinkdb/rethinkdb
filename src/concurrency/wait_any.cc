@@ -1,6 +1,6 @@
 #include "concurrency/wait_any.hpp"
 
-class wait_any_subscription_t : public signal_t::subscription_t {
+class wait_any_subscription_t : public signal_t::subscription_t, public intrusive_list_node_t<wait_any_subscription_t> {
 public:
     explicit wait_any_subscription_t(wait_any_t *parent) : parent_(parent) { }
     virtual void run();
@@ -48,11 +48,10 @@ wait_any_t::wait_any_t(signal_t *s1, signal_t *s2, signal_t *s3, signal_t *s4, s
 }
 
 wait_any_t::~wait_any_t() {
-    for (std::vector<wait_any_subscription_t *>::iterator p = subs.end(); p != subs.begin();) {
-        --p;
-        wait_any_subscription_t *sub = *p;
-
-        delete sub;
+    while (!subs.empty()) {
+        wait_any_subscription_t *p = subs.head();
+        subs.remove(p);
+        delete p;
     }
 }
 

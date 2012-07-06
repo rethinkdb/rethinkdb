@@ -11,6 +11,7 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/scoped_array.hpp>
 
 #include "arch/io/io_utils.hpp"   /* for `scoped_fd_t` and `_gettid()` */
 #include "arch/timing.hpp"

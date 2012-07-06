@@ -11,7 +11,7 @@ leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, repli_timestamp_t 
       insertion_time(std::max(block_timestamp, _insertion_time)) {
 
     {
-        scoped_malloc<char> tmp(value_size);
+        scoped_malloc_t<char> tmp(value_size);
         value_buf.swap(tmp);
         memcpy(value_buf.get(), value, value_size);
     }
@@ -30,7 +30,7 @@ leaf_insert_patch_t::leaf_insert_patch_t(block_id_t block_id, patch_counter_t pa
     guarantee_patch_format(sizeof(value_size) + sizeof(insertion_time) + value_size + 1 <= data_length);
 
     {
-        scoped_malloc<char> tmp(data, data + value_size);
+        scoped_malloc_t<char> tmp(data, data + value_size);
         value_buf.swap(tmp);
         data += value_size;
     }

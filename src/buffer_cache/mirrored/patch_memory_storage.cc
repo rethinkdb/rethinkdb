@@ -28,6 +28,7 @@ void patch_memory_storage_t::load_block_patch_list(block_id_t block_id, const st
     }
 
     block_patch_list_t& summarizing_patch_list = patch_map[block_id];
+    rassert(summarizing_patch_list.empty());
 
     for (std::list<buf_patch_t *>::const_iterator p = patches.begin(), e = patches.end(); p != e; ++p) {
         summarizing_patch_list.add_patch(*p);

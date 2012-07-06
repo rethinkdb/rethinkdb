@@ -196,8 +196,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_accou
 
     // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a
     // separate coro. We have to make sure that load_inner_buf() acquires the lock first
-    // however, so we use spawn_now_deprecated().
-    coro_t::spawn_now_deprecated(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
+    // however, so we use spawn_now().
+    coro_t::spawn_now(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
 
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     ++_cache->stats->pm_n_blocks_in_memory;
@@ -807,7 +807,7 @@ void mc_buf_lock_t::set_eviction_priority(eviction_priority_t val) {
     inner_buf->eviction_priority = val;
 }
 
-void mc_buf_lock_t::apply_patch(buf_patch_t *patch) {
+void mc_buf_lock_t::apply_patch(buf_patch_t *_patch) {
     assert_thread();
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
@@ -815,7 +815,9 @@ void mc_buf_lock_t::apply_patch(buf_patch_t *patch) {
     // TODO (sam): Obviously something's f'd up about this.
     rassert(inner_buf->data.equals(data));
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
-    rassert(patch->get_block_id() == inner_buf->block_id);
+    rassert(_patch->get_block_id() == inner_buf->block_id);
+
+    scoped_ptr_t<buf_patch_t> patch(_patch);
 
     patch->apply_to_buf(reinterpret_cast<char *>(data), inner_buf->cache->get_block_size());
     inner_buf->writeback_buf().set_dirty();
@@ -832,7 +834,6 @@ void mc_buf_lock_t::apply_patch(buf_patch_t *patch) {
         const int32_t max_patches_size = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->get_max_patches_size_ratio();
         if (patch->get_serialized_size() + inner_buf->cache->patch_memory_storage.get_patches_serialized_size(inner_buf->block_id) > max_patches_size) {
             ensure_flush();
-            delete patch;
         } else {
             // Store the patch if the buffer does not have to be flushed anyway
             if (patch->get_patch_counter() == 1) {
@@ -841,10 +842,8 @@ void mc_buf_lock_t::apply_patch(buf_patch_t *patch) {
             }
 
             // Takes ownership of patch.
-            inner_buf->cache->patch_memory_storage.store_patch(patch);
+            inner_buf->cache->patch_memory_storage.store_patch(patch.release());
         }
-    } else {
-        delete patch;
     }
 }
 
@@ -1558,7 +1557,7 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
     if (read_ahead_registered && page_repl.is_full(dynamic_config.max_size / serializer->get_block_size().ser_value() / 10 + 1)) {
         read_ahead_registered = false;
         // unregister_read_ahead_cb requires a coro context, but we might not be in any
-        coro_t::spawn_now_deprecated(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
+        coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
 }
 

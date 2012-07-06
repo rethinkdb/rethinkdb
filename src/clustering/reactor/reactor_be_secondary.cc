@@ -159,12 +159,11 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                 backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history_manager, svs);
 
                 /* Tell everyone in the cluster what state we're in. */
-                const int num_stores = svs->num_stores();
-                boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-                svs->new_read_tokens(read_tokens.get(), num_stores);
+                scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
+                svs->new_read_tokens(&read_tokens);
 
                 typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
-                    activity(svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor),
+                    activity(svs->get_all_metainfos(order_token_t::ignore, read_tokens, interruptor),
                              backfiller.get_business_card());
 
                 directory_entry.set(activity);

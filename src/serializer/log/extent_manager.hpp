@@ -8,11 +8,13 @@
 #include <unistd.h>
 
 #include "utils.hpp"
+#include <boost/ptr_container/ptr_vector.hpp>
+
 #include "arch/types.hpp"
 #include "config/args.hpp"
+#include "containers/scoped.hpp"
 #include "serializer/log/config.hpp"
 #include "containers/segmented_vector.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
 
 #define NULL_OFFSET off64_t(-1)
 
@@ -27,8 +29,6 @@ public:
     };
 
 private:
-    typedef std::deque<off64_t> free_queue_t;
-
     log_serializer_on_disk_static_config_t *static_config;
     log_serializer_dynamic_config_t *dynamic_config;
 
@@ -37,11 +37,30 @@ public:
     const uint64_t extent_size;   /* Same as static_config->extent_size */
 
 public:
-    class transaction_t
-    {
+    class transaction_t {
+    public:
         friend class extent_manager_t;
-        transaction_t() { }
-        free_queue_t free_queue;
+        transaction_t() : active_(false) { }
+        ~transaction_t() {
+            rassert(!active_);
+        }
+
+        void init() { active_ = true; }
+        void reset() {
+            free_queue_.clear();
+            active_ = false;
+        }
+
+        std::deque<off64_t> &free_queue() {
+            rassert(active_);
+            return free_queue_;
+        }
+
+    private:
+        bool active_;
+        std::deque<off64_t> free_queue_;
+
+        DISABLE_COPYING(transaction_t);
     };
 
 public:
@@ -75,10 +94,10 @@ public:
     has been written. This guarantees that we will not overwrite extents that the
     most recent metablock points to. */
 
-    transaction_t *begin_transaction();
+    void begin_transaction(transaction_t *out);
     off64_t gen_extent();
     void release_extent(off64_t extent);
-    void end_transaction(transaction_t *t);
+    void end_transaction(const transaction_t &t);
     void commit_transaction(transaction_t *t);
 
 public:

@@ -141,10 +141,12 @@ private:
     }
 
     void initialize_reactor(io_backender_t *io_backender) {
-        perfmon_collection_t *perfmon_collection = parent->perfmon_collection_repo->get_perfmon_collection_for_namespace(namespace_id);
+        perfmon_collection_repo_t::collections_t *perfmon_collections = parent->perfmon_collection_repo->get_perfmon_collections_for_namespace(namespace_id);
+        perfmon_collection_t *namespace_collection = &perfmon_collections->namespace_collection;
+        perfmon_collection_t *serializers_collection = &perfmon_collections->serializers_collection;
 
         // TODO: We probably shouldn't have to pass in this perfmon collection.
-        svs_by_namespace->get_svs(perfmon_collection, namespace_id, &stores_lifetimer, &svs);
+        svs_by_namespace->get_svs(serializers_collection, namespace_id, &stores_lifetimer, &svs);
 
         reactor.reset(new reactor_t<protocol_t>(
             io_backender,
@@ -153,7 +155,7 @@ private:
             parent->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
             parent->branch_history_manager,
             watchable.get_watchable(),
-            svs.get(), perfmon_collection));
+            svs.get(), namespace_collection));
 
         {
             typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::freeze_t reactor_directory_freeze(reactor->get_reactor_directory());

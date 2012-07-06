@@ -37,7 +37,7 @@ bool check_existence(const std::string& file_path) {
     return 0 == access(file_path.c_str(), F_OK);
 }
 
-void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
+void run_rethinkdb_create(const std::string &filepath, const std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
     if (check_existence(filepath)) {
         printf("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
         *result_out = false;
@@ -221,6 +221,7 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
         } else {
             machine_semilattice_metadata_t our_machine_metadata;
             our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
+            our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
             semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
         }
 

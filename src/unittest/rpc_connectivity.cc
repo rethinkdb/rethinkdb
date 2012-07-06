@@ -1,5 +1,9 @@
 #include "unittest/gtest.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+#include <boost/scoped_ptr.hpp>
+
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
 #include "mock/unittest_utils.hpp"
@@ -17,7 +21,7 @@ struct starter_t : public thread_message_t {
         tp->shutdown();
     }
     void on_thread_switch() {
-        coro_t::spawn_now_deprecated(boost::bind(&starter_t::run, this));
+        coro_t::spawn_now(boost::bind(&starter_t::run, this));
     }
 };
 
@@ -251,10 +255,14 @@ void run_event_watchers_test() {
     boost::scoped_ptr<connectivity_cluster_t::run_t> cr2(new connectivity_cluster_t::run_t(&c2, port+1, NULL));
 
     /* Make sure `c1` notifies us when `c2` connects */
-    cond_t connection_established;
-    connectivity_service_t::peers_list_subscription_t subs(
-        boost::bind(&cond_t::pulse, &connection_established),
-        NULL);
+    struct : public cond_t, public peers_list_callback_t {
+        void on_connect(UNUSED peer_id_t peer) {
+            pulse();
+        }
+        void on_disconnect(UNUSED peer_id_t peer) { }
+    } connection_established;
+    connectivity_service_t::peers_list_subscription_t subs(&connection_established);
+
     {
         connectivity_service_t::peers_list_freeze_t freeze(&c1);
         if (c1.get_peers_list().count(c2.get_me()) == 0) {
@@ -290,15 +298,12 @@ TEST(RPCConnectivityTest, EventWatchersMultiThread) {
 /* `EventWatcherOrdering` confirms that information delivered via event
 notification is consistent with information delivered via `get_peers_list()`. */
 
-struct watcher_t {
+struct watcher_t : private peers_list_callback_t {
 
     watcher_t(connectivity_cluster_t *c, recording_test_application_t *a) :
         cluster(c),
         application(a),
-        event_watcher(
-            boost::bind(&watcher_t::on_connect, this, _1),
-            boost::bind(&watcher_t::on_disconnect, this, _1))
-    {
+        event_watcher(this) {
         connectivity_service_t::peers_list_freeze_t freeze(cluster);
         event_watcher.reset(cluster, &freeze);
     }
@@ -310,9 +315,9 @@ struct watcher_t {
         EXPECT_TRUE(list.find(p) != list.end());
 
         /* Make sure messages sent from connection events are delivered
-        properly. We must use `coro_t::spawn_now_deprecated()` because `send_message()`
+        properly. We must use `coro_t::spawn_now()` because `send_message()`
         may block. */
-        coro_t::spawn_now_deprecated(boost::bind(&recording_test_application_t::send, application, 89765, p));
+        coro_t::spawn_now(boost::bind(&recording_test_application_t::send, application, 89765, p));
     }
 
     void on_disconnect(peer_id_t p) {

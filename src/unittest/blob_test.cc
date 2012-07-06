@@ -3,6 +3,7 @@
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "containers/buffer_group.hpp"
+#include "containers/scoped.hpp"
 #include "mock/unittest_utils.hpp"
 
 namespace unittest {
@@ -16,11 +17,7 @@ public:
     }
 
     explicit blob_tracker_t(size_t maxreflen)
-        : buf_(alloc_emptybuf(maxreflen)), blob_(buf_, maxreflen) { }
-
-    ~blob_tracker_t() {
-        delete[] buf_;
-    }
+        : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(buf_.data(), maxreflen) { }
 
     void check_region(transaction_t *txn, int64_t offset, int64_t size) {
         SCOPED_TRACE("check_region");
@@ -155,7 +152,7 @@ public:
 
 private:
     std::string expected_;
-    char *buf_;
+    scoped_array_t<char> buf_;
     blob_t blob_;
 };
 
