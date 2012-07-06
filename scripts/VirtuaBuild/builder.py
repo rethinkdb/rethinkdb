@@ -3,7 +3,6 @@ from vcoptparse import *
 import vm_build
 import sys
 from threading import Thread, Semaphore
-import socket, os
 
 class Builder(Thread):
     def __init__(self, name, branch, target, semaphore):
