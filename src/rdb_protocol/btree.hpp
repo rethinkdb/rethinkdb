@@ -12,6 +12,9 @@ typedef rdb_protocol_t::read_response_t read_response_t;
 typedef rdb_protocol_t::point_read_t point_read_t;
 typedef rdb_protocol_t::point_read_response_t point_read_response_t;
 
+typedef rdb_protocol_t::rget_read_t rget_read_t;
+typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
+
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
 
@@ -20,6 +23,8 @@ typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
+
+static const size_t rget_max_chunk_size = MEGABYTE;
 
 struct rdb_value_t {
     char contents[];
@@ -121,5 +126,16 @@ point_delete_response_t rdb_delete(const store_key_t &key, btree_slice_t *slice,
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                                  const key_range_t &keys,
                                  transaction_t *txn, superblock_t *superblock);
+
+/* RGETS */
+size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json);
+
+struct rget_response_t {
+    std::vector<boost::shared_ptr<scoped_cJSON_t> > pairs;
+    bool truncated;
+};
+
+rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
+                               int maximum, transaction_t *txn, superblock_t *superblock);
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */

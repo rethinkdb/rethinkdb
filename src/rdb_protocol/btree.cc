@@ -6,6 +6,7 @@
 
 #include "btree/backfill.hpp"
 #include "btree/erase_range.hpp"
+#include "btree/depth_first_traversal.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
 
@@ -168,3 +169,39 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     rdb_erase_range(slice, tester, left_key_supplied, left_exclusive, right_key_supplied, right_inclusive, txn, superblock);
 }
 
+size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &/*json*/) {
+    // TODO: don't be stupid, be a smarty, come and join the nazy
+    // party (json size estimation will be much easier once we switch
+    // to bson -- fuck it for now).
+    return 250;
+}
+
+class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
+public:
+    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn, int max) :
+        transaction(txn), maximum(max), cumulative_size(0) { }
+    bool handle_pair(const btree_key_t*, const void *value) {
+        const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+        boost::shared_ptr<scoped_cJSON_t> data = get_data(rdb_value, transaction);
+        response.data.push_back(data);
+        cumulative_size += estimate_rget_response_size(response.data.back());
+        return int(response.data.size()) < maximum && cumulative_size < rget_max_chunk_size;
+    }
+    transaction_t *transaction;
+    int maximum;
+    rget_read_response_t response;
+    size_t cumulative_size;
+};
+
+rget_read_response_t rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
+        int maximum, transaction_t *txn, superblock_t *superblock) {
+
+    rdb_rget_depth_first_traversal_callback_t callback(txn, maximum);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+    if (callback.cumulative_size >= rget_max_chunk_size) {
+        callback.response.truncated = true;
+    } else {
+        callback.response.truncated = false;
+    }
+    return callback.response;
+}

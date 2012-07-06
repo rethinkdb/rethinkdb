@@ -576,9 +576,15 @@ const type_t get_type(const View &v, variable_type_scope_t *scope) {
             return Type::VIEW;
             break;
         case View::FILTERVIEW:
-            if (get_type(v.filter_view().view(), scope) == Type::VIEW &&
-                get_type(v.filter_view().predicate(), scope) == Type::JSON) {
-                return Type::VIEW;
+            {
+                printf("first: %d\n", get_type(v.filter_view().view(), scope) == Type::VIEW);
+                printf("second: %d\n", get_type(v.filter_view().predicate(), scope) == Type::JSON);
+                if (get_type(v.filter_view().view(), scope) == Type::VIEW &&
+                    get_type(v.filter_view().predicate(), scope) == Type::JSON) {
+                    return Type::VIEW;
+                } else {
+                    printf("hala\n");
+                }
             }
             break;
         case View::RANGEVIEW:
@@ -974,7 +980,9 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             }
             break;
         case Term::VIEWASSTREAM:
-            crash("unimplemented");
+            {
+                crash("This is implemented elsewhere, we should never have gotten here (yields a stream, not a scalar).");
+            }
             break;
         case Term::GETBYKEY:
             {
@@ -1067,8 +1075,10 @@ json_stream_t eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY
         case Term::MAP:
             unreachable("A MAP term should never be evaluated with eval_stream");
             break;
-        case Term::VIEWASSTREAM:
-            crash("unimplemented");
+    case Term::VIEWASSTREAM:
+            {
+                return eval(t.view_as_stream(), env).stream;
+            }
             break;
         case Term::GETBYKEY:
             unreachable("A GETBYKEY term should never be evaluated with eval_stream");
@@ -1889,7 +1899,17 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_envir
 view_t eval(const View &v, runtime_environment_t *env) {
     switch (v.type()) {
         case View::TABLE:
-            crash("unimplemented");
+            {
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(v.table().table_ref(), env);
+                key_range_t range = rdb_protocol_t::region_t::universe();
+                rdb_protocol_t::rget_read_t rget_read(range);
+                rdb_protocol_t::read_t read(rget_read);
+                rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
+                rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+                rassert(p_res);
+                json_stream_t stream(p_res->data.begin(), p_res->data.end());
+                return view_t(ns_access, stream);
+            }
             break;
         case View::FILTERVIEW:
             {

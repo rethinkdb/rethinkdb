@@ -262,8 +262,9 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_envir
 
 class view_t {
 public:
-    view_t(const namespace_repo_t<rdb_protocol_t>::access_t &,
-           const json_stream_t &stream);
+    view_t(const namespace_repo_t<rdb_protocol_t>::access_t &_access,
+           const json_stream_t &_stream)
+        : access(_access), stream(_stream) { }
 
     namespace_repo_t<rdb_protocol_t>::access_t access;
     json_stream_t stream;
