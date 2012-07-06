@@ -30,23 +30,48 @@ module 'DataExplorerView', ->
     class @Container extends Backbone.View
         className: 'dataexplorer_container'
         template: Handlebars.compile $('#dataexplorer_view-template').html()
+        template_suggestion_name: Handlebars.compile $('#dataexplorer_suggestion_name_li-template').html()
 
-        events: ->
-            'keypress .input_query': 'handle_keypress'
-            'keyup .input_query': 'expand_textarea'
+        events:
+            'keyup .input_query': 'handle_keypress'
+            'keydown .input_query': 'handle_tab'
+            'focus .input_query': 'make_suggestion'
+            'blur .input_query': 'hide_suggestion'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
             'click .namespace_link': 'write_query_namespace'
             'click .old_query': 'write_query_old'
             'click .home_view': 'display_home'
             'click .change_size': 'toggle_size'
-        displaying_full_view: false
 
-        handle_keypress: (event) =>
-            if event.which is 13 and !event.shiftKey
+        displaying_full_view: false
+        current_suggestions: []
+        current_completed_query: ''
+        current_highlighted_suggestion: -1
+        keypress_is_tab: false
+
+        handle_tab: (event) =>
+            @expand_textarea()
+            if event.which is 9
+                @keypress_is_tab = true
                 event.preventDefault()
+                @.$('.suggestion_name_li').eq(@current_highlighted_suggestion).removeClass 'suggestion_name_li_hl'
+                @current_highlighted_suggestion++
+                if @current_highlighted_suggestion >= @current_suggestions.length
+                    @current_highlighted_suggestion = 0
+                if @current_suggestions[@current_highlighted_suggestion]? # In case there is no suggestion
+                    @.$('.suggestion_name_li').eq(@current_highlighted_suggestion).addClass 'suggestion_name_li_hl'
+                    @.$('.input_query').val @current_completed_query + @current_suggestions[@current_highlighted_suggestion]
+            else if event.which is 13 and !event.shiftKey
+                event.preventDefault()
+                @hide_suggestion()
                 @execute_query()
-            else
+
+        hide_suggestion: ->
+            @.$('.suggestion_name_list').css 'display', 'none'
+ 
+        handle_keypress: (event) =>
+            if event.which isnt 13
                 @make_suggestion()
 
         expand_textarea: (event) =>
@@ -56,10 +81,10 @@ module 'DataExplorerView', ->
 
 
         execute_query: =>
-            query = @.$('.input_query').val() 
-            @data_container.add_query(query) #TODO remove because it's redundant?
+            query = @.$('.input_query').val()
+            @data_container.add_query(query)
             window.router.sidebar.add_query(query)
-            #TODO ajax call + loading
+            #TODO ajax callsuggestion loading
             if query is '0'
                 result = []
             else if query is '1'
@@ -120,15 +145,61 @@ module 'DataExplorerView', ->
                 delete result[result.length-1]['website']
             @data_container.render(query, result)
 
+
+
         # Make suggestions when the user is writing
         # TODO: Everything
-        make_suggestion: ->
-            console.log 'suggestion'
+        make_suggestion: =>
+            if @keypress_is_tab
+                @keypress_is_tab = false
+                return
+
+            @current_highlighted_suggestion = -1
+            @current_suggestions = []
+            @.$('.suggestion_name_list').html ''
+            #TODO parse in case of multiple lines
+            query = @.$('.input_query').val()
+            if /^(r\.)[^\.]*$/.test query
+                #TODO get real list before
+                db_list = ["database", "donutman", "omega3", "dragonstrike", "datalog", "dartagnan"]
+                @append_suggestion(query, db_list)
+
+            else if /^(r\.)[^\.]*\.[^\.]*$/.test query
+                namespace_list = []
+                for namespace in namespaces.models
+                    namespace_list.push namespace.get "name"
+                @append_suggestion(query, namespace_list)
+            else if /^(r\.)[^\.]*\.[^\.]*\..*$/.test query
+                suggestion = ["filter()", "find()", "plot()", "update()"]
+                @append_suggestion(query, suggestion)
+
             return @
+        
+        append_suggestion: (query, suggestions) =>
+            splitdata = query.split('.')
+            @current_completed_query = ''
+            for i in [0..splitdata.length-2]
+                @current_completed_query += splitdata[i]+'.'
+            element_currently_written = splitdata[splitdata.length-1]
+
+
+            found_suggestion = false
+            pattern = new RegExp('^('+element_currently_written+')', 'i')
+            for suggestion in suggestions
+                if pattern.test(suggestion)
+                    found_suggestion = true
+                    @current_suggestions.push suggestion
+                    @.$('.suggestion_name_list').append @template_suggestion_name suggestion
+            if found_suggestion
+                @.$('.suggestion_name_list').css 'display', 'block'
+            else
+                @.$('.suggestion_name_list').css 'display', 'none'
+            return
+
 
         # Clear the input
         clear_query: =>
-            @.$('.input_query').val ''
+            @.$('.input_query').val 'r.'
             @.$('.input_query').focus()
 
     
@@ -159,7 +230,6 @@ module 'DataExplorerView', ->
             @.$el.html @template
             @.$el.append @input_query.render().el
             @.$el.append @data_container.render().el
-
             return @
 
         # Go home
@@ -583,7 +653,6 @@ module 'DataExplorerView', ->
                 $('.value-'+@col_resizing).css 'width', @start_width-@start_x+event.pageX-20
 
         handle_mouseup: (event) =>
-            console.log 'mouseup'
             @mouse_down = false
             @.$('.json_table').toggleClass('resizing', false)
 
@@ -642,6 +711,7 @@ module 'DataExplorerView', ->
         handle_keypress: (event) =>
             if event.which is 13 and !event.shiftKey
                 event.preventDefault()
+                @.$('suggestion_name_list').css 'display', 'none'
                 @.$(event.target).blur()
 
         on_editable_blur: (data) ->

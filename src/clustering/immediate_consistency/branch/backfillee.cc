@@ -36,54 +36,12 @@ public:
         done_message_arrived(false), num_outstanding_chunks(0)
     { }
 
-    void actually_call_receive_backfill(const std::vector<int> *indices,
-                                        const std::vector<typename protocol_t::backfill_chunk_t> *sharded_chunks,
-                                        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                        UNUSED signal_t *interruptor,
-                                        int i) {
-        try {
-            rassert(write_tokens[i].get() != NULL);
-            rassert(interruptor != NULL);
-
-            // TODO: Move this code to multistore.cc.
-            on_thread_t th(svs->get_store_view((*indices)[i])->home_thread());
-
-            // TODO: Use a cross thread interruptor signal.
-            cond_t dummy_cond;
-
-            svs->get_store_view((*indices)[i])->receive_backfill((*sharded_chunks)[i], write_tokens[i], &dummy_cond);
-        } catch (interrupted_exc_t&) {
-            // We check if the thing was pulsed after pmap returns.
-        }
-    }
-
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
-        const int num_stores = svs->num_stores();
-
-        std::vector<int> indices;
-        std::vector<typename protocol_t::backfill_chunk_t> sharded_chunks;
-
-        typename protocol_t::region_t chunk_region = chunk.get_region();
-
-        for (int i = 0; i < num_stores; ++i) {
-            typename protocol_t::region_t region = svs->get_region(i);
-
-            typename protocol_t::region_t intersection = region_intersection(region, chunk_region);
-            if (!region_is_empty(intersection)) {
-                indices.push_back(i);
-                sharded_chunks.push_back(chunk.shard(intersection));
-            }
-        }
-
-        boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[indices.size()]);
-        svs->new_particular_write_tokens(indices.data(), indices.size(), write_tokens.get());
+        scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
+        svs->new_write_tokens(&write_tokens);
         chunk_queue->finish_write(chunk_token);
 
-        pmap(indices.size(), boost::bind(&chunk_callback_t::actually_call_receive_backfill, this, &indices, &sharded_chunks, write_tokens.get(), interruptor, _1));
-
-        if (interruptor->is_pulsed()) {
-            throw interrupted_exc_t();
-        }
+        svs->receive_backfill(chunk, write_tokens, interruptor);
     }
 
     // TODO: Don't pass a std::pair of std::pair.
@@ -181,12 +139,10 @@ void backfillee(
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
     /* Read the metadata to determine where we're starting from */
-    const int num_stores = svs->num_stores();
-    boost::scoped_array<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[svs->num_stores()]);
-    svs->new_read_tokens(read_tokens.get(), num_stores);
+    scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
+    svs->new_read_tokens(&read_tokens);
 
-    region_map_t<protocol_t, version_range_t> start_point =
-        svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
+    region_map_t<protocol_t, version_range_t> start_point = svs->get_all_metainfos(order_token_t::ignore, read_tokens, interruptor);
 
     start_point = start_point.mask(region);
 
@@ -209,7 +165,7 @@ void backfillee(
          * pool services these requests and poops them off one at a time to
          * perform them. */
 
-        typedef fifo_enforcer_queue_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > chunk_queue_t; 
+        typedef fifo_enforcer_queue_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > chunk_queue_t;
         chunk_queue_t chunk_queue;
 
         /* The backfiller will notify `done_mailbox` when the backfill is all over
@@ -315,9 +271,9 @@ void backfillee(
             }
         }
 
-        boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+        scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
 
-        svs->new_write_tokens(write_tokens.get(), num_stores);
+        svs->new_write_tokens(&write_tokens);
 
         svs->set_all_metainfos(
             region_map_transform<protocol_t, version_range_t, binary_blob_t>(
@@ -325,8 +281,7 @@ void backfillee(
                 &binary_blob_t::make<version_range_t>
                 ),
             order_token_t::ignore,
-            write_tokens.get(),
-            num_stores,
+            write_tokens,
             interruptor
             );
 
@@ -350,9 +305,9 @@ void backfillee(
     }
 
     /* Update the metadata to indicate that the backfill occurred */
-    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
+    scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
 
-    svs->new_write_tokens(write_tokens.get(), num_stores);
+    svs->new_write_tokens(&write_tokens);
 
     svs->set_all_metainfos(
         region_map_transform<protocol_t, version_range_t, binary_blob_t>(
@@ -360,8 +315,7 @@ void backfillee(
             &binary_blob_t::make<version_range_t>
             ),
         order_token_t::ignore,
-        write_tokens.get(),
-        num_stores,
+        write_tokens,
         interruptor
     );
 }

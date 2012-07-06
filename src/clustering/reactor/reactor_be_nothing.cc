@@ -63,8 +63,6 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
     try {
         directory_entry_t directory_entry(this, region);
 
-        const int num_stores = svs->num_stores();
-
         {
             /* We offer backfills while waiting for it to be safe to shutdown
              * in case another peer needs a copy of the data */
@@ -72,10 +70,10 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
 
             /* Tell the other peers that we are looking to shutdown and
              * offering backfilling until we do. */
-            boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-            svs->new_read_tokens(read_tokens.get(), num_stores);
+            scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
+            svs->new_read_tokens(&read_tokens);
             typename reactor_business_card_t<protocol_t>::nothing_when_safe_t
-                activity(svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor),
+                activity(svs->get_all_metainfos(order_token_t::ignore, read_tokens, interruptor),
                          backfiller.get_business_card());
             directory_echo_version_t version_to_wait_on = directory_entry.set(activity);
 
@@ -114,10 +112,10 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
 
         /* This actually erases the data. */
         {
-            boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
-            svs->new_write_tokens(write_tokens.get(), num_stores);
+            scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
+            svs->new_write_tokens(&write_tokens);
 
-            svs->reset_all_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), write_tokens.get(), num_stores, interruptor);
+            svs->reset_all_data(region, region_map_t<protocol_t, binary_blob_t>(region, binary_blob_t(version_range_t(version_t::zero()))), write_tokens, interruptor);
         }
 
         /* Tell the other peers that we are officially nothing for this region,

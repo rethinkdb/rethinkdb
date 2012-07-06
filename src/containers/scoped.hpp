@@ -142,6 +142,9 @@ public:
         return size_;
     }
 
+    bool has() const {
+        return ptr_ != NULL;
+    }
 
 private:
     T *ptr_;

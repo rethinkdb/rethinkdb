@@ -253,10 +253,9 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
 
             /* Figure out what version of the data is already present in our
              * store so we don't backfill anything prior to it. */
-            const int num_stores = svs->num_stores();
-            boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-            svs->new_read_tokens(read_tokens.get(), num_stores);
-            region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
+            scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
+            svs->new_read_tokens(&read_tokens);
+            region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_token_t::ignore, read_tokens, interruptor);
             region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
 
             /* This waits until every other peer is ready to accept us as the

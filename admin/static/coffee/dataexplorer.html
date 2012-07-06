@@ -5,17 +5,26 @@
 
 <script id="dataexplorer_input_query-template" type="text/x-handlebars-template">
     <div class="input_query_container" >
-        <textarea class="input_query"></textarea>
+        <textarea class="input_query">r.</textarea>
+        <div class="suggestion_list_container">
+            <ul class="suggestion_name_list"></ul>
+        </div>
+        <div class="suggestion_description"></div>
         <div class="button_container">
             <input type="button" value="clear" class="btn button_query clear_query" />
             <input type="button" value="execute" class="btn button_query execute_query" />
         </div>
+
     </div>
     <div class="loading_query">
         <img src="/images/ajax-loader.gif" class="loading_query_img"/>
     </div>
 </script>
 
+
+<script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">
+    <li class="suggestion_name_li">{{this}}</li>
+</script>
 
 <script id="dataexplorer_default_view-template" type="text/x-handlebars-template">
     <h2>Quick Start</h2>

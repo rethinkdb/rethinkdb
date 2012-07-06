@@ -41,11 +41,10 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
 
     /* Snapshot the starting point of the store; we'll need to record this
        and store it in the metadata. */
-    const int num_stores = initial_svs->num_stores();
-    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-    initial_svs->new_read_tokens(read_tokens.get(), num_stores);
+    scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
+    initial_svs->new_read_tokens(&read_tokens);
 
-    region_map_t<protocol_t, version_range_t> origins = initial_svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
+    region_map_t<protocol_t, version_range_t> origins = initial_svs->get_all_metainfos(order_token_t::ignore, read_tokens, interruptor);
 
     /* Determine what the first timestamp of the new branch will be */
     state_timestamp_t initial_timestamp = state_timestamp_t::zero();
@@ -77,13 +76,12 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
        entry in the global metadata so that we aren't left in a state where
        the store has been marked as belonging to a branch for which no
        information exists. */
-    boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t>[num_stores]);
-    initial_svs->new_write_tokens(write_tokens.get(), num_stores);
+    scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
+    initial_svs->new_write_tokens(&write_tokens);
     initial_svs->set_all_metainfos(region_map_t<protocol_t, binary_blob_t>(initial_svs->get_multistore_joined_region(),
                                                                            binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
                                    order_token_t::ignore,
-                                   write_tokens.get(),
-                                   num_stores,
+                                   write_tokens,
                                    interruptor);
 
     /* Perform an initial sanity check. */
