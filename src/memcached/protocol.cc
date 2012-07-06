@@ -28,6 +28,14 @@
 typedef memcached_protocol_t::store_t store_t;
 typedef memcached_protocol_t::region_t region_t;
 
+typedef memcached_protocol_t::read_t read_t;
+typedef memcached_protocol_t::read_response_t read_response_t;
+
+typedef memcached_protocol_t::write_t write_t;
+typedef memcached_protocol_t::write_response_t write_response_t;
+
+typedef memcached_protocol_t::backfill_chunk_t backfill_chunk_t;
+
 const std::string memcached_protocol_t::protocol_name("memcached");
 
 write_message_t &operator<<(write_message_t &msg, const intrusive_ptr_t<data_buffer_t> &buf) {
@@ -84,7 +92,7 @@ region_t monokey_region(const store_key_t &k) {
     return region_t(h, h + 1, key_range_t(key_range_t::closed, k, key_range_t::closed, k));
 }
 
-/* `memcached_protocol_t::read_t::get_region()` */
+/* `read_t::get_region()` */
 
 struct read_get_region_visitor_t : public boost::static_visitor<region_t> {
     region_t operator()(get_query_t get) {
@@ -100,45 +108,45 @@ struct read_get_region_visitor_t : public boost::static_visitor<region_t> {
     }
 };
 
-region_t memcached_protocol_t::read_t::get_region() const THROWS_NOTHING {
+region_t read_t::get_region() const THROWS_NOTHING {
     read_get_region_visitor_t v;
     return boost::apply_visitor(v, query);
 }
 
-/* `memcached_protocol_t::read_t::shard()` */
+/* `read_t::shard()` */
 
-struct read_shard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_t> {
+struct read_shard_visitor_t : public boost::static_visitor<read_t> {
     read_shard_visitor_t(const region_t &r, exptime_t et) :
         region(r), effective_time(et) { }
 
     const region_t &region;
     exptime_t effective_time;
 
-    memcached_protocol_t::read_t operator()(get_query_t get) {
+    read_t operator()(get_query_t get) {
         rassert(region == monokey_region(get.key));
-        return memcached_protocol_t::read_t(get, effective_time);
+        return read_t(get, effective_time);
     }
-    memcached_protocol_t::read_t operator()(rget_query_t rget) {
+    read_t operator()(rget_query_t rget) {
         rassert(region_is_superset(region_t(rget.range), region));
         // TODO: Reevaluate this code.  Should rget_query_t really have a key_range_t range?
         rget.range = region.inner;
-        return memcached_protocol_t::read_t(rget, effective_time);
+        return read_t(rget, effective_time);
     }
-    memcached_protocol_t::read_t operator()(distribution_get_query_t distribution_get) {
+    read_t operator()(distribution_get_query_t distribution_get) {
         rassert(region_is_superset(region_t(distribution_get.range), region));
 
         // TODO: Reevaluate this code.  Should distribution_get_query_t really have a key_range_t range?
         distribution_get.range = region.inner;
-        return memcached_protocol_t::read_t(distribution_get, effective_time);
+        return read_t(distribution_get, effective_time);
     }
 };
 
-memcached_protocol_t::read_t memcached_protocol_t::read_t::shard(const region_t &r) const THROWS_NOTHING {
+read_t read_t::shard(const region_t &r) const THROWS_NOTHING {
     read_shard_visitor_t v(r, effective_time);
     return boost::apply_visitor(v, query);
 }
 
-/* `memcached_protocol_t::read_t::unshard()` */
+/* `read_t::unshard()` */
 
 class key_with_data_buffer_less_t {
 public:
@@ -151,15 +159,15 @@ public:
     }
 };
 
-struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
-    const std::vector<memcached_protocol_t::read_response_t> &bits;
+struct read_unshard_visitor_t : public boost::static_visitor<read_response_t> {
+    const std::vector<read_response_t> &bits;
 
-    explicit read_unshard_visitor_t(const std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
-    memcached_protocol_t::read_response_t operator()(UNUSED get_query_t get) {
+    explicit read_unshard_visitor_t(const std::vector<read_response_t> &b) : bits(b) { }
+    read_response_t operator()(UNUSED get_query_t get) {
         rassert(bits.size() == 1);
-        return memcached_protocol_t::read_response_t(boost::get<get_result_t>(bits[0].result));
+        return read_response_t(boost::get<get_result_t>(bits[0].result));
     }
-    memcached_protocol_t::read_response_t operator()(rget_query_t rget) {
+    read_response_t operator()(rget_query_t rget) {
         std::map<store_key_t, const rget_result_t *> sorted_bits;
         for (int i = 0; i < int(bits.size()); i++) {
             const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
@@ -195,9 +203,9 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
         } else {
             result.truncated = false;
         }
-        return memcached_protocol_t::read_response_t(result);
+        return read_response_t(result);
     }
-    memcached_protocol_t::read_response_t operator()(UNUSED distribution_get_query_t dget) {
+    read_response_t operator()(UNUSED distribution_get_query_t dget) {
         rassert(bits.size() > 0);
         rassert(boost::get<distribution_result_t>(&bits[0].result));
         rassert(bits.size() == 1 || boost::get<distribution_result_t>(&bits[1].result));
@@ -223,24 +231,24 @@ struct read_unshard_visitor_t : public boost::static_visitor<memcached_protocol_
 
         }
 
-        return memcached_protocol_t::read_response_t(res);
+        return read_response_t(res);
     }
 };
 
-memcached_protocol_t::read_response_t memcached_protocol_t::read_t::unshard(const std::vector<read_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+read_response_t read_t::unshard(const std::vector<read_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     read_unshard_visitor_t v(responses);
     return boost::apply_visitor(v, query);
 }
 
-struct read_multistore_unshard_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
-    const std::vector<memcached_protocol_t::read_response_t> &bits;
+struct read_multistore_unshard_visitor_t : public boost::static_visitor<read_response_t> {
+    const std::vector<read_response_t> &bits;
 
-    explicit read_multistore_unshard_visitor_t(const std::vector<memcached_protocol_t::read_response_t> &b) : bits(b) { }
-    memcached_protocol_t::read_response_t operator()(UNUSED get_query_t get) {
+    explicit read_multistore_unshard_visitor_t(const std::vector<read_response_t> &b) : bits(b) { }
+    read_response_t operator()(UNUSED get_query_t get) {
         rassert(bits.size() == 1);
-        return memcached_protocol_t::read_response_t(boost::get<get_result_t>(bits[0].result));
+        return read_response_t(boost::get<get_result_t>(bits[0].result));
     }
-    memcached_protocol_t::read_response_t operator()(rget_query_t rget) {
+    read_response_t operator()(rget_query_t rget) {
         std::vector<key_with_data_buffer_t> pairs;
         for (int i = 0; i < int(bits.size()); ++i) {
             const rget_result_t *bit = boost::get<rget_result_t>(&bits[i].result);
@@ -267,9 +275,9 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<memcache
         pairs.resize(ix);
         result.pairs.swap(pairs);
 
-        return memcached_protocol_t::read_response_t(result);
+        return read_response_t(result);
     }
-    memcached_protocol_t::read_response_t operator()(UNUSED distribution_get_query_t dget) {
+    read_response_t operator()(UNUSED distribution_get_query_t dget) {
         rassert(bits.size() > 0);
         rassert(boost::get<distribution_result_t>(&bits[0].result));
         rassert(bits.size() == 1 || boost::get<distribution_result_t>(&bits[1].result));
@@ -303,7 +311,7 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<memcache
         }
 
         if (total_keys_in_res == 0) {
-            return memcached_protocol_t::read_response_t(res);
+            return read_response_t(res);
         }
 
         double scale_factor = double(total_num_keys) / double(total_keys_in_res);
@@ -316,17 +324,17 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<memcache
             it->second *= scale_factor;
         }
 
-        return memcached_protocol_t::read_response_t(res);
+        return read_response_t(res);
     }
 };
 
 
-memcached_protocol_t::read_response_t memcached_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+read_response_t read_t::multistore_unshard(const std::vector<read_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     read_multistore_unshard_visitor_t v(responses);
     return boost::apply_visitor(v, query);
 }
 
-/* `memcached_protocol_t::write_t::get_region()` */
+/* `write_t::get_region()` */
 
 struct write_get_region_visitor_t : public boost::static_visitor<region_t> {
     /* All the types of mutation have a member called `key` */
@@ -336,74 +344,74 @@ struct write_get_region_visitor_t : public boost::static_visitor<region_t> {
     }
 };
 
-region_t memcached_protocol_t::write_t::get_region() const THROWS_NOTHING {
+region_t write_t::get_region() const THROWS_NOTHING {
     write_get_region_visitor_t v;
     return boost::apply_visitor(v, mutation);
 }
 
-/* `memcached_protocol_t::write_t::shard()` */
+/* `write_t::shard()` */
 
-memcached_protocol_t::write_t memcached_protocol_t::write_t::shard(DEBUG_ONLY_VAR const region_t &region) const THROWS_NOTHING {
+write_t write_t::shard(DEBUG_ONLY_VAR const region_t &region) const THROWS_NOTHING {
     rassert(region == get_region());
     return *this;
 }
 
-/* `memcached_protocol_t::write_response_t::unshard()` */
+/* `write_response_t::unshard()` */
 
-memcached_protocol_t::write_response_t memcached_protocol_t::write_t::unshard(const std::vector<memcached_protocol_t::write_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+write_response_t write_t::unshard(const std::vector<write_response_t>& responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
     /* TODO: Make sure the request type matches the response type */
     rassert(responses.size() == 1);
     return responses[0];
 }
 
-memcached_protocol_t::write_response_t memcached_protocol_t::write_t::multistore_unshard(const std::vector<memcached_protocol_t::write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
+write_response_t write_t::multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
     return unshard(responses, cache);
 }
 
 
 struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<region_t> {
-    region_t operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t &del) {
+    region_t operator()(const backfill_chunk_t::delete_key_t &del) {
         return monokey_region(del.key);
     }
 
-    region_t operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t &del) {
+    region_t operator()(const backfill_chunk_t::delete_range_t &del) {
         return del.range;
     }
 
-    region_t operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
+    region_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
         return monokey_region(kv.backfill_atom.key);
     }
 };
 
 
-memcached_protocol_t::region_t memcached_protocol_t::backfill_chunk_t::get_region() const THROWS_NOTHING {
+region_t backfill_chunk_t::get_region() const THROWS_NOTHING {
     backfill_chunk_get_region_visitor_t v;
     return boost::apply_visitor(v, val);
 }
 
-struct backfill_chunk_shard_visitor_t : public boost::static_visitor<memcached_protocol_t::backfill_chunk_t> {
+struct backfill_chunk_shard_visitor_t : public boost::static_visitor<backfill_chunk_t> {
 public:
-    explicit backfill_chunk_shard_visitor_t(const memcached_protocol_t::region_t &_region) : region(_region) { }
-    memcached_protocol_t::backfill_chunk_t operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t &del) {
-        memcached_protocol_t::backfill_chunk_t ret(del);
+    explicit backfill_chunk_shard_visitor_t(const region_t &_region) : region(_region) { }
+    backfill_chunk_t operator()(const backfill_chunk_t::delete_key_t &del) {
+        backfill_chunk_t ret(del);
         rassert(region_is_superset(region, ret.get_region()));
         return ret;
     }
-    memcached_protocol_t::backfill_chunk_t operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t &del) {
-        memcached_protocol_t::region_t r = region_intersection(del.range, region);
+    backfill_chunk_t operator()(const backfill_chunk_t::delete_range_t &del) {
+        region_t r = region_intersection(del.range, region);
         rassert(!region_is_empty(r));
-        return memcached_protocol_t::backfill_chunk_t(memcached_protocol_t::backfill_chunk_t::delete_range_t(r));
+        return backfill_chunk_t(backfill_chunk_t::delete_range_t(r));
     }
-    memcached_protocol_t::backfill_chunk_t operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t &kv) {
-        memcached_protocol_t::backfill_chunk_t ret(kv);
+    backfill_chunk_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
+        backfill_chunk_t ret(kv);
         rassert(region_is_superset(region, ret.get_region()));
         return ret;
     }
 private:
-    const memcached_protocol_t::region_t &region;
+    const region_t &region;
 };
 
-memcached_protocol_t::backfill_chunk_t memcached_protocol_t::backfill_chunk_t::shard(const memcached_protocol_t::region_t &region) const THROWS_NOTHING {
+backfill_chunk_t backfill_chunk_t::shard(const region_t &region) const THROWS_NOTHING {
     backfill_chunk_shard_visitor_t v(region);
     return boost::apply_visitor(v, val);
 }
@@ -421,24 +429,24 @@ region_t memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int n
     return region_t(beg, end, key_range_t::universe());
 }
 
-memcached_protocol_t::store_t::store_t(const std::string& filename,
-                                       bool create,
-                                       perfmon_collection_t *_perfmon_collection) :
+store_t::store_t(const std::string& filename,
+                 bool create,
+                 perfmon_collection_t *_perfmon_collection) :
     btree_store_t(filename, create, _perfmon_collection) { }
 
-memcached_protocol_t::store_t::~store_t() { }
+store_t::~store_t() { }
 
-struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_response_t> {
+struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
-    memcached_protocol_t::read_response_t operator()(const get_query_t& get) {
-        return memcached_protocol_t::read_response_t(
+    read_response_t operator()(const get_query_t& get) {
+        return read_response_t(
             memcached_get(get.key, btree, effective_time, txn, superblock));
     }
-    memcached_protocol_t::read_response_t operator()(const rget_query_t& rget) {
-        return memcached_protocol_t::read_response_t(
+    read_response_t operator()(const rget_query_t& rget) {
+        return read_response_t(
             memcached_rget_slice(btree, rget.range, rget.maximum, effective_time, txn, superblock));
     }
-    memcached_protocol_t::read_response_t operator()(const distribution_get_query_t& dget) {
+    read_response_t operator()(const distribution_get_query_t& dget) {
         distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock);
 
         for (std::map<store_key_t, int>::iterator it  = dstr.key_counts.begin();
@@ -451,7 +459,7 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
             }
         }
 
-        return memcached_protocol_t::read_response_t(dstr);
+        return read_response_t(dstr);
     }
 
 
@@ -465,35 +473,34 @@ private:
     exptime_t effective_time;
 };
 
-memcached_protocol_t::read_response_t store_t::protocol_read(const read_t &read,
-                                                             UNUSED order_token_t order_token,
-                                                             btree_slice_t *btree,
-                                                             transaction_t *txn,
-                                                             superblock_t *superblock) {
+read_response_t store_t::protocol_read(const read_t &read,
+                                       btree_slice_t *btree,
+                                       transaction_t *txn,
+                                       superblock_t *superblock) {
     read_visitor_t v(btree, txn, superblock, read.effective_time);
     return boost::apply_visitor(v, read.query);
 }
 
-struct write_visitor_t : public boost::static_visitor<memcached_protocol_t::write_response_t> {
-    memcached_protocol_t::write_response_t operator()(const get_cas_mutation_t &m) {
-        return memcached_protocol_t::write_response_t(
+struct write_visitor_t : public boost::static_visitor<write_response_t> {
+    write_response_t operator()(const get_cas_mutation_t &m) {
+        return write_response_t(
             memcached_get_cas(m.key, btree, proposed_cas, effective_time, timestamp, txn, superblock));
     }
-    memcached_protocol_t::write_response_t operator()(const sarc_mutation_t &m) {
-        return memcached_protocol_t::write_response_t(
+    write_response_t operator()(const sarc_mutation_t &m) {
+        return write_response_t(
             memcached_set(m.key, btree, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, proposed_cas, effective_time, timestamp, txn, superblock));
     }
-    memcached_protocol_t::write_response_t operator()(const incr_decr_mutation_t &m) {
-        return memcached_protocol_t::write_response_t(
+    write_response_t operator()(const incr_decr_mutation_t &m) {
+        return write_response_t(
             memcached_incr_decr(m.key, btree, (m.kind == incr_decr_INCR), m.amount, proposed_cas, effective_time, timestamp, txn, superblock));
     }
-    memcached_protocol_t::write_response_t operator()(const append_prepend_mutation_t &m) {
-        return memcached_protocol_t::write_response_t(
+    write_response_t operator()(const append_prepend_mutation_t &m) {
+        return write_response_t(
             memcached_append_prepend(m.key, btree, m.data, (m.kind == append_prepend_APPEND), proposed_cas, effective_time, timestamp, txn, superblock));
     }
-    memcached_protocol_t::write_response_t operator()(const delete_mutation_t &m) {
+    write_response_t operator()(const delete_mutation_t &m) {
         rassert(proposed_cas == INVALID_CAS);
-        return memcached_protocol_t::write_response_t(
+        return write_response_t(
             memcached_delete(m.key, m.dont_put_in_delete_queue, btree, effective_time, timestamp, txn, superblock));
     }
 
@@ -508,18 +515,17 @@ private:
     repli_timestamp_t timestamp;
 };
 
-memcached_protocol_t::write_response_t store_t::protocol_write(const write_t &write,
-                                                               UNUSED order_token_t order_token,
-                                                               transition_timestamp_t timestamp,
-                                                               btree_slice_t *btree,
-                                                               transaction_t *txn,
-                                                               superblock_t *superblock) {
+write_response_t store_t::protocol_write(const write_t &write,
+                                         transition_timestamp_t timestamp,
+                                         btree_slice_t *btree,
+                                         transaction_t *txn,
+                                         superblock_t *superblock) {
     write_visitor_t v(btree, txn, superblock, write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
     return boost::apply_visitor(v, write.mutation);
 }
 
 class memcached_backfill_callback_t : public backfill_callback_t {
-    typedef memcached_protocol_t::backfill_chunk_t chunk_t;
+    typedef backfill_chunk_t chunk_t;
 public:
     explicit memcached_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun)
         : chunk_fun_(chunk_fun) { }
@@ -581,15 +587,15 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
 
 struct receive_backfill_visitor_t : public boost::static_visitor<> {
     receive_backfill_visitor_t(btree_slice_t *_btree, transaction_t *_txn, superblock_t *_superblock, signal_t *_interruptor) : btree(_btree), txn(_txn), superblock(_superblock), interruptor(_interruptor) { }
-    void operator()(const memcached_protocol_t::backfill_chunk_t::delete_key_t& delete_key) const {
+    void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         // FIXME: we ignored delete_key.recency here. Should we use it in place of repli_timestamp_t::invalid?
         memcached_delete(delete_key.key, true, btree, 0, repli_timestamp_t::invalid, txn, superblock);
     }
-    void operator()(const memcached_protocol_t::backfill_chunk_t::delete_range_t& delete_range) const {
+    void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         hash_range_key_tester_t tester(delete_range.range);
         memcached_erase_range(btree, &tester, delete_range.range.inner, txn, superblock);
     }
-    void operator()(const memcached_protocol_t::backfill_chunk_t::key_value_pair_t& kv) const {
+    void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
         const backfill_atom_t& bf_atom = kv.backfill_atom;
         memcached_set(bf_atom.key, btree,
             bf_atom.value, bf_atom.flags, bf_atom.exptime,
@@ -642,10 +648,10 @@ private:
     DISABLE_COPYING(hash_key_tester_t);
 };
 
-void memcached_protocol_t::store_t::protocol_reset_data(const region_t& subregion,
-                                                        btree_slice_t *btree,
-                                                        transaction_t *txn,
-                                                        superblock_t *superblock) {
+void store_t::protocol_reset_data(const region_t& subregion,
+                                  btree_slice_t *btree,
+                                  transaction_t *txn,
+                                  superblock_t *superblock) {
     hash_key_tester_t key_tester(subregion.beg, subregion.end);
     memcached_erase_range(btree, &key_tester, subregion.inner, txn, superblock);
 }
@@ -666,7 +672,7 @@ private:
 
 
 // Debug printing impls
-void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::write_t& write) {
+void debug_print(append_only_printf_buffer_t *buf, const write_t& write) {
     buf->appendf("mcwrite{");
     generic_debug_print_visitor_t v(buf);
     boost::apply_visitor(v, write.mutation);
@@ -712,12 +718,12 @@ void debug_print(append_only_printf_buffer_t *buf, const append_prepend_mutation
     buf->appendf(", ...}");
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t& chunk) {
+void debug_print(append_only_printf_buffer_t *buf, const backfill_chunk_t& chunk) {
     generic_debug_print_visitor_t v(buf);
     boost::apply_visitor(v, chunk.val);
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t::delete_key_t& del) {
+void debug_print(append_only_printf_buffer_t *buf, const backfill_chunk_t::delete_key_t& del) {
     buf->appendf("bf::delete_key_t{key=");
     debug_print(buf, del.key);
     buf->appendf(", recency=");
@@ -725,13 +731,13 @@ void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::b
     buf->appendf("}");
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t::delete_range_t& del) {
+void debug_print(append_only_printf_buffer_t *buf, const backfill_chunk_t::delete_range_t& del) {
     buf->appendf("bf::delete_range_t{range=");
     debug_print(buf, del.range);
     buf->appendf("}");
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t::key_value_pair_t& kvpair) {
+void debug_print(append_only_printf_buffer_t *buf, const backfill_chunk_t::key_value_pair_t& kvpair) {
     buf->appendf("bf::kv{atom=");
     debug_print(buf, kvpair.backfill_atom);
     buf->appendf("}");

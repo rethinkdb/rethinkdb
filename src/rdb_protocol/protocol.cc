@@ -36,9 +36,6 @@ typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
 const std::string rdb_protocol_t::protocol_name("rdb");
 
-
-
-
 /* read_t::get_region implementation */
 struct r_get_region_visitor : public boost::static_visitor<key_range_t> {
     key_range_t operator()(const point_read_t &pr) const {
@@ -70,12 +67,12 @@ read_t read_t::shard(const key_range_t &region) const THROWS_NOTHING {
 
 /* read_t::unshard implementation */
 
-read_response_t rdb_protocol_t::read_t::unshard(std::vector<read_response_t> responses, temporary_cache_t *) const THROWS_NOTHING {
+read_response_t read_t::unshard(std::vector<read_response_t> responses, temporary_cache_t *) const THROWS_NOTHING {
     rassert(responses.size() == 1);
     return responses[0];
 }
 
-read_response_t rdb_protocol_t::read_t::multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
+read_response_t read_t::multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
     return unshard(responses, cache);
 }
 
@@ -127,8 +124,6 @@ write_response_t write_t::multistore_unshard(const std::vector<write_response_t>
     return unshard(responses, cache);
 }
 
-typedef rdb_protocol_t::store_t store_t;
-
 store_t::store_t(const std::string& filename,
                  bool create,
                  perfmon_collection_t *_perfmon_collection) :
@@ -151,7 +146,6 @@ private:
 };
 
 read_response_t store_t::protocol_read(const read_t &read,
-                                       UNUSED order_token_t order_token,
                                        btree_slice_t *btree,
                                        transaction_t *txn,
                                        superblock_t *superblock) {
@@ -181,7 +175,6 @@ private:
 };
 
 write_response_t store_t::protocol_write(const write_t &write,
-                                         UNUSED order_token_t order_token,
                                          transition_timestamp_t timestamp,
                                          btree_slice_t *btree,
                                          transaction_t *txn,
@@ -191,7 +184,7 @@ write_response_t store_t::protocol_write(const write_t &write,
 }
 
 struct rdb_backfill_callback_t : public backfill_callback_t {
-    typedef rdb_protocol_t::backfill_chunk_t chunk_t;
+    typedef backfill_chunk_t chunk_t;
     const boost::function<void(chunk_t)> &chunk_fun;
 
     explicit rdb_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun_) : chunk_fun(chunk_fun_) { }

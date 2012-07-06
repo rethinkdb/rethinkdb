@@ -85,13 +85,11 @@ public:
 protected:
     // Functions to be implemented by derived (protocol-specific) store_t classes
     virtual typename protocol_t::read_response_t protocol_read(const typename protocol_t::read_t &read,
-                                                               order_token_t order_token,
                                                                btree_slice_t *btree,
                                                                transaction_t *txn,
                                                                superblock_t *superblock) = 0;
 
     virtual typename protocol_t::write_response_t protocol_write(const typename protocol_t::write_t &write,
-                                                                 order_token_t order_token,
                                                                  transition_timestamp_t timestamp,
                                                                  btree_slice_t *btree,
                                                                  transaction_t *txn,

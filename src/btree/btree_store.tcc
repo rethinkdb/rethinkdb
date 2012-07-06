@@ -130,33 +130,9 @@ typename protocol_t::read_response_t btree_store_t<protocol_t>::read(
     boost::scoped_ptr<superblock_t> superblock2;
     superblock.swap(*reinterpret_cast<boost::scoped_ptr<real_superblock_t> *>(&superblock2));
 
-    return protocol_read(read, order_token, btree.get(), txn.get(), superblock2.get());
+    return protocol_read(read, btree.get(), txn.get(), superblock2.get());
 }
 
-/*
-template <class protocol_t>
-typename protocol_t::read_response_t btree_store_t<protocol_t>::read(
-        DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-        const typename protocol_t::read_t &read,
-        UNUSED order_token_t order_token,  // TODO
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
-    acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
-
-    check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());
-
-    // Ugly hack
-    boost::scoped_ptr<superblock_t> superblock2;
-    superblock.swap(*reinterpret_cast<boost::scoped_ptr<real_superblock_t> *>(&superblock2));
-
-    typename protocol_t::read_visitor_t v(btree.get(), txn, superblock2, read.effective_time);
-    return boost::apply_visitor(v, read.query);
-}
-*/
 template <class protocol_t>
 typename protocol_t::write_response_t btree_store_t<protocol_t>::write(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
@@ -175,31 +151,9 @@ typename protocol_t::write_response_t btree_store_t<protocol_t>::write(
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
 
-    return protocol_write(write, order_token, timestamp, btree.get(), txn.get(), superblock.get());
+    return protocol_write(write, timestamp, btree.get(), txn.get(), superblock.get());
 }
-/*
-template <class protocol_t>
-typename protocol_t::write_response_t btree_store_t<protocol_t>::write(
-        DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-        const metainfo_t& new_metainfo,
-        const typename protocol_t::write_t &write,
-        transition_timestamp_t timestamp,
-        UNUSED order_token_t order_token,  // TODO
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
 
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
-    const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
-
-    check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
-
-    typename protocol_t::write_visitor_t v(btree.get(), txn, superblock.get(), write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
-    return boost::apply_visitor(v, write.mutation);
-}
-*/
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
 template <class protocol_t>
 bool btree_store_t<protocol_t>::send_backfill(
@@ -222,43 +176,6 @@ bool btree_store_t<protocol_t>::send_backfill(
     }
     return false;
 }
-/*
-// TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
-template <class protocol_t>
-bool btree_store_t<protocol_t>::send_backfill(
-        const region_map_t<protocol_t, state_timestamp_t> &start_point,
-        const boost::function<bool(const metainfo_t&)> &should_backfill,
-        const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
-        typename protocol_t::backfill_progress_t *progress,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
-    acquire_superblock_for_backfill(token, txn, superblock, interruptor);
-
-    metainfo_t metainfo = get_metainfo_internal(txn.get(), superblock->get()).mask(start_point.get_domain());
-    if (should_backfill(metainfo)) {
-        std::vector<std::pair<typename protocol_t::region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
-
-        if (regions.size() > 0) {
-            backfill_callback_t callback(chunk_fun);
-
-            // pmapping by regions.size() is now the arguably wrong
-            // thing to do, because regions are not separate key
-            // ranges.  On the other hand it's harmless, because
-            // caching is basically perfect.
-            refcount_superblock_t refcount_wrapper(superblock.get(), regions.size());
-            pmap(regions.size(), boost::bind(&protocol_t::call_backfill, _1,
-                                             btree.get(), regions, &callback, txn.get(), &refcount_wrapper, progress));
-        }
-
-        return true;
-    }
-    return false;
-}
-*/
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::receive_backfill(
@@ -275,23 +192,6 @@ void btree_store_t<protocol_t>::receive_backfill(
 
     protocol_receive_backfill(btree.get(), txn.get(), superblock.get(), interruptor, chunk);
 }
-/*
-template <class protocol_t>
-void btree_store_t<protocol_t>::receive_backfill(
-        const typename protocol_t::backfill_chunk_t &chunk,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
-    const int expected_change_count = 1; // FIXME: this is probably not correct
-
-    acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
-
-    boost::apply_visitor(typename protocol_t::receive_backfill_visitor_t(btree.get(), txn.get(), superblock.get(), interruptor), chunk.val);
-}
-*/
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::reset_data(
@@ -318,34 +218,6 @@ void btree_store_t<protocol_t>::reset_data(
 
     protocol_reset_data(subregion, btree.get(), txn.get(), superblock.get());
 }
-/*
-template <class protocol_t>
-void btree_store_t<protocol_t>::reset_data(
-        const typename protocol_t::region_t& subregion,
-        const metainfo_t &new_metainfo,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
-
-    // We're passing 2 for the expected_change_count based on the
-    // reasoning that we're probably going to touch a leaf-node-sized
-    // range of keys and that it won't be aligned right on a leaf node
-    // boundary.
-    // TODO that's not reasonable; reset_data() is sometimes used to wipe out
-    // entire databases.
-    const int expected_change_count = 2;
-    acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
-
-    region_map_t<protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock->get());
-    update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
-
-    typename protocol_t::hash_key_tester_t key_tester(subregion.beg, subregion.end);
-    memcached_erase_range(btree.get(), &key_tester, subregion.inner, txn.get(), superblock.get()); // RSI
-}
-*/
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::check_and_update_metainfo(
@@ -354,7 +226,6 @@ void btree_store_t<protocol_t>::check_and_update_metainfo(
         transaction_t *txn,
         real_superblock_t *superblock) const
         THROWS_NOTHING {
-
     metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn, superblock);
     update_metainfo(old_metainfo, new_metainfo, txn, superblock);
 }
@@ -365,7 +236,6 @@ typename btree_store_t<protocol_t>::metainfo_t btree_store_t<protocol_t>::check_
         transaction_t *txn,
         real_superblock_t *superblock) const
         THROWS_NOTHING {
-
     region_map_t<protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn, superblock->get());
 #ifndef NDEBUG
     metainfo_checker.check_metainfo(old_metainfo.mask(metainfo_checker.get_domain()));

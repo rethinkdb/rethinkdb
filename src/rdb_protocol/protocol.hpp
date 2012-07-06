@@ -276,13 +276,11 @@ struct rdb_protocol_t {
 
     private:
         read_response_t protocol_read(const read_t &read,
-                                      order_token_t order_token,
                                       btree_slice_t *btree,
                                       transaction_t *txn,
                                       superblock_t *superblock);
 
         write_response_t protocol_write(const write_t &write,
-                                        order_token_t order_token,
                                         transition_timestamp_t timestamp,
                                         btree_slice_t *btree,
                                         transaction_t *txn,
