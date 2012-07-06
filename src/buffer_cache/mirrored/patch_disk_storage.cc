@@ -117,10 +117,12 @@ patch_disk_storage_t::~patch_disk_storage_t() {
 
 // Loads on-disk data into memory
 void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storage) {
-    rassert(log_block_bufs.size() == number_of_blocks);
     cache->assert_thread();
+
     if (number_of_blocks == 0)
         return;
+
+    rassert(log_block_bufs.size() == number_of_blocks);
 
     std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
 

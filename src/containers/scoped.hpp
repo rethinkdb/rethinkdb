@@ -139,6 +139,7 @@ public:
     }
 
     ssize_t size() const {
+        rassert(ptr_);
         return size_;
     }
 
