@@ -35,7 +35,6 @@ module 'DataExplorerView', ->
         events:
             'keyup .input_query': 'handle_keypress'
             'keydown .input_query': 'handle_tab'
-            'click .input_query': 'make_suggestion'
             'blur .input_query': 'hide_suggestion'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
@@ -53,7 +52,6 @@ module 'DataExplorerView', ->
         query_last_part: ''
 
         handle_tab: (event) =>
-            @expand_textarea()
             if event.which is 9
                 @keypress_is_tab = true
                 event.preventDefault()
@@ -64,6 +62,17 @@ module 'DataExplorerView', ->
                 if @current_suggestions[@current_highlighted_suggestion]?
                     @.$('.suggestion_name_li').eq(@current_highlighted_suggestion).addClass 'suggestion_name_li_hl'
                     @.$('.input_query').val @query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion] + @query_last_part
+                    position = (@query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion]).length
+                    console.log position
+                    if @.$('.input_query').get(0)?.setSelectionRange?
+                        @.$('.input_query').get(0).setSelectionRange position, position
+                    else if @.$('.input_query').get(0).createTextRange?
+                        range = @.$('.input_query').get(0).createTextRange()
+                        range.collapse true
+                        range.moveEnd 'character', position
+                        range.moveStart 'character', position
+                        range.select()
+
             else if event.which is 13 and !event.shiftKey
                 event.preventDefault()
                 @hide_suggestion()
@@ -73,13 +82,16 @@ module 'DataExplorerView', ->
             @.$('.suggestion_name_list').css 'display', 'none'
  
         handle_keypress: (event) =>
+            @expand_textarea()
             if event.which isnt 13
                 @make_suggestion()
 
         expand_textarea: (event) =>
-            if $('.input_query').length is 1
-                height = $('.input_query').prop('scrollHeight')-8 # -8 is for padding
-                $('.input_query').height(height) if $('.input_query').height() isnt height
+            if @.$('.input_query').length is 1
+                @.$('.input_query').height 0
+                height = @.$('.input_query').prop('scrollHeight') # We should have -8 but Firefox doesn't add padding in scrollHeight... Maybe we should start adding hacks...
+                console.log height
+                @.$('.input_query').css 'height', height if @.$('.input_query').height() isnt height
 
 
         execute_query: =>
@@ -170,7 +182,6 @@ module 'DataExplorerView', ->
 
         # Make suggestions when the user is writing
         make_suggestion: =>
-            console.log @.$('.input_query').prop("selectionStart")
             if @keypress_is_tab
                 @keypress_is_tab = false
                 return
@@ -217,9 +228,6 @@ module 'DataExplorerView', ->
                 suggestion = ["filter(", "find(", "plot(", "update("]
                 @append_suggestion(query, suggestion)
 
-            console.log 'query_first_part: '+@query_first_part
-            console.log 'current_completed_query'+@current_completed_query
-            console.log 'query_last_part: '+@query_last_part
  
             return @
 
