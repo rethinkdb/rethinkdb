@@ -1,8 +1,9 @@
 #ifndef PROTOCOL_API_HPP_
 #define PROTOCOL_API_HPP_
 
-#include <functional>
-#include <list>
+#include <algorithm>
+#include <set>
+#include <string>
 #include <utility>
 #include <vector>
 

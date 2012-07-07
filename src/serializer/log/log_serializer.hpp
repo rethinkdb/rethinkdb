@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include <map>
+#include <string>
 #include <vector>
 
 #include "serializer/serializer.hpp"

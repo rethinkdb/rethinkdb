@@ -6,6 +6,8 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/scoped_ptr.hpp>
 
+#include <vector>
+
 #include "concurrency/pmap.hpp"
 #include "mock/clustering_utils.hpp"
 #include "mock/unittest_utils.hpp"
