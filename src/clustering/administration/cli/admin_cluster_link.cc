@@ -1753,6 +1753,13 @@ namespace_id_t admin_cluster_link_t::do_admin_create_namespace_internal(namespac
     obj.shards.get_mutable() = shards;
     obj.shards.upgrade_version(change_request_id);
 
+    /* It's important to initialize this because otherwise it will be
+    initialized with a default-constructed UUID, which doesn't initialize its
+    contents, so Valgrind will complain. */
+    region_map_t<protocol_t, machine_id_t> default_primary_pinnings(protocol_t::region_t::universe(), nil_uuid());
+    obj.primary_pinnings.get_mutable() = default_primary_pinnings;
+    obj.primary_pinnings.upgrade_version(change_request_id);
+
     return id;
 }
 
