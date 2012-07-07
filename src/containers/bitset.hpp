@@ -1,9 +1,9 @@
 #ifndef CONTAINERS_BITSET_HPP_
 #define CONTAINERS_BITSET_HPP_
 
-#include <vector>
-
 #include <stdint.h>
+
+#include <vector>
 
 #include "utils.hpp"
 

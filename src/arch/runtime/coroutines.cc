@@ -1,8 +1,12 @@
-#include "arch/runtime/runtime.hpp"
-
+#include "arch/runtime/coroutines.hpp"
 
 #include <stdio.h>
 #include <string.h>
+
+#ifndef NDEBUG
+#include <cxxabi.h>   // For __cxa_current_exception_type (see below)
+#include <stack>
+#endif
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -15,11 +19,6 @@
 
 #include "perfmon/perfmon.hpp"
 #include "utils.hpp"
-
-#ifndef NDEBUG
-#include <cxxabi.h>   // For __cxa_current_exception_type (see below)
-#include <stack>
-#endif
 
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
 static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),

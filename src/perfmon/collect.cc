@@ -1,7 +1,8 @@
-#include "perfmon/collect.hpp"
-#include "concurrency/pmap.hpp"
 #include "utils.hpp"
 #include <boost/bind.hpp>
+
+#include "perfmon/collect.hpp"
+#include "concurrency/pmap.hpp"
 
 /* This is the function that actually gathers the stats. It is illegal to create or destroy
 perfmon_t objects while perfmon_get_stats is active. */

@@ -1,5 +1,3 @@
-#include "unittest/gtest.hpp"
-
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -10,6 +8,7 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
+#include "unittest/gtest.hpp"
 
 namespace unittest {
 

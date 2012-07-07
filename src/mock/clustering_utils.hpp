@@ -246,4 +246,4 @@ private:
 
 }   /* namespace unittest */
 
-#endif   /* MOCK_CLUSTERING_UTILS_HPP_ */
+#endif  // MOCK_CLUSTERING_UTILS_HPP_

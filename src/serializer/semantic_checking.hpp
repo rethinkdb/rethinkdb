@@ -1,11 +1,12 @@
 #ifndef SERIALIZER_SEMANTIC_CHECKING_HPP_
 #define SERIALIZER_SEMANTIC_CHECKING_HPP_
 
-#include <set>
-#include <string>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#include <set>
+#include <string>
 
 #include "errors.hpp"
 #include <boost/crc.hpp>

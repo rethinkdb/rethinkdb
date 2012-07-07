@@ -1,4 +1,4 @@
-#include "unittest/gtest.hpp"
+#include "concurrency/fifo_enforcer.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -6,9 +6,9 @@
 
 #include "arch/timing.hpp"
 #include "concurrency/auto_drainer.hpp"
-#include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/wait_any.hpp"
 #include "mock/unittest_utils.hpp"
+#include "unittest/gtest.hpp"
 
 namespace unittest {
 

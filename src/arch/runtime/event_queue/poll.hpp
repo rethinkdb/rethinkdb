@@ -1,10 +1,10 @@
 #ifndef ARCH_RUNTIME_EVENT_QUEUE_POLL_HPP_
 #define ARCH_RUNTIME_EVENT_QUEUE_POLL_HPP_
 
+#include <poll.h>
+
 #include <map>
 #include <vector>
-
-#include <poll.h>
 
 #include "arch/runtime/event_queue_types.hpp"
 #include "arch/runtime/runtime_utils.hpp"

@@ -1,15 +1,16 @@
 #include "clustering/administration/cli/admin_command_parser.hpp"
-#include "clustering/administration/cli/admin_cluster_link.hpp"
-#include "arch/runtime/thread_pool.hpp"
-#include "arch/timing.hpp"
-#include "arch/runtime/runtime_utils.hpp"
 
-#include <cstdarg>
+#include <stdarg.h>
+
 #include <map>
 #include <stdexcept>
 
-#include "help.hpp"
+#include "arch/runtime/thread_pool.hpp"
+#include "arch/timing.hpp"
+#include "arch/runtime/runtime_utils.hpp"
+#include "clustering/administration/cli/admin_cluster_link.hpp"
 #include "errors.hpp"
+#include "help.hpp"
 
 admin_command_parser_t *admin_command_parser_t::instance = NULL;
 uint64_t admin_command_parser_t::cluster_join_timeout = 5000; // Give 5 seconds to connect to all machines in the cluster

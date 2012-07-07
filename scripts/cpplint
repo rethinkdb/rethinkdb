@@ -2387,11 +2387,6 @@ def _ClassifyInclude(fileinfo, include, is_system):
     else:
       return _C_SYS_HEADER
 
-  # errors.hpp or utils.hpp must be used before boost.  This isn't to
-  # ensure that it's used before boost, unfortunately.
-  if include == 'errors.hpp' or include == 'utils.hpp':
-    return _ERRORS_HPP_HEADER
-
   # If the target file and the include we're checking share a
   # basename when we drop common extensions, and the include
   # lives in . , then it's likely to be owned by the target file.
@@ -2413,6 +2408,11 @@ def _ClassifyInclude(fileinfo, include, is_system):
       target_first_component.group(0) ==
       include_first_component.group(0)):
     return _POSSIBLE_MY_HEADER
+
+  # errors.hpp or utils.hpp must be used before boost.  This isn't to
+  # ensure that it's used before boost, unfortunately.
+  if include == 'errors.hpp' or include == 'utils.hpp':
+    return _ERRORS_HPP_HEADER
 
   return _OTHER_HEADER
 

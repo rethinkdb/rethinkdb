@@ -1,5 +1,6 @@
 #include "errors.hpp"
 
+#include <cxxabi.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -57,8 +58,6 @@ void generic_crash_handler(int signum) {
 }
 
 void ignore_crash_handler(UNUSED int signum) { }
-
-#include <cxxabi.h>
 
 void terminate_handler() {
     std::type_info *t = abi::__cxa_current_exception_type();
