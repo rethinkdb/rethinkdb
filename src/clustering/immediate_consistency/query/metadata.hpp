@@ -82,7 +82,7 @@ public:
             )> read_mailbox_t;
 
     direct_reader_business_card_t() { }
-    direct_reader_business_card_t(const typename read_mailbox_t::address_t &rm) : read_mailbox(rm) { }
+    explicit direct_reader_business_card_t(const typename read_mailbox_t::address_t &rm) : read_mailbox(rm) { }
 
     typename read_mailbox_t::address_t read_mailbox;
 

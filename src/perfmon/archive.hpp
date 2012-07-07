@@ -1,6 +1,9 @@
 #ifndef PERFMON_ARCHIVE_HPP_
 #define PERFMON_ARCHIVE_HPP_
 
+#include <string>
+#include <utility>
+
 #include "perfmon/perfmon.hpp"
 #include "rpc/serialize_macros.hpp"
 

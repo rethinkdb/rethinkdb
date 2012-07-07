@@ -1,5 +1,7 @@
 #include "clustering/administration/main/serve.hpp"
 
+#include <stdio.h>
+
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
 #include "clustering/administration/admin_tracker.hpp"
@@ -17,11 +19,9 @@
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
-#include <stdio.h>
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
-#include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"

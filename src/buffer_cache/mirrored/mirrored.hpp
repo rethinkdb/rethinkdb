@@ -1,7 +1,10 @@
 #ifndef BUFFER_CACHE_MIRRORED_MIRRORED_HPP_
 #define BUFFER_CACHE_MIRRORED_MIRRORED_HPP_
 
+#include <algorithm>
 #include <map>
+#include <utility>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>

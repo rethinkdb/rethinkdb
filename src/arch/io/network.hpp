@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <stdexcept>
+#include <string>
 
 #include "utils.hpp"
 #include <boost/function.hpp>

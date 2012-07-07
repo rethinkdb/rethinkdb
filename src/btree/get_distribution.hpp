@@ -1,6 +1,8 @@
 #ifndef BTREE_GET_DISTRIBUTION_HPP_
 #define BTREE_GET_DISTRIBUTION_HPP_
 
+#include <vector>
+
 #include "btree/keys.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/types.hpp"

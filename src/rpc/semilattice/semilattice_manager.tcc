@@ -3,6 +3,11 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
+#include <algorithm>
+#include <map>
+#include <set>
+#include <utility>
+
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"

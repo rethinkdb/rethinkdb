@@ -1,5 +1,5 @@
-#ifndef MOCK_CLUSTERING_TEST_UTILS_HPP_
-#define MOCK_CLUSTERING_TEST_UTILS_HPP_
+#ifndef MOCK_CLUSTERING_UTILS_HPP_
+#define MOCK_CLUSTERING_UTILS_HPP_
 
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
@@ -246,4 +246,4 @@ private:
 
 }   /* namespace unittest */
 
-#endif   /* MOCK_CLUSTERING_TEST_UTILS_HPP_ */
+#endif  // MOCK_CLUSTERING_UTILS_HPP_

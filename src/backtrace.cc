@@ -1,5 +1,6 @@
 #include <backtrace.hpp>
 
+#include <cxxabi.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -86,8 +87,6 @@ to the way it was originally.
 
 Please don't change this function without talking to the people who have already
 been involved in this. */
-
-#include <cxxabi.h>
 
 std::string demangle_cpp_name(const char *mangled_name) {
     int res;

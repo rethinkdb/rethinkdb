@@ -4,6 +4,8 @@
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
 
+#include <vector>
+
 #include "arch/types.hpp"
 #include "serializer/log/config.hpp"
 #include "containers/priority_queue.hpp"

@@ -1,9 +1,9 @@
 #ifndef ARCH_IO_BLOCKER_POOL_HPP_
 #define ARCH_IO_BLOCKER_POOL_HPP_
 
-#include <vector>
-
 #include <pthread.h>
+
+#include <vector>
 
 #include "arch/runtime/event_queue.hpp"
 #include "arch/io/concurrency.hpp"

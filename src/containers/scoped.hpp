@@ -71,7 +71,7 @@ template <class T>
 class scoped_array_t {
 public:
     scoped_array_t() : ptr_(NULL), size_(0) { }
-    scoped_array_t(ssize_t n) : ptr_(NULL), size_(0) {
+    explicit scoped_array_t(ssize_t n) : ptr_(NULL), size_(0) {
         init(n);
     }
 
@@ -139,6 +139,7 @@ public:
     }
 
     ssize_t size() const {
+        rassert(ptr_);
         return size_;
     }
 

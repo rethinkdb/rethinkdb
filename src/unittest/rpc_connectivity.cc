@@ -1,5 +1,3 @@
-#include "unittest/gtest.hpp"
-
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -9,6 +7,7 @@
 #include "mock/unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
+#include "unittest/gtest.hpp"
 
 namespace unittest {
 

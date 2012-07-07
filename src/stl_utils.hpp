@@ -3,6 +3,8 @@
 
 #include <map>
 #include <set>
+#include <utility>
+#include <vector>
 
 #include "containers/printf_buffer.hpp"
 

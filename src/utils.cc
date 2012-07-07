@@ -3,8 +3,6 @@
 
 #include "utils.hpp"
 
-#include <boost/tokenizer.hpp>
-
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -14,16 +12,18 @@
 #include <string.h>
 #include <sys/time.h>
 
+#ifdef VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
+#include <boost/tokenizer.hpp>
+
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
 #include "thread_local.hpp"
-
-#ifdef VALGRIND
-#include <valgrind/memcheck.h>
-#endif
 
 // fast non-null terminated string comparison
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
