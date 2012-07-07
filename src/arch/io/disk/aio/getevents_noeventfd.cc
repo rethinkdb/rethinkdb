@@ -1,6 +1,5 @@
 #include "arch/io/disk/aio/getevents_noeventfd.hpp"
 
-#include <fcntl.h>
 #include <linux/fs.h>
 #include <stdio.h>
 #include <unistd.h>
