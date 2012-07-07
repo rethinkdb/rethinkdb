@@ -135,6 +135,10 @@ class TestTableRef(unittest.TestCase):
         arr = range(10)
 
         expect(r.array(r.stream(arr)), arr)
+        expect(r.array(r.stream(r.array(r.stream(arr)))), arr)
+
+        expect(r.nth(r.stream(arr), 0), 0)
+        expect(r.nth(r.stream(arr), 5), 5)
 
     def test_table_insert(self):
         q = self.table.insert(self.docs)

@@ -1595,10 +1595,47 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             throw runtime_exc_t("Unimplemented: Builtin::UNION");
             break;
         case Builtin::NTH:
-            throw runtime_exc_t("Unimplemented: Builtin::NTH");
+            {
+                json_stream_t stream = eval_stream(c.args(0), env);
+
+                // Check second arg type
+                boost::shared_ptr<scoped_cJSON_t> index_json  = eval(c.args(1), env);
+                if (index_json->get()->type != cJSON_Number) {
+                    throw runtime_exc_t("The second argument must be an integer.");
+                }
+                float index_float = index_json->get()->valuedouble;
+                int index = (int)index_float;
+                if (index_float != index || index < 0) {
+                    throw runtime_exc_t("The second argument must be a nonnegative integer.");
+                }
+
+                if (static_cast<size_t>(index) > stream.size()) {
+                    throw runtime_exc_t("Indexed past the end of a stream");
+                }
+
+                json_stream_t::iterator it = stream.begin();
+
+                std::advance(it, index);
+
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(
+                    cJSON_DeepCopy(it->get()->get())
+                ));
+            }
             break;
         case Builtin::STREAMTOARRAY:
-            throw runtime_exc_t("Unimplemented: Builtin::STREAMTOARRAY");
+            {
+                json_stream_t stream = eval_stream(c.args(0), env);
+
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
+
+                for (json_stream_t::iterator it  = stream.begin();
+                                             it != stream.end();
+                                             ++it) {
+                    cJSON_AddItemToArray(res->get(), cJSON_DeepCopy(it->get()->get()));
+                }
+
+                return res;
+            }
             break;
         case Builtin::ARRAYTOSTREAM:
             throw runtime_exc_t("Unimplemented: Builtin::ARRAYTOSTREAM");
