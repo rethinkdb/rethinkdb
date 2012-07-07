@@ -6,7 +6,6 @@
 #include "concurrency/coro_fifo.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
-#include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"

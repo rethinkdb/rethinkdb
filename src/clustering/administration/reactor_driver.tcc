@@ -9,7 +9,6 @@
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
-#include "clustering/administration/reactor_driver.hpp"
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/watchable.hpp"

@@ -6,6 +6,8 @@
 #include <string.h>
 #include <time.h>
 
+#include <string>
+
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "config/args.hpp"

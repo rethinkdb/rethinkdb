@@ -1,7 +1,11 @@
 #ifndef ARCH_IO_DISK_STATS_HPP_
 #define ARCH_IO_DISK_STATS_HPP_
 
+#include <string>
+
+#include "errors.hpp"
 #include <boost/function.hpp>
+
 #include "perfmon/types.hpp"
 
 /* There are two types of stat-collectors in the disk stack. One type is a passive

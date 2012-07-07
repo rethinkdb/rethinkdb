@@ -1,6 +1,10 @@
 #ifndef BTREE_OPERATIONS_HPP_
 #define BTREE_OPERATIONS_HPP_
 
+#include <algorithm>
+#include <utility>
+#include <vector>
+
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
 
