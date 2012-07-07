@@ -45,6 +45,7 @@ template<class protocol_t>
 class namespace_interface_t {
 public:
     virtual typename protocol_t::read_response_t read(typename protocol_t::read_t, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
     virtual typename protocol_t::write_response_t write(typename protocol_t::write_t, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
@@ -238,6 +239,18 @@ protected:
     virtual ~metainfo_checker_callback_t() { }
 private:
     DISABLE_COPYING(metainfo_checker_callback_t);
+};
+
+template <class protocol_t>
+struct trivial_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
+
+    trivial_metainfo_checker_callback_t() { }
+    void check_metainfo(UNUSED const region_map_t<protocol_t, binary_blob_t>& metainfo, UNUSED const typename protocol_t::region_t& region) const {
+        /* do nothing */
+    }
+
+private:
+    DISABLE_COPYING(trivial_metainfo_checker_callback_t);
 };
 
 template <class protocol_t>

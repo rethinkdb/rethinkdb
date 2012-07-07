@@ -37,13 +37,7 @@ void direct_reader_t<protocol_t>::perform_read(
         svs->new_read_tokens(&read_tokens);
 
 #ifndef NDEBUG
-        class dummy_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
-        public:
-            void check_metainfo(UNUSED const region_map_t<protocol_t, binary_blob_t>& metainfo,
-                                UNUSED const typename protocol_t::region_t& domain) const {
-                /* ignore */
-            }
-        } metainfo_checker_callback;
+        trivial_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback;
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs->get_multistore_joined_region());
 #endif
 
