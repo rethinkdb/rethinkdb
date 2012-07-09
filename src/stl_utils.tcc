@@ -4,6 +4,10 @@
 #include "stl_utils.hpp"
 
 #include <algorithm>
+#include <map>
+#include <set>
+#include <utility>
+#include <vector>
 
 //TODO this can be much more efficient with an iterator
 template <class K, class V>

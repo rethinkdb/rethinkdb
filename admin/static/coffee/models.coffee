@@ -71,13 +71,19 @@ class Namespace extends Backbone.Model
             _m = machines.get(mid)
             if _m?
                 _s = _m.get_stats()[@get('id')]
-            if _s? and _s.btree?
-                keys_read = parseFloat(_s.btree.keys_read)
-                if not isNaN(keys_read)
-                    __s.keys_read += keys_read
-                keys_set = parseFloat(_s.btree.keys_set)
-                if not isNaN(keys_set)
-                    __s.keys_set += keys_set
+            if _s?.serializers?
+                keys_read = 0
+                keys_set = 0
+                for serializer_id of _s.serializers
+                    serializer = _s.serializers[serializer_id]
+                    if serializer.btree?
+
+                        keys_read = parseFloat(serializer.btree.keys_read)
+                        keys_set = parseFloat(serializer.btree.keys_set)
+                        if not isNaN(keys_read)
+                            __s.keys_read += keys_read
+                        if not isNaN(keys_set)
+                            __s.keys_set += keys_set
         return __s
 
 

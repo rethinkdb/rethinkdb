@@ -2,17 +2,17 @@
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-#include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
+
+#include <set>
+#include <stdexcept>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
-
-#include <vector>
-#include <set>
 
 #include "concurrency/coro_fifo.hpp"
 #include "concurrency/mutex.hpp"

@@ -1,10 +1,10 @@
 #include "unittest/gtest.hpp"
 
 #include "clustering/reactor/directory_echo.hpp"
+#include "mock/unittest_utils.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/directory/write_manager.hpp"
-#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -46,7 +46,7 @@ public:
 }   /* anonymous namespace */
 
 void run_directory_echo_test() {
-    int port = randport();
+    int port = mock::randport();
     directory_echo_cluster_t<std::string> cluster1("hello", port), cluster2("world", port+1);
     cluster1.connectivity_cluster_run.join(cluster2.connectivity_cluster.get_peer_address(cluster2.connectivity_cluster.get_me()));
 
@@ -63,7 +63,7 @@ void run_directory_echo_test() {
     EXPECT_EQ("Hello", cluster2_sees_cluster1_directory_as);
 }
 TEST(ClusteringDirectoryEcho, DirectoryEcho) {
-    run_in_thread_pool(&run_directory_echo_test);
+    mock::run_in_thread_pool(&run_directory_echo_test);
 }
 
 }   /* namespace unittest */

@@ -1,8 +1,9 @@
 #ifndef ARCH_IO_DISK_AIO_SUBMIT_SYNC_HPP_
 #define ARCH_IO_DISK_AIO_SUBMIT_SYNC_HPP_
 
-#include "arch/io/disk/aio.hpp"
 #include <vector>
+
+#include "arch/io/disk/aio.hpp"
 
 struct linux_aio_submit_sync_t :
     private availability_callback_t,

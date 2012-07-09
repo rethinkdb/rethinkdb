@@ -127,8 +127,8 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
         // TODO: Describe this fifo source's purpose a bit.  It's for ordering backfill operations, right?
         fifo_enforcer_source_t fifo_src;
 
-        scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > send_backfill_tokens;
-        svs->new_read_tokens(&send_backfill_tokens);
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> send_backfill_token;
+        svs->new_read_token(&send_backfill_token);
 
         /* Actually perform the backfill */
         svs->send_multistore_backfill(
@@ -139,7 +139,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
                      boost::bind(&backfiller_t<protocol_t>::confirm_and_send_metainfo, this, _1, start_point, end_point_cont),
                      boost::bind(send_chunk<protocol_t>, mailbox_manager, chunk_cont, _1, &fifo_src, &chunk_semaphore),
                      local_backfill_progress[session_id],
-                     send_backfill_tokens,
+                     &send_backfill_token,
                      &interrupted
                      );
 

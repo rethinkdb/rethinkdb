@@ -1,11 +1,11 @@
 #ifndef SERIALIZER_LOG_EXTENT_MANAGER_HPP_
 #define SERIALIZER_LOG_EXTENT_MANAGER_HPP_
 
-#include <deque>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include <deque>
 
 #include "utils.hpp"
 #include <boost/ptr_container/ptr_vector.hpp>

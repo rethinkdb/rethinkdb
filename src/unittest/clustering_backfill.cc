@@ -5,9 +5,11 @@
 #include "containers/uuid.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "mock/branch_history_manager.hpp"
+#include "mock/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "unittest/clustering_utils.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "mock/unittest_utils.hpp"
+
+using mock::dummy_protocol_t;
 
 namespace unittest {
 
@@ -76,7 +78,7 @@ void run_backfill_test() {
             backfiller_store.new_write_token(token);
 
 #ifndef NDEBUG
-            equality_metainfo_checker_callback_t<dummy_protocol_t>
+            mock::equality_metainfo_checker_callback_t<dummy_protocol_t>
                 metainfo_checker_callback(binary_blob_t(version_range_t(version_t(dummy_branch_id, ts.timestamp_before()))));
             metainfo_checker_t<dummy_protocol_t> metainfo_checker(&metainfo_checker_callback, region);
 #endif
@@ -97,7 +99,7 @@ void run_backfill_test() {
 
     // Set up a cluster so mailboxes can be created
 
-    simple_mailbox_cluster_t cluster;
+    mock::simple_mailbox_cluster_t cluster;
 
     /* Expose the backfiller to the cluster */
 
@@ -161,7 +163,7 @@ void run_backfill_test() {
     //EXPECT_EQ(timestamp, backfillee_metadata[0].second.earliest.timestamp);
 }
 TEST(ClusteringBackfill, BackfillTest) {
-    run_in_thread_pool(&run_backfill_test);
+    mock::run_in_thread_pool(&run_backfill_test);
 }
 
 }   /* namespace unittest */

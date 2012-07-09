@@ -6,7 +6,6 @@
 #include "concurrency/coro_fifo.hpp"
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
-#include "containers/uuid.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
@@ -41,10 +40,10 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
 
     /* Snapshot the starting point of the store; we'll need to record this
        and store it in the metadata. */
-    scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
-    initial_svs->new_read_tokens(&read_tokens);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+    initial_svs->new_read_token(&read_token);
 
-    region_map_t<protocol_t, version_range_t> origins = initial_svs->get_all_metainfos(order_token_t::ignore, read_tokens, interruptor);
+    region_map_t<protocol_t, version_range_t> origins = initial_svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
 
     /* Determine what the first timestamp of the new branch will be */
     state_timestamp_t initial_timestamp = state_timestamp_t::zero();
@@ -76,12 +75,12 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
        entry in the global metadata so that we aren't left in a state where
        the store has been marked as belonging to a branch for which no
        information exists. */
-    scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
-    initial_svs->new_write_tokens(&write_tokens);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+    initial_svs->new_write_token(&write_token);
     initial_svs->set_all_metainfos(region_map_t<protocol_t, binary_blob_t>(initial_svs->get_multistore_joined_region(),
                                                                            binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
                                    order_token_t::ignore,
-                                   write_tokens,
+                                   &write_token,
                                    interruptor);
 
     /* Perform an initial sanity check. */

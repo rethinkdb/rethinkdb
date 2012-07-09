@@ -18,9 +18,9 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     shards.push_back(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n")));
     shards.push_back(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") ));
 
-    boost::ptr_vector<temp_file_t> temp_files;
+    boost::ptr_vector<mock::temp_file_t> temp_files;
     for (int i = 0; i < (int)shards.size(); i++) {
-        temp_files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
+        temp_files.push_back(new mock::temp_file_t("/tmp/rdb_unittest.XXXXXX"));
     }
 
     boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
@@ -43,7 +43,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *)> fun) {
-    run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
+    mock::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
 }
 
 }   /* anonymous namespace */

@@ -1,6 +1,8 @@
 #ifndef SERIALIZER_LOG_CONFIG_HPP_
 #define SERIALIZER_LOG_CONFIG_HPP_
 
+#include <string>
+
 #include "config/args.hpp"
 #include "serializer/types.hpp"
 #include "rpc/serialize_macros.hpp"

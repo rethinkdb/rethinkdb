@@ -18,7 +18,7 @@ def generate_make_serializable_macro(nfields):
     print "#define RDB_EXPAND_SERIALIZABLE_%d(function_attr, type_t%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
-    print "    function_attr write_message_t &operator<<(%swrite_message_t &msg, %sconst type_t &thing) { \\" % (zeroarg, zeroarg)
+    print "    function_attr write_message_t &operator<<(%swrite_message_t &msg /* NOLINT */, %sconst type_t &thing) { \\" % (zeroarg, zeroarg)
     for i in xrange(nfields):
         print "        msg << thing.field%d; \\" % (i + 1)
     print "    return msg; \\"
@@ -40,7 +40,7 @@ def generate_make_me_serializable_macro(nfields):
         (nfields, ", ".join("field%d" % (i+1) for i in xrange(nfields)))
     zeroarg = ("UNUSED " if nfields == 0 else "")
     print "    friend class write_message_t; \\"
-    print "    void rdb_serialize(%swrite_message_t &msg) const { \\" % zeroarg
+    print "    void rdb_serialize(%swrite_message_t &msg /* NOLINT */) const { \\" % zeroarg
     for i in xrange(nfields):
         print "        msg << field%d; \\" % (i + 1)
     print "    } \\"

@@ -1,13 +1,13 @@
 #include "arch/io/disk.hpp"
 
-#include <algorithm>
 #include <fcntl.h>
 #include <linux/fs.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+
+#include <algorithm>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>

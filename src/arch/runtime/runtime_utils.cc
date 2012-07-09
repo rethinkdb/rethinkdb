@@ -1,8 +1,10 @@
 #include "arch/runtime/runtime_utils.hpp"
+
+#include <unistd.h>
+
 #include "arch/runtime/context_switching.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "logger.hpp"
-#include <unistd.h>
 
 #ifndef NDEBUG
 // This is an inline assembly macro to get the current number of clock cycles

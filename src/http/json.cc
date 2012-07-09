@@ -1,10 +1,8 @@
-#include <set>
 #include <stdlib.h>
-#include <vector>
-#include <string.h>
+//#include <string.h>
 
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
+#include <set>
+#include <vector>
 
 #include "http/json.hpp"
 #include "stl_utils.hpp"

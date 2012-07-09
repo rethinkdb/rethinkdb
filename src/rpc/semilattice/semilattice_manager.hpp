@@ -1,6 +1,9 @@
 #ifndef RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_
 #define RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_
 
+#include <map>
+#include <utility>
+
 #include "concurrency/cond_var.hpp"
 #include "concurrency/promise.hpp"
 #include "rpc/mailbox/mailbox.hpp"

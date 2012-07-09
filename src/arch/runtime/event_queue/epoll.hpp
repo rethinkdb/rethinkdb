@@ -1,11 +1,11 @@
 #ifndef ARCH_RUNTIME_EVENT_QUEUE_EPOLL_HPP_
 #define ARCH_RUNTIME_EVENT_QUEUE_EPOLL_HPP_
 
+#include <sys/epoll.h>
+
 #ifndef NDEBUG
 #include <map>
 #endif
-
-#include <sys/epoll.h>
 
 #include "arch/runtime/event_queue_types.hpp"
 #include "arch/runtime/runtime_utils.hpp"

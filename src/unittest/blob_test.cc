@@ -1,10 +1,10 @@
 #include "unittest/gtest.hpp"
 #include "unittest/server_test_helper.hpp"
-#include "unittest/unittest_utils.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
+#include "mock/unittest_utils.hpp"
 
 namespace unittest {
 

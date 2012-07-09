@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Usage: ./full_test_driver.sh [--just-tests] [--git-branch <branch-name>] [--build-mode (two|all)]
+# Usage: ./full_test_driver.sh [--just-tests] [--git-branch <branch-name>] [--build-mode (two|all)] [--test-dir <directory location, to be appended to rethinkdb/>]
 # Environment variables: SLURM_CONF
 #
 # Check out the given RethinkDB branch from GitHub and run a full test against
@@ -19,9 +19,11 @@ parser = optparse.OptionParser()
 parser.add_option("--build-mode", action = "store", choices = ["minimal", "all"], dest = "build_mode")
 parser.add_option("--git-branch", action = "store", dest = "git_branch")
 parser.add_option("--just-tests", action = "store_true", dest = "just_tests")
-parser.set_defaults(build_mode = "all", git_branch = "master")
+parser.add_option("--test-dir", action="store", dest = "test_dir")
+parser.set_defaults(build_mode = "all", git_branch = "master", test_dir = "test/full_test/")
 (options, args) = parser.parse_args()
 assert not args
+assert not os.path.isabs(options.test_dir)
 
 # We want to flush output aggressively so that we can report the most up-to-date
 # information possible to anyone following this build. The easiest way to do
@@ -239,7 +241,7 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
             "repeat": repeat
             })
 
-    for (dirpath, dirname, filenames) in os.walk("rethinkdb/test/full_test/"):
+    for (dirpath, dirname, filenames) in os.walk(os.path.join("rethinkdb", options.test_dir)):
         for filename in filenames:
             full_path = os.path.join(dirpath, filename)
             print "Reading specification file %r" % full_path

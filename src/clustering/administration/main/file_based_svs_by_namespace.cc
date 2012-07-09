@@ -100,15 +100,15 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *seriali
         svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
 
         // Initialize the metadata in the underlying stores.
-        scoped_array_t<boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> > write_tokens;
-        (*svs_out)->new_write_tokens(&write_tokens);
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+        (*svs_out)->new_write_token(&write_token);
 
         cond_t dummy_interruptor;
 
         (*svs_out)->set_all_metainfos(region_map_t<protocol_t, binary_blob_t>((*svs_out)->get_multistore_joined_region(),
                                                                               binary_blob_t(version_range_t(version_t::zero()))),
                                       order_token_t::ignore,  // TODO
-                                      write_tokens,
+                                      &write_token,
                                       &dummy_interruptor);
     }
 }
