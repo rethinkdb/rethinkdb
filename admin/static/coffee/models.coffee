@@ -1,7 +1,8 @@
 #Models for Backbone.js
 class Namespace extends Backbone.Model
     initialize: ->
-        @load_key_distr()
+        # TODO: magic number + uniformize setInterval and setTImeout
+        setInterval @load_key_distr(), 5000
 
         # Add a computed shards property for convenience and metadata
         @.set 'computed_shards', new DataUtils.Shards [],@
@@ -22,8 +23,6 @@ class Namespace extends Backbone.Model
                     distr_keys.push(key)
                 _.sortBy(distr_keys, _.identity)
                 @set('key_distr_sorted', distr_keys)
-                # TODO: magic number
-                window.setTimeout @load_key_distr, 5000
     sorted_key_distr_keys: =>
         keys = @get('key_distr_sorted')
         if keys?
