@@ -1,5 +1,6 @@
 #include "unittest/gtest.hpp"
 
+#include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -36,8 +37,12 @@ std::string vector_to_string(const std::vector<char> &v) {
 void run_metainfo_test() {
     temp_file_t temp_file("/tmp/rdb_unittest.XXXXXX");
 
+    boost::scoped_ptr<io_backender_t> io_backender;
+    make_io_backender(aio_default, &io_backender);
+
     standard_serializer_t::create(
         standard_serializer_t::dynamic_config_t(),
+        io_backender.get(),
         standard_serializer_t::private_dynamic_config_t(temp_file.name()),
         standard_serializer_t::static_config_t(),
         &get_global_perfmon_collection()
@@ -45,6 +50,7 @@ void run_metainfo_test() {
 
     standard_serializer_t serializer(
         standard_serializer_t::dynamic_config_t(),
+        io_backender.get(),
         standard_serializer_t::private_dynamic_config_t(temp_file.name()),
         &get_global_perfmon_collection()
         );

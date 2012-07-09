@@ -5,6 +5,7 @@
 #include <boost/optional.hpp>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/query/metadata.hpp"
 #include "rpc/serialize_macros.hpp"
 
 /* `reactor_business_card_t` is the way that each peer tells peers what's
@@ -51,8 +52,8 @@ public:
         : broadcaster(_broadcaster)
     { }
 
-    primary_t(broadcaster_business_card_t<protocol_t> _broadcaster, replier_business_card_t<protocol_t> _replier)
-        : broadcaster(_broadcaster), replier(_replier)
+    primary_t(broadcaster_business_card_t<protocol_t> _broadcaster, replier_business_card_t<protocol_t> _replier, master_business_card_t<protocol_t> _master)
+        : broadcaster(_broadcaster), replier(_replier), master(_master)
     { }
 
     primary_t() { }
@@ -68,7 +69,9 @@ public:
      */
     boost::optional<replier_business_card_t<protocol_t> > replier;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(broadcaster, replier);
+    boost::optional<master_business_card_t<protocol_t> > master;
+
+    RDB_MAKE_ME_SERIALIZABLE_3(broadcaster, replier, master);
 };
 
 /* This peer is currently a secondary in working order. */

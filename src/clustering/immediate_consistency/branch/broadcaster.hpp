@@ -5,6 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
+#include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/registrar.hpp"
 #include "concurrency/coro_pool.hpp"
@@ -16,8 +17,6 @@ template <class> class listener_t;
 template <class> class semilattice_readwrite_view_t;
 template <class> class multistore_ptr_t;
 struct mailbox_manager_t;
-
-
 
 template <class> class background_writer_t;
 
@@ -43,7 +42,7 @@ public:
 
     broadcaster_t(
             mailbox_manager_t *mm,
-            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > branch_history,
+            branch_history_manager_t<protocol_t> *bhm,
             multistore_ptr_t<protocol_t> *initial_svs,
             perfmon_collection_t *parent_perfmon_collection,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
@@ -94,6 +93,8 @@ private:
     it's `NULL`. */
     multistore_ptr_t<protocol_t> *bootstrap_svs;
 
+    branch_history_manager_t<protocol_t> *branch_history_manager;
+
     /* If a write has begun, but some mirror might not have completed it yet,
     then it goes in `incomplete_writes`. The idea is that a new mirror that
     connects will use the union of a backfill and `incomplete_writes` as its
@@ -118,6 +119,7 @@ private:
     registrar_t<listener_business_card_t<protocol_t>, broadcaster_t *, dispatchee_t> registrar;
 
     perfmon_collection_t broadcaster_collection;
+    perfmon_membership_t broadcaster_membership;
 
     DISABLE_COPYING(broadcaster_t);
 };

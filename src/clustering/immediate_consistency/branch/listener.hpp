@@ -5,6 +5,7 @@
 
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/semantic_checking.hpp"
+#include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/registrant.hpp"
@@ -56,9 +57,10 @@ public:
     };
 
     listener_t(
+            io_backender_t *io_backender,
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-            boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > bh,
+            branch_history_manager_t<protocol_t> *branch_history_manager,
             multistore_ptr_t<protocol_t> *svs,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > replier,
             backfill_session_id_t backfill_session_id,
@@ -69,9 +71,10 @@ public:
     becoming the first mirror of a new branch. It should only be called once for
     each `broadcaster_t`. */
     listener_t(
+            io_backender_t *io_backender,
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
-            boost::shared_ptr<semilattice_readwrite_view_t<branch_history_t<protocol_t> > > bh,
+            branch_history_manager_t<protocol_t> *branch_history_manager,
             broadcaster_t<protocol_t> *broadcaster,
             perfmon_collection_t *backfill_stats_parent,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
@@ -95,7 +98,6 @@ private:
 
     class write_queue_entry_t {
     public:
-        // TODO: Can we not remove the default constructor?
         write_queue_entry_t() { }
         write_queue_entry_t(const typename protocol_t::write_t &w, transition_timestamp_t tt, order_token_t _order_token, fifo_enforcer_write_token_t ft) :
             write(w), transition_timestamp(tt), order_token(_order_token), fifo_token(ft) { }
@@ -104,15 +106,14 @@ private:
         order_token_t order_token;
         fifo_enforcer_write_token_t fifo_token;
 
-        // TODO: Why does this need to be serializable?
+        // This is serializable because this gets written to a disk backed queue.
         RDB_MAKE_ME_SERIALIZABLE_4(write, order_token, transition_timestamp, fifo_token);
     };
 
-    // TODO: What the fuck is this boost optional boost optional shit?
+    // TODO: This boost optional boost optional crap is ... crap.  This isn't Haskell, this is *real* programming, people.
     static boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > get_backfiller_from_replier_bcard(const boost::optional<boost::optional<replier_business_card_t<protocol_t> > > &replier_bcard);
 
-    // TODO: Holy motherfucking fuck what in the name of Fuck is this
-    // boost optional boost optional shit?
+    // TODO: Boost boost optional optional business card business card protocol_tee tee tee tee piii kaaa chuuuuu!
     static boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t<protocol_t> > > > get_registrar_from_broadcaster_bcard(const boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > &broadcaster_bcard);
 
     /* `try_start_receiving_writes()` is called from within the constructors. It
@@ -182,7 +183,7 @@ private:
 
     mailbox_manager_t *mailbox_manager;
 
-    boost::shared_ptr<semilattice_read_view_t<branch_history_t<protocol_t> > > branch_history;
+    branch_history_manager_t<protocol_t> *branch_history_manager;
 
     multistore_ptr_t<protocol_t> *svs;
 
@@ -196,8 +197,10 @@ private:
 
     uuid_t uuid;
     perfmon_collection_t perfmon_collection;
-    fifo_enforcer_sink_t write_queue_entrance_sink;
+    perfmon_membership_t perfmon_collection_membership;
     disk_backed_queue_wrapper_t<write_queue_entry_t> write_queue;
+
+    fifo_enforcer_sink_t write_queue_entrance_sink;
     boost::scoped_ptr<typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t> write_queue_coro_pool_callback;
     boost::scoped_ptr<coro_pool_t<write_queue_entry_t> > write_queue_coro_pool;
     adjustable_semaphore_t write_queue_semaphore;

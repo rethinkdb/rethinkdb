@@ -119,15 +119,23 @@ private:
 public:
     class exit_read_t : public signal_t {
     public:
+        exit_read_t() THROWS_NOTHING;
+
+        /* Calls `begin()` */
         exit_read_t(fifo_enforcer_sink_t *, fifo_enforcer_read_token_t) THROWS_NOTHING;
+
+        /* Calls `end()` if appropriate */
         ~exit_read_t() THROWS_NOTHING;
 
-        void reset();
+        void begin(fifo_enforcer_sink_t *, fifo_enforcer_read_token_t) THROWS_NOTHING;
+        void end() THROWS_NOTHING;
     private:
         friend class fifo_enforcer_sink_t;
 
-        // parent is null, once the exit_read_t has been reset().
+        /* `parent` is `NULL` before `begin()` is called. After `end()` is
+        called, `parent` remains non-`NULL` but `ended` is set to `true` */
         fifo_enforcer_sink_t *parent;
+        bool ended;
 
         fifo_enforcer_read_token_t token;
         reader_queue_t::iterator queue_position;
@@ -135,15 +143,23 @@ public:
 
     class exit_write_t : public signal_t {
     public:
+        exit_write_t() THROWS_NOTHING;
+
+        /* Calls `begin()` */
         exit_write_t(fifo_enforcer_sink_t *, fifo_enforcer_write_token_t) THROWS_NOTHING;
+
+        /* Calls `end()` if appropriate */
         ~exit_write_t() THROWS_NOTHING;
 
-        void reset();
+        void begin(fifo_enforcer_sink_t *, fifo_enforcer_write_token_t) THROWS_NOTHING;
+        void end() THROWS_NOTHING;
     private:
         friend class fifo_enforcer_sink_t;
 
-        // parent is null, once the exit_write_t has been reset().
+        /* `parent` is `NULL` before `begin()` is called. After `end()` is
+        called, `parent` remains non-`NULL` but `ended` is set to `true` */
         fifo_enforcer_sink_t *parent;
+        bool ended;
 
         fifo_enforcer_write_token_t token;
         writer_queue_t::iterator queue_position;

@@ -24,10 +24,11 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     }
 
     boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
-    boost::ptr_vector<perfmon_collection_t> perfmon_collections;
+    boost::scoped_ptr<io_backender_t> io_backender;
+    make_io_backender(aio_default, &io_backender);
+
     for (int i = 0; i < (int)shards.size(); i++) {
-        perfmon_collections.push_back(new perfmon_collection_t(strprintf("%d", i), &get_global_perfmon_collection(), true, true));
-        underlying_stores.push_back(new rdb_protocol_t::store_t(temp_files[i].name(), true, &perfmon_collections[i]));
+        underlying_stores.push_back(new rdb_protocol_t::store_t(io_backender.get(), temp_files[i].name(), true, &get_global_perfmon_collection()));
     }
 
     std::vector<boost::shared_ptr<store_view_t<rdb_protocol_t> > > stores;

@@ -21,8 +21,11 @@
 #include <stack>
 #endif
 
-perfmon_counter_t pm_active_coroutines("active_coroutines", &get_global_perfmon_collection()),
-                  pm_allocated_coroutines("allocated_coroutines", &get_global_perfmon_collection());
+static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
+static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),
+    &pm_active_coroutines, "active_coroutines",
+    &pm_allocated_coroutines, "allocated_coroutines",
+    NULL);
 
 size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
 
@@ -258,7 +261,7 @@ void coro_t::notify_now_deprecated() {
 
 #ifndef NDEBUG
     rassert(cglobals->assert_no_coro_waiting_counter == 0,
-        "This code path is not supposed to use notify_now_deprecated() or spawn_now_deprecated().");
+        "This code path is not supposed to use notify_now_deprecated() or spawn_now().");
 
     /* Record old value of `assert_finite_coro_waiting_counter`. It must be legal to call
     `coro_t::wait()` within the coro we are going to jump to, or else we would never jump

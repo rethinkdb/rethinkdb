@@ -25,11 +25,9 @@ with driver.Metacluster() as metacluster:
 
     tests = [os.path.abspath(test) for test in opts["tests"]]
 
-        
-
     process = processes[0]
     for test in tests:
-
+        import socket; print socket.gethostname()
         # Build command with arguments for casperjs test
         cl = ['casperjs', 
                 '--rdb-server=http://localhost:%d' % process.http_port, 
@@ -41,8 +39,12 @@ with driver.Metacluster() as metacluster:
 
         # Execute casperjs and pretty-print its output
         os.chdir(os.path.dirname(test))
+        print cl
         process = subprocess.Popen(cl,stdout=subprocess.PIPE)
         stdout = process.stdout.readlines()
-        for i, line in enumerate(stdout):
-            cprint('[%s]' % test_name, attrs=['bold'], end=' ')
-            print line.rstrip('\n')
+        #for i, line in enumerate(stdout):
+        #    cprint('[%s]' % test_name, attrs=['bold'], end=' ')
+        #    print line.rstrip('\n')
+        print stdout
+        print '\033[0m'
+        print 'hello'

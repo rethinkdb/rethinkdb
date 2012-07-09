@@ -4,7 +4,9 @@
 
 template<class payload_t>
 conflict_resolving_diskmgr_t<payload_t>::conflict_resolving_diskmgr_t(perfmon_collection_t *stats) :
-    conflict_sampler("conflict", secs_to_ticks(1), true, stats) { }
+    conflict_sampler(secs_to_ticks(1), true),
+    conflict_sampler_membership(stats, &conflict_sampler, "conflict")
+{ }
 
 template<class payload_t>
 conflict_resolving_diskmgr_t<payload_t>::~conflict_resolving_diskmgr_t() {

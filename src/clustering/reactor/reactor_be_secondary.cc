@@ -155,15 +155,14 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                  * Also this is potentially a performance boost because it
                  * allows other secondaries to preemptively backfill before the
                  * primary is up. */
-                backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history, svs);
+                backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history_manager, svs);
 
                 /* Tell everyone in the cluster what state we're in. */
-                const int num_stores = svs->num_stores();
-                boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-                svs->new_read_tokens(read_tokens.get(), num_stores);
+                scoped_array_t< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens;
+                svs->new_read_tokens(&read_tokens);
 
                 typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
-                    activity(svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor),
+                    activity(svs->get_all_metainfos(order_token_t::ignore, read_tokens, interruptor),
                              backfiller.get_business_card());
 
                 directory_entry.set(activity);
@@ -212,10 +211,11 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                 directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t(backfill_location));
 
                 std::string region_name(render_region_as_string(&region, 0));
-                perfmon_collection_t region_perfmon_collection(region_name, &regions_perfmon_collection, true, true);
+                perfmon_collection_t region_perfmon_collection;
+                perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t<protocol_t> listener(mailbox_manager, broadcaster, branch_history, svs, location_to_backfill_from, backfill_session_id, &regions_perfmon_collection, interruptor);
+                listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster, branch_history_manager, svs, location_to_backfill_from, backfill_session_id, &regions_perfmon_collection, interruptor);
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use

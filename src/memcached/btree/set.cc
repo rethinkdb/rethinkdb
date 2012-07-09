@@ -15,7 +15,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
     ~memcached_set_oper_t() {
     }
 
-    bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t>& value) {
         // We may be instructed to abort, depending on the old value.
         if (value) {
             switch (replace_policy) {
@@ -46,7 +46,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
         }
 
         if (!value) {
-            scoped_malloc<memcached_value_t> tmp(MAX_MEMCACHED_VALUE_SIZE);
+            scoped_malloc_t<memcached_value_t> tmp(MAX_MEMCACHED_VALUE_SIZE);
             value.swap(tmp);
             memset(value.get(), 0, MAX_MEMCACHED_VALUE_SIZE);
         }
@@ -64,7 +64,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
         }
 
         {
-            scoped_malloc<memcached_value_t> tmp(MAX_MEMCACHED_VALUE_SIZE);
+            scoped_malloc_t<memcached_value_t> tmp(MAX_MEMCACHED_VALUE_SIZE);
             if (value->has_cas()) {
                 // run_memcached_modify_oper will set an actual CAS later.
                 metadata_write(&tmp->metadata_flags, tmp->contents, mcflags, exptime, 0xCA5ADDED);

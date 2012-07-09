@@ -21,6 +21,8 @@ test/unit/.retest
 bench/stress-client/stress
 bench/stress-client/libstress.so
 bench/serializer-bench/serializer-bench
+bench/serializer-bench/gmon.out
+bench/serializer-bench/main.o
 last_tested_versions
 .deps/
 src/spin_up_clusters.py

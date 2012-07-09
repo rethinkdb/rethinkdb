@@ -4,7 +4,6 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
-#include "clustering/immediate_consistency/query/namespace_interface.hpp"
 #include "http/http.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "protocol_api.hpp"

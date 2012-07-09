@@ -49,15 +49,18 @@ private:
 };
 
 template <class protocol_t>
-btree_store_t<protocol_t>::btree_store_t(const std::string& filename,
+btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
+                                         const std::string& filename,
                                          bool create,
-                                         perfmon_collection_t *_perfmon_collection) :
+                                         perfmon_collection_t *parent_perfmon_collection) :
     store_view_t<protocol_t>(protocol_t::region_t::universe()),
-    perfmon_collection(filename, _perfmon_collection, true, true)
+    perfmon_collection(),
+    perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, filename)
 {
     if (create) {
         standard_serializer_t::create(
             standard_serializer_t::dynamic_config_t(),
+            io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
             standard_serializer_t::static_config_t(),
             &perfmon_collection
@@ -66,6 +69,7 @@ btree_store_t<protocol_t>::btree_store_t(const std::string& filename,
 
     serializer.reset(new standard_serializer_t(
         standard_serializer_t::dynamic_config_t(),
+        io_backender,
         standard_serializer_t::private_dynamic_config_t(filename),
         &perfmon_collection
         ));
@@ -109,7 +113,9 @@ btree_store_t<protocol_t>::btree_store_t(const std::string& filename,
 }
 
 template <class protocol_t>
-btree_store_t<protocol_t>::~btree_store_t() { }
+btree_store_t<protocol_t>::~btree_store_t() {
+    home_thread_mixin_t::assert_thread();
+}
 
 template <class protocol_t>
 typename protocol_t::read_response_t btree_store_t<protocol_t>::read(
@@ -122,7 +128,7 @@ typename protocol_t::read_response_t btree_store_t<protocol_t>::read(
 {
     boost::scoped_ptr<transaction_t> txn;
     boost::scoped_ptr<real_superblock_t> superblock;
-    acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
+    acquire_superblock_for_read(rwi_read, token, txn, superblock, interruptor);
 
     check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());
 
@@ -273,7 +279,7 @@ typename btree_store_t<protocol_t>::metainfo_t btree_store_t<protocol_t>::get_me
                                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     boost::scoped_ptr<transaction_t> txn;
     boost::scoped_ptr<real_superblock_t> superblock;
-    acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
+    acquire_superblock_for_read(rwi_read, token, txn, superblock, interruptor);
 
     return get_metainfo_internal(txn.get(), superblock->get());
 }
@@ -321,7 +327,6 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_read(
         access_t access,
-        bool snapshot,
         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
         boost::scoped_ptr<transaction_t> &txn_out,
         boost::scoped_ptr<real_superblock_t> &sb_out,
@@ -337,7 +342,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_read");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_reading(btree.get(), access, order_token, snapshot, &sb_out, txn_out);
+    get_btree_superblock_for_reading(btree.get(), access, order_token, CACHE_SNAPSHOTTED_NO, &sb_out, txn_out);
 }
 
 template <class protocol_t>

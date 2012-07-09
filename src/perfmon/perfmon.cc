@@ -24,8 +24,8 @@ bool global_full_perfmon = false;
 
 /* perfmon_counter_t */
 
-perfmon_counter_t::perfmon_counter_t(const std::string& _name, perfmon_collection_t *parent)
-    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t>(parent), name(_name),
+perfmon_counter_t::perfmon_counter_t()
+    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t>(),
       thread_data(new padded_int64_t[MAX_THREADS])
 {
     for (int i = 0; i < MAX_THREADS; i++) thread_data[i].value = 0;
@@ -50,14 +50,14 @@ int64_t perfmon_counter_t::combine_stats(padded_int64_t *data) {
     return value;
 }
 
-void perfmon_counter_t::output_stat(const int64_t &stat, perfmon_result_t *dest) {
-    dest->insert(name, new perfmon_result_t(strprintf("%ld", stat)));
+perfmon_result_t *perfmon_counter_t::output_stat(const int64_t &stat) {
+    return new perfmon_result_t(strprintf("%ld", stat));
 }
 
 /* perfmon_sampler_t */
 
-perfmon_sampler_t::perfmon_sampler_t(const std::string& _name, ticks_t _length, bool _include_rate, perfmon_collection_t *parent)
-    : perfmon_perthread_t<stats_t>(parent), thread_data(new thread_info_t[MAX_THREADS]), name(_name), length(_length), include_rate(_include_rate)
+perfmon_sampler_t::perfmon_sampler_t(ticks_t _length, bool _include_rate)
+    : perfmon_perthread_t<stats_t>(), thread_data(new thread_info_t[MAX_THREADS]), length(_length), include_rate(_include_rate)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;
@@ -112,10 +112,9 @@ perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(stats_t *stats) {
     return aggregated;
 }
 
-void perfmon_sampler_t::output_stat(const stats_t &aggregated, perfmon_result_t *dest) {
+perfmon_result_t *perfmon_sampler_t::output_stat(const stats_t &aggregated) {
     perfmon_result_t *stat;
     perfmon_result_t::alloc_map_result(&stat);
-    dest->insert(name, stat);
 
     if (aggregated.count > 0) {
         stat->insert(stat_avg, new perfmon_result_t(strprintf("%.8f", aggregated.sum / aggregated.count)));
@@ -129,6 +128,7 @@ void perfmon_sampler_t::output_stat(const stats_t &aggregated, perfmon_result_t 
     if (include_rate) {
         stat->insert(stat_per_sec, new perfmon_result_t(strprintf("%.8f", aggregated.count / ticks_to_secs(length))));
     }
+    return stat;
 }
 
 /* perfmon_stddev_t */
@@ -194,8 +194,7 @@ stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
     return stddev_t();
 }
 
-perfmon_stddev_t::perfmon_stddev_t(const std::string& _name, perfmon_collection_t *parent)
-    : perfmon_perthread_t<stddev_t>(parent), name(_name) { }
+perfmon_stddev_t::perfmon_stddev_t() : perfmon_perthread_t<stddev_t>() { }
 
 void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
     rassert(get_thread_id() >= 0);
@@ -206,10 +205,9 @@ stddev_t perfmon_stddev_t::combine_stats(stddev_t *stats) {
     return stddev_t::combine(get_num_threads(), stats);
 }
 
-void perfmon_stddev_t::output_stat(const stddev_t &stat_data, perfmon_result_t *dest) {
+perfmon_result_t *perfmon_stddev_t::output_stat(const stddev_t &stat_data) {
     perfmon_result_t *stat;
     perfmon_result_t::alloc_map_result(&stat);
-    dest->insert(name, stat);
 
     stat->insert(stat_count, new perfmon_result_t(strprintf("%zu", stat_data.datapoints())));
     if (stat_data.datapoints()) {
@@ -220,6 +218,7 @@ void perfmon_stddev_t::output_stat(const stddev_t &stat_data, perfmon_result_t *
         stat->insert(stat_mean, new perfmon_result_t(no_value));
         stat->insert(stat_std_dev, new perfmon_result_t(no_value));
     }
+    return stat;
 }
 
 void perfmon_stddev_t::record(float value) {
@@ -229,8 +228,8 @@ void perfmon_stddev_t::record(float value) {
 
 /* perfmon_rate_monitor_t */
 
-perfmon_rate_monitor_t::perfmon_rate_monitor_t(const std::string& _name, ticks_t _length, perfmon_collection_t *parent)
-    : perfmon_perthread_t<double>(parent), name(_name), length(_length)
+perfmon_rate_monitor_t::perfmon_rate_monitor_t(ticks_t _length)
+    : perfmon_perthread_t<double>(), length(_length)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;
@@ -279,8 +278,8 @@ double perfmon_rate_monitor_t::combine_stats(double *stats) {
     return total;
 }
 
-void perfmon_rate_monitor_t::output_stat(const double &stat, perfmon_result_t *dest) {
-    dest->insert(name, new perfmon_result_t(strprintf("%.8f", stat / ticks_to_secs(length))));
+perfmon_result_t *perfmon_rate_monitor_t::output_stat(const double &stat) {
+    return new perfmon_result_t(strprintf("%.8f", stat / ticks_to_secs(length)));
 }
 
 /* perfmon_function_t */
@@ -310,19 +309,19 @@ void perfmon_function_t::visit_stats(void *data) {
     }
 }
 
-void perfmon_function_t::end_stats(void *data, perfmon_result_t *dest) {
+perfmon_result_t *perfmon_function_t::end_stats(void *data) {
     std::string *string = reinterpret_cast<std::string *>(data);
-    if (!string->empty()) {
-        dest->insert(name, new perfmon_result_t(*string));
-    } else {
-        dest->insert(name, new perfmon_result_t("N/A"));
-    }
+    perfmon_result_t *result = new perfmon_result_t(string->empty() ? "N/A" : *string);
     delete string;
+    return result;
 }
 
-perfmon_duration_sampler_t::perfmon_duration_sampler_t(const std::string& name, ticks_t length, perfmon_collection_t *parent, bool _ignore_global_full_perfmon)
-    : stat(name, parent, true, true), active("active_count", &stat), total("total", &stat),
-      recent("recent_duration", length, true, &stat), ignore_global_full_perfmon(_ignore_global_full_perfmon)
+perfmon_duration_sampler_t::perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon)
+    : stat(), active(), total(), recent(length, true),
+      active_membership(&stat, &active, "active_count"),
+      total_membership(&stat, &total, "total"),
+      recent_membership(&stat, &recent, "recent_duration"),
+      ignore_global_full_perfmon(_ignore_global_full_perfmon)
 { }
 
 void perfmon_duration_sampler_t::begin(ticks_t *v) {
@@ -340,6 +339,18 @@ void perfmon_duration_sampler_t::end(ticks_t *v) {
     if (*v != 0) {
         recent.record(ticks_to_secs(get_ticks() - *v));
     }
+}
+
+void *perfmon_duration_sampler_t::begin_stats() {
+    return stat.begin_stats();
+}
+
+void perfmon_duration_sampler_t::visit_stats(void *data) {
+    stat.visit_stats(data);
+}
+
+perfmon_result_t *perfmon_duration_sampler_t::end_stats(void *data) {
+    return stat.end_stats(data);
 }
 
 std::string perfmon_duration_sampler_t::call(UNUSED int argc, UNUSED char **argv) {

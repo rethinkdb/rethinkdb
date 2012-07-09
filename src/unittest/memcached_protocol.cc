@@ -23,9 +23,12 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
         temp_files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
     }
 
+    boost::scoped_ptr<io_backender_t> io_backender;
+    make_io_backender(aio_default, &io_backender);
+
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
     for (int i = 0; i < (int)shards.size(); i++) {
-        underlying_stores.push_back(new memcached_protocol_t::store_t(temp_files[i].name(), true, &get_global_perfmon_collection()));
+        underlying_stores.push_back(new memcached_protocol_t::store_t(io_backender.get(), temp_files[i].name(), true, &get_global_perfmon_collection()));
     }
 
     std::vector<boost::shared_ptr<store_view_t<memcached_protocol_t> > > stores;

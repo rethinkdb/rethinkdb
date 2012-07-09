@@ -112,16 +112,14 @@ public:
         return res;
     }
 
-    branch_history_t<protocol_t> branch_history;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(namespaces, branch_history);
+    RDB_MAKE_ME_SERIALIZABLE_1(namespaces);
 };
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_2(namespaces_semilattice_metadata_t<protocol_t>, namespaces, branch_history);
+RDB_MAKE_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t<protocol_t>, namespaces);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_2(namespaces_semilattice_metadata_t<protocol_t>, namespaces, branch_history);
+RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t<protocol_t>, namespaces);
 
 // json adapter concept for namespaces_semilattice_metadata_t
 
@@ -155,12 +153,10 @@ template <class protocol_t>
 class namespaces_directory_metadata_t {
 public:
     typedef std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > reactor_bcards_map_t;
-    typedef std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > master_maps_map_t;
 
     reactor_bcards_map_t reactor_bcards;
-    master_maps_map_t master_maps;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(reactor_bcards, master_maps);
+    RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
 };
 
 struct namespace_metadata_ctx_t {

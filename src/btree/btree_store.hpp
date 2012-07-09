@@ -4,6 +4,9 @@
 #include "protocol_api.hpp"
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"
+#include "perfmon/perfmon.hpp"
+
+class io_backender_t;
 
 template <class protocol_t>
 class btree_store_t : public store_view_t<protocol_t> {
@@ -18,9 +21,10 @@ private:
     fifo_enforcer_sink_t token_sink;
 
 public:
-    btree_store_t(const std::string& filename,
-                     bool create,
-                     perfmon_collection_t *collection);
+    btree_store_t(io_backender_t *io_backender,
+                  const std::string& filename,
+                  bool create,
+                  perfmon_collection_t *parent_perfmon_collection);
     ~btree_store_t();
 
     /* store_view_t interface */
@@ -161,7 +165,6 @@ private:
 
     void acquire_superblock_for_read(
             access_t access,
-            bool snapshot,
             boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
             boost::scoped_ptr<transaction_t> &txn_out,
             boost::scoped_ptr<real_superblock_t> &sb_out,
@@ -200,6 +203,7 @@ private:
     void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
 
     perfmon_collection_t perfmon_collection;
+    perfmon_membership_t perfmon_collection_membership;
 };
 
 #include "btree/btree_store.tcc"

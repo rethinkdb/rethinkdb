@@ -8,6 +8,7 @@
 #include "btree/erase_range.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "containers/scoped.hpp"
 
 boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction_t *txn) {
     blob_t blob(const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
@@ -56,7 +57,7 @@ point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
     bool already_existed = bool(kv_location.value);
     
-    scoped_malloc<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
+    scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
     bzero(new_value.get(), MAX_RDB_VALUE_SIZE);
 
     //TODO unnecessary copies they must go away.

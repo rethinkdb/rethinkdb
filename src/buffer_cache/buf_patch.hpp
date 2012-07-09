@@ -11,6 +11,7 @@
 class buf_patch_t;
 
 #include "buffer_cache/types.hpp"
+#include "containers/scoped.hpp"
 #include "serializer/types.hpp"
 
 typedef uint32_t patch_counter_t;
@@ -138,8 +139,7 @@ protected:
 
 private:
     uint16_t dest_offset;
-    uint16_t n;
-    char* src_buf;
+    scoped_array_t<char> src_buf;
 };
 
 /* memove_patch_t moves data from src_offset to dest_offset within a single buffer (with semantics equivalent to memmove()) */

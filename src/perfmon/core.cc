@@ -1,3 +1,5 @@
+#include <stdarg.h>
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -6,30 +8,10 @@
 #include "arch/runtime/coroutines.hpp"
 
 /* Constructor and destructor register and deregister the perfmon. */
-perfmon_t::perfmon_t(perfmon_collection_t *_parent, bool _insert)
-    : parent(_parent), insert(_insert)
-{
-    if (insert) {
-        guarantee(_parent != NULL, "Global perfmon collection must be specified explicitly instead of using NULL");
-        if (coroutines_have_been_initialized()) {
-            // We spawn a coroutine which will add the current perfmon into the parent perfmon collection. We do
-            // it in order to avoid adding an incompletely constructed object into the perfmon collection which
-            // could be queried concurrently. It is assumed here that the constructor of the deriving class
-            // cannot block. If it can, it's a bug!
-            coro_t::spawn_sometime(boost::bind(&perfmon_collection_t::add, parent, this));
-        } else {
-            // There are no other coroutines and, we assume, no other threads that can access the parent perfmon
-            // collection, so we add `this` into `parent` right now, even though the current object hasn't been
-            // completely constructed.
-            parent->add(this);
-        }
-    }
+perfmon_t::perfmon_t() {
 }
 
 perfmon_t::~perfmon_t() {
-    if (insert) {
-        parent->remove(this);
-    }
 }
 
 struct stats_collection_context_t : public home_thread_mixin_t {
@@ -45,6 +27,9 @@ private:
     rwi_lock_t::read_acq_t lock_sentry;
 };
 
+perfmon_collection_t::perfmon_collection_t() {
+}
+
 void *perfmon_collection_t::begin_stats() {
     stats_collection_context_t *ctx;
     {
@@ -53,8 +38,8 @@ void *perfmon_collection_t::begin_stats() {
     }
 
     size_t i = 0;
-    for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
-        ctx->contexts[i] = p->begin_stats();
+    for (perfmon_membership_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
+        ctx->contexts[i] = p->get()->begin_stats();
     }
     return ctx;
 }
@@ -62,37 +47,37 @@ void *perfmon_collection_t::begin_stats() {
 void perfmon_collection_t::visit_stats(void *_context) {
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
     size_t i = 0;
-    for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
-        p->visit_stats(ctx->contexts[i]);
+    for (perfmon_membership_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
+        p->get()->visit_stats(ctx->contexts[i]);
     }
 }
 
-void perfmon_collection_t::end_stats(void *_context, perfmon_result_t *result) {
+perfmon_result_t * perfmon_collection_t::end_stats(void *_context) {
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
 
-    // TODO: This is completely fucked up shitty code.
     perfmon_result_t *map;
-    if (create_submap) {
-        perfmon_result_t::alloc_map_result(&map);
-        rassert(result->get_map()->count(name) == 0);
-        result->get_map()->insert(std::pair<std::string, perfmon_result_t *>(name, map));
-    } else {
-        map = result;
-    }
+    perfmon_result_t::alloc_map_result(&map);
 
     size_t i = 0;
-    for (perfmon_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
-        assert_thread();
-        p->end_stats(ctx->contexts[i], map);
+    for (perfmon_membership_t *p = constituents.head(); p; p = constituents.next(p), ++i) {
+        perfmon_result_t * stat = p->get()->end_stats(ctx->contexts[i]);
+        if (p->splice()) {
+            stat->splice_into(map);
+            delete stat; // `stat` is empty now, we can delete it safely
+        } else {
+            map->insert(p->name, stat);
+        }
     }
 
     {
         on_thread_t thread_switcher(home_thread());
         delete ctx; // cleans up, unlocks
     }
+
+    return map;
 }
 
-void perfmon_collection_t::add(perfmon_t *perfmon) {
+void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
     boost::scoped_ptr<on_thread_t> thread_switcher;
     if (coroutines_have_been_initialized()) {
         thread_switcher.reset(new on_thread_t(home_thread()));
@@ -102,7 +87,7 @@ void perfmon_collection_t::add(perfmon_t *perfmon) {
     constituents.push_back(perfmon);
 }
 
-void perfmon_collection_t::remove(perfmon_t *perfmon) {
+void perfmon_collection_t::remove(perfmon_membership_t *perfmon) {
     boost::scoped_ptr<on_thread_t> thread_switcher;
     if (coroutines_have_been_initialized()) {
         thread_switcher.reset(new on_thread_t(home_thread()));
@@ -110,6 +95,54 @@ void perfmon_collection_t::remove(perfmon_t *perfmon) {
 
     rwi_lock_t::write_acq_t write_acq(&constituents_access);
     constituents.remove(perfmon);
+}
+
+perfmon_membership_t::perfmon_membership_t(perfmon_collection_t *_parent, perfmon_t *_perfmon, const char *_name, bool _own_the_perfmon)
+    : name(_name != NULL ? _name : ""), parent(_parent), perfmon(_perfmon), own_the_perfmon(_own_the_perfmon)
+{
+    parent->add(this);
+}
+
+perfmon_membership_t::perfmon_membership_t(perfmon_collection_t *_parent, perfmon_t *_perfmon, const std::string &_name, bool _own_the_perfmon)
+    : name(_name), parent(_parent), perfmon(_perfmon), own_the_perfmon(_own_the_perfmon)
+{
+    parent->add(this);
+}
+
+perfmon_membership_t::~perfmon_membership_t() {
+    parent->remove(this);
+    if (own_the_perfmon)
+        delete perfmon;
+}
+
+perfmon_t *perfmon_membership_t::get() {
+    return perfmon;
+}
+
+bool perfmon_membership_t::splice() {
+    return name.length() == 0;
+}
+
+perfmon_multi_membership_t::perfmon_multi_membership_t(perfmon_collection_t *collection, perfmon_t *perfmon, const char *name, ...) {
+    // Create membership for the first provided perfmon first
+    memberships.push_back(new perfmon_membership_t(collection, perfmon, name));
+
+    va_list args;
+    va_start(args, name);
+
+    // Now go through varargs list until we read NULL
+    while ((perfmon = va_arg(args, perfmon_t *)) != NULL) {
+        name = va_arg(args, const char *);
+        memberships.push_back(new perfmon_membership_t(collection, perfmon, name));
+    }
+
+    va_end(args);
+}
+
+perfmon_multi_membership_t::~perfmon_multi_membership_t() {
+    for (std::vector<perfmon_membership_t*>::const_iterator it = memberships.begin(); it != memberships.end(); ++it) {
+        delete *it;
+    }
 }
 
 perfmon_result_t::perfmon_result_t() {
@@ -230,13 +263,26 @@ perfmon_result_t::const_iterator perfmon_result_t::end() const {
     return map_.end();
 }
 
+void perfmon_result_t::splice_into(perfmon_result_t *map) {
+    rassert(type == type_map);
+
+    // Transfer all elements from the internal map to the passed map.
+    // Unfortunately we can't use here std::map::insert(InputIterator first, InputIterator last),
+    // because that way we can overwrite an entry in the target map and thus leak a
+    // perfmon_result_t value.
+    for (const_iterator it = begin(); it != end(); ++it) {
+        map->insert(it->first, it->second);
+    }
+    map_.clear();
+}
+
 perfmon_collection_t &get_global_perfmon_collection() {
-    /* Getter function so that we can be sure that `collection` is initialized
-    before it is needed, as advised by the C++ FAQ. Otherwise, a `perfmon_t`
-    might be initialized before `collection` was initialized. */
+    // Getter function so that we can be sure that `collection` is initialized
+    // before it is needed, as advised by the C++ FAQ. Otherwise, a `perfmon_t`
+    // might be initialized before `collection` was initialized.
 
     // FIXME: probably use "new" to create the perfmon_collection_t. For more info check out C++ FAQ Lite answer 10.16.
-    static perfmon_collection_t collection("Global", NULL, false, false);
+    static perfmon_collection_t collection;
     return collection;
 }
 
