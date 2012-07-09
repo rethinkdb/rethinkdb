@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import unittest
+import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
 
@@ -13,7 +14,8 @@ import rethinkdb as r
 class TestTableRef(unittest.TestCase):
     # Shared db ref, ast
     def setUp(self):
-        self.conn = r.Connection("localhost", 12346 + 2010)
+        self.conn = r.Connection(os.getenv('HOST') or 'localhost',
+                                 12346 + (int(os.getenv('PORT') or 2010)))
         self.table = r.db("").Welcome
         self.docs = [{"a": 3, "b": 10, "id": 1}, {"a": 9, "b": -5, "id": 2}]
 
@@ -127,8 +129,18 @@ class TestTableRef(unittest.TestCase):
         expect(r.slice(arr, 5, -3), arr[5: -3])
         expect(r.slice(arr, -5, -3), arr[-5: -3])
 
-        expect(r.nth(arr, 3), 3)
-        expect(r.nth(arr, -1), 9)
+        expect(r.element(arr, 3), 3)
+        expect(r.element(arr, -1), 9)
+
+    def test_stream(self):
+        expect = self.expect
+        arr = range(10)
+
+        expect(r.array(r.stream(arr)), arr)
+        expect(r.array(r.stream(r.array(r.stream(arr)))), arr)
+
+        expect(r.nth(r.stream(arr), 0), 0)
+        expect(r.nth(r.stream(arr), 5), 5)
 
     def test_table_insert(self):
         q = self.table.insert(self.docs)

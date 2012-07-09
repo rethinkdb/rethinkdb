@@ -64,13 +64,27 @@ struct rdb_protocol_t {
         RDB_MAKE_ME_SERIALIZABLE_1(data);
     };
 
+    struct rget_read_response_t {
+        key_range_t key_range;
+        std::vector<boost::shared_ptr<scoped_cJSON_t> > data;
+        bool truncated;
+        
+        rget_read_response_t() { }
+        explicit rget_read_response_t(const key_range_t &_key_range, std::vector<boost::shared_ptr<scoped_cJSON_t> > _data, bool _truncated)
+            : key_range(_key_range), data(_data), truncated(_truncated)
+        { }
+
+
+        RDB_MAKE_ME_SERIALIZABLE_3(data, key_range, truncated);
+    };
+
     struct read_response_t {
-        boost::variant<point_read_response_t> response;
+        boost::variant<point_read_response_t, rget_read_response_t> response;
 
         read_response_t() { }
         read_response_t(const read_response_t& r) : response(r.response) { }
         explicit read_response_t(const point_read_response_t& r) : response(r) { }
-        key_range_t get_region() const THROWS_NOTHING;
+        explicit read_response_t(const rget_read_response_t& r) : response(r) { }
 
         RDB_MAKE_ME_SERIALIZABLE_1(response);
     };
@@ -85,8 +99,19 @@ struct rdb_protocol_t {
         RDB_MAKE_ME_SERIALIZABLE_1(key);
     };
 
+    class rget_read_t {
+    public:
+        rget_read_t() { }
+        explicit rget_read_t(const key_range_t &_key_range)
+            : key_range(_key_range) { }
+
+        key_range_t key_range;
+
+        RDB_MAKE_ME_SERIALIZABLE_1(key_range);
+    };
+
     struct read_t {
-        boost::variant<point_read_t> read;
+        boost::variant<point_read_t, rget_read_t> read;
 
         key_range_t get_region() const THROWS_NOTHING;
         read_t shard(const key_range_t &region) const THROWS_NOTHING;
@@ -96,6 +121,7 @@ struct rdb_protocol_t {
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
         explicit read_t(const point_read_t &r) : read(r) { }
+        explicit read_t(const rget_read_t &r) : read(r) { }
 
         RDB_MAKE_ME_SERIALIZABLE_1(read);
     };

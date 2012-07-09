@@ -28,7 +28,7 @@ Response query_server_t::handle(const Query &q) {
         return eval(q, &runtime_environment);
     } catch (query_language::runtime_exc_t &e) {
         res.set_status_code(-4);
-        res.add_response(e.what());
+        res.add_response("Runtime Exception: " + e.what());
         return res;
     }
 }

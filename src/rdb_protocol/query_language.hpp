@@ -43,6 +43,12 @@ bool is_well_defined(const WriteQuery &);
 bool is_well_defined(const Query &);
 
 namespace query_language {
+struct unimplemented_exc_t : public std::exception {
+    const char *what() const throw () {
+        return "Unimplemented functionality";
+    }
+};
+
 struct error_t;
 struct primitive_t;
 
@@ -100,13 +106,14 @@ class function_t {
 public:
     // _n_args==-1 indicates a variadic function
     function_t(const type_t& _arg_type, int _n_args, const type_t& _return_type);
+    function_t(const type_t& _arg1_type, const type_t& _arg2_type, const type_t& _return_type);
 
-    const type_t& get_arg_type() const;
+    const type_t& get_arg_type(int n) const;
     const type_t& get_return_type() const;
     bool is_variadic() const;
     int get_n_args() const;
 private:
-    type_t arg_type;
+    type_t arg_type[3];
     int n_args;
     type_t return_type;
 };
@@ -258,6 +265,19 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *) THROWS_O
 boost::shared_ptr<scoped_cJSON_t> eval_cmp(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
 namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+
+
+class view_t {
+public:
+    view_t(const namespace_repo_t<rdb_protocol_t>::access_t &_access,
+           const json_stream_t &_stream)
+        : access(_access), stream(_stream) { }
+
+    namespace_repo_t<rdb_protocol_t>::access_t access;
+    json_stream_t stream;
+};
+
+view_t eval(const View &v, runtime_environment_t *env);
 
 } //namespace query_language
 

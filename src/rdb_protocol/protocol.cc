@@ -22,6 +22,9 @@ typedef rdb_protocol_t::read_response_t read_response_t;
 typedef rdb_protocol_t::point_read_t point_read_t;
 typedef rdb_protocol_t::point_read_response_t point_read_response_t;
 
+typedef rdb_protocol_t::rget_read_t rget_read_t;
+typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
+
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
 
@@ -38,39 +41,80 @@ typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 const std::string rdb_protocol_t::protocol_name("rdb");
 
 /* read_t::get_region implementation */
-struct r_get_region_visitor : public boost::static_visitor<key_range_t> {
-    key_range_t operator()(const point_read_t &pr) const {
-        return key_range_t(key_range_t::closed, pr.key, key_range_t::closed, pr.key);
+struct r_get_region_visitor : public boost::static_visitor<region_t> {
+    region_t operator()(const point_read_t &pr) const {
+        return region_t(region_t::closed, pr.key, region_t::closed, pr.key);
+    }
+    
+    region_t operator()(const rget_read_t &rg) const {
+        return rg.key_range;
     }
 };
 
-key_range_t read_t::get_region() const THROWS_NOTHING {
+region_t read_t::get_region() const THROWS_NOTHING {
     return boost::apply_visitor(r_get_region_visitor(), read);
 }
 
 /* read_t::shard implementation */
 
 struct r_shard_visitor : public boost::static_visitor<read_t> {
-    explicit r_shard_visitor(const key_range_t &_key_range)
-        : key_range(_key_range)
+    explicit r_shard_visitor(const region_t &_region)
+        : region(_region)
     { }
 
     read_t operator()(const point_read_t &pr) const {
-        rassert(key_range_t(key_range_t::closed, pr.key, key_range_t::closed, pr.key) == key_range);
+        rassert(region_t(region_t::closed, pr.key, region_t::closed, pr.key) == region);
         return read_t(pr);
     }
-    const key_range_t &key_range;
+    
+    read_t operator()(const rget_read_t &rg) const {
+        rassert(region_is_superset(region_t(rg.key_range), region));
+        // TODO: Reevaluate this code.  Should rget_query_t really have a region_t range?
+        rget_read_t _rg(rg);
+        _rg.key_range = region;
+        return read_t(_rg);
+    }
+    const region_t &region;
 };
 
-read_t read_t::shard(const key_range_t &region) const THROWS_NOTHING {
+read_t read_t::shard(const region_t &region) const THROWS_NOTHING {
     return boost::apply_visitor(r_shard_visitor(region), read);
 }
 
 /* read_t::unshard implementation */
+bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
+    const rget_read_response_t *lr = boost::get<rget_read_response_t>(&l.response);
+    rassert(lr);
+    const rget_read_response_t *rr = boost::get<rget_read_response_t>(&r.response);
+    rassert(rr);
+    return lr->key_range < rr->key_range;
+}
 
 read_response_t read_t::unshard(std::vector<read_response_t> responses, temporary_cache_t *) const THROWS_NOTHING {
-    rassert(responses.size() == 1);
-    return responses[0];
+    const point_read_t *pr = boost::get<point_read_t>(&read);
+    if (pr) {
+        rassert(responses.size() == 1);
+        rassert(boost::get<point_read_response_t>(&responses[0].response));
+        return responses[0];
+    }
+
+    const rget_read_t *rg = boost::get<rget_read_t>(&read);
+    if (rg) {
+        std::sort(responses.begin(), responses.end(), read_response_cmp);
+        rget_read_response_t rg_response;
+        rg_response.truncated = false;
+        rg_response.key_range = get_region();
+        typedef std::vector<read_response_t>::iterator rri_t;
+        for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+            const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+            rassert(_rr);
+            rg_response.data.insert(rg_response.data.end(), _rr->data.begin(), _rr->data.end());
+            rg_response.truncated = rg_response.truncated || _rr->truncated;
+        }
+        return read_response_t(rg_response);
+    }
+
+    unreachable("Unknown read response.");
 }
 
 read_response_t read_t::multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
@@ -80,39 +124,39 @@ read_response_t read_t::multistore_unshard(const std::vector<read_response_t>& r
 
 /* write_t::get_region() implementation */
 
-struct w_get_region_visitor : public boost::static_visitor<key_range_t> {
-    key_range_t operator()(const point_write_t &pw) const {
-        return key_range_t(key_range_t::closed, pw.key, key_range_t::closed, pw.key);
+struct w_get_region_visitor : public boost::static_visitor<region_t> {
+    region_t operator()(const point_write_t &pw) const {
+        return region_t(region_t::closed, pw.key, region_t::closed, pw.key);
     }
     
-    key_range_t operator()(const point_delete_t &pd) const {
-        return key_range_t(key_range_t::closed, pd.key, key_range_t::closed, pd.key);
+    region_t operator()(const point_delete_t &pd) const {
+        return region_t(region_t::closed, pd.key, region_t::closed, pd.key);
     }
 };
 
-key_range_t write_t::get_region() const THROWS_NOTHING {
+region_t write_t::get_region() const THROWS_NOTHING {
     return boost::apply_visitor(w_get_region_visitor(), write);
 }
 
 /* write_t::shard implementation */
 
 struct w_shard_visitor : public boost::static_visitor<write_t> {
-    explicit w_shard_visitor(const key_range_t &_key_range)
-        : key_range(_key_range)
+    explicit w_shard_visitor(const region_t &_region)
+        : region(_region)
     { }
 
     write_t operator()(const point_write_t &pw) const {
-        rassert(key_range_t(key_range_t::closed, pw.key, key_range_t::closed, pw.key) == key_range);
+        rassert(region_t(region_t::closed, pw.key, region_t::closed, pw.key) == region);
         return write_t(pw);
     }
     write_t operator()(const point_delete_t &pd) const {
-        rassert(key_range_t(key_range_t::closed, pd.key, key_range_t::closed, pd.key) == key_range);
+        rassert(region_t(region_t::closed, pd.key, region_t::closed, pd.key) == region);
         return write_t(pd);
     }
-    const key_range_t &key_range;
+    const region_t &region;
 };
 
-write_t write_t::shard(key_range_t region) const THROWS_NOTHING {
+write_t write_t::shard(region_t region) const THROWS_NOTHING {
     return boost::apply_visitor(w_shard_visitor(region), write);
 }
 
@@ -138,6 +182,10 @@ store_t::~store_t() {
 struct read_visitor_t : public boost::static_visitor<read_response_t> {
     read_response_t operator()(const point_read_t& get) {
         return read_response_t(rdb_get(get.key, btree, txn, superblock));
+    }
+
+    read_response_t operator()(const rget_read_t& rget) {
+        return read_response_t(rdb_rget_slice(btree, rget.key_range, 1000, txn, superblock));
     }
 
     read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_) :
@@ -195,8 +243,8 @@ public:
         : chunk_fun(chunk_fun_) { }
     ~rdb_backfill_callback_t() { }
 
-    void on_delete_range(const key_range_t &range) {
-        chunk_fun(rdb_protocol_t::backfill_chunk_t::delete_range(range));
+    void on_delete_range(const region_t &range) {
+        chunk_fun(chunk_t::delete_range(range));
     }
 
     void on_deletion(const btree_key_t *key, UNUSED repli_timestamp_t recency) {
@@ -265,12 +313,12 @@ private:
     originally necessary because in v1.1.x the hashing scheme might be different
     between the source and destination machines. */
     struct range_key_tester_t : public key_tester_t {
-        explicit range_key_tester_t(const key_range_t& delete_range_) : delete_range(delete_range_) { }
+        explicit range_key_tester_t(const region_t& delete_range_) : delete_range(delete_range_) { }
         bool key_should_be_erased(const btree_key_t *key) {
             return delete_range.contains_key(key->contents, key->size);
         }
 
-        const key_range_t& delete_range;
+        const region_t& delete_range;
     };
 
     btree_slice_t *btree;
@@ -295,12 +343,12 @@ void store_t::protocol_reset_data(const region_t& subregion,
     rdb_erase_range(btree, &key_tester, subregion, txn, superblock);
 }
 
-key_range_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, UNUSED int num_cpu_shards) {
+region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number, UNUSED int num_cpu_shards) {
     rassert(subregion_number >= 0);
     rassert(subregion_number < num_cpu_shards);
 
     if (subregion_number == 0) {
-        return key_range_t::universe();
+        return region_t::universe();
     }
-    return key_range_t::empty();
+    return region_t::empty();
 }
