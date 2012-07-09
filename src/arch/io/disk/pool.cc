@@ -22,7 +22,6 @@ pool_diskmgr_t::~pool_diskmgr_t() {
 }
 
 void pool_diskmgr_t::action_t::run() {
-    assert_thread();
     int res;
     if (is_read) {
         res = pread(fd, buf, count, offset);

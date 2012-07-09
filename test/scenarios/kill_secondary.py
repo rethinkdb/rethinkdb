@@ -12,9 +12,11 @@ opts = op.parse(sys.argv)
 with driver.Metacluster() as metacluster:
     print "Starting cluster..."
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
-    primary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-primary", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-primary", executable_path = executable_path, command_prefix = command_prefix)
-    secondary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-secondary", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-secondary", executable_path = executable_path, command_prefix = command_prefix)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
+    primary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-primary", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-primary",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    secondary = driver.Process(cluster, driver.Files(metacluster, db_path = "db-secondary", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-secondary",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     secondary.wait_until_started_up()
 
     print "Creating namespace..."
