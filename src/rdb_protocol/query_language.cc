@@ -769,18 +769,91 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_
     ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
 }
 
-void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> id, runtime_environment_t *env) {
-    rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id->get()))));
+void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env) {
+    rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id))));
     ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
+}
+
+void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> id, runtime_environment_t *env) {
+    point_delete(ns_access, id->get(), env);
 }
 
 Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (w.type()) {
         case WriteQuery::UPDATE:
+            {
+                view_t view = eval(w.update().view(), env);
+
+                int modified = 0,
+                    error = 0;
+                for (json_stream_t::iterator it  = view.stream.begin();
+                                             it != view.stream.end();
+                                             ++it) {
+                    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+
+                    env->scope.put_in_scope(w.update().mapping().arg(), *it);
+                    boost::shared_ptr<scoped_cJSON_t> val = eval(w.update().mapping().body(), env);
+                    if (!cJSON_Equal(cJSON_GetObjectItem((*it)->get(), "id"), 
+                                     cJSON_GetObjectItem((val)->get(), "id"))) {
+                        error++;
+                    } else {
+                        insert(view.access, val, env);
+                        modified++;
+                    }
+                }
+
+                Response res;
+                res.set_status_code(0);
+                res.set_token(0);
+                res.add_response(strprintf("Modified %d rows.", modified));
+                res.add_response(strprintf("%d errors.", error));
+                return res;
+            }
             break;
         case WriteQuery::DELETE:
+            {
+                view_t view = eval(w.delete_().view(), env);
+
+                for (json_stream_t::iterator it  = view.stream.begin();
+                                             it != view.stream.end();
+                                             ++it) {
+                    point_delete(view.access, cJSON_GetObjectItem((*it)->get(), "id"), env);
+                }
+
+                Response res;
+                res.set_status_code(0);
+                res.set_token(0);
+                res.add_response(strprintf("Deleted %d rows.", int(view.stream.size())));
+                return res;
+            }
             break;
         case WriteQuery::MUTATE:
+            {
+                view_t view = eval(w.update().view(), env);
+
+                int modified = 0, deleted = 0;
+                for (json_stream_t::iterator it  = view.stream.begin();
+                                             it != view.stream.end();
+                                             ++it) {
+                    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                    env->scope.put_in_scope(w.update().mapping().arg(), *it);
+                    boost::shared_ptr<scoped_cJSON_t> val = eval(w.update().mapping().body(), env);
+
+                    if (val->get()->type == cJSON_NULL) {
+                        point_delete(view.access, cJSON_GetObjectItem((*it)->get(), "id"), env);
+                        ++deleted;
+                    } else {
+                        insert(view.access, eval(w.update().mapping().body(), env), env);
+                        ++modified;
+                    }
+                }
+
+                Response res;
+                res.set_status_code(0);
+                res.set_token(0);
+                res.add_response(strprintf("Inserted %d rows.", int(view.stream.size())));
+                return res;
+            }
             break;
         case WriteQuery::INSERT:
             {
