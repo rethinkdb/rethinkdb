@@ -69,7 +69,9 @@ public:
     void do_admin_set_datacenter(const admin_command_parser_t::command_data& data);
     void do_admin_create_datacenter(const admin_command_parser_t::command_data& data);
     void do_admin_create_namespace(const admin_command_parser_t::command_data& data);
-    void do_admin_remove(const admin_command_parser_t::command_data& data);
+    void do_admin_remove_machine(const admin_command_parser_t::command_data& data);
+    void do_admin_remove_namespace(const admin_command_parser_t::command_data& data);
+    void do_admin_remove_datacenter(const admin_command_parser_t::command_data& data);
 
     void sync_from();
 
@@ -107,8 +109,10 @@ private:
                                     const uuid_t& uuid,
                                     const std::string& new_name);
 
+    void do_admin_remove_internal(const std::string& obj_type, const std::vector<std::string>& ids);
+
     template <class T>
-    void do_admin_remove_internal(std::map<uuid_t, T>& obj_map, const uuid_t& key);
+    void do_admin_remove_internal_internal(std::map<uuid_t, T>& obj_map, const uuid_t& key);
 
     template <class protocol_t>
     void remove_machine_pinnings(const machine_id_t& machine,
