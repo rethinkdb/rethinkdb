@@ -2,7 +2,7 @@
 class Namespace extends Backbone.Model
     initialize: ->
         # TODO: magic number + uniformize setInterval and setTImeout
-        setInterval @load_key_distr(), 5000
+        setInterval @load_key_distr, 5000
 
         # Add a computed shards property for convenience and metadata
         @.set 'computed_shards', new DataUtils.Shards [],@
