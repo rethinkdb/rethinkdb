@@ -39,7 +39,7 @@ module 'DataExplorerView', ->
             'click .input_query': 'make_suggestion' # Click and not focus for webkit browsers
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
             'mouseup .suggestion_name_li': 'position_cursor_after_click'
-            'mouseover .suggestion_name_li' : 'highlight_suggestion'
+            'mouseover .suggestion_name_li' : 'mouseover_suggestion'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
             'click .namespace_link': 'write_query_namespace'
@@ -49,31 +49,27 @@ module 'DataExplorerView', ->
 
         displaying_full_view: false
 
+        # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
         current_highlighted_suggestion: -1
         keypress_is_tab: false
         current_conpleted_query: ''
         query_first_part: ''
         query_last_part: ''
-        refocus_position: '' # Trick for web-kit browsers (the order of events is mousedown, blur, mouseup)
+        refocus_position: '' 
 
         handle_tab: (event) =>
-            if event.which is 9
+            if event.which is 9 # is tab
                 event.preventDefault()
                 @keypress_is_tab = true
 
-                @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
 
                 @current_highlighted_suggestion++
                 if @current_highlighted_suggestion >= @current_suggestions.length
                     @current_highlighted_suggestion = 0
 
                 if @current_suggestions[@current_highlighted_suggestion]?
-                    @.$('.suggestion_name_li').eq(@current_highlighted_suggestion).addClass 'suggestion_name_li_hl'
-
-                    @.$('.suggestion_description').html @current_suggestions[@current_highlighted_suggestion].description
-                    @show_suggestion_description()
-
+                    @highlight_suggestion @current_highlighted_suggestion
                     @write_suggestion @current_suggestions[@current_highlighted_suggestion].suggestion
 
                     position = (@query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion].suggestion).length
@@ -88,18 +84,20 @@ module 'DataExplorerView', ->
         write_suggestion: (suggestion_to_write) =>
             @.$('.input_query').val @query_first_part + @current_completed_query + suggestion_to_write + @query_last_part
 
-        highlight_suggestion: (event) =>
-            @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
-            @.$(event.target).addClass 'suggestion_name_li_hl'
+        mouseover_suggestion: (event) =>
+            @highlight_suggestion event.target.dataset.id
 
-            @.$('.suggestion_description').html @current_suggestions[event.target.dataset.id].description
+        highlight_suggestion: (id) =>
+            @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
+            @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
+
+            @.$('.suggestion_description').html @current_suggestions[id].description
             @show_suggestion_description()
 
         position_cursor_after_click: (event) =>
-            @position_cursor @.$(event.target).html().length
+            @position_cursor @.$(event.target).html().length #TODO doesn't work with Firefox
 
         position_cursor: (position) =>
-            # Set the cursor in the good plac
             @.$('.input_query').focus()
             if @.$('.input_query').get(0)?.setSelectionRange?
                 @.$('.input_query').get(0).setSelectionRange position, position
@@ -263,7 +261,7 @@ module 'DataExplorerView', ->
                     suggestion: "plot("
                     description: "plot ( x: blabla, y: blabla)"
                 suggestions.push
-                    suggestion: "update"
+                    suggestion: "update("
                     description: "update( where, attribute, value )"
                 @append_suggestion(query, suggestions)
             else
