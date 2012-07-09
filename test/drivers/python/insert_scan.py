@@ -15,7 +15,7 @@ class TestTableRef(unittest.TestCase):
     # Shared db ref, ast
     def setUp(self):
         self.conn = r.Connection(os.getenv('HOST') or 'localhost',
-                                 12346 + (os.getenv('PORT' or 2010)))
+                                 12346 + (int(os.getenv('PORT') or 2010)))
         self.table = r.db("").Welcome
         self.docs = [{"a": 3, "b": 10, "id": 1}, {"a": 9, "b": -5, "id": 2}]
 
