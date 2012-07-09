@@ -113,7 +113,7 @@ void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
         // updatee->update doesn't block so the mutex is redundant, who cares.
         mutex_t::acq_t acq(updatee_mutex, true);
         updatee->update(transformed);
-    } catch (interrupted_exc_t& exc) {
+    } catch (const interrupted_exc_t& exc) {
         // do nothing, we're in pmap.
     }
 }
@@ -172,7 +172,7 @@ void multistore_ptr_t<protocol_t>::do_set_a_metainfo(int i,
 
         store_views_[i]->set_metainfo(new_metainfo.mask(get_region(i)), order_token, store_token, &ct_interruptor);
 
-    } catch (interrupted_exc_t& exc) {
+    } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
@@ -272,7 +272,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
                              &tmp_progress,
                              store_token,
                              &ct_interruptor);
-    } catch (interrupted_exc_t& exc) {
+    } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
@@ -348,7 +348,7 @@ void multistore_ptr_t<protocol_t>::single_shard_receive_backfill(int i, const ty
         store->receive_backfill(chunk.shard(ith_intersection),
                                 store_token,
                                 &ct_interruptor);
-    } catch (interrupted_exc_t& exc) {
+    } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
@@ -417,7 +417,7 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
         }
 
         responses->push_back(response);
-    } catch (interrupted_exc_t& exc) {
+    } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
@@ -499,7 +499,7 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
                                                     order_token,
                                                     store_token,
                                                     &ct_interruptor));
-    } catch (interrupted_exc_t& exc) {
+    } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
@@ -562,7 +562,7 @@ void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
                                     new_metainfo.mask(get_region(i)),
                                     store_token,
                                     &ct_interruptor);
-    } catch (interrupted_exc_t& exc) {
+    } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
