@@ -141,7 +141,7 @@ class Datacenter extends Backbone.Model
         for machine in machines.models
             if machine.get('datacenter_uuid') is @get('id')
                 mstats = machine.get_stats().proc
-                if mstats?
+                if mstats?.global_cpu_util?
                     nmachines += 1
                     stats.global_cpu_util.avg += parseFloat(mstats.global_cpu_util.avg)
                     stats.global_mem_total += parseFloat(mstats.global_mem_total)
