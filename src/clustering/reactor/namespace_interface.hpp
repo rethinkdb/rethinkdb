@@ -180,7 +180,7 @@ private:
 
         std::vector<boost::variant<op_response_type, std::string> > results_or_failures(masters_to_contact.size());
         pmap(masters_to_contact.size(), boost::bind(
-            &cluster_namespace_interface_t::perform_immediate_op<op_type, fifo_enforcer_token_type, op_response_type>, this,
+            &perform_immediate_op<op_type, fifo_enforcer_token_type, op_response_type>, this,
             how_to_run_query, &masters_to_contact, &op, order_token, &results_or_failures, _1, interruptor));
 
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
