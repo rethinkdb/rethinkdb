@@ -181,7 +181,7 @@ protected:
     stddev_t combine_stats(stddev_t *);
     perfmon_result_t *output_stat(const stddev_t&);
 private:
-    stddev_t thread_data[MAX_THREADS]; // TODO (rntz) should this be cache-line padded?
+    stddev_t thread_data[MAX_THREADS]; // TODO(rntz) should this be cache-line padded?
 };
 
 /* `perfmon_rate_monitor_t` keeps track of the number of times some event

@@ -4,7 +4,6 @@ import subprocess
 import signal
 import time
 import random
-import sys
 
 names = """Nervous Energy
 Prosthetic Conscience
@@ -133,7 +132,8 @@ if n_machines < 1:
     exit(1)
 else:
     kids = []
-    machine_names = random.sample(names, n_machines)
+    machine_names = random.sample(names, n_machines-1)
+    machine_names.append(machine_names[0])
     for i, machine_name in enumerate(machine_names):
         # cleanup the directory
         directory = "cluster_directory_%d" % i
@@ -143,7 +143,7 @@ else:
         else:
             cl = ["../build/debug/rethinkdb", "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "newton:%d" % port, "--port-offset", str(i+port)]
         print ' '.join(cl)
-        kids += [subprocess.Popen(cl, stdout=sys.stdout, stderr=sys.stderr)]
+        kids += [subprocess.Popen(cl)]
         time.sleep(1)
 
     time.sleep(1)
@@ -156,8 +156,8 @@ else:
 
     print ""
 
+    import sys
     sys.stdout.flush()
-    sys.stderr.flush()
 
     try:
         signal.pause()

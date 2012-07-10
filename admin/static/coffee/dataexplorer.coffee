@@ -40,6 +40,7 @@ module 'DataExplorerView', ->
             'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
             'mouseup .suggestion_name_li': 'position_cursor_after_click'
             'mouseover .suggestion_name_li' : 'mouseover_suggestion'
+            'mouseout .suggestion_name_li' : 'mouseout_suggestion'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
             'click .namespace_link': 'write_query_namespace'
@@ -80,12 +81,18 @@ module 'DataExplorerView', ->
                 event.preventDefault()
                 @hide_suggestion()
                 @execute_query()
+            else if event.which is 190
+                @hide_suggestion()
+                
 
         write_suggestion: (suggestion_to_write) =>
             @.$('.input_query').val @query_first_part + @current_completed_query + suggestion_to_write + @query_last_part
 
         mouseover_suggestion: (event) =>
             @highlight_suggestion event.target.dataset.id
+
+        mouseout_suggestion: (event) =>
+            @hide_suggestion_description()
 
         highlight_suggestion: (id) =>
             @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
@@ -253,7 +260,7 @@ module 'DataExplorerView', ->
                 suggestions = []
                 suggestions.push
                     suggestion: "filter("
-                    description: "filter( {\"attribute\": \"value\"}"
+                    description: "filter( {attribute: value}"
                 suggestions.push
                     suggestion: "find("
                     description: "find ( id )"
@@ -476,10 +483,7 @@ module 'DataExplorerView', ->
     class @InputQuery extends Backbone.View
         className: 'query_control'
         template: Handlebars.compile $('#dataexplorer_input_query-template').html()
-
-        initialize: ->
-            namespaces.on 'all', @render
-
+ 
         render: =>
             @.$el.html @template()
             return @
