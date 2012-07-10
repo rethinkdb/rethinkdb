@@ -7,7 +7,7 @@ module 'DashboardView', ->
         className: 'dashboard_view'
         template: Handlebars.compile $('#dashboard_view-template').html() # TODO use div instead of a table
         initialize: =>
-            log_initial '(initializing) sidebar view:'
+            log_initial '(initializing) dashboard container view'
 
             @cluster_status = new DashboardView.ClusterStatus()
 
@@ -39,7 +39,7 @@ module 'DashboardView', ->
                     $(e.currentTarget).remove()
 
         initialize: ->
-            log_initial '(initializing) dashboard view'
+            log_initial '(initializing) dashboard cluster status'
             issues.on 'all', @render
             issues_redundancy.on 'reset', @render # when issues_redundancy is reset
             machines.on 'stats_updated', @render # when the stats of the machines are updated
