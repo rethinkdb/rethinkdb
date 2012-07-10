@@ -408,6 +408,8 @@ class val(Term):
             self.make_json(parent)
         elif isinstance(self.value, list):
             self.make_array(parent)
+        elif self.value is None:
+            parent.type = p.Term.JSON_NULL
         else:
             raise ValueError
 
@@ -471,29 +473,39 @@ class var(Term):
         self.name = name
 
     def attr(self, name):
-        return attr(name, self)
+        return attr(self, name)
 
     def write_ast(self, parent):
         parent.type = p.Term.VAR
         parent.var = self.name
 
 class attr(Term):
-    def __init__(self, name, parent):
+    def __init__(self, parent, name):
         if not name:
             raise ValueError
         attrs = name.rsplit('.', 1)
         self.name = attrs[-1]
         if len(attrs) > 1:
-            self.parent = attr(attrs[0], parent)
+            self.parent = attr(parent, attrs[0])
         else:
             self.parent = parent
 
     def attr(self, name):
-        return attr(name, self)
+        return attr(self, name)
 
     def write_ast(self, parent):
         self._write_call(parent, p.Builtin.GETATTR, self.parent)
         parent.call.builtin.attr = self.name
+
+class has(Term):
+    def __init__(self, parent, key):
+        self.parent = parent
+        self.key = key
+
+    def write_ast(self, parent):
+        self._write_call(parent, p.Builtin.HASATTR, self.parent)
+        parent.call.builtin.attr = self.key
+
 
 class Let(Term):
     def __init__(self, pairs, expr):
@@ -517,12 +529,17 @@ def let(*args):
 def toTerm(value):
     if isinstance(value, (bool, int, float, dict, list)):
         return val(value)
-    if isinstance(value, str):
+    elif isinstance(value, str):
         return parseStringTerm(value)
+    elif value is None:
+        return val(value)
     else:
         return value
 
 def parseStringTerm(value):
+    # Empty strings get passed through
+    if not value:
+        return val(value)
     # If the string is quoted, it's a value
     if ((value.strip().startswith('"') and value.strip().endswith('"'))
         or (value.strip().startswith("'") and value.strip().endswith("'"))):
@@ -574,7 +591,6 @@ size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
 concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
 slice = _make_builtin("slice", p.Builtin.ARRAYSLICE, "array", "start", "end")
-has = _make_builtin("has", p.Builtin.HASATTR, "object", "key")
 union = _make_builtin("union", p.Builtin.UNION, "a", "b")
 length = _make_builtin("length", p.Builtin.LENGTH, "stream")
 limit = _make_builtin("limit", p.Builtin.LIMIT, "stream", "count")

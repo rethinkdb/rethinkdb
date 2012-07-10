@@ -1130,14 +1130,13 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     throw runtime_exc_t("Data must be an object");
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> attr
-                    = shared_scoped_json(cJSON_DeepCopy(cJSON_GetObjectItem(data->get(), c.builtin().attr().c_str())));
+                cJSON *value = cJSON_GetObjectItem(data->get(), c.builtin().attr().c_str());
 
-                if (!attr->get()) {
-                    throw runtime_exc_t("Failed to find attribute");
-                } else {
-                    return attr;
+                if (!value) {
+                    throw runtime_exc_t("Object is missing attribute \"" + c.builtin().attr() + "\"");
                 }
+
+                return shared_scoped_json(cJSON_DeepCopy(value));
             }
             break;
         case Builtin::HASATTR:
@@ -1170,7 +1169,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 for (int i = 0; i < c.builtin().attrs_size(); ++i) {
                     cJSON *item = cJSON_DeepCopy(cJSON_GetObjectItem(data->get(), c.builtin().attrs(i).c_str()));
                     if (!item) {
-                        throw runtime_exc_t("Attempting to pick non existant attribute.");
+                        throw runtime_exc_t("Attempting to pick missing attribute.");
                     } else {
                         cJSON_AddItemToObject(res->get(), item->string, item);
                     }
@@ -1224,7 +1223,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> array2  = eval(c.args(1), env);
                 if (array2->get()->type != cJSON_Array) {
-                    throw runtime_exc_t("The first argument must be an array.");
+                    throw runtime_exc_t("The second argument must be an array.");
                 }
                 // Create new array and deep copy all the elements
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
@@ -1609,7 +1608,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     throw runtime_exc_t("The second argument must be a nonnegative integer.");
                 }
 
-                if (static_cast<size_t>(index) > stream.size()) {
+                if (static_cast<size_t>(index) >= stream.size()) {
                     throw runtime_exc_t("Indexed past the end of a stream");
                 }
 
@@ -1666,7 +1665,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     }
                     if (arg->get()->type != cJSON_True) {
                         result = false;
-                        break;
                     }
                 }
 
@@ -1685,7 +1683,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     }
                     if (arg->get()->type == cJSON_True) {
                         result = true;
-                        break;
                     }
                 }
 
