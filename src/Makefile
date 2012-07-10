@@ -49,6 +49,9 @@ ifneq ($(COMPILER),$(filter $(COMPILER),$(SUPPORTED_COMPILERS)))
 $(error Unknown compiler: $(COMPILER). The supported compilers are: $(SUPPORTED_COMPILERS))
 endif
 
+# Set OLD_GCC to 1 if the GCC being used is an old version (before 4.4) that lacks certain flags.
+OLD_GCC?=0
+
 # Set SYMBOLS to 1 to enable symbols, even in release mode
 SYMBOLS?=0
 
@@ -121,8 +124,10 @@ ifeq ($(COMPILER), INTEL)
 CXXFLAGS+=-std=gnu++98 -w1 -ftls-model=local-dynamic
 else ifeq ($(COMPILER), CLANG)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-unneeded-internal-declaration
-else
+else ifeq ($(OLD_GCC), 0)
 CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
+else
+CXXFLAGS+=-Wformat=2 -Wswitch-enum -Wswitch-default
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
