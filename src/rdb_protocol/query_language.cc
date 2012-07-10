@@ -592,13 +592,11 @@ const type_t get_type(const View &v, variable_type_scope_t *scope) {
             break;
         case View::FILTERVIEW:
             {
-                printf("first: %d\n", get_type(v.filter_view().view(), scope) == Type::VIEW);
-                printf("second: %d\n", get_type(v.filter_view().predicate(), scope) == Type::JSON);
                 if (get_type(v.filter_view().view(), scope) == Type::VIEW &&
                     get_type(v.filter_view().predicate(), scope) == Type::JSON) {
                     return Type::VIEW;
                 } else {
-                    printf("hala\n");
+                    throw runtime_exc_t("Incorrect type."); // TODO: add a better error message
                 }
             }
             break;
