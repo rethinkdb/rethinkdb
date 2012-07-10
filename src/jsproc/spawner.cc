@@ -1,8 +1,10 @@
 #include "jsproc/spawner.hpp"
 
+#include <signal.h>             // sigaction
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <sys/wait.h>           // waitpid
 #include <unistd.h>             // setpgid
 
 #include "jsproc/job.hpp"
@@ -10,9 +12,40 @@
 
 namespace jsproc {
 
-spawner_t::spawner_t(const info_t &info) : socket_(info.socket) {}
+static bool spawner_created = false;
 
-spawner_t::~spawner_t() {}
+static void sigchld_handler(int signo) {
+    guarantee(signo == SIGCHLD);
+    guarantee(spawner_created);
+    crash_or_trap("spawner process died");
+}
+
+spawner_t::spawner_t(const info_t &info)
+    : pid_(info.pid), socket_(info.socket)
+{
+    guarantee(!spawner_created);
+    spawner_created = true;
+
+    // Check that the spawner hasn't already exited.
+    guarantee(0 == waitpid(pid_, NULL, WNOHANG),
+              "spawner process already died!");
+
+    // Establish SIGCHLD handler for spawner.
+    struct sigaction act;
+    memset(&act, 0, sizeof act);
+    act.sa_handler = sigchld_handler;
+    guarantee_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
+    guarantee_err(0 == sigaction(SIGCHLD, &act, NULL), "could not set SIGCHLD handler");
+}
+
+spawner_t::~spawner_t() {
+    // De-establish SIGCHLD handler.
+    struct sigaction act;
+    memset(&act, 0, sizeof act);
+    act.sa_handler = SIG_DFL;
+    guarantee_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
+    guarantee_err(0 == sigaction(SIGCHLD, &act, NULL), "could not unset SIGCHLD handler");
+}
 
 pid_t spawner_t::create(info_t *info) {
     int fds[2];
@@ -35,6 +68,7 @@ pid_t spawner_t::create(info_t *info) {
 
     // We're the parent. Return.
     guarantee_err(0 == close(fds[1]), "could not close fd");
+    info->pid = pid;
     info->socket = fds[0];
     return 0;
 }

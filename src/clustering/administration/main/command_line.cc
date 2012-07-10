@@ -1,3 +1,7 @@
+#include "clustering/administration/main/command_line.hpp"
+
+#include <signal.h>             // sigaction
+
 #include "utils.hpp"
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
@@ -6,7 +10,6 @@
 #include "arch/os_signal.hpp"
 #include "arch/runtime/starter.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
-#include "clustering/administration/main/command_line.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
@@ -372,7 +375,6 @@ static MUST_USE bool try_spawn_spawner(jsproc::spawner_t::info_t *spawner_info) 
         return false;
     }
 
-    // TODO (rntz): establish SIGCHLD handler for spawner process
     return true;
 }
 

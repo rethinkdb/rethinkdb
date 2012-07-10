@@ -17,10 +17,11 @@ class spawner_t :
   public:
     class info_t {
         friend class spawner_t;
+        pid_t pid;
         fd_t socket;
     };
 
-    // Must be called within a thread pool.
+    // Must be called within a thread pool, exactly once.
     explicit spawner_t(const info_t &info);
     ~spawner_t();
 
@@ -55,6 +56,7 @@ class spawner_t :
     static void exec_worker(fd_t sockfd);
 
   private:
+    pid_t pid_;
     mutex_t mutex_;             // linearizes access to socket_
     unix_socket_stream_t socket_;
 };
