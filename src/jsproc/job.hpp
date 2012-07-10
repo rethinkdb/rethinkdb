@@ -2,6 +2,7 @@
 #define JSPROC_JOB_HPP_
 
 #include <stdarg.h>             // va_list
+#include <stdlib.h>             // exit
 
 #include "arch/runtime/runtime_utils.hpp" // fd_t
 #include "containers/archive/archive.hpp"
@@ -68,8 +69,7 @@ class auto_job_t : public job_t {
                          res == ARCHIVE_SOCK_EOF ? "end of file" :
                          res == ARCHIVE_RANGE_ERROR ? "range error" :
                          "unknown error");
-            // TODO (rntz): shouldn't we just die here?
-            return;
+            crash_or_trap("worker: could not deserialize job");
         }
 
         // Run it.
