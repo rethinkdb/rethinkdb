@@ -194,7 +194,6 @@ module 'DashboardView', ->
         render: =>
             log_render '(rendering) cluster status view'
 
-
             @.$el.html @template(@compute_status())
             @.$('a[rel=dashboard_details]').popover
                 trigger: 'manual'

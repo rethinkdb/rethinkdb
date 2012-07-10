@@ -178,10 +178,18 @@ module 'Sidebar', ->
         className: 'recent-log-entry'
         template: Handlebars.compile $('#sidebar-recent_log_entry-template').html()
 
-        events: ->
-            'click a[rel=popover]': 'do_nothing'
+        events:
+            'click a[rel=log_details]': 'show_popover'
 
-        do_nothing: (event) -> event.preventDefault()
+        show_popover: (event) =>
+            console.log 'click on log'
+            event.preventDefault()
+            @.$(event.currentTarget).popover('show')
+            $popover = $('.popover')
+
+            $popover.on 'clickoutside', (e) ->
+                if e.target isnt event.target  # so we don't remove the popover when we click on the link
+                    $(e.currentTarget).remove()
 
         render: =>
             json = _.extend @model.toJSON(), @model.get_formatted_message()
@@ -196,7 +204,8 @@ module 'Sidebar', ->
                     timeago_timestamp: @model.get_iso_8601_timestamp()
 
             @.$('abbr.timeago').timeago()
-            @.$('a[rel=popover]').popover
-                html: true
+            @.$('a[rel=log_details]').popover
+                trigger: 'manual'
+                placement: 'left'
             return @
 
