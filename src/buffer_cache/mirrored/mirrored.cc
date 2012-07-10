@@ -17,7 +17,7 @@
 // get_data() returns or get_data_if_available() returns non-NULL, get_data_if_available() will
 // return the same (non-NULL) value.
 
-// TODO (rntz): it should be possible for us to cause snapshots which were not cow-referenced to be
+// TODO(rntz): it should be possible for us to cause snapshots which were not cow-referenced to be
 // flushed to disk during writeback, sans block id, to allow them to be unloaded if necessary.
 class mc_inner_buf_t::buf_snapshot_t : private evictable_t, public intrusive_list_node_t<mc_inner_buf_t::buf_snapshot_t> {
 public:
@@ -1415,7 +1415,7 @@ mc_cache_t::~mc_cache_t() {
 
     /* Delete all the buffers */
     while (evictable_t *buf = page_repl.get_first_buf()) {
-        // TODO (rntz) check that buf is actually a mc_inner_buf_t
+        // TODO(rntz) check that buf is actually a mc_inner_buf_t
         delete buf;
     }
 
