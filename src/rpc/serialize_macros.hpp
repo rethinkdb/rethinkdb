@@ -31,7 +31,7 @@ the class scope. */
     archive_result_t deserialize(read_stream_t *s, type_t *thing);
 
 #define RDB_EXPAND_SERIALIZABLE_0(function_attr, type_t) \
-    function_attr write_message_t &operator<<(UNUSED write_message_t &msg, UNUSED const type_t &thing) { \
+    function_attr write_message_t &operator<<(UNUSED write_message_t &msg /* NOLINT */, UNUSED const type_t &thing) { \
     return msg; \
     } \
     function_attr archive_result_t deserialize(UNUSED read_stream_t *s, UNUSED type_t *thing) { \
@@ -44,7 +44,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_0() \
     friend class write_message_t; \
-    void rdb_serialize(UNUSED write_message_t &msg) const { \
+    void rdb_serialize(UNUSED write_message_t &msg /* NOLINT */) const { \
     } \
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(UNUSED read_stream_t *s) { \
@@ -54,7 +54,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_1(function_attr, type_t, field1) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
     return msg; \
     } \
@@ -70,7 +70,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_1(field1) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
     } \
     friend class archive_deserializer_t; \
@@ -83,7 +83,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_2(function_attr, type_t, field1, field2) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
     return msg; \
@@ -102,7 +102,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_2(field1, field2) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
     } \
@@ -118,7 +118,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_3(function_attr, type_t, field1, field2, field3) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -140,7 +140,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_3(field1, field2, field3) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -159,7 +159,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_4(function_attr, type_t, field1, field2, field3, field4) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -184,7 +184,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_4(field1, field2, field3, field4) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -206,7 +206,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_5(function_attr, type_t, field1, field2, field3, field4, field5) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -234,7 +234,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_5(field1, field2, field3, field4, field5) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -259,7 +259,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_6(function_attr, type_t, field1, field2, field3, field4, field5, field6) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -290,7 +290,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_6(field1, field2, field3, field4, field5, field6) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -318,7 +318,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_7(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -352,7 +352,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_7(field1, field2, field3, field4, field5, field6, field7) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -383,7 +383,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_8(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -420,7 +420,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_8(field1, field2, field3, field4, field5, field6, field7, field8) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -454,7 +454,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_9(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -494,7 +494,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_9(field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -531,7 +531,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_10(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -574,7 +574,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_10(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -614,7 +614,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_11(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -660,7 +660,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_11(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -703,7 +703,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_12(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -752,7 +752,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_12(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -798,7 +798,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_13(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -850,7 +850,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_13(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -899,7 +899,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_14(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -954,7 +954,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_14(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1006,7 +1006,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_15(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1064,7 +1064,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_15(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1119,7 +1119,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_16(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1180,7 +1180,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_16(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1238,7 +1238,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_17(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1302,7 +1302,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_17(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1363,7 +1363,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_18(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1430,7 +1430,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_18(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \
@@ -1494,7 +1494,7 @@ the class scope. */
 
 
 #define RDB_EXPAND_SERIALIZABLE_19(function_attr, type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
-    function_attr write_message_t &operator<<(write_message_t &msg, const type_t &thing) { \
+    function_attr write_message_t &operator<<(write_message_t &msg /* NOLINT */, const type_t &thing) { \
         msg << thing.field1; \
         msg << thing.field2; \
         msg << thing.field3; \
@@ -1564,7 +1564,7 @@ the class scope. */
 
 #define RDB_MAKE_ME_SERIALIZABLE_19(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     friend class write_message_t; \
-    void rdb_serialize(write_message_t &msg) const { \
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const { \
         msg << field1; \
         msg << field2; \
         msg << field3; \

@@ -53,7 +53,7 @@ private:
         command_info_t(std::string full_cmd,
                      std::string cmd,
                      std::string use,
-                     void (admin_cluster_link_t::*const fn)(command_data&)) :
+                     void (admin_cluster_link_t::*const fn)(const command_data&)) :
             full_command(full_cmd), command(cmd), usage(use), do_function(fn) { }
 
         ~command_info_t();
@@ -64,7 +64,7 @@ private:
         std::string full_command;
         std::string command;
         std::string usage;
-        void (admin_cluster_link_t::*do_function)(command_data&);
+        void (admin_cluster_link_t::*do_function)(const command_data&);
 
         std::vector<param_options_t *> positionals;
         std::map<std::string, param_options_t *> flags;
@@ -109,14 +109,14 @@ private:
                                const std::string& full_cmd,
                                const std::string& cmd,
                                const std::string& usage,
-                               void (admin_cluster_link_t::*const fn)(command_data&));
+                               void (admin_cluster_link_t::*const fn)(const command_data&));
     admin_cluster_link_t *get_cluster();
 
-    void do_admin_help(command_data& data);
+    void do_admin_help(const command_data& data);
 
     command_info_t *find_command(const std::map<std::string, command_info_t *>& cmd_map, const std::vector<std::string>& line, size_t& index);
     command_data parse_command(command_info_t *info, const std::vector<std::string>& command_args);
-    void run_command(command_data& data);
+    void run_command(const command_data& data);
 
     std::string get_subcommands_usage(command_info_t *info);
 

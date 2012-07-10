@@ -1,5 +1,5 @@
 #include "arch/address.hpp"
-#include "arch/arch.hpp"
+
 #include <arpa/inet.h>   /* for `inet_ntop()` */
 #include <netdb.h>
 #include <stdlib.h>
@@ -7,8 +7,11 @@
 #include <errno.h>
 #include <limits.h>
 #include <unistd.h>
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
+
+#include "arch/arch.hpp"
 
 void do_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res, int *retval) {
     *retval = getaddrinfo(node, service, hints, res);

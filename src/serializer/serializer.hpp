@@ -4,13 +4,12 @@
 #include <vector>
 
 #include "utils.hpp"
-#include "repli_timestamp.hpp"
 #include <boost/optional.hpp>
 
 #include "arch/types.hpp"
-#include "serializer/types.hpp"
-
 #include "concurrency/cond_var.hpp"
+#include "repli_timestamp.hpp"
+#include "serializer/types.hpp"
 
 struct index_write_op_t {
     block_id_t block_id;

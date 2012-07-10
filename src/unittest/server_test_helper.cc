@@ -1,13 +1,13 @@
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
-#include "unittest/server_test_helper.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "mock/unittest_utils.hpp"
 #include "serializer/config.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/translator.hpp"
-#include "btree/slice.hpp"
+#include "unittest/server_test_helper.hpp"
 
 namespace unittest {
 
@@ -33,7 +33,7 @@ void server_test_helper_t::run() {
 }
 
 void server_test_helper_t::setup_server_and_run_tests() {
-    temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
+    mock::temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
     boost::scoped_ptr<io_backender_t> io_backender;
     make_io_backender(aio_native, &io_backender);

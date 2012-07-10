@@ -116,21 +116,21 @@ public:
         Print();
     }
 
-    void Merge(LeafNodeTracker& lnode) {
+    void Merge(LeafNodeTracker *lnode) {
         SCOPED_TRACE("Merge");
 
-        ASSERT_EQ(bs_.ser_value(), lnode.bs_.ser_value());
+        ASSERT_EQ(bs_.ser_value(), lnode->bs_.ser_value());
 
-        leaf::merge(&sizer_, lnode.node(), node());
+        leaf::merge(&sizer_, lnode->node(), node());
 
         int old_kv_size = kv_.size();
-        for (std::map<store_key_t, std::string>::iterator p = lnode.kv_.begin(), e = lnode.kv_.end(); p != e; ++p) {
+        for (std::map<store_key_t, std::string>::iterator p = lnode->kv_.begin(), e = lnode->kv_.end(); p != e; ++p) {
             kv_[p->first] = p->second;
         }
 
-        ASSERT_EQ(kv_.size(), old_kv_size + lnode.kv_.size());
+        ASSERT_EQ(kv_.size(), old_kv_size + lnode->kv_.size());
 
-        lnode.kv_.clear();
+        lnode->kv_.clear();
 
         {
             SCOPED_TRACE("mergee verify");
@@ -138,7 +138,7 @@ public:
         }
         {
             SCOPED_TRACE("lnode verify");
-            lnode.Verify();
+            lnode->Verify();
         }
     }
 
@@ -388,7 +388,7 @@ TEST(LeafNodeTest, ZeroZeroMerging) {
     LeafNodeTracker left;
     LeafNodeTracker right;
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 TEST(LeafNodeTest, ZeroOneMerging) {
@@ -397,7 +397,7 @@ TEST(LeafNodeTest, ZeroOneMerging) {
 
     right.Insert(store_key_t("b"), "B");
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 TEST(LeafNodeTest, OneZeroMerging) {
@@ -406,7 +406,7 @@ TEST(LeafNodeTest, OneZeroMerging) {
 
     left.Insert(store_key_t("a"), "A");
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 
@@ -417,7 +417,7 @@ TEST(LeafNodeTest, OneOneMerging) {
     left.Insert(store_key_t("a"), "A");
     right.Insert(store_key_t("b"), "B");
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 TEST(LeafNodeTest, SimpleMerging) {
@@ -447,7 +447,7 @@ TEST(LeafNodeTest, SimpleMerging) {
         right.Insert(store_key_t(strprintf("b%d", i)), strprintf("B%d", i));
     }
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 TEST(LeafNodeTest, MergingWithRemoves) {
@@ -463,7 +463,7 @@ TEST(LeafNodeTest, MergingWithRemoves) {
         }
     }
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 TEST(LeafNodeTest, MergingWithHugeEntries) {
@@ -485,7 +485,7 @@ TEST(LeafNodeTest, MergingWithHugeEntries) {
         right.Remove(store_key_t(std::string(250, 'n' + 1 + i)));
     }
 
-    right.Merge(left);
+    right.Merge(&left);
 }
 
 

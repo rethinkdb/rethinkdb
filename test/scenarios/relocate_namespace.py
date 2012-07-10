@@ -14,9 +14,10 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i, executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-%d" % i, executable_path = executable_path, command_prefix = command_prefix)
+    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i, executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-%d" % i,
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
         for i in xrange(opts["num-nodes"])]
     time.sleep(3)
     print "Creating namespace..."

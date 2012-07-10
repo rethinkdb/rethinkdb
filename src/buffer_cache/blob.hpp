@@ -1,11 +1,11 @@
 #ifndef BUFFER_CACHE_BLOB_HPP_
 #define BUFFER_CACHE_BLOB_HPP_
 
-#include <string>
-#include <vector>
-
 #include <stdint.h>
 #include <stddef.h>
+
+#include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>

@@ -6,6 +6,7 @@ def prepare_option_parser_mode_flags(opt_parser):
     opt_parser["valgrind"] = BoolFlag("--valgrind")
     opt_parser["valgrind-options"] = StringFlag("--valgrind-options", "--leak-check=full --track-origins=yes")
     opt_parser["mode"] = StringFlag("--mode", "debug")
+    opt_parser["serve-flags"] = StringFlag("--serve-flags", "")
 
 def parse_mode_flags(parsed_opts):
     mode = parsed_opts["mode"]
@@ -21,5 +22,5 @@ def parse_mode_flags(parsed_opts):
         if "valgrind" not in mode:
             mode = mode + "-valgrind"
 
-    return driver.find_rethinkdb_executable(mode), command_prefix
+    return driver.find_rethinkdb_executable(mode), command_prefix, shlex.split(parsed_opts["serve-flags"])
 

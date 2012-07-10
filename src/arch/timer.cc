@@ -1,4 +1,3 @@
-#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 #include "arch/runtime/event_queue.hpp"

@@ -1,6 +1,5 @@
 #include "arch/runtime/message_hub.hpp"
 
-#include <fcntl.h>
 #include <unistd.h>
 
 #include "config/args.hpp"

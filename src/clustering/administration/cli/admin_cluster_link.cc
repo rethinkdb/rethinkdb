@@ -24,6 +24,18 @@
 #include "perfmon/perfmon.hpp"
 #include "perfmon/archive.hpp"
 
+const std::vector<std::string>& guarantee_param_vec(const std::map<std::string, std::vector<std::string> >& params, const std::string& name) {
+    std::map<std::string, std::vector<std::string> >::const_iterator it = params.find(name);
+    guarantee(it != params.end());
+    return it->second;
+}
+
+const std::string& guarantee_param_0(const std::map<std::string, std::vector<std::string> >& params, const std::string& name) {
+    const std::vector<std::string> &vec = guarantee_param_vec(params, name);
+    guarantee(vec.size() == 1);
+    return vec[0];
+}
+
 std::string admin_cluster_link_t::peer_id_to_machine_name(const std::string& peer_id) {
     std::string result(peer_id);
 
@@ -461,13 +473,13 @@ datacenter_id_t get_machine_datacenter(const std::string& id, const machine_id_t
     return i->second.get().datacenter.get();
 }
 
-void admin_cluster_link_t::do_admin_pin_shard(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::string ns(data.params["namespace"][0]);
-    std::vector<std::string> ns_path(get_info_from_id(ns)->path);
-    std::string shard_str(data.params["key"][0]);
+    std::string ns = guarantee_param_0(data.params, "namespace");
+    const std::vector<std::string> ns_path(get_info_from_id(ns)->path);
+    std::string shard_str = guarantee_param_0(data.params, "key");
     std::string primary;
     std::vector<std::string> secondaries;
 
@@ -477,12 +489,15 @@ void admin_cluster_link_t::do_admin_pin_shard(admin_command_parser_t::command_da
         throw admin_parse_exc_t("object is not a namespace: " + ns);
     }
 
-    if (data.params.count("master") == 1) {
-        primary.assign(data.params["master"][0]);
+    std::map<std::string, std::vector<std::string> >::const_iterator master_it = data.params.find("master");
+    if (master_it != data.params.end()) {
+        guarantee(master_it->second.size() == 1);
+        primary.assign(master_it->second[0]);  // TODO: How do we know the vector is non-empty?
     }
 
-    if (data.params.count("replicas") != 0) {
-        secondaries = data.params["replicas"];
+    std::map<std::string, std::vector<std::string> >::const_iterator replicas_it = data.params.find("replicas");
+    if (replicas_it != data.params.end()) {
+        secondaries = replicas_it->second;
     }
 
     // Break up shard string into left and right
@@ -736,12 +751,12 @@ void insert_pinning(map_type& region_map, const key_range_t& shard, value_type& 
 }
 
 // TODO: templatize on protocol
-void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::vector<std::string> ns_path(get_info_from_id(data.params["namespace"][0])->path);
-    std::vector<std::string> split_points(data.params["split-points"]);
+    const std::vector<std::string> ns_path(get_info_from_id(guarantee_param_0(data.params, "namespace"))->path);
+    const std::vector<std::string> split_points = guarantee_param_vec(data.params, "split-points");
     std::string error;
 
     if (ns_path[0] == "memcached_namespaces") {
@@ -839,12 +854,12 @@ void admin_cluster_link_t::do_admin_split_shard(admin_command_parser_t::command_
     }
 }
 
-void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::vector<std::string> ns_path(get_info_from_id(data.params["namespace"][0])->path);
-    std::vector<std::string> split_points(data.params["split-points"]);
+    const std::vector<std::string> ns_path(get_info_from_id(guarantee_param_0(data.params, "namespace"))->path);
+    const std::vector<std::string> split_points(guarantee_param_vec(data.params, "split-points"));
     std::string error;
 
     if (ns_path[0] == "memcached_namespaces") {
@@ -941,9 +956,10 @@ void admin_cluster_link_t::do_admin_merge_shard(admin_command_parser_t::command_
     }
 }
 
-void admin_cluster_link_t::do_admin_list(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    std::string obj_str = (data.params.count("object") == 0 ? "" : data.params["object"][0]);
+    std::map<std::string, std::vector<std::string> >::const_iterator obj_it = data.params.find("object");
+    std::string obj_str = (obj_it == data.params.end() ? "" : obj_it->second[0]);
     bool long_format = (data.params.count("long") == 1);
 
     if (obj_str.empty()) {
@@ -1076,7 +1092,7 @@ struct admin_stats_request_t {
     mailbox_t<void(perfmon_result_t)> response_mailbox;
 };
 
-void admin_cluster_link_t::do_admin_list_stats(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::command_data& data) {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     boost::ptr_map<machine_id_t, admin_stats_request_t> request_map;
@@ -1086,9 +1102,10 @@ void admin_cluster_link_t::do_admin_list_stats(admin_command_parser_t::command_d
     signal_timer_t timer(5000); // 5 second timeout to get all stats
 
     // Check command params for namespace or machine filter
-    if (data.params.count("id-filter") == 1) {
-        for (size_t i = 0; i < data.params["id-filter"].size(); ++i) {
-            std::string temp = data.params["id-filter"][i];
+    std::map<std::string, std::vector<std::string> >::const_iterator id_filter_it = data.params.find("id-filter");
+    if (id_filter_it != data.params.end()) {
+        for (size_t i = 0; i < id_filter_it->second.size(); ++i) {
+            std::string temp = id_filter_it->second[i];
             metadata_info_t *info = get_info_from_id(temp);
             if (info->path[0] == "machines") {
                 machine_filters.insert(info->uuid);
@@ -1184,7 +1201,7 @@ void admin_cluster_link_t::do_admin_list_stats(admin_command_parser_t::command_d
     }
 }
 
-void admin_cluster_link_t::do_admin_list_directory(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t::command_data& data) {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     bool long_format = data.params.count("long");
@@ -1240,7 +1257,7 @@ void admin_cluster_link_t::do_admin_list_directory(admin_command_parser_t::comma
     }
 }
 
-void admin_cluster_link_t::do_admin_list_issues(admin_command_parser_t::command_data& data UNUSED) {
+void admin_cluster_link_t::do_admin_list_issues(const admin_command_parser_t::command_data& data UNUSED) {
     std::list<clone_ptr_t<global_issue_t> > issues = admin_tracker.issue_aggregator.get_issues();
     for (std::list<clone_ptr_t<global_issue_t> >::iterator i = issues.begin(); i != issues.end(); ++i) {
         puts((*i)->get_description().c_str());
@@ -1339,9 +1356,9 @@ void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std
     }
 }
 
-void admin_cluster_link_t::do_admin_list_datacenters(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_datacenters(const admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    bool long_format = (data.params.count("long") == 1);
+    bool long_format = (data.params.find("long") == data.params.end());
 
     std::vector<std::vector<std::string> > table;
     std::vector<std::string> delta;
@@ -1443,9 +1460,10 @@ size_t admin_cluster_link_t::get_replica_count_from_blueprint(const bp_type& bp)
     return count;
 }
 
-void admin_cluster_link_t::do_admin_list_namespaces(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_namespaces(const admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
-    std::string type = (data.params.count("protocol") == 0 ? "" : data.params["protocol"][0]);
+    std::map<std::string, std::vector<std::string> >::const_iterator type_it = data.params.find("protocol");
+    std::string type = (type_it == data.params.end() ? "" : type_it->second[0]);
     bool long_format = (data.params.count("long") == 1);
 
     std::vector<std::vector<std::string> > table;
@@ -1590,7 +1608,7 @@ void admin_cluster_link_t::add_machine_info_from_blueprint(const bp_type& bp, st
     }
 }
 
-void admin_cluster_link_t::do_admin_list_machines(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_list_machines(const admin_command_parser_t::command_data& data) {
     cluster_semilattice_metadata_t cluster_metadata = semilattice_metadata->get();
     bool long_format = (data.params.count("long") == 1);
 
@@ -1665,14 +1683,14 @@ void admin_cluster_link_t::do_admin_list_machines(admin_command_parser_t::comman
     }
 }
 
-void admin_cluster_link_t::do_admin_create_datacenter(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
     datacenter_id_t new_id = generate_uuid();
     datacenter_semilattice_metadata_t& datacenter = cluster_metadata.datacenters.datacenters[new_id].get_mutable();
 
-    datacenter.name.get_mutable() = data.params["name"][0];
+    datacenter.name.get_mutable() = guarantee_param_0(data.params, "name");
     datacenter.name.upgrade_version(change_request_id);
 
     fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
@@ -1683,17 +1701,17 @@ void admin_cluster_link_t::do_admin_create_datacenter(admin_command_parser_t::co
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
 
-void admin_cluster_link_t::do_admin_create_namespace(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_create_namespace(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::string protocol(data.params["protocol"][0]);
-    std::string port_str(data.params["port"][0]);
-    std::string name(data.params["name"][0]);
+    std::string protocol = guarantee_param_0(data.params, "protocol");
+    std::string port_str = guarantee_param_0(data.params, "port");
+    std::string name = guarantee_param_0(data.params, "name");
     uint64_t port;
-    std::string datacenter_id(data.params["primary"][0]);
-    metadata_info_t *datacenter_info(get_info_from_id(datacenter_id));
-    datacenter_id_t primary(str_to_uuid(datacenter_info->path[1]));
+    std::string datacenter_id = guarantee_param_0(data.params, "primary");
+    metadata_info_t *datacenter_info = get_info_from_id(datacenter_id);
+    datacenter_id_t primary = str_to_uuid(datacenter_info->path[1]);
     namespace_id_t new_id;
 
     // Make sure port is a number
@@ -1753,18 +1771,25 @@ namespace_id_t admin_cluster_link_t::do_admin_create_namespace_internal(namespac
     obj.shards.get_mutable() = shards;
     obj.shards.upgrade_version(change_request_id);
 
+    /* It's important to initialize this because otherwise it will be
+    initialized with a default-constructed UUID, which doesn't initialize its
+    contents, so Valgrind will complain. */
+    region_map_t<protocol_t, machine_id_t> default_primary_pinnings(protocol_t::region_t::universe(), nil_uuid());
+    obj.primary_pinnings.get_mutable() = default_primary_pinnings;
+    obj.primary_pinnings.upgrade_version(change_request_id);
+
     return id;
 }
 
-void admin_cluster_link_t::do_admin_set_datacenter(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::string obj_id(data.params["id"][0]);
-    metadata_info_t *obj_info(get_info_from_id(obj_id));
-    std::string datacenter_id(data.params["datacenter"][0]);
-    metadata_info_t *datacenter_info(get_info_from_id(datacenter_id));
-    datacenter_id_t datacenter_uuid(datacenter_info->uuid);
+    std::string obj_id = guarantee_param_0(data.params, "id");
+    metadata_info_t *obj_info = get_info_from_id(obj_id);
+    std::string datacenter_id = guarantee_param_0(data.params, "datacenter");
+    metadata_info_t *datacenter_info = get_info_from_id(datacenter_id);
+    datacenter_id_t datacenter_uuid = datacenter_info->uuid;
 
     // Target must be a datacenter in all existing use cases
     if (datacenter_info->path[0] != "datacenters") {
@@ -1870,12 +1895,14 @@ void admin_cluster_link_t::remove_machine_pinnings(const machine_id_t& machine,
     }
 }
 
-void admin_cluster_link_t::do_admin_set_name(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    metadata_info_t *info = get_info_from_id(data.params["id"][0]);
-    std::string name = data.params["new-name"][0];
+
+    metadata_info_t *info = get_info_from_id(guarantee_param_0(data.params, "id"));
+
+    std::string name = guarantee_param_0(data.params, "new-name");
 
     // TODO: make sure names aren't silly things like uuids or reserved strings
 
@@ -1906,13 +1933,13 @@ void admin_cluster_link_t::do_admin_set_name_internal(map_type& obj_map, const u
     }
 }
 
-void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    metadata_info_t *ns_info(get_info_from_id(data.params["namespace"][0]));
-    metadata_info_t *dc_info(get_info_from_id(data.params["datacenter"][0]));
-    std::string acks_str = data.params["num-acks"][0].c_str();
+    metadata_info_t *ns_info(get_info_from_id(guarantee_param_0(data.params, "namespace")));
+    metadata_info_t *dc_info(get_info_from_id(guarantee_param_0(data.params, "datacenter")));
+    std::string acks_str = guarantee_param_0(data.params, "num-acks").c_str();
     uint64_t acks_num;
 
     // Make sure num-acks is a number
@@ -1921,7 +1948,7 @@ void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_dat
     }
 
     if (dc_info->path[0] != "datacenters") {
-        throw admin_parse_exc_t(data.params["datacenter"][0] + " is not a datacenter");
+        throw admin_parse_exc_t(guarantee_param_0(data.params, "datacenter") + " is not a datacenter");
     }
 
     if (ns_info->path[0] == "dummy_namespaces") {
@@ -1943,7 +1970,7 @@ void admin_cluster_link_t::do_admin_set_acks(admin_command_parser_t::command_dat
         do_admin_set_acks_internal(i->second.get_mutable(), dc_info->uuid, acks_num);
 
     } else {
-        throw admin_parse_exc_t(data.params["namespace"][0] + " is not a namespace");
+        throw admin_parse_exc_t(guarantee_param_0(data.params, "namespace") + " is not a namespace");
     }
 
     fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
@@ -1979,13 +2006,13 @@ void admin_cluster_link_t::do_admin_set_acks_internal(namespace_semilattice_meta
     ns.ack_expectations.upgrade_version(change_request_id);
 }
 
-void admin_cluster_link_t::do_admin_set_replicas(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    metadata_info_t *ns_info(get_info_from_id(data.params["namespace"][0]));
-    metadata_info_t *dc_info(get_info_from_id(data.params["datacenter"][0]));
-    std::string replicas_str = data.params["num-replicas"][0].c_str();
+    metadata_info_t *ns_info = get_info_from_id(guarantee_param_0(data.params, "namespace"));
+    metadata_info_t *dc_info = get_info_from_id(guarantee_param_0(data.params, "datacenter"));
+    std::string replicas_str = guarantee_param_0(data.params, "num-replicas").c_str();
     uint64_t num_replicas;
 
     // Make sure num-replicas is a number
@@ -1994,7 +2021,7 @@ void admin_cluster_link_t::do_admin_set_replicas(admin_command_parser_t::command
     }
 
     if (dc_info->path[0] != "datacenters") {
-        throw admin_parse_exc_t(data.params["datacenter"][0] + " is not a datacenter");
+        throw admin_parse_exc_t(guarantee_param_0(data.params, "datacenter") + " is not a datacenter");
     }
 
     datacenter_id_t datacenter(dc_info->uuid);
@@ -2021,7 +2048,7 @@ void admin_cluster_link_t::do_admin_set_replicas(admin_command_parser_t::command
         do_admin_set_replicas_internal(i->second.get_mutable(), datacenter, num_replicas);
 
     } else {
-        throw admin_parse_exc_t(data.params["namespace"][0] + " is not a namespace");
+        throw admin_parse_exc_t(guarantee_param_0(data.params, "namespace") + " is not a namespace");  // TODO(sam): Check if this function body is copy/paste'd.
     }
 
     fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
@@ -2060,11 +2087,25 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(namespace_semilattice_
     ns.replica_affinities.upgrade_version(change_request_id);
 }
 
-void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_remove_machine(const admin_command_parser_t::command_data& data) {
+    std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
+    do_admin_remove_internal("machines", ids);
+}
+
+void admin_cluster_link_t::do_admin_remove_namespace(const admin_command_parser_t::command_data& data) {
+    std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
+    do_admin_remove_internal("namespaces", ids);
+}
+
+void admin_cluster_link_t::do_admin_remove_datacenter(const admin_command_parser_t::command_data& data) {
+    std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
+    do_admin_remove_internal("datacenters", ids);
+}
+
+void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type, const std::vector<std::string>& ids) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::vector<std::string> ids = data.params["id"];
     std::string error;
     bool do_update = false;
 
@@ -2075,16 +2116,16 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
             // TODO: in case of machine, check if it's up and ask for confirmation if it is
 
             // Remove the object from the metadata
-            if (obj_info->path[0] == "machines") {
-                do_admin_remove_internal(cluster_metadata.machines.machines, obj_info->uuid);
-            } else if (obj_info->path[0] == "datacenters") {
-                do_admin_remove_internal(cluster_metadata.datacenters.datacenters, obj_info->uuid);
-            } else if (obj_info->path[0] == "dummy_namespaces") {
-                do_admin_remove_internal(cluster_metadata.dummy_namespaces.namespaces, obj_info->uuid);
-            } else if (obj_info->path[0] == "memcached_namespaces") {
-                do_admin_remove_internal(cluster_metadata.memcached_namespaces.namespaces, obj_info->uuid);
+            if (obj_info->path[0] == "machines" && obj_type == "machines") {
+                do_admin_remove_internal_internal(cluster_metadata.machines.machines, obj_info->uuid);
+            } else if (obj_info->path[0] == "datacenters" && obj_type == "datacenters") {
+                do_admin_remove_internal_internal(cluster_metadata.datacenters.datacenters, obj_info->uuid);
+            } else if (obj_info->path[0] == "dummy_namespaces" && obj_type == "namespaces") {
+                do_admin_remove_internal_internal(cluster_metadata.dummy_namespaces.namespaces, obj_info->uuid);
+            } else if (obj_info->path[0] == "memcached_namespaces" && obj_type == "namespaces") {
+                do_admin_remove_internal_internal(cluster_metadata.memcached_namespaces.namespaces, obj_info->uuid);
             } else {
-                throw admin_cluster_exc_t("unrecognized object type: " + obj_info->path[0]);
+                throw admin_cluster_exc_t("invalid object type: " + obj_info->path[0]);
             }
 
             do_update = true;
@@ -2121,7 +2162,7 @@ void admin_cluster_link_t::do_admin_remove(admin_command_parser_t::command_data&
 }
 
 template <class T>
-void admin_cluster_link_t::do_admin_remove_internal(std::map<uuid_t, T>& obj_map, const uuid_t& key) {
+void admin_cluster_link_t::do_admin_remove_internal_internal(std::map<uuid_t, T>& obj_map, const uuid_t& key) {
     typename std::map<uuid_t, T>::iterator i = obj_map.find(key);
 
     if (i == obj_map.end() || i->second.is_deleted()) {
@@ -2550,12 +2591,12 @@ bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& mach
     return match;
 }
 
-void admin_cluster_link_t::do_admin_resolve(admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::string obj_id = data.params["id"][0];
-    std::string field = data.params["field"][0];
+    std::string obj_id = guarantee_param_0(data.params, "id");
+    std::string field = guarantee_param_0(data.params, "field");
     metadata_info_t *obj_info = get_info_from_id(obj_id);
 
     if (obj_info->path[0] == "machines") {

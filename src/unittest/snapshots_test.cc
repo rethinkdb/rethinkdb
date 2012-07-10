@@ -1,7 +1,7 @@
 #include "errors.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/server_test_helper.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "mock/unittest_utils.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 
 namespace unittest {

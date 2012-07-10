@@ -102,9 +102,16 @@ RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t<protocol_t>, na
 template <class ctx_t, class protocol_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
     namespace_semilattice_metadata_t<protocol_t> default_namespace;
+
     std::set<typename protocol_t::region_t> default_shards;
     default_shards.insert(protocol_t::region_t::universe());
     default_namespace.shards = default_namespace.shards.make_new_version(default_shards, ctx.us);
+
+    /* It's important to initialize this because otherwise it will be
+    initialized with a default-constructed UUID, which doesn't initialize its
+    contents, so Valgrind will complain. */
+    region_map_t<protocol_t, machine_id_t> default_primary_pinnings(protocol_t::region_t::universe(), nil_uuid());
+    default_namespace.primary_pinnings = default_namespace.primary_pinnings.make_new_version(default_primary_pinnings, ctx.us);
 
     deletable_t<namespace_semilattice_metadata_t<protocol_t> > default_ns_in_deletable(default_namespace);
     return json_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces, boost::bind(&generate_uuid), default_ns_in_deletable).get_subfields(ctx);

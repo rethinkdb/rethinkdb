@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <time.h>
 
+#include <algorithm>
+
 #include "containers/intrusive_ptr.hpp"
 #include "errors.hpp"
 

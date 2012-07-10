@@ -35,8 +35,11 @@ module 'DataExplorerView', ->
         events:
             'keyup .input_query': 'handle_keypress'
             'keydown .input_query': 'handle_tab'
-            'focus .input_query': 'make_suggestion'
             'blur .input_query': 'hide_suggestion'
+            'click .input_query': 'make_suggestion' # Click and not focus for webkit browsers
+            'mousedown .suggestion_name_li': 'select_suggestion' # Keep mousedown to compete with blur on .input_query
+            'mouseup .suggestion_name_li': 'position_cursor_after_click'
+            'mouseover .suggestion_name_li' : 'mouseover_suggestion'
             'click .clear_query': 'clear_query'
             'click .execute_query': 'execute_query'
             'click .namespace_link': 'write_query_namespace'
@@ -45,39 +48,255 @@ module 'DataExplorerView', ->
             'click .change_size': 'toggle_size'
 
         displaying_full_view: false
+
+        # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
         current_suggestions: []
-        current_completed_query: ''
         current_highlighted_suggestion: -1
         keypress_is_tab: false
+        current_conpleted_query: ''
+        query_first_part: ''
+        query_last_part: ''
+        refocus_position: '' 
 
         handle_tab: (event) =>
-            @expand_textarea()
-            if event.which is 9
-                @keypress_is_tab = true
+            if event.which is 9 # is tab
                 event.preventDefault()
-                @.$('.suggestion_name_li').eq(@current_highlighted_suggestion).removeClass 'suggestion_name_li_hl'
+                @keypress_is_tab = true
+
+
                 @current_highlighted_suggestion++
                 if @current_highlighted_suggestion >= @current_suggestions.length
                     @current_highlighted_suggestion = 0
-                if @current_suggestions[@current_highlighted_suggestion]? # In case there is no suggestion
-                    @.$('.suggestion_name_li').eq(@current_highlighted_suggestion).addClass 'suggestion_name_li_hl'
-                    @.$('.input_query').val @current_completed_query + @current_suggestions[@current_highlighted_suggestion]
+
+                if @current_suggestions[@current_highlighted_suggestion]?
+                    @highlight_suggestion @current_highlighted_suggestion
+                    @write_suggestion @current_suggestions[@current_highlighted_suggestion].suggestion
+
+                    position = (@query_first_part + @current_completed_query + @current_suggestions[@current_highlighted_suggestion].suggestion).length
+                    @position_cursor position
+
+                    
             else if event.which is 13 and !event.shiftKey
                 event.preventDefault()
                 @hide_suggestion()
                 @execute_query()
 
+        write_suggestion: (suggestion_to_write) =>
+            @.$('.input_query').val @query_first_part + @current_completed_query + suggestion_to_write + @query_last_part
+
+        mouseover_suggestion: (event) =>
+            @highlight_suggestion event.target.dataset.id
+
+        highlight_suggestion: (id) =>
+            @.$('.suggestion_name_li').removeClass 'suggestion_name_li_hl'
+            @.$('.suggestion_name_li').eq(id).addClass 'suggestion_name_li_hl'
+
+            @.$('.suggestion_description').html @current_suggestions[id].description
+            @show_suggestion_description()
+
+        position_cursor_after_click: (event) =>
+            @position_cursor @.$(event.target).html().length #TODO doesn't work with Firefox
+
+        position_cursor: (position) =>
+            @.$('.input_query').focus()
+            if @.$('.input_query').get(0)?.setSelectionRange?
+                @.$('.input_query').get(0).setSelectionRange position, position
+            else if @.$('.input_query').get(0).createTextRange?
+                range = @.$('.input_query').get(0).createTextRange()
+                range.collapse true
+                range.moveEnd 'character', position
+                range.moveStart 'character', position
+                range.select()
+
+        select_suggestion: (event) =>
+            suggestion_to_write = @.$(event.target).html()
+            @write_suggestion suggestion_to_write
+            @refocus_position = (@query_first_part + @current_completed_query + suggestion_to_write).length
+
         hide_suggestion: ->
+            if @refocus_position isnt ''
+                @position_cursor @refocus_position
+                @refocus_position = ''
             @.$('.suggestion_name_list').css 'display', 'none'
- 
+            @hide_suggestion_description()
+
+        hide_suggestion_description: ->
+            @.$('.suggestion_description').html ''
+            @.$('.suggestion_description').css 'display', 'none'
+
+        show_suggestion: ->
+            @.$('.suggestion_name_list').css 'display', 'block'
+
+        show_suggestion_description: ->
+            @.$('.suggestion_description').css 'display', 'block'
+
         handle_keypress: (event) =>
+            @expand_textarea()
             if event.which isnt 13
                 @make_suggestion()
 
         expand_textarea: (event) =>
-            if $('.input_query').length is 1
-                height = $('.input_query').prop('scrollHeight')-8 # -8 is for padding
-                $('.input_query').height(height) if $('.input_query').height() isnt height
+            if @.$('.input_query').length is 1
+                @.$('.input_query').height 0
+                height = @.$('.input_query').prop('scrollHeight') # We should have -8 but Firefox doesn't add padding in scrollHeight... Maybe we should start adding hacks...
+                @.$('.input_query').css 'height', height if @.$('.input_query').height() isnt height
+
+        # Return the position of the beggining of the first subquery
+        extract_query_first_part: (query)->
+            is_string = false
+            count_opening_parenthesis = 0
+            for i in [query.length-1..0] by -1
+                if query[i] is '"'
+                    is_string = !is_string
+                else
+                    if is_string
+                        continue
+                    else
+                        if query[i] is '('
+                            count_opening_parenthesis++
+                            if count_opening_parenthesis > 0
+                                return i+1
+                        else if query[i] is ')'
+                            count_opening_parenthesis--
+
+            return 0
+
+
+        # Make suggestions when the user is writing
+        make_suggestion: =>
+            if @keypress_is_tab
+                @keypress_is_tab = false
+                return
+
+            @current_highlighted_suggestion = -1
+            @.$('.suggestion_name_list').html ''
+
+            #TODO Handle new line?
+            query_before_cursor = @.$('.input_query').val().slice 0, @.$('.input_query').prop("selectionStart")
+
+            # Check if we are in a string
+            if (query_before_cursor.match(/\"/g)||[]).length%2 is 1
+                return @
+
+            query_after_cursor = @.$('.input_query').val().slice @.$('.input_query').prop("selectionStart")
+            slice_index = @extract_query_first_part query_before_cursor
+            query = query_before_cursor.slice slice_index
+            
+            @query_first_part = query_before_cursor.slice 0, slice_index
+            next_dot_position = query_after_cursor.indexOf('.')
+            if next_dot_position is -1
+                @query_last_part = ''
+            else
+                @query_last_part = query_after_cursor.slice next_dot_position
+
+            #TODO retrieve real data when API is ready
+            if /^(\s*)$/.test query
+                suggestions = []
+                suggestions.push
+                    suggestion: "r"
+                    description: "You have to choose a cursor"
+                    
+                suggestions.push
+                    suggestion:"c"
+                    description: "Whatever help you need"
+                query = ''
+                @append_suggestion(query, suggestions)
+            else if /^(r\.)[^\.]*$/.test query
+                suggestions = []
+                suggestions.push
+                    suggestion: "database"
+                    description: "You have to choose a database"
+                suggestions.push
+                    suggestion: "donutman"
+                    description: "You have to choose a database"
+                suggestions.push
+                    suggestion: "omega3"
+                    description: "You have to choose a database"
+                suggestions.push
+                    suggestion: "dragonstrike"
+                    description: "You have to choose a database"
+                suggestions.push
+                    suggestion: "datalog"
+                    description: "You have to choose a database"
+                suggestions.push
+                    suggestion: "dartagnan"
+                    description: "You have to choose a database"
+                @append_suggestion(query, suggestions)
+            else if /^(c\.)[^\.]*$/.test query
+                suggestions.push
+                    suggestion: "database"
+                    description: "You have to choose a database"
+                suggestions.push
+                    suggestion: "donutman"
+                    description: "You have to choose a database"
+                suggestions.push
+                    suggestion: "omega3"
+                    description: "You have to choose a database"
+                suggestions.push
+                    suggestion: "dragonstrike"
+                    description: "You have to choose a database"
+                suggestions.push
+                    suggestion: "datalog"
+                    description: "You have to choose a database"
+                suggestions.push
+                    suggestion: "dartagnan"
+                    description: "You have to choose a database"
+                @append_suggestion(query, suggestions)
+            else if /^(r\.)[^\.]*\.[^\.]*$/.test query
+                suggestions = []
+                for namespace in namespaces.models
+                    suggestions.push 
+                        suggestion: namespace.get "name"
+                        description: "You have to choose a namespace"
+                @append_suggestion(query, suggestions)
+            else if /^(r\.)[^\.]*\.[^\.]*\..*$/.test query
+                suggestions = []
+                suggestions.push
+                    suggestion: "filter("
+                    description: "filter( {\"attribute\": \"value\"}"
+                suggestions.push
+                    suggestion: "find("
+                    description: "find ( id )"
+                suggestions.push
+                    suggestion: "plot("
+                    description: "plot ( x: blabla, y: blabla)"
+                suggestions.push
+                    suggestion: "update("
+                    description: "update( where, attribute, value )"
+                @append_suggestion(query, suggestions)
+            else
+                @hide_suggestion()
+ 
+            return @
+
+        append_suggestion: (query, suggestions) =>
+            splitdata = query.split('.')
+            @current_completed_query = ''
+            if splitdata.length>1
+                for i in [0..splitdata.length-2]
+                    @current_completed_query += splitdata[i]+'.'
+            element_currently_written = splitdata[splitdata.length-1]
+
+
+            for char in @unsafe_to_safe_regexstr
+                element_currently_written = element_currently_written.replace char.pattern, char.replacement
+
+            found_suggestion = false
+            pattern = new RegExp('^('+element_currently_written+')', 'i')
+            @current_suggestions = []
+            for suggestion, i in suggestions
+                if pattern.test(suggestion.suggestion)
+                    found_suggestion = true
+                    @current_suggestions.push suggestion
+                    @.$('.suggestion_name_list').append @template_suggestion_name 
+                        id: i
+                        suggestion: suggestion.suggestion
+            if found_suggestion
+                @show_suggestion()
+            else
+                @hide_suggestion()
+            return
+
 
 
         execute_query: =>
@@ -145,61 +364,8 @@ module 'DataExplorerView', ->
                 delete result[result.length-1]['website']
             @data_container.render(query, result)
 
-
-
-        # Make suggestions when the user is writing
-        # TODO: Everything
-        make_suggestion: =>
-            if @keypress_is_tab
-                @keypress_is_tab = false
-                return
-
-            @current_highlighted_suggestion = -1
-            @current_suggestions = []
-            @.$('.suggestion_name_list').html ''
-            #TODO parse in case of multiple lines
-            query = @.$('.input_query').val()
-            if /^(r\.)[^\.]*$/.test query
-                #TODO get real list before
-                db_list = ["database", "donutman", "omega3", "dragonstrike", "datalog", "dartagnan"]
-                @append_suggestion(query, db_list)
-
-            else if /^(r\.)[^\.]*\.[^\.]*$/.test query
-                namespace_list = []
-                for namespace in namespaces.models
-                    namespace_list.push namespace.get "name"
-                @append_suggestion(query, namespace_list)
-            else if /^(r\.)[^\.]*\.[^\.]*\..*$/.test query
-                suggestion = ["filter()", "find()", "plot()", "update()"]
-                @append_suggestion(query, suggestion)
-
-            return @
-        
-        append_suggestion: (query, suggestions) =>
-            splitdata = query.split('.')
-            @current_completed_query = ''
-            for i in [0..splitdata.length-2]
-                @current_completed_query += splitdata[i]+'.'
-            element_currently_written = splitdata[splitdata.length-1]
-
-
-            found_suggestion = false
-            pattern = new RegExp('^('+element_currently_written+')', 'i')
-            for suggestion in suggestions
-                if pattern.test(suggestion)
-                    found_suggestion = true
-                    @current_suggestions.push suggestion
-                    @.$('.suggestion_name_list').append @template_suggestion_name suggestion
-            if found_suggestion
-                @.$('.suggestion_name_list').css 'display', 'block'
-            else
-                @.$('.suggestion_name_list').css 'display', 'none'
-            return
-
-
-        # Clear the input
         clear_query: =>
-            @.$('.input_query').val 'r.'
+            @.$('.input_query').val ''
             @.$('.input_query').focus()
 
     
@@ -207,19 +373,59 @@ module 'DataExplorerView', ->
         write_query_namespace: (event) =>
             event.preventDefault()
             query = 'r.'+event.target.dataset.name+'.find()'
+            @.$('.input_query').focus() # Keep this order to have focus at the end of the textarea
             @.$('.input_query').val query
-            @.$('.input_query').focus()
-            #TODO give focus at the end of the textarea
 
         # Write an old query in the input
         write_query_old: (event) =>
             event.preventDefault()
+            @.$('.input_query').focus() # Keep this order to have focus at the end of the textarea
             @.$('.input_query').val event.target.dataset.query
-            @.$('.input_query').focus()
-            #TODO give focus at the end of the textarea
 
         initialize: =>
-            log_initial '(initializing) sidebar view:'
+            log_initial '(initializing) dataexplorer view:'
+
+            #TODO Make this little thing prettier
+            @unsafe_to_safe_regexstr = []
+            @unsafe_to_safe_regexstr.push # This one has to be firest
+                pattern: /\\/g
+                replacement: '\\\\'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\(/g
+                replacement: '\\('
+            @unsafe_to_safe_regexstr.push
+                pattern: /\)/g
+                replacement: '\\)'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\^/g
+                replacement: '\\^'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\$/g
+                replacement: '\\$'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\*/g
+                replacement: '\\*'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\+/g
+                replacement: '\\+'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\?/g
+                replacement: '\\?'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\./g
+                replacement: '\\.'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\|/g
+                replacement: '\\|'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\{/g
+                replacement: '\\{'
+            @unsafe_to_safe_regexstr.push
+                pattern: /\}/g
+                replacement: '\\}'
+   
+
+
 
             @input_query = new DataExplorerView.InputQuery
             @data_container = new DataExplorerView.DataContainer
@@ -275,7 +481,7 @@ module 'DataExplorerView', ->
             namespaces.on 'all', @render
 
         render: =>
-            @.$el.html @template
+            @.$el.html @template()
             return @
 
         destroy: ->
@@ -327,7 +533,6 @@ module 'DataExplorerView', ->
             'td_value_content': Handlebars.compile $('#dataexplorer_result_json_table_td_value_content-template').html()
             'data_inline': Handlebars.compile $('#dataexplorer_result_json_table_data_inline-template').html()
 
-        #TODO Fix unbinding when view changes
         events:
             # Global events
             'click .link_to_raw_view': 'expand_raw_textarea'
@@ -351,7 +556,7 @@ module 'DataExplorerView', ->
             return @template_json_tree.container 
                 tree: @json_to_node(result)
 
-        #TODO catch RangeError: Maximum call stack size exceeded
+        #TODO catch RangeError: Maximum call stack size exceeded?
         #TODO check special characters
         #TODO what to do with new line?
         json_to_node: (value) =>
@@ -434,7 +639,6 @@ module 'DataExplorerView', ->
             for key of map
                 keys_sorted.push [key, map[key]]
 
-            # TODO Use a stable sort, Mozilla doesn't use a stable sort for .sort
             keys_sorted.sort((a, b) ->
                 if a[1] < b[1]
                     return 1
@@ -625,10 +829,6 @@ module 'DataExplorerView', ->
                 result += @template_json_table.data_inline data_cell
                  
             return result
-
-        insert_columns: (column) ->
-            console.log
-
 
         #TODO change cursor
         mouse_down: false

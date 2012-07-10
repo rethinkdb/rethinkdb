@@ -1774,8 +1774,9 @@
             overflow: auto;
             .input_query{
                 width: 678px;
-                height: 36px;
+                min-height: 36px;
                 padding: 4px 10px;
+                overflow: hidden;
             }
             .button_container{
                 float: right;
@@ -1794,10 +1795,20 @@
                     padding: 5px 5px;
                     min-width: 103px;
                     min-height: 18px;
+                    cursor: pointer;
+                }
+                .suggestion_name_li:hover{
+                    color: #f00;
                 }
                 .suggestion_name_li_hl{
                     color: red;
                 }
+            }
+            .suggestion_description{
+                display: none;
+                padding: 5px;
+                margin: 0px 0px 9px 0px;
+                border: 1px solid #ddd;
             }
         }
         .loading_query{
@@ -1823,6 +1834,14 @@
             float: left;
             width: 330px;
             padding: 20px 10px 10px 10px;
+            .query_element{
+                width: 300px;
+                overflow: hidden;
+            }
+            .namespace_element{
+                width: 300px;
+                overflow: hidden;
+            }
         }
         .options_container{
             float: right;

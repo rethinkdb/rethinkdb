@@ -7,6 +7,7 @@
 #ifndef PERFMON_PERFMON_HPP_
 #define PERFMON_PERFMON_HPP_
 
+#include <algorithm>
 #include <limits>
 #include <string>
 #include <map>

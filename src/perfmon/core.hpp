@@ -1,8 +1,10 @@
 #ifndef PERFMON_CORE_HPP_
 #define PERFMON_CORE_HPP_
 
-#include <string>
 #include <map>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "containers/intrusive_list.hpp"
 #include "utils.hpp"

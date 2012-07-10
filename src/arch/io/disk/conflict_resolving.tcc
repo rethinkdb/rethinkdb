@@ -1,5 +1,8 @@
 #include "arch/io/disk/conflict_resolving.hpp"
 
+#include <deque>
+#include <map>
+
 #include "perfmon/perfmon.hpp"
 
 template<class payload_t>

@@ -1,12 +1,13 @@
 #ifndef ARCH_IO_DISK_POOL_HPP_
 #define ARCH_IO_DISK_POOL_HPP_
 
+#include "errors.hpp"
+#include <boost/function.hpp>
+
 #include "arch/runtime/event_queue.hpp"
 #include "arch/io/blocker_pool.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 
-#include "errors.hpp"
-#include <boost/function.hpp>
 
 
 /* The pool disk manager uses a thread pool in conjunction with synchronous

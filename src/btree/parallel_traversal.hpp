@@ -1,6 +1,9 @@
 #ifndef BTREE_PARALLEL_TRAVERSAL_HPP_
 #define BTREE_PARALLEL_TRAVERSAL_HPP_
 
+#include <utility>
+#include <vector>
+
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -72,7 +75,7 @@ public:
     void on_in_line();
     void decr_acquisition_countdown();
 
-    interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, boost::shared_ptr<ranged_block_ids_t>& _ids_source)
+    interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, const boost::shared_ptr<ranged_block_ids_t>& _ids_source)
         : state(_state), releaser(_releaser), level(_level), acquisition_countdown(1), ids_source(_ids_source) { }
 
 private:
