@@ -1902,7 +1902,7 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
 
     metadata_info_t *info = get_info_from_id(guarantee_param_0(data.params, "id"));
 
-    std::string name = guarantee_param_0(data.params, "name");
+    std::string name = guarantee_param_0(data.params, "new-name");
 
     // TODO: make sure names aren't silly things like uuids or reserved strings
 
@@ -2087,11 +2087,25 @@ void admin_cluster_link_t::do_admin_set_replicas_internal(namespace_semilattice_
     ns.replica_affinities.upgrade_version(change_request_id);
 }
 
-void admin_cluster_link_t::do_admin_remove(const admin_command_parser_t::command_data& data) {
+void admin_cluster_link_t::do_admin_remove_machine(const admin_command_parser_t::command_data& data) {
+    std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
+    do_admin_remove_internal("machines", ids);
+}
+
+void admin_cluster_link_t::do_admin_remove_namespace(const admin_command_parser_t::command_data& data) {
+    std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
+    do_admin_remove_internal("namespaces", ids);
+}
+
+void admin_cluster_link_t::do_admin_remove_datacenter(const admin_command_parser_t::command_data& data) {
+    std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
+    do_admin_remove_internal("datacenters", ids);
+}
+
+void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type, const std::vector<std::string>& ids) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
     cluster_semilattice_metadata_t cluster_metadata = change_request.get();
-    std::vector<std::string> ids = guarantee_param_vec(data.params, "id");
     std::string error;
     bool do_update = false;
 
@@ -2102,16 +2116,16 @@ void admin_cluster_link_t::do_admin_remove(const admin_command_parser_t::command
             // TODO: in case of machine, check if it's up and ask for confirmation if it is
 
             // Remove the object from the metadata
-            if (obj_info->path[0] == "machines") {
-                do_admin_remove_internal(cluster_metadata.machines.machines, obj_info->uuid);
-            } else if (obj_info->path[0] == "datacenters") {
-                do_admin_remove_internal(cluster_metadata.datacenters.datacenters, obj_info->uuid);
-            } else if (obj_info->path[0] == "dummy_namespaces") {
-                do_admin_remove_internal(cluster_metadata.dummy_namespaces.namespaces, obj_info->uuid);
-            } else if (obj_info->path[0] == "memcached_namespaces") {
-                do_admin_remove_internal(cluster_metadata.memcached_namespaces.namespaces, obj_info->uuid);
+            if (obj_info->path[0] == "machines" && obj_type == "machines") {
+                do_admin_remove_internal_internal(cluster_metadata.machines.machines, obj_info->uuid);
+            } else if (obj_info->path[0] == "datacenters" && obj_type == "datacenters") {
+                do_admin_remove_internal_internal(cluster_metadata.datacenters.datacenters, obj_info->uuid);
+            } else if (obj_info->path[0] == "dummy_namespaces" && obj_type == "namespaces") {
+                do_admin_remove_internal_internal(cluster_metadata.dummy_namespaces.namespaces, obj_info->uuid);
+            } else if (obj_info->path[0] == "memcached_namespaces" && obj_type == "namespaces") {
+                do_admin_remove_internal_internal(cluster_metadata.memcached_namespaces.namespaces, obj_info->uuid);
             } else {
-                throw admin_cluster_exc_t("unrecognized object type: " + obj_info->path[0]);
+                throw admin_cluster_exc_t("invalid object type: " + obj_info->path[0]);
             }
 
             do_update = true;
@@ -2148,7 +2162,7 @@ void admin_cluster_link_t::do_admin_remove(const admin_command_parser_t::command
 }
 
 template <class T>
-void admin_cluster_link_t::do_admin_remove_internal(std::map<uuid_t, T>& obj_map, const uuid_t& key) {
+void admin_cluster_link_t::do_admin_remove_internal_internal(std::map<uuid_t, T>& obj_map, const uuid_t& key) {
     typename std::map<uuid_t, T>::iterator i = obj_map.find(key);
 
     if (i == obj_map.end() || i->second.is_deleted()) {

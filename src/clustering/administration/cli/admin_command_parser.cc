@@ -36,7 +36,9 @@ const char *set_replicas_command = "set replicas";
 const char *set_datacenter_command = "set datacenter";
 const char *create_namespace_command = "create namespace";
 const char *create_datacenter_command = "create datacenter";
-const char *remove_command = "rm";
+const char *remove_machine_command = "rm machine";
+const char *remove_namespace_command = "rm namespace";
+const char *remove_datacenter_command = "rm datacenter";
 
 // Special commands - used only in certain cases
 const char *admin_command_parser_t::complete_command = "complete";
@@ -148,6 +150,9 @@ const char *set_datacenter_description = "Set the primary datacenter of a namesp
 const char *create_namespace_description = "Create a new namespace with the given protocol.  The namespace's primary datacenter and listening port must be specified.";
 const char *create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
 const char *remove_description = "Remove one or more objects from the cluster.";
+const char *remove_machine_description = "Remove one or more machines from the cluster.";
+const char *remove_namespace_description = "Remove one or more namespaces from the cluster.";
+const char *remove_datacenter_description = "Remove one or more datacenters from the cluster.";
 
 std::vector<std::string> parse_line(const std::string& line) {
     std::vector<std::string> result;
@@ -371,7 +376,7 @@ void admin_command_parser_t::do_usage(bool console) {
     helps.push_back(admin_help_info_t(merge_shard_command, "", "remove shards from a namespace"));
     helps.push_back(admin_help_info_t(pin_shard_command, "", "assign the machines to host a shard"));
     helps.push_back(admin_help_info_t("create", "", "add a new object to the cluster"));
-    helps.push_back(admin_help_info_t(remove_command, "", "remove an object from the cluster"));
+    helps.push_back(admin_help_info_t("rm", "", "remove an object from the cluster"));
     helps.push_back(admin_help_info_t(help_command, "", "print help about the specified command"));
 
     std::string header_string("- access or modify cluster metadata, run 'help <COMMAND>' for additional information");
@@ -520,7 +525,13 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(commands, create_datacenter_command, create_datacenter_command, create_datacenter_usage, &admin_cluster_link_t::do_admin_create_datacenter);
     info->add_positional("name", 1, true);
 
-    info = add_command(commands, remove_command, remove_command, remove_usage, &admin_cluster_link_t::do_admin_remove);
+    info = add_command(commands, remove_machine_command, remove_machine_command, remove_usage, &admin_cluster_link_t::do_admin_remove_machine);
+    info->add_positional("id", -1, true)->add_option("!id");
+
+    info = add_command(commands, remove_namespace_command, remove_namespace_command, remove_usage, &admin_cluster_link_t::do_admin_remove_namespace);
+    info->add_positional("id", -1, true)->add_option("!id");
+
+    info = add_command(commands, remove_datacenter_command, remove_datacenter_command, remove_usage, &admin_cluster_link_t::do_admin_remove_datacenter);
     info->add_positional("id", -1, true)->add_option("!id");
 
     info = add_command(commands, help_command, help_command, help_usage, NULL); // Special case, 'help' is not done through the cluster
@@ -1084,12 +1095,27 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
         } else if (command == "rm") {
-            if (!subcommand.empty()) {
-                throw admin_parse_exc_t("no recognized subcommands for 'rm'");
+            if (subcommand.empty()) {
+                helps.push_back(admin_help_info_t(remove_machine_command, remove_usage, remove_machine_description));
+                helps.push_back(admin_help_info_t(remove_namespace_command, remove_usage, remove_namespace_description));
+                helps.push_back(admin_help_info_t(remove_datacenter_command, remove_usage, remove_datacenter_description));
+                options.push_back(std::make_pair(remove_id_option, remove_id_option_desc));
+                do_usage_internal(helps, options, "remove - delete an object from the cluster metadata", console_mode);
+            } else if (subcommand == "machine") {
+                helps.push_back(admin_help_info_t(remove_machine_command, remove_usage, remove_machine_description));
+                options.push_back(std::make_pair(remove_id_option, remove_id_option_desc));
+                do_usage_internal(helps, options, "remove machine - delete a machine from the cluster metadata", console_mode);
+            } else if (subcommand == "namespace") {
+                helps.push_back(admin_help_info_t(remove_namespace_command, remove_usage, remove_namespace_description));
+                options.push_back(std::make_pair(remove_id_option, remove_id_option_desc));
+                do_usage_internal(helps, options, "remove namespace - delete a namespace from the cluster metadata", console_mode);
+            } else if (subcommand == "datacenter") {
+                helps.push_back(admin_help_info_t(remove_datacenter_command, remove_usage, remove_datacenter_description));
+                options.push_back(std::make_pair(remove_id_option, remove_id_option_desc));
+                do_usage_internal(helps, options, "remove datacenter - delete a datacenter from the cluster metadata", console_mode);
+            } else {
+                throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
-            helps.push_back(admin_help_info_t(remove_command, remove_usage, remove_description));
-            options.push_back(std::make_pair(remove_id_option, remove_id_option_desc));
-            do_usage_internal(helps, options, "remove - delete an object from the cluster metadata", console_mode);
         } else if (command == "help") {
             if (!subcommand.empty()) {
                 throw admin_parse_exc_t("no recognized subcommands for 'help'");
