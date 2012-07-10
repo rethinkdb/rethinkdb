@@ -92,6 +92,9 @@ class js_eval_job_t :
 void run_rethinkdb_js(const jsproc::spawner_t::info_t &info, bool *result) {
     struct killer_message_t : linux_thread_message_t {
         virtual void on_thread_switch() {
+            // NB. This is a terrible way to handle shut-down, and is only for
+            // example purposes (in particular, a clean shutdown would require
+            // killing worker processes by destructing pool_group).
             fprintf(stderr, "SIGINT received, exiting...\n");
             abort();
         }

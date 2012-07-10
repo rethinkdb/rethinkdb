@@ -65,6 +65,8 @@ pid_t spawner_t::spawn_process(fd_t *socket) {
 }
 
 void spawner_t::exec_worker(fd_t sockfd) {
+    // TODO (rntz): worker should use prctl() to watch the spawner process.
+
     // Receive one job and run it.
     job_t::control_t control(getpid(), sockfd);
     job_t::accept_job(&control);
@@ -95,21 +97,23 @@ void spawner_t::exec_spawner(fd_t sockfd) {
                       "Could not ignore SIGCHLD");
     }
 
-    int result = EXIT_SUCCESS;
     unix_socket_stream_t sock(sockfd, new blocking_fd_watcher_t());
 
     for (;;) {
         // Get an fd from our parent.
         fd_t fd;
-        if (ARCHIVE_SUCCESS != sock.recv_fd(&fd))
-            break;
+        archive_result_t res = sock.recv_fd(&fd);
+        if (res == ARCHIVE_SOCK_EOF) {
+            // Other end shut down cleanly; we should too.
+            exit(EXIT_SUCCESS);
+        } else if (res != ARCHIVE_SUCCESS) {
+            exit(EXIT_FAILURE);
+        }
 
         // Fork a worker process.
         pid_t pid = fork();
-        if (-1 == pid) {
-            result = EXIT_FAILURE;
-            break;
-        }
+        if (-1 == pid)
+            exit(EXIT_FAILURE);
 
         if (0 == pid) {
             // We're the child.
@@ -123,8 +127,7 @@ void spawner_t::exec_spawner(fd_t sockfd) {
         // Send back its pid.
         guarantee(sizeof pid == sock.write(&pid, sizeof pid));
     }
-
-    exit(result);
+    unreachable();
 }
 
 } // namespace jsproc
