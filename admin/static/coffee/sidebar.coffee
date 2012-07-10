@@ -182,7 +182,6 @@ module 'Sidebar', ->
             'click a[rel=log_details]': 'show_popover'
 
         show_popover: (event) =>
-            console.log 'click on log'
             event.preventDefault()
             @.$(event.currentTarget).popover('show')
             $popover = $('.popover')
