@@ -114,6 +114,10 @@ private:
     DISABLE_COPYING(write_message_t);
 };
 
+// Hack for older versions of GCC, which seem to not find the declaration
+// it's outside of the write_message_t class.
+int send_write_message(write_stream_t *s, write_message_t *msg);
+
 MUST_USE int send_message(write_stream_t *s, write_message_t *msg);
 
 #define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)                \
