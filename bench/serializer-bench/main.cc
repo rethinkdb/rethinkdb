@@ -89,6 +89,8 @@ struct tester_t :
     ticks_t last_time;
     unsigned txns_last_sec;
     unsigned secs_so_far;
+    boost::scoped_ptr<io_backender_t> io_backender;
+    
     
     struct interrupt_msg_t :
         public thread_message_t
@@ -105,6 +107,7 @@ struct tester_t :
     tester_t(config_t *config, thread_pool_t *pool)
         : tps_log_fd(NULL), ser(NULL), active_txns(0), total_txns(0), config(config), pool(pool), stop(false), interrupted(false), last_time(0), txns_last_sec(0), secs_so_far(0), interruptor(this)
     {
+        make_io_backender(aio_native, &io_backender);
         last_time = get_ticks();
         if(config->tps_log_file) {
             tps_log_fd = fopen(config->tps_log_file, "a");
@@ -119,7 +122,6 @@ struct tester_t :
     }
     
     void start() {
-    
         if (config->log_file) {
             log = new log_t();
         } else {
@@ -128,12 +130,14 @@ struct tester_t :
 
         fprintf(stderr, "Creating a database...\n");
         log_serializer_t::create(config->ser_dynamic_config,
+                                 io_backender.get(),
                                  config->ser_private_dynamic_config,
                                  config->ser_static_config,
                                  &get_global_perfmon_collection());
         
         fprintf(stderr, "Starting serializer...\n");
         ser = new log_serializer_t(config->ser_dynamic_config,
+                                   io_backender.get(),
                                    config->ser_private_dynamic_config,
                                    &get_global_perfmon_collection());
         on_serializer_ready(ser);
