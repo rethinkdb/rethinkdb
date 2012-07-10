@@ -43,6 +43,8 @@ module 'DashboardView', ->
             issues.on 'all', @render
             issues_redundancy.on 'reset', @render # when issues_redundancy is reset
             machines.on 'stats_updated', @render # when the stats of the machines are updated
+            directory.on 'all', @render
+            namespaces.on 'all', @render
 
             $('.links_to_other_view').live 'click', ->
                 $('.popover-inner').remove()
