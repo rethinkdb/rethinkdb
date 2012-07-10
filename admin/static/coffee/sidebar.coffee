@@ -151,6 +151,7 @@ module 'Sidebar', ->
 
             # Get a list of all other issues (non-critical)
             other_issues = issues.filter (issue) -> not issue.get('critical')
+            other_issues = _.groupBy other_issues, (issue) -> issue.get('type')
 
             @.$el.html @template
                 critical_issues:
@@ -162,10 +163,14 @@ module 'Sidebar', ->
                         return json
                     )
                 other_issues:
-                    exist: other_issues.length > 0
-                    num: other_issues.length
-                no_issues: _.keys(critical_issues).length is 0 and other_issues.length is 0
-                show_resolve_issues: window.location.hash isnt @resolve_issues_route
+                    exist: _.keys(other_issues).length > 0
+                    types: _.map(other_issues, (issues, type) ->
+                        json = {}
+                        json[type] = true
+                        json['num'] = issues.length
+                        return json
+                    )
+                no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
             return @
 
     # Sidebar.RecentLogEntry

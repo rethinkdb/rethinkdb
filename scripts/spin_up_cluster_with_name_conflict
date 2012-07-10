@@ -1,0 +1,166 @@
+#!/usr/bin/python
+import os
+import subprocess
+import signal
+import time
+import random
+
+names = """Nervous Energy
+Prosthetic Conscience
+Determinist
+Irregular Apocalypse
+No More Mr Nice Guy
+Profit Margin
+Revisionist
+Trade Surplus
+The Ends Of Invention
+Clear Air Turbulence
+Flexible Demeanour
+Just Read The Instructions
+Of Course I Still Love You
+Limiting Factor
+Cargo Cult
+Little Rascal
+So Much For Subtlety
+Unfortunate Conflict Of Evidence
+Just Testing
+Very Little Gravitas Indeed
+What Are The Civilian Applications?
+Congenital Optimist
+Size Isn't Everything
+Sweet and Full of Grace
+Different Tan
+Fate Amenable To Change
+It's Character Forming
+Jaundiced Outlook
+Problem Child
+Reasonable Excuse
+Recent Convert
+Tactical Grace
+Unacceptable Behaviour
+Steely Glint
+Highpoint
+Shoot Them Later
+Attitude Adjuster
+Killing Time
+Heavy Messing
+Frank Exchange Of Views
+Death and Gravity
+Ethics Gradient
+Honest Mistake
+Limnivorous
+No Fixed Abode
+Quietly Confident
+Uninvited Guest
+Use Psychology
+What Is The Answer and Why?
+Wisdom Like Silence
+Yawning Angel
+Zero Gravitas
+Misophist
+Serious Callers Only
+Not Invented Here
+Charitable View
+I Blame My Mother
+I Blame Your Mother
+Just Passing Through
+Appeal To Reason
+Break Even
+Long View
+Peace Makes Plenty
+Sober Counsel
+Within Reason
+Kiss the Blade
+Frightspear
+Furious Purpose
+Riptalon
+Xenoclast
+Bad for Business
+Arbitrary
+Cantankerous
+Only Slightly Bent
+I Thought He Was With You
+Space Monster
+A Series Of Unlikely Explanations
+Never Talk To Strangers
+Funny, It Worked Last Time...
+Don't Try This At Home
+Eight Rounds Rapid
+Lightly Seared On The Reality Grill
+Now We Try It My Way
+Liveware Problem
+Pure Big Mad Boat Man
+Qualifier
+Seed Drill
+Subtle Shift In Emphasis
+Transient Atmospheric Phenomenon
+You Naughty Monsters
+You'll Clean That Up Before You Leave
+Sense Amid Madness, Wit Amidst Folly
+Me, I'm Counting
+Total Internal Reflection
+Armchair Traveller
+Hidden Income
+Hylozoist
+No One Knows What The Dead Think
+Pelagian
+Fixed Grin
+Scar Glamour
+Labtebricolephile
+Dressed Up To Party
+Ucalegon
+Messenger Of Truth
+Fractious Person
+Rubric Of Ruin
+Abundance Of Onslaught
+Vision Of Hope Surpassed
+Partial Photic Boundary""".splitlines()
+
+
+def usage():
+    print os.sys.argv[0], "p N"
+    print "Where p is the port you want the cluster to use and  N is the number of machines you want in the cluster"
+
+if len(os.sys.argv) < 3:
+    usage()
+    exit(1)
+
+port = int(os.sys.argv[1])
+n_machines = int(os.sys.argv[2])
+if n_machines < 1:
+    usage()
+    exit(1)
+else:
+    kids = []
+    machine_names = random.sample(names, n_machines-1)
+    machine_names.append(machine_names[0])
+    for i, machine_name in enumerate(machine_names):
+        # cleanup the directory
+        directory = "cluster_directory_%d" % i
+        os.system("rm -rf " + directory)
+        if (i == 0):
+            cl = ["../build/debug/rethinkdb", "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
+        else:
+            cl = ["../build/debug/rethinkdb", "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "newton:%d" % port, "--port-offset", str(i+port)]
+        print ' '.join(cl)
+        kids += [subprocess.Popen(cl)]
+        time.sleep(1)
+
+    time.sleep(1)
+    print "CTRL-C to kill me http requests can be sent to ports:",
+    for i in range(n_machines):
+        if i != 0: 
+            print ",",
+
+        print port + (i * 2) + 1,
+
+    print ""
+
+    import sys
+    sys.stdout.flush()
+
+    try:
+        signal.pause()
+    except:
+        for kid in kids:
+            kid.terminate()
