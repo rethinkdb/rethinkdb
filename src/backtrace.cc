@@ -100,10 +100,18 @@ std::string demangle_cpp_name(const char *mangled_name) {
     }
 }
 
+int set_o_cloexec(int fd) {
+    int flags = fcntl(fd, F_GETFD);
+    if (flags < 0) {
+        return flags;
+    }
+    return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+}
+
 class addr2line_t {
 public:
-    explicit addr2line_t(const char *executable) : bad(false) {
-        if (pipe2(child_in, O_CLOEXEC) || pipe2(child_out, O_CLOEXEC)) {
+    explicit addr2line_t(const char *executable) : input(NULL), output(NULL), bad(false), pid(-1) {
+        if (pipe(child_in) || set_o_cloexec(child_in[0]) || set_o_cloexec(child_in[1]) || pipe(child_out) || set_o_cloexec(child_out[0]) || set_o_cloexec(child_out[1])) {
             bad = true;
             return;
         }
@@ -131,7 +139,9 @@ public:
         if (output) {
             fclose(output);
         }
-        waitpid(pid, NULL, 0);
+        if (pid != -1) {
+            waitpid(pid, NULL, 0);
+        }
     }
 
     FILE *input, *output;
@@ -139,6 +149,7 @@ public:
 private:
     int child_in[2], child_out[2];
     pid_t pid;
+    DISABLE_COPYING(addr2line_t);
 };
 
 static bool run_addr2line(boost::ptr_map<std::string, addr2line_t> *procs, const char *executable, const char *address, char *line, int line_size) {
