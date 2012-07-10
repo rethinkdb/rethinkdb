@@ -5,6 +5,7 @@
 #include "utils.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/access.hpp"
+#include "containers/scoped.hpp"
 
 class translator_serializer_t;
 
@@ -34,7 +35,7 @@ protected:
     translator_serializer_t *serializer;
 
 private:
-    thread_pool_t *thread_pool;
+    scoped_ptr_t<thread_pool_t> thread_pool;
 
     struct acquiring_coro_t {
         buf_lock_t *result;

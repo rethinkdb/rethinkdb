@@ -1,14 +1,11 @@
 #ifndef PROTOCOL_API_HPP_
 #define PROTOCOL_API_HPP_
 
-#include <functional>
-#include <list>
+#include <algorithm>
+#include <set>
+#include <string>
 #include <utility>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -17,6 +14,11 @@
 #include "containers/binary_blob.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+
+namespace boost {
+template <class> class function;
+template <class> class scoped_ptr;
+}
 
 /* This file describes the relationship between the protocol-specific logic for
 each protocol and the protocol-agnostic logic that routes queries for all the
@@ -44,6 +46,7 @@ template<class protocol_t>
 class namespace_interface_t {
 public:
     virtual typename protocol_t::read_response_t read(typename protocol_t::read_t, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
     virtual typename protocol_t::write_response_t write(typename protocol_t::write_t, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
@@ -237,6 +240,18 @@ protected:
     virtual ~metainfo_checker_callback_t() { }
 private:
     DISABLE_COPYING(metainfo_checker_callback_t);
+};
+
+template <class protocol_t>
+struct trivial_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
+
+    trivial_metainfo_checker_callback_t() { }
+    void check_metainfo(UNUSED const region_map_t<protocol_t, binary_blob_t>& metainfo, UNUSED const typename protocol_t::region_t& region) const {
+        /* do nothing */
+    }
+
+private:
+    DISABLE_COPYING(trivial_metainfo_checker_callback_t);
 };
 
 template <class protocol_t>

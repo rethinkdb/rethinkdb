@@ -1,16 +1,15 @@
-#ifndef UNITTEST_CLUSTERING_UTILS_HPP_
-#define UNITTEST_CLUSTERING_UTILS_HPP_
+#ifndef MOCK_CLUSTERING_UTILS_HPP_
+#define MOCK_CLUSTERING_UTILS_HPP_
 
+#include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/query/master_access.hpp"
 #include "memcached/protocol.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "mock/unittest_utils.hpp"
 
-namespace unittest {
-
-using mock::dummy_protocol_t;
-using mock::a_thru_z_region;
+namespace mock {
 
 struct fake_fifo_enforcement_t {
     fifo_enforcer_source_t source;
@@ -20,9 +19,9 @@ struct fake_fifo_enforcement_t {
 template<class protocol_t>
 class test_store_t {
 public:
-    test_store_t() :
+    explicit test_store_t(io_backender_t *io_backender) :
             temp_file("/tmp/rdb_unittest.XXXXXX"),
-            store(aio_pool, temp_file.name(), true, &get_global_perfmon_collection())
+            store(io_backender, temp_file.name(), true, &get_global_perfmon_collection())
     {
         /* Initialize store metadata */
         cond_t non_interruptor;
@@ -38,6 +37,23 @@ public:
     temp_file_t temp_file;
     typename protocol_t::store_t store;
 };
+
+inline void test_inserter_write_master_access(master_access_t<dummy_protocol_t> *ma, const std::string &key, const std::string &value, order_token_t otok, signal_t *interruptor) {
+    dummy_protocol_t::write_t w;
+    w.values[key] = value;
+    fifo_enforcer_sink_t::exit_write_t write_token;
+    ma->new_write_token(&write_token);
+    ma->write(w, otok, &write_token, interruptor);
+}
+
+inline std::string test_inserter_read_master_access(master_access_t<dummy_protocol_t> *ma, const std::string &key, order_token_t otok, signal_t *interruptor) {
+    dummy_protocol_t::read_t r;
+    r.keys.keys.insert(key);
+    fifo_enforcer_sink_t::exit_read_t read_token;
+    ma->new_read_token(&read_token);
+    dummy_protocol_t::read_response_t resp = ma->read(r, otok, &read_token, interruptor);
+    return resp.values.find(key)->second;
+}
 
 inline void test_inserter_write_namespace_if(namespace_interface_t<dummy_protocol_t> *nif, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
     dummy_protocol_t::write_t w;
@@ -67,12 +83,25 @@ public:
                                            this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
-    template<class protocol_t>
+    template <class protocol_t>
     test_inserter_t(namespace_interface_t<protocol_t> *namespace_if, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t),
           wfun(boost::bind(&test_inserter_t::write_namespace_if<protocol_t>, namespace_if, _1, _2, _3, _4)),
           rfun(boost::bind(&test_inserter_t::read_namespace_if<protocol_t>, namespace_if, _1, _2, _3)),
+          key_gen_fun(_key_gen_fun),
+          osource(_osource)
+    {
+        coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
+                                           this, osource, tag, auto_drainer_t::lock_t(drainer.get())));
+    }
+
+    template <class protocol_t>
+    test_inserter_t(master_access_t<protocol_t> *master_access, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
+        : values_inserted(state),
+          drainer(new auto_drainer_t),
+          wfun(boost::bind(&test_inserter_t::write_master_access<protocol_t>, master_access, _1, _2, _3, _4)),
+          rfun(boost::bind(&test_inserter_t::read_master_access<protocol_t>, master_access, _1, _2, _3)),
           key_gen_fun(_key_gen_fun),
           osource(_osource)
     {
@@ -88,6 +117,16 @@ public:
     state_t *values_inserted;
 
 private:
+    template<class protocol_t>
+    static void write_master_access(master_access_t<protocol_t> *ma, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
+        test_inserter_write_master_access(ma, key, value, otok, interruptor);
+    }
+
+    template<class protocol_t>
+    static std::string read_master_access(master_access_t<protocol_t> *ma, const std::string& key, order_token_t otok, signal_t *interruptor) {
+        return test_inserter_read_master_access(ma, key, otok, interruptor);
+    }
+
     template<class protocol_t>
     static void write_namespace_if(namespace_interface_t<protocol_t> *namespace_if, const std::string& key, const std::string& value, order_token_t otok, signal_t *interruptor) {
         test_inserter_write_namespace_if(namespace_if, key, value, otok, interruptor);
@@ -129,8 +168,8 @@ public:
                                it != values_inserted->end();
                                it++) {
             cond_t interruptor;
-            std::string response = rfun((*it).first, osource->check_in(strprintf("unittest::test_inserter_t::validate(%p)", this)), &interruptor);
-            EXPECT_EQ((*it).second, response);
+            std::string response = rfun((*it).first, osource->check_in(strprintf("mock::test_inserter_t::validate(%p)", this)), &interruptor);
+            rassert((*it).second == response);
         }
     }
 
@@ -207,4 +246,4 @@ private:
 
 }   /* namespace unittest */
 
-#endif /* UNITTEST_CLUSTERING_UTILS_HPP_ */
+#endif  // MOCK_CLUSTERING_UTILS_HPP_

@@ -71,8 +71,7 @@ private:
 template<class value_t>
 struct passive_producer_t {
 
-    /* true if any data is available. `available` is const so that nobody
-    screws around with it. */
+    /* true if any data is available. */
     availability_t *const available;
 
     /* `pop()` removes a value from the producer and returns it. It is

@@ -11,12 +11,14 @@
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/semilattice/view.hpp"
 
+class io_backender_t;
 template <class> class multistore_ptr_t;
 
 template<class protocol_t>
 class reactor_t {
 public:
     reactor_t(
+            io_backender_t *io_backender,
             mailbox_manager_t *mailbox_manager,
             typename master_t<protocol_t>::ack_checker_t *ack_checker,
             clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > > > reactor_directory,
@@ -27,10 +29,6 @@ public:
 
     clone_ptr_t<watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > get_reactor_directory() {
         return directory_echo_writer.get_watchable();
-    }
-
-    clone_ptr_t<watchable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > > get_master_directory() {
-        return master_directory.get_watchable();
     }
 
 private:
@@ -147,6 +145,8 @@ private:
     template <class activity_t>
     clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);
 
+    io_backender_t *io_backender;
+
     mailbox_manager_t *mailbox_manager;
 
     typename master_t<protocol_t>::ack_checker_t *ack_checker;
@@ -155,9 +155,6 @@ private:
     directory_echo_writer_t<reactor_business_card_t<protocol_t> > directory_echo_writer;
     directory_echo_mirror_t<reactor_business_card_t<protocol_t> > directory_echo_mirror;
     branch_history_manager_t<protocol_t> *branch_history_manager;
-
-    watchable_variable_t<std::map<master_id_t, master_business_card_t<protocol_t> > > master_directory;
-    mutex_assertion_t master_directory_lock;
 
     clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable;
 
@@ -171,6 +168,7 @@ private:
 
     perfmon_collection_t *parent_perfmon_collection;
     perfmon_collection_t regions_perfmon_collection;
+    perfmon_membership_t regions_perfmon_membership;
 
     DISABLE_COPYING(reactor_t);
 };

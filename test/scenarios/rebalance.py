@@ -10,16 +10,16 @@ op["workload1"] = PositionalArg()
 op["workload2"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
 op["num-nodes"] = IntFlag("--num-nodes", 3)
-op["serve-flags"] = StringFlag("--serve-flags", "")
 opts = op.parse(sys.argv)
 
 serve_flags = shlex.split(opts["serve-flags"])
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i, executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-%d" % i, executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_flags)
+    processes = [driver.Process(cluster, driver.Files(metacluster, db_path = "db-%d" % i, executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output-%d" % i,
+            executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
         for i in xrange(opts["num-nodes"])]
     for process in processes:
         process.wait_until_started_up()

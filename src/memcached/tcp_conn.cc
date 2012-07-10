@@ -104,9 +104,7 @@ memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcac
       stats(parent)
 { }
 
-memcache_listener_t::~memcache_listener_t() {
-    delete tcp_listener;
-}
+memcache_listener_t::~memcache_listener_t() { }
 
 class memcache_conn_closing_subscription_t : public signal_t::subscription_t {
 public:

@@ -3,46 +3,50 @@
 #include "errors.hpp"
 #include <boost/function.hpp>
 
+#include "btree/parallel_traversal.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "protocol_api.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 
 template <class protocol_t>
-multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **_store_views,
+multistore_ptr_t<protocol_t>::multistore_ptr_t(store_view_t<protocol_t> **store_views,
                                                int num_store_views,
-                                               const typename protocol_t::region_t &_region)
-    : store_views(num_store_views, NULL),
-      region(_region) {
+                                               const typename protocol_t::region_t &region)
+    : store_views_(num_store_views),
+      region_(region),
+      internal_sources_(num_store_views),
+      internal_sinks_(num_store_views) {
 
-    initialize(_store_views, _region);
+    initialize(store_views);
 }
 
 template <class protocol_t>
 multistore_ptr_t<protocol_t>::multistore_ptr_t(multistore_ptr_t<protocol_t> *inner,
-                                               const typename protocol_t::region_t &_region)
-    : store_views(inner->num_stores(), NULL),
-      region(_region) {
-    rassert(region_is_superset(inner->region, _region));
+                                               const typename protocol_t::region_t &region)
+    : store_views_(inner->num_stores()),
+      region_(region),
+      internal_sources_(inner->num_stores()),
+      internal_sinks_(inner->num_stores()) {
+    rassert(region_is_superset(inner->region_, region));
 
-    initialize(inner->store_views.data(), _region);
+    initialize(inner->store_views_.data());
 }
 
 template <class protocol_t>
-void do_initialize(int i, store_view_t<protocol_t> **store_views, store_view_t<protocol_t> **_store_views, const typename protocol_t::region_t &_region) {
-    rassert(store_views[i] == NULL);
-
-    on_thread_t th(_store_views[i]->home_thread());
+void multistore_ptr_t<protocol_t>::do_initialize(int i, store_view_t<protocol_t> **store_views) THROWS_NOTHING {
+    on_thread_t th(store_views[i]->home_thread());
 
     // We do a region intersection because store_subview_t requires that the region mask be a subset of the store region.
-    store_views[i] = new store_subview_t<protocol_t>(_store_views[i],
-                                                     region_intersection(_region, _store_views[i]->get_region()));
+    store_views_[i] = new store_subview_t<protocol_t>(store_views[i],
+                                                      region_intersection(region_, store_views[i]->get_region()));
+
+    internal_sinks_[i].init(new fifo_enforcer_sink_t);
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::initialize(store_view_t<protocol_t> **_store_views,
-                                              const typename protocol_t::region_t &_region) THROWS_NOTHING {
-    pmap(store_views.size(), boost::bind(do_initialize<protocol_t>, _1, store_views.data(), _store_views, boost::ref(_region)));
+void multistore_ptr_t<protocol_t>::initialize(store_view_t<protocol_t> **store_views) THROWS_NOTHING {
+    pmap(store_views_.size(), boost::bind(&multistore_ptr_t<protocol_t>::do_initialize, this, _1, store_views));
 }
 
 template <class protocol_t>
@@ -57,96 +61,72 @@ void do_destroy(int i, store_view_t<protocol_t> **store_views) {
 
 template <class protocol_t>
 multistore_ptr_t<protocol_t>::~multistore_ptr_t() {
-    pmap(store_views.size(), boost::bind(do_destroy<protocol_t>, _1, store_views.data()));
+    pmap(store_views_.size(), boost::bind(do_destroy<protocol_t>, _1, store_views_.data()));
 }
 
 template <class protocol_t>
 typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_multistore_joined_region() const {
-    return region;
+    return region_;
 }
 
 template <class protocol_t>
-void do_get_read_token(int i, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out, store_view_t<protocol_t> **store_views) {
-    // TODO: This is obviously _complete_ crap.  Get the token source back to our thread.
-    on_thread_t th(store_views[i]->home_thread());
-
-    store_views[i]->new_read_token(read_tokens_out[i]);
+void multistore_ptr_t<protocol_t>::new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token_out) {
+    fifo_enforcer_read_token_t token = external_source_.enter_read();
+    external_token_out->init(new fifo_enforcer_sink_t::exit_read_t(&external_sink_, token));
 }
 
 template <class protocol_t>
-void multistore_ptr_t<protocol_t>::new_read_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens_out,
-                                                   int size) {
-    guarantee(int(store_views.size()) == size);
-    pmap(size, boost::bind(do_get_read_token<protocol_t>, _1, read_tokens_out, store_views.data()));
-}
-
-template <class protocol_t>
-void do_get_write_token(int i, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens_out, store_view_t<protocol_t> **store_views) {
-    on_thread_t th(store_views[i]->home_thread());
-
-    store_views[i]->new_write_token(write_tokens_out[i]);
-}
-
-template <class protocol_t>
-void multistore_ptr_t<protocol_t>::new_write_tokens(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens_out,
-                                                   int size) {
-    guarantee(int(store_views.size()) == size);
-    pmap(size, boost::bind(do_get_write_token<protocol_t>, _1, write_tokens_out, store_views.data()));
-}
-
-template <class protocol_t>
-void multistore_ptr_t<protocol_t>::new_particular_write_tokens(int *indices, int num_indices,
-                                                               boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens) {
-    guarantee(num_indices <= num_stores());
-    for (int j = 0; j < num_indices; ++j) {
-        int index = indices[j];
-        rassert(index >= 0 && index < num_stores());
-
-        // TODO: Complete crap, get the token source back to our thread.
-        on_thread_t th(store_views[index]->home_thread());
-
-        store_views[index]->new_write_token(write_tokens[j]);
-    }
+void multistore_ptr_t<protocol_t>::new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token_out) {
+    fifo_enforcer_write_token_t token = external_source_.enter_write();
+    external_token_out->init(new fifo_enforcer_sink_t::exit_write_t(&external_sink_, token));
 }
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
                                                      order_token_t order_token,
-                                                     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                                                     const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
                                                      signal_t *interruptor,
                                                      region_map_t<protocol_t, version_range_t> *updatee,
-                                                     mutex_t *updatee_mutex) {
+                                                     mutex_t *updatee_mutex) THROWS_NOTHING {
     region_map_t<protocol_t, version_range_t> transformed;
 
-    {
-        const int dest_thread = store_views[i]->home_thread();
-        cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
+    try {
+        {
+            const int dest_thread = store_views_[i]->home_thread();
+            cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-        on_thread_t th(dest_thread);
+            on_thread_t th(dest_thread);
 
-        const region_map_t<protocol_t, binary_blob_t>& metainfo
-            = store_views[i]->get_metainfo(order_token, read_tokens[i], &ct_interruptor);
-        const region_map_t<protocol_t, binary_blob_t>& masked_metainfo
-            = metainfo.mask(get_region(i));
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> store_token;
+            switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
-        transformed
-            = region_map_transform<protocol_t, binary_blob_t, version_range_t>(masked_metainfo,
-                                                                               &binary_blob_t::get<version_range_t>);
+            const region_map_t<protocol_t, binary_blob_t>& metainfo
+                = store_views_[i]->get_metainfo(order_token, store_token, &ct_interruptor);
+            const region_map_t<protocol_t, binary_blob_t>& masked_metainfo
+                = metainfo.mask(get_region(i));
+
+            transformed
+                = region_map_transform<protocol_t, binary_blob_t, version_range_t>(masked_metainfo,
+                                                                                   &binary_blob_t::get<version_range_t>);
+        }
+
+        // updatee->update doesn't block so the mutex is redundant, who cares.
+        mutex_t::acq_t acq(updatee_mutex, true);
+        updatee->update(transformed);
+    } catch (const interrupted_exc_t& exc) {
+        // do nothing, we're in pmap.
     }
-
-    // updatee->update doesn't block so the mutex is redundant, who cares.
-    mutex_t::acq_t acq(updatee_mutex, true);
-    updatee->update(transformed);
 }
 
 template <class protocol_t>
 region_map_t<protocol_t, version_range_t>  multistore_ptr_t<protocol_t>::
 get_all_metainfos(order_token_t order_token,
-                  boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                  int num_read_tokens,
+                  scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
 		  signal_t *interruptor) {
 
-    guarantee(int(store_views.size()) == num_read_tokens);
+    scoped_array_t<fifo_enforcer_read_token_t> internal_tokens;
+
+    switch_read_tokens(external_token, interruptor, &internal_tokens);
 
     mutex_t ret_mutex;
     region_map_t<protocol_t, version_range_t> ret(get_multistore_joined_region());
@@ -154,9 +134,13 @@ get_all_metainfos(order_token_t order_token,
     // TODO: For getting, we possibly want to cache things on the home
     // thread, but wait until we want a multithreaded listener.
 
-    pmap(store_views.size(), boost::bind(&multistore_ptr_t<protocol_t>::do_get_a_metainfo, this, _1, order_token, read_tokens, interruptor, &ret, &ret_mutex));
+    pmap(store_views_.size(), boost::bind(&multistore_ptr_t<protocol_t>::do_get_a_metainfo, this, _1, order_token, boost::ref(internal_tokens), interruptor, &ret, &ret_mutex));
 
-    rassert(ret.get_domain() == region);
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+
+    rassert(ret.get_domain() == region_);
 
     return ret;
 }
@@ -166,41 +150,47 @@ template <class protocol_t>
 typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_region(int i) const {
     guarantee(0 <= i && i < num_stores());
 
-    return region_intersection(region, protocol_t::cpu_sharding_subspace(i, num_stores()));
-}
-
-template <class protocol_t>
-store_view_t<protocol_t> *multistore_ptr_t<protocol_t>::get_store_view(int i) const {
-    guarantee(0 <= i && i < num_stores());
-
-    return store_views[i];
+    return region_intersection(region_, protocol_t::cpu_sharding_subspace(i, num_stores()));
 }
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::do_set_a_metainfo(int i,
                                                      const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
                                                      order_token_t order_token,
-                                                     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                                     const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
                                                      signal_t *interruptor) {
 
-    const int dest_thread = store_views[i]->home_thread();
-    cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
+    try {
 
-    on_thread_t th(dest_thread);
+        const int dest_thread = store_views_[i]->home_thread();
+        cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-    store_views[i]->set_metainfo(new_metainfo.mask(get_region(i)), order_token, write_tokens[i], &ct_interruptor);
+        on_thread_t th(dest_thread);
+
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> store_token;
+        switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
+
+        store_views_[i]->set_metainfo(new_metainfo.mask(get_region(i)), order_token, store_token, &ct_interruptor);
+
+    } catch (const interrupted_exc_t& exc) {
+        // do nothing
+    }
 }
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::set_all_metainfos(const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
                                                      order_token_t order_token,
-                                                     boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                                     int num_write_tokens,
+                                                     scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                                                      signal_t *interruptor) {
-    guarantee(num_write_tokens == num_stores());
+    scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
+    switch_write_tokens(external_token, interruptor, &internal_tokens);
 
     pmap(num_stores(),
-         boost::bind(&multistore_ptr_t<protocol_t>::do_set_a_metainfo, this, _1, boost::ref(new_metainfo), order_token, write_tokens, interruptor));
+         boost::bind(&multistore_ptr_t<protocol_t>::do_set_a_metainfo, this, _1, boost::ref(new_metainfo), order_token, boost::ref(internal_tokens), interruptor));
+
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
 }
 
 template <class protocol_t>
@@ -257,9 +247,9 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
                                                          const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                                          const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
                                                          UNUSED typename protocol_t::backfill_progress_t *progress,
-                                                         boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                                                         const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
                                                          signal_t *interruptor) THROWS_NOTHING {
-    store_view_t<protocol_t> *store = store_views[i];
+    store_view_t<protocol_t> *store = store_views_[i];
 
     const int chunk_fun_target_hread = get_thread_id();
     const int dest_thread = store->home_thread();
@@ -272,13 +262,17 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
     typename protocol_t::backfill_progress_t tmp_progress;
 
     try {
+
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> store_token;
+        switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
+
         store->send_backfill(start_point.mask(get_region(i)),
                              boost::bind(&multistore_send_backfill_should_backfill_t<protocol_t>::should_backfill, helper, _1),
                              boost::bind(regionwrap_chunkfun<protocol_t>, chunk_fun, chunk_fun_target_hread, get_region(i), _1),
                              &tmp_progress,
-                             read_tokens[i],
+                             store_token,
                              &ct_interruptor);
-    } catch (interrupted_exc_t& exc) {
+    } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
@@ -299,11 +293,12 @@ bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<p
                                                             const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,
                                                             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
                                                             typename protocol_t::backfill_progress_t *progress,
-                                                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                                                            int num_stores_assertion,
+                                                            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    guarantee(num_stores() == num_stores_assertion);
     guarantee(region_is_superset(get_multistore_joined_region(), start_point.get_domain()));
+
+    scoped_array_t<fifo_enforcer_read_token_t> internal_tokens;
+    switch_read_tokens(external_token, interruptor, &internal_tokens);
 
     multistore_send_backfill_should_backfill_t<protocol_t> helper(num_stores(), start_point.get_domain(), should_backfill);
 
@@ -314,7 +309,7 @@ bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<p
                                    boost::ref(start_point),
                                    boost::ref(chunk_fun),
                                    progress,
-                                   read_tokens,
+                                   boost::ref(internal_tokens),
                                    interruptor));
 
     if (interruptor->is_pulsed()) {
@@ -324,23 +319,77 @@ bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<p
     return helper.get_result();
 }
 
+// TODO: Add order_token_t to this.
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::single_shard_receive_backfill(int i, const typename protocol_t::backfill_chunk_t &chunk,
+                                                                 const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
+                                                                 signal_t *interruptor) THROWS_NOTHING {
+
+    typename protocol_t::region_t ith_intersection = region_intersection(get_region(i), chunk.get_region());
+
+    store_view_t<protocol_t> *store = store_views_[i];
+    const int dest_thread = store->home_thread();
+
+
+    cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
+    on_thread_t th(dest_thread);
+
+    try {
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> store_token;
+        switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
+
+        if (region_is_empty(ith_intersection)) {
+            // TODO: We shouldn't have to switch threads to find the
+            // empty intersection and destroy the store_token.  Don't
+            // get an internal token in the first place.
+            return;
+        }
+
+        store->receive_backfill(chunk.shard(ith_intersection),
+                                store_token,
+                                &ct_interruptor);
+    } catch (const interrupted_exc_t& exc) {
+        // do nothing
+    }
+}
+
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::receive_backfill(const typename protocol_t::backfill_chunk_t &chunk,
+                                                    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
+                                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    guarantee(region_is_superset(get_multistore_joined_region(), chunk.get_region()));
+
+    scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
+    switch_write_tokens(external_token, interruptor, &internal_tokens);
+
+    pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_receive_backfill,
+                                   this,
+                                   _1,
+                                   boost::ref(chunk),
+                                   boost::ref(internal_tokens),
+                                   interruptor));
+
+    if (interruptor->is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+}
+
+
+
+
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::single_shard_read(int i,
                                                      DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                                                      const typename protocol_t::read_t &read,
                                                      order_token_t order_token,
-                                                     boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
+                                                     const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
                                                      std::vector<typename protocol_t::read_response_t> *responses,
                                                      signal_t *interruptor) THROWS_NOTHING {
-    DEBUG_ONLY_VAR const typename protocol_t::region_t ith_region = get_region(i);
-    typename protocol_t::region_t ith_intersection = region_intersection(get_region(i), read.get_region());
+    const typename protocol_t::region_t ith_region = get_region(i);
+    typename protocol_t::region_t ith_intersection = region_intersection(ith_region, read.get_region());
 
-    if (region_is_empty(ith_intersection)) {
-        read_tokens[i].reset();
-        return;
-    }
+    const int dest_thread = store_views_[i]->home_thread();
 
-    const int dest_thread = store_views[i]->home_thread();
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
     try {
@@ -349,19 +398,28 @@ void multistore_ptr_t<protocol_t>::single_shard_read(int i,
         {
             on_thread_t th(dest_thread);
 
-            response = store_views[i]->read(DEBUG_ONLY(metainfo_checker.mask(ith_region), )
-                                            read.shard(ith_intersection),
-                                            order_token,
-                                            read_tokens[i],
-                                            &ct_interruptor);
+            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> store_token;
+            switch_inner_read_token(i, internal_tokens[i], &ct_interruptor, &store_token);
+
+            if (region_is_empty(ith_intersection)) {
+                // TODO: This is ridiculous.  We don't have to go to
+                // this thread to find out that the region is empty
+                // and kill the store token if we don't create the
+                // internal token in the first place.
+                return;
+            }
+
+            response = store_views_[i]->read(DEBUG_ONLY(metainfo_checker.mask(ith_region), )
+                                             read.shard(ith_intersection),
+                                             order_token,
+                                             store_token,
+                                             &ct_interruptor);
         }
 
         responses->push_back(response);
-    } catch (interrupted_exc_t& exc) {
+    } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
-
-    
 }
 
 template <class protocol_t>
@@ -369,16 +427,17 @@ typename protocol_t::read_response_t
 multistore_ptr_t<protocol_t>::read(DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
                                    const typename protocol_t::read_t &read,
                                    order_token_t order_token,
-                                   boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *read_tokens,
-                                   int num_stores_assertion,
+                                   scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    guarantee(num_stores() == num_stores_assertion);
+    scoped_array_t<fifo_enforcer_read_token_t> internal_tokens;
+    switch_read_tokens(external_token, interruptor, &internal_tokens);
+
     std::vector<typename protocol_t::read_response_t> responses;
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_read,
                                    this, _1, DEBUG_ONLY(boost::ref(metainfo_checker), )
                                    boost::ref(read),
                                    order_token,
-                                   read_tokens,
+                                   boost::ref(internal_tokens),
                                    &responses,
                                    interruptor));
 
@@ -411,17 +470,13 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
                                                       const typename protocol_t::write_t &write,
                                                       transition_timestamp_t timestamp,
                                                       order_token_t order_token,
-                                                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                                      const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
                                                       std::vector<typename protocol_t::write_response_t> *responses,
                                                       signal_t *interruptor) THROWS_NOTHING {
     const typename protocol_t::region_t &ith_region = get_region(i);
     typename protocol_t::region_t ith_intersection = region_intersection(ith_region, write.get_region());
-    if (region_is_empty(ith_intersection)) {
-        write_tokens[i].reset();
-        return;
-    }
 
-    const int dest_thread = store_views[i]->home_thread();
+    const int dest_thread = store_views_[i]->home_thread();
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
     on_thread_t th(dest_thread);
@@ -429,14 +484,22 @@ void multistore_ptr_t<protocol_t>::single_shard_write(int i,
     // TODO: Have an assertion about the new_metainfo region?
 
     try {
-        responses->push_back(store_views[i]->write(DEBUG_ONLY(metainfo.metainfo_checker.mask(ith_region), )
-                                                   metainfo.new_metainfo.mask(ith_region),
-                                                   write.shard(ith_intersection),
-                                                   timestamp,
-                                                   order_token,
-                                                   write_tokens[i],
-                                                   &ct_interruptor));
-    } catch (interrupted_exc_t& exc) {
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> store_token;
+        switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
+
+        if (region_is_empty(ith_intersection)) {
+            // TODO: Having to go to this thread to do nothing on empty regions is ridiculous.
+            return;
+        }
+
+        responses->push_back(store_views_[i]->write(DEBUG_ONLY(metainfo.metainfo_checker.mask(ith_region), )
+                                                    metainfo.new_metainfo.mask(ith_region),
+                                                    write.shard(ith_intersection),
+                                                    timestamp,
+                                                    order_token,
+                                                    store_token,
+                                                    &ct_interruptor));
+    } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
@@ -448,11 +511,11 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
                                     const typename protocol_t::write_t &write,
                                     transition_timestamp_t timestamp,
                                     order_token_t order_token,
-                                    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                    int num_stores_assertion,
+                                    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
+    switch_write_tokens(external_token, interruptor, &internal_tokens);
 
-    guarantee(num_stores() == num_stores_assertion);
     std::vector<typename protocol_t::write_response_t> responses;
     new_and_metainfo_checker_t<protocol_t> metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo);
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_write,
@@ -460,7 +523,7 @@ multistore_ptr_t<protocol_t>::write(DEBUG_ONLY(const metainfo_checker_t<protocol
                                    boost::ref(write),
                                    timestamp,
                                    order_token,
-                                   write_tokens,
+                                   boost::ref(internal_tokens),
                                    &responses,
                                    interruptor));
 
@@ -476,24 +539,30 @@ template <class protocol_t>
 void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
                                                                const typename protocol_t::region_t &subregion,
                                                                const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                                                               boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
+                                                               const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
                                                                signal_t *interruptor) THROWS_NOTHING {
-    if (!region_overlaps(get_region(i), subregion)) {
-        write_tokens[i].reset();
-        return;
-    }
+    const int dest_thread = store_views_[i]->home_thread();
 
-    const int dest_thread = store_views[i]->home_thread();
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
     on_thread_t th(dest_thread);
 
     try {
-        store_views[i]->reset_data(region_intersection(subregion, get_region(i)),
-                                   new_metainfo.mask(get_region(i)),
-                                   write_tokens[i],
-                                   &ct_interruptor);
-    } catch (interrupted_exc_t& exc) {
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> store_token;
+        switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
+
+        if (!region_overlaps(get_region(i), subregion)) {
+            // TODO: We shouldn't have to go to this thread if we do nothing.
+            return;
+        }
+
+
+        // TODO: order token?
+        store_views_[i]->reset_data(region_intersection(subregion, get_region(i)),
+                                    new_metainfo.mask(get_region(i)),
+                                    store_token,
+                                    &ct_interruptor);
+    } catch (const interrupted_exc_t& exc) {
         // do nothing
     }
 }
@@ -501,16 +570,16 @@ void multistore_ptr_t<protocol_t>::single_shard_reset_all_data(int i,
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::reset_all_data(const typename protocol_t::region_t &subregion,
                                                   const typename protocol_t::store_t::metainfo_t &new_metainfo,
-                                                  boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *write_tokens,
-                                                  int num_stores_assertion,
+                                                  scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token,
                                                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    scoped_array_t<fifo_enforcer_write_token_t> internal_tokens;
+    switch_write_tokens(external_token, interruptor, &internal_tokens);
 
-    guarantee(num_stores() == num_stores_assertion);
     pmap(num_stores(), boost::bind(&multistore_ptr_t<protocol_t>::single_shard_reset_all_data,
                                    this, _1,
                                    boost::ref(subregion),
                                    boost::ref(new_metainfo),
-                                   write_tokens,
+                                   boost::ref(internal_tokens),
                                    interruptor));
 
     if (interruptor->is_pulsed()) {
@@ -518,7 +587,54 @@ void multistore_ptr_t<protocol_t>::reset_all_data(const typename protocol_t::reg
     }
 }
 
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::switch_read_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token, signal_t *interruptor, scoped_array_t<fifo_enforcer_read_token_t> *internal_out) {
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local(external_token->release());
 
+    wait_interruptible(local.get(), interruptor);
+
+    const int n = num_stores();
+    internal_out->init(n);
+    for (int i = 0; i < n; ++i) {
+        (*internal_out)[i] = internal_sources_[i].enter_read();
+    }
+}
+
+
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::switch_write_tokens(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *external_token, signal_t *interruptor, scoped_array_t<fifo_enforcer_write_token_t> *internal_out) {
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local(external_token->release());
+
+    wait_interruptible(local.get(), interruptor);
+
+    const int n = num_stores();
+    internal_out->init(n);
+    for (int i = 0; i < n; ++i) {
+        (*internal_out)[i] = internal_sources_[i].enter_write();
+    }
+}
+
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::switch_inner_read_token(int i, fifo_enforcer_read_token_t internal_token, signal_t *interruptor, boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> *store_token) {
+    fifo_enforcer_sink_t *internal_sink = internal_sinks_[i].get();
+    internal_sink->assert_thread();
+
+    fifo_enforcer_sink_t::exit_read_t internal_exit(internal_sink, internal_token);
+    wait_interruptible(&internal_exit, interruptor);
+
+    store_views_[i]->new_read_token(*store_token);
+}
+
+template <class protocol_t>
+void multistore_ptr_t<protocol_t>::switch_inner_write_token(int i, fifo_enforcer_write_token_t internal_token, signal_t *interruptor, boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> *store_token) {
+    fifo_enforcer_sink_t *internal_sink = internal_sinks_[i].get();
+    internal_sink->assert_thread();
+
+    fifo_enforcer_sink_t::exit_write_t internal_exit(internal_sink, internal_token);
+    wait_interruptible(&internal_exit, interruptor);
+
+    store_views_[i]->new_write_token(*store_token);
+}
 
 
 

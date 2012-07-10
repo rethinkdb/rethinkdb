@@ -21,6 +21,8 @@
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view.hpp"
 
+const std::string& guarantee_param_0(const std::map<std::string, std::vector<std::string> >& params, const std::string& name);
+
 struct admin_cluster_exc_t : public std::exception {
 public:
     explicit admin_cluster_exc_t(const std::string& data) : info(data) { }
@@ -50,24 +52,26 @@ public:
     std::vector<std::string> get_conflicted_ids(const std::string& base);
 
     // Commands that may be run by the parser
-    void do_admin_list(admin_command_parser_t::command_data& data);
-    void do_admin_list_stats(admin_command_parser_t::command_data& data);
-    void do_admin_list_issues(admin_command_parser_t::command_data& data);
-    void do_admin_list_machines(admin_command_parser_t::command_data& data);
-    void do_admin_list_directory(admin_command_parser_t::command_data& data);
-    void do_admin_list_namespaces(admin_command_parser_t::command_data& data);
-    void do_admin_list_datacenters(admin_command_parser_t::command_data& data);
-    void do_admin_resolve(admin_command_parser_t::command_data& data);
-    void do_admin_pin_shard(admin_command_parser_t::command_data& data);
-    void do_admin_split_shard(admin_command_parser_t::command_data& data);
-    void do_admin_merge_shard(admin_command_parser_t::command_data& data);
-    void do_admin_set_name(admin_command_parser_t::command_data& data);
-    void do_admin_set_acks(admin_command_parser_t::command_data& data);
-    void do_admin_set_replicas(admin_command_parser_t::command_data& data);
-    void do_admin_set_datacenter(admin_command_parser_t::command_data& data);
-    void do_admin_create_datacenter(admin_command_parser_t::command_data& data);
-    void do_admin_create_namespace(admin_command_parser_t::command_data& data);
-    void do_admin_remove(admin_command_parser_t::command_data& data);
+    void do_admin_list(const admin_command_parser_t::command_data& data);
+    void do_admin_list_stats(const admin_command_parser_t::command_data& data);
+    void do_admin_list_issues(const admin_command_parser_t::command_data& data);
+    void do_admin_list_machines(const admin_command_parser_t::command_data& data);
+    void do_admin_list_directory(const admin_command_parser_t::command_data& data);
+    void do_admin_list_namespaces(const admin_command_parser_t::command_data& data);
+    void do_admin_list_datacenters(const admin_command_parser_t::command_data& data);
+    void do_admin_resolve(const admin_command_parser_t::command_data& data);
+    void do_admin_pin_shard(const admin_command_parser_t::command_data& data);
+    void do_admin_split_shard(const admin_command_parser_t::command_data& data);
+    void do_admin_merge_shard(const admin_command_parser_t::command_data& data);
+    void do_admin_set_name(const admin_command_parser_t::command_data& data);
+    void do_admin_set_acks(const admin_command_parser_t::command_data& data);
+    void do_admin_set_replicas(const admin_command_parser_t::command_data& data);
+    void do_admin_set_datacenter(const admin_command_parser_t::command_data& data);
+    void do_admin_create_datacenter(const admin_command_parser_t::command_data& data);
+    void do_admin_create_namespace(const admin_command_parser_t::command_data& data);
+    void do_admin_remove_machine(const admin_command_parser_t::command_data& data);
+    void do_admin_remove_namespace(const admin_command_parser_t::command_data& data);
+    void do_admin_remove_datacenter(const admin_command_parser_t::command_data& data);
 
     void sync_from();
 
@@ -105,8 +109,10 @@ private:
                                     const uuid_t& uuid,
                                     const std::string& new_name);
 
+    void do_admin_remove_internal(const std::string& obj_type, const std::vector<std::string>& ids);
+
     template <class T>
-    void do_admin_remove_internal(std::map<uuid_t, T>& obj_map, const uuid_t& key);
+    void do_admin_remove_internal_internal(std::map<uuid_t, T>& obj_map, const uuid_t& key);
 
     template <class protocol_t>
     void remove_machine_pinnings(const machine_id_t& machine,

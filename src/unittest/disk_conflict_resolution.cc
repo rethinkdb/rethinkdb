@@ -1,11 +1,13 @@
-#include "unittest/gtest.hpp"
+#include <list>
+
+#include "errors.hpp"
+#include <boost/scoped_array.hpp>
+#include <boost/bind.hpp>
 
 #include "arch/io/disk/conflict_resolving.hpp"
 #include "arch/runtime/thread_pool.hpp"
-#include <list>
-#include <boost/scoped_array.hpp>
-#include <boost/bind.hpp>
 #include "containers/intrusive_list.hpp"
+#include "unittest/gtest.hpp"
 
 namespace unittest {
 

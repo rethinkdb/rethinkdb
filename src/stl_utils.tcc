@@ -4,8 +4,10 @@
 #include "stl_utils.hpp"
 
 #include <algorithm>
-
-#include <boost/optional.hpp>
+#include <map>
+#include <set>
+#include <utility>
+#include <vector>
 
 //TODO this can be much more efficient with an iterator
 template <class K, class V>
@@ -47,45 +49,6 @@ typename container_t::mapped_type &get_with_default(container_t &container, cons
     }
 
     return container[key];
-}
-
-template <class left_container_t, class right_container_t>
-cartesian_product_iterator_t<left_container_t, right_container_t>::cartesian_product_iterator_t(
-        typename left_container_t::iterator _left, typename left_container_t::iterator _left_end,
-        typename right_container_t::iterator _right, typename right_container_t::iterator _right_end)
-    : left(_left), left_start(_left), left_end(_left_end),
-      right(_right), right_start(_right), right_end(_right_end)
-{ }
-
-template <class left_container_t, class right_container_t>
-boost::optional<std::pair<typename left_container_t::iterator, typename right_container_t::iterator> >
-cartesian_product_iterator_t<left_container_t, right_container_t>::operator*() const {
-    if (right != right_end) {
-        return boost::make_optional(std::make_pair(left, right));
-    } else {
-        return boost::optional<std::pair<typename left_container_t::iterator, typename right_container_t::iterator> >();
-    }
-}
-
-template <class left_container_t, class right_container_t>
-cartesian_product_iterator_t<left_container_t, right_container_t>
-cartesian_product_iterator_t<left_container_t, right_container_t>::operator+(int val) {
-    cartesian_product_iterator_t<left_container_t, right_container_t> res = *this;
-    while (val --> 0) {
-        res.left++;
-        if (res.left == res.left_end) {
-            res.right++;
-            res.left = res.left_start;
-        }
-    }
-
-    return res;
-}
-
-template <class left_container_t, class right_container_t>
-cartesian_product_iterator_t<left_container_t, right_container_t> &
-cartesian_product_iterator_t<left_container_t, right_container_t>::operator++(int) {
-    return *this = *this + 1;
 }
 
 template <class It>

@@ -1,5 +1,6 @@
-#include <set>
 #include <sys/resource.h>
+
+#include <set>
 
 #include "clustering/administration/main/command_line.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"

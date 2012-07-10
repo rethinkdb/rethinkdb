@@ -1,15 +1,14 @@
-#include "unittest/gtest.hpp"
-
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
 #include "containers/archive/archive.hpp"
+#include "mock/unittest_utils.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/joins/map.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "unittest/gtest.hpp"
 
 namespace unittest {
 
@@ -54,7 +53,7 @@ void assign(T *target, T value) {
 /* `SingleMetadata` tests metadata's properties on a single node. */
 
 void run_single_metadata_test() {
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t c;
     semilattice_manager_t<sl_int_t> slm(&c, sl_int_t(2));
     connectivity_cluster_t::run_t cr(&c, port, &slm);
@@ -68,14 +67,14 @@ void run_single_metadata_test() {
     EXPECT_EQ(3, slm.get_root_view()->get().i);
 }
 TEST(RPCSemilatticeTest, SingleMetadata) {
-    run_in_thread_pool(&run_single_metadata_test, 2);
+    mock::run_in_thread_pool(&run_single_metadata_test, 2);
 }
 
 /* `MetadataExchange` makes sure that metadata is correctly exchanged between
 nodes. */
 
 void run_metadata_exchange_test() {
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t cluster1, cluster2;
     semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
     connectivity_cluster_t::run_t run1(&cluster1, port, &slm1), run2(&cluster2, port+1, &slm2);
@@ -87,10 +86,14 @@ void run_metadata_exchange_test() {
 
     /* Block until the connection is established */
     {
-        cond_t connection_established;
-        connectivity_service_t::peers_list_subscription_t subs(
-            boost::bind(&cond_t::pulse, &connection_established),
-            NULL);
+        struct : public cond_t, public peers_list_callback_t {
+            void on_connect(UNUSED peer_id_t peer) {
+                pulse();
+            }
+            void on_disconnect(UNUSED peer_id_t peer) { }
+        } connection_established;
+        connectivity_service_t::peers_list_subscription_t subs(&connection_established);
+
         {
             ASSERT_FINITE_CORO_WAITING;
             connectivity_service_t::peers_list_freeze_t freeze(&cluster1);
@@ -100,6 +103,7 @@ void run_metadata_exchange_test() {
                 connection_established.pulse();
             }
         }
+
         connection_established.wait_lazily_unordered();
     }
 
@@ -118,11 +122,11 @@ void run_metadata_exchange_test() {
     EXPECT_EQ(7, slm2.get_root_view()->get().i);
 }
 TEST(RPCSemilatticeTest, MetadataExchange) {
-    run_in_thread_pool(&run_metadata_exchange_test, 2);
+    mock::run_in_thread_pool(&run_metadata_exchange_test, 2);
 }
 
 void run_sync_from_test() {
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t cluster1, cluster2;
     semilattice_manager_t<sl_int_t> slm1(&cluster1, sl_int_t(1)), slm2(&cluster2, sl_int_t(2));
     connectivity_cluster_t::run_t run1(&cluster1, port, &slm1), run2(&cluster2, port+1, &slm2);
@@ -139,10 +143,15 @@ void run_sync_from_test() {
 
     /* Block until the connection is established */
     {
-        cond_t connection_established;
-        connectivity_service_t::peers_list_subscription_t subs(
-            boost::bind(&cond_t::pulse, &connection_established),
-            NULL);
+        struct : public cond_t, public peers_list_callback_t {
+            void on_connect(UNUSED peer_id_t peer) {
+                pulse();
+            }
+            void on_disconnect(UNUSED peer_id_t peer) { }
+        } connection_established;
+
+        connectivity_service_t::peers_list_subscription_t subs(&connection_established);
+
         {
             ASSERT_FINITE_CORO_WAITING;
             connectivity_service_t::peers_list_freeze_t freeze(&cluster1);
@@ -152,6 +161,7 @@ void run_sync_from_test() {
                 connection_established.pulse();
             }
         }
+
         connection_established.wait_lazily_unordered();
     }
 
@@ -162,14 +172,14 @@ void run_sync_from_test() {
     EXPECT_EQ(3, slm2.get_root_view()->get().i);
 }
 TEST(RPCSemilatticeTest, SyncFrom) {
-    run_in_thread_pool(&run_sync_from_test, 2);
+    mock::run_in_thread_pool(&run_sync_from_test, 2);
 }
 
 /* `Watcher` makes sure that metadata watchers get notified when metadata
 changes. */
 
 void run_watcher_test() {
-    int port = randport();
+    int port = mock::randport();
     connectivity_cluster_t cluster;
     semilattice_manager_t<sl_int_t> slm(&cluster, sl_int_t(2));
     connectivity_cluster_t::run_t run(&cluster, port, &slm);
@@ -184,7 +194,7 @@ void run_watcher_test() {
     EXPECT_TRUE(have_been_notified);
 }
 TEST(RPCSemilatticeTest, Watcher) {
-    run_in_thread_pool(&run_watcher_test, 2);
+    mock::run_in_thread_pool(&run_watcher_test, 2);
 }
 
 /* `ViewController` tests `dummy_semilattice_controller_t`. */
@@ -210,10 +220,10 @@ void run_view_controller_test() {
     EXPECT_TRUE(have_been_notified);
 }
 TEST(RPCSemilatticeTest, ViewController) {
-    run_in_thread_pool(&run_view_controller_test);
+    mock::run_in_thread_pool(&run_view_controller_test);
 }
 TEST(RPCSemilatticeTest, ViewControllerMultiThread) {
-    run_in_thread_pool(&run_view_controller_test, 3);
+    mock::run_in_thread_pool(&run_view_controller_test, 3);
 }
 
 /* `FieldView` tests `metadata_field()`. */
@@ -240,10 +250,10 @@ void run_field_view_test() {
     EXPECT_EQ(9, x_view->get().i);
 }
 TEST(RPCSemilatticeTest, FieldView) {
-    run_in_thread_pool(&run_field_view_test);
+    mock::run_in_thread_pool(&run_field_view_test);
 }
 TEST(RPCSemilatticeTest, FieldViewMultiThread) {
-    run_in_thread_pool(&run_field_view_test, 3);
+    mock::run_in_thread_pool(&run_field_view_test, 3);
 }
 
 /* `MemberView` tests `metadata_member()`. */
@@ -274,10 +284,10 @@ void run_member_view_test() {
     EXPECT_EQ(9, foo_view->get().i);
 }
 TEST(RPCSemilatticeTest, MemberView) {
-    run_in_thread_pool(&run_member_view_test);
+    mock::run_in_thread_pool(&run_member_view_test);
 }
 TEST(RPCSemilatticeTest, MemberViewMultiThread) {
-    run_in_thread_pool(&run_member_view_test, 3);
+    mock::run_in_thread_pool(&run_member_view_test, 3);
 }
 
 }   /* namespace unittest */

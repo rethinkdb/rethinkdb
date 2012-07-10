@@ -2,6 +2,7 @@
 #define ARCH_IO_DISK_AIO_HPP_
 
 #include <libaio.h>
+
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
 #include <boost/function.hpp>

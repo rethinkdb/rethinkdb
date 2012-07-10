@@ -13,11 +13,12 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
 
     print "Starting cluster..."
-    files1 = driver.Files(metacluster, db_path = "db-first", executable_path = executable_path, command_prefix = command_prefix)
-    process1 = driver.Process(cluster, files1, log_path = "serve-output-first", executable_path = executable_path, command_prefix = command_prefix)
+    files1 = driver.Files(metacluster, db_path = "db-first", executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    process1 = driver.Process(cluster, files1, log_path = "serve-output-first",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     process1.wait_until_started_up()
 
     print "Creating namespace..."
@@ -32,7 +33,8 @@ with driver.Metacluster() as metacluster:
 
     print "Bringing up new server..."
     files2 = driver.Files(metacluster, db_path = "db-second", executable_path = executable_path, command_prefix = command_prefix)
-    process2 = driver.Process(cluster, files2, log_path = "serve-output-second", executable_path = executable_path, command_prefix = command_prefix)
+    process2 = driver.Process(cluster, files2, log_path = "serve-output-second",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     process2.wait_until_started_up()
     http1.update_cluster_data(3)
     http1.move_server_to_datacenter(files2.machine_name, dc)

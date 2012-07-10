@@ -6,12 +6,13 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/scoped_ptr.hpp>
 
+#include <vector>
+
 #include "concurrency/pmap.hpp"
+#include "mock/clustering_utils.hpp"
+#include "mock/unittest_utils.hpp"
 #include "protocol_api.hpp"
 #include "timestamps.hpp"
-#include "unittest/clustering_utils.hpp"
-#include "unittest/unittest_utils.hpp"
-#include "protocol_api.hpp"
 
 namespace unittest {
 
@@ -29,7 +30,19 @@ public:
         store->new_read_token(read_token);
 
 #ifndef NDEBUG
-        equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback((binary_blob_t(expected_timestamp)));
+        mock::equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback((binary_blob_t(expected_timestamp)));
+        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
+#endif
+
+        return store->read(DEBUG_ONLY(metainfo_checker, ) read, order_token_t::ignore, read_token, interruptor);
+    }
+
+    typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t read, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> read_token;
+        store->new_read_token(read_token);
+
+#ifndef NDEBUG
+        trivial_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback;
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
@@ -40,7 +53,7 @@ public:
         cond_t non_interruptor;
 
 #ifndef NDEBUG
-        equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(binary_blob_t(transition_timestamp.timestamp_before()));
+        mock::equality_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(binary_blob_t(transition_timestamp.timestamp_before()));
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
@@ -102,24 +115,41 @@ template<class protocol_t>
 class dummy_sharder_t {
 
 public:
-    struct timestamper_and_region_t {
-        timestamper_and_region_t(dummy_timestamper_t<protocol_t> *ts, typename protocol_t::region_t r) :
-            timestamper(ts), region(r) { }
+    struct shard_t {
+        shard_t(dummy_timestamper_t<protocol_t> *ts, dummy_performer_t<protocol_t> *pf, typename protocol_t::region_t r) :
+            timestamper(ts), performer(pf), region(r) { }
         dummy_timestamper_t<protocol_t> *timestamper;
+        dummy_performer_t<protocol_t> *performer;
         typename protocol_t::region_t region;
     };
 
-    explicit dummy_sharder_t(std::vector<timestamper_and_region_t> _timestampers)
-        : timestampers(_timestampers) { }
+    explicit dummy_sharder_t(std::vector<shard_t> _shards)
+        : shards(_shards) { }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::read_response_t> responses;
-        for (int i = 0; i < (int)timestampers.size(); i++) {
-            typename protocol_t::region_t ixn = region_intersection(timestampers[i].region, read.get_region());
+        for (int i = 0; i < (int)shards.size(); i++) {
+            typename protocol_t::region_t ixn = region_intersection(shards[i].region, read.get_region());
             if (!region_is_empty(ixn)) {
                 typename protocol_t::read_t subread = read.shard(ixn);
-                typename protocol_t::read_response_t subresponse = timestampers[i].timestamper->read(subread, tok, interruptor);
+                typename protocol_t::read_response_t subresponse = shards[i].timestamper->read(subread, tok, interruptor);
+                responses.push_back(subresponse);
+                if (interruptor->is_pulsed()) throw interrupted_exc_t();
+            }
+        }
+        typename protocol_t::temporary_cache_t cache;
+        return read.unshard(responses, &cache);
+    }
+
+    typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t read, signal_t *interruptor) {
+        if (interruptor->is_pulsed()) throw interrupted_exc_t();
+        std::vector<typename protocol_t::read_response_t> responses;
+        for (int i = 0; i < int(shards.size()); i++) {
+            typename protocol_t::region_t ixn = region_intersection(shards[i].region, read.get_region());
+            if (!region_is_empty(ixn)) {
+                typename protocol_t::read_t subread = read.shard(ixn);
+                typename protocol_t::read_response_t subresponse = shards[i].performer->read_outdated(subread, interruptor);
                 responses.push_back(subresponse);
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
@@ -131,12 +161,12 @@ public:
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok, signal_t *interruptor) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
         std::vector<typename protocol_t::write_response_t> responses;
-        for (int i = 0; i < (int)timestampers.size(); i++) {
-            typename protocol_t::region_t ixn = region_intersection(timestampers[i].region, write.get_region());
+        for (int i = 0; i < (int)shards.size(); i++) {
+            typename protocol_t::region_t ixn = region_intersection(shards[i].region, write.get_region());
 
             if (!region_is_empty(ixn)) {
                 typename protocol_t::write_t subwrite = write.shard(ixn);
-                typename protocol_t::write_response_t subresponse = timestampers[i].timestamper->write(subwrite, tok);
+                typename protocol_t::write_response_t subresponse = shards[i].timestamper->write(subwrite, tok);
                 responses.push_back(subresponse);
                 if (interruptor->is_pulsed()) throw interrupted_exc_t();
             }
@@ -146,7 +176,7 @@ public:
     }
 
 private:
-    std::vector<timestamper_and_region_t> timestampers;
+    std::vector<shard_t> shards;
 };
 
 template<class protocol_t>
@@ -165,7 +195,7 @@ public:
         }
         rassert(stores.size() == shards.size());
 
-        std::vector<typename dummy_sharder_t<protocol_t>::timestamper_and_region_t> shards_of_this_db;
+        std::vector<typename dummy_sharder_t<protocol_t>::shard_t> shards_of_this_db;
         for (int i = 0; i < (int)shards.size(); i++) {
             /* Initialize metadata everywhere */
             {
@@ -200,7 +230,7 @@ public:
             performers.push_back(performer);
             dummy_timestamper_t<protocol_t> *timestamper = new dummy_timestamper_t<protocol_t>(performer);
             timestampers.push_back(timestamper);
-            shards_of_this_db.push_back(typename dummy_sharder_t<protocol_t>::timestamper_and_region_t(timestamper, shards[i]));
+            shards_of_this_db.push_back(typename dummy_sharder_t<protocol_t>::shard_t(timestamper, performer, shards[i]));
         }
 
         sharder.reset(new dummy_sharder_t<protocol_t>(shards_of_this_db));
@@ -208,6 +238,10 @@ public:
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
         return sharder->read(read, tok, interruptor);
+    }
+
+    typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t read, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
+        return sharder->read_outdated(read, interruptor);
     }
 
     typename protocol_t::write_response_t write(typename protocol_t::write_t write, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {

@@ -65,6 +65,7 @@ module 'ResolveIssuesView', ->
         on_submit: ->
             super
 
+            ###
             data = 
                 semilattice:
                     machines: {}
@@ -77,26 +78,14 @@ module 'ResolveIssuesView', ->
                 data: JSON.stringify(data)
                 success: @on_success
                 error: @on_error
- 
-            ###
-            data = null
-            $.ajax
-                url: "/ajax/semilattice/machines/"+@machine_to_kill.get('id')
-                type: 'POST'
-                contentType: 'application/json'
-                data: JSON.stringify(data)
-                success: @on_success
             ###
  
-            ###
             $.ajax
                 url: "/ajax/semilattice/machines/#{@machine_to_kill.id}"
                 type: 'DELETE'
                 contentType: 'application/json'
-                data: JSON.stringify(data)
                 success: @on_success
-            ###
-            #
+                error: @on_error
  
         on_success_with_error: =>
             @.$('.error_answer').html @template_issue_error

@@ -98,48 +98,47 @@ bool buf_patch_t::applies_before(const buf_patch_t *p) const {
 
 
 
-memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t _dest_offset, const char* src, const uint16_t _n) :
+memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t _dest_offset, const char* src, const uint16_t n) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_MEMCPY),
-            dest_offset(_dest_offset),
-            n(_n) {
-    src_buf = new char[n];
-    memcpy(src_buf, src, n);
+            dest_offset(_dest_offset) {
+    src_buf.init(n);
+    memcpy(src_buf.data(), src, n);
 }
-memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length)  :
+memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char *data, const uint16_t data_length)  :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_MEMCPY) {
+    uint16_t n;
     guarantee_patch_format(data_length >= sizeof(dest_offset) + sizeof(n));
     dest_offset = *reinterpret_cast<const uint16_t *>(data);
     data += sizeof(dest_offset);
     n = *reinterpret_cast<const uint16_t *>(data);
     data += sizeof(n);
     guarantee_patch_format(data_length == sizeof(dest_offset) + sizeof(n) + n);
-    src_buf = new char[n];
-    memcpy(src_buf, data, n);
+    src_buf.init(n);
+    memcpy(src_buf.data(), data, n);
 
     // Uncomment if you have more to read.
     // data += n;
 }
 
-void memcpy_patch_t::serialize_data(char* destination) const {
+void memcpy_patch_t::serialize_data(char *destination) const {
     memcpy(destination, &dest_offset, sizeof(dest_offset));
     destination += sizeof(dest_offset);
+    uint64_t n = src_buf.size();
     memcpy(destination, &n, sizeof(n));
     destination += sizeof(n);
-    memcpy(destination, src_buf, n);
+    memcpy(destination, src_buf.data(), n);
 
     // Uncomment if you have more to write.
     // destination += n;
 }
 uint16_t memcpy_patch_t::get_data_size() const {
-    return sizeof(dest_offset) + sizeof(n) + n;
+    return sizeof(dest_offset) + sizeof(uint16_t) + src_buf.size();
 }
 
-memcpy_patch_t::~memcpy_patch_t() {
-    delete[] src_buf;
-}
+memcpy_patch_t::~memcpy_patch_t() { }
 
 void memcpy_patch_t::apply_to_buf(char* buf_data, UNUSED block_size_t bs) {
-    memcpy(buf_data + dest_offset, src_buf, n);
+    memcpy(buf_data + dest_offset, src_buf.data(), src_buf.size());
 }
 
 memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t _dest_offset, const uint16_t _src_offset, const uint16_t _n) :
