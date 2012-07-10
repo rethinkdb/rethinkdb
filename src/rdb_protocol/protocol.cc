@@ -106,6 +106,7 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
         rg_response.key_range = get_region();
         typedef std::vector<read_response_t>::iterator rri_t;
         for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+            // TODO: we're ignoring the limit when recombining.
             const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
             rassert(_rr);
             rg_response.data.insert(rg_response.data.end(), _rr->data.begin(), _rr->data.end());
