@@ -42,7 +42,11 @@
       <div class="priority"></div>
       <div class="message">
         {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "machine" num}} {{pluralize_verb_to_be num}} down{{/if}}
-        {{#if PERSISTENCE_ISSUE}}{{num}} {{pluralize_noun "disk" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
+        {{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}
+        {{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
+        {{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}
+        {{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}
+        {{#if MACHINE_GHOST}}{{num}} {{pluralize_noun "ghost machine" num}}{{/if}}
       </div>
     </div>
     {{/each}}
@@ -50,19 +54,26 @@
   {{/if}}
   {{#if other_issues.exist}}
   <h5 class="other">Non-critical issues</h5>
-  <div class="critical-issues">
+  {{#each other_issues.types}}
+  <div class="other-issues">
     <div class="priority"></div>
     <div class="message">
-      {{other_issues.num}} other {{pluralize_noun "issue" other_issues.num}}
+        {{#if MACHINE_DOWN}}{{num}} {{pluralize_noun "machine" num}} {{pluralize_verb_to_be num}} down{{/if}}
+        {{#if NAME_CONFLICT_ISSUE}}{{num}} {{pluralize_noun "name conflict" num}}{{/if}}
+        {{#if LOGFILE_WRITE_ERROR}}{{num}} {{pluralize_noun "log file" num}} {{pluralize_verb_to_be num}} inaccessible{{/if}}
+        {{#if VCLOCK_CONFLICT}}{{num}} {{pluralize_noun "vector conflict" num}}{{/if}}
+        {{#if UNSATISFIABLE_GOALS}}{{num}} {{pluralize_noun "unsatisfiable goal" num}}{{/if}}
+        {{#if MACHINE_GHOST}}{{num}} {{pluralize_noun "ghost machine" num}}{{/if}}
     </div>
   </div>
+    {{/each}}
   {{/if}}
   {{#if no_issues}}
   <h5 class="no-issues">No issues reported</h5>
   {{else}}
-  {{#if show_resolve_issues}}
+  {{#unless no_issues}}
   <p class="resolve-issues"><a href="#resolve_issues">Resolve issues</a></p>
-  {{/if}}
+  {{/unless}}
   {{/if}}
 </script>
 
