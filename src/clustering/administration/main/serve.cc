@@ -19,6 +19,7 @@
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
+#include "jsproc/pool.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
@@ -32,7 +33,7 @@
 #include "rpc/semilattice/view/field.hpp"
 
 bool do_serve(
-    const jsproc::supervisor_t::info_t *info,
+    const jsproc::spawner_t::info_t *spawner_info,
     io_backend_t io_backend,
     bool i_am_a_server,
     const std::string &logfilepath,
@@ -43,7 +44,9 @@ bool do_serve(
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
     std::string web_assets, signal_t *stop_cond)
 {
-    boost::scoped_ptr<jsproc::supervisor_t> supervisor(info ? new jsproc::supervisor_t(*info) : NULL);
+    boost::scoped_ptr<jsproc::pool_group_t> jsproc_pool_group(
+        !spawner_info ? NULL :
+        new jsproc::pool_group_t(*spawner_info, jsproc::pool_t::DEFAULTS));
 
     local_issue_tracker_t local_issue_tracker;
 
@@ -230,9 +233,9 @@ bool do_serve(
     return true;
 }
 
-bool serve(const jsproc::supervisor_t::info_t *info, io_backend_t io_backend, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve(const jsproc::spawner_t::info_t *spawner_info, io_backend_t io_backend, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     std::string logfilepath = filepath + "/log_file";
-    return do_serve(info, io_backend, true, logfilepath, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
+    return do_serve(spawner_info, io_backend, true, logfilepath, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
 bool serve_proxy(io_backend_t io_backend, const std::string &logfilepath, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {

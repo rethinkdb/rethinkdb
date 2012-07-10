@@ -75,16 +75,10 @@ fd_recv_result_t recv_fds(int socket_fd, size_t num_fds, int *fds) {
     guarantee(res == 1);
 
     // Check the message.
-    if (c != '\0') return FD_RECV_INVALID;
-
     struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
-    guarantee(cmsg);
-
-    if (msg.msg_controllen != CMSG_SPACE(sizeof(int) * num_fds) ||
-        cmsg->cmsg_len != CMSG_LEN(sizeof(int) * num_fds))
-    {
-        return FD_RECV_INVALID;
-    }
+    rassert(c == '\0' && cmsg &&
+            msg.msg_controllen == CMSG_SPACE(sizeof(int) * num_fds) &&
+            cmsg->cmsg_len == CMSG_LEN(sizeof(int) * num_fds));
 
     // Success!
     memcpy(fds, CMSG_DATA(cmsg), sizeof(int) * num_fds);

@@ -10,7 +10,7 @@
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
-#include "jsproc/supervisor.hpp"
+#include "jsproc/spawner.hpp"
 #include "mock/dummy_protocol.hpp"
 
 namespace po = boost::program_options;
@@ -100,7 +100,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_serve(const jsproc::supervisor_t::info_t *info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_serve(const jsproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
@@ -112,7 +112,7 @@ void run_rethinkdb_serve(const jsproc::supervisor_t::info_t *info, const std::st
     perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
     metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
 
-    *result_out = serve(info,
+    *result_out = serve(spawner_info,
                         io_backend,
                         filepath, &store,
                         look_up_peers_addresses(joins),
@@ -123,7 +123,7 @@ void run_rethinkdb_serve(const jsproc::supervisor_t::info_t *info, const std::st
                         &sigint_cond);
 }
 
-void run_rethinkdb_porcelain(const jsproc::supervisor_t::info_t *info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_porcelain(const jsproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     printf("Checking if directory '%s' already exists...\n", filepath.c_str());
@@ -133,7 +133,7 @@ void run_rethinkdb_porcelain(const jsproc::supervisor_t::info_t *info, const std
         perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
         metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
 
-        *result_out = serve(info,
+        *result_out = serve(spawner_info,
                             io_backend,
                             filepath, &store,
                             look_up_peers_addresses(joins),
@@ -218,7 +218,7 @@ void run_rethinkdb_porcelain(const jsproc::supervisor_t::info_t *info, const std
         perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
         metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
 
-        *result_out = serve(info,
+        *result_out = serve(spawner_info,
                             io_backend,
                             filepath, &store,
                             look_up_peers_addresses(joins),
@@ -365,19 +365,15 @@ int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::opti
     }
 }
 
-static MUST_USE bool try_spawn_supervisor(jsproc::supervisor_t::info_t *sup_info) {
-    std::string err_func_name;
-    int errsv = 0;
-    if (!jsproc::supervisor_t::spawn(sup_info, &err_func_name, &errsv))
-        return true;
+static MUST_USE bool try_spawn_spawner(jsproc::spawner_t::info_t *spawner_info) {
+    pid_t pid = jsproc::spawner_t::create(spawner_info);
+    if (-1 == pid) {
+        fprintf(stderr, "critical wombat failure\n");
+        return false;
+    }
 
-    if (!errsv)
-        fprintf(stderr, "could not spawn supervisor: %s() failed: %s\n",
-                err_func_name.c_str(), strerror(errsv));
-    else
-        fprintf(stderr, "could not spawn supervisor: %s() failed\n",
-                err_func_name.c_str());
-    return false;
+    // TODO (rntz): establish SIGCHLD handler for spawner process
+    return true;
 }
 
 int main_rethinkdb_create(int argc, char *argv[]) {
@@ -434,15 +430,15 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    jsproc::supervisor_t::info_t sup_info;
-    if (!try_spawn_supervisor(&sup_info)) {
+    jsproc::spawner_t::info_t spawner_info;
+    if (!try_spawn_spawner(&spawner_info)) {
         return EXIT_FAILURE;
     }
 
     const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &sup_info, filepath, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_serve, &spawner_info, filepath, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())
                                    ),
                                    io_backend,
@@ -574,15 +570,15 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    jsproc::supervisor_t::info_t sup_info;
-    if (!try_spawn_supervisor(&sup_info)) {
+    jsproc::spawner_t::info_t spawner_info;
+    if (!try_spawn_spawner(&spawner_info)) {
         return EXIT_FAILURE;
     }
 
     const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &sup_info, filepath, machine_name, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, &spawner_info, filepath, machine_name, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
                                    &result, render_as_path(web_path)),

@@ -37,8 +37,6 @@ class fd_watcher_t : public home_thread_mixin_t {
     virtual MUST_USE bool wait_for_write() = 0;
 
   private:
-    // Not necessary for any particular reason, but I don't see any reason you'd
-    // want to copy an fd_watcher_t.
     DISABLE_COPYING(fd_watcher_t);
 };
 
@@ -135,8 +133,7 @@ class fd_stream_t :
     virtual void do_shutdown_read() = 0;
     virtual void do_shutdown_write() = 0;
 
-  private:
-    void on_event(int events);  // for linux_event_callback_t
+    virtual void on_event(int events); // for linux_event_callback_t
 
     // Member fields
   protected:

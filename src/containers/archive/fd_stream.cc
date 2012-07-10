@@ -316,8 +316,6 @@ archive_result_t unix_socket_stream_t::recv_fds(size_t num_fds, int *fds) {
 
           case FD_RECV_EOF: return ARCHIVE_SOCK_EOF;
 
-          case FD_RECV_INVALID: return ARCHIVE_RANGE_ERROR;
-
           case FD_RECV_ERROR:
             if ((errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
                 // Wait until we can read, or we shut down.

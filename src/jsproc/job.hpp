@@ -3,6 +3,7 @@
 
 #include <stdarg.h>             // va_list
 
+#include "arch/runtime/runtime_utils.hpp" // fd_t
 #include "containers/archive/archive.hpp"
 #include "containers/archive/fd_stream.hpp"
 
@@ -13,11 +14,11 @@ class job_t {
   public:
     virtual ~job_t() {}
 
-    // Passed in to a job.
+    // Passed in to a job on the worker process side.
     class control_t : public unix_socket_stream_t {
       private:
-        friend void exec_worker(int sockfd);
-        control_t(pid_t pid, int fd);
+        friend class spawner_t;
+        control_t(pid_t pid, fd_t fd);
 
       public:
         void vlog(const char *fmt, va_list ap);
@@ -28,50 +29,55 @@ class job_t {
         pid_t pid_;
     };
 
-    typedef void (*func_t)(control_t *);
+    // Sends us over a stream.
+    // Returns 0 on success, -1 on error.
+    int send(write_stream_t *stream);
+
+    // Receives and runs a job. Called on worker process side. Returns 0 on
+    // success, -1 on failure.
+    static int accept_job(control_t *control);
+
+    /* ----- Pure virtual methods ----- */
+
+    // Serialization methods. Suggest implementing by invoking
+    // RDB_MAKE_ME_SERIALIZABLE_#(..) in subclass definition.
+    friend class write_message_t;
+    friend class archive_deserializer_t;
+    virtual void rdb_serialize(write_message_t &msg) const = 0;
+    virtual archive_result_t rdb_deserialize(read_stream_t *s) = 0;
 
     // Called on worker process side.
     virtual void run_job(control_t *control) = 0;
+
+    // Returns a function that deserializes & runs an instance of the
+    // appropriate job type. Called on worker process side.
+    typedef void (*func_t)(control_t*);
+    virtual func_t job_runner() = 0;
 };
 
-// Returns 0 on success, -1 on failure.
-template <typename instance_t>
-int send_job(write_stream_t *stream, const instance_t &job) {
-    struct garbage {
-        static void job_runner(job_t::control_t *control) {
-            // Get the job instance.
-            instance_t job;
-            archive_result_t res = deserialize(control, &job);
-            if (res != ARCHIVE_SUCCESS) {
-                control->log("Could not deserialize job: %s",
-                             res == ARCHIVE_SOCK_ERROR ? "socket error" :
-                             res == ARCHIVE_SOCK_EOF ? "end of file" :
-                             res == ARCHIVE_RANGE_ERROR ? "range error" :
-                             "unknown error");
-                return;
-            }
+template <class instance_t>
+class auto_job_t : public job_t {
+    static void job_runner_func(control_t *control) {
+        // Get the job instance.
+        instance_t job;
+        archive_result_t res = deserialize(control, &job);
 
-            // Run it.
-            job.run_job(control);
+        if (res != ARCHIVE_SUCCESS) {
+            control->log("Could not deserialize job: %s",
+                         res == ARCHIVE_SOCK_ERROR ? "socket error" :
+                         res == ARCHIVE_SOCK_EOF ? "end of file" :
+                         res == ARCHIVE_RANGE_ERROR ? "range error" :
+                         "unknown error");
+            // TODO (rntz): shouldn't we just die here?
+            return;
         }
-    };
 
-    write_message_t msg;
+        // Run it.
+        job.run_job(control);
+    }
 
-    // This is kind of a hack.
-    //
-    // We send the address of the function that runs the job we want (namely
-    // job_runner). This works only because the address of job_runner is
-    // statically known and the worker processes we are sending to are
-    // fork()s of ourselves, and so have the same address space layout.
-    const job_t::func_t funcptr = &garbage::job_runner;
-    msg.append(&funcptr, sizeof funcptr);
-
-    // We send the job over as well; job_runner will deserialize it.
-    msg << job;
-
-    return send_write_message(stream, &msg);
-}
+    func_t job_runner() { return job_runner_func; }
+};
 
 } // namespace jsproc
 

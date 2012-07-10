@@ -1,3 +1,6 @@
+TODO (rntz): This file is full of lies. It is hopelessly out of date.
+DO NOT TRUST ANYTHING IN THIS FILE.
+
 # Supervisor process startup
 
 When rethinkdb is invoked, if the command requested might require running JS
