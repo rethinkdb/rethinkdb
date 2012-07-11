@@ -1,5 +1,5 @@
-#ifndef CONTAINERS_ARCHIVE_FD_STREAM_HPP_
-#define CONTAINERS_ARCHIVE_FD_STREAM_HPP_
+#ifndef CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
+#define CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
 
 #include "arch/io/event_watcher.hpp" // linux_event_watcher_t
 #include "arch/io/io_utils.hpp"      // scoped_fd_t
@@ -95,19 +95,15 @@ class linux_event_fd_watcher_t :
     boost::scoped_ptr<linux_event_watcher_t> event_watcher_;
 };
 
-class fd_stream_t :
+class socket_stream_t :
     public read_stream_t, public write_stream_t,
     private linux_event_callback_t
 {
   public:
     // takes ownership of fd, watcher (if supplied)
     // by default constructs a linux_event_fd_watcher_t.
-    explicit fd_stream_t(fd_t fd, fd_watcher_t *watcher = NULL);
-
-    // Due to details of C++ (calling virtual functions from destructors is a
-    // Bad Idea), it is our subclass' responsibility to ensure that we have shut
-    // down (both for read & write) before ~fd_stream_t() is called.
-    virtual ~fd_stream_t();
+    explicit socket_stream_t(fd_t fd, fd_watcher_t *watcher = NULL);
+    virtual ~socket_stream_t();
 
     // {read,write}_stream_t functions
     // Returns number of bytes read or 0 upon EOF, -1 upon error.
@@ -124,16 +120,7 @@ class fd_stream_t :
     void shutdown_read();
     void shutdown_write();
 
-    // Must be overriden to determine what we do with errors.
-    virtual void on_read_error(int errsv) = 0;
-    virtual void on_write_error(int errsv) = 0;
-
-    // Must be overriden to determine how we perform a {read,write} shutdown.
-    // Should be idempotent (once called, further calls do nothing).
-    virtual void do_shutdown_read() = 0;
-    virtual void do_shutdown_write() = 0;
-
-    virtual void on_event(int events); // for linux_event_callback_t
+    virtual void on_event(int events); // for linux_callback_t
 
     // Member fields
   protected:
@@ -141,19 +128,7 @@ class fd_stream_t :
     boost::scoped_ptr<fd_watcher_t> fd_watcher_;
 
   private:
-    DISABLE_COPYING(fd_stream_t);
-};
-
-class socket_stream_t : public fd_stream_t {
-  public:
-    explicit socket_stream_t(fd_t fd, fd_watcher_t *watcher = NULL);
-    virtual ~socket_stream_t();
-
-  protected:
-    virtual void on_read_error(int errno_);
-    virtual void on_write_error(int errno_);
-    virtual void do_shutdown_read();
-    virtual void do_shutdown_write();
+    DISABLE_COPYING(socket_stream_t);
 };
 
 class unix_socket_stream_t : public socket_stream_t {
@@ -177,4 +152,4 @@ class unix_socket_stream_t : public socket_stream_t {
     MUST_USE archive_result_t recv_fd(fd_t *fd);
 };
 
-#endif  // CONTAINERS_ARCHIVE_FD_STREAM_HPP_
+#endif  // CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_

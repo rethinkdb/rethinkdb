@@ -13,7 +13,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/logger.hpp"
-#include "containers/archive/fd_stream.hpp"
+#include "containers/archive/socket_stream.hpp"
 #include "jsproc/job.hpp"
 #include "jsproc/pool.hpp"
 #include "jsproc/spawner.hpp"
@@ -103,7 +103,7 @@ void run_rethinkdb_js(const jsproc::spawner_t::info_t &info, bool *result) {
 
     fprintf(stderr, "ENGINE PROC: %d\n", getpid());
 
-    jsproc::pool_group_t pool_group(info, jsproc::pool_t::DEFAULTS);
+    jsproc::pool_group_t pool_group(info, jsproc::pool_group_t::DEFAULTS);
     jsproc::pool_t *pool = pool_group.get();
 
     local_issue_tracker_t tracker;

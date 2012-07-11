@@ -45,7 +45,7 @@ bool do_serve(
 {
     boost::scoped_ptr<jsproc::pool_group_t> jsproc_pool_group(
         !spawner_info ? NULL :
-        new jsproc::pool_group_t(*spawner_info, jsproc::pool_t::DEFAULTS));
+        new jsproc::pool_group_t(*spawner_info, jsproc::pool_group_t::DEFAULTS));
 
     local_issue_tracker_t local_issue_tracker;
 

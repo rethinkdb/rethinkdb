@@ -6,15 +6,27 @@
 
 namespace jsproc {
 
-// ---------- pool_t ----------
-const pool_t::config_t pool_t::DEFAULTS;
+// ---------- pool_group_t ----------
+const pool_group_t::config_t pool_group_t::DEFAULTS;
 
+pool_group_t::pool_group_t(const spawner_t::info_t &info, const config_t &config)
+    : spawner_(info), config_(config),
+      pool_maker_(this)
+{
+    // Check config for sanity
+    guarantee(config_.max_workers >= config_.min_workers &&
+              config_.max_workers > 0);
+}
+
+
+// ---------- pool_t ----------
 pool_t::pool_t(pool_group_t *group)
     : group_(group),
+      num_spawning_workers_(0),
       worker_semaphore_(group_->config_.max_workers)
 {
     // Spawn initial worker pool.
-    spawn_workers(group_->config_.min_workers);
+    spawn_workers(config()->min_workers);
 }
 
 pool_t::~pool_t() {
@@ -34,16 +46,21 @@ int pool_t::spawn_job(job_t *job, job_handle_t *handle) {
     int res = connect(handle);
     if (!res) {
         res = job->send(handle);
-        // FIXME: WRONG.
-        guarantee(!res);
+        // If sending failed, the handle should have disconnected.
+        rassert(0 == res || !handle->worker_);
     }
     return res;
 
 }
 
 int pool_t::connect(job_handle_t *handle) {
+    assert_thread();
     rassert(handle->worker_ == NULL); // handle must be uninitialized
 
+    // We're going to be using up a worker process, so we lock the semaphore.
+    // This blocks if `config()->max_workers` workers are currently in use. We
+    // unlock the semaphore in disconnect(), once we're done using the worker
+    // process.
     worker_semaphore_.co_lock();
 
     // An `if` would suffice here in place of a `while`. However, this is only
@@ -53,12 +70,13 @@ int pool_t::connect(job_handle_t *handle) {
     // worker in the mean time. In case this changes later, we use a `while`.
     while (idle_workers_.empty()) {
         // Our usage of worker_semaphore_ should ensure this.
-        rassert(num_workers() < group_->config_.max_workers);
+        rassert(num_workers() < config()->max_workers);
         debugf("spawning new worker to cope with demand\n");
         spawn_workers(1);
     }
-    guarantee(!idle_workers_.empty());
+    guarantee(!idle_workers_.empty()); // sanity
 
+    // Grab an idle worker, move it to the busy list, assign it to `handle`.
     worker_t *worker = idle_workers_.head();
     idle_workers_.remove(worker);
     busy_workers_.push_back(worker);
@@ -70,51 +88,31 @@ int pool_t::connect(job_handle_t *handle) {
 }
 
 void pool_t::disconnect(job_handle_t *handle) {
+    assert_thread();
+
     worker_t *worker = handle->worker_;
-    rassert(worker->pool_ == this);
+    rassert(worker && worker->pool_ == this);
 
     debugf("disconnecting: %d\n", worker->pid_);
 
-    // TODO (rntz): check whether worker_'s stream is still open. if not,
-    // something bad has occurred; we should probably have been notified
-    // already, but best to handle it gracefully.
-    //
-    // FIXME: figure out in what circumstances this^ will actually happen.
-    rassert(worker->is_read_open() &&
-            worker->is_write_open());
+    // If the worker's stream isn't open, something bad has happened.
+    if (!worker->is_read_open() || !worker->is_write_open()) {
+        worker->on_error();
 
-    // Put it back on the idle list.
+        // TODO(rntz): Currently worker_t::on_error() never returns. If we ever
+        // change this, some code needs to get written here.
+        unreachable();
+    }
+
+    // Move it from the busy list to the idle list.
     busy_workers_.remove(worker);
     idle_workers_.push_back(worker);
-    // NB. Must unlock semaphore AFTER putting worker back on idle list.
+
+    // Free up worker slot for someone else to use.
     worker_semaphore_.unlock();
 }
 
-void pool_t::spawn_workers(unsigned int num) {
-    guarantee(num_workers() + num <= group_->config_.max_workers);
-    debugf("spawning %d workers (have %d now)\n", num, num_workers());
-
-    pid_t pids[num];
-    fd_t fds[num];
-
-    {
-        on_thread_t switcher(group_->spawner_.home_thread());
-        for (unsigned int i = 0; i < num; ++i) {
-            pids[i] = group_->spawner_.spawn_process(&fds[i]);
-            // TODO(rntz): should this really be a guarantee? we might be able
-            // to handle this.
-            guarantee(-1 != pids[i], "could not spawn worker process");
-        }
-    }
-
-    // For every process spawned, create a corresponding worker_t.
-    for (unsigned int i = 0; i < num; ++i) {
-        create_worker(pids[i], fds[i]);
-    }
-
-    debugf("finished spawning %d workers (have %d now)\n", num, num_workers());
-}
-
+// The root job that runs on spawned worker processes.
 class job_acceptor_t :
         public auto_job_t<job_acceptor_t>
 {
@@ -131,14 +129,36 @@ class job_acceptor_t :
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
-void pool_t::create_worker(pid_t pid, fd_t fd) {
-    worker_t *worker = new worker_t(this, pid, fd);
+void pool_t::spawn_workers(unsigned int num) {
+    assert_thread();
 
-    // Send it a job that just loops accepting jobs.
-    guarantee (0 == job_acceptor_t().send(worker),
-               "Could not initialize worker process.");
+    num_spawning_workers_ += num;
+    guarantee(num_workers() <= config()->max_workers);
 
-    idle_workers_.push_back(worker);
+    // Spawn off `num` processes.
+    pid_t pids[num];
+    fd_t fds[num];
+    {
+        on_thread_t switcher(spawner()->home_thread());
+        for (unsigned int i = 0; i < num; ++i) {
+            pids[i] = spawner()->spawn_process(&fds[i]);
+            guarantee(-1 != pids[i], "could not spawn worker process");
+        }
+    }
+
+    // For every process spawned, create a corresponding worker_t.
+    for (unsigned int i = 0; i < num; ++i) {
+        worker_t *worker = new worker_t(this, pids[i], fds[i]);
+
+        // Send it a job that just loops accepting jobs.
+        guarantee(0 == job_acceptor_t().send(worker),
+                  "Could not initialize worker process.");
+
+        // We've successfully spawned one worker.
+        guarantee(num_spawning_workers_ > 0); // sanity
+        --num_spawning_workers_;
+        idle_workers_.push_back(worker);
+    }
 }
 
 void pool_t::end_worker(workers_t *list, worker_t *worker) {
@@ -164,13 +184,17 @@ pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, fd_t fd)
 pool_t::worker_t::~worker_t() {}
 
 void pool_t::worker_t::on_event(UNUSED int events) {
-    // NB. We are *not* on a coroutine when this method is called.
+    // NB. We are not in coroutine context when this method is called.
+    on_error();
+    unix_socket_stream_t::on_event(events);
+}
+
+void pool_t::worker_t::on_error() {
+    // NB. We may or may not be in coroutine context when this method is called.
     assert_thread();
 
     // We got an error on our socket to this worker. This shouldn't happen.
     crash_or_trap("Error on worker process socket");
-
-    unix_socket_stream_t::on_event(events);
 
     // TODO(rntz): Arguably we should be more robust. If someone kills one of
     // our worker processes, we may not want the entire rethinkdb instance to
@@ -180,25 +204,19 @@ void pool_t::worker_t::on_event(UNUSED int events) {
 }
 
 
-// ---------- pool_group_t ----------
-pool_group_t::pool_group_t(const spawner_t::info_t &info, const pool_t::config_t &config)
-    : spawner_(info), config_(config),
-      pool_maker_(this)
-{
-    // Check config for sanity
-    guarantee(config_.max_workers >= config_.min_workers &&
-              config_.max_workers > 0);
-}
-
-
 // ---------- job_handle_t ----------
 job_handle_t::job_handle_t()
     : worker_(NULL) {}
 
 job_handle_t::~job_handle_t() {
-    if (worker_) {
-        worker_->pool_->disconnect(this);
-    }
+    if (worker_)
+        disconnect();
+}
+
+void job_handle_t::disconnect() {
+    rassert(worker_);
+    worker_->pool_->disconnect(this);
+    worker_ = NULL;
 }
 
 } // namespace jsproc

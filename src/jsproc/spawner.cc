@@ -103,8 +103,7 @@ void spawner_t::exec_worker(fd_t sockfd) {
 
     // Receive one job and run it.
     job_t::control_t control(getpid(), sockfd);
-    job_t::accept_job(&control);
-    exit(EXIT_SUCCESS);
+    exit(job_t::accept_job(&control));
 }
 
 void spawner_t::exec_spawner(fd_t sockfd) {

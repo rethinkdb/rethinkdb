@@ -5,7 +5,7 @@
 
 #include "arch/runtime/runtime_utils.hpp" // fd_t
 #include "concurrency/mutex.hpp"
-#include "containers/archive/fd_stream.hpp"
+#include "containers/archive/socket_stream.hpp"
 
 namespace jsproc {
 

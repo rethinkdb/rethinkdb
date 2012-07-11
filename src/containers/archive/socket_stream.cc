@@ -1,4 +1,4 @@
-#include "containers/archive/fd_stream.hpp"
+#include "containers/archive/socket_stream.hpp"
 
 #include <cstring>
 #include <fcntl.h>
@@ -119,32 +119,31 @@ linux_event_fd_watcher_t::~linux_event_fd_watcher_t() {
 }
 
 
-// -------------------- fd_stream_t --------------------
-fd_stream_t::fd_stream_t(int fd, fd_watcher_t *watcher)
+// -------------------- socket_stream_t --------------------
+socket_stream_t::socket_stream_t(int fd, fd_watcher_t *watcher)
     : fd_(fd),
       fd_watcher_(watcher ? watcher : new linux_event_fd_watcher_t(fd))
 {
     fd_watcher_->init_callback(this);
 }
 
-fd_stream_t::~fd_stream_t() {
+socket_stream_t::~socket_stream_t() {
     assert_thread();
 
-    // See comment in fd_stream.hpp.
-    rassert(!fd_watcher_->is_read_open());
-    rassert(!fd_watcher_->is_write_open());
+    if (is_read_open()) shutdown_read();
+    if (is_write_open()) shutdown_write();
 }
 
-int64_t fd_stream_t::read(void *buf, int64_t size) {
+int64_t socket_stream_t::read(void *buf, int64_t size) {
     assert_thread();
     guarantee(size > 0);
 
-    if (!fd_watcher_->is_read_open())
+    if (!is_read_open())
         return -1;
 
     char *bufp = static_cast<char *>(buf);
     for (;;) {
-        rassert(fd_watcher_->is_read_open());
+        rassert(is_read_open());
 
         ssize_t res = ::read(fd_.get(), bufp, size);
 
@@ -162,27 +161,33 @@ int64_t fd_stream_t::read(void *buf, int64_t size) {
 
         } else {
             // EOF or error
-            if (res == -1)
-                on_read_error(errno);
-            else
+            if (res == -1) {
+                if (errno != EPIPE && errno != ECONNRESET && errno != ENOTCONN) {
+                    // Unexpected error (not just "we closed").
+                    logERR("Could not read from socket: %s", strerror(errno));
+                }
+            }
+            else {
                 guarantee(res == 0); // sanity
+            }
+
             shutdown_read();
             return res;
         }
     }
 }
 
-int64_t fd_stream_t::write(const void *buf, int64_t size) {
+int64_t socket_stream_t::write(const void *buf, int64_t size) {
     assert_thread();
     guarantee(size > 0);
 
-    if (!fd_watcher_->is_write_open())
+    if (!is_write_open())
         return -1;
 
     int64_t orig_size = size;
     const char *bufp = static_cast<const char *>(buf);
     while (size > 0) {
-        rassert(fd_watcher_->is_write_open());
+        rassert(is_write_open());
 
         ssize_t res = ::write(fd_.get(), bufp, size);
 
@@ -200,10 +205,15 @@ int64_t fd_stream_t::write(const void *buf, int64_t size) {
             // Go around the loop and write some more.
 
         } else {
-            if (res == -1)
-                on_write_error(errno);
-            else
+            if (res == -1) {
+                if (errno != EPIPE && errno != ENOTCONN && errno != ECONNRESET) {
+                    // Unexpected error (not just "we closed")
+                    logERR("Could not write to socket: %s", strerror(errno));
+                }
+            } else {
                 logERR("Didn't expect write() to return %ld.", res);
+            }
+
             shutdown_write();
             return -1;
         }
@@ -212,21 +222,31 @@ int64_t fd_stream_t::write(const void *buf, int64_t size) {
     return orig_size;
 }
 
-void fd_stream_t::shutdown_read() {
+void socket_stream_t::shutdown_read() {
     assert_thread();
-    do_shutdown_read();
+
+    int res = ::shutdown(fd_.get(), SHUT_RD);
+    if (res != 0 && errno != ENOTCONN) {
+        logERR("Could not shutdown socket for reading: %s", strerror(errno));
+    }
+
     if (fd_watcher_->is_read_open())
         fd_watcher_->on_shutdown_read();
 }
 
-void fd_stream_t::shutdown_write() {
+void socket_stream_t::shutdown_write() {
     assert_thread();
-    do_shutdown_write();
+
+    int res = ::shutdown(fd_.get(), SHUT_WR);
+    if (res != 0 && errno != ENOTCONN) {
+        logERR("Could not shutdown socket for writing: %s", strerror(errno));
+    }
+
     if (fd_watcher_->is_write_open())
         fd_watcher_->on_shutdown_write();
 }
 
-void fd_stream_t::on_event(int events) {
+void socket_stream_t::on_event(int events) {
     assert_thread();
 
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
@@ -244,44 +264,6 @@ void fd_stream_t::on_event(int events) {
 }
 
 
-// -------------------- socket_stream_t --------------------
-socket_stream_t::socket_stream_t(int fd, fd_watcher_t *watcher)
-    : fd_stream_t(fd, watcher) {}
-
-socket_stream_t::~socket_stream_t() {
-    if (fd_watcher_->is_read_open()) shutdown_read();
-    if (fd_watcher_->is_write_open()) shutdown_write();
-}
-
-void socket_stream_t::on_read_error(int errsv) {
-    if (errsv != EPIPE && errsv != ECONNRESET && errsv != ENOTCONN) {
-        // Unexpected error (not just "we closed").
-        logERR("Could not read from socket: %s", strerror(errsv));
-    }
-}
-
-void socket_stream_t::on_write_error(int errsv) {
-    if (errsv != EPIPE && errsv != ENOTCONN && errsv != ECONNRESET) {
-        // Unexpected error (not just "we closed")
-        logERR("Could not write to socket: %s", strerror(errsv));
-    }
-}
-
-void socket_stream_t::do_shutdown_read() {
-    assert_thread();
-    int res = ::shutdown(fd_.get(), SHUT_RD);
-    if (res != 0 && errno != ENOTCONN)
-        logERR("Could not shutdown socket for reading: %s", strerror(errno));
-}
-
-void socket_stream_t::do_shutdown_write() {
-    assert_thread();
-    int res = ::shutdown(fd_.get(), SHUT_WR);
-    if (res != 0 && errno != ENOTCONN)
-        logERR("Could not shutdown socket for writing: %s", strerror(errno));
-}
-
-
 // -------------------- unix_socket_stream_t --------------------
 unix_socket_stream_t::unix_socket_stream_t(int fd, fd_watcher_t *watcher)
     : socket_stream_t(fd, watcher) {}
@@ -295,9 +277,15 @@ archive_result_t unix_socket_stream_t::recv_fd(int *fd) {
 }
 
 int unix_socket_stream_t::send_fds(size_t num_fds, int *fds) {
+    if (!fd_watcher_->is_write_open())
+        return -1;
+
     while (-1 == ::send_fds(fd_.get(), num_fds, fds)) {
         if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) {
-            on_write_error(errno);
+            if (errno != EPIPE && errno != ENOTCONN && errno != ECONNRESET) {
+                // Unexpected error (not just "we closed")
+                logERR("Could not send fds on socket: %s", strerror(errno));
+            }
             return -1;
         }
 
@@ -310,7 +298,10 @@ int unix_socket_stream_t::send_fds(size_t num_fds, int *fds) {
 }
 
 archive_result_t unix_socket_stream_t::recv_fds(size_t num_fds, int *fds) {
-    for (;;)
+    if (!fd_watcher_->is_read_open())
+        return ARCHIVE_SOCK_ERROR;
+
+    for (;;) {
         switch (::recv_fds(fd_.get(), num_fds, fds)) {
           case FD_RECV_OK: return ARCHIVE_SUCCESS;
 
@@ -330,4 +321,5 @@ archive_result_t unix_socket_stream_t::recv_fds(size_t num_fds, int *fds) {
 
           default: unreachable();
         }
+    }
 }
