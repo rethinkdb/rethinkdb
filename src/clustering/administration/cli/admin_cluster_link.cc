@@ -315,9 +315,9 @@ void admin_cluster_link_t::sync_from() {
         }
         
         semilattice_metadata->sync_from(sync_peer_id, &interruptor);
-    } catch (sync_failed_exc_t& ex) {
+    } catch (const sync_failed_exc_t& ex) {
         throw admin_no_connection_exc_t("connection lost to cluster");
-    } catch (admin_cluster_exc_t& ex) {
+    } catch (const admin_cluster_exc_t& ex) {
         // No sync peer, continue on with old data
     }
 
@@ -820,7 +820,7 @@ void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::co
                     ns.shards.get_mutable().insert(hash_region_t<key_range_t>(right));
                 }
                 ns.shards.upgrade_version(change_request_id);
-            } catch (std::exception& ex) {
+            } catch (const std::exception& ex) {
                 error += ex.what();
                 error += "\n";
             }
@@ -922,7 +922,7 @@ void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::co
                 ns.shards.get_mutable().erase(prev);
                 ns.shards.get_mutable().insert(hash_region_t<key_range_t>(merged));
                 ns.shards.upgrade_version(change_request_id);
-            } catch (std::exception& ex) {
+            } catch (const std::exception& ex) {
                 error += ex.what();
                 error += "\n";
             }
@@ -2169,7 +2169,7 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
                 datacenter_id_t datacenter(obj_info->uuid);
                 remove_datacenter_references(datacenter, cluster_metadata);
             }
-        } catch (std::exception& ex) {
+        } catch (const std::exception& ex) {
             error += ex.what();
             error += "\n";
         }
