@@ -74,7 +74,6 @@ BUILD_DIR:=$(BUILD_ROOT_DIR)/debug
 else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
-endif
 
 ifeq ($(COMPILER), CLANG)
 BUILD_DIR:=$(BUILD_DIR)_clang
