@@ -596,7 +596,7 @@ const type_t get_type(const View &v, variable_type_scope_t *scope) {
                     get_type(v.filter_view().predicate(), scope) == Type::JSON) {
                     return Type::VIEW;
                 } else {
-                    throw runtime_exc_t("Incorrect type."); // TODO: add a better error message
+                    return type_t(error_t()); // TODO: better info about the error?
                 }
             }
             break;
