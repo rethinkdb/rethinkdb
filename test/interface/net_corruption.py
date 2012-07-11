@@ -14,9 +14,10 @@ def garbage(n):
 with driver.Metacluster() as metacluster:
     print "Spinning up a process..."
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     files = driver.Files(metacluster, db_path = "db-1", executable_path = executable_path, command_prefix = command_prefix)
-    proc = driver.Process(cluster, files, log_path = "serve-output-1", executable_path = executable_path, command_prefix = command_prefix)
+    proc = driver.Process(cluster, files, log_path = "serve-output-1",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     proc.wait_until_started_up()
     cluster.check()
     print "Generating garbage traffic..."
