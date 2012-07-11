@@ -20,6 +20,12 @@ class TestTableRef(unittest.TestCase):
 
     def expect(self, query, expected):
         res = self.conn.run(query)
+        if not res.response:
+            root_ast = r.p.Query()
+            root_ast.token = self.conn.get_token()
+            r.toTerm(query)._finalize_query(root_ast)
+            print root_ast
+            print res
         self.assertEqual(res.status_code, 0, res.response[0])
         self.assertEqual(json.loads(res.response[0]), expected)
 
@@ -200,6 +206,27 @@ class TestTableRef(unittest.TestCase):
         fail(r.nth(r.stream(arr), .4), "integer")
         fail(r.nth(r.stream(arr), -5), "nonnegative")
         fail(r.nth(r.stream([0]), 1), "end")
+
+    def test_stream_fancy(self):
+        expect = self.expect
+        fail = self.expectfail
+
+        def distinct(arr):
+            return r.array(r.stream(arr).distinct())
+
+        expect(distinct([]), [])
+        expect(distinct(range(10)*10), range(10))
+        expect(distinct([1, 2, 3, 2]), [1, 2, 3])
+        expect(distinct([True, 2, False, 2]), [True, 2, False])
+
+        def limit(arr, count):
+            return r.array(r.stream(arr).limit(count))
+
+        expect(limit([], 0), [])
+        expect(limit([1, 2], 0), [])
+        expect(limit([1, 2], 1), [1])
+        expect(limit([1, 2], 5), [1, 2])
+        fail(limit([], -1), "nonnegative")
 
     def test_table_insert(self):
         docs = [{"a": 3, "b": 10, "id": 1}, {"a": 9, "b": -5, "id": 2}]

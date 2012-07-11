@@ -164,31 +164,25 @@ message Builtin {
 
     optional OrderBy order_by = 8;
 
-    message Distinct {
-        required Mapping mapping = 1;
-    };
-
-    optional Distinct distinct = 9;
-
     message Reduce {
         required Reduction reduction = 1;
     };
 
-    optional Reduce reduce = 10;
+    optional Reduce reduce = 9;
 
     message GroupedMapReduce {
         required Mapping group_mapping = 1;
         required MapReduce map_reduce = 2;
     };
 
-    optional GroupedMapReduce grouped_map_reduce = 11;
+    optional GroupedMapReduce grouped_map_reduce = 10;
 
     message MapReduce {
         required Mapping change_mapping = 1;
         required Reduction reduction = 2;
     };
 
-    optional MapReduce map_reduce = 12;
+    optional MapReduce map_reduce = 11;
 };
 
 message Reduction {
