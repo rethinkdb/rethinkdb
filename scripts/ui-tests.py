@@ -33,7 +33,7 @@ def print_available_tests():
     print 'Available tests:'
     print '\t- all: run all of the following tests'
     for test in tests:
-        print '\t- '+test[0]
+        print '\t- '+test
     
 if args.list_tests:
     print_available_tests()
