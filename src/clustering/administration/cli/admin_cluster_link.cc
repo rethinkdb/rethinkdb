@@ -2565,7 +2565,7 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
 template <class map_type>
 size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& machine_id,
                                                          const map_type& ns_map,
-                                                         std::vector<std::vector<std::string> >& table) {
+                                                         std::vector<std::vector<std::string> >& table_out) {
     size_t matches = 0;
 
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
@@ -2574,7 +2574,7 @@ size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& mac
             typename map_type::mapped_type::value_t ns = i->second.get();
             std::string uuid = uuid_to_str(i->first);
             std::string name = ns.name.in_conflict() ? "<conflict>" : ns.name.get();
-            matches += add_single_machine_blueprint(machine_id, ns.blueprint.get(), table, uuid, name);
+            matches += add_single_machine_blueprint(machine_id, ns.blueprint.get(), table_out, uuid, name);
         }
     }
 
@@ -2584,11 +2584,10 @@ size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& mac
 template <class protocol_t>
 bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& machine_id,
                                                         const persistable_blueprint_t<protocol_t>& blueprint,
-                                                        std::vector<std::vector<std::string> >& table,
+                                                        std::vector<std::vector<std::string> >& table_out,
                                                         const std::string& ns_uuid,
                                                         const std::string& ns_name) {
-    std::vector<std::string> delta;
-    bool match(false);
+    bool match = false;
 
     typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator machine_entry = blueprint.machines_roles.find(machine_id);
     if (machine_entry == blueprint.machines_roles.end()) {
@@ -2598,7 +2597,8 @@ bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& mach
     for (typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator i = machine_entry->second.begin();
          i != machine_entry->second.end(); ++i) {
         if (i->second == blueprint_details::role_primary || i->second == blueprint_details::role_secondary) {
-            delta.clear();
+            std::vector<std::string> delta;
+
             delta.push_back(ns_uuid);
             delta.push_back(ns_name);
 
@@ -2611,7 +2611,7 @@ bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& mach
                 delta.push_back("no");
             }
 
-            table.push_back(delta);
+            table_out.push_back(delta);
             match = true;
         } else {
             continue;
