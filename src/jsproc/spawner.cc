@@ -18,7 +18,7 @@ static bool spawner_created = false;
 static void sigchld_handler(int signo) {
     guarantee(signo == SIGCHLD);
     guarantee(spawner_created);
-    crash_or_trap("spawner process died");
+    crash_or_trap("Spawner process died!");
 }
 
 spawner_t::spawner_t(const info_t &info)
@@ -120,7 +120,7 @@ void spawner_t::exec_spawner(fd_t sockfd) {
     // command-line SIGINT should trigger a clean shutdown, not a crash.
     //
     // TODO(rntz): This is an ugly, hackish way to handle the problem.
-    guarantee_err(0 == setpgid(0, 0), "spawner could not set PGID");
+    guarantee_err(0 == setpgid(0, 0), "spawner: could not set PGID");
 
     // We ignore SIGCHLD so that we don't accumulate zombie children.
     {
@@ -131,7 +131,7 @@ void spawner_t::exec_spawner(fd_t sockfd) {
         act.sa_handler = SIG_IGN;
 
         guarantee_err(0 == sigaction(SIGCHLD, &act, NULL),
-                      "Could not ignore SIGCHLD");
+                      "spawner: Could not ignore SIGCHLD");
     }
 
     unix_socket_stream_t sock(sockfd, new blocking_fd_watcher_t());
@@ -159,7 +159,7 @@ void spawner_t::exec_spawner(fd_t sockfd) {
         }
 
         // We're the parent.
-        guarantee_err(0 == close(fd), "couldn't close fd");
+        guarantee_err(0 == close(fd), "spawner: couldn't close fd");
 
         // Send back its pid.
         guarantee(sizeof pid == sock.write(&pid, sizeof pid));
