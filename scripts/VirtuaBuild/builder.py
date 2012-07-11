@@ -17,9 +17,7 @@ class Builder(Thread):
             semaphore.acquire()
             self.target.run(self.branch, self.name)
             self.success = True
-        except self.target.RunError, err:
-            self.exception = err
-        except vm_build.VMError, err:
+        except vm_build.RunError, err:
             self.exception = err
         finally:
             semaphore.release()
