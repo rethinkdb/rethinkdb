@@ -547,7 +547,7 @@ std::pair<int, int> traversal_progress_t::guess_completion() {
     population_by_level_guesses.push_back(learned[0]);
 
     for (unsigned i = 0; i < (learned.size() - 1); i++) {
-        population_by_level_guesses.push_back(released_to_acquired_ratios[i] * population_by_level_guesses[i]);
+        population_by_level_guesses.push_back(static_cast<int>(released_to_acquired_ratios[i] * population_by_level_guesses[i]));
     }
 
     int estimate_of_total_nodes = 0;
