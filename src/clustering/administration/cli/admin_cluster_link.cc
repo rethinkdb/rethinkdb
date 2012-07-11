@@ -2364,21 +2364,20 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
 }
 
 template <class protocol_t>
-void admin_cluster_link_t::add_single_namespace_replicas(std::set<typename protocol_t::region_t>& shards,
-                                                         persistable_blueprint_t<protocol_t>& blueprint,
+void admin_cluster_link_t::add_single_namespace_replicas(const std::set<typename protocol_t::region_t>& shards,
+                                                         const persistable_blueprint_t<protocol_t>& blueprint,
                                                          machines_semilattice_metadata_t::machine_map_t& machine_map,
                                                          std::vector<std::vector<std::string> >& table) {
-    std::vector<std::string> delta;
-
     for (typename std::set<typename protocol_t::region_t>::iterator s = shards.begin(); s != shards.end(); ++s) {
-        std::string shard_str(admin_value_to_string(*s));
+        std::string shard_str = admin_value_to_string(*s);
 
         // First add the primary host
-        for (typename persistable_blueprint_t<protocol_t>::role_map_t::iterator i = blueprint.machines_roles.begin();
+        for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator i = blueprint.machines_roles.begin();
              i != blueprint.machines_roles.end(); ++i) {
-            typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::iterator j = i->second.find(*s);
+            typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator j = i->second.find(*s);
             if (j != i->second.end() && j->second == blueprint_details::role_primary) {
-                delta.clear();
+                std::vector<std::string> delta;
+
                 delta.push_back(shard_str);
                 delta.push_back(uuid_to_str(i->first));
 
@@ -2398,11 +2397,12 @@ void admin_cluster_link_t::add_single_namespace_replicas(std::set<typename proto
         }
 
         // Then add all the secondaries
-        for (typename persistable_blueprint_t<protocol_t>::role_map_t::iterator i = blueprint.machines_roles.begin();
+        for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator i = blueprint.machines_roles.begin();
              i != blueprint.machines_roles.end(); ++i) {
-            typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::iterator j = i->second.find(*s);
+            typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator j = i->second.find(*s);
             if (j != i->second.end() && j->second == blueprint_details::role_secondary) {
-                delta.clear();
+                std::vector<std::string> delta;
+
                 delta.push_back(shard_str);
                 delta.push_back(uuid_to_str(i->first));
 
