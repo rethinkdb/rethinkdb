@@ -33,12 +33,35 @@ Handlebars.registerHelper 'links_to_machines', (machines) ->
         out += ", " if i isnt machines.length-1
     return out
 
+Handlebars.registerHelper 'links_to_machines_inline', (machines) ->
+    out = ""
+    for i in [0...machines.length]
+        out += '<a href="#machines/'+machines[i].uid+'" class="links_to_other_view">'+machines[i].name+'</a>'
+        out += ", " if i isnt machines.length-1
+    return new Handlebars.SafeString(out)
+
 #Returns a list of links to namespaces
 Handlebars.registerHelper 'links_to_namespaces', (namespaces) ->
     out = ""
     for i in [0...namespaces.length]
         out += '<p><a href="#namespaces/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a></p>'
     return out
+
+#Returns a list of links to namespaces on one line
+Handlebars.registerHelper 'links_to_namespaces_inline', (namespaces) ->
+    out = ""
+    for i in [0...namespaces.length]
+        out += '<a href="#namespaces/'+namespaces[i].id+'" class="links_to_other_view">'+namespaces[i].name+'</a>'
+        out += ", " if i isnt namespaces.length-1
+    return new Handlebars.SafeString(out)
+
+#Returns a list of links to datacenters on one line
+Handlebars.registerHelper 'links_to_datacenters_inline', (datacenters) ->
+    out = ""
+    for i in [0...datacenters.length]
+        out += '<a href="#datacenters/'+datacenters[i].id+'" class="links_to_other_view">'+datacenters[i].name+'</a>'
+        out += ", " if i isnt datacenters.length-1
+    return new Handlebars.SafeString(out)
 
 #Returns a list of links to machines and namespaces
 Handlebars.registerHelper 'links_to_masters_and_namespaces', (machines) ->

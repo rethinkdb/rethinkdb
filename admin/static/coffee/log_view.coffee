@@ -53,7 +53,7 @@ module 'LogView', ->
             event.preventDefault()
             # Ensure we have older entries (older than the oldest timestamp we're displaying)
             @fetch_log_entries(
-                max_timestamp: @log_entries.at(@log_entries.length-1).get('timestamp')-1
+                max_timestamp: @log_entries.at(@log_entries.length-1).get('timestamp')-1 # Use parseInt instead?
                 , (new_log_entries) =>
                     last_rendered_entry_index = @log_entries.length - 1
                     @log_entries.add new_log_entries.models[0...@max_log_entries]
@@ -128,18 +128,57 @@ module 'LogView', ->
         tagName: 'li'
         template: Handlebars.compile $('#log-entry-template').html()
 
-        events: ->
-            'click a[rel=popover]': 'do_nothing'
+        events:
+            'click .more-details-link': 'display_details'
 
-        do_nothing: (event) -> event.preventDefault()
+        display_details: (event) =>
+            event.preventDefault()
+            if @.$(event.target).html() is 'More details'
+                @.$(event.target).html 'Hide details'
+                @.$(event.target).parent().parent().next().slideDown 'fast'
+            else
+                @.$(event.target).html 'More details'
+                @.$(event.target).parent().parent().next().slideUp 'fast'
 
         render: =>
             json = _.extend @model.toJSON(), @model.get_formatted_message()
-            @.$el.html @template _.extend json,
+            json = _.extend json,
                 machine_name: machines.get(@model.get('machine_uuid')).get('name')
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
+        
+            if json.formatted_message is 'Applying data '
+                json.formatted_message = ' Applying data for'
 
-            @.$('a[rel=popover]').popover
-                html: true
-
+            json_data = $.parseJSON json.json
+            if json_data?
+                for group of json_data
+                    switch group
+                        when 'memcached_namespaces'
+                            json.memcached_namespaces = []
+                            for key of json_data[group]
+                                if namespaces.get(key)?
+                                    json.memcached_namespaces.push
+                                        id: key
+                                        name: namespaces.get(key).get('name')
+                                    json.concerns_memcached_namespaces = true
+                        when 'machines'
+                            json.machines = []
+                            for key of json_data[group]
+                                if machines.get(key)?
+                                    json.machines.push
+                                        id: key
+                                        name: machines.get(key).get('name')
+                                    json.concerns_machines = true
+                        when 'datacenters'
+                            json.datacenters = []
+                            for key of json_data[group]
+                                if datacenters.get(key)?
+                                    json.datacenters.push
+                                        id: key
+                                        name: namespaces.get(key).get('name')
+                                    json.concerns_datacenters = true   
+    
+            @.$el.html @template json 
+            
+            @delegateEvents()
             return @

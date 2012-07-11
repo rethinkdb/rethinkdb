@@ -23,14 +23,29 @@
 </script>
 <script id="log-entry-template" type="text/x-handlebars-template">
     <div class="entry-metadata">
-        <p>Reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
-        <p>{{datetime}}</p>
+        <p>Reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a> on {{datetime}}</p>
     </div>
-    <p class="level">{{level}}</p>
     <p class="message">
-        {{formatted_message}}
         {{#if json}}
-                <a href="#" class="json" rel="popover" data-content="<pre>{{json}}</pre>" data-title="JSON applied to server">examine JSON</a>
+            <span class="more-details"><a href="#" class="more-details-link">More details</a></span>
+        {{/if}}
+        <strong>Log: </strong>
+
+        {{formatted_message}}
+        {{#if concerns_memcached_namespaces}}
+            namespace ({{links_to_namespaces_inline memcached_namespaces}})
+        {{/if}}
+
+        {{#if concerns_machines}}
+            machine ({{links_to_machines_inline machines}})
+        {{/if}}
+
+        {{#if concerns_datacenters}}
+            datacenter ({{links_to_datacenters_inline datacenters}})
         {{/if}}
     </p>
+
+    {{#if json}}    
+        <pre class="details">{{json}}</pre>
+    {{/if}}
 </script>
