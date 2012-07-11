@@ -1566,7 +1566,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             unreachable("eval called on a function that returns a stream (use eval_stream instead).\n");
             break;
         case Builtin::LENGTH:
-            throw runtime_exc_t("Unimplemented: Builtin::LENGTH");
+            {
+                json_stream_t stream = eval_stream(c.args(0), env);
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(stream.size())));
+            }
             break;
         case Builtin::NTH:
             {
