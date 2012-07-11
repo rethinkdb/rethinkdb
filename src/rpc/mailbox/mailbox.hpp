@@ -1,6 +1,9 @@
 #ifndef RPC_MAILBOX_MAILBOX_HPP_
 #define RPC_MAILBOX_MAILBOX_HPP_
 
+#include "errors.hpp"
+#include <boost/function.hpp>
+
 #include "containers/archive/archive.hpp"
 #include "rpc/connectivity/cluster.hpp"
 

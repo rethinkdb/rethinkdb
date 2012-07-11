@@ -37,7 +37,7 @@ bool check_existence(const std::string& file_path) {
     return 0 == access(file_path.c_str(), F_OK);
 }
 
-void run_rethinkdb_create(const std::string &filepath, std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
+void run_rethinkdb_create(const std::string &filepath, const std::string &machine_name, const io_backend_t io_backend, bool *result_out) {
     if (check_existence(filepath)) {
         printf("ERROR: The path '%s' already exists.  Delete it and try again.\n", filepath.c_str());
         *result_out = false;
@@ -59,8 +59,12 @@ void run_rethinkdb_create(const std::string &filepath, std::string &machine_name
         return;
     }
 
-    perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-    metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
+    boost::scoped_ptr<io_backender_t> io_backender;
+    make_io_backender(io_backend, &io_backender);
+
+    perfmon_collection_t metadata_perfmon_collection;
+    perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
+    metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, metadata);
 
     printf("Created directory '%s' and a metadata file inside it.\n", filepath.c_str());
 
@@ -108,10 +112,14 @@ void run_rethinkdb_serve(const std::string &filepath, const std::vector<host_and
         return;
     }
 
-    perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-    metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
+    boost::scoped_ptr<io_backender_t> io_backender;
+    make_io_backender(io_backend, &io_backender);
 
-    *result_out = serve(io_backend,
+    perfmon_collection_t metadata_perfmon_collection;
+    perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
+    metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
+
+    *result_out = serve(io_backender.get(),
                         filepath, &store,
                         look_up_peers_addresses(joins),
                         ports,
@@ -128,10 +136,14 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
     if (check_existence(filepath)) {
         printf("It already exists.  Loading data...\n");
 
-        perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-        metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection);
+        boost::scoped_ptr<io_backender_t> io_backender;
+        make_io_backender(io_backend, &io_backender);
 
-        *result_out = serve(io_backend,
+        perfmon_collection_t metadata_perfmon_collection;
+        perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
+        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection);
+
+        *result_out = serve(io_backender.get(),
                             filepath, &store,
                             look_up_peers_addresses(joins),
                             ports,
@@ -204,18 +216,29 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
             shards.insert(hash_region_t<key_range_t>::universe());
             namespace_metadata.shards = vclock_t<std::set<hash_region_t<key_range_t> > >(shards, our_machine_id);
 
+            region_map_t<memcached_protocol_t, machine_id_t> primary_pinnings(hash_region_t<key_range_t>::universe(), nil_uuid());
+            namespace_metadata.primary_pinnings = vclock_t<region_map_t<memcached_protocol_t, machine_id_t> >(primary_pinnings, our_machine_id);
+
+            region_map_t<memcached_protocol_t, std::set<machine_id_t> > secondary_pinnings(hash_region_t<key_range_t>::universe(), std::set<machine_id_t>());
+            namespace_metadata.secondary_pinnings = vclock_t<region_map_t<memcached_protocol_t, std::set<machine_id_t> > >(secondary_pinnings, our_machine_id);
+
             semilattice_metadata.memcached_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
 
         } else {
             machine_semilattice_metadata_t our_machine_metadata;
             our_machine_metadata.name = vclock_t<std::string>(machine_name, our_machine_id);
+            our_machine_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
             semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
         }
 
-        perfmon_collection_t metadata_perfmon_collection("metadata", &get_global_perfmon_collection(), true, true);
-        metadata_persistence::persistent_file_t store(io_backend, metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
+        boost::scoped_ptr<io_backender_t> io_backender;
+        make_io_backender(io_backend, &io_backender);
 
-        *result_out = serve(io_backend,
+        perfmon_collection_t metadata_perfmon_collection;
+        perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
+        metadata_persistence::persistent_file_t store(io_backender.get(), metadata_file(filepath), &metadata_perfmon_collection, our_machine_id, semilattice_metadata);
+
+        *result_out = serve(io_backender.get(),
                             filepath, &store,
                             look_up_peers_addresses(joins),
                             ports,
@@ -229,7 +252,10 @@ void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_
     os_signal_cond_t sigint_cond;
     rassert(!joins.empty());
 
-    *result_out = serve_proxy(io_backend,
+    boost::scoped_ptr<io_backender_t> io_backender;
+    make_io_backender(io_backend, &io_backender);
+
+    *result_out = serve_proxy(io_backender.get(),
                               logfilepath,
                               look_up_peers_addresses(joins),
                               ports,
@@ -376,7 +402,7 @@ int main_rethinkdb_create(int argc, char *argv[]) {
     std::string filepath = vm["directory"].as<std::string>();
     std::string machine_name = vm["name"].as<std::string>();
 
-    const int num_workers = 1;  // get_cpu_count(); // TODO: uncomment
+    const int num_workers = get_cpu_count();
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_create, filepath, machine_name, io_backend, &result),
@@ -415,7 +441,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
+    const int num_workers = get_cpu_count();
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_serve, filepath, joins,
@@ -462,7 +488,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         if (last_arg == "-" || last_arg == "--")
             cmd_args.push_back(last_arg);
 
-        const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
+        const int num_workers = get_cpu_count();
         run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result),
                            num_workers);
 
@@ -507,7 +533,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
+    const int num_workers = get_cpu_count();
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins,
@@ -550,7 +576,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    const int num_workers = 1;  // get_cpu_count();  // TODO: uncomment
+    const int num_workers = get_cpu_count();
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain, filepath, machine_name, joins,

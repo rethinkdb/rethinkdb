@@ -4,12 +4,10 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/variant/get.hpp>
 
 #include "arch/arch.hpp"
-
 #include "buffer_cache/mirrored/mirrored.hpp"
-#include "do_on_thread.hpp"
+#include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/serializer.hpp"
 
@@ -254,12 +252,13 @@ public:
         public thread_message_t,
         public home_thread_mixin_t {
         writeback_t *parent;
-        mc_buf_lock_t *buf;
         intrusive_ptr_t<standard_block_token_t> token;
 
     private:
         friend class buf_writer_t;
         cond_t finished_;
+
+        scoped_ptr_t<mc_buf_lock_t> buf;
 
     public:
         void on_write_launched(const intrusive_ptr_t<standard_block_token_t>& tok) {
@@ -284,7 +283,7 @@ public:
 
     buf_writer_t(writeback_t *wb, mc_buf_lock_t *buf) {
         launch_cb.parent = wb;
-        launch_cb.buf = buf;
+        launch_cb.buf.init(buf);
         launch_cb.parent->cache->assert_thread();
         /* When we spawn a flush, the block ceases to be dirty, so we release the
         semaphore. To avoid releasing a tidal wave of write transactions every time
@@ -313,7 +312,6 @@ public:
         assert_thread();
         rassert(self_cond_.is_pulsed());
         rassert(launch_cb.finished_.is_pulsed());
-        delete launch_cb.buf;
     }
 };
 
@@ -337,7 +335,7 @@ void writeback_t::start_concurrent_flush() {
     coro_t::spawn(boost::bind(&writeback_t::do_concurrent_flush, this));
 }
 
-// TODO (rntz) break this up into smaller functions
+// TODO(rntz) break this up into smaller functions
 void writeback_t::do_concurrent_flush() {
     ticks_t start_time;
     cache->stats->pm_flushes_locking.begin(&start_time);

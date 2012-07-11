@@ -8,6 +8,7 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
+#include "clustering/immediate_consistency/query/direct_reader.hpp"
 
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
@@ -253,10 +254,9 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
 
             /* Figure out what version of the data is already present in our
              * store so we don't backfill anything prior to it. */
-            const int num_stores = svs->num_stores();
-            boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-            svs->new_read_tokens(read_tokens.get(), num_stores);
-            region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor);
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+            svs->new_read_token(&read_token);
+            region_map_t<protocol_t, version_range_t> metainfo = svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor);
             region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
 
             /* This waits until every other peer is ready to accept us as the
@@ -337,7 +337,8 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
         }
 
         std::string region_name(render_region_as_string(&region, 0));
-        perfmon_collection_t region_perfmon_collection(region_name, &regions_perfmon_collection, true, true);
+        perfmon_collection_t region_perfmon_collection;
+        perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
         broadcaster_t<protocol_t> broadcaster(mailbox_manager, branch_history_manager, svs, &region_perfmon_collection, interruptor);
 
@@ -352,11 +353,18 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, mul
          * ourselves after we've put it in the directory. */
         broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
 
-        listener_t<protocol_t> listener(mailbox_manager, broadcaster_business_card, branch_history_manager, &broadcaster, &region_perfmon_collection, interruptor);
+        listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster_business_card, branch_history_manager, &broadcaster, &region_perfmon_collection, interruptor);
         replier_t<protocol_t> replier(&listener);
-        master_t<protocol_t> master(mailbox_manager, ack_checker, &master_directory, &master_directory_lock, region, &broadcaster);
+        master_t<protocol_t> master(mailbox_manager, ack_checker, region, &broadcaster);
+        direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
 
-        directory_entry.update_without_changing_id(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card(), replier.get_business_card()));
+        directory_entry.update_without_changing_id(
+            typename reactor_business_card_t<protocol_t>::primary_t(
+                broadcaster.get_business_card(),
+                replier.get_business_card(),
+                master.get_business_card(),
+                direct_reader.get_business_card()
+            ));
 
         interruptor->wait_lazily_unordered();
     } catch (interrupted_exc_t) {

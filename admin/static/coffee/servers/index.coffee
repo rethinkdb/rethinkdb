@@ -553,6 +553,7 @@ module 'ServerView', ->
     class @RemoveDatacenterModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#remove_datacenter-modal-template').html()
         alert_tmpl: Handlebars.compile $('#removed_datacenter-alert-template').html()
+        template_remove_error: Handlebars.compile $('#fail_delete_datacenter-template').html()
         class: 'remove-datacenter'
 
         initialize: ->
@@ -576,10 +577,24 @@ module 'ServerView', ->
                 success: @on_success
                 error: @on_error
 
+
+        on_success_with_error: =>
+            @.$('.error_answer').html @template_remove_error
+
+            if @.$('.error_answer').css('display') is 'none'
+                @.$('.error_answer').slideDown('fast')
+            else
+                @.$('.error_answer').css('display', 'none')
+                @.$('.error_answer').fadeIn()
+            @reset_buttons()
+
         on_success: (response) ->
-            super
             if (response)
-                throw new Error("Received a non null response to a delete... this is incorrect")
+                @on_success_with_error()
+                return
+
+            super
+
             datacenters.remove(@datacenter.id)
             $('#user-alert-space').html @alert_tmpl
                 name: @datacenter.get('name')

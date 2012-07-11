@@ -2,17 +2,17 @@
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-#include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
+
+#include <set>
+#include <stdexcept>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/optional.hpp>
-
-#include <vector>
-#include <set>
 
 #include "concurrency/coro_fifo.hpp"
 #include "concurrency/mutex.hpp"
@@ -24,6 +24,7 @@
 #include "containers/buffer_group.hpp"
 #include "containers/iterators.hpp"
 #include "containers/printf_buffer.hpp"
+#include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "arch/os_signal.hpp"
 #include "perfmon/collect.hpp"
@@ -559,7 +560,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                          bool noreply,
                          order_token_t token) {
 
-    boost::scoped_ptr<pipeliner_acq_t> pipeliner_acq(pipeliner_acq_raw);
+    scoped_ptr_t<pipeliner_acq_t> pipeliner_acq(pipeliner_acq_raw);
 
     block_pm_duration set_timer(&rh->stats->pm_cmd_set);
 
@@ -690,7 +691,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
 void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_command_t sc, int argc, char **argv, order_token_t token) {
     // This is _not_ spawned yet.
 
-    pipeliner_acq_t *pipeliner_acq = new pipeliner_acq_t(pipeliner);
+    scoped_ptr_t<pipeliner_acq_t> pipeliner_acq(new pipeliner_acq_t(pipeliner));
     pipeliner_acq->begin_operation();
 
     const char *invalid_char;
@@ -703,7 +704,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->error();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
 
@@ -714,7 +714,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
     rh->stats->pm_storage_key_size.record((float) key.size());
@@ -726,7 +725,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
 
@@ -737,7 +735,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
 
@@ -767,7 +764,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error_bad_command_line_format();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
     rh->stats->pm_storage_value_size.record((float) value_size);
@@ -781,7 +777,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
             pipeliner_acq->begin_write();
             rh->client_error_bad_command_line_format();
             pipeliner_acq->end_write();
-            delete pipeliner_acq;
             return;
         }
     }
@@ -812,7 +807,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error_bad_data();
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
 
@@ -821,7 +815,6 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         pipeliner_acq->begin_write();
         rh->client_error("bad data chunk\r\n");
         pipeliner_acq->end_write();
-        delete pipeliner_acq;
         return;
     }
 
@@ -831,7 +824,7 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
 
     pipeliner_acq->done_argparsing();
 
-    coro_t::spawn_now_deprecated(boost::bind(&run_storage_command, rh, pipeliner_acq, sc, key, dp, metadata, noreply, token));
+    coro_t::spawn_now(boost::bind(&run_storage_command, rh, pipeliner_acq.release(), sc, key, dp, metadata, noreply, token));
 }
 
 /* "incr" and "decr" commands */
@@ -1064,10 +1057,8 @@ void memcached_stats(int argc, char **argv, std::vector<std::string>& stat_respo
         names_to_match.insert(argv[i]);
     }
 
-    perfmon_result_t stats(perfmon_result_t::make_map());
-    perfmon_get_stats(&stats);
-
-    format_stats(&stats, std::string(), names_to_match, stat_response_lines);
+    boost::scoped_ptr<perfmon_result_t> stats(perfmon_get_stats());
+    format_stats(stats.get(), std::string(), names_to_match, stat_response_lines);
     stat_response_lines.push_back(end_marker);
 }
 
@@ -1123,11 +1114,11 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
         /* Dispatch to the appropriate subclass */
         order_token_t token = order_source.check_in(std::string("handle_memcache+") + args[0]);
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
-            coro_t::spawn_now_deprecated(boost::bind(do_get, &rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode()));
+            coro_t::spawn_now(boost::bind(do_get, &rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode()));
         } else if (!strcmp(args[0], "gets")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_get, &rh, &pipeliner, true, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_get, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "rget")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_rget, &rh, &pipeliner, args.size(), args.data()));
+            coro_t::spawn_now(boost::bind(do_rget, &rh, &pipeliner, args.size(), args.data()));
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
             do_storage(&rh, &pipeliner, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {
@@ -1141,11 +1132,11 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
         } else if (!strcmp(args[0], "cas")) {
             do_storage(&rh, &pipeliner, cas_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "delete")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_delete, &rh, &pipeliner, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_delete, &rh, &pipeliner, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "incr")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_incr_decr, &rh, &pipeliner, true, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_incr_decr, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "decr")) {
-            coro_t::spawn_now_deprecated(boost::bind(do_incr_decr, &rh, &pipeliner, false, args.size(), args.data(), token));
+            coro_t::spawn_now(boost::bind(do_incr_decr, &rh, &pipeliner, false, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "quit")) {
             // Make sure there's no more tokens (the kind in args, not
             // order tokens)

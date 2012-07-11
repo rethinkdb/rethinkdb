@@ -4,7 +4,14 @@ module 'Sidebar', ->
     class @Container extends Backbone.View
         className: 'sidebar-container'
         template: Handlebars.compile $('#sidebar-container-template').html()
+        template_dataexplorer: Handlebars.compile $('#sidebar-dataexplorer_container-template').html()
+
         max_recent_log_entries: 5
+        type_view: 'default'
+        previous_queries: []
+        events:
+            'click .namespace_query': 'write_query_namespace'
+            'click .old_query': 'write_query_old'
 
         initialize: =>
             log_initial '(initializing) sidebar view: container'
@@ -13,27 +20,59 @@ module 'Sidebar', ->
             @connectivity_status = new Sidebar.ConnectivityStatus()
             @issues = new Sidebar.Issues()
 
-            #@reset_log_entries()
             recent_log_entries.on 'reset', @render
-
-            # Render when roude changes
             window.app.on 'all', @render
 
-        render: (route) =>
-            @.$('.recent-log-entries').html ''
-            @.$el.html @template({})
+        set_type_view: (type = 'default') =>
+            if type isnt @type_view
+                @type_view = type
+                @render()
+                if type is 'default'
+                    recent_log_entries.on 'reset', @render
+                else if type is 'dataexplorer'
+                    recent_log_entries.off()
 
-            # Render connectivity status
-            @.$('.client-connection-status').html @client_connectivity_status.render().el
-            @.$('.connectivity-status').html @connectivity_status.render().el
+        add_query: (query) =>
+            @previous_queries.push query
+            @render()
 
-            # Render issue summary
-            @.$('.issues').html @issues.render().el
-            
-            # Render each event view and add it to the list of recent events
-            for view in recent_log_entries_view
-                @.$('.recent-log-entries').append view.render().el
-            return @
+        write_query_namespace: (event) ->
+            window.router.current_view.write_query_namespace(event)
+
+        write_query_old: (event) ->
+            window.router.current_view.write_query_old(event)
+
+        render: =>
+            if @type_view is 'default'
+                @.$('.recent-log-entries').html ''
+                @.$el.html @template({})
+    
+                # Render connectivity status
+                @.$('.client-connection-status').html @client_connectivity_status.render().el
+                @.$('.connectivity-status').html @connectivity_status.render().el
+    
+                # Render issue summary
+                @.$('.issues').html @issues.render().el
+                
+                # Render each event view and add it to the list of recent events
+                for view in recent_log_entries_view
+                    @.$('.recent-log-entries').append view.render().el
+                return @
+            else
+                namespaces_data = []
+                for namespace in namespaces.models
+                    namespaces_data.push namespace.get('name')
+
+                
+                @.$el.html @template_dataexplorer
+                    namespaces: namespaces_data
+                    previous_queries: @previous_queries
+
+                # Render issue summary
+                @.$('.issues').html @issues.render().el
+
+                return @
+
 
 
     # Sidebar.ClientConnectionStatus
@@ -112,6 +151,7 @@ module 'Sidebar', ->
 
             # Get a list of all other issues (non-critical)
             other_issues = issues.filter (issue) -> not issue.get('critical')
+            other_issues = _.groupBy other_issues, (issue) -> issue.get('type')
 
             @.$el.html @template
                 critical_issues:
@@ -123,10 +163,14 @@ module 'Sidebar', ->
                         return json
                     )
                 other_issues:
-                    exist: other_issues.length > 0
-                    num: other_issues.length
-                no_issues: _.keys(critical_issues).length is 0 and other_issues.length is 0
-                show_resolve_issues: window.location.hash isnt @resolve_issues_route
+                    exist: _.keys(other_issues).length > 0
+                    types: _.map(other_issues, (issues, type) ->
+                        json = {}
+                        json[type] = true
+                        json['num'] = issues.length
+                        return json
+                    )
+                no_issues: _.keys(critical_issues).length is 0 and _.keys(other_issues).length is 0
             return @
 
     # Sidebar.RecentLogEntry
@@ -134,10 +178,18 @@ module 'Sidebar', ->
         className: 'recent-log-entry'
         template: Handlebars.compile $('#sidebar-recent_log_entry-template').html()
 
-        events: ->
-            'click a[rel=popover]': 'do_nothing'
+        events:
+            'click a[rel=log_details]': 'show_popover'
 
-        do_nothing: (event) -> event.preventDefault()
+        show_popover: (event) =>
+            console.log 'click on log'
+            event.preventDefault()
+            @.$(event.currentTarget).popover('show')
+            $popover = $('.popover')
+
+            $popover.on 'clickoutside', (e) ->
+                if e.target isnt event.target  # so we don't remove the popover when we click on the link
+                    $(e.currentTarget).remove()
 
         render: =>
             json = _.extend @model.toJSON(), @model.get_formatted_message()
@@ -152,7 +204,8 @@ module 'Sidebar', ->
                     timeago_timestamp: @model.get_iso_8601_timestamp()
 
             @.$('abbr.timeago').timeago()
-            @.$('a[rel=popover]').popover
-                html: true
+            @.$('a[rel=log_details]').popover
+                trigger: 'manual'
+                placement: 'left'
             return @
 

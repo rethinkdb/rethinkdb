@@ -3,6 +3,7 @@
 
 #define MAX_REF_SIZE 251
 
+#include "arch/io/disk.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/semantic_checking.hpp"
@@ -23,7 +24,7 @@ struct queue_block_t {
 template <class T>
 class disk_backed_queue_t {
 public:
-    disk_backed_queue_t(std::string filename, perfmon_collection_t *stats_parent) :
+    disk_backed_queue_t(io_backender_t *io_backender, std::string filename, perfmon_collection_t *stats_parent) :
             queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID)
     {
         /* We're going to register for writes, however those writes won't be able
@@ -33,6 +34,7 @@ public:
 
         standard_serializer_t::create(
                 standard_serializer_t::dynamic_config_t(),
+                io_backender,
                 standard_serializer_t::private_dynamic_config_t(filename),
                 standard_serializer_t::static_config_t(),
                 stats_parent
@@ -40,6 +42,7 @@ public:
 
         serializer.reset(new standard_serializer_t(
             standard_serializer_t::dynamic_config_t(),
+            io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
             stats_parent
             ));

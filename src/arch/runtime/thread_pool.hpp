@@ -4,6 +4,7 @@
 #include <pthread.h>
 
 #include <map>
+#include <string>
 
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"

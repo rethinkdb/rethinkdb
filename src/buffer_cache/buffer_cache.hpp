@@ -28,7 +28,7 @@
 #include "buffer_cache/mock.hpp"
 
 #if !defined(VALGRIND)
-#include "buffer_cache/semantic_checking.hpp"
+#include "buffer_cache/semantic_checking.hpp"  // NOLINT
 #endif  // !defined(VALGRIND)
 
 #endif  // MOCK_CACHE_CHECK

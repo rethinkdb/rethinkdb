@@ -1,6 +1,7 @@
 #ifndef NO_EVENTFD
 
-#include <algorithm>
+#include "arch/io/disk/aio/getevents_eventfd.hpp"
+
 #include <fcntl.h>
 #include <linux/fs.h>
 #include <stdio.h>
@@ -8,8 +9,10 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+
+#include <algorithm>
+
 #include "arch/runtime/system_event/eventfd.hpp"
-#include "arch/io/disk/aio/getevents_eventfd.hpp"
 #include "arch/io/arch.hpp"
 #include "config/args.hpp"
 #include "utils.hpp"

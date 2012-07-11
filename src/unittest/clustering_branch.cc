@@ -5,9 +5,11 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "containers/uuid.hpp"
 #include "mock/branch_history_manager.hpp"
+#include "mock/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "unittest/clustering_utils.hpp"
-#include "unittest/unittest_utils.hpp"
+#include "mock/unittest_utils.hpp"
+
+using mock::dummy_protocol_t;
 
 namespace unittest {
 
@@ -26,22 +28,26 @@ boost::optional<boost::optional<replier_business_card_t<dummy_protocol_t> > > wr
 // TODO: Make this's argument take the multistore_ptr_t in addition to the test_store_t.
 void run_with_broadcaster(
         boost::function< void(
-            simple_mailbox_cluster_t *,
+            io_backender_t *,
+            mock::simple_mailbox_cluster_t *,
             branch_history_manager_t<dummy_protocol_t> *,
             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
             boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *,
-            test_store_t<dummy_protocol_t> *,
+            mock::test_store_t<dummy_protocol_t> *,
             boost::scoped_ptr<listener_t<dummy_protocol_t> > *
             )> fun)
 {
     /* Set up a cluster so mailboxes can be created */
-    simple_mailbox_cluster_t cluster;
+    mock::simple_mailbox_cluster_t cluster;
 
     /* Set up branch history manager */
     mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
+    boost::scoped_ptr<io_backender_t> io_backender;
+    make_io_backender(aio_default, &io_backender);
+
     /* Set up a broadcaster and initial listener */
-    test_store_t<dummy_protocol_t> initial_store;
+    mock::test_store_t<dummy_protocol_t> initial_store(io_backender.get());
     store_view_t<dummy_protocol_t> *initial_store_ptr = &initial_store.store;
     multistore_ptr_t<dummy_protocol_t> initial_svs(&initial_store_ptr, 1);
     cond_t interruptor;
@@ -60,6 +66,7 @@ void run_with_broadcaster(
 
     boost::scoped_ptr<listener_t<dummy_protocol_t> > initial_listener(
         new listener_t<dummy_protocol_t>(
+            io_backender.get(),
             cluster.get_mailbox_manager(),
             broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
             &branch_history_manager,
@@ -68,7 +75,8 @@ void run_with_broadcaster(
             &interruptor
         ));
 
-    fun(&cluster,
+    fun(io_backender.get(),
+        &cluster,
         &branch_history_manager,
         broadcaster_directory_controller.get_watchable(),
         &broadcaster,
@@ -78,15 +86,16 @@ void run_with_broadcaster(
 
 void run_in_thread_pool_with_broadcaster(
         boost::function< void(
-            simple_mailbox_cluster_t *,
+            io_backender_t *,
+            mock::simple_mailbox_cluster_t *,
             branch_history_manager_t<dummy_protocol_t> *,
             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
             boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *,
-            test_store_t<dummy_protocol_t> *,
+            mock::test_store_t<dummy_protocol_t> *,
             boost::scoped_ptr<listener_t<dummy_protocol_t> > *
             )> fun)
 {
-    run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
+    mock::run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
 }
 
 }   /* anonymous namespace */
@@ -94,26 +103,27 @@ void run_in_thread_pool_with_broadcaster(
 /* The `ReadWrite` test just sends some reads and writes via the broadcaster to a
 single mirror. */
 
-void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
-        UNUSED branch_history_manager_t<dummy_protocol_t> *,
-        UNUSED clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
-        boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
-        UNUSED test_store_t<dummy_protocol_t> *store,
-        boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
+void run_read_write_test(UNUSED io_backender_t *io_backender,
+                         UNUSED mock::simple_mailbox_cluster_t *cluster,
+                         UNUSED branch_history_manager_t<dummy_protocol_t> *,
+                         UNUSED clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
+                         boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
+                         UNUSED mock::test_store_t<dummy_protocol_t> *store,
+                         boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
 {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
 
     /* Give time for the broadcaster to see the replier */
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     order_source_t order_source;
 
     /* Send some writes via the broadcaster to the mirror */
     std::map<std::string, std::string> values_inserted;
     for (int i = 0; i < 10; i++) {
-        fake_fifo_enforcement_t enforce;
+        mock::fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
 
         dummy_protocol_t::write_t w;
@@ -136,7 +146,7 @@ void run_read_write_test(UNUSED simple_mailbox_cluster_t *cluster,
     /* Now send some reads */
     for (std::map<std::string, std::string>::iterator it = values_inserted.begin();
             it != values_inserted.end(); it++) {
-        fake_fifo_enforcement_t enforce;
+        mock::fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
 
         dummy_protocol_t::read_t r;
@@ -156,7 +166,7 @@ then adds another mirror. */
 
 static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, const std::string& key, const std::string& value, order_token_t otok, signal_t *) {
     // TODO: Is this the right place?  Maybe we should have real fifo enforcement for this helper function.
-    fake_fifo_enforcement_t enforce;
+    mock::fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
     dummy_protocol_t::write_t w;
     w.values[key] = value;
@@ -174,13 +184,13 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
     write_callback.wait_lazily_unordered();
 }
 
-void run_backfill_test(simple_mailbox_cluster_t *cluster,
-        branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
-        clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
-        boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
-        test_store_t<dummy_protocol_t> *store1,
-        boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
-{
+void run_backfill_test(io_backender_t *io_backender,
+                       mock::simple_mailbox_cluster_t *cluster,
+                       branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
+                       clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
+                       boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
+                       mock::test_store_t<dummy_protocol_t> *store1,
+                       boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
@@ -192,21 +202,22 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
 
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
-    test_inserter_t inserter(
+    mock::test_inserter_t inserter(
         boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
         NULL,
-        &dummy_key_gen,
+        &mock::dummy_key_gen,
         &order_source,
         "run_backfill_test/inserter",
         &inserter_state);
     nap(100);
 
     /* Set up a second mirror */
-    test_store_t<dummy_protocol_t> store2;
+    mock::test_store_t<dummy_protocol_t> store2(io_backender);
     store_view_t<dummy_protocol_t> *store2_ptr = &store2.store;
     multistore_ptr_t<dummy_protocol_t> store2_multi_ptr(&store2_ptr, 1);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
+        io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_manager,
@@ -224,7 +235,7 @@ void run_backfill_test(simple_mailbox_cluster_t *cluster,
     /* Stop the inserter, then let any lingering writes finish */
     inserter.stop();
     /* Let any lingering writes finish */
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     /* Confirm that both mirrors have all of the writes */
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();
@@ -239,13 +250,13 @@ TEST(ClusteringBranch, Backfill) {
 
 /* `PartialBackfill` backfills only in a specific sub-region. */
 
-void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
-        branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
-        clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
-        boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
-        test_store_t<dummy_protocol_t> *store1,
-        boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
-{
+void run_partial_backfill_test(io_backender_t *io_backender,
+                               mock::simple_mailbox_cluster_t *cluster,
+                               branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
+                               clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
+                               boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
+                               mock::test_store_t<dummy_protocol_t> *store1,
+                               boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
@@ -257,22 +268,23 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
 
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
-    test_inserter_t inserter(
+    mock::test_inserter_t inserter(
         boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
         NULL,
-        &dummy_key_gen,
+        &mock::dummy_key_gen,
         &order_source,
         "run_partial_backfill_test/inserter",
         &inserter_state);
     nap(100);
 
     /* Set up a second mirror */
-    test_store_t<dummy_protocol_t> store2;
+    mock::test_store_t<dummy_protocol_t> store2(io_backender);
     store_view_t<dummy_protocol_t> *store2_ptr = &store2.store;
     dummy_protocol_t::region_t subregion('a', 'm');
     multistore_ptr_t<dummy_protocol_t> store_ptr(&store2_ptr, 1, subregion);
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
+        io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
         branch_history_manager,
@@ -291,7 +303,7 @@ void run_partial_backfill_test(simple_mailbox_cluster_t *cluster,
     inserter.stop();
 
     /* Let any lingering writes finish */
-    let_stuff_happen();
+    mock::let_stuff_happen();
 
     /* Confirm that both mirrors have all of the writes */
     for (std::map<std::string, std::string>::iterator it = inserter.values_inserted->begin();

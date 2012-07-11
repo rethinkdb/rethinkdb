@@ -427,14 +427,16 @@ void delete_pair(buf_lock_t *node_buf, uint16_t offset) {
 
     uint16_t frontmost_offset = node->frontmost_offset + shift;
     node_buf->set_data(const_cast<uint16_t *>(&node->frontmost_offset), &frontmost_offset, sizeof(frontmost_offset));
-    uint16_t* new_pair_offsets = new uint16_t[node->npairs];
-    memcpy(new_pair_offsets, node->pair_offsets, sizeof(uint16_t) * node->npairs);
+
+    scoped_array_t<uint16_t> new_pair_offsets(node->npairs);
+    memcpy(new_pair_offsets.data(), node->pair_offsets, sizeof(uint16_t) * node->npairs);
+
     for (int i = 0; i < node->npairs; i++) {
         if (new_pair_offsets[i] < offset)
             new_pair_offsets[i] += shift;
     }
-    node_buf->set_data(const_cast<uint16_t *>(node->pair_offsets), new_pair_offsets, sizeof(uint16_t) * node->npairs);
-    delete[] new_pair_offsets;
+
+    node_buf->set_data(const_cast<uint16_t *>(node->pair_offsets), new_pair_offsets.data(), sizeof(uint16_t) * node->npairs);
 }
 
 uint16_t insert_pair(ibuf_t *node_buf, const btree_internal_pair *pair) {
@@ -454,8 +456,8 @@ uint16_t insert_pair(buf_lock_t *node_buf, block_id_t lnode, const btree_key_t *
     const btree_internal_pair *new_pair = get_pair(node, frontmost_offset);
 
     // Use a buffer to prepare the key/value pair which we can then use to generate a patch
-    char *pair_buf = new char[pair_size_with_key(key)];
-    btree_internal_pair *new_buf_pair = reinterpret_cast<btree_internal_pair *>(pair_buf);
+    scoped_array_t<char> pair_buf(pair_size_with_key(key));
+    btree_internal_pair *new_buf_pair = reinterpret_cast<btree_internal_pair *>(pair_buf.data());
 
     // insert contents
     new_buf_pair->lnode = lnode;
@@ -463,7 +465,6 @@ uint16_t insert_pair(buf_lock_t *node_buf, block_id_t lnode, const btree_key_t *
 
     // Patch the new pair into node_buf
     node_buf->set_data(const_cast<btree_internal_pair *>(new_pair), new_buf_pair, pair_size_with_key(key));
-    delete[] pair_buf;
 
     return frontmost_offset;
 }

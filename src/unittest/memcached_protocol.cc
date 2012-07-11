@@ -18,14 +18,17 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n"))));
     shards.push_back(hash_region_t<key_range_t>(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") )));
 
-    boost::ptr_vector<temp_file_t> temp_files;
+    boost::ptr_vector<mock::temp_file_t> temp_files;
     for (int i = 0; i < (int)shards.size(); i++) {
-        temp_files.push_back(new temp_file_t("/tmp/rdb_unittest.XXXXXX"));
+        temp_files.push_back(new mock::temp_file_t("/tmp/rdb_unittest.XXXXXX"));
     }
+
+    boost::scoped_ptr<io_backender_t> io_backender;
+    make_io_backender(aio_default, &io_backender);
 
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
     for (int i = 0; i < (int)shards.size(); i++) {
-        underlying_stores.push_back(new memcached_protocol_t::store_t(aio_pool, temp_files[i].name(), true, &get_global_perfmon_collection()));
+        underlying_stores.push_back(new memcached_protocol_t::store_t(io_backender.get(), temp_files[i].name(), true, &get_global_perfmon_collection()));
     }
 
     std::vector<boost::shared_ptr<store_view_t<memcached_protocol_t> > > stores;
@@ -40,7 +43,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<memcached_protocol_t> *)> fun) {
-    run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
+    mock::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
 }
 
 }   /* anonymous namespace */

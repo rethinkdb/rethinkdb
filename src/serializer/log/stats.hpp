@@ -31,6 +31,9 @@ struct log_serializer_stats_t {
 
     /* used in serializer/log/lba/lba_list.cc */
     perfmon_counter_t pm_serializer_lba_gcs;
+
+    perfmon_membership_t parent_collection_membership;
+    perfmon_multi_membership_t stats_membership;
 };
 
 #endif /* SERIALIZER_LOG_STATS_HPP_ */
