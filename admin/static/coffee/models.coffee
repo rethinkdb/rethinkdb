@@ -324,6 +324,7 @@ class Machines extends Backbone.Collection
     name: 'Machines'
 
 class LogEntries extends Backbone.Collection
+    min_timestamp: 0
     model: LogEntry
     comparator: (a, b) ->
         if a.get('timestamp') < b.get('timestamp')
