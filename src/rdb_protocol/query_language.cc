@@ -1684,6 +1684,19 @@ private:
     runtime_environment_t *env;
 };
 
+class not_t {
+public:
+    not_t(const predicate_t &_pred)
+        : pred(_pred)
+    { }
+    bool operator()(boost::shared_ptr<scoped_cJSON_t> json) {
+        bool res = pred(json);
+        return !res;
+    }
+private:
+    predicate_t pred;
+};
+
 bool less(cJSON *l, cJSON *r) {
     switch (l->type) {
         case cJSON_False:
@@ -1807,7 +1820,7 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
             {
                 predicate_t p(c.builtin().filter().predicate(), env);
                 json_stream_t stream = eval_stream(c.args(0), env);
-                stream.remove_if(p);
+                stream.remove_if(not_t(p));
                 return stream;
             }
             break;
@@ -1971,7 +1984,7 @@ view_t eval(const View &v, runtime_environment_t *env) {
                 view_t subview = eval(v.filter_view().view(), env);
 
                 predicate_t p(v.filter_view().predicate(), env);
-                subview.stream.remove_if(p);
+                subview.stream.remove_if(not_t(p));
                 return subview;
             }
             break;
