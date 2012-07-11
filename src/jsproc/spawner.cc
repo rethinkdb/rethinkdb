@@ -8,11 +8,15 @@
 #include <sys/wait.h>           // waitpid
 #include <unistd.h>             // setpgid
 
+#include "arch/fd_send_recv.hpp"
 #include "jsproc/job.hpp"
 #include "utils.hpp"
 
 namespace jsproc {
 
+// Checks that we only create one spawner. This is an ugly restriction, but it
+// means we can put the SIGCHLD-handling logic in here, so that it is properly
+// scoped to the lifetime of the spawner.
 static bool spawner_created = false;
 
 static void sigchld_handler(int signo) {
@@ -99,18 +103,10 @@ pid_t spawner_t::spawn_process(fd_t *socket) {
     return pid;
 }
 
-void spawner_t::exec_worker(fd_t sockfd) {
-    // Makes sure we get SIGTERMed when our parent (the spawner) dies.
-    // TODO(rntz): prctl is linux-specific.
-    guarantee_err(0 == prctl(PR_SET_PDEATHSIG, SIGTERM),
-                  "worker: could not set parent-death signal");
-
-    // Receive one job and run it.
-    job_t::control_t control(getpid(), sockfd);
-    exit(job_t::accept_job(&control));
-}
-
-void spawner_t::exec_spawner(fd_t sockfd) {
+
+// ---------- Spawner & worker processes ----------
+// Runs the spawner process. Does not return.
+void spawner_t::exec_spawner(fd_t socket) {
     // We set our PGID to our own PID (rather than inheriting our parent's PGID)
     // so that a signal (eg. SIGINT) sent to the parent's PGID (by eg. hitting
     // Ctrl-C at a terminal) will not propagate to us or our children.
@@ -134,16 +130,14 @@ void spawner_t::exec_spawner(fd_t sockfd) {
                       "spawner: Could not ignore SIGCHLD");
     }
 
-    unix_socket_stream_t sock(sockfd, new blocking_fd_watcher_t());
-
     for (;;) {
         // Get an fd from our parent.
         fd_t fd;
-        archive_result_t res = sock.recv_fd(&fd);
-        if (res == ARCHIVE_SOCK_EOF) {
+        fd_recv_result_t fdres = recv_fds(socket, 1, &fd);
+        if (fdres == FD_RECV_EOF) {
             // Other end shut down cleanly; we should too.
             exit(EXIT_SUCCESS);
-        } else if (res != ARCHIVE_SUCCESS) {
+        } else if (fdres != FD_RECV_OK) {
             exit(EXIT_FAILURE);
         }
 
@@ -153,7 +147,8 @@ void spawner_t::exec_spawner(fd_t sockfd) {
             exit(EXIT_FAILURE);
 
         if (0 == pid) {
-            // We're the child.
+            // We're the child/worker.
+            guarantee_err(0 == close(socket), "worker: could not close fd");
             exec_worker(fd);
             unreachable();
         }
@@ -161,10 +156,31 @@ void spawner_t::exec_spawner(fd_t sockfd) {
         // We're the parent.
         guarantee_err(0 == close(fd), "spawner: couldn't close fd");
 
-        // Send back its pid.
-        guarantee(sizeof pid == sock.write(&pid, sizeof pid));
+        // Send back its pid. Wish we could use unix_socket_stream_t for this,
+        // but its destructor calls shutdown(), and we can't have that happening
+        // in the worker child.
+        const char *buf = reinterpret_cast<const char *>(&pid);
+        size_t sz = sizeof pid;
+        while (sz) {
+            ssize_t w = write(socket, buf, sz);
+            if (w == -1 && errno == EINTR) continue;
+            guarantee_err(w > 0, "spawner: could not write() to engine socket");
+            guarantee((size_t)w <= sz);
+            sz -= w, buf += w;
+        }
     }
-    unreachable();
+}
+
+// Runs the worker process. Does not return.
+void spawner_t::exec_worker(fd_t sockfd) {
+    // Makes sure we get SIGTERMed when our parent (the spawner) dies.
+    // TODO(rntz): prctl is linux-specific.
+    guarantee_err(0 == prctl(PR_SET_PDEATHSIG, SIGTERM),
+                  "worker: could not set parent-death signal");
+
+    // Receive one job and run it.
+    job_t::control_t control(getpid(), sockfd);
+    exit(job_t::accept_job(&control));
 }
 
 } // namespace jsproc

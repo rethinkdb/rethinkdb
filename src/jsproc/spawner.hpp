@@ -28,9 +28,8 @@ class spawner_t :
     // Called to fork off the spawner child process. Must be called *OUTSIDE* of
     // a thread pool (ie. before run_in_thread_pool).
     //
-    // On success, returns the pid of the spawner process and initializes
-    // `*info` in the parent process, and does not return in the child (instead
-    // it runs the spawner).
+    // On success, returns 0 and initializes `*info` in the parent process, and
+    // does not return in the child (instead it runs the spawner).
     //
     // On failure, returns -1 in the parent process (the child is dead or never
     // existed).
@@ -38,7 +37,7 @@ class spawner_t :
     // NOTE: It is up to the caller to establish a SIGCHLD handler or some other
     // way of dealing with the spawner dying. The spawner process itself will
     // die as soon as it notices the other end of its socket has closed.
-    static pid_t create(info_t *info);
+    static int create(info_t *info);
 
     // Creates a socket pair and spawns a process with access to one end of it.
     // On success, returns the pid of the child process and initializes
@@ -49,11 +48,8 @@ class spawner_t :
     pid_t spawn_process(fd_t *socket);
 
   private:
-    // Called by create() in the spawner process.
-    static void exec_spawner(fd_t sockfd);
-
-    // Called by spawn_process() in the worker process.
-    static void exec_worker(fd_t sockfd);
+    static void exec_spawner(fd_t socket);
+    static void exec_worker(fd_t socket);
 
   private:
     pid_t pid_;

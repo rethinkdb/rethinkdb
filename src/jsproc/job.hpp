@@ -40,13 +40,6 @@ class job_t {
 
     /* ----- Pure virtual methods ----- */
 
-    // Serialization methods. Suggest implementing by invoking
-    // RDB_MAKE_ME_SERIALIZABLE_#(..) in subclass definition.
-    friend class write_message_t;
-    friend class archive_deserializer_t;
-    virtual void rdb_serialize(write_message_t &msg) const = 0;
-    virtual archive_result_t rdb_deserialize(read_stream_t *s) = 0;
-
     // Called on worker process side.
     virtual void run_job(control_t *control) = 0;
 
@@ -54,6 +47,13 @@ class job_t {
     // appropriate job type. Called on worker process side.
     typedef void (*func_t)(control_t*);
     virtual func_t job_runner() = 0;
+
+    // Serialization methods. Suggest implementing by invoking
+    // RDB_MAKE_ME_SERIALIZABLE_#(..) in subclass definition.
+    friend class write_message_t;
+    friend class archive_deserializer_t;
+    virtual void rdb_serialize(write_message_t &msg) const = 0;
+    virtual archive_result_t rdb_deserialize(read_stream_t *s) = 0;
 };
 
 template <class instance_t>

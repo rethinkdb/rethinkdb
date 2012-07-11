@@ -1,74 +1,88 @@
-TODO (rntz): This file is full of lies. It is hopelessly out of date.
-DO NOT TRUST ANYTHING IN THIS FILE.
+# Spawner process startup
 
-# Supervisor process startup
+When RethinkDB is invoked, if the command requested might require running JS
+code (ie. if it involves calling `serve()`; as of 2012-07-11, this means
+`main_rethinkdb_porcelain()` and `main_rethinkdb_serve()`), before
+`run_in_thread_pool()` is called, fork off a process by calling
+`spawner_t::create()`.
 
-When rethinkdb is invoked, if the command requested might require running JS
-code (ie. if it involves calling `serve()`; `main_rethinkdb_porcelain()` and
-`main_rethinkdb_serve()` are the two entry points as of this writing), before
-the `run_in_thread_pool()` is called, we spawn off a supervisor process by
-calling `supervisor_t::spawn()`.
+Before forking, we create a pair of unix domain sockets. The parent gets one end
+and the child the other. The parent process continues as usual, becoming the
+RethinkDB "engine process". The child becomes a "spawner process".
 
-`supervisor_t::spawn()` calls `fork()`. On failure, we die. On success,
-`supervisor_t::spawn()` returns _in the child process only_. In the parent, it
-runs `exec_supervisor()` instead, which does not return.
+The spawner loops, receiving file descriptors from the engine (unix domain
+sockets can send & receive open file descriptors). For each fd received, it
+forks off a worker process with that fd, and sends the worker's PID back to the
+engine.
 
-The parent process becomes a "supervisor process" whose job it is to manage the
-RethinkDB engine process and a pool of worker processes (in which JS is run).
-The worker processes are themselves forked off from the supervisor, and run
-`exec_worker()`. Note that although we `fork()`, we never call `exec()` or a
-variant: all processes involved are images of the same RethinkDB binary.
+The new worker receives a single "job" (see below) from the engine over this fd
+and runs it. The job can use the fd to communicate with the engine.
 
-In sum, there are three kinds of process: the "supervisor" parent process, the
-"engine" child process (in which `supervisor_t::spawn()` returns), and the
-"worker" side-processes.
+Note that although we `fork()`, we never call `exec()` or a variant: all
+processes involved are images of the same RethinkDB binary.
 
-# Communication between supervisor, engine, and workers
+In sum, there are three kinds of process: the "engine" parent process, the
+"spawner" child process, and the "worker" grandchild processes.
 
-Before forking the engine process, the supervisor calls `socketpair()` to open a
-socket which is used to communicate with the engine process. The same is done
-for the worker processes. So the supervisor has a socket for each child process,
-and each child has a socket connected to the supervisor.
 
-The supervisor keeps worker processes in two lists, idle and busy. Initially all
-workers are idle.
+# Jobs and pools
 
-When the engine wishes to connect to a worker, it creates a `socketpair()` and
-sends one end over its connection to the supervisor process. On receiving a file
-descriptor `fd` from the engine, the supervisor picks an idle worker and sends
-`fd` to that worker, moving it to the "busy" list. The engine and worker then
-communicate directly over the socket pair they now share.
+A "job" is a unit of work that runs in a worker process and communicates with
+the engine via a unix socket. It must be serializable so we can send it to the
+worker.
 
-Once the engine and worker are done communicating, they close their socket pair.
-The worker then sends the supervisor a notification that it is idle again.
+The spawner is very simple: it spawns a worker running a single job when the
+engine requests it. The worker dies when the job completes. Pools wrap the
+spawner to provide pooling of workers, multiplexing of jobs, and error condition
+handling.
 
-# Job execution
+Each thread gets its own pool of workers. The "initial job" that a pool's
+workers are spawned with is a "job-running job": it loops accepting jobs from
+the engine and running them.
 
-(See the code in `worker_proc.cc`.)
 
-Worker processes run a loop which waits for the supervisor to send them a file
-descriptor (one end of a connection to the rethinkdb engine). When they get a
-file descriptor, they attempt to read a job from it and execute it.
+# Death handling
 
-To receive a job, first they read a function pointer. This is feasible because
-they are forks of the rethinkdb process, so function addresses are the same
-between them, the supervisor, and the engine. The worker calls the function
-pointer, giving it a handle to the file descriptor it received.
+Each process (engine, spawner, workers) should appropriately handle the death of
+other processes.
 
-# Potential pain points / decisions needing revision
+## Engine death
 
-- The supervisor uses `select()` to multiplex IO. This may not scale if we need
-  lots and lots of worker processes.
+The engine is the core of RethinkDB; if it dies (whether unexpectedly or by
+normal shut-down), everything should.
 
-- The supervisor tries to ensure that there are exactly a certain number of
-  worker processes. If one dies, an message is logged to stderr, and a new
-  worker is forked to replace it. See `jsproc/supervisor_proc.cc` for the
-  `#define`s that control the logic behind this.
+The spawner loops reading/writing to the engine; if a read or write fails, it
+exits.
 
-- Logging of errors just goes to stderr, since it would be highly nontrivial to
-  hook in to the main RethinkDB logging system.
+The workers also exit if communication (read/write) with the engine fails.
+However, workers could be busy and not trying to communicate with the engine. In
+this case, they will die via SIGTERM when the spawner dies (see below).
 
-- Killing the supervisor process won't kill the children. Idle workers will die
-  when they try to get a new job from the supervisor, but the rethinkdb engine
-  will probably continue oblivious. (The supervisor *does* act correctly if the
-  rethinkdb engine process dies; it kills the worker processes and exits.)
+## Spawner death
+
+The spawner is a simple process that shouldn't die except by programmer error or
+external intervention. It also can't be replaced if it does die. So if it dies
+(except as part of normal shut-down), RethinkDB should die.
+
+The engine sets up a SIGCHLD handler that crashes, so if the spawner dies
+unexpectedly, the engine dies. The handler is de-registered during normal
+shut-down, to avoid crashing when the spawner correctly exits.
+
+The workers call `prctl(PR_SET_PDEATHSIG, SIGTERM)` (alas, Linux-specific), so
+they receive SIGTERM if the spawner (their parent) dies.
+
+## Worker death
+
+Unplanned worker process death is not entirely unexpected: v8 might have a bug,
+or the JS code might use up too much memory and get OOM killed. It's not
+entirely clear what we should do in this case.
+
+The engine watches all its connections to worker processes (via
+`pool_t::worker_t`) for errors (see pool.cc). If any fail, either when idle or
+during a read or write, it calls `worker_t::on_error()`. Currently, this crashes
+the engine process.
+
+The spawner pays no particular attention to death of its children (indeed, it
+ignores SIGCHLD so as not to leave zombies hanging around); its job is to spawn
+things and forget about them. (Of course, when the engine crashes due to a
+worker failure, the spawner will die in response.)

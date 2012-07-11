@@ -395,8 +395,7 @@ int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::opti
 }
 
 static MUST_USE bool try_spawn_spawner(jsproc::spawner_t::info_t *spawner_info) {
-    pid_t pid = jsproc::spawner_t::create(spawner_info);
-    if (-1 == pid) {
+    if (-1 == jsproc::spawner_t::create(spawner_info)) {
         fprintf(stderr, "critical wombat failure\n");
         return false;
     }
