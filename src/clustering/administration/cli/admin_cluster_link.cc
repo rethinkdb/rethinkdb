@@ -2478,15 +2478,14 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
 }
 
 template <class map_type>
-void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_t& dc_id, map_type& ns_map, std::vector<std::vector<std::string> >& table, const std::string& protocol) {
-    std::vector<std::string> delta;
-
-    for (typename map_type::iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_t& dc_id, const map_type& ns_map, std::vector<std::vector<std::string> >& table_out, const std::string& protocol) {
+    for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
-            typename map_type::mapped_type::value_t& ns = i->second.get_mutable();
-            size_t replicas(0);
+            const typename map_type::mapped_type::value_t ns = i->second.get();
+            size_t replicas = 0;
 
-            delta.clear();
+            std::vector<std::string> delta;
+
             delta.push_back(uuid_to_str(i->first));
             delta.push_back(ns.name.in_conflict() ? "<conflict>" : ns.name.get());
             delta.push_back(protocol);
@@ -2500,15 +2499,19 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
                 delta.push_back("no");
             }
 
-            if (!ns.replica_affinities.in_conflict() &&
-                ns.replica_affinities.get_mutable().count(dc_id) == 1) {
-                replicas += ns.replica_affinities.get_mutable()[dc_id];
+            if (!ns.replica_affinities.in_conflict()) {
+                const std::map<datacenter_id_t, int> replica_affinities = ns.replica_affinities.get();;
+
+                std::map<datacenter_id_t, int>::const_iterator jt = replica_affinities.find(dc_id);
+                if (jt != replica_affinities.end()) {
+                    replicas += jt->second;
+                }
             }
 
             delta.push_back(strprintf("%ld", replicas));
 
             if (replicas > 0) {
-                table.push_back(delta);
+                table_out.push_back(delta);
             }
         }
     }

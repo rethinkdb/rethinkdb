@@ -248,8 +248,8 @@ private:
 
     template <class map_type>
     void add_single_datacenter_affinities(const datacenter_id_t& dc_id,
-                                          map_type& ns_map,
-                                          std::vector<std::vector<std::string> >& table,
+                                          const map_type& ns_map,
+                                          std::vector<std::vector<std::string> >& table_out,
                                           const std::string& protocol);
 
     template <class map_type>
@@ -268,7 +268,7 @@ private:
     void add_single_namespace_replicas(const std::set<typename protocol_t::region_t>& shards,
                                        const persistable_blueprint_t<protocol_t>& blueprint,
                                        const machines_semilattice_metadata_t::machine_map_t& machine_map,
-                                       std::vector<std::vector<std::string> >& table);
+                                       std::vector<std::vector<std::string> >& table_out);
 
     template <class T>
     void resolve_value(vclock_t<T>& field);
