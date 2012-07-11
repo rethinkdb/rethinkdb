@@ -187,7 +187,7 @@ class target():
 
             # run smoke test
             run_unchecked("rm -r test_data")
-            run_checked("rethinkdb --port 11213 --directory test_data", bg = True)
+            run_checked("rethinkdb --port 11211 --directory test_data", bg = True)
             print "Starting tests..."
             s = ensure_socket(build_vm.hostname, 11213)
             from smoke_install_test import test_against
