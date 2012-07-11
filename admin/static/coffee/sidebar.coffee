@@ -19,8 +19,9 @@ module 'Sidebar', ->
             @client_connectivity_status = new Sidebar.ClientConnectionStatus()
             @connectivity_status = new Sidebar.ConnectivityStatus()
             @issues = new Sidebar.Issues()
+            @logs = new Sidebar.Logs()
 
-            recent_log_entries.on 'reset', @render
+            recent_log_entries.on 'add', @render
             window.app.on 'all', @render
 
         set_type_view: (type = 'default') =>
@@ -28,7 +29,7 @@ module 'Sidebar', ->
                 @type_view = type
                 @render()
                 if type is 'default'
-                    recent_log_entries.on 'reset', @render
+                    recent_log_entries.on 'add', @render
                 else if type is 'dataexplorer'
                     recent_log_entries.off()
 
@@ -53,10 +54,16 @@ module 'Sidebar', ->
     
                 # Render issue summary
                 @.$('.issues').html @issues.render().el
-                
+
+                # Render log
+                @.$('.recent-log-entries-container').html @logs.render().el
+
+                ###
                 # Render each event view and add it to the list of recent events
-                for view in recent_log_entries_view
-                    @.$('.recent-log-entries').append view.render().el
+                for log in recent_log_entries.models
+                    view = new Sidebar.RecentLogEntry model: log
+                    @.$('.recent-log-entries').prepend view.render().el
+                ###
                 return @
             else
                 namespaces_data = []
@@ -73,7 +80,19 @@ module 'Sidebar', ->
 
                 return @
 
+    class @Logs extends Backbone.View
+        className: 'recent-log-entries'
+        initialize: ->
+            recent_log_entries.on 'add', @render
 
+        render: =>
+            @.$('.recent-log-entries').html ''
+            for log, i in recent_log_entries.models
+                if i > 3
+                    break
+                view = new Sidebar.RecentLogEntry model: log
+                @.$el.append view.render().el
+            return @
 
     # Sidebar.ClientConnectionStatus
     class @ClientConnectionStatus extends Backbone.View
