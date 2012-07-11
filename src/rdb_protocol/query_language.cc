@@ -1068,33 +1068,20 @@ json_stream_t eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY
             throw runtime_exc_t("Unimplemented: Term::ERROR");
             break;
         case Term::NUMBER:
-            unreachable("A NUMBER term should never be evaluated with eval_stream");
-            break;
         case Term::STRING:
-            unreachable("A STRING term should never be evaluated with eval_stream");
-            break;
         case Term::JSON:
-            unreachable("A JSON term should never be evaluated with eval_stream");
-            break;
         case Term::BOOL:
-            unreachable("A BOOL term should never be evaluated with eval_stream");
-            break;
         case Term::JSON_NULL:
-            unreachable("A NULL term should never be evaluated with eval_stream");
-            break;
         case Term::ARRAY:
-            unreachable("A ARRAY term should never be evaluated with eval_stream");
-            break;
+        case Term::GETBYKEY:
         case Term::MAP:
-            unreachable("A MAP term should never be evaluated with eval_stream");
+            unreachable("eval_stream called on a function that does not return a stream (use eval instead).\n");
             break;
         case Term::VIEWASSTREAM:
             {
                 return eval(t.view_as_stream(), env).stream;
             }
             break;
-        case Term::GETBYKEY:
-            unreachable("A GETBYKEY term should never be evaluated with eval_stream");
         default:
             crash("unreachable");
             break;
@@ -1568,28 +1555,18 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             }
             break;
         case Builtin::FILTER:
-            throw runtime_exc_t("Unimplemented: Builtin::FILTER");
-            break;
         case Builtin::MAP:
-            throw runtime_exc_t("Unimplemented: Builtin::MAP");
-            break;
         case Builtin::CONCATMAP:
-            throw runtime_exc_t("Unimplemented: Builtin::CONCATMAP");
-            break;
         case Builtin::ORDERBY:
-            throw runtime_exc_t("Unimplemented: Builtin::ORDERBY");
-            break;
         case Builtin::DISTINCT:
-            throw runtime_exc_t("Unimplemented: Builtin::DISTINCT");
-            break;
         case Builtin::LIMIT:
-            throw runtime_exc_t("Unimplemented: Builtin::LIMIT");
+        case Builtin::ARRAYTOSTREAM:
+        case Builtin::JAVASCRIPTRETURNINGSTREAM:
+        case Builtin::UNION:
+            unreachable("eval called on a function that returns a stream (use eval_stream instead).\n");
             break;
         case Builtin::LENGTH:
             throw runtime_exc_t("Unimplemented: Builtin::LENGTH");
-            break;
-        case Builtin::UNION:
-            throw runtime_exc_t("Unimplemented: Builtin::UNION");
             break;
         case Builtin::NTH:
             {
@@ -1634,9 +1611,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 return res;
             }
             break;
-        case Builtin::ARRAYTOSTREAM:
-            throw runtime_exc_t("Unimplemented: Builtin::ARRAYTOSTREAM");
-            break;
         case Builtin::REDUCE:
             throw runtime_exc_t("Unimplemented: Builtin::REDUCE");
             break;
@@ -1645,9 +1619,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
         case Builtin::JAVASCRIPT:
             throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPT");
-            break;
-        case Builtin::JAVASCRIPTRETURNINGSTREAM:
-            throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPTRETURNINGSTREAM");
             break;
         case Builtin::MAPREDUCE:
             throw runtime_exc_t("Unimplemented: Builtin::MAPREDUCE");
@@ -1824,7 +1795,7 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
         case Builtin::MAPREDUCE:
         case Builtin::ALL:
         case Builtin::ANY:
-            unreachable("eval stream called on a function that does not return a stream.\n");
+            unreachable("eval_stream called on a function that does not return a stream (use eval instead).\n");
             break;
         case Builtin::FILTER:
             {
