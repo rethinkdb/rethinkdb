@@ -29,7 +29,7 @@ Handlebars.registerHelper 'html_list', (context) ->
 Handlebars.registerHelper 'links_to_machines', (machines) ->
     out = ""
     for i in [0...machines.length]
-        out += '<a href="#machines/'+machines[i].uid+'" class="links_to_other_view">'+machines[i].name+'</a>'
+        out += '<a href="#machines/'+machines[i].id+'" class="links_to_other_view">'+machines[i].name+'</a>'
         out += ", " if i isnt machines.length-1
     return out
 

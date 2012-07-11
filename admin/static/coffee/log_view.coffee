@@ -146,9 +146,6 @@ module 'LogView', ->
                 machine_name: machines.get(@model.get('machine_uuid')).get('name')
                 datetime: new XDate(@model.get('timestamp')*1000).toString("MMMM dd, yyyy 'at' HH:mm:ss")
         
-            if json.formatted_message is 'Applying data '
-                json.formatted_message = ' Applying data for'
-
             json_data = $.parseJSON json.json
             if json_data?
                 for group of json_data
@@ -175,9 +172,14 @@ module 'LogView', ->
                                 if datacenters.get(key)?
                                     json.datacenters.push
                                         id: key
-                                        name: namespaces.get(key).get('name')
+                                        name: datacenters.get(key).get('name')
                                     json.concerns_datacenters = true   
-    
+
+
+             if json.formatted_message is 'Applying data ' and (json.concerns_memcached_namespaces or json.concerns_machines or json.concerns_datacenters)
+                json.formatted_message = ' Applying data for'
+
+   
             @.$el.html @template json 
             
             @delegateEvents()
