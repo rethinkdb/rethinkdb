@@ -170,6 +170,7 @@ class target():
             if (not os.path.exists(os.path.join(dest, short_name))): 
                 os.mkdir(os.path.join(dest, short_name))
 
+            """
             #install antiquated packages here
             if os.path.exists('old_versions'):
             	for old_version in os.listdir('old_versions'):
@@ -177,6 +178,7 @@ class target():
                 	build_vm.copy_to_tmp(os.path.join('old_versions', old_version, short_name, pkg))
                 	run_checked(self.install_cl_f(os.path.join('/tmp', pkg)), True)
                 	print "Installed: ", old_version
+            """
 
             #install current versions
             target_binary_name = build_vm.popen(self.get_binary_f(path), "r").readlines()[0].strip('\n')
@@ -184,8 +186,8 @@ class target():
             run_checked(self.install_cl_f(path), True)
 
             # run smoke test
-            run_unchecked("rm test_data")
-            run_checked("rethinkdb -p 11211 -f test_data", bg = True)
+            run_unchecked("rm -r test_data")
+            run_checked("rethinkdb --port 11211 --directory test_data", bg = True)
             print "Starting tests..."
             s = ensure_socket(build_vm.hostname, 11211)
             from smoke_install_test import test_against
@@ -197,6 +199,7 @@ class target():
             os.system(scp_string)
 
             """
+            # the code below is not updated
             # find legacy binaries
             leg_binaries_raw = build_vm.popen("ls /usr/bin/rethinkdb*", "r").readlines()
             leg_binaries = map(lambda x: x.strip('\n'), leg_binaries_raw)
