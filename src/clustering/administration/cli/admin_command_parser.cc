@@ -32,6 +32,7 @@ const char *split_shard_command = "split shard";
 const char *merge_shard_command = "merge shard";
 const char *set_name_command = "set name";
 const char *set_acks_command = "set acks";
+const char *set_primary_command = "set primary";
 const char *set_replicas_command = "set replicas";
 const char *set_datacenter_command = "set datacenter";
 const char *create_namespace_command = "create namespace";
@@ -59,7 +60,8 @@ const char *merge_shard_usage = "<NAMESPACE> <SPLIT-POINT>...";
 const char *set_name_usage = "<ID> <NEW-NAME>";
 const char *set_acks_usage = "<NAMESPACE> <DATACENTER> <NUM-ACKS>";
 const char *set_replicas_usage = "<NAMESPACE> <DATACENTER> <NUM-REPLICAS>";
-const char *set_datacenter_usage = "( <NAMESPACE> | <MACHINE> ) <DATACENTER>";
+const char *set_primary_usage = "<NAMESPACE> <DATACENTER>";
+const char *set_datacenter_usage = "<MACHINE> <DATACENTER>";
 const char *create_namespace_usage = "<NAME> --port <PORT> --protocol <PROTOCOL> --primary <DATACENTER>";
 const char *create_datacenter_usage = "<NAME>";
 const char *remove_usage = "<ID>...";
@@ -87,7 +89,8 @@ const char *set_acks_num_acks_option = "<NUM-ACKS>";
 const char *set_replicas_namespace_option = "<NAMESPACE>";
 const char *set_replicas_datacenter_option = "<DATACENTER>";
 const char *set_replicas_num_replicas_option = "<NUM-REPLICAS>";
-const char *set_datacenter_namespace_option = "<NAMESPACE>";
+const char *set_primary_namespace_option = "<NAMESPACE>";
+const char *set_primary_datacenter_option = "<DATACENTER>";
 const char *set_datacenter_machine_option = "<MACHINE>";
 const char *set_datacenter_datacenter_option = "<DATACENTER>";
 const char *create_namespace_name_option = "<NAME>";
@@ -120,7 +123,8 @@ const char *set_acks_num_acks_option_desc = "the number of acknowledgements requ
 const char *set_replicas_namespace_option_desc = "the namespace to change the number of replicas of";
 const char *set_replicas_datacenter_option_desc = "the datacenter which will host the replicas";
 const char *set_replicas_num_replicas_option_desc = "the number of replicas of the specified namespace to host in the specified datacenter, this value should not exceed the number of machines in the datacenter";
-const char *set_datacenter_namespace_option_desc = "the namespace which will have its shards' master replicas moved to the specified datacenter";
+const char *set_primary_namespace_option_desc = "the namespace which will have its shards' master replicas moved to the specified datacenter";
+const char *set_primary_datacenter_option_desc = "the datacenter to move to";
 const char *set_datacenter_machine_option_desc = "the machine to move to the specified datacenter";
 const char *set_datacenter_datacenter_option_desc = "the datacenter to move to";
 const char *create_namespace_name_option_desc = "the name of the new namespace";
@@ -146,7 +150,8 @@ const char *merge_shard_description = "Remove a shard from a namespace by deleti
 const char *set_name_description = "Set the name of an object.  This object may be referred to by its existing name or its UUID.  An object may have only one name at a time.";
 const char *set_acks_description = "Set how many replicas must acknowledge a write operation for it to succeed, for the given namespace and datacenter.";
 const char *set_replicas_description = "Set the replica affinities of a namespace.  This represents the number of replicas that the namespace will have in each specified datacenter.";
-const char *set_datacenter_description = "Set the primary datacenter of a namespace, or the datacenter that a machine belongs to.";
+const char *set_primary_description = "Set the primary datacenter of a namespace, which will move the master replicas to this datacenter.";
+const char *set_datacenter_description = "Set the datacenter that a machine belongs to.";
 const char *create_namespace_description = "Create a new namespace with the given protocol.  The namespace's primary datacenter and listening port must be specified.";
 const char *create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
 const char *remove_description = "Remove one or more objects from the cluster.";
@@ -490,8 +495,12 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
     info->add_positional("num-replicas", 1, true);
 
+    info = add_command(commands, set_primary_command, set_primary_command, set_primary_usage, &admin_cluster_link_t::do_admin_set_primary);
+    info->add_positional("id", 1, true)->add_option("!namespace");
+    info->add_positional("datacenter", 1, true)->add_option("!datacenter");
+
     info = add_command(commands, set_datacenter_command, set_datacenter_command, set_datacenter_usage, &admin_cluster_link_t::do_admin_set_datacenter);
-    info->add_positional("id", 1, true)->add_options("!machine", "!namespace", NULL);
+    info->add_positional("id", 1, true)->add_option("!machine");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
 
     info = add_command(commands, list_command, list_command, list_usage, &admin_cluster_link_t::do_admin_list);
@@ -1047,6 +1056,7 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
                 helps.push_back(admin_help_info_t(set_acks_command, set_acks_usage, set_acks_description));
                 helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
+                helps.push_back(admin_help_info_t(set_primary_command, set_primary_usage, set_primary_description));
                 helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
                 do_usage_internal(helps, options, "set - change the value of a field in cluster metadata, run 'help set <SUBCOMMAND>' for more information", console_mode);
             } else if (subcommand == "name") {
@@ -1066,12 +1076,16 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 options.push_back(std::make_pair(set_replicas_datacenter_option, set_replicas_datacenter_option_desc));
                 options.push_back(std::make_pair(set_replicas_num_replicas_option, set_replicas_num_replicas_option_desc));
                 do_usage_internal(helps, options, "set replicas - change the number of replicas for a namespace in a datacenter", console_mode);
+            } else if (subcommand == "primary") {
+                helps.push_back(admin_help_info_t(set_primary_command, set_primary_usage, set_primary_description));
+                options.push_back(std::make_pair(set_primary_namespace_option, set_primary_namespace_option_desc));
+                options.push_back(std::make_pair(set_primary_datacenter_option, set_primary_datacenter_option_desc));
+                do_usage_internal(helps, options, "set primary - change the primary datacenter for a namespace", console_mode);
             } else if (subcommand == "datacenter") {
                 helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
-                options.push_back(std::make_pair(set_datacenter_namespace_option, set_datacenter_namespace_option_desc));
                 options.push_back(std::make_pair(set_datacenter_machine_option, set_datacenter_machine_option_desc));
                 options.push_back(std::make_pair(set_datacenter_datacenter_option, set_datacenter_datacenter_option_desc));
-                do_usage_internal(helps, options, "set datacenter - change the primary datacenter for a namespace or machine", console_mode);
+                do_usage_internal(helps, options, "set datacenter - change the datacenter that a machine belongs in", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }
