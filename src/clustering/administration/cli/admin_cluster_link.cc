@@ -1781,6 +1781,40 @@ namespace_id_t admin_cluster_link_t::do_admin_create_namespace_internal(namespac
     return id;
 }
 
+void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::command_data& data) {
+    metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
+        change_request(&mailbox_manager, choose_sync_peer());
+    cluster_semilattice_metadata_t cluster_metadata = change_request.get();
+    std::string obj_id = guarantee_param_0(data.params, "id");
+    metadata_info_t *obj_info = get_info_from_id(obj_id);
+    std::string datacenter_id = guarantee_param_0(data.params, "datacenter");
+    metadata_info_t *datacenter_info = get_info_from_id(datacenter_id);
+    datacenter_id_t datacenter_uuid = datacenter_info->uuid;
+
+    // Target must be a datacenter in all existing use cases
+    if (datacenter_info->path[0] != "datacenters") {
+        throw admin_parse_exc_t("destination is not a datacenter: " + datacenter_id);
+    }
+
+    // TODO: check this against the number of replicas as well?
+    if (get_machine_count_in_datacenter(cluster_metadata, datacenter_uuid) < 1) {
+        throw admin_cluster_exc_t("insufficient machines in the selected datacenter to host the namespace");
+    }
+
+    if (obj_info->path[0] == "memcached_namespaces") {
+        do_admin_set_datacenter_namespace(cluster_metadata.memcached_namespaces.namespaces, obj_info->uuid, datacenter_uuid);
+    } else if (obj_info->path[0] == "dummy_namespaces") {
+        do_admin_set_datacenter_namespace(cluster_metadata.memcached_namespaces.namespaces, obj_info->uuid, datacenter_uuid);
+    } else {
+        throw admin_cluster_exc_t("target object is not a namespace");
+    }
+
+    fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);
+    if (!change_request.update(cluster_metadata)) {
+        throw admin_retry_exc_t();
+    }
+}
+
 void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t::command_data& data) {
     metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t
         change_request(&mailbox_manager, choose_sync_peer());
@@ -1796,14 +1830,10 @@ void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t:
         throw admin_parse_exc_t("destination is not a datacenter: " + datacenter_id);
     }
 
-    if (obj_info->path[0] == "memcached_namespaces") {
-        do_admin_set_datacenter_namespace(cluster_metadata.memcached_namespaces.namespaces, obj_info->uuid, datacenter_uuid);
-    } else if (obj_info->path[0] == "dummy_namespaces") {
-        do_admin_set_datacenter_namespace(cluster_metadata.memcached_namespaces.namespaces, obj_info->uuid, datacenter_uuid);
-    } else if (obj_info->path[0] == "machines") {
+    if (obj_info->path[0] == "machines") {
         do_admin_set_datacenter_machine(cluster_metadata.machines.machines, obj_info->uuid, datacenter_uuid, cluster_metadata);
     } else {
-        throw admin_cluster_exc_t("target object is not a namespace or machine");
+        throw admin_cluster_exc_t("target object is not a machine");
     }
 
     fill_in_blueprints(&cluster_metadata, directory_read_manager.get_root_view()->get(), change_request_id);

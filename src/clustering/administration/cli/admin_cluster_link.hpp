@@ -66,6 +66,7 @@ public:
     void do_admin_set_name(const admin_command_parser_t::command_data& data);
     void do_admin_set_acks(const admin_command_parser_t::command_data& data);
     void do_admin_set_replicas(const admin_command_parser_t::command_data& data);
+    void do_admin_set_primary(const admin_command_parser_t::command_data& data);
     void do_admin_set_datacenter(const admin_command_parser_t::command_data& data);
     void do_admin_create_datacenter(const admin_command_parser_t::command_data& data);
     void do_admin_create_namespace(const admin_command_parser_t::command_data& data);
