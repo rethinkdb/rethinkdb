@@ -69,8 +69,7 @@ TIMEBOMB?=0
 # This makefile is meant to be run from the 'src' directory.
 SOURCE_DIR:=.
 BUILD_ROOT_DIR:=../build
-ifeq
-(${DEBUG},1)
+ifeq (${DEBUG},1)
 BUILD_DIR:=$(BUILD_ROOT_DIR)/debug
 else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
