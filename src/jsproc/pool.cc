@@ -42,7 +42,6 @@ pool_t::~pool_t() {
 }
 
 int pool_t::spawn_job(job_t *job, job_handle_t *handle) {
-    debugf("spawning job\n");
     int res = connect(handle);
     if (!res) {
         res = job->send(handle);
@@ -71,7 +70,6 @@ int pool_t::connect(job_handle_t *handle) {
     while (idle_workers_.empty()) {
         // Our usage of worker_semaphore_ should ensure this.
         rassert(num_workers() < config()->max_workers);
-        debugf("spawning new worker to cope with demand\n");
         spawn_workers(1);
     }
     guarantee(!idle_workers_.empty()); // sanity
@@ -82,8 +80,6 @@ int pool_t::connect(job_handle_t *handle) {
     busy_workers_.push_back(worker);
     handle->worker_ = worker;
 
-    debugf("connected: %d\n", worker->pid_);
-
     return 0;
 }
 
@@ -92,8 +88,6 @@ void pool_t::disconnect(job_handle_t *handle) {
 
     worker_t *worker = handle->worker_;
     rassert(worker && worker->pool_ == this);
-
-    debugf("disconnecting: %d\n", worker->pid_);
 
     // If the worker's stream isn't open, something bad has happened.
     if (!worker->is_read_open() || !worker->is_write_open()) {
