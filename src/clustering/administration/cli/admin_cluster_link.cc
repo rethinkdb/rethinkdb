@@ -2366,8 +2366,8 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
 template <class protocol_t>
 void admin_cluster_link_t::add_single_namespace_replicas(const std::set<typename protocol_t::region_t>& shards,
                                                          const persistable_blueprint_t<protocol_t>& blueprint,
-                                                         machines_semilattice_metadata_t::machine_map_t& machine_map,
-                                                         std::vector<std::vector<std::string> >& table) {
+                                                         const machines_semilattice_metadata_t::machine_map_t& machine_map,
+                                                         std::vector<std::vector<std::string> >& table_out) {
     for (typename std::set<typename protocol_t::region_t>::iterator s = shards.begin(); s != shards.end(); ++s) {
         std::string shard_str = admin_value_to_string(*s);
 
@@ -2381,18 +2381,18 @@ void admin_cluster_link_t::add_single_namespace_replicas(const std::set<typename
                 delta.push_back(shard_str);
                 delta.push_back(uuid_to_str(i->first));
 
-                machines_semilattice_metadata_t::machine_map_t::iterator m = machine_map.find(i->first);
+                machines_semilattice_metadata_t::machine_map_t::const_iterator m = machine_map.find(i->first);
                 if (m == machine_map.end() || m->second.is_deleted()) {
                     // This shouldn't really happen, but oh well
                     delta.push_back(std::string());
-                } else if (m->second.get_mutable().name.in_conflict()) {
+                } else if (m->second.get().name.in_conflict()) {
                     delta.push_back("<conflict>");
                 } else {
-                    delta.push_back(m->second.get_mutable().name.get());
+                    delta.push_back(m->second.get().name.get());
                 }
 
                 delta.push_back("yes");
-                table.push_back(delta);
+                table_out.push_back(delta);
             }
         }
 
@@ -2406,18 +2406,18 @@ void admin_cluster_link_t::add_single_namespace_replicas(const std::set<typename
                 delta.push_back(shard_str);
                 delta.push_back(uuid_to_str(i->first));
 
-                machines_semilattice_metadata_t::machine_map_t::iterator m = machine_map.find(i->first);
+                machines_semilattice_metadata_t::machine_map_t::const_iterator m = machine_map.find(i->first);
                 if (m == machine_map.end() || m->second.is_deleted()) {
                     // This shouldn't really happen, but oh well
                     delta.push_back(std::string());
-                } else if (m->second.get_mutable().name.in_conflict()) {
+                } else if (m->second.get().name.in_conflict()) {
                     delta.push_back("<conflict>");
                 } else {
-                    delta.push_back(m->second.get_mutable().name.get());
+                    delta.push_back(m->second.get().name.get());
                 }
 
                 delta.push_back("no");
-                table.push_back(delta);
+                table_out.push_back(delta);
             }
         }
     }

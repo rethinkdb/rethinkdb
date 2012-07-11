@@ -267,7 +267,7 @@ private:
     template <class protocol_t>
     void add_single_namespace_replicas(const std::set<typename protocol_t::region_t>& shards,
                                        const persistable_blueprint_t<protocol_t>& blueprint,
-                                       machines_semilattice_metadata_t::machine_map_t& machine_map,
+                                       const machines_semilattice_metadata_t::machine_map_t& machine_map,
                                        std::vector<std::vector<std::string> >& table);
 
     template <class T>
