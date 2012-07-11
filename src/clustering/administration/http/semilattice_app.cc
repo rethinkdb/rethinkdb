@@ -113,6 +113,8 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
             {
                 json_adapter_head->erase(json_ctx);
 
+                logINF("Deleting %s", req.resource.as_string().c_str());
+
                 try {
                     fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us);
                 } catch (missing_machine_exc_t &e) { }
@@ -141,11 +143,32 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 #endif
                 scoped_cJSON_t change(cJSON_Parse(req.body.c_str()));
                 if (!change.get()) { //A null value indicates that parsing failed
-                    logINF("Json body failed to parse.\n Here's the data that failed: %s\n", req.body.c_str());
+                    std::string sanitized = req.body;
+                    /* We mustn't try to log tabs, newlines, or unprintable
+                    characters. */
+                    for (int i = 0; i < int(sanitized.length()); i++) {
+                        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
+                            sanitized[i] = ' ';
+                        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
+                            sanitized[i] = '?';
+                        }
+                    }
+                    logINF("Json body failed to parse. Here's the data that failed: %s", sanitized.c_str());
                     return http_res_t(400);
                 }
 
-                logINF("Applying data %s", req.body.c_str());
+                {
+                    scoped_cJSON_t absolute_change(change.release());
+                    std::vector<std::string> parts(req.resource.begin(), req.resource.end());
+                    for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != parts.rend(); it++) {
+                        scoped_cJSON_t inner(absolute_change.release());
+                        absolute_change.reset(cJSON_CreateObject());
+                        cJSON_AddItemToObject(absolute_change.get(), it->c_str(), inner.release());
+                    }
+                    std::string msg = cJSON_print_unformatted_std_string(absolute_change.get());
+                    logINF("Applying data %s", msg.c_str());
+                }
+
                 json_adapter_head->reset(json_ctx);
                 json_adapter_head->apply(change.get(), json_ctx);
 
