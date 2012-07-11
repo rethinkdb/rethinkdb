@@ -139,6 +139,9 @@ set_log_entries = (log_data_from_server) ->
             machines.get(machine_uuid).get('log_entries').add entry
             recent_log_entries.add entry
 
+            if recent_log_entries.length > 3
+                recent_log_entries.shift()
+
             if parseFloat(json.timestamp) > recent_log_entries.min_timestamp
                 recent_log_entries.min_timestamp = Math.ceil parseFloat json.timestamp # /ajax/log juste compare integers
 
