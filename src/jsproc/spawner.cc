@@ -1,6 +1,7 @@
 #include "jsproc/spawner.hpp"
 
 #include <signal.h>             // sigaction
+#include <sys/prctl.h>          // prctl
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
@@ -99,7 +100,10 @@ pid_t spawner_t::spawn_process(fd_t *socket) {
 }
 
 void spawner_t::exec_worker(fd_t sockfd) {
-    // TODO (rntz): worker should use prctl() to watch the spawner process.
+    // Makes sure we get SIGTERMed when our parent (the spawner) dies.
+    // TODO(rntz): prctl is linux-specific.
+    guarantee_err(0 == prctl(PR_SET_PDEATHSIG, SIGTERM),
+                  "worker: could not set parent-death signal");
 
     // Receive one job and run it.
     job_t::control_t control(getpid(), sockfd);
