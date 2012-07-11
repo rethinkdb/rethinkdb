@@ -1,44 +1,37 @@
 # Spawner process startup
 
 When RethinkDB is invoked, if the command requested might require running JS
-code (ie. if it involves calling `serve()`; as of 2012-07-11, this means
-`main_rethinkdb_porcelain()` and `main_rethinkdb_serve()`), before
-`run_in_thread_pool()` is called, fork off a process by calling
+code (ie. calls `serve()`), before we call `run_in_thread_pool()`, we call
 `spawner_t::create()`.
 
-Before forking, we create a pair of unix domain sockets. The parent gets one end
-and the child the other. The parent process continues as usual, becoming the
-RethinkDB "engine process". The child becomes a "spawner process".
+`spawner_t::create()` creates a pair of unix domain sockets and forks. The
+parent process gets one socket and the child the other. The parent returns from
+`spawner_t::create()` and becomes the RethinkDB "engine process". The child
+becomes a "spawner process". The spawner loops, receiving file descriptors from
+the engine (unix domain sockets can send & receive open file descriptors). For
+each fd received, it forks off a worker process with that fd, and sends the
+worker's PID back to the engine. The new worker receives a single "job" (see
+below) from the engine over this fd and runs it. The job can use the fd to
+communicate with the engine.
 
-The spawner loops, receiving file descriptors from the engine (unix domain
-sockets can send & receive open file descriptors). For each fd received, it
-forks off a worker process with that fd, and sends the worker's PID back to the
-engine.
-
-The new worker receives a single "job" (see below) from the engine over this fd
-and runs it. The job can use the fd to communicate with the engine.
+In total, there are three kinds of process: the "engine" parent process, the
+"spawner" child process, and the "worker" grandchild processes.
 
 Note that although we `fork()`, we never call `exec()` or a variant: all
 processes involved are images of the same RethinkDB binary.
 
-In sum, there are three kinds of process: the "engine" parent process, the
-"spawner" child process, and the "worker" grandchild processes.
-
 
 # Jobs and pools
 
-A "job" is a unit of work that runs in a worker process and communicates with
-the engine via a unix socket. It must be serializable so we can send it to the
-worker.
+A "job" runs in a worker process and communicates with the engine via a unix
+socket. It must be serializable so we can send it to the worker.
 
 The spawner is very simple: it spawns a worker running a single job when the
-engine requests it. The worker dies when the job completes. Pools wrap the
+engine requests it. The worker dies when the job completes. "Pools" wrap the
 spawner to provide pooling of workers, multiplexing of jobs, and error condition
-handling.
-
-Each thread gets its own pool of workers. The "initial job" that a pool's
-workers are spawned with is a "job-running job": it loops accepting jobs from
-the engine and running them.
+handling. Each thread gets its own pool of workers. The "initial job" that a
+pool's workers are spawned with is a "job-running job": it loops accepting jobs
+from the engine and running them.
 
 
 # Death handling
