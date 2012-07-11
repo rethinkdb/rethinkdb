@@ -187,11 +187,11 @@ class target():
 
             # run smoke test
             run_unchecked("rm -r test_data")
-            run_checked("rethinkdb --port 11211 --directory test_data", bg = True)
+            run_checked("rethinkdb --port 11213 --directory test_data", bg = True)
             print "Starting tests..."
-            s = ensure_socket(build_vm.hostname, 11211)
+            s = ensure_socket(build_vm.hostname, 11213)
             from smoke_install_test import test_against
-            if (not test_against(build_vm.hostname, 11211)):
+            if (not test_against(build_vm.hostname, 11213)):
                 raise RunError("Tests failed")
             s.send("rethinkdb shutdown\r\n")
             scp_string = "scp %s@%s:%s %s" % (self.username, self.build_hostname, path, os.path.join(dest, short_name))
