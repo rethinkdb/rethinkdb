@@ -254,12 +254,12 @@ private:
 
     template <class map_type>
     size_t add_single_machine_replicas(const machine_id_t& machine_id,
-                                       map_type& ns_map,
+                                       const map_type& ns_map,
                                        std::vector<std::vector<std::string> >& table);
 
     template <class protocol_t>
     bool add_single_machine_blueprint(const machine_id_t& machine_id,
-                                      persistable_blueprint_t<protocol_t>& blueprint,
+                                      const persistable_blueprint_t<protocol_t>& blueprint,
                                       std::vector<std::vector<std::string> >& table,
                                       const std::string& ns_uuid,
                                       const std::string& ns_name);
