@@ -171,13 +171,12 @@ class target():
                 os.mkdir(os.path.join(dest, short_name))
 
             #install antiquated packages here
-            if not os.path.exists('old_versions'):
-                os.makedirs('old_versions')
-            for old_version in os.listdir('old_versions'):
-                pkg = os.listdir(os.path.join('old_versions', old_version, short_name))[0]
-                build_vm.copy_to_tmp(os.path.join('old_versions', old_version, short_name, pkg))
-                run_checked(self.install_cl_f(os.path.join('/tmp', pkg)), True)
-                print "Installed: ", old_version
+            if os.path.exists('old_versions'):
+            	for old_version in os.listdir('old_versions'):
+                	pkg = os.listdir(os.path.join('old_versions', old_version, short_name))[0]
+                	build_vm.copy_to_tmp(os.path.join('old_versions', old_version, short_name, pkg))
+                	run_checked(self.install_cl_f(os.path.join('/tmp', pkg)), True)
+                	print "Installed: ", old_version
 
             #install current versions
             target_binary_name = build_vm.popen(self.get_binary_f(path), "r").readlines()[0].strip('\n')
@@ -197,6 +196,7 @@ class target():
             print scp_string
             os.system(scp_string)
 
+            """
             # find legacy binaries
             leg_binaries_raw = build_vm.popen("ls /usr/bin/rethinkdb*", "r").readlines()
             leg_binaries = map(lambda x: x.strip('\n'), leg_binaries_raw)
@@ -226,6 +226,7 @@ class target():
                 check_migration_data(build_vm.hostname, 11211)
                 s.send("rethinkdb shutdown\r\n")
                 print "Done"
+            """
 
             purge_installed_packages()
 
