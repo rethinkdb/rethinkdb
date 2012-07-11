@@ -148,14 +148,6 @@ bool is_well_defined(const Builtin &b) {
         }
     }
 
-    if (b.has_distinct()) {
-        if (b.type() != Builtin::DISTINCT) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.distinct().mapping());
-        }
-    }
-
     if (b.has_reduce()) {
         if (b.type() != Builtin::REDUCE) {
             return false;
@@ -1770,6 +1762,17 @@ private:
     runtime_environment_t *env;
 };
 
+struct shared_scoped_less {
+    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &a,
+                      const boost::shared_ptr<scoped_cJSON_t> &b) {
+        if (a->get()->type == b->get()->type) {
+            return less(a->get(), b->get());
+        } else {
+            return a->get()->type > b->get()->type;
+        }
+    }
+};
+
 json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (c.builtin().type()) {
         //JSON -> JSON
@@ -1854,7 +1857,23 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
             }
             break;
         case Builtin::DISTINCT:
-            throw runtime_exc_t("Unimplemented: Builtin::DISTINCT");
+            {
+                std::set<boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less> seen;
+
+                json_stream_t stream = eval_stream(c.args(0), env);
+                json_stream_t res;
+
+                for (json_stream_t::iterator it  = stream.begin();
+                                             it != stream.end();
+                                             ++it) {
+                    if (seen.find(*it) == seen.end()) {
+                        res.push_back(*it);
+                        seen.insert(*it);
+                    }
+                }
+
+                return res;
+            }
             break;
         case Builtin::LIMIT:
             {
@@ -1869,6 +1888,10 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
                 int limit = (int)limit_float;
                 if (limit_float != limit) {
                     throw runtime_exc_t("The second argument must be an integer.");
+                }
+
+                if (limit < 0) {
+                    throw runtime_exc_t("The second argument must be nonnegative");
                 }
 
                 if (int(stream.size()) > limit) {

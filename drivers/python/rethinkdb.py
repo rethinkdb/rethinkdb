@@ -114,6 +114,25 @@ class Stream(object):
         self.check_readonly()
         return Update(self, updater, row)
 
+    def distinct(self):
+        return distinct(self)
+
+    def limit(self, count):
+        return limit(self, count)
+
+    def union(self, other):
+        return union(self, other)
+
+    def _finalize_query(self, root):
+        term = _finalize_internal(root, p.Term)
+        self.write_ast(term)
+
+    def _write_call(self, parent, type, *args):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = type
+        for arg in args:
+            toTerm(arg).write_ast(parent.call.args.add())
+
 class Table(Stream):
     def __init__(self, db, name):
         super(Table, self).__init__()
@@ -171,7 +190,7 @@ class Filter(Stream):
     def __init__(self, parent_view, selector, row):
         super(Filter, self).__init__()
         if type(selector) is dict:
-            self.selector = self._and_eq(selector)
+            self.selector = Conjunction(eq(k, v) for k, v in selector.iteritems())
         else:
             self.selector = toTerm(selector)
         self.row = row # don't do to term so we can compare in self.filter without overriding bs
@@ -199,28 +218,14 @@ class Filter(Stream):
 
     def _finalize_query(self, root):
         if self.is_readonly():
-            res = self._finalize_term_query(root)
+            term = _finalize_internal(root, p.Term)
+            self.write_ast(term)
+            return term
         else:
-            res = self._finalize_view_query(root)
-        return res
-
-    def _finalize_term_query(self, root):
-        term = _finalize_internal(root, p.Term)
-        self.write_ast(term)
-        return term
-
-    def _finalize_view_query(self, root):
-        term = _finalize_internal(root, p.Term)
-        term.type = p.Term.VIEWASSTREAM
-        self.write_ast(term.view_as_stream)
-        return term
-
-    def _and_eq(self, _hash):
-        terms = []
-        for key in _hash.iterkeys():
-            val = _hash[key]
-            terms.append(eq(key, val))
-        return Conjunction(terms)
+            term = _finalize_internal(root, p.Term)
+            term.type = p.Term.VIEWASSTREAM
+            self.write_ast(term.view_as_stream)
+            return term
 
 class Update(object):
     # Accepts a dict, and eventually, javascript
@@ -285,10 +290,6 @@ class Map(Stream):
         term.type = p.Term.VIEWASSTREAM
         self.parent_view.write_ast(term.view_as_stream)
 
-    def _finalize_query(self, root):
-        term = _finalize_internal(root, p.Term)
-        self.write_ast(term)
-
 class ArrayToStream(Stream):
     def __init__(self, array):
         super(ArrayToStream, self).__init__()
@@ -299,10 +300,6 @@ class ArrayToStream(Stream):
         parent.type = p.Term.CALL
         parent.call.builtin.type = p.Builtin.ARRAYTOSTREAM
         toTerm(self.array).write_ast(parent.call.args.add())
-
-    def _finalize_query(self, root):
-        term = _finalize_internal(root, p.Term)
-        self.write_ast(term)
 
 class Term(object):
     def __init__(self):
@@ -591,9 +588,28 @@ size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
 concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
 slice = _make_builtin("slice", p.Builtin.ARRAYSLICE, "array", "start", "end")
-union = _make_builtin("union", p.Builtin.UNION, "a", "b")
-length = _make_builtin("length", p.Builtin.LENGTH, "stream")
-limit = _make_builtin("limit", p.Builtin.LIMIT, "stream", "count")
-nth = _make_builtin("nth", p.Builtin.NTH, "stream", "index")
-stream = ArrayToStream
 array = _make_builtin("array", p.Builtin.STREAMTOARRAY, "stream")
+length = _make_builtin("length", p.Builtin.LENGTH, "stream")
+nth = _make_builtin("nth", p.Builtin.NTH, "stream", "index")
+
+def _make_stream_builtin(name, builtin, *args):
+    n_args = len(args)
+    signature = "%s(%s)" % (name, ", ".join(args))
+
+    def __init__(self, *args):
+        Stream.__init__(self)
+        self.read_only = True
+        if len(args) != n_args:
+            raise TypeError("%s takes exactly %d arguments (%d given)"
+                            % (signature, n_args, len(args)))
+        self.args = args
+
+    def write_ast(self, parent):
+        self._write_call(parent, builtin, *self.args)
+
+    return type(name, (Stream,), {"__init__": __init__, "write_ast": write_ast})
+
+distinct = _make_stream_builtin("distinct", p.Builtin.DISTINCT, "stream")
+limit = _make_stream_builtin("limit", p.Builtin.LIMIT, "stream", "count")
+union = _make_stream_builtin("union", p.Builtin.UNION, "a", "b")
+stream = _make_stream_builtin("stream", p.Builtin.ARRAYTOSTREAM, "array")
