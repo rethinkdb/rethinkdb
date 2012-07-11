@@ -2424,30 +2424,32 @@ void admin_cluster_link_t::add_single_namespace_replicas(const std::set<typename
 }
 
 void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
-                                                  datacenter_semilattice_metadata_t& dc,
-                                                  cluster_semilattice_metadata_t& cluster_metadata) {
+                                                  const datacenter_semilattice_metadata_t& dc,
+                                                  const cluster_semilattice_metadata_t& cluster_metadata) {
     std::vector<std::vector<std::string> > table;
-    std::vector<std::string> delta;
-    if (dc.name.in_conflict() || dc.name.get_mutable().empty()) {
+    if (dc.name.in_conflict() || dc.name.get().empty()) {
         printf("datacenter %s\n", uuid_to_str(dc_id).c_str());
     } else {
-        printf("datacenter '%s' %s\n", dc.name.get_mutable().c_str(), uuid_to_str(dc_id).c_str());
+        printf("datacenter '%s' %s\n", dc.name.get().c_str(), uuid_to_str(dc_id).c_str());
     }
     printf("\n");
 
     // Get a list of machines in the datacenter
-    delta.push_back("uuid");
-    delta.push_back("name");
-    table.push_back(delta);
+    {
+        std::vector<std::string> delta;
+        delta.push_back("uuid");
+        delta.push_back("name");
+        table.push_back(delta);
+    }
 
-    for (machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.begin();
+    for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin();
          i != cluster_metadata.machines.machines.end(); ++i) {
         if (!i->second.is_deleted() &&
-            !i->second.get_mutable().datacenter.in_conflict() &&
-            i->second.get_mutable().datacenter.get() == dc_id) {
-            delta.clear();
+            !i->second.get().datacenter.in_conflict() &&
+            i->second.get().datacenter.get() == dc_id) {
+            std::vector<std::string> delta;
             delta.push_back(uuid_to_str(i->first));
-            delta.push_back(i->second.get_mutable().name.in_conflict() ? "<conflict>" : i->second.get_mutable().name.get());
+            delta.push_back(i->second.get().name.in_conflict() ? "<conflict>" : i->second.get().name.get());
             table.push_back(delta);
         }
     }
@@ -2460,13 +2462,15 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
 
     // Get a list of namespaces hosted by the datacenter
     table.clear();
-    delta.clear();
-    delta.push_back("uuid");
-    delta.push_back("name");
-    delta.push_back("protocol");
-    delta.push_back("primary");
-    delta.push_back("replicas");
-    table.push_back(delta);
+    {
+        std::vector<std::string> delta;
+        delta.push_back("uuid");
+        delta.push_back("name");
+        delta.push_back("protocol");
+        delta.push_back("primary");
+        delta.push_back("replicas");
+        table.push_back(delta);
+    }
 
     add_single_datacenter_affinities(dc_id, cluster_metadata.dummy_namespaces.namespaces, table, "dummy");
     add_single_datacenter_affinities(dc_id, cluster_metadata.memcached_namespaces.namespaces, table, "memcached");

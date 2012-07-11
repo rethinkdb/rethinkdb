@@ -233,8 +233,8 @@ private:
     void add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t>& results);
 
     void list_single_datacenter(const datacenter_id_t& dc_id,
-                                datacenter_semilattice_metadata_t& dc,
-                                cluster_semilattice_metadata_t& cluster_metadata);
+                                const datacenter_semilattice_metadata_t& dc,
+                                const cluster_semilattice_metadata_t& cluster_metadata);
 
     void list_single_machine(const machine_id_t& machine_id,
                              machine_semilattice_metadata_t& machine,
