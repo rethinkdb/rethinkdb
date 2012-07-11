@@ -13,8 +13,8 @@ class TestError(Exception):
 # simple test to make sure that an installation has basic functionality
 def test_against(host, port):
     with workload_common.make_memcache_connection({"address": (host, port), "mclib": "pylibmc", "protocol": "text"}) as mc:
-        while (mc.set("test", "test") == 0):
-            time.sleep(5)
+        #while (mc.set("test", "test") == 0):
+        #    time.sleep(5)
 
         for i in range(num_keys):
             if mc.set(str(i), str(i)) == 0:
@@ -27,8 +27,8 @@ def test_against(host, port):
 # put some known data in the
 def throw_migration_data(host, port):
     with workload_common.make_memcache_connection({"address": (host, port), "mclib": "pylibmc", "protocol": "text"}) as mc:
-        while (mc.set("test", "test") == 0):
-            time.sleep(5)
+        #while (mc.set("test", "test") == 0):
+        #    time.sleep(5)
 
         for i in range(num_keys):
             if mc.set(str(i), str(i)) == 0:
@@ -36,8 +36,8 @@ def throw_migration_data(host, port):
 
 def check_migration_data(host, port):
     with workload_common.make_memcache_connection({"address": (host, port), "mclib": "pylibmc", "protocol": "text"}) as mc:
-        while (mc.set("test", "test") == 0):
-            time.sleep(5)
+        #while (mc.set("test", "test") == 0):
+        #    time.sleep(5)
 
         for i in range(num_keys):
             if mc.get(str(i)) != str(i):
