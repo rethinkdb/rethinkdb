@@ -1262,9 +1262,9 @@ void admin_cluster_link_t::do_admin_list_issues(const admin_command_parser_t::co
 }
 
 template <class map_type>
-void admin_cluster_link_t::list_all_internal(const std::string& type, bool long_format, map_type& obj_map, std::vector<std::vector<std::string> >& table) {
+void admin_cluster_link_t::list_all_internal(const std::string& type, bool long_format, const map_type& obj_map, std::vector<std::vector<std::string> >& table_out) {
     std::vector<std::string> delta;
-    for (typename map_type::iterator i = obj_map.begin(); i != obj_map.end(); ++i) {
+    for (typename map_type::const_iterator i = obj_map.begin(); i != obj_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             delta.clear();
 
@@ -1282,12 +1282,12 @@ void admin_cluster_link_t::list_all_internal(const std::string& type, bool long_
                 delta.push_back(i->second.get().name.get());
             }
 
-            table.push_back(delta);
+            table_out.push_back(delta);
         }
     }
 }
 
-void admin_cluster_link_t::list_all(bool long_format, cluster_semilattice_metadata_t& cluster_metadata) {
+void admin_cluster_link_t::list_all(bool long_format, const cluster_semilattice_metadata_t& cluster_metadata) {
     std::vector<std::vector<std::string> > table;
     std::vector<std::string> delta;
 
@@ -1307,11 +1307,11 @@ void admin_cluster_link_t::list_all(bool long_format, cluster_semilattice_metada
     }
 }
 
-std::map<datacenter_id_t, admin_cluster_link_t::datacenter_info_t> admin_cluster_link_t::build_datacenter_info(cluster_semilattice_metadata_t& cluster_metadata) {
+std::map<datacenter_id_t, admin_cluster_link_t::datacenter_info_t> admin_cluster_link_t::build_datacenter_info(const cluster_semilattice_metadata_t& cluster_metadata) {
     std::map<datacenter_id_t, datacenter_info_t> results;
     std::map<machine_id_t, machine_info_t> machine_data = build_machine_info(cluster_metadata);
 
-    for (machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.begin();
+    for (machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.begin();
          i != cluster_metadata.machines.machines.end(); ++i) {
         if (!i->second.is_deleted() && !i->second.get().datacenter.in_conflict()) {
             datacenter_id_t datacenter = i->second.get().datacenter.get();
@@ -1414,7 +1414,7 @@ void admin_cluster_link_t::do_admin_list_datacenters(const admin_command_parser_
 }
 
 template <class ns_type>
-admin_cluster_link_t::namespace_info_t admin_cluster_link_t::get_namespace_info(ns_type& ns) {
+admin_cluster_link_t::namespace_info_t admin_cluster_link_t::get_namespace_info(const ns_type& ns) {
     namespace_info_t result;
 
     if (ns.shards.in_conflict()) {
@@ -1427,7 +1427,7 @@ admin_cluster_link_t::namespace_info_t admin_cluster_link_t::get_namespace_info(
     if (ns.blueprint.in_conflict()) {
         result.replicas = -1;
     } else {
-        result.replicas = get_replica_count_from_blueprint(ns.blueprint.get_mutable());
+        result.replicas = get_replica_count_from_blueprint(ns.blueprint.get());
     }
 
     if (ns.primary_datacenter.in_conflict()) {
@@ -1541,7 +1541,7 @@ void admin_cluster_link_t::add_namespaces(const std::string& protocol, bool long
     }
 }
 
-std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_t::build_machine_info(cluster_semilattice_metadata_t& cluster_metadata) {
+std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_t::build_machine_info(const cluster_semilattice_metadata_t& cluster_metadata) {
     std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager.get_root_view()->get();
     std::map<machine_id_t, machine_info_t> results;
 
