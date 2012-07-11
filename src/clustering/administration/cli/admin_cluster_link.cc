@@ -455,8 +455,8 @@ admin_cluster_link_t::metadata_info_t *admin_cluster_link_t::get_info_from_id(co
     return name_map.find(id)->second;
 }
 
-datacenter_id_t get_machine_datacenter(const std::string& id, const machine_id_t& machine, cluster_semilattice_metadata_t& cluster_metadata) {
-    machines_semilattice_metadata_t::machine_map_t::iterator i = cluster_metadata.machines.machines.find(machine);
+datacenter_id_t get_machine_datacenter(const std::string& id, const machine_id_t& machine, const cluster_semilattice_metadata_t& cluster_metadata) {
+    machines_semilattice_metadata_t::machine_map_t::const_iterator i = cluster_metadata.machines.machines.find(machine);
 
     if (i == cluster_metadata.machines.machines.end()) {
         throw admin_cluster_exc_t("unexpected error, machine not found: " + uuid_to_str(machine));
@@ -485,7 +485,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
 
     if (ns_path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("pinning not supported for dummy namespaces");
-    } else if(ns_path[0] != "memcached_namespaces") {
+    } else if (ns_path[0] != "memcached_namespaces") {
         throw admin_parse_exc_t("object is not a namespace: " + ns);
     }
 
@@ -555,31 +555,25 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
 }
 
 template <class protocol_t>
-typename protocol_t::region_t admin_cluster_link_t::find_shard_in_namespace(namespace_semilattice_metadata_t<protocol_t>& ns,
+typename protocol_t::region_t admin_cluster_link_t::find_shard_in_namespace(const namespace_semilattice_metadata_t<protocol_t>& ns,
                                                                             const shard_input_t& shard_in) {
-    typename protocol_t::region_t shard;
-    typename std::set<typename protocol_t::region_t>::iterator s;
-    for (s = ns.shards.get_mutable().begin(); s != ns.shards.get_mutable().end(); ++s) {
+    const std::set<typename protocol_t::region_t> shards_value = ns.shards.get();
+    for (typename std::set<typename protocol_t::region_t>::const_iterator s = shards_value.begin(); s != shards_value.end(); ++s) {
         // TODO: This is a low level assertion.
         guarantee(s->beg == 0 && s->end == HASH_REGION_HASH_SIZE);
 
         if (shard_in.left.exists && s->inner.left != shard_in.left.key) {
-            continue;
+            // do nothing
         } else if (shard_in.right.exists && (shard_in.right.unbounded != s->inner.right.unbounded)) {
-            continue;
+            // do nothing
         } else if (shard_in.right.exists && !shard_in.right.unbounded && (shard_in.right.key != s->inner.right.key)) {
-            continue;
+            // do nothing
         } else {
-            shard = *s;
-            break;
+            return *s;
         }
     }
 
-    if (s == ns.shards.get_mutable().end()) {
-        throw admin_cluster_exc_t("could not find specified shard");
-    }
-
-    return shard;
+    throw admin_cluster_exc_t("could not find specified shard");
 }
 
 template <class protocol_t>
@@ -587,12 +581,10 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
                                                        const shard_input_t& shard_in,
                                                        const std::string& primary_str,
                                                        const std::vector<std::string>& secondary_strs,
-                                                       cluster_semilattice_metadata_t& cluster_metadata) {
+                                                       const cluster_semilattice_metadata_t& cluster_metadata) {
     machine_id_t primary(nil_uuid());
     std::multimap<datacenter_id_t, machine_id_t> datacenter_use;
     std::multimap<datacenter_id_t, machine_id_t> old_datacenter_use;
-    typename region_map_t<protocol_t, machine_id_t>::iterator primary_shard;
-    typename region_map_t<protocol_t, std::set<machine_id_t> >::iterator secondaries_shard;
     std::set<machine_id_t> secondaries;
     bool set_primary(!primary_str.empty());
     bool set_secondary(!secondary_strs.empty());
@@ -646,9 +638,12 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
         datacenter_use.insert(std::make_pair(datacenter, machine));
     }
 
+    typename region_map_t<protocol_t, std::set<machine_id_t> >::const_iterator secondaries_shard;
+
+    const region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings = ns.secondary_pinnings.get();
     // Find the secondary pinnings and build the old datacenter pinning map if it exists
-    for (secondaries_shard = ns.secondary_pinnings.get_mutable().begin();
-         secondaries_shard != ns.secondary_pinnings.get_mutable().end(); ++secondaries_shard) {
+    for (secondaries_shard = secondary_pinnings.begin();
+         secondaries_shard != secondary_pinnings.end(); ++secondaries_shard) {
         // TODO: low level hash_region_t assertion
         guarantee(secondaries_shard->first.beg == 0 && secondaries_shard->first.end == HASH_REGION_HASH_SIZE);
 
@@ -657,7 +652,7 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
         }
     }
 
-    if (secondaries_shard != ns.secondary_pinnings.get_mutable().end()) {
+    if (secondaries_shard != secondary_pinnings.end()) {
         for (std::set<machine_id_t>::iterator i = secondaries_shard->second.begin(); i != secondaries_shard->second.end(); ++i) {
             old_datacenter_use.insert(std::make_pair(get_machine_datacenter(uuid_to_str(*i), *i, cluster_metadata), *i));
         }
@@ -689,8 +684,10 @@ void admin_cluster_link_t::do_admin_pin_shard_internal(namespace_semilattice_met
 
     // If we are not setting the primary, but the secondaries contain the existing primary, we have to clear the primary pinning
     if (!set_primary && set_secondary) {
-        for (typename region_map_t<protocol_t, machine_id_t>::iterator primary_shard = ns.primary_pinnings.get_mutable().begin();
-            primary_shard != ns.primary_pinnings.get_mutable().end(); ++primary_shard) {
+        const region_map_t<protocol_t, machine_id_t> primary_pinnings = ns.primary_pinnings.get();
+        for (typename region_map_t<protocol_t, machine_id_t>::const_iterator primary_shard = primary_pinnings.begin();
+            primary_shard != primary_pinnings.end();
+             ++primary_shard) {
 
             // TODO: Low level assertion
             guarantee(primary_shard->first.beg == 0 && primary_shard->first.end == HASH_REGION_HASH_SIZE);
@@ -2024,9 +2021,10 @@ void admin_cluster_link_t::do_admin_set_acks_internal(namespace_semilattice_meta
     }
 
     // Make sure the selected datacenter is assigned to the namespace and that the number of replicas is less than or equal to the number of acks
-    std::map<datacenter_id_t, int>::iterator i = ns.replica_affinities.get().find(datacenter);
+    const std::map<datacenter_id_t, int> replica_affinities_value = ns.replica_affinities.get();
+    std::map<datacenter_id_t, int>::const_iterator i = replica_affinities_value.find(datacenter);
     bool is_primary = (datacenter == ns.primary_datacenter.get());
-    if ((i == ns.replica_affinities.get().end() || i->second == 0) && !is_primary) {
+    if ((i == replica_affinities_value.end() || i->second == 0) && !is_primary) {
         throw admin_cluster_exc_t("the specified datacenter has no replica affinities with the given namespace");
     } else if (num_acks > i->second + (is_primary ? 1 : 0)) {
         throw admin_cluster_exc_t("cannot assign more ack expectations than replicas in a datacenter");

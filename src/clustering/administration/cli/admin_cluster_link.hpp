@@ -170,10 +170,10 @@ private:
                                      const shard_input_t& shard_in,
                                      const std::string& primary_str,
                                      const std::vector<std::string>& secondary_strs,
-                                     cluster_semilattice_metadata_t& cluster_metadata);
+                                     const cluster_semilattice_metadata_t& cluster_metadata);
 
     template <class protocol_t>
-    typename protocol_t::region_t find_shard_in_namespace(namespace_semilattice_metadata_t<protocol_t>& ns,
+    typename protocol_t::region_t find_shard_in_namespace(const namespace_semilattice_metadata_t<protocol_t>& ns,
                                                           const shard_input_t& shard_in);
 
     template <class protocol_t>
