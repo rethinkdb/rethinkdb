@@ -35,16 +35,13 @@ boost::uuids::uuid as_boost_uuid(const uuid_t& uuid) {
 }
 
 uuid_t generate_uuid() {
-#ifndef VALGRIND
-    return from_boost_uuid(boost::uuids::random_generator()());
-#else
+    //return from_boost_uuid(boost::uuids::random_generator()());
     uuid_t ret;
     uint8_t *dat = ret.data();
     for (size_t i = 0; i < uuid_t::static_size(); i++) {
         dat[i] = static_cast<uint8_t>(randint(256));
     }
     return ret;
-#endif
 }
 
 uuid_t nil_uuid() {
