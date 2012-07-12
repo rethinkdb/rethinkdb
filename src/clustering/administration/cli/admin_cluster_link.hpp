@@ -277,8 +277,6 @@ private:
     void resolve_namespace_value(namespace_semilattice_metadata_t<protocol_t> *ns,
                                  const std::string& field);
 
-    boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > traverse_directory(const std::vector<std::string>& path, namespace_metadata_ctx_t& json_ctx, cluster_semilattice_metadata_t& cluster_metadata);
-
     std::string path_to_str(const std::vector<std::string>& path);
 
     metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t choose_sync_peer();

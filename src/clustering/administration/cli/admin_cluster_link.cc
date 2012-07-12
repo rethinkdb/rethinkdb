@@ -392,26 +392,6 @@ std::vector<std::string> admin_cluster_link_t::get_conflicted_ids(const std::str
     return results;
 }
 
-boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > admin_cluster_link_t::traverse_directory(const std::vector<std::string>& path, namespace_metadata_ctx_t& json_ctx, cluster_semilattice_metadata_t& cluster_metadata)
-{
-    // as we traverse the json sub directories this will keep track of where we are
-    boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > json_adapter_head(new json_adapter_t<cluster_semilattice_metadata_t, namespace_metadata_ctx_t>(&cluster_metadata));
-
-    std::vector<std::string>::const_iterator it = path.begin();
-
-    // Traverse through the subfields until we're done with the url
-    while (it != path.end()) {
-        json_adapter_if_t<namespace_metadata_ctx_t>::json_adapter_map_t subfields = json_adapter_head->get_subfields(json_ctx);
-        if (subfields.find(*it) == subfields.end()) {
-            throw std::runtime_error("path not found: " + *it);
-        }
-        json_adapter_head = subfields[*it];
-        it++;
-    }
-
-    return json_adapter_head;
-}
-
 admin_cluster_link_t::metadata_info_t *admin_cluster_link_t::get_info_from_id(const std::string& id) {
     // Names must be an exact match, but uuids can be prefix substrings
     if (name_map.count(id) == 0) {
