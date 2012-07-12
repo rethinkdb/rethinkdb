@@ -52,8 +52,7 @@ static void write_blob(transaction_t *txn, char *ref, int maxreflen, const T &va
 template<class T>
 static void read_blob(transaction_t *txn, const char *ref, int maxreflen, T *value_out) {
     blob_t blob(const_cast<char *>(ref), maxreflen);
-    std::string str;
-    blob.read_to_string(str, txn, 0, blob.valuesize());
+    std::string str = blob.read_to_string(txn, 0, blob.valuesize());
     read_string_stream_t ss(str);
     int res = deserialize(&ss, value_out);
     guarantee(res == 0);

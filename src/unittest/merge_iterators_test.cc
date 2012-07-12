@@ -7,10 +7,12 @@
 
 namespace unittest {
 
-struct test_iterator : one_way_iterator_t<int> {
+class test_iterator_t : public one_way_iterator_t<int> {
+public:
     typedef std::list<std::list<int> > data_blocks_t;
-    test_iterator(data_blocks_t& _data_blocks, size_t& _blocked_without_prefetch) : prefetches_count(0), blocked_without_prefetch(_blocked_without_prefetch), data_blocks(_data_blocks) {
-        blocked_without_prefetch = 0;
+    test_iterator_t(const data_blocks_t& _data_blocks, size_t *_blocked_without_prefetch)
+        : prefetches_count(0), blocked_without_prefetch(_blocked_without_prefetch), data_blocks(_data_blocks) {
+        *blocked_without_prefetch = 0;
 
         // remove empty blocks
         data_blocks.remove_if(std::mem_fun_ref(&data_blocks_t::value_type::empty));
@@ -22,7 +24,7 @@ struct test_iterator : one_way_iterator_t<int> {
             return boost::none;
 
         if (data_blocks.front().empty()) {
-            blocked_without_prefetch++;
+            ++*blocked_without_prefetch;
             data_blocks.pop_front();
         }
         if (data_blocks.empty())
@@ -40,19 +42,25 @@ struct test_iterator : one_way_iterator_t<int> {
     }
 
     size_t prefetches_count;
-    size_t& blocked_without_prefetch;
+    size_t *blocked_without_prefetch;
 
 private:
     data_blocks_t data_blocks;
+
+    DISABLE_COPYING(test_iterator_t);
 };
 
-struct delete_check_iterator : test_iterator {
-    delete_check_iterator(data_blocks_t& data_blocks, size_t& blocked_without_prefetch, bool *_deleted) : test_iterator(data_blocks, blocked_without_prefetch), deleted(_deleted) { *deleted = false; }
-    virtual ~delete_check_iterator() {
+class delete_check_iterator_t : public test_iterator_t {
+public:
+    delete_check_iterator_t(const data_blocks_t& data_blocks, size_t *blocked_without_prefetch, bool *_deleted)
+        : test_iterator_t(data_blocks, blocked_without_prefetch), deleted(_deleted) { *deleted = false; }
+    virtual ~delete_check_iterator_t() {
         *deleted = true;
     }
 private:
     bool *deleted;
+
+    DISABLE_COPYING(delete_check_iterator_t);
 };
 
 // Helper functions
@@ -81,10 +89,10 @@ std::list<int> parse_list_of_ints(const std::string &_l) {
 }
 
 // parse the string "1 2 3 | 42 56 | 13" into a list of lists of integers, using '|' as a list separator
-test_iterator::data_blocks_t parse_data_blocks(const std::string &_db) {
+test_iterator_t::data_blocks_t parse_data_blocks(const std::string &_db) {
     std::string db = _db;
     db += " ";
-    test_iterator::data_blocks_t result;
+    test_iterator_t::data_blocks_t result;
     std::string w;
     std::list<int> current_list;  // oh god
 
@@ -113,9 +121,9 @@ test_iterator::data_blocks_t parse_data_blocks(const std::string &_db) {
     return result;
 }
 
-std::list<int> data_blocks_to_list_of_ints(test_iterator::data_blocks_t& db) {
+std::list<int> data_blocks_to_list_of_ints(test_iterator_t::data_blocks_t& db) {
     std::list<int> result;
-    for (test_iterator::data_blocks_t::iterator it = db.begin(); it != db.end(); ++it) {
+    for (test_iterator_t::data_blocks_t::iterator it = db.begin(); it != db.end(); ++it) {
         for (std::list<int>::iterator i = (*it).begin(); i != (*it).end(); ++i) {
             result.push_back(*i);
         }
@@ -127,11 +135,11 @@ std::list<int> data_blocks_to_list_of_ints(test_iterator::data_blocks_t& db) {
 // Tests
 
 TEST(MergeIteratorsTest, merge_empty) {
-    test_iterator::data_blocks_t empty_blocks;
+    test_iterator_t::data_blocks_t empty_blocks;
     size_t blocked_without_prefetch_a, blocked_without_prefetch_b, blocked_without_prefetch_c;
-    test_iterator *a = new test_iterator(empty_blocks, blocked_without_prefetch_a);
-    test_iterator *b = new test_iterator(empty_blocks, blocked_without_prefetch_b);
-    test_iterator *c = new test_iterator(empty_blocks, blocked_without_prefetch_c);
+    test_iterator_t *a = new test_iterator_t(empty_blocks, &blocked_without_prefetch_a);
+    test_iterator_t *b = new test_iterator_t(empty_blocks, &blocked_without_prefetch_b);
+    test_iterator_t *c = new test_iterator_t(empty_blocks, &blocked_without_prefetch_c);
 
     merge_ordered_data_iterator_t<int> merged;
     merged.add_mergee(a);
@@ -145,21 +153,21 @@ TEST(MergeIteratorsTest, merge_empty) {
 }
 
 TEST(MergeIteratorsTest, parse_data_blocks) {
-    test_iterator::data_blocks_t db = parse_data_blocks("1 2 3 | 42 56 | 93");
+    test_iterator_t::data_blocks_t db = parse_data_blocks("1 2 3 | 42 56 | 93");
     ASSERT_EQ(db.size(), 3);
     ASSERT_EQ(db.front().size(), 3);
     ASSERT_EQ(db.back().size(), 1);
 }
 
 TEST(MergeIteratorsTest, three_way_merge) {
-    test_iterator::data_blocks_t a_db = parse_data_blocks("1 2 3 | 7 | 10");
-    test_iterator::data_blocks_t b_db = parse_data_blocks("4 | 6 8 9 | 11 13 16");
-    test_iterator::data_blocks_t c_db = parse_data_blocks("5 8 | 9 | 12 15 16");
+    test_iterator_t::data_blocks_t a_db = parse_data_blocks("1 2 3 | 7 | 10");
+    test_iterator_t::data_blocks_t b_db = parse_data_blocks("4 | 6 8 9 | 11 13 16");
+    test_iterator_t::data_blocks_t c_db = parse_data_blocks("5 8 | 9 | 12 15 16");
 
     size_t blocked_without_prefetch_a, blocked_without_prefetch_b, blocked_without_prefetch_c;
-    test_iterator *a = new test_iterator(a_db, blocked_without_prefetch_a);
-    test_iterator *b = new test_iterator(b_db, blocked_without_prefetch_b);
-    test_iterator *c = new test_iterator(c_db, blocked_without_prefetch_c);
+    test_iterator_t *a = new test_iterator_t(a_db, &blocked_without_prefetch_a);
+    test_iterator_t *b = new test_iterator_t(b_db, &blocked_without_prefetch_b);
+    test_iterator_t *c = new test_iterator_t(c_db, &blocked_without_prefetch_c);
 
     merge_ordered_data_iterator_t<int> merge_iterator;
     merge_iterator.add_mergee(a);
@@ -188,17 +196,17 @@ TEST(MergeIteratorsTest, three_way_merge) {
 }
 
 TEST(MergeIteratorsTest, iterators_get_deleted) {
-    test_iterator::data_blocks_t a_db = parse_data_blocks("1 2 3 | 7 | 10");
-    test_iterator::data_blocks_t b_db = parse_data_blocks("4 | 6 8 9 | 11 13 16");
-    test_iterator::data_blocks_t c_db = parse_data_blocks("5 8 | 9 | 12 15 16");
-    test_iterator::data_blocks_t d_db = parse_data_blocks("");
+    test_iterator_t::data_blocks_t a_db = parse_data_blocks("1 2 3 | 7 | 10");
+    test_iterator_t::data_blocks_t b_db = parse_data_blocks("4 | 6 8 9 | 11 13 16");
+    test_iterator_t::data_blocks_t c_db = parse_data_blocks("5 8 | 9 | 12 15 16");
+    test_iterator_t::data_blocks_t d_db = parse_data_blocks("");
 
     size_t blocked_without_prefetch_a, blocked_without_prefetch_b, blocked_without_prefetch_c, blocked_without_prefetch_d;
     bool a_deleted = false, b_deleted = false, c_deleted = false, d_deleted = false;
-    test_iterator *a = new delete_check_iterator(a_db, blocked_without_prefetch_a, &a_deleted);
-    test_iterator *b = new delete_check_iterator(b_db, blocked_without_prefetch_b, &b_deleted);
-    test_iterator *c = new delete_check_iterator(c_db, blocked_without_prefetch_c, &c_deleted);
-    test_iterator *d = new delete_check_iterator(d_db, blocked_without_prefetch_d, &d_deleted);
+    test_iterator_t *a = new delete_check_iterator_t(a_db, &blocked_without_prefetch_a, &a_deleted);
+    test_iterator_t *b = new delete_check_iterator_t(b_db, &blocked_without_prefetch_b, &b_deleted);
+    test_iterator_t *c = new delete_check_iterator_t(c_db, &blocked_without_prefetch_c, &c_deleted);
+    test_iterator_t *d = new delete_check_iterator_t(d_db, &blocked_without_prefetch_d, &d_deleted);
 
     merge_ordered_data_iterator_t<int> merge_iterator;
     merge_iterator.add_mergee(a);
@@ -233,8 +241,8 @@ TEST(MergeIteratorsTest, iterators_get_deleted) {
     a_deleted = false;
     b_deleted = false;
     {
-        test_iterator *a = new delete_check_iterator(a_db, blocked_without_prefetch_a, &a_deleted);
-        test_iterator *b = new delete_check_iterator(b_db, blocked_without_prefetch_b, &b_deleted);
+        test_iterator_t *a = new delete_check_iterator_t(a_db, &blocked_without_prefetch_a, &a_deleted);
+        test_iterator_t *b = new delete_check_iterator_t(b_db, &blocked_without_prefetch_b, &b_deleted);
 
         merge_ordered_data_iterator_t<int> merge_iterator;
         merge_iterator.add_mergee(a);
