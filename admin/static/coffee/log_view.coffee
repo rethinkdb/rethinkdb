@@ -12,12 +12,12 @@ module 'LogView', ->
             'click .next-log-entries': 'next_entries'
             'click .update-log-entries': 'update_log_entries'
 
+        #TODO Logs are not displayed in order (time)...
         initialize: ->
             log_initial '(initializing) events view: container'
             @log_entries = new LogEntries
 
-            setInterval @check_for_new_updates, updateInterval
-            , updateInterval
+            @set_interval = setInterval @check_for_new_updates, updateInterval
 
         check_for_new_updates: =>
             if window.location.hash is @log_route and @log_entries.length > 0
@@ -122,6 +122,9 @@ module 'LogView', ->
                     return
 
                 callback(new_log_entries)
+
+        destroy: =>
+            clearInterval @set_interval
 
     class @LogEntry extends Backbone.View
         className: 'log-entry'
