@@ -253,7 +253,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     for (int i = 0; i < n_threads; i++) {
         // Cause child thread to break out of its loop
 #ifndef NDEBUG
-        threads[i]->initiate_shut_down(coroutine_counts[i]);
+        threads[i]->initiate_shut_down(&coroutine_counts[i]);
 #else
         threads[i]->initiate_shut_down();
 #endif
@@ -404,13 +404,13 @@ bool linux_thread_t::should_shut_down() {
 }
 
 #ifndef NDEBUG
-void linux_thread_t::initiate_shut_down(std::map<std::string, size_t> &coroutine_counts) {
+void linux_thread_t::initiate_shut_down(std::map<std::string, size_t> *coroutine_counts) {
 #else
 void linux_thread_t::initiate_shut_down() {
 #endif
     pthread_mutex_lock(&do_shutdown_mutex);
 #ifndef NDEBUG
-    coroutine_counts_at_shutdown = &coroutine_counts;
+    coroutine_counts_at_shutdown = coroutine_counts;
 #endif
     do_shutdown = true;
     shutdown_notify_event.write(1);
