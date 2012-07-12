@@ -50,17 +50,17 @@ public:
         return !head();
     }
 
-    node_t *head() {
+    node_t *head() const {
         return _head;
     }
-    node_t *tail() {
+    node_t *tail() const {
         return _tail;
     }
 
-    node_t *next(node_t *elem) {
+    node_t *next(node_t *elem) const {
         return static_cast<intrusive_list_node_t<node_t> *>(elem)->next;
     }
-    node_t *prev(node_t *elem) {
+    node_t *prev(node_t *elem) const {
         return static_cast<intrusive_list_node_t<node_t> *>(elem)->prev;
     }
 

@@ -15,12 +15,12 @@ It's templated on an underlying data structure so that you can use an
 
 namespace unlimited_fifo_queue {
 template <class T>
-T get_front_of_list(std::list<T>& list) {
+T get_front_of_list(const std::list<T>& list) {
     return list.front();
 }
 
 template <class T>
-T *get_front_of_list(intrusive_list_t<T>& list) {
+T *get_front_of_list(const intrusive_list_t<T>& list) {
     return list.head();
 }
 
@@ -28,7 +28,7 @@ T *get_front_of_list(intrusive_list_t<T>& list) {
 
 template<class value_t, class queue_t = std::list<value_t> >
 struct unlimited_fifo_queue_t : public passive_producer_t<value_t> {
-    unlimited_fifo_queue_t() 
+    unlimited_fifo_queue_t()
         : passive_producer_t<value_t>(&available_control),
           counter(NULL)
     { }

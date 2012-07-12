@@ -136,7 +136,7 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped
 
     on_thread_t thread_switcher(chosen_thread);
     boost::scoped_ptr<tcp_conn_t> conn;
-    nconn->ennervate(conn);
+    nconn->ennervate(&conn);
 
     /* Set up an object that will close the network connection when a shutdown signal
     is delivered */

@@ -119,8 +119,7 @@ public:
 
         memcpy(buffer, tail->data + tail->live_data_offset, blob::ref_size(cache->get_block_size(), tail->data + tail->live_data_offset, MAX_REF_SIZE));
         blob_t blob(buffer, MAX_REF_SIZE);
-        std::string data;
-        blob.read_to_string(data, &txn, 0, blob.valuesize());
+        std::string data = blob.read_to_string(&txn, 0, blob.valuesize());
 
         /* Record how far along in the blob we are. */
         tail->live_data_offset += blob.refsize(cache->get_block_size());

@@ -144,7 +144,7 @@ public:
     http_server_t(int port, http_app_t *application);
     ~http_server_t();
 private:
-    void handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &conn, auto_drainer_t::lock_t);
+    void handle_conn(const boost::scoped_ptr<nascent_tcp_conn_t> &conn, auto_drainer_t::lock_t);
     http_app_t *application;
     auto_drainer_t auto_drainer;
     boost::scoped_ptr<tcp_listener_t> tcp_listener;
