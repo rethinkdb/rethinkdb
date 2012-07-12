@@ -156,12 +156,10 @@ void pool_t::spawn_workers(unsigned int num) {
 }
 
 void pool_t::end_worker(workers_t *list, worker_t *worker) {
-    if (kill(worker->pid_, SIGKILL)) {
-        // Most likely failure reason is if child is already dead, which is
-        // weird, but not crash()-worthy.
-        logINF("Could not kill worker %d: %s\n", worker->pid_, strerror(errno));
-    }
-
+    // This function is only called during a clean shut-down, so we can assume
+    // that none of our worker processes have unexpectedly died (if they have,
+    // that's cause for crashing rather than continuing a clean shut-down).
+    guarantee_err(0 == kill(worker->pid_, SIGKILL), "couldn't kill worker process");
     list->remove(worker);
     delete worker;
 }
