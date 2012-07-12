@@ -396,7 +396,7 @@ int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::opti
 
 static MUST_USE bool try_spawn_spawner(jsproc::spawner_t::info_t *spawner_info) {
     if (-1 == jsproc::spawner_t::create(spawner_info)) {
-        fprintf(stderr, "critical wombat failure\n");
+        fprintf(stderr, "could not fork off spawner process: %s\n", strerror(errno));
         return false;
     }
 
