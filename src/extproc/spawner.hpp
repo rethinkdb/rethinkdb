@@ -1,5 +1,5 @@
-#ifndef JSPROC_SPAWNER_HPP_
-#define JSPROC_SPAWNER_HPP_
+#ifndef EXTPROC_SPAWNER_HPP_
+#define EXTPROC_SPAWNER_HPP_
 
 #include <sys/types.h>                    // pid_t
 
@@ -49,4 +49,4 @@ class spawner_t :
 
 } // namespace extproc
 
-#endif // JSPROC_SPAWNER_HPP_
+#endif // EXTPROC_SPAWNER_HPP_

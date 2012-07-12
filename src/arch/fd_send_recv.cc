@@ -1,8 +1,9 @@
 #include "arch/fd_send_recv.hpp"
 
-#include <cstring>              // memcpy
 #include <sys/types.h>
 #include <sys/socket.h>
+
+#include <cstring>              // memcpy
 
 // The code for {send,recv}_fds was determined by careful reading of the man
 // pages for sendmsg(2), recvmsg(2), unix(7), and particularly cmsg(3), which
@@ -62,7 +63,7 @@ fd_recv_result_t recv_fds(int socket_fd, size_t num_fds, int *fds) {
     iov.iov_len = 1;
 
     // The control message.
-    // TODO(rntz); what if num_fds is very large?
+    // TODO(rntz): what if num_fds is very large?
     char control[CMSG_SPACE(sizeof(int) * num_fds)];
     msg.msg_control = control;
     msg.msg_controllen = sizeof control;

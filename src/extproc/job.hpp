@@ -1,5 +1,5 @@
-#ifndef JSPROC_JOB_HPP_
-#define JSPROC_JOB_HPP_
+#ifndef EXTPROC_JOB_HPP_
+#define EXTPROC_JOB_HPP_
 
 #include <stdarg.h>             // va_list
 #include <stdlib.h>             // exit
@@ -81,4 +81,4 @@ class auto_job_t : public job_t {
 
 } // namespace extproc
 
-#endif // JSPROC_JOB_HPP_
+#endif // EXTPROC_JOB_HPP_

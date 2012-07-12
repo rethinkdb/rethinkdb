@@ -1,8 +1,9 @@
 #include "extproc/example.hpp"
 
-#include <cstring>              // strerror
 #include <sys/types.h>
 #include <sys/socket.h>
+
+#include <cstring>              // strerror
 
 #include <v8.h>
 
@@ -24,7 +25,7 @@ class js_eval_job_t :
 {
   public:
     js_eval_job_t() {}
-    js_eval_job_t(std::string src) : js_src(src) {}
+    explicit js_eval_job_t(std::string src) : js_src(src) {}
 
     struct result_t {
         bool success;
@@ -153,7 +154,8 @@ void run_rethinkdb_js(const extproc::spawner_t::info_t &info, bool *result) {
 }
 
 int main_rethinkdb_js(int argc, char *argv[]) {
-    (void) argc; (void) argv;
+    (void) argc;
+    (void) argv;
 
     extproc::spawner_t::info_t spawner_info;
     extproc::spawner_t::create(&spawner_info);

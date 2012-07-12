@@ -1,5 +1,5 @@
-#ifndef JSPROC_POOL_HPP_
-#define JSPROC_POOL_HPP_
+#ifndef EXTPROC_POOL_HPP_
+#define EXTPROC_POOL_HPP_
 
 #include <sys/types.h>          // pid_t
 
@@ -51,7 +51,7 @@ class pool_t :
     friend class job_handle_t;
 
   public:
-    pool_t(pool_group_t *group);
+    explicit pool_t(pool_group_t *group);
     ~pool_t();
 
     // Spawns `job` off and initializes `handle` with a connection to it.
@@ -158,4 +158,4 @@ class job_handle_t :
 
 } // namespace extproc
 
-#endif // JSPROC_POOL_HPP_
+#endif // EXTPROC_POOL_HPP_

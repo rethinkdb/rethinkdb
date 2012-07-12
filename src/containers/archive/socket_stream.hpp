@@ -1,14 +1,14 @@
 #ifndef CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
 
+#include "utils.hpp"
+#include <boost/scoped_ptr.hpp>
+
 #include "arch/io/event_watcher.hpp" // linux_event_watcher_t
 #include "arch/io/io_utils.hpp"      // scoped_fd_t
 #include "concurrency/cond_var.hpp"
 #include "containers/archive/archive.hpp"
 #include "errors.hpp"
-#include "utils.hpp"                 // home_thread_mixin_t
-
-#include <boost/scoped_ptr.hpp>
 
 /* fd_watcher_t exists to factor the problem of "how to wait for I/O on an fd"
  * out of fd_stream_t. The best answer, if available, is to use a
@@ -66,7 +66,7 @@ class linux_event_fd_watcher_t :
 {
   public:
     // does not take ownership of fd
-    linux_event_fd_watcher_t(fd_t fd);
+    explicit linux_event_fd_watcher_t(fd_t fd);
     virtual ~linux_event_fd_watcher_t();
 
     virtual void init_callback(linux_event_callback_t *cb);

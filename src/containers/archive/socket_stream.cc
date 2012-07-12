@@ -1,10 +1,11 @@
 #include "containers/archive/socket_stream.hpp"
 
-#include <cstring>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+#include <cstring>
 
 #include "arch/fd_send_recv.hpp"
 #include "arch/runtime/event_queue.hpp" // format_poll_event
@@ -166,8 +167,7 @@ int64_t socket_stream_t::read(void *buf, int64_t size) {
                     // Unexpected error (not just "we closed").
                     logERR("Could not read from socket: %s", strerror(errno));
                 }
-            }
-            else {
+            } else {
                 guarantee(res == 0); // sanity
             }
 
