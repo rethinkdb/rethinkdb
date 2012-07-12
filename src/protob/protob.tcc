@@ -19,7 +19,7 @@ protob_server_t<request_t, response_t>::~protob_server_t() { }
 template <class request_t, class response_t>
 void protob_server_t<request_t, response_t>::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
     boost::scoped_ptr<tcp_conn_t> conn;
-    nconn->ennervate(conn);
+    nconn->ennervate(&conn);
 
     //TODO figure out how to do this with less copying
     for (;;) {
