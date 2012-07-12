@@ -41,7 +41,7 @@ bool blocking_fd_watcher_t::wait_for_write() {
 
 void blocking_fd_watcher_t::init_callback(UNUSED linux_event_callback_t *cb) {}
 
-
+
 // -------------------- linux_event_fd_watcher_t --------------------
 linux_event_fd_watcher_t::linux_event_fd_watcher_t(fd_t fd)
     : io_in_progress_(false),
@@ -118,7 +118,7 @@ linux_event_fd_watcher_t::~linux_event_fd_watcher_t() {
     rassert(!is_write_open());
 }
 
-
+
 // -------------------- socket_stream_t --------------------
 socket_stream_t::socket_stream_t(int fd, fd_watcher_t *watcher)
     : fd_(fd),
@@ -263,7 +263,7 @@ void socket_stream_t::on_event(int events) {
     if (fd_watcher_->is_read_open()) shutdown_read();
 }
 
-
+
 // -------------------- unix_socket_stream_t --------------------
 unix_socket_stream_t::unix_socket_stream_t(int fd, fd_watcher_t *watcher)
     : socket_stream_t(fd, watcher) {}

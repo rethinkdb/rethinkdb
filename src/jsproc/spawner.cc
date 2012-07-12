@@ -103,7 +103,7 @@ pid_t spawner_t::spawn_process(fd_t *socket) {
     return pid;
 }
 
-
+
 // ---------- Spawner & worker processes ----------
 // Runs the spawner process. Does not return.
 void spawner_t::exec_spawner(fd_t socket) {

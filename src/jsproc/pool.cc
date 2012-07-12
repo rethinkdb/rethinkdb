@@ -18,7 +18,7 @@ pool_group_t::pool_group_t(const spawner_t::info_t &info, const config_t &config
               config_.max_workers > 0);
 }
 
-
+
 // ---------- pool_t ----------
 pool_t::pool_t(pool_group_t *group)
     : group_(group),
@@ -166,7 +166,7 @@ void pool_t::end_worker(workers_t *list, worker_t *worker) {
     delete worker;
 }
 
-
+
 // ---------- pool_t::worker_t ----------
 pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, fd_t fd)
     : unix_socket_stream_t(fd),
@@ -197,7 +197,7 @@ void pool_t::worker_t::on_error() {
     // In any case, we certainly want to report an error somehow.
 }
 
-
+
 // ---------- job_handle_t ----------
 job_handle_t::job_handle_t()
     : worker_(NULL) {}

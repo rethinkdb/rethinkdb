@@ -35,7 +35,7 @@ int job_t::send(write_stream_t *stream) {
     return send_write_message(stream, &msg);
 }
 
-
+
 // ---------- job_t::control_t ----------
 job_t::control_t::control_t(int pid, int fd) :
     unix_socket_stream_t(fd, new blocking_fd_watcher_t()),
