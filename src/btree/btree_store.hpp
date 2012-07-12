@@ -28,21 +28,21 @@ public:
     ~btree_store_t();
 
     /* store_view_t interface */
-    void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
-    void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);
+    void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
+    void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
     metainfo_t get_metainfo(
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void set_metainfo(
             const metainfo_t &new_metainfo,
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -50,7 +50,7 @@ public:
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const typename protocol_t::read_t &read,
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -60,7 +60,7 @@ public:
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -69,20 +69,20 @@ public:
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
             typename protocol_t::backfill_progress_t *progress,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -165,14 +165,14 @@ private:
 
     void acquire_superblock_for_read(
             access_t access,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             boost::scoped_ptr<transaction_t> &txn_out,
             boost::scoped_ptr<real_superblock_t> &sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_superblock_for_backfill(
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             boost::scoped_ptr<transaction_t> &txn_out,
             boost::scoped_ptr<real_superblock_t> &sb_out,
             signal_t *interruptor)
@@ -181,7 +181,7 @@ private:
     void acquire_superblock_for_write(
             access_t access,
             int expected_change_count,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             boost::scoped_ptr<transaction_t> &txn_out,
             boost::scoped_ptr<real_superblock_t> &sb_out,
             signal_t *interruptor)
