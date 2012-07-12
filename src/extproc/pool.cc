@@ -1,15 +1,17 @@
 #include "extproc/pool.hpp"
 
+#include "utils.hpp"
+#include <boost/scoped_array.hpp>
+
 #include "logger.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "utils.hpp"
 
 namespace extproc {
 
 // ---------- pool_group_t ----------
 const pool_group_t::config_t pool_group_t::DEFAULTS;
 
-pool_group_t::pool_group_t(const spawner_t::info_t &info, const config_t &config)
+pool_group_t::pool_group_t(spawner_t::info_t *info, const config_t &config)
     : spawner_(info), config_(config),
       pool_maker_(this)
 {
@@ -131,7 +133,7 @@ void pool_t::spawn_workers(unsigned int num) {
 
     // Spawn off `num` processes.
     pid_t pids[num];
-    fd_t fds[num];
+    boost::scoped_array<scoped_fd_t> fds(new scoped_fd_t[num]);
     {
         on_thread_t switcher(spawner()->home_thread());
         for (unsigned int i = 0; i < num; ++i) {
@@ -142,7 +144,7 @@ void pool_t::spawn_workers(unsigned int num) {
 
     // For every process spawned, create a corresponding worker_t.
     for (unsigned int i = 0; i < num; ++i) {
-        worker_t *worker = new worker_t(this, pids[i], fds[i]);
+        worker_t *worker = new worker_t(this, pids[i], &fds[i]);
 
         // Send it a job that just loops accepting jobs.
         guarantee(0 == job_acceptor_t().send(worker),
@@ -166,7 +168,7 @@ void pool_t::end_worker(workers_t *list, worker_t *worker) {
 
 
 // ---------- pool_t::worker_t ----------
-pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, fd_t fd)
+pool_t::worker_t::worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd)
     : unix_socket_stream_t(fd),
       pool_(pool), pid_(pid)
 {

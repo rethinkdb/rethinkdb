@@ -37,8 +37,8 @@ static void sigchld_handler(int signo) {
     }
 }
 
-spawner_t::spawner_t(const info_t &info)
-    : pid_(info.pid), socket_(info.socket)
+spawner_t::spawner_t(info_t *info)
+    : pid_(info->pid), socket_(&info->socket)
 {
     guarantee(-1 == spawner_pid);
     spawner_pid = pid_;
@@ -85,10 +85,10 @@ void spawner_t::create(info_t *info) {
     // We're the parent. Return.
     guarantee_err(0 == close(fds[1]), "could not close fd");
     info->pid = pid;
-    info->socket = fds[0];
+    info->socket.reset(fds[0]);
 }
 
-pid_t spawner_t::spawn_process(fd_t *socket) {
+pid_t spawner_t::spawn_process(scoped_fd_t *socket) {
     assert_thread();
 
     // Create a socket pair.
@@ -103,7 +103,7 @@ pid_t spawner_t::spawn_process(fd_t *socket) {
     // Send one half to the spawner process.
     guarantee(0 == socket_.send_fd(fds[1]));
     guarantee_err(0 == close(fds[1]), "could not close fd");
-    *socket = fds[0];
+    socket->reset(fds[0]);
 
     // Receive the pid from the spawner process.
     pid_t pid;
@@ -189,7 +189,8 @@ void spawner_t::exec_worker(fd_t sockfd) {
                   "worker: could not set parent-death signal");
 
     // Receive one job and run it.
-    job_t::control_t control(getpid(), sockfd);
+    scoped_fd_t fd(sockfd);
+    job_t::control_t control(getpid(), &fd);
     exit(job_t::accept_job(&control));
 }
 

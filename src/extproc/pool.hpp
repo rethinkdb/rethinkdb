@@ -34,7 +34,7 @@ class pool_group_t
 
     static const config_t DEFAULTS;
 
-    pool_group_t(const spawner_t::info_t &info, const config_t &config);
+    pool_group_t(spawner_t::info_t *info, const config_t &config);
 
     pool_t *get() { return pool_maker_.get(); }
 
@@ -68,7 +68,7 @@ class pool_t :
         public unix_socket_stream_t
     {
       public:
-        worker_t(pool_t *pool, pid_t pid, fd_t fd);
+        worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd);
         ~worker_t();
 
         // Called when we get an error on a worker process socket, which usually

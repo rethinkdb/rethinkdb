@@ -18,11 +18,17 @@ class spawner_t :
     class info_t {
         friend class spawner_t;
         pid_t pid;
-        fd_t socket;
+        scoped_fd_t socket;
+
+        DISABLE_COPYING(info_t);
+
+      public:
+        info_t() {}
+        ~info_t() {}
     };
 
     // Must be called within a thread pool, exactly once.
-    explicit spawner_t(const info_t &info);
+    explicit spawner_t(info_t *info);
     ~spawner_t();
 
     // Called to fork off the spawner child process. Must be called *OUTSIDE* of
@@ -35,7 +41,7 @@ class spawner_t :
     // job from the socket, runs it, then exits. See job.hpp.
     //
     // Returns -1 on error.
-    pid_t spawn_process(fd_t *socket);
+    pid_t spawn_process(scoped_fd_t *socket);
 
   private:
     static void exec_spawner(fd_t socket);

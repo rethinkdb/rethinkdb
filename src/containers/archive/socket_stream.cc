@@ -121,10 +121,11 @@ linux_event_fd_watcher_t::~linux_event_fd_watcher_t() {
 
 
 // -------------------- socket_stream_t --------------------
-socket_stream_t::socket_stream_t(int fd, fd_watcher_t *watcher)
-    : fd_(fd),
-      fd_watcher_(watcher ? watcher : new linux_event_fd_watcher_t(fd))
+socket_stream_t::socket_stream_t(scoped_fd_t *fd, fd_watcher_t *watcher)
+    : fd_(fd->release()),
+      fd_watcher_(watcher ? watcher : new linux_event_fd_watcher_t(fd_.get()))
 {
+    guarantee(fd_.get() != INVALID_FD);
     fd_watcher_->init_callback(this);
 }
 
@@ -265,7 +266,7 @@ void socket_stream_t::on_event(int events) {
 
 
 // -------------------- unix_socket_stream_t --------------------
-unix_socket_stream_t::unix_socket_stream_t(int fd, fd_watcher_t *watcher)
+unix_socket_stream_t::unix_socket_stream_t(scoped_fd_t *fd, fd_watcher_t *watcher)
     : socket_stream_t(fd, watcher) {}
 
 int unix_socket_stream_t::send_fd(int fd) {

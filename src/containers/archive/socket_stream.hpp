@@ -100,9 +100,10 @@ class socket_stream_t :
     private linux_event_callback_t
 {
   public:
-    // takes ownership of fd, watcher (if supplied)
-    // by default constructs a linux_event_fd_watcher_t.
-    explicit socket_stream_t(fd_t fd, fd_watcher_t *watcher = NULL);
+    // calls `fd->release()` & takes ownership of its fd.
+    // takes ownership of watcher (if supplied); by default constructs a
+    // linux_event_fd_watcher_t.
+    explicit socket_stream_t(scoped_fd_t *fd, fd_watcher_t *watcher = NULL);
     virtual ~socket_stream_t();
 
     // {read,write}_stream_t functions
@@ -133,7 +134,7 @@ class socket_stream_t :
 
 class unix_socket_stream_t : public socket_stream_t {
   public:
-    explicit unix_socket_stream_t(fd_t fd, fd_watcher_t *watcher = NULL);
+    explicit unix_socket_stream_t(scoped_fd_t *fd, fd_watcher_t *watcher = NULL);
 
     // WARNING. Sending large numbers of fds at once is contraindicated. See
     // arch/fd_send_recv.hpp. TODO(rntz): fix this.

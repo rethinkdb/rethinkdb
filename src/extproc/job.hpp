@@ -19,7 +19,7 @@ class job_t {
     class control_t : public unix_socket_stream_t {
       private:
         friend class spawner_t;
-        control_t(pid_t pid, fd_t fd);
+        control_t(pid_t pid, scoped_fd_t *fd);
 
       public:
         void vlog(const char *fmt, va_list ap);
