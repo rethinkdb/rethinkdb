@@ -31,7 +31,7 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
         return http_res_t(404);
     }
 
-    uint64_t depth = 4;
+    uint64_t depth = DEFAULT_DEPTH;
     boost::optional<std::string> maybe_depth = req.find_query_param("depth");
 
     if (maybe_depth) {
