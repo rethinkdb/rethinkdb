@@ -82,7 +82,7 @@ struct leaf_node_t {
 
 
 
-void strprint(std::string& out, value_sizer_t<void> *sizer, const leaf_node_t *node);
+std::string strprint_leaf(value_sizer_t<void> *sizer, const leaf_node_t *node);
 
 void print(FILE *fp, value_sizer_t<void> *sizer, const leaf_node_t *node);
 

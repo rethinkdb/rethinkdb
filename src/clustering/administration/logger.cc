@@ -134,10 +134,19 @@ public:
         struct stat64 stat;
         int res = fstat64(fd.get(), &stat);
         throw_unless(res == 0, "could not determine size of log file");
-        remaining_in_current_chunk = stat.st_size % chunk_size;
-        current_chunk_start = stat.st_size - remaining_in_current_chunk;
-        res = pread(fd.get(), current_chunk.get(), remaining_in_current_chunk, current_chunk_start);
-        throw_unless(res == remaining_in_current_chunk, "could not read from file");
+        if (stat.st_size == 0) {
+            remaining_in_current_chunk = current_chunk_start = 0;
+        } else {
+            remaining_in_current_chunk = stat.st_size % chunk_size;
+            if (remaining_in_current_chunk == 0) {
+                /* We landed right on a chunk boundary; set ourself to read the
+                previous whole chunk. */
+                remaining_in_current_chunk = chunk_size;
+            }
+            current_chunk_start = stat.st_size - remaining_in_current_chunk;
+            res = pread(fd.get(), current_chunk.get(), remaining_in_current_chunk, current_chunk_start);
+            throw_unless(res == remaining_in_current_chunk, "could not read from file");
+        }
     }
 
     bool get_next(std::string *out) {
@@ -305,7 +314,7 @@ void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, s
         }
         *ok_out = true;
         return;
-    } catch (std::runtime_error &e) {
+    } catch (const std::runtime_error &e) {
         *error_out = e.what();
         *ok_out = false;
         return;

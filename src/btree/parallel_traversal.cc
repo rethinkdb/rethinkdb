@@ -193,7 +193,7 @@ private:
     DISABLE_COPYING(traversal_state_t);
 };
 
-void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::shared_ptr<ranged_block_ids_t>& ids_source);
+void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, const boost::shared_ptr<ranged_block_ids_t>& ids_source);
 void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, btree_key_t *left_exclusive_or_null, btree_key_t *right_inclusive_or_null, lock_in_line_callback_t *acq_start_cb);
 
 void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf, int level,
@@ -314,7 +314,7 @@ void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btre
 }
 
 
-void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::shared_ptr<ranged_block_ids_t>& ids_source) {
+void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, const boost::shared_ptr<ranged_block_ids_t>& ids_source) {
     rassert(coro_t::self());
     interesting_children_callback_t *fsm = new interesting_children_callback_t(state, releaser, level, ids_source);
     state->helper->filter_interesting_children(state->transaction_ptr, ids_source.get(), fsm);

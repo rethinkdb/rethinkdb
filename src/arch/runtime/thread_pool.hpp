@@ -155,7 +155,7 @@ public:
     void pump();   // Called by the event queue
     bool should_shut_down();   // Called by the event queue
 #ifndef NDEBUG
-    void initiate_shut_down(std::map<std::string, size_t> &coroutine_counts); // Can be called from any thread
+    void initiate_shut_down(std::map<std::string, size_t> *coroutine_counts); // Can be called from any thread
 #else
     void initiate_shut_down(); // Can be called from any thread
 #endif

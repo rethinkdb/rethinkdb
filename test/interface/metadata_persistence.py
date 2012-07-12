@@ -10,10 +10,11 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
     files = driver.Files(metacluster, executable_path = executable_path, command_prefix = command_prefix)
-    process = driver.Process(cluster, files, executable_path = executable_path, command_prefix = command_prefix)
+    process = driver.Process(cluster, files,
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     process.wait_until_started_up()
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", process.http_port)])

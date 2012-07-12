@@ -32,6 +32,7 @@ const char *split_shard_command = "split shard";
 const char *merge_shard_command = "merge shard";
 const char *set_name_command = "set name";
 const char *set_acks_command = "set acks";
+const char *set_primary_command = "set primary";
 const char *set_replicas_command = "set replicas";
 const char *set_datacenter_command = "set datacenter";
 const char *create_namespace_command = "create namespace";
@@ -59,7 +60,8 @@ const char *merge_shard_usage = "<NAMESPACE> <SPLIT-POINT>...";
 const char *set_name_usage = "<ID> <NEW-NAME>";
 const char *set_acks_usage = "<NAMESPACE> <DATACENTER> <NUM-ACKS>";
 const char *set_replicas_usage = "<NAMESPACE> <DATACENTER> <NUM-REPLICAS>";
-const char *set_datacenter_usage = "( <NAMESPACE> | <MACHINE> ) <DATACENTER>";
+const char *set_primary_usage = "<NAMESPACE> <DATACENTER>";
+const char *set_datacenter_usage = "<MACHINE> <DATACENTER>";
 const char *create_namespace_usage = "<NAME> --port <PORT> --protocol <PROTOCOL> --primary <DATACENTER>";
 const char *create_datacenter_usage = "<NAME>";
 const char *remove_usage = "<ID>...";
@@ -87,7 +89,8 @@ const char *set_acks_num_acks_option = "<NUM-ACKS>";
 const char *set_replicas_namespace_option = "<NAMESPACE>";
 const char *set_replicas_datacenter_option = "<DATACENTER>";
 const char *set_replicas_num_replicas_option = "<NUM-REPLICAS>";
-const char *set_datacenter_namespace_option = "<NAMESPACE>";
+const char *set_primary_namespace_option = "<NAMESPACE>";
+const char *set_primary_datacenter_option = "<DATACENTER>";
 const char *set_datacenter_machine_option = "<MACHINE>";
 const char *set_datacenter_datacenter_option = "<DATACENTER>";
 const char *create_namespace_name_option = "<NAME>";
@@ -120,7 +123,8 @@ const char *set_acks_num_acks_option_desc = "the number of acknowledgements requ
 const char *set_replicas_namespace_option_desc = "the namespace to change the number of replicas of";
 const char *set_replicas_datacenter_option_desc = "the datacenter which will host the replicas";
 const char *set_replicas_num_replicas_option_desc = "the number of replicas of the specified namespace to host in the specified datacenter, this value should not exceed the number of machines in the datacenter";
-const char *set_datacenter_namespace_option_desc = "the namespace which will have its shards' master replicas moved to the specified datacenter";
+const char *set_primary_namespace_option_desc = "the namespace which will have its shards' master replicas moved to the specified datacenter";
+const char *set_primary_datacenter_option_desc = "the datacenter to move to";
 const char *set_datacenter_machine_option_desc = "the machine to move to the specified datacenter";
 const char *set_datacenter_datacenter_option_desc = "the datacenter to move to";
 const char *create_namespace_name_option_desc = "the name of the new namespace";
@@ -146,7 +150,8 @@ const char *merge_shard_description = "Remove a shard from a namespace by deleti
 const char *set_name_description = "Set the name of an object.  This object may be referred to by its existing name or its UUID.  An object may have only one name at a time.";
 const char *set_acks_description = "Set how many replicas must acknowledge a write operation for it to succeed, for the given namespace and datacenter.";
 const char *set_replicas_description = "Set the replica affinities of a namespace.  This represents the number of replicas that the namespace will have in each specified datacenter.";
-const char *set_datacenter_description = "Set the primary datacenter of a namespace, or the datacenter that a machine belongs to.";
+const char *set_primary_description = "Set the primary datacenter of a namespace, which will move the master replicas to this datacenter.";
+const char *set_datacenter_description = "Set the datacenter that a machine belongs to.";
 const char *create_namespace_description = "Create a new namespace with the given protocol.  The namespace's primary datacenter and listening port must be specified.";
 const char *create_datacenter_description = "Create a new datacenter with the given name.  Machines and replicas may be assigned to the datacenter.";
 const char *remove_description = "Remove one or more objects from the cluster.";
@@ -406,42 +411,40 @@ admin_command_parser_t::~admin_command_parser_t() {
     rassert(instance == this);
     instance = NULL;
 
-    destroy_command_descriptions(commands);
+    destroy_command_descriptions(&commands);
 }
 
-void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, command_info_t *>& cmd_map) {
-    for (std::map<std::string, command_info_t *>::iterator i = cmd_map.begin(); i != cmd_map.end(); ++i) {
-        if (!i->second->subcommands.empty()) {
-            destroy_command_descriptions(i->second->subcommands);
-        }
+void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, command_info_t *> *cmd_map) {
+    for (std::map<std::string, command_info_t *>::iterator i = cmd_map->begin(); i != cmd_map->end(); ++i) {
+        destroy_command_descriptions(&i->second->subcommands);
         delete i->second;
     }
-    cmd_map.clear();
+    cmd_map->clear();
 }
 
-admin_command_parser_t::command_info_t *admin_command_parser_t::add_command(std::map<std::string, command_info_t *>& cmd_map,
-                                                  const std::string& full_cmd,
-                                                  const std::string& cmd,
-                                                  const std::string& usage,
-                                                  void (admin_cluster_link_t::*const fn)(const command_data&)) {
+admin_command_parser_t::command_info_t *admin_command_parser_t::add_command(const std::string& full_cmd,
+                                                                            const std::string& cmd,
+                                                                            const std::string& usage,
+                                                                            void (admin_cluster_link_t::*const fn)(const command_data&),
+                                                                            std::map<std::string, command_info_t *> *cmd_map) {
     command_info_t *info = NULL;
     size_t space_index = cmd.find_first_of(" \t\r\n");
 
     // Parse out the beginning of the command, in case it's a multi-level command, and do the add recursively
     if (space_index != std::string::npos) {
         std::string fragment(cmd.substr(0, space_index));
-        std::map<std::string, command_info_t *>::iterator i = cmd_map.find(fragment);
+        std::map<std::string, command_info_t *>::iterator i = cmd_map->find(fragment);
 
-        if (i == cmd_map.end()) {
-            i = cmd_map.insert(std::make_pair(fragment, new command_info_t(full_cmd, fragment, "", NULL))).first;
+        if (i == cmd_map->end()) {
+            i = cmd_map->insert(std::make_pair(fragment, new command_info_t(full_cmd, fragment, "", NULL))).first;
         }
 
-        info = add_command(i->second->subcommands, full_cmd, cmd.substr(space_index + 1), usage, fn);
+        info = add_command(full_cmd, cmd.substr(space_index + 1), usage, fn, &i->second->subcommands);
     } else {
-        std::map<std::string, command_info_t *>::iterator i = cmd_map.find(cmd);
+        std::map<std::string, command_info_t *>::iterator i = cmd_map->find(cmd);
 
-        if (i == cmd_map.end()) {
-            i = cmd_map.insert(std::make_pair(cmd, new command_info_t(full_cmd, cmd, usage, fn))).first;
+        if (i == cmd_map->end()) {
+            i = cmd_map->insert(std::make_pair(cmd, new command_info_t(full_cmd, cmd, usage, fn))).first;
         } else {
             // This node already exists, but this command should overwrite the current values
             i->second->usage = usage;
@@ -458,83 +461,87 @@ void admin_command_parser_t::build_command_descriptions() {
     rassert(commands.empty());
     command_info_t *info = NULL;
 
-    info = add_command(commands, pin_shard_command, pin_shard_command, pin_shard_usage, &admin_cluster_link_t::do_admin_pin_shard);
+    info = add_command(pin_shard_command, pin_shard_command, pin_shard_usage, &admin_cluster_link_t::do_admin_pin_shard, &commands);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("key", 1, true); // TODO: list possible shards
     info->add_flag("master", 1, false)->add_option("!machine");
     info->add_flag("replicas", -1, false)->add_option("!machine");
 
-    info = add_command(commands, split_shard_command, split_shard_command, split_shard_usage, &admin_cluster_link_t::do_admin_split_shard);
+    info = add_command(split_shard_command, split_shard_command, split_shard_usage, &admin_cluster_link_t::do_admin_split_shard, &commands);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("split-points", -1, true);
 
-    info = add_command(commands, merge_shard_command, merge_shard_command, merge_shard_usage, &admin_cluster_link_t::do_admin_merge_shard);
+    info = add_command(merge_shard_command, merge_shard_command, merge_shard_usage, &admin_cluster_link_t::do_admin_merge_shard, &commands);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("split-points", -1, true); // TODO: list possible shards
 
-    info = add_command(commands, resolve_command, resolve_command, resolve_usage, &admin_cluster_link_t::do_admin_resolve);
+    info = add_command(resolve_command, resolve_command, resolve_usage, &admin_cluster_link_t::do_admin_resolve, &commands);
     info->add_positional("id", 1, true)->add_option("!conflict");
     info->add_positional("field", 1, true); // TODO: list the conflicted fields in the previous id
 
-    info = add_command(commands, set_name_command, set_name_command, set_name_usage, &admin_cluster_link_t::do_admin_set_name);
+    info = add_command(set_name_command, set_name_command, set_name_usage, &admin_cluster_link_t::do_admin_set_name, &commands);
     info->add_positional("id", 1, true)->add_option("!id");
     info->add_positional("new-name", 1, true);
 
-    info = add_command(commands, set_acks_command, set_acks_command, set_acks_usage, &admin_cluster_link_t::do_admin_set_acks);
+    info = add_command(set_acks_command, set_acks_command, set_acks_usage, &admin_cluster_link_t::do_admin_set_acks, &commands);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
     info->add_positional("num-acks", 1, true);
 
-    info = add_command(commands, set_replicas_command, set_replicas_command, set_replicas_usage, &admin_cluster_link_t::do_admin_set_replicas);
+    info = add_command(set_replicas_command, set_replicas_command, set_replicas_usage, &admin_cluster_link_t::do_admin_set_replicas, &commands);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
     info->add_positional("num-replicas", 1, true);
 
-    info = add_command(commands, set_datacenter_command, set_datacenter_command, set_datacenter_usage, &admin_cluster_link_t::do_admin_set_datacenter);
-    info->add_positional("id", 1, true)->add_options("!machine", "!namespace", NULL);
+    info = add_command(set_primary_command, set_primary_command, set_primary_usage, &admin_cluster_link_t::do_admin_set_primary, &commands);
+    info->add_positional("id", 1, true)->add_option("!namespace");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
 
-    info = add_command(commands, list_command, list_command, list_usage, &admin_cluster_link_t::do_admin_list);
+    info = add_command(set_datacenter_command, set_datacenter_command, set_datacenter_usage, &admin_cluster_link_t::do_admin_set_datacenter, &commands);
+    info->add_positional("id", 1, true)->add_option("!machine");
+    info->add_positional("datacenter", 1, true)->add_option("!datacenter");
+
+    info = add_command(list_command, list_command, list_usage, &admin_cluster_link_t::do_admin_list, &commands);
     info->add_positional("object", 1, false)->add_options("!id", NULL);
     info->add_flag("long", 0, false);
 
-    info = add_command(commands, list_stats_command, list_stats_command, list_stats_usage, &admin_cluster_link_t::do_admin_list_stats);
+    info = add_command(list_stats_command, list_stats_command, list_stats_usage, &admin_cluster_link_t::do_admin_list_stats, &commands);
     info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULL);
 
-    info = add_command(commands, list_issues_command, list_issues_command, list_issues_usage, &admin_cluster_link_t::do_admin_list_issues);
+    info = add_command(list_issues_command, list_issues_command, list_issues_usage, &admin_cluster_link_t::do_admin_list_issues, &commands);
 
-    info = add_command(commands, list_machines_command, list_machines_command, list_machines_usage, &admin_cluster_link_t::do_admin_list_machines);
+    info = add_command(list_machines_command, list_machines_command, list_machines_usage, &admin_cluster_link_t::do_admin_list_machines, &commands);
     info->add_flag("long", 0, false);
 
-    info = add_command(commands, list_directory_command, list_directory_command, list_directory_usage, &admin_cluster_link_t::do_admin_list_directory);
+    info = add_command(list_directory_command, list_directory_command, list_directory_usage, &admin_cluster_link_t::do_admin_list_directory, &commands);
     info->add_flag("long", 0, false);
 
-    info = add_command(commands, list_namespaces_command, list_namespaces_command, list_namespaces_usage, &admin_cluster_link_t::do_admin_list_namespaces);
+    info = add_command(list_namespaces_command, list_namespaces_command, list_namespaces_usage, &admin_cluster_link_t::do_admin_list_namespaces, &commands);
     info->add_flag("protocol", 1, false)->add_options("memcached", "dummy", NULL);
     info->add_flag("long", 0, false);
 
-    info = add_command(commands, list_datacenters_command, list_datacenters_command, list_datacenters_usage, &admin_cluster_link_t::do_admin_list_datacenters);
+    info = add_command(list_datacenters_command, list_datacenters_command, list_datacenters_usage, &admin_cluster_link_t::do_admin_list_datacenters, &commands);
     info->add_flag("long", 0, false);
 
-    info = add_command(commands, create_namespace_command, create_namespace_command, create_namespace_usage, &admin_cluster_link_t::do_admin_create_namespace);
+    info = add_command(create_namespace_command, create_namespace_command, create_namespace_usage, &admin_cluster_link_t::do_admin_create_namespace, &commands);
     info->add_positional("name", 1, true);
     info->add_flag("protocol", 1, true)->add_options("memcached", "dummy", NULL);
     info->add_flag("primary", 1, true)->add_option("!datacenter");
     info->add_flag("port", 1, true);
 
-    info = add_command(commands, create_datacenter_command, create_datacenter_command, create_datacenter_usage, &admin_cluster_link_t::do_admin_create_datacenter);
+    info = add_command(create_datacenter_command, create_datacenter_command, create_datacenter_usage, &admin_cluster_link_t::do_admin_create_datacenter, &commands);
     info->add_positional("name", 1, true);
 
-    info = add_command(commands, remove_machine_command, remove_machine_command, remove_usage, &admin_cluster_link_t::do_admin_remove_machine);
+    info = add_command(remove_machine_command, remove_machine_command, remove_usage, &admin_cluster_link_t::do_admin_remove_machine, &commands);
     info->add_positional("id", -1, true)->add_option("!id");
 
-    info = add_command(commands, remove_namespace_command, remove_namespace_command, remove_usage, &admin_cluster_link_t::do_admin_remove_namespace);
+    info = add_command(remove_namespace_command, remove_namespace_command, remove_usage, &admin_cluster_link_t::do_admin_remove_namespace, &commands);
     info->add_positional("id", -1, true)->add_option("!id");
 
-    info = add_command(commands, remove_datacenter_command, remove_datacenter_command, remove_usage, &admin_cluster_link_t::do_admin_remove_datacenter);
+    info = add_command(remove_datacenter_command, remove_datacenter_command, remove_usage, &admin_cluster_link_t::do_admin_remove_datacenter, &commands);
     info->add_positional("id", -1, true)->add_option("!id");
 
-    info = add_command(commands, help_command, help_command, help_usage, NULL); // Special case, 'help' is not done through the cluster
+    info = add_command(help_command, help_command, help_usage, NULL, &commands); // Special case, 'help' is not done through the cluster
     info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", NULL);
     info->add_positional("subcommand", 1, false);
 }
@@ -663,8 +670,8 @@ void admin_command_parser_t::run_command(const command_data& data) {
             try {
                 (get_cluster()->*(data.info->do_function))(data);
                 break;
-            } catch (admin_retry_exc_t& ex) { // commit rejected by the selected peer
-            } catch (resource_lost_exc_t& ex) { // selected peer went down
+            } catch (const admin_retry_exc_t& ex) { // commit rejected by the selected peer
+            } catch (const resource_lost_exc_t& ex) { // selected peer went down
             }
 
             if (tries == MAX_RETRIES) {
@@ -682,7 +689,7 @@ void admin_command_parser_t::completion_generator_hook(const char *raw, linenois
         try {
             std::vector<std::string> line = parse_line(raw);
             instance->completion_generator(line, completions, partial);
-        } catch(std::exception& ex) {
+        } catch (const std::exception& ex) {
             // Do nothing - if the line can't be parsed or completions failed, we just can't complete the line
         }
     }
@@ -910,7 +917,7 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
 
         command_data data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
         run_command(data);
-    } catch (admin_parse_exc_t& ex) {
+    } catch (const admin_parse_exc_t& ex) {
         std::string exception_str(ex.what());
         if (info != NULL) {
             // Cut off the trailing newline from get_subcommands_usage
@@ -918,7 +925,7 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
             exception_str += "\nusage: " + usage_str.substr(0, usage_str.size() - 1);
         }
         throw admin_parse_exc_t(exception_str);
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
         throw;
     }
 }
@@ -968,11 +975,11 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
                 if (!split_line.empty()) {
                     parse_and_run_command(split_line);
                 }
-            } catch (admin_no_connection_exc_t& ex) {
+            } catch (const admin_no_connection_exc_t& ex) {
                 free(raw_line);
                 console_mode = false;
                 throw admin_cluster_exc_t("fatal error: connection to cluster failed");
-            } catch (std::exception& ex) {
+            } catch (const std::exception& ex) {
                 if (exit_on_failure) {
                     free(raw_line);
                     console_mode = false;
@@ -1047,6 +1054,7 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 helps.push_back(admin_help_info_t(set_name_command, set_name_usage, set_name_description));
                 helps.push_back(admin_help_info_t(set_acks_command, set_acks_usage, set_acks_description));
                 helps.push_back(admin_help_info_t(set_replicas_command, set_replicas_usage, set_replicas_description));
+                helps.push_back(admin_help_info_t(set_primary_command, set_primary_usage, set_primary_description));
                 helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
                 do_usage_internal(helps, options, "set - change the value of a field in cluster metadata, run 'help set <SUBCOMMAND>' for more information", console_mode);
             } else if (subcommand == "name") {
@@ -1066,12 +1074,16 @@ void admin_command_parser_t::do_admin_help(const command_data& data) {
                 options.push_back(std::make_pair(set_replicas_datacenter_option, set_replicas_datacenter_option_desc));
                 options.push_back(std::make_pair(set_replicas_num_replicas_option, set_replicas_num_replicas_option_desc));
                 do_usage_internal(helps, options, "set replicas - change the number of replicas for a namespace in a datacenter", console_mode);
+            } else if (subcommand == "primary") {
+                helps.push_back(admin_help_info_t(set_primary_command, set_primary_usage, set_primary_description));
+                options.push_back(std::make_pair(set_primary_namespace_option, set_primary_namespace_option_desc));
+                options.push_back(std::make_pair(set_primary_datacenter_option, set_primary_datacenter_option_desc));
+                do_usage_internal(helps, options, "set primary - change the primary datacenter for a namespace", console_mode);
             } else if (subcommand == "datacenter") {
                 helps.push_back(admin_help_info_t(set_datacenter_command, set_datacenter_usage, set_datacenter_description));
-                options.push_back(std::make_pair(set_datacenter_namespace_option, set_datacenter_namespace_option_desc));
                 options.push_back(std::make_pair(set_datacenter_machine_option, set_datacenter_machine_option_desc));
                 options.push_back(std::make_pair(set_datacenter_datacenter_option, set_datacenter_datacenter_option_desc));
-                do_usage_internal(helps, options, "set datacenter - change the primary datacenter for a namespace or machine", console_mode);
+                do_usage_internal(helps, options, "set datacenter - change the datacenter that a machine belongs in", console_mode);
             } else {
                 throw admin_parse_exc_t("unrecognized subcommand: " + subcommand);
             }

@@ -175,7 +175,8 @@ void strprint_entry(std::string& out, value_sizer_t<void> *sizer, const entry_t 
 }
 
 
-void strprint(std::string& out, value_sizer_t<void> *sizer, const leaf_node_t *node) {
+std::string strprint_leaf(value_sizer_t<void> *sizer, const leaf_node_t *node) {
+    std::string out;
     out += strprintf("Leaf(magic='%4.4s', num_pairs=%u, live_size=%u, frontmost=%u, tstamp_cutpoint=%u)\n",
             node->magic.bytes, node->num_pairs, node->live_size, node->frontmost, node->tstamp_cutpoint);
 
@@ -205,6 +206,8 @@ void strprint(std::string& out, value_sizer_t<void> *sizer, const leaf_node_t *n
         iter.step(sizer, node);
     }
     out += strprintf("\n");
+
+    return out;
 }
 
 
