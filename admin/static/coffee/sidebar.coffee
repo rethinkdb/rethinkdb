@@ -58,12 +58,6 @@ module 'Sidebar', ->
                 # Render log
                 @.$('.recent-log-entries-container').html @logs.render().el
 
-                ###
-                # Render each event view and add it to the list of recent events
-                for log in recent_log_entries.models
-                    view = new Sidebar.RecentLogEntry model: log
-                    @.$('.recent-log-entries').prepend view.render().el
-                ###
                 return @
             else
                 namespaces_data = []
@@ -87,9 +81,7 @@ module 'Sidebar', ->
 
         render: =>
             @.$('.recent-log-entries').html ''
-            for log, i in recent_log_entries.models
-                if i > 3
-                    break
+            for log in recent_log_entries.models
                 view = new Sidebar.RecentLogEntry model: log
                 @.$el.append view.render().el
             return @

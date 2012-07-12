@@ -507,6 +507,7 @@ module 'ServerView', ->
             super
                 modal_title: "Add datacenter"
                 btn_primary_text: "Add"
+            @.$('.focus_new_name').focus()
 
         on_submit: ->
             super
