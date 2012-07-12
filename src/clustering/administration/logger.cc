@@ -305,7 +305,7 @@ void log_writer_t::tail_blocking(int max_lines, struct timespec min_timestamp, s
         }
         *ok_out = true;
         return;
-    } catch (std::runtime_error &e) {
+    } catch (const std::runtime_error &e) {
         *error_out = e.what();
         *ok_out = false;
         return;
