@@ -23,7 +23,7 @@ need_update_objects = (new_data, old_data) ->
         if key of old_data is false
             need_update = true
             break
- 
+
     if need_update is false
         for key of new_data
             if typeof new_data[key] is object and typeof old_data[key] is object
@@ -89,6 +89,8 @@ apply_diffs = (updates) ->
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "dummy"))
             when 'memcached_namespaces'
                 apply_to_collection(namespaces, add_protocol_tag(collection_data, "memcached"))
+            when 'rdb_namespaces'
+                apply_to_collection(namespaces, add_protocol_tag(collection_data, "rdb"))
             when 'datacenters'
                 apply_to_collection(datacenters, collection_data)
             when 'machines'
@@ -131,7 +133,7 @@ set_log_entries = (log_data_from_server) ->
 
         if not machines.get(machine_uuid).get('log_entries')?
             machines.get(machine_uuid).set 'log_entries', new LogEntries
-            
+
         for json in log_entries
             entry = new LogEntry json
             entry.set('machine_uuid',machine_uuid)
@@ -187,7 +189,7 @@ function collect_server_data_once(async, optional_callback) {
             if (optional_callback) {
                 optional_callback()
             }
-            
+
         },
         error: function() {
             if (window.is_disconnected != null) {
@@ -198,19 +200,19 @@ function collect_server_data_once(async, optional_callback) {
             }
         }
     })
-    
+
     $.ajax({
-        url: '/ajax/progress', 
+        url: '/ajax/progress',
         dataType: 'json',
         success: set_progress
     })
-    
+
     $.ajax({
         url: '/ajax/log/_?max_length=10&min_timestamp='+window.recent_log_entries.min_timestamp,
         dataType: 'json',
         success: set_log_entries
     })
-} 
+}
 
 function collect_server_data(optional_callback) {
     collect_server_data_once(true, optional_callback)

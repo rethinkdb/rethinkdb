@@ -64,7 +64,7 @@ module 'NamespaceView', ->
 
         destroy: =>
              super()
-           
+
 
     # Namespace list element
     class @NamespaceListElement extends UIComponents.CheckboxListElement
@@ -158,19 +158,10 @@ module 'NamespaceView', ->
         render: ->
             log_render '(rendering) add namespace dialog'
 
-            default_port = 11211
-            used_ports = {}
-            for namespace in namespaces.models
-                used_ports[namespace.get('port')] = true
-
-            while default_port of used_ports
-                default_port++
-
             super
                 modal_title: 'Add namespace'
                 btn_primary_text: 'Add'
                 datacenters: _.map(datacenters.models, (datacenter) -> datacenter.toJSON())
-                default_port: default_port
 
         on_submit: =>
             super
@@ -179,18 +170,6 @@ module 'NamespaceView', ->
 
             template_error = {}
             input_error = false
-
-            need_to_increase = false
-            if DataUtils.is_integer(formdata.port) is false
-                input_error = true
-                template_error.port_isnt_integer = true
-            else
-                formdata.port = parseInt(formdata.port)
-                for namespace in namespaces.models
-                    if formdata.port is namespace.get('port')
-                        input_error = true
-                        template_error.port_is_used = true
-                        break
 
             if formdata.name is ''
                 input_error = true
@@ -209,13 +188,12 @@ module 'NamespaceView', ->
             else
                 $.ajax
                     processData: false
-                    url: '/ajax/semilattice/memcached_namespaces/new'
+                    url: '/ajax/semilattice/rdb_namespaces/new'
                     type: 'POST'
                     contentType: 'application/json'
                     data: JSON.stringify(
                         name: formdata.name
                         primary_uuid: formdata.primary_datacenter
-                        port : parseInt(formdata.port)
                         )
                     success: @on_success
                     error: @on_error
@@ -226,7 +204,7 @@ module 'NamespaceView', ->
             # the result of this operation are some
             # attributes about the namespace we
             # created, to be used in an alert
-            apply_to_collection(namespaces, add_protocol_tag(response, "memcached"))
+            apply_to_collection(namespaces, add_protocol_tag(response, "rdb"))
 
             # Notify the user
             for id, namespace of response
