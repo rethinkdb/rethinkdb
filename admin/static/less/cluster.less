@@ -97,33 +97,28 @@
 
             .entry-metadata {
                 p {
-                    text-transform: uppercase;
                     color: @gray;
                     text-align: left;
-                    font-size: 0.75em;
                     margin-bottom: 0;
                 }
                 margin-bottom: 6px;
             }
 
-            p.level {
-                text-transform: uppercase;
-                color: @gray;
-                font-size: 0.75em;
-                float: left;
-            }
-
             p.message {
-                margin-left: 50px;
+                margin: 0px 0px 5px 0px;
                 a.json {
-                    text-transform: uppercase;
-                    font-size: 0.75em;
                     color: @gray;
                     border-bottom: thin dotted @gray;
                     &:hover {
                         border-bottom: none;
                     }
                 }
+            }
+            .more-details{
+                float: right;
+            }
+            .details{
+                display: none;
             }
         }
     }
