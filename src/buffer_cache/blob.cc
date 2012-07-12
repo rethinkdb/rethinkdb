@@ -505,16 +505,19 @@ void blob_t::write_from_string(const std::string &val, transaction_t *txn, int64
     buffer_group_copy_data(&dest, const_view(&src));
 }
 
-void blob_t::read_to_string(std::string &s_out, transaction_t *txn, int64_t offset, int64_t length) {
-    s_out.resize(length, '\0');
+std::string blob_t::read_to_string(transaction_t *txn, int64_t offset, int64_t length) {
+    std::vector<char> s_out(length);
 
     buffer_group_t dest;
-    dest.add_buffer(length, s_out.c_str());
+    dest.add_buffer(length, s_out.data());
 
     buffer_group_t src;
     scoped_ptr_t<blob_acq_t> acq(new blob_acq_t);
     expose_region(txn, rwi_read, offset, length, &src, acq.get());
     buffer_group_copy_data(&dest, const_view(&src));
+
+    std::string ret(s_out.begin(), s_out.end());
+    return ret;
 }
 
 namespace blob {
