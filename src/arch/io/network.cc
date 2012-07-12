@@ -654,8 +654,8 @@ linux_nascent_tcp_conn_t::~linux_nascent_tcp_conn_t() {
     rassert(fd_ == -1);
 }
 
-void linux_nascent_tcp_conn_t::ennervate(boost::scoped_ptr<linux_tcp_conn_t>& tcp_conn) {
-    tcp_conn.reset(new linux_tcp_conn_t(fd_));
+void linux_nascent_tcp_conn_t::ennervate(boost::scoped_ptr<linux_tcp_conn_t> *tcp_conn) {
+    tcp_conn->reset(new linux_tcp_conn_t(fd_));
     fd_ = -1;
 }
 

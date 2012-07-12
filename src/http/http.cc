@@ -221,9 +221,9 @@ void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) 
     conn->write(res.body.c_str(), res.body.size());
 }
 
-void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
+void http_server_t::handle_conn(const boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
     boost::scoped_ptr<tcp_conn_t> conn;
-    nconn->ennervate(conn);
+    nconn->ennervate(&conn);
 
     http_req_t req;
     tcp_http_msg_parser_t http_msg_parser;
@@ -240,10 +240,10 @@ void http_server_t::handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn, au
             res.code = 400;
             write_http_msg(conn, res);
         }
-    } catch (linux_tcp_conn_t::read_closed_exc_t &) {
+    } catch (const linux_tcp_conn_t::read_closed_exc_t &) {
         //Someone disconnected before sending us all the information we
         //needed... oh well.
-    } catch (linux_tcp_conn_t::write_closed_exc_t &) {
+    } catch (const linux_tcp_conn_t::write_closed_exc_t &) {
         //We were trying to write to someone and they didn't stick around long
         //enough to write it.
     }

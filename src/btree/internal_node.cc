@@ -64,14 +64,6 @@ void init(block_size_t block_size, internal_node_t *node, const internal_node_t 
     rassert(get_pair_by_index(node, node->npairs-1)->key.size == 0);
 }
 
-void get_children_ids(const internal_node_t *node, boost::scoped_array<block_id_t>& ids_out, size_t *num_children) {
-    ids_out.reset(new block_id_t[node->npairs]);
-    *num_children = node->npairs;
-    for (int i = 0, n = node->npairs; i < n; ++i) {
-        ids_out[i] = get_pair_by_index(node, i)->lnode;
-    }
-}
-
 block_id_t lookup(const internal_node_t *node, const btree_key_t *key) {
     int index = get_offset_index(node, key);
     return get_pair_by_index(node, index)->lnode;

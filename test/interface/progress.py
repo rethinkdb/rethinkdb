@@ -11,9 +11,11 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    processes = [driver.Process(cluster, driver.Files(metacluster, executable_path = executable_path, command_prefix = command_prefix), executable_path = executable_path, command_prefix = command_prefix)
+    processes = [
+        driver.Process(cluster, driver.Files(metacluster, executable_path = executable_path, command_prefix = command_prefix),
+            executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
         for i in xrange(2)]
     for process in processes:
         process.wait_until_started_up()

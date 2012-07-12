@@ -10,12 +10,14 @@ opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path, command_prefix  = scenario_common.parse_mode_flags(opts)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Spinning up two processes..."
     prince_hamlet_files = driver.Files(metacluster, machine_name = "Prince Hamlet", db_path = "prince-hamlet-db", executable_path = executable_path, command_prefix = command_prefix)
-    prince_hamlet = driver.Process(cluster, prince_hamlet_files, log_path = "prince-hamlet-log", executable_path = executable_path, command_prefix = command_prefix)
+    prince_hamlet = driver.Process(cluster, prince_hamlet_files, log_path = "prince-hamlet-log",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     king_hamlet_files = driver.Files(metacluster, machine_name = "King Hamlet", db_path = "king-hamlet-db", executable_path = executable_path, command_prefix = command_prefix)
-    king_hamlet = driver.Process(cluster, king_hamlet_files, log_path = "king-hamlet-log", executable_path = executable_path, command_prefix = command_prefix)
+    king_hamlet = driver.Process(cluster, king_hamlet_files, log_path = "king-hamlet-log",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     prince_hamlet.wait_until_started_up()
     king_hamlet.wait_until_started_up()
     cluster.check()

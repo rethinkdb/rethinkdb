@@ -11,25 +11,43 @@
 
 #define ALLOCATION_CHUNK 50
 
-template <class backfill_chunk_t>
-void push_chunk_on_queue(fifo_enforcer_queue_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > *queue, backfill_chunk_t chunk, fifo_enforcer_write_token_t token) {
-    queue->push(token, std::make_pair(std::make_pair(true, chunk), token));
+template <class protocol_t>
+struct backfill_queue_entry_t {
+    // TODO: The fact that fifo_enforcer_queue_t requires a default
+    // constructor (and assignment operator, presumably) is completely asinine.
+    backfill_queue_entry_t() { }
+    backfill_queue_entry_t(bool _is_not_last_backfill_chunk,
+                           const typename protocol_t::backfill_chunk_t &_chunk,
+                           fifo_enforcer_write_token_t _write_token)
+        : is_not_last_backfill_chunk(_is_not_last_backfill_chunk),
+          chunk(_chunk),
+          write_token(_write_token) { }
+
+    bool is_not_last_backfill_chunk;
+    typename protocol_t::backfill_chunk_t chunk;
+    fifo_enforcer_write_token_t write_token;
+};
+
+template <class protocol_t>
+void push_chunk_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *queue,
+                         typename protocol_t::backfill_chunk_t chunk, fifo_enforcer_write_token_t token) {
+    queue->push(token, backfill_queue_entry_t<protocol_t>(true, chunk, token));
 }
 
-template <class backfill_chunk_t>
-void push_finish_on_queue(fifo_enforcer_queue_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > *queue, fifo_enforcer_write_token_t token) {
-    queue->push(token, std::make_pair(std::make_pair(false, backfill_chunk_t()), token));
+template <class protocol_t>
+void push_finish_on_queue(fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *queue, fifo_enforcer_write_token_t token) {
+    queue->push(token, backfill_queue_entry_t<protocol_t>(false, typename protocol_t::backfill_chunk_t(), token));
 }
 
 
 /* Now that the metadata indicates that the backfill is happening, it's
    time to start actually performing backfill chunks */
 template <class protocol_t>
-class chunk_callback_t : public coro_pool_t<std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> >::callback_t,
+class chunk_callback_t : public coro_pool_t<backfill_queue_entry_t<protocol_t> >::callback_t,
                          public home_thread_mixin_t {
 public:
     chunk_callback_t(multistore_ptr_t<protocol_t> *_svs,
-                     fifo_enforcer_queue_t<std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> > *_chunk_queue, mailbox_manager_t *_mbox_manager,
+                     fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *_chunk_queue, mailbox_manager_t *_mbox_manager,
                      mailbox_addr_t<void(int)> _allocation_mailbox) :
         svs(_svs), chunk_queue(_chunk_queue), mbox_manager(_mbox_manager),
         allocation_mailbox(_allocation_mailbox), unacked_chunks(0),
@@ -44,11 +62,10 @@ public:
         svs->receive_backfill(chunk, &write_token, interruptor);
     }
 
-    // TODO: Don't pass a std::pair of std::pair.
-    void coro_pool_callback(std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> chunk, signal_t *interruptor) {
+    void coro_pool_callback(backfill_queue_entry_t<protocol_t> chunk, signal_t *interruptor) {
         assert_thread();
         try {
-            if (chunk.first.first) {
+            if (chunk.is_not_last_backfill_chunk) {
                 /* This is an actual backfill chunk */
 
                 /* Before letting the next thing go, increment
@@ -60,7 +77,7 @@ public:
                 num_outstanding_chunks++;
 
                 // We acquire the write token in apply_backfill_chunk.
-                apply_backfill_chunk(chunk.second, chunk.first.second, interruptor);
+                apply_backfill_chunk(chunk.write_token, chunk.chunk, interruptor);
 
                 /* Allow the backfiller to send us more data */
                 int chunks_to_send_out = 0;
@@ -87,7 +104,7 @@ public:
                    that the backfill is over */
                 rassert(!done_message_arrived);
                 done_message_arrived = true;
-                chunk_queue->finish_write(chunk.second);
+                chunk_queue->finish_write(chunk.write_token);
             }
 
             if (done_message_arrived && num_outstanding_chunks == 0) {
@@ -107,7 +124,7 @@ public:
 
 private:
     multistore_ptr_t<protocol_t> *svs;
-    fifo_enforcer_queue_t<std::pair<std::pair<bool, typename protocol_t::backfill_chunk_t>, fifo_enforcer_write_token_t> > *chunk_queue;
+    fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > *chunk_queue;
     mailbox_manager_t *mbox_manager;
     mailbox_addr_t<void(int)> allocation_mailbox;
     int unacked_chunks;
@@ -165,20 +182,19 @@ void backfillee(
          * pool services these requests and poops them off one at a time to
          * perform them. */
 
-        typedef fifo_enforcer_queue_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > chunk_queue_t;
-        chunk_queue_t chunk_queue;
+        fifo_enforcer_queue_t<backfill_queue_entry_t<protocol_t> > chunk_queue;
 
         /* The backfiller will notify `done_mailbox` when the backfill is all over
         and the version described in `end_point_mailbox` has been achieved. */
         mailbox_t<void(fifo_enforcer_write_token_t)> done_mailbox(
             mailbox_manager,
-            boost::bind(&push_finish_on_queue<backfill_chunk_t>, &chunk_queue, _1),
+            boost::bind(&push_finish_on_queue<protocol_t>, &chunk_queue, _1),
             mailbox_callback_mode_inline);
 
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
         mailbox_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_mailbox(
-            mailbox_manager, boost::bind(&push_chunk_on_queue<backfill_chunk_t>, &chunk_queue, _1, _2));
+            mailbox_manager, boost::bind(&push_chunk_on_queue<protocol_t>, &chunk_queue, _1, _2));
 
         /* The backfiller will register for allocations on the allocation
          * registration box. */
@@ -287,7 +303,7 @@ void backfillee(
 
         chunk_callback_t<protocol_t> chunk_callback(svs, &chunk_queue, mailbox_manager, allocation_mailbox);
 
-        coro_pool_t<std::pair<std::pair<bool, backfill_chunk_t>, fifo_enforcer_write_token_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
+        coro_pool_t<backfill_queue_entry_t<protocol_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
 
         /* Now wait for the backfill to be over */
         {

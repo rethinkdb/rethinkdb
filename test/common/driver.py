@@ -334,7 +334,7 @@ class ProxyProcess(_Process):
     """A `ProxyProcess` object represents a running RethinkDB proxy. It cannot be
     restarted; stop it and then create a new one instead. """
 
-    def __init__(self, cluster, logfile_path, log_path = None, executable_path = None, command_prefix = []):
+    def __init__(self, cluster, logfile_path, log_path = None, executable_path = None, command_prefix = [], extra_options = []):
         assert isinstance(cluster, Cluster)
         assert cluster.metacluster is not None
 
@@ -354,7 +354,7 @@ class ProxyProcess(_Process):
                    "--log-file=" + self.logfile_path,
                    "--port=" + str(self.cluster_port),
                    "--port-offset=" + str(self.port_offset),
-                   "--client-port=" + str(self.local_cluster_port)]
+                   "--client-port=" + str(self.local_cluster_port)] + extra_options
 
         _Process.__init__(self, cluster, options,
             log_path=log_path, executable_path=executable_path, command_prefix=command_prefix)

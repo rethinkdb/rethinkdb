@@ -1,12 +1,9 @@
 #!/usr/bin/python
-import commands
-import getpass
 import os
 import subprocess
 import signal
 import time
 import random
-import sys
 
 names = """Nervous Energy
 Prosthetic Conscience
@@ -124,7 +121,6 @@ def usage():
     print os.sys.argv[0], "p N"
     print "Where p is the port you want the cluster to use and  N is the number of machines you want in the cluster"
 
-
 if len(os.sys.argv) < 3:
     usage()
     exit(1)
@@ -135,40 +131,33 @@ if n_machines < 1:
     usage()
     exit(1)
 else:
-    if getpass.getuser() != 'jdoliner':
-        # find the newest debug build
-        git_root = commands.getoutput("git rev-parse --show-toplevel")
-        possibles = [os.path.join(git_root, 'build', entry, 'rethinkdb') for entry in os.listdir(git_root + '/build')]
-        binary = max(possibles, key=lambda f: os.path.exists(f) and os.stat(f).st_mtime)
-    else:
-        binary = '../build/debug/rethinkdb'
-
     kids = []
-    machine_names = random.sample(names, n_machines)
+    machine_names = random.sample(names, n_machines-1)
+    machine_names.append(machine_names[0])
     for i, machine_name in enumerate(machine_names):
         # cleanup the directory
         directory = "cluster_directory_%d" % i
         os.system("rm -rf " + directory)
         if (i == 0):
-            cl = [binary, "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
+            cl = ["../build/debug/rethinkdb", "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
         else:
-            cl = [binary, "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "newton:%d" % port, "--port-offset", str(i+port)]
+            cl = ["../build/debug/rethinkdb", "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "newton:%d" % port, "--port-offset", str(i+port)]
         print ' '.join(cl)
-        kids += [subprocess.Popen(cl, stdout=sys.stdout, stderr=sys.stderr)]
+        kids += [subprocess.Popen(cl)]
         time.sleep(1)
 
     time.sleep(1)
     print "CTRL-C to kill me http requests can be sent to ports:",
     for i in range(n_machines):
-        if i != 0:
+        if i != 0: 
             print ",",
 
         print port + (i * 2) + 1,
 
     print ""
 
+    import sys
     sys.stdout.flush()
-    sys.stderr.flush()
 
     try:
         signal.pause()

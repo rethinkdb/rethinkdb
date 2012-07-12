@@ -20,7 +20,7 @@ public:
     get_stats_mailbox_address_t get_address();
 
 private:
-    static void send_stats(mailbox_manager_t* mailbox_manager, return_address_t& reply_address, std::set<stat_id_t>& requested_stats);
+    static void send_stats(mailbox_manager_t* mailbox_manager, const return_address_t& reply_address, std::set<stat_id_t>& requested_stats);
     get_stats_mailbox_t get_stats_mailbox;
 
     DISABLE_COPYING(stat_manager_t);

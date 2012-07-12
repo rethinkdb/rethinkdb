@@ -1,7 +1,8 @@
 #Models for Backbone.js
 class Namespace extends Backbone.Model
     initialize: ->
-        @load_key_distr()
+        # TODO: magic number + uniformize setInterval and setTImeout
+        setInterval @load_key_distr, 5000
 
         # Add a computed shards property for convenience and metadata
         @.set 'computed_shards', new DataUtils.Shards [],@
@@ -22,8 +23,6 @@ class Namespace extends Backbone.Model
                     distr_keys.push(key)
                 _.sortBy(distr_keys, _.identity)
                 @set('key_distr_sorted', distr_keys)
-                # TODO: magic number
-                window.setTimeout @load_key_distr, 5000
     sorted_key_distr_keys: =>
         keys = @get('key_distr_sorted')
         if keys?
@@ -141,7 +140,7 @@ class Datacenter extends Backbone.Model
         for machine in machines.models
             if machine.get('datacenter_uuid') is @get('id')
                 mstats = machine.get_stats().proc
-                if mstats?
+                if mstats?.global_cpu_util?
                     nmachines += 1
                     stats.global_cpu_util.avg += parseFloat(mstats.global_cpu_util.avg)
                     stats.global_mem_total += parseFloat(mstats.global_mem_total)
@@ -325,6 +324,7 @@ class Machines extends Backbone.Collection
     name: 'Machines'
 
 class LogEntries extends Backbone.Collection
+    min_timestamp: 0
     model: LogEntry
     comparator: (a, b) ->
         if a.get('timestamp') < b.get('timestamp')

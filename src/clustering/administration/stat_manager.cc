@@ -12,7 +12,7 @@
 
 stat_manager_t::stat_manager_t(mailbox_manager_t* mailbox_manager) : get_stats_mailbox(mailbox_manager, boost::bind(&stat_manager_t::send_stats, mailbox_manager, _1, _2)) { }
 
-void stat_manager_t::send_stats(mailbox_manager_t* mailbox_manager, return_address_t& reply_address, std::set<stat_id_t>&) {
+void stat_manager_t::send_stats(mailbox_manager_t* mailbox_manager, const return_address_t& reply_address, std::set<stat_id_t>&) {
     boost::scoped_ptr<perfmon_result_t> perfmon_result(perfmon_get_stats());
     send(mailbox_manager, reply_address, *perfmon_result.get());
 }
