@@ -19,7 +19,7 @@
 #include "clustering/administration/persist.hpp"
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
-#include "jsproc/pool.hpp"
+#include "extproc/pool.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
@@ -32,7 +32,7 @@
 #include "rpc/semilattice/view/field.hpp"
 
 bool do_serve(
-    const jsproc::spawner_t::info_t *spawner_info,
+    const extproc::spawner_t::info_t *spawner_info,
     io_backender_t *io_backender,
     bool i_am_a_server,
     const std::string &logfilepath,
@@ -44,7 +44,7 @@ bool do_serve(
     std::string web_assets, signal_t *stop_cond)
 {
     guarantee(spawner_info);
-    jsproc::pool_group_t jsproc_pool_group(*spawner_info, jsproc::pool_group_t::DEFAULTS);
+    extproc::pool_group_t extproc_pool_group(*spawner_info, extproc::pool_group_t::DEFAULTS);
 
     local_issue_tracker_t local_issue_tracker;
 
@@ -235,12 +235,12 @@ bool do_serve(
     return true;
 }
 
-bool serve(const jsproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve(const extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     std::string logfilepath = filepath + "/log_file";
     return do_serve(spawner_info, io_backender, true, logfilepath, filepath, persistent_file, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }
 
-bool serve_proxy(const jsproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &logfilepath, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
+bool serve_proxy(const extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &logfilepath, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
     return do_serve(spawner_info, io_backender, false, logfilepath, "", NULL, joins, ports, machine_id, semilattice_metadata, web_assets, stop_cond);
 }

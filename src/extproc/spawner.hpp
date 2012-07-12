@@ -7,7 +7,7 @@
 #include "concurrency/mutex.hpp"
 #include "containers/archive/socket_stream.hpp"
 
-namespace jsproc {
+namespace extproc {
 
 // A handle to the spawner process. Must only be used from the thread it is
 // created on.
@@ -47,6 +47,6 @@ class spawner_t :
     unix_socket_stream_t socket_;
 };
 
-} // namespace jsproc
+} // namespace extproc
 
 #endif // JSPROC_SPAWNER_HPP_

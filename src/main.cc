@@ -9,7 +9,7 @@
 #include "config/args.hpp"
 
 // TODO (rntz): this shouldn't be in here permanently
-#include "jsproc/example.hpp"
+#include "extproc/example.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION

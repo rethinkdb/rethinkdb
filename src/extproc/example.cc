@@ -1,4 +1,4 @@
-#include "jsproc/example.hpp"
+#include "extproc/example.hpp"
 
 #include <cstring>              // strerror
 #include <sys/types.h>
@@ -14,13 +14,13 @@
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/logger.hpp"
 #include "containers/archive/socket_stream.hpp"
-#include "jsproc/job.hpp"
-#include "jsproc/pool.hpp"
-#include "jsproc/spawner.hpp"
+#include "extproc/job.hpp"
+#include "extproc/pool.hpp"
+#include "extproc/spawner.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class js_eval_job_t :
-    public jsproc::auto_job_t<js_eval_job_t>
+    public extproc::auto_job_t<js_eval_job_t>
 {
   public:
     js_eval_job_t() {}
@@ -89,7 +89,7 @@ class js_eval_job_t :
     RDB_MAKE_ME_SERIALIZABLE_1(js_src);
 };
 
-void run_rethinkdb_js(const jsproc::spawner_t::info_t &info, bool *result) {
+void run_rethinkdb_js(const extproc::spawner_t::info_t &info, bool *result) {
     struct killer_message_t : linux_thread_message_t {
         virtual void on_thread_switch() {
             // NB. This is a terrible way to handle shut-down, and is only for
@@ -103,8 +103,8 @@ void run_rethinkdb_js(const jsproc::spawner_t::info_t &info, bool *result) {
 
     fprintf(stderr, "ENGINE PROC: %d\n", getpid());
 
-    jsproc::pool_group_t pool_group(info, jsproc::pool_group_t::DEFAULTS);
-    jsproc::pool_t *pool = pool_group.get();
+    extproc::pool_group_t pool_group(info, extproc::pool_group_t::DEFAULTS);
+    extproc::pool_t *pool = pool_group.get();
 
     local_issue_tracker_t tracker;
     log_writer_t writer("example-log", &tracker);
@@ -124,7 +124,7 @@ void run_rethinkdb_js(const jsproc::spawner_t::info_t &info, bool *result) {
 
         // Send a job that evaluates the javascript.
         js_eval_job_t job(line);
-        jsproc::job_handle_t handle;
+        extproc::job_handle_t handle;
         if(-1 == pool->spawn_job(&job, &handle)) {
             printf("!! could not spawn job\n");
             break;
@@ -155,8 +155,8 @@ void run_rethinkdb_js(const jsproc::spawner_t::info_t &info, bool *result) {
 int main_rethinkdb_js(int argc, char *argv[]) {
     (void) argc; (void) argv;
 
-    jsproc::spawner_t::info_t spawner_info;
-    jsproc::spawner_t::create(&spawner_info);
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_js, spawner_info, &result), 1);

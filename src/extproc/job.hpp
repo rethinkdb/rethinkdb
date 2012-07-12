@@ -8,7 +8,7 @@
 #include "containers/archive/archive.hpp"
 #include "containers/archive/socket_stream.hpp"
 
-namespace jsproc {
+namespace extproc {
 
 // Abstract base class for jobs.
 class job_t {
@@ -79,6 +79,6 @@ class auto_job_t : public job_t {
     func_t job_runner() { return job_runner_func; }
 };
 
-} // namespace jsproc
+} // namespace extproc
 
 #endif // JSPROC_JOB_HPP_

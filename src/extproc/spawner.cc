@@ -1,4 +1,4 @@
-#include "jsproc/spawner.hpp"
+#include "extproc/spawner.hpp"
 
 #include <signal.h>             // sigaction
 #include <sys/prctl.h>          // prctl
@@ -9,10 +9,10 @@
 #include <unistd.h>             // setpgid
 
 #include "arch/fd_send_recv.hpp"
-#include "jsproc/job.hpp"
+#include "extproc/job.hpp"
 #include "utils.hpp"
 
-namespace jsproc {
+namespace extproc {
 
 // Checks that we only create one spawner. This is an ugly restriction, but it
 // means we can put the SIGCHLD-handling logic in here, so that it is properly
@@ -193,4 +193,4 @@ void spawner_t::exec_worker(fd_t sockfd) {
     exit(job_t::accept_job(&control));
 }
 
-} // namespace jsproc
+} // namespace extproc

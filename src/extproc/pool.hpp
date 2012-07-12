@@ -7,10 +7,10 @@
 #include "concurrency/semaphore.hpp"
 #include "containers/archive/socket_stream.hpp"
 #include "containers/intrusive_list.hpp"
-#include "jsproc/job.hpp"
-#include "jsproc/spawner.hpp"
+#include "extproc/job.hpp"
+#include "extproc/spawner.hpp"
 
-namespace jsproc {
+namespace extproc {
 
 class job_handle_t;
 class pool_t;
@@ -156,6 +156,6 @@ class job_handle_t :
     pool_t::worker_t *worker_;
 };
 
-} // namespace jsproc
+} // namespace extproc
 
 #endif // JSPROC_POOL_HPP_

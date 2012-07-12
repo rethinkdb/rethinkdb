@@ -1,10 +1,10 @@
-#include "jsproc/pool.hpp"
+#include "extproc/pool.hpp"
 
 #include "logger.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
-namespace jsproc {
+namespace extproc {
 
 // ---------- pool_group_t ----------
 const pool_group_t::config_t pool_group_t::DEFAULTS;
@@ -211,4 +211,4 @@ void job_handle_t::disconnect() {
     worker_ = NULL;
 }
 
-} // namespace jsproc
+} // namespace extproc

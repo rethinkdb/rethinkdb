@@ -1,6 +1,6 @@
-#include "jsproc/job.hpp"
+#include "extproc/job.hpp"
 
-namespace jsproc {
+namespace extproc {
 
 // ---------- job_t ----------
 int job_t::accept_job(control_t *control) {
@@ -58,4 +58,4 @@ void job_t::control_t::log(const char *fmt, ...) {
 
 
 
-} // namespace jsproc
+} // namespace extproc

@@ -13,7 +13,7 @@
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist.hpp"
-#include "jsproc/spawner.hpp"
+#include "extproc/spawner.hpp"
 #include "mock/dummy_protocol.hpp"
 
 namespace po = boost::program_options;
@@ -107,7 +107,7 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
     }
 }
 
-void run_rethinkdb_serve(const jsproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_serve(const extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     if (!check_existence(filepath)) {
@@ -134,7 +134,7 @@ void run_rethinkdb_serve(const jsproc::spawner_t::info_t *spawner_info, const st
                         &sigint_cond);
 }
 
-void run_rethinkdb_porcelain(const jsproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_porcelain(const extproc::spawner_t::info_t *spawner_info, const std::string &filepath, const std::string &machine_name, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
 
     printf("Checking if directory '%s' already exists...\n", filepath.c_str());
@@ -255,7 +255,7 @@ void run_rethinkdb_porcelain(const jsproc::spawner_t::info_t *spawner_info, cons
     }
 }
 
-void run_rethinkdb_proxy(const jsproc::spawner_t::info_t *spawner_info, const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(const extproc::spawner_t::info_t *spawner_info, const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     rassert(!joins.empty());
 
@@ -449,8 +449,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    jsproc::spawner_t::info_t spawner_info;
-    jsproc::spawner_t::create(&spawner_info);
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
 
     const int num_workers = get_cpu_count();
 
@@ -544,8 +544,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    jsproc::spawner_t::info_t spawner_info;
-    jsproc::spawner_t::create(&spawner_info);
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
 
     const int num_workers = get_cpu_count();
 
@@ -590,8 +590,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    jsproc::spawner_t::info_t spawner_info;
-    jsproc::spawner_t::create(&spawner_info);
+    extproc::spawner_t::info_t spawner_info;
+    extproc::spawner_t::create(&spawner_info);
 
     const int num_workers = get_cpu_count();
 
