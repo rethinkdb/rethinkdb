@@ -5,66 +5,100 @@ module 'LogView', ->
         className: 'log-view'
         template: Handlebars.compile $('#log-container-template').html()
         header_template: Handlebars.compile $('#log-header-template').html()
-        max_log_entries: 20
+        max_log_entries: 10
+
+        current_logs: []
+        displayed_logs: 0
+        max_timestamp: 0
+
         log_route: '#logs'
 
         events: ->
             'click .next-log-entries': 'next_entries'
             'click .update-log-entries': 'update_log_entries'
 
-        #TODO Logs are not displayed in order (time)...
         initialize: ->
             log_initial '(initializing) events view: container'
-            @log_entries = new LogEntries
-
-            @set_interval = setInterval @check_for_new_updates, updateInterval
-
-        check_for_new_updates: =>
-            if window.location.hash is @log_route and @log_entries.length > 0
-                min_timestamp = @log_entries.at(0).get('timestamp')
-                route = "/ajax/log/_?min_timestamp=#{min_timestamp}" if min_timestamp?
-
-                @num_new_entries = 0
-                $.getJSON route, (log_data_from_server) =>
-                    for machine_uuid, log_entries of log_data_from_server
-                        @num_new_entries += log_entries.length
-                    @render_header()
+            
+           #@set_interval = setInterval @check_for_new_updates, updateInterval
 
         render: =>
             @.$el.html @template({})
-            @$log_entries = @.$('ul.log-entries')
-            @fetch_log_entries(
-                {}, (new_log_entries) =>
-                    @log_entries.add new_log_entries.models[0...@max_log_entries]
-                    @render_header()
 
-                    # Render each log entry (append it to the list)
-                    @log_entries.each (entry) =>
-                        view = new LogView.LogEntry
-                            model: entry
-                        @$log_entries.append view.render().el
-            )
+            @fetch_log_entries
+                max_length: @max_log_entries
 
             @.delegateEvents()
 
             return @
 
+        fetch_log_entries: (url_params) =>
+            route = "/ajax/log/_?"
+            for param, value of url_params
+                route+="&#{param}=#{value}"
+            
+            $.getJSON route, @parse_log
+            
+        parse_log: (log_data_from_server) =>
+            @max_timestamp = 0
+            for machine_uuid, log_entries of log_data_from_server
+
+                if log_entries.length > 0
+                    @max_timestamp = parseFloat(log_entries[log_entries.length-1].timestamp) if @max_timestamp < parseFloat(log_entries[log_entries.length-1].timestamp)
+
+                last_position = 0
+                for json in log_entries # For each new log
+                    log_saved = false
+                    # Looking if it has been already added
+                    for log, i in @current_logs
+                        is_same_log = true
+                        for attribute of log.attributes
+                            if not json.attribute? or log.get(attribute) isnt json.attribute
+                                is_same_log = false
+                        if is_same_log
+                            log_saved = true
+                            console.log 'break'
+                            break
+
+                    # If it wasn't saved before, look if its place is IN the list 
+                    if log_saved is false
+                        for log, i in @current_logs
+                            if parseFloat(json.timestamp) > parseFloat(log.get('timestamp'))
+                                entry = new LogEntry json
+                                entry.set('machine_uuid',machine_uuid)
+                                @current_logs.splice i, 0, entry
+                                log_saved = true
+                                break
+
+                    # If it's not, just add it ad the end
+                    if log_saved is false
+                        entry = new LogEntry json
+                        entry.set('machine_uuid',machine_uuid)
+                        @current_logs.push entry
+
+            if @current_logs.length <= @displayed_logs
+                @.$('.no-more-entries').show()
+                @.$('.next-log-entries').hide()
+                return
+            else
+                for i in [0..@max_log_entries-1]
+                    if @current_logs[@displayed_logs]?
+                        view = new LogView.LogEntry
+                            model: @current_logs[@displayed_logs]
+                        @.$('.log-entries').append view.render().el
+                        @displayed_logs++
+                    else
+                        @.$('.no-more-entries').show()
+                        @.$('.next-log-entries').hide()
+ 
+
+
         next_entries: (event) =>
             event.preventDefault()
-            # Ensure we have older entries (older than the oldest timestamp we're displaying)
-            @fetch_log_entries(
-                max_timestamp: @log_entries.at(@log_entries.length-1).get('timestamp')-1 # Use parseInt instead?
-                , (new_log_entries) =>
-                    last_rendered_entry_index = @log_entries.length - 1
-                    @log_entries.add new_log_entries.models[0...@max_log_entries]
-                    @render_header()
 
-                    # Render each log entry (append it to the list)
-                    for entry in @log_entries.models[last_rendered_entry_index...@log_entries.length]
-                        view = new LogView.LogEntry
-                            model: entry
-                        @$log_entries.append view.render().el
-            )
+            @fetch_log_entries
+                max_length: @max_log_entries
+                max_timestamp: @max_timestamp
 
         update_log_entries: (event) =>
             event.preventDefault()
@@ -91,6 +125,18 @@ module 'LogView', ->
                             , 2000
                 )
 
+        check_for_new_updates: =>
+            if window.location.hash is @log_route and @log_entries.length > 0
+                min_timestamp = @log_entries.at(0).get('timestamp')
+                route = "/ajax/log/_?min_timestamp=#{min_timestamp}" if min_timestamp?
+
+                @num_new_entries = 0
+                $.getJSON route, (log_data_from_server) =>
+                    for machine_uuid, log_entries of log_data_from_server
+                        @num_new_entries += log_entries.length
+                    @render_header()
+
+
         render_header: =>
             @.$('.header').html @header_template
                 new_entries: @num_new_entries > 0
@@ -100,28 +146,6 @@ module 'LogView', ->
                 from_date: new XDate(@log_entries.at(0).get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
                 to_date: new XDate(@log_entries.at(@log_entries.length-1).get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
 
-        fetch_log_entries: (url_params, callback) =>
-            route = "/ajax/log/_?&max_length=#{@max_log_entries * machines.length}"
-
-            for param, value of url_params
-                route+="&#{param}=#{value}"
-
-            $.getJSON route, (log_data_from_server) =>
-                new_log_entries = new LogEntries
-                for machine_uuid, log_entries of log_data_from_server
-                    # Otherwise, keep processing log entry json and prepare to render it
-                    for json in log_entries
-                        entry = new LogEntry json
-                        entry.set('machine_uuid',machine_uuid)
-                        new_log_entries.add entry
-
-                # Don't render anything if there are no new log entries.
-                if new_log_entries.length is 0
-                    @.$('.no-more-entries').show()
-                    @.$('.next-log-entries').hide()
-                    return
-
-                callback(new_log_entries)
 
         destroy: =>
             clearInterval @set_interval
