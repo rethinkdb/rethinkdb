@@ -6,7 +6,7 @@ module 'LogView', ->
         template: Handlebars.compile $('#log-container-template').html()
         header_template: Handlebars.compile $('#log-header-template').html()
         header_template_no_log: Handlebars.compile $('#log-header-no-logtemplate').html()
-        max_log_entries: 10
+        max_log_entries: 20
 
         current_logs: []
         displayed_logs: 0
