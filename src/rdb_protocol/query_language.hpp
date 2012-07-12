@@ -203,7 +203,13 @@ const type_t get_type(const Query &q, variable_type_scope_t *scope);
 
 /* functions to evaluate the queries */
 
-typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_stream_t;
+class json_stream_t {
+public:
+    virtual boost::shared_ptr<scoped_cJSON_t> next() = 0;
+    virtual ~json_stream_t() { }
+};
+
+//typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_stream_t;
 
 //Scopes for single pieces of json
 typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;
@@ -211,7 +217,7 @@ typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_
 typedef variable_val_scope_t::new_scope_t new_val_scope_t;
 
 //scopes for json streams
-typedef variable_scope_t<json_stream_t> variable_stream_scope_t;
+typedef variable_scope_t<boost::shared_ptr<json_stream_t> > variable_stream_scope_t;
 
 typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
 
@@ -256,11 +262,11 @@ Response eval(const WriteQuery &r, runtime_environment_t *) THROWS_ONLY(runtime_
 
 boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
-json_stream_t eval_stream(const Term &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
 boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
-json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
 boost::shared_ptr<scoped_cJSON_t> eval_cmp(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
@@ -270,11 +276,11 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_envir
 class view_t {
 public:
     view_t(const namespace_repo_t<rdb_protocol_t>::access_t &_access,
-           const json_stream_t &_stream)
+           boost::shared_ptr<json_stream_t> _stream)
         : access(_access), stream(_stream) { }
 
     namespace_repo_t<rdb_protocol_t>::access_t access;
-    json_stream_t stream;
+    boost::shared_ptr<json_stream_t> stream;
 };
 
 view_t eval(const View &v, runtime_environment_t *env);

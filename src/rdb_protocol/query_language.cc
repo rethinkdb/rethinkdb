@@ -742,12 +742,10 @@ Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtim
         boost::shared_ptr<scoped_cJSON_t> json = eval(r.term(), env);
         res.add_response(cJSON_print_std_string(json->get()));
     } else if (type == Type::STREAM) {
-        json_stream_t stream = eval_stream(r.term(), env);
+        boost::shared_ptr<json_stream_t> stream = eval_stream(r.term(), env);
 
-        for (json_stream_t::iterator it  = stream.begin();
-                                     it != stream.end();
-                                     ++it) {
-            res.add_response(cJSON_print_std_string((*it)->get()));
+        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            res.add_response(cJSON_print_std_string(json->get()));
         }
     } else {
         unreachable("The type checker should have caught use before we got" \
@@ -786,15 +784,13 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
 
                 int modified = 0,
                     error = 0;
-                for (json_stream_t::iterator it  = view.stream.begin();
-                                             it != view.stream.end();
-                                             ++it) {
+                while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
 
-                    env->scope.put_in_scope(w.update().mapping().arg(), *it);
+                    env->scope.put_in_scope(w.update().mapping().arg(), json);
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w.update().mapping().body(), env);
-                    if (!cJSON_Equal(cJSON_GetObjectItem((*it)->get(), "id"), 
-                                     cJSON_GetObjectItem((val)->get(), "id"))) {
+                    if (!cJSON_Equal(cJSON_GetObjectItem(json->get(), "id"), 
+                                     cJSON_GetObjectItem(val->get(), "id"))) {
                         error++;
                     } else {
                         insert(view.access, val, env);
@@ -814,16 +810,16 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
             {
                 view_t view = eval(w.delete_().view(), env);
 
-                for (json_stream_t::iterator it  = view.stream.begin();
-                                             it != view.stream.end();
-                                             ++it) {
-                    point_delete(view.access, cJSON_GetObjectItem((*it)->get(), "id"), env);
+                int deleted = 0;
+                while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
+                    point_delete(view.access, cJSON_GetObjectItem(json->get(), "id"), env);
+                    deleted++;
                 }
 
                 Response res;
                 res.set_status_code(0);
                 res.set_token(0);
-                res.add_response(strprintf("Deleted %d rows.", int(view.stream.size())));
+                res.add_response(strprintf("Deleted %d rows.", deleted));
                 return res;
             }
             break;
@@ -832,15 +828,13 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                 view_t view = eval(w.update().view(), env);
 
                 int modified = 0, deleted = 0;
-                for (json_stream_t::iterator it  = view.stream.begin();
-                                             it != view.stream.end();
-                                             ++it) {
+                while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                    env->scope.put_in_scope(w.update().mapping().arg(), *it);
+                    env->scope.put_in_scope(w.update().mapping().arg(), json);
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w.update().mapping().body(), env);
 
                     if (val->get()->type == cJSON_NULL) {
-                        point_delete(view.access, cJSON_GetObjectItem((*it)->get(), "id"), env);
+                        point_delete(view.access, cJSON_GetObjectItem(json->get(), "id"), env);
                         ++deleted;
                     } else {
                         insert(view.access, eval(w.update().mapping().body(), env), env);
@@ -851,7 +845,8 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                 Response res;
                 res.set_status_code(0);
                 res.set_token(0);
-                res.add_response(strprintf("Inserted %d rows.", int(view.stream.size())));
+                res.add_response(strprintf("Deleted %d rows.", deleted));
+                res.add_response(strprintf("Modified %d rows.", modified));
                 return res;
             }
             break;
@@ -872,32 +867,30 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
             break;
         case WriteQuery::INSERTSTREAM:
             {
-                json_stream_t stream = eval_stream(w.insert_stream().stream(), env);
+                boost::shared_ptr<json_stream_t> stream = eval_stream(w.insert_stream().stream(), env);
 
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(w.insert_stream().table_ref(), env);
 
-                for (json_stream_t::iterator it  = stream.begin();
-                                             it != stream.end();
-                                             ++it) {
-                    insert(ns_access, *it, env);
+                int inserted = 0;
+                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+                    inserted++;
+                    insert(ns_access, json, env);
                 }
 
                 Response res;
                 res.set_status_code(0);
                 res.set_token(0);
-                res.add_response(strprintf("Inserted %d rows.", int(stream.size())));
+                res.add_response(strprintf("Inserted %d rows.", inserted));
                 return res;
             }
             break;
         case WriteQuery::FOREACH:
             {
-                json_stream_t stream = eval_stream(w.for_each().stream(), env);
+                boost::shared_ptr<json_stream_t> stream = eval_stream(w.for_each().stream(), env);
 
-                for (json_stream_t::iterator it  = stream.begin();
-                                             it != stream.end();
-                                             ++it) {
+                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                    env->scope.put_in_scope(w.for_each().var(), *it);
+                    env->scope.put_in_scope(w.for_each().var(), json);
 
                     for (int i = 0; i < w.for_each().queries_size(); ++i) {
                         eval(w.for_each().queries(i), env);
@@ -1102,7 +1095,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
     crash("unreachable");
 }
 
-json_stream_t eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
+boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (t.type()) {
         case Term::VAR:
             return env->stream_scope.get(t.var());
@@ -1669,7 +1662,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
         case Builtin::NTH:
             {
-                json_stream_t stream = eval_stream(c.args(0), env);
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
 
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> index_json  = eval(c.args(1), env);
@@ -1682,29 +1675,27 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     throw runtime_exc_t("The second argument must be a nonnegative integer.");
                 }
 
-                if (static_cast<size_t>(index) > stream.size()) {
-                    throw runtime_exc_t("Indexed past the end of a stream");
+                boost::shared_ptr<scoped_cJSON_t> json;
+                for (int i = 0; i < index; ++i) {
+                    json = stream->next();
+                    if (!json) {
+                        throw runtime_exc_t("Index out of bounds.");
+                    }
                 }
 
-                json_stream_t::iterator it = stream.begin();
-
-                std::advance(it, index);
-
                 return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(
-                    cJSON_DeepCopy(it->get()->get())
+                    cJSON_DeepCopy(json->get())
                 ));
             }
             break;
         case Builtin::STREAMTOARRAY:
             {
-                json_stream_t stream = eval_stream(c.args(0), env);
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
 
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
 
-                for (json_stream_t::iterator it  = stream.begin();
-                                             it != stream.end();
-                                             ++it) {
-                    cJSON_AddItemToArray(res->get(), cJSON_DeepCopy(it->get()->get()));
+                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+                    cJSON_AddItemToArray(res->get(), cJSON_DeepCopy(json->get()));
                 }
 
                 return res;
@@ -1874,7 +1865,7 @@ private:
     runtime_environment_t *env;
 };
 
-json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
+boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (c.builtin().type()) {
         //JSON -> JSON
         case Builtin::NOT:
@@ -1907,54 +1898,59 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
         case Builtin::FILTER:
             {
                 predicate_t p(c.builtin().filter().predicate(), env);
-                json_stream_t stream = eval_stream(c.args(0), env);
-                stream.remove_if(p);
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
+                crash("unimplemented");
+                //TODO, add a filtering stream here.
+                //stream.remove_if(p);
                 return stream;
             }
             break;
         case Builtin::MAP:
             {
-                json_stream_t stream = eval_stream(c.args(0), env);
-                json_stream_t res;
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
+                throw runtime_exc_t("Unimplemented: Builtin::MAP");
+                //json_stream_t res;
 
-                for (json_stream_t::iterator it  = stream.begin();
-                                             it != stream.end();
-                                             ++it) {
-                    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                    env->scope.put_in_scope(c.builtin().map().mapping().arg(), *it);
-                    res.push_back(eval(c.builtin().map().mapping().body(), env));
-                }
-                return res;
+                //for (json_stream_t::iterator it  = stream.begin();
+                //                             it != stream.end();
+                //                             ++it) {
+                //    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                //    env->scope.put_in_scope(c.builtin().map().mapping().arg(), *it);
+                //    res.push_back(eval(c.builtin().map().mapping().body(), env));
+                //}
+                //return res;
             }
             break;
         case Builtin::CONCATMAP:
             {
-                json_stream_t stream = eval_stream(c.args(0), env);
-                json_stream_t res;
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
+                throw runtime_exc_t("Unimplemented: Builtin::CONCATMAP");
+                //json_stream_t res;
 
-                for (json_stream_t::iterator it  = stream.begin();
-                                             it != stream.end();
-                                             ++it) {
-                    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                    env->scope.put_in_scope(c.builtin().map().mapping().arg(), *it);
+                //for (json_stream_t::iterator it  = stream.begin();
+                //                             it != stream.end();
+                //                             ++it) {
+                //    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                //    env->scope.put_in_scope(c.builtin().map().mapping().arg(), *it);
 
-                    json_stream_t inner_stream = eval_stream(c.builtin().map().mapping().body(), env);
+                //    json_stream_t inner_stream = eval_stream(c.builtin().map().mapping().body(), env);
 
-                    for (json_stream_t::iterator jt  = inner_stream.begin();
-                                                 jt != inner_stream.end();
-                                                 ++jt) {
-                        res.push_back(*it);
-                    }
-                }
-                return res;
+                //    for (json_stream_t::iterator jt  = inner_stream.begin();
+                //                                 jt != inner_stream.end();
+                //                                 ++jt) {
+                //        res.push_back(*it);
+                //    }
+                //}
+                //return res;
             }
             break;
         case Builtin::ORDERBY:
             {
                 ordering_t o(c.builtin().order_by().mapping(), env);
-                json_stream_t stream = eval_stream(c.args(0), env);
-                stream.sort(o);
-                return stream;
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
+                throw runtime_exc_t("Unimplemented: Builtin::ORDERBY");
+                //stream.sort(o);
+                //return stream;
             }
             break;
         case Builtin::DISTINCT:
@@ -1962,7 +1958,7 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
             break;
         case Builtin::LIMIT:
             {
-                json_stream_t stream = eval_stream(c.args(0), env);
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
 
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> limit_json  = eval(c.args(1), env);
@@ -1975,39 +1971,43 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
                     throw runtime_exc_t("The second argument must be an integer.");
                 }
 
-                if (int(stream.size()) > limit) {
-                    json_stream_t::iterator it = stream.begin();
-                    for (int i = 0; i < limit; ++i) {
-                        ++it;
-                    }
-                    stream.erase(it, stream.end());
-                }
 
-                return stream;
+                throw runtime_exc_t("Unimplemented: Builtin::LIMIT");
+                //if (int(stream.size()) > limit) {
+                //    json_stream_t::iterator it = stream.begin();
+                //    for (int i = 0; i < limit; ++i) {
+                //        ++it;
+                //    }
+                //    stream.erase(it, stream.end());
+                //}
+
+                //return stream;
             }
             break;
         case Builtin::UNION:
             {
-                json_stream_t stream1 = eval_stream(c.args(0), env),
-                              stream2 = eval_stream(c.args(1), env);
+                boost::shared_ptr<json_stream_t> stream1 = eval_stream(c.args(0), env),
+                                                 stream2 = eval_stream(c.args(1), env);
 
-                stream1.splice(stream1.end(), stream2);
-                return stream1;
+                throw runtime_exc_t("Unimplemented: Builtin::UNION");
+                //stream1.splice(stream1.end(), stream2);
+                //return stream1;
             }
             break;
         case Builtin::ARRAYTOSTREAM:
             {
-                json_stream_t res;
+                boost::shared_ptr<json_stream_t> res;
 
                 boost::shared_ptr<scoped_cJSON_t> array = eval(c.args(0), env);
                 json_array_iterator_t it(array->get());
 
-                cJSON *elt;
-                while ((elt = it.next())) {
-                    res.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(elt))));
-                }
+                throw runtime_exc_t("Unimplemented: Builtin::UNION");
+                //cJSON *elt;
+                //while ((elt = it.next())) {
+                //    res.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(elt))));
+                //}
 
-                return res;
+                //return res;
             }
             break;
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
@@ -2043,7 +2043,7 @@ view_t eval(const View &v, runtime_environment_t *env) {
                 rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
                 rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
                 rassert(p_res);
-                json_stream_t stream(p_res->data.begin(), p_res->data.end());
+                boost::shared_ptr<json_stream_t> stream;//(p_res->data.begin(), p_res->data.end());
                 return view_t(ns_access, stream);
             }
             break;
@@ -2052,8 +2052,9 @@ view_t eval(const View &v, runtime_environment_t *env) {
                 view_t subview = eval(v.filter_view().view(), env);
 
                 predicate_t p(v.filter_view().predicate(), env);
-                subview.stream.remove_if(p);
-                return subview;
+                throw runtime_exc_t("Unimplemented: Builtin::FILTERVIEW");
+                //subview.stream.remove_if(p);
+                //return subview;
             }
             break;
         case View::RANGEVIEW:
