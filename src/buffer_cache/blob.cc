@@ -523,8 +523,8 @@ std::string blob_t::read_to_string(transaction_t *txn, int64_t offset, int64_t l
 namespace blob {
 
 struct traverse_helper_t {
-    virtual void preprocess(transaction_t *txn, int levels, buf_lock_t& lock, block_id_t *block_id) = 0;
-    virtual void postprocess(buf_lock_t& lock) = 0;
+    virtual void preprocess(transaction_t *txn, int levels, buf_lock_t *lock_out, block_id_t *block_id) = 0;
+    virtual void postprocess(buf_lock_t *lock) = 0;
     virtual ~traverse_helper_t() { }
 };
 
@@ -548,7 +548,7 @@ void traverse_index(transaction_t *txn, int levels, block_id_t *block_ids, int i
     } else {
         buf_lock_t lock;
         //        debugf("preprocess levels = %d, index = %d\n", levels, index);
-        helper->preprocess(txn, levels, lock, &block_ids[index]);
+        helper->preprocess(txn, levels, &lock, &block_ids[index]);
 
         if (levels > 1) {
             void *b = lock.get_data_major_write();
@@ -556,7 +556,7 @@ void traverse_index(transaction_t *txn, int levels, block_id_t *block_ids, int i
             traverse_recursively(txn, levels - 1, subids, sub_old_offset, sub_old_size, sub_new_offset, sub_new_size, helper);
         }
 
-        helper->postprocess(lock);
+        helper->postprocess(&lock);
     }
 }
 
@@ -685,18 +685,18 @@ bool blob_t::traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_
 }
 
 struct allocate_helper_t : public blob::traverse_helper_t {
-    void preprocess(transaction_t *txn, int levels, buf_lock_t& lock, block_id_t *block_id) {
+    void preprocess(transaction_t *txn, int levels, buf_lock_t *lock_out, block_id_t *block_id) {
         buf_lock_t temp_lock(txn);
-        lock.swap(temp_lock);
-        *block_id = lock.get_block_id();
-        void *b = lock.get_data_major_write();
+        lock_out->swap(temp_lock);
+        *block_id = lock_out->get_block_id();
+        void *b = lock_out->get_data_major_write();
         if (levels == 1) {
             *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;
         } else {
             *reinterpret_cast<block_magic_t *>(b) = blob::internal_node_magic;
         }
     }
-    void postprocess(UNUSED buf_lock_t& lock) { }
+    void postprocess(UNUSED buf_lock_t *lock) { }
 };
 
 bool blob_t::allocate_to_dimensions(transaction_t *txn, int levels, int64_t new_offset, int64_t new_size) {
@@ -705,13 +705,13 @@ bool blob_t::allocate_to_dimensions(transaction_t *txn, int levels, int64_t new_
 }
 
 struct deallocate_helper_t : public blob::traverse_helper_t {
-    void preprocess(transaction_t *txn, UNUSED int levels, buf_lock_t& lock, block_id_t *block_id) {
+    void preprocess(transaction_t *txn, UNUSED int levels, buf_lock_t *lock_out, block_id_t *block_id) {
         buf_lock_t tmp(txn, *block_id, rwi_write);
-        lock.swap(tmp);
+        lock_out->swap(tmp);
     }
 
-    void postprocess(buf_lock_t& lock) {
-        lock.mark_deleted();
+    void postprocess(buf_lock_t *lock) {
+        lock->mark_deleted();
     }
 };
 
