@@ -237,13 +237,13 @@ private:
                                 const cluster_semilattice_metadata_t& cluster_metadata);
 
     void list_single_machine(const machine_id_t& machine_id,
-                             machine_semilattice_metadata_t& machine,
-                             cluster_semilattice_metadata_t& cluster_metadata);
+                             const machine_semilattice_metadata_t& machine,
+                             const cluster_semilattice_metadata_t& cluster_metadata);
 
     template <class protocol_t>
     void list_single_namespace(const namespace_id_t& ns_id,
-                               namespace_semilattice_metadata_t<protocol_t>& ns,
-                               cluster_semilattice_metadata_t& cluster_metadata,
+                               const namespace_semilattice_metadata_t<protocol_t>& ns,
+                               const cluster_semilattice_metadata_t& cluster_metadata,
                                const std::string& protocol);
 
     template <class map_type>
