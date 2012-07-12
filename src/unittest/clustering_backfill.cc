@@ -53,13 +53,13 @@ void run_backfill_test() {
     store_view_t<dummy_protocol_t> *stores[] = { &backfiller_store, &backfillee_store };
     for (size_t i = 0; i < sizeof(stores) / sizeof(stores[0]); i++) {
         cond_t non_interruptor;
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
-        stores[i]->new_write_token(token);
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
+        stores[i]->new_write_token(&token);
         stores[i]->set_metainfo(
             region_map_t<dummy_protocol_t, binary_blob_t>(region,
                                                           binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))),
             order_token_t::ignore,
-            token,
+            &token,
             &non_interruptor);
     }
 
@@ -74,8 +74,8 @@ void run_backfill_test() {
             timestamp = ts.timestamp_after();
 
             cond_t non_interruptor;
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
-            backfiller_store.new_write_token(token);
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
+            backfiller_store.new_write_token(&token);
 
 #ifndef NDEBUG
             mock::equality_metainfo_checker_callback_t<dummy_protocol_t>
@@ -91,7 +91,7 @@ void run_backfill_test() {
                 ),
                 w, ts,
                 order_token_t::ignore,
-                token,
+                &token,
                 &non_interruptor
             );
         }
@@ -138,21 +138,21 @@ void run_backfill_test() {
         EXPECT_TRUE(backfiller_store.timestamps[key] == backfillee_store.timestamps[key]);
     }
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token1;
-    backfillee_store.new_read_token(token1);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> token1;
+    backfillee_store.new_read_token(&token1);
 
     region_map_t<dummy_protocol_t, version_range_t> backfillee_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
-            backfillee_store.get_metainfo(order_token_t::ignore, token1, &interruptor),
+            backfillee_store.get_metainfo(order_token_t::ignore, &token1, &interruptor),
             &binary_blob_t::get<version_range_t>
         );
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> token2;
-    backfiller_store.new_read_token(token2);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> token2;
+    backfiller_store.new_read_token(&token2);
 
     region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata =
         region_map_transform<dummy_protocol_t, binary_blob_t, version_range_t>(
-            backfiller_store.get_metainfo(order_token_t::ignore, token2, &interruptor),
+            backfiller_store.get_metainfo(order_token_t::ignore, &token2, &interruptor),
             &binary_blob_t::get<version_range_t>
         );
 
