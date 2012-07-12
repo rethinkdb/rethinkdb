@@ -17,19 +17,31 @@ namespace jsproc {
 // Checks that we only create one spawner. This is an ugly restriction, but it
 // means we can put the SIGCHLD-handling logic in here, so that it is properly
 // scoped to the lifetime of the spawner.
-static bool spawner_created = false;
+//
+// TODO(rntz): More general way of handling SIGCHLD.
+static pid_t spawner_pid = -1;
 
 static void sigchld_handler(int signo) {
     guarantee(signo == SIGCHLD);
-    guarantee(spawner_created);
-    crash_or_trap("Spawner process died!");
+    guarantee(spawner_pid > 0);
+
+    int status;
+    pid_t pid = waitpid(-1, &status, WNOHANG);
+    guarantee_err(-1 != pid, "could not waitpid()");
+
+    // We might spawn processes other than the spawner, whose deaths we ignore.
+    // waitpid() might also return 0, indicating some event other than child
+    // process termination (ie. SIGSTOP or SIGCONT). We ignore this.
+    if (pid == spawner_pid) {
+        crash_or_trap("Spawner process died!");
+    }
 }
 
 spawner_t::spawner_t(const info_t &info)
     : pid_(info.pid), socket_(info.socket)
 {
-    guarantee(!spawner_created);
-    spawner_created = true;
+    guarantee(-1 == spawner_pid);
+    spawner_pid = pid_;
 
     // Check that the spawner hasn't already exited.
     guarantee(0 == waitpid(pid_, NULL, WNOHANG),
@@ -50,6 +62,9 @@ spawner_t::~spawner_t() {
     act.sa_handler = SIG_DFL;
     guarantee_err(0 == sigemptyset(&act.sa_mask), "could not empty signal mask");
     guarantee_err(0 == sigaction(SIGCHLD, &act, NULL), "could not unset SIGCHLD handler");
+
+    guarantee(spawner_pid > 0);
+    spawner_pid = -1;
 }
 
 pid_t spawner_t::create(info_t *info) {
