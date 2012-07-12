@@ -67,17 +67,13 @@ spawner_t::~spawner_t() {
     spawner_pid = -1;
 }
 
-pid_t spawner_t::create(info_t *info) {
+void spawner_t::create(info_t *info) {
     int fds[2];
-    int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
-    if (res) return -1;
+    guarantee_err(0 == socketpair(AF_UNIX, SOCK_STREAM, 0, fds),
+                  "could not create socketpair for spawner");
 
     pid_t pid = fork();
-    if (-1 == pid) {
-        guarantee_err(0 == close(fds[0]), "could not close fd");
-        guarantee_err(0 == close(fds[1]), "could not close fd");
-        return -1;
-    }
+    guarantee_err(-1 != pid, "could not fork spawner process");
 
     if (0 == pid) {
         // We're the child; run the spawner.
@@ -90,7 +86,6 @@ pid_t spawner_t::create(info_t *info) {
     guarantee_err(0 == close(fds[1]), "could not close fd");
     info->pid = pid;
     info->socket = fds[0];
-    return 0;
 }
 
 pid_t spawner_t::spawn_process(fd_t *socket) {

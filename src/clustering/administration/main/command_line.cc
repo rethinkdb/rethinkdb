@@ -255,14 +255,15 @@ void run_rethinkdb_porcelain(const jsproc::spawner_t::info_t *spawner_info, cons
     }
 }
 
-void run_rethinkdb_proxy(const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
+void run_rethinkdb_proxy(const jsproc::spawner_t::info_t *spawner_info, const std::string &logfilepath, const std::vector<host_and_port_t> &joins, service_ports_t ports, const io_backend_t io_backend, bool *result_out, std::string web_assets) {
     os_signal_cond_t sigint_cond;
     rassert(!joins.empty());
 
     boost::scoped_ptr<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
 
-    *result_out = serve_proxy(io_backender.get(),
+    *result_out = serve_proxy(spawner_info,
+                              io_backender.get(),
                               logfilepath,
                               look_up_peers_addresses(joins),
                               ports,
@@ -394,15 +395,6 @@ int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::opti
     }
 }
 
-static MUST_USE bool try_spawn_spawner(jsproc::spawner_t::info_t *spawner_info) {
-    if (-1 == jsproc::spawner_t::create(spawner_info)) {
-        fprintf(stderr, "could not fork off spawner process: %s\n", strerror(errno));
-        return false;
-    }
-
-    return true;
-}
-
 int main_rethinkdb_create(int argc, char *argv[]) {
     po::variables_map vm;
     int res = parse_commands(argc, argv, &vm, get_rethinkdb_create_options());
@@ -458,9 +450,7 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
     }
 
     jsproc::spawner_t::info_t spawner_info;
-    if (!try_spawn_spawner(&spawner_info)) {
-        return EXIT_FAILURE;
-    }
+    jsproc::spawner_t::create(&spawner_info);
 
     const int num_workers = get_cpu_count();
 
@@ -554,10 +544,13 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    jsproc::spawner_t::info_t spawner_info;
+    jsproc::spawner_t::create(&spawner_info);
+
     const int num_workers = get_cpu_count();
 
     bool result;
-    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, logfilepath, joins,
+    run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, &spawner_info, logfilepath, joins,
                                    service_ports_t(port, client_port, http_port DEBUG_ONLY(, vm["port-offset"].as<int>())),
                                    io_backend,
                                    &result, render_as_path(web_path)),
@@ -598,9 +591,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
     }
 
     jsproc::spawner_t::info_t spawner_info;
-    if (!try_spawn_spawner(&spawner_info)) {
-        return EXIT_FAILURE;
-    }
+    jsproc::spawner_t::create(&spawner_info);
 
     const int num_workers = get_cpu_count();
 

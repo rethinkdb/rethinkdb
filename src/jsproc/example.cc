@@ -156,7 +156,7 @@ int main_rethinkdb_js(int argc, char *argv[]) {
     (void) argc; (void) argv;
 
     jsproc::spawner_t::info_t spawner_info;
-    guarantee(-1 != jsproc::spawner_t::create(&spawner_info));
+    jsproc::spawner_t::create(&spawner_info);
 
     bool result;
     run_in_thread_pool(boost::bind(&run_rethinkdb_js, spawner_info, &result), 1);
