@@ -190,10 +190,10 @@ private:
     };
 
     template <class bp_type>
-    void add_machine_info_from_blueprint(const bp_type& bp, std::map<machine_id_t, machine_info_t>& results);
+    void add_machine_info_from_blueprint(const bp_type& bp, std::map<machine_id_t, machine_info_t> *results);
 
     template <class map_type>
-    void build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t>& results);
+    void build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t> *results);
 
     std::map<machine_id_t, machine_info_t> build_machine_info(const cluster_semilattice_metadata_t& cluster_metadata);
 
@@ -243,38 +243,38 @@ private:
     template <class map_type>
     void add_single_datacenter_affinities(const datacenter_id_t& dc_id,
                                           const map_type& ns_map,
-                                          std::vector<std::vector<std::string> >& table_out,
-                                          const std::string& protocol);
+                                          const std::string& protocol,
+                                          std::vector<std::vector<std::string> > *table);
 
     template <class map_type>
     size_t add_single_machine_replicas(const machine_id_t& machine_id,
                                        const map_type& ns_map,
-                                       std::vector<std::vector<std::string> >& table_out);
+                                       std::vector<std::vector<std::string> > *table);
 
     template <class protocol_t>
     bool add_single_machine_blueprint(const machine_id_t& machine_id,
                                       const persistable_blueprint_t<protocol_t>& blueprint,
-                                      std::vector<std::vector<std::string> >& table_out,
                                       const std::string& ns_uuid,
-                                      const std::string& ns_name);
+                                      const std::string& ns_name,
+                                      std::vector<std::vector<std::string> > *table);
 
     template <class protocol_t>
     void add_single_namespace_replicas(const std::set<typename protocol_t::region_t>& shards,
                                        const persistable_blueprint_t<protocol_t>& blueprint,
                                        const machines_semilattice_metadata_t::machine_map_t& machine_map,
-                                       std::vector<std::vector<std::string> >& table_out);
+                                       std::vector<std::vector<std::string> > *table);
 
     template <class T>
-    void resolve_value(vclock_t<T>& field);
+    void resolve_value(vclock_t<T> *field);
 
-    void resolve_machine_value(machine_semilattice_metadata_t& machine,
+    void resolve_machine_value(machine_semilattice_metadata_t *machine,
                                const std::string& field);
 
-    void resolve_datacenter_value(datacenter_semilattice_metadata_t& dc,
+    void resolve_datacenter_value(datacenter_semilattice_metadata_t *dc,
                                   const std::string& field);
 
     template <class protocol_t>
-    void resolve_namespace_value(namespace_semilattice_metadata_t<protocol_t>& ns,
+    void resolve_namespace_value(namespace_semilattice_metadata_t<protocol_t> *ns,
                                  const std::string& field);
 
     boost::shared_ptr<json_adapter_if_t<namespace_metadata_ctx_t> > traverse_directory(const std::vector<std::string>& path, namespace_metadata_ctx_t& json_ctx, cluster_semilattice_metadata_t& cluster_metadata);

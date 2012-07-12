@@ -1563,14 +1563,14 @@ std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_
     }
 
     // Go through namespaces
-    build_machine_info_internal(cluster_metadata.dummy_namespaces.namespaces, results);
-    build_machine_info_internal(cluster_metadata.memcached_namespaces.namespaces, results);
+    build_machine_info_internal(cluster_metadata.dummy_namespaces.namespaces, &results);
+    build_machine_info_internal(cluster_metadata.memcached_namespaces.namespaces, &results);
 
     return results;
 }
 
 template <class map_type>
-void admin_cluster_link_t::build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t>& results) {
+void admin_cluster_link_t::build_machine_info_internal(const map_type& ns_map, std::map<machine_id_t, machine_info_t> *results) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted() && !i->second.get().blueprint.in_conflict()) {
             add_machine_info_from_blueprint(i->second.get().blueprint.get_mutable(), results);
@@ -1579,28 +1579,27 @@ void admin_cluster_link_t::build_machine_info_internal(const map_type& ns_map, s
 }
 
 template <class bp_type>
-void admin_cluster_link_t::add_machine_info_from_blueprint(const bp_type& bp, std::map<machine_id_t, machine_info_t>& results) {
+void admin_cluster_link_t::add_machine_info_from_blueprint(const bp_type& bp, std::map<machine_id_t, machine_info_t> *results) {
     for (typename bp_type::role_map_t::const_iterator j = bp.machines_roles.begin();
          j != bp.machines_roles.end(); ++j) {
-        if (results.count(j->first) == 0) {
-            continue;
-        }
+        std::map<machine_id_t, machine_info_t>::iterator it = results->find(j->first);
+        if (it != results->end()) {
+            bool machine_used = false;
 
-        bool machine_used = false;
-
-        for (typename bp_type::region_to_role_map_t::const_iterator k = j->second.begin();
-             k != j->second.end(); ++k) {
-            if (k->second == blueprint_details::role_primary) {
-                ++results[j->first].primaries;
-                machine_used = true;
-            } else if (k->second == blueprint_details::role_secondary) {
-                ++results[j->first].secondaries;
-                machine_used = true;
+            for (typename bp_type::region_to_role_map_t::const_iterator k = j->second.begin();
+                 k != j->second.end(); ++k) {
+                if (k->second == blueprint_details::role_primary) {
+                    ++it->second.primaries;
+                    machine_used = true;
+                } else if (k->second == blueprint_details::role_secondary) {
+                    ++it->second.secondaries;
+                    machine_used = true;
+                }
             }
-        }
 
-        if (machine_used) {
-            ++results[j->first].namespaces;
+            if (machine_used) {
+                ++it->second.namespaces;
+            }
         }
     }
 }
@@ -2371,7 +2370,7 @@ void admin_cluster_link_t::list_single_namespace(const namespace_id_t& ns_id,
         add_single_namespace_replicas(ns.shards.get(),
                                       ns.blueprint.get(),
                                       cluster_metadata.machines.machines,
-                                      table);
+                                      &table);
 
         printf("%ld replica%s for %ld shard%s\n",
                table.size() - 1, table.size() == 2 ? "" : "s",
@@ -2386,7 +2385,7 @@ template <class protocol_t>
 void admin_cluster_link_t::add_single_namespace_replicas(const std::set<typename protocol_t::region_t>& shards,
                                                          const persistable_blueprint_t<protocol_t>& blueprint,
                                                          const machines_semilattice_metadata_t::machine_map_t& machine_map,
-                                                         std::vector<std::vector<std::string> >& table_out) {
+                                                         std::vector<std::vector<std::string> > *table) {
     for (typename std::set<typename protocol_t::region_t>::iterator s = shards.begin(); s != shards.end(); ++s) {
         std::string shard_str = admin_value_to_string(*s);
 
@@ -2411,7 +2410,7 @@ void admin_cluster_link_t::add_single_namespace_replicas(const std::set<typename
                 }
 
                 delta.push_back("yes");
-                table_out.push_back(delta);
+                table->push_back(delta);
             }
         }
 
@@ -2436,7 +2435,7 @@ void admin_cluster_link_t::add_single_namespace_replicas(const std::set<typename
                 }
 
                 delta.push_back("no");
-                table_out.push_back(delta);
+                table->push_back(delta);
             }
         }
     }
@@ -2491,8 +2490,8 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
         table.push_back(delta);
     }
 
-    add_single_datacenter_affinities(dc_id, cluster_metadata.dummy_namespaces.namespaces, table, "dummy");
-    add_single_datacenter_affinities(dc_id, cluster_metadata.memcached_namespaces.namespaces, table, "memcached");
+    add_single_datacenter_affinities(dc_id, cluster_metadata.dummy_namespaces.namespaces, "dummy", &table);
+    add_single_datacenter_affinities(dc_id, cluster_metadata.memcached_namespaces.namespaces, "memcached", &table);
 
     printf("%ld namespace%s\n", table.size() - 1, table.size() == 2 ? "" : "s");
     if (table.size() > 1) {
@@ -2501,7 +2500,7 @@ void admin_cluster_link_t::list_single_datacenter(const datacenter_id_t& dc_id,
 }
 
 template <class map_type>
-void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_t& dc_id, const map_type& ns_map, std::vector<std::vector<std::string> >& table_out, const std::string& protocol) {
+void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_t& dc_id, const map_type& ns_map, const std::string& protocol, std::vector<std::vector<std::string> > *table) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             const typename map_type::mapped_type::value_t ns = i->second.get();
@@ -2534,7 +2533,7 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
             delta.push_back(strprintf("%ld", replicas));
 
             if (replicas > 0) {
-                table_out.push_back(delta);
+                table->push_back(delta);
             }
         }
     }
@@ -2576,8 +2575,8 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
     table.push_back(header);
 
     size_t namespace_count = 0;
-    namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.dummy_namespaces.namespaces, table);
-    namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.memcached_namespaces.namespaces, table);
+    namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.dummy_namespaces.namespaces, &table);
+    namespace_count += add_single_machine_replicas(machine_id, cluster_metadata.memcached_namespaces.namespaces, &table);
 
     printf("hosting %ld replica%s from %ld namespace%s\n", table.size() - 1, table.size() == 2 ? "" : "s", namespace_count, namespace_count == 1 ? "" : "s");
     if (table.size() > 1) {
@@ -2588,7 +2587,7 @@ void admin_cluster_link_t::list_single_machine(const machine_id_t& machine_id,
 template <class map_type>
 size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& machine_id,
                                                          const map_type& ns_map,
-                                                         std::vector<std::vector<std::string> >& table_out) {
+                                                         std::vector<std::vector<std::string> > *table) {
     size_t matches = 0;
 
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
@@ -2597,7 +2596,7 @@ size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& mac
             typename map_type::mapped_type::value_t ns = i->second.get();
             std::string uuid = uuid_to_str(i->first);
             std::string name = ns.name.in_conflict() ? "<conflict>" : ns.name.get();
-            matches += add_single_machine_blueprint(machine_id, ns.blueprint.get(), table_out, uuid, name);
+            matches += add_single_machine_blueprint(machine_id, ns.blueprint.get(), uuid, name, table);
         }
     }
 
@@ -2607,9 +2606,9 @@ size_t admin_cluster_link_t::add_single_machine_replicas(const machine_id_t& mac
 template <class protocol_t>
 bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& machine_id,
                                                         const persistable_blueprint_t<protocol_t>& blueprint,
-                                                        std::vector<std::vector<std::string> >& table_out,
                                                         const std::string& ns_uuid,
-                                                        const std::string& ns_name) {
+                                                        const std::string& ns_name,
+                                                        std::vector<std::vector<std::string> > *table) {
     bool match = false;
 
     typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator machine_entry = blueprint.machines_roles.find(machine_id);
@@ -2634,7 +2633,7 @@ bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& mach
                 delta.push_back("no");
             }
 
-            table_out.push_back(delta);
+            table->push_back(delta);
             match = true;
         } else {
             continue;
@@ -2658,25 +2657,25 @@ void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::comman
         if (i == cluster_metadata.machines.machines.end() || i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected exception when looking up object: " + obj_id);
         }
-        resolve_machine_value(i->second.get_mutable(), field);
+        resolve_machine_value(&i->second.get_mutable(), field);
     } else if (obj_info->path[0] == "datacenters") {
         datacenters_semilattice_metadata_t::datacenter_map_t::iterator i = cluster_metadata.datacenters.datacenters.find(obj_info->uuid);
         if (i == cluster_metadata.datacenters.datacenters.end() || i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected exception when looking up object: " + obj_id);
         }
-        resolve_datacenter_value(i->second.get_mutable(), field);
+        resolve_datacenter_value(&i->second.get_mutable(), field);
     } else if (obj_info->path[0] == "dummy_namespaces") {
         namespaces_semilattice_metadata_t<mock::dummy_protocol_t>::namespace_map_t::iterator i = cluster_metadata.dummy_namespaces.namespaces.find(obj_info->uuid);
         if (i == cluster_metadata.dummy_namespaces.namespaces.end() || i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected exception when looking up object: " + obj_id);
         }
-        resolve_namespace_value(i->second.get_mutable(), field);
+        resolve_namespace_value(&i->second.get_mutable(), field);
     } else if (obj_info->path[0] == "memcached_namespaces") {
         namespaces_semilattice_metadata_t<memcached_protocol_t>::namespace_map_t::iterator i = cluster_metadata.memcached_namespaces.namespaces.find(obj_info->uuid);
         if (i == cluster_metadata.memcached_namespaces.namespaces.end() || i->second.is_deleted()) {
             throw admin_cluster_exc_t("unexpected exception when looking up object: " + obj_id);
         }
-        resolve_namespace_value(i->second.get_mutable(), field);
+        resolve_namespace_value(&i->second.get_mutable(), field);
     } else {
         throw admin_cluster_exc_t("unexpected object type encountered: " + obj_info->path[0]);
     }
@@ -2719,12 +2718,12 @@ bool getline(FILE *stream, std::string *out) {
 }
 
 template <class T>
-void admin_cluster_link_t::resolve_value(vclock_t<T>& field) {
-    if (!field.in_conflict()) {
+void admin_cluster_link_t::resolve_value(vclock_t<T> *field) {
+    if (!field->in_conflict()) {
         throw admin_cluster_exc_t("value is not in conflict");
     }
 
-    std::vector<T> values = field.get_all_values();
+    std::vector<T> values = field->get_all_values();
 
     printf("%ld values\n", values.size());
     for (size_t i = 0; i < values.size(); ++i) {
@@ -2745,49 +2744,49 @@ void admin_cluster_link_t::resolve_value(vclock_t<T>& field) {
     } else if (index == 0) {
         throw admin_cluster_exc_t("cancelled");
     } else if (index != 0) {
-        field = field.make_resolving_version(values[index - 1], change_request_id);
+        *field = field->make_resolving_version(values[index - 1], change_request_id);
     }
 }
 
-void admin_cluster_link_t::resolve_machine_value(machine_semilattice_metadata_t& machine,
+void admin_cluster_link_t::resolve_machine_value(machine_semilattice_metadata_t *machine,
                                                  const std::string& field) {
     if (field == "name") {
-        resolve_value(machine.name);
+        resolve_value(&machine->name);
     } else if (field == "datacenter") {
-        resolve_value(machine.datacenter);
+        resolve_value(&machine->datacenter);
     } else {
         throw admin_cluster_exc_t("unknown machine field: " + field);
     }
 }
 
-void admin_cluster_link_t::resolve_datacenter_value(datacenter_semilattice_metadata_t& dc,
+void admin_cluster_link_t::resolve_datacenter_value(datacenter_semilattice_metadata_t *dc,
                                                     const std::string& field) {
     if (field == "name") {
-        resolve_value(dc.name);
+        resolve_value(&dc->name);
     } else {
         throw admin_cluster_exc_t("unknown datacenter field: " + field);
     }
 }
 
 template <class protocol_t>
-void admin_cluster_link_t::resolve_namespace_value(namespace_semilattice_metadata_t<protocol_t>& ns,
+void admin_cluster_link_t::resolve_namespace_value(namespace_semilattice_metadata_t<protocol_t> *ns,
                                                    const std::string& field) {
     if (field == "name") {
-        resolve_value(ns.name);
+        resolve_value(&ns->name);
     } else if (field == "datacenter") {
-        resolve_value(ns.primary_datacenter);
+        resolve_value(&ns->primary_datacenter);
     } else if (field == "replicas") {
-        resolve_value(ns.replica_affinities);
+        resolve_value(&ns->replica_affinities);
     } else if (field == "acks") {
-        resolve_value(ns.ack_expectations);
+        resolve_value(&ns->ack_expectations);
     } else if (field == "shards") {
-        resolve_value(ns.shards);
+        resolve_value(&ns->shards);
     } else if (field == "port") {
-        resolve_value(ns.port);
+        resolve_value(&ns->port);
     } else if (field == "master_pinnings") {
-        resolve_value(ns.primary_pinnings);
+        resolve_value(&ns->primary_pinnings);
     } else if (field == "replica_pinnings") {
-        resolve_value(ns.secondary_pinnings);
+        resolve_value(&ns->secondary_pinnings);
     } else {
         throw admin_cluster_exc_t("unknown namespace field: " + field);
     }
