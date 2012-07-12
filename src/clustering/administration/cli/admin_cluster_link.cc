@@ -995,7 +995,7 @@ void admin_cluster_link_t::do_admin_list(const admin_command_parser_t::command_d
 }
 
 template <class protocol_t>
-void admin_cluster_link_t::list_pinnings(namespace_semilattice_metadata_t<protocol_t>& ns, const shard_input_t& shard_in, cluster_semilattice_metadata_t& cluster_metadata) {
+void admin_cluster_link_t::list_pinnings(const namespace_semilattice_metadata_t<protocol_t>& ns, const shard_input_t& shard_in, const cluster_semilattice_metadata_t& cluster_metadata) {
     if (ns.blueprint.in_conflict()) {
         throw admin_cluster_exc_t("namespace blueprint is in conflict");
     } else if (ns.shards.in_conflict()) {
@@ -1014,21 +1014,23 @@ void admin_cluster_link_t::list_pinnings(namespace_semilattice_metadata_t<protoc
 template <class bp_type>
 void admin_cluster_link_t::list_pinnings_internal(const bp_type& bp,
                                                   const key_range_t& shard,
-                                                  cluster_semilattice_metadata_t& cluster_metadata) {
+                                                  const cluster_semilattice_metadata_t& cluster_metadata) {
     std::vector<std::vector<std::string> > table;
-    std::vector<std::string> delta;
 
-    delta.push_back("type");
-    delta.push_back("machine");
-    delta.push_back("name");
-    delta.push_back("datacenter");
-    delta.push_back("name");
-    table.push_back(delta);
+    {
+        std::vector<std::string> delta;
+        delta.push_back("type");
+        delta.push_back("machine");
+        delta.push_back("name");
+        delta.push_back("datacenter");
+        delta.push_back("name");
+        table.push_back(delta);
+    }
 
     for (typename bp_type::role_map_t::const_iterator i = bp.machines_roles.begin(); i != bp.machines_roles.end(); ++i) {
         typename bp_type::region_to_role_map_t::const_iterator j = i->second.find(hash_region_t<key_range_t>(shard));
         if (j != i->second.end() && j->second != blueprint_details::role_nothing) {
-            delta.clear();
+            std::vector<std::string> delta;
 
             if (j->second == blueprint_details::role_primary) {
                 delta.push_back("master");
@@ -1041,7 +1043,7 @@ void admin_cluster_link_t::list_pinnings_internal(const bp_type& bp,
             delta.push_back(truncate_uuid(i->first));
 
             // Find the machine to get the datacenter and name
-            machines_semilattice_metadata_t::machine_map_t::iterator m = cluster_metadata.machines.machines.find(i->first);
+            machines_semilattice_metadata_t::machine_map_t::const_iterator m = cluster_metadata.machines.machines.find(i->first);
             if (m == cluster_metadata.machines.machines.end() || m->second.is_deleted()) {
                 throw admin_cluster_exc_t("unexpected error, blueprint invalid");
             }
@@ -1059,7 +1061,7 @@ void admin_cluster_link_t::list_pinnings_internal(const bp_type& bp,
                 delta.push_back(truncate_uuid(m->second.get().datacenter.get()));
 
                 // Find the datacenter to get the name
-                datacenters_semilattice_metadata_t::datacenter_map_t::iterator dc = cluster_metadata.datacenters.datacenters.find(m->second.get().datacenter.get());
+                datacenters_semilattice_metadata_t::datacenter_map_t::const_iterator dc = cluster_metadata.datacenters.datacenters.find(m->second.get().datacenter.get());
                 if (dc == cluster_metadata.datacenters.datacenters.end() || dc->second.is_deleted()) {
                     throw admin_cluster_exc_t("unexpected error, blueprint invalid");
                 }
@@ -2522,7 +2524,7 @@ void admin_cluster_link_t::add_single_datacenter_affinities(const datacenter_id_
             }
 
             if (!ns.replica_affinities.in_conflict()) {
-                const std::map<datacenter_id_t, int> replica_affinities = ns.replica_affinities.get();;
+                const std::map<datacenter_id_t, int> replica_affinities = ns.replica_affinities.get();
 
                 std::map<datacenter_id_t, int>::const_iterator jt = replica_affinities.find(dc_id);
                 if (jt != replica_affinities.end()) {

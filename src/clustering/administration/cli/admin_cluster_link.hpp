@@ -146,8 +146,6 @@ private:
     void list_all_internal(const std::string& type, bool long_format, const map_type& obj_map, std::vector<std::vector<std::string> >& table_out);
 
     void list_all(bool long_format, const cluster_semilattice_metadata_t& cluster_metadata);
-    void list_dummy_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
-    void list_memcached_namespaces(bool long_format, cluster_semilattice_metadata_t& cluster_metadata);
 
     void admin_stats_to_table(const std::string& machine,
                               const std::string& prefix,
@@ -177,14 +175,14 @@ private:
                                                           const shard_input_t& shard_in);
 
     template <class protocol_t>
-    void list_pinnings(namespace_semilattice_metadata_t<protocol_t>& ns,
+    void list_pinnings(const namespace_semilattice_metadata_t<protocol_t>& ns,
                        const shard_input_t& shard_in,
-                       cluster_semilattice_metadata_t& cluster_metadata);
+                       const cluster_semilattice_metadata_t& cluster_metadata);
 
     template <class bp_type>
     void list_pinnings_internal(const bp_type& bp,
                                 const key_range_t& shard,
-                                cluster_semilattice_metadata_t& cluster_metadata);
+                                const cluster_semilattice_metadata_t& cluster_metadata);
 
     struct machine_info_t {
         machine_info_t() : status(), primaries(0), secondaries(0), namespaces(0) { }
@@ -289,6 +287,14 @@ private:
 
     metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t choose_sync_peer();
 
+    struct metadata_info_t;
+
+    void clear_metadata_maps();
+    void update_metadata_maps();
+    template <class T>
+    void add_subset_to_maps(const std::string& base, T& data_map);
+    metadata_info_t *get_info_from_id(const std::string& id);
+
     local_issue_tracker_t local_issue_tracker;
     log_writer_t log_writer;
     connectivity_cluster_t connectivity_cluster;
@@ -328,12 +334,6 @@ private:
 
     std::map<std::string, metadata_info_t*> uuid_map;
     std::multimap<std::string, metadata_info_t*> name_map;
-
-    void clear_metadata_maps();
-    void update_metadata_maps();
-    template <class T>
-    void add_subset_to_maps(const std::string& base, T& data_map);
-    metadata_info_t* get_info_from_id(const std::string& id);
 
     DISABLE_COPYING(admin_cluster_link_t);
 };
