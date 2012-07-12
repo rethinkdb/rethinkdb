@@ -18,8 +18,7 @@ boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction
 
     /* Grab the data from the blob. */
     //TODO unnecessary copies, I hate them
-    std::string serialized_data;
-    blob.read_to_string(serialized_data, txn, 0, blob.valuesize());
+    std::string serialized_data = blob.read_to_string(txn, 0, blob.valuesize());
 
     /* Deserialize the value and return it. */
     std::vector<char> data_vec(serialized_data.begin(), serialized_data.end());
