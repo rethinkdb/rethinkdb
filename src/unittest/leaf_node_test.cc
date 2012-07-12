@@ -142,41 +142,41 @@ public:
         }
     }
 
-    void Level(int nodecmp_value, LeafNodeTracker& sibling, bool *could_level_out) {
+    void Level(int nodecmp_value, LeafNodeTracker *sibling, bool *could_level_out) {
         // Assertions can cause us to exit the function early, so give
         // the output parameter an initialized value.
         *could_level_out = false;
-        ASSERT_EQ(bs_.ser_value(), sibling.bs_.ser_value());
+        ASSERT_EQ(bs_.ser_value(), sibling->bs_.ser_value());
 
         store_key_t replacement;
-        bool can_level = leaf::level(&sizer_, nodecmp_value, node(), sibling.node(), replacement.btree_key());
+        bool can_level = leaf::level(&sizer_, nodecmp_value, node(), sibling->node(), replacement.btree_key());
 
         if (can_level) {
-            ASSERT_TRUE(!sibling.kv_.empty());
+            ASSERT_TRUE(!sibling->kv_.empty());
             if (nodecmp_value < 0) {
                 // Copy keys from front of sibling until and including replacement key.
 
-                std::map<store_key_t, std::string>::iterator p = sibling.kv_.begin();
-                while (p != sibling.kv_.end() && p->first < replacement) {
+                std::map<store_key_t, std::string>::iterator p = sibling->kv_.begin();
+                while (p != sibling->kv_.end() && p->first < replacement) {
                     kv_[p->first] = p->second;
                     std::map<store_key_t, std::string>::iterator prev = p;
                     ++p;
-                    sibling.kv_.erase(prev);
+                    sibling->kv_.erase(prev);
                 }
-                ASSERT_TRUE(p != sibling.kv_.end());
+                ASSERT_TRUE(p != sibling->kv_.end());
                 ASSERT_EQ(key_to_unescaped_str(p->first), key_to_unescaped_str(replacement));
                 kv_[p->first] = p->second;
-                sibling.kv_.erase(p);
+                sibling->kv_.erase(p);
             } else {
                 // Copy keys from end of sibling until but not including replacement key.
 
-                std::map<store_key_t, std::string>::iterator p = sibling.kv_.end();
+                std::map<store_key_t, std::string>::iterator p = sibling->kv_.end();
                 --p;
-                while (p != sibling.kv_.begin() && p->first > replacement) {
+                while (p != sibling->kv_.begin() && p->first > replacement) {
                     kv_[p->first] = p->second;
                     std::map<store_key_t, std::string>::iterator prev = p;
                     --p;
-                    sibling.kv_.erase(prev);
+                    sibling->kv_.erase(prev);
                 }
 
                 ASSERT_EQ(key_to_unescaped_str(p->first), key_to_unescaped_str(replacement));
@@ -186,21 +186,21 @@ public:
         *could_level_out = can_level;
 
         Verify();
-        sibling.Verify();
+        sibling->Verify();
     }
 
-    void Split(LeafNodeTracker& right) {
-        ASSERT_EQ(bs_.ser_value(), right.bs_.ser_value());
+    void Split(LeafNodeTracker *right) {
+        ASSERT_EQ(bs_.ser_value(), right->bs_.ser_value());
 
-        ASSERT_TRUE(leaf::is_empty(right.node()));
+        ASSERT_TRUE(leaf::is_empty(right->node()));
 
         store_key_t median;
-        leaf::split(&sizer_, node(), right.node(), median.btree_key());
+        leaf::split(&sizer_, node(), right->node(), median.btree_key());
 
         std::map<store_key_t, std::string>::iterator p = kv_.end();
         --p;
         while (p->first > median && p != kv_.begin()) {
-            right.kv_[p->first] = p->second;
+            right->kv_[p->first] = p->second;
             std::map<store_key_t, std::string>::iterator prev = p;
             --p;
             kv_.erase(prev);
@@ -508,7 +508,7 @@ TEST(LeafNodeTest, LevelingLeftToRight) {
     right.Insert(store_key_t("b0"), "B0");
 
     bool could_level;
-    right.Level(1, left, &could_level);
+    right.Level(1, &left, &could_level);
     ASSERT_TRUE(could_level);
 }
 
@@ -521,7 +521,7 @@ TEST(LeafNodeTest, LevelingLeftToZero) {
     }
 
     bool could_level;
-    right.Level(1, left, &could_level);
+    right.Level(1, &left, &could_level);
     ASSERT_TRUE(could_level);
 }
 
@@ -535,7 +535,7 @@ TEST(LeafNodeTest, LevelingRightToLeft) {
     left.Insert(store_key_t("a0"), "A0");
 
     bool could_level;
-    left.Level(-1, right, &could_level);
+    left.Level(-1, &right, &could_level);
     ASSERT_TRUE(could_level);
 }
 
@@ -548,7 +548,7 @@ TEST(LeafNodeTest, LevelingRightToZero) {
     }
 
     bool could_level;
-    left.Level(-1, right, &could_level);
+    left.Level(-1, &right, &could_level);
     ASSERT_TRUE(could_level);
 }
 
@@ -560,7 +560,7 @@ TEST(LeafNodeTest, Splitting) {
 
     LeafNodeTracker right;
 
-    left.Split(right);
+    left.Split(&right);
 }
 
 TEST(LeafNodeTest, Fullness) {
