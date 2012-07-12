@@ -25,13 +25,13 @@ public:
     {
         /* Initialize store metadata */
         cond_t non_interruptor;
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> token;
-        store.new_write_token(token);
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> token;
+        store.new_write_token(&token);
         region_map_t<protocol_t, binary_blob_t> new_metainfo(
                 store.get_region(),
                 binary_blob_t(version_range_t(version_t::zero()))
             );
-        store.set_metainfo(new_metainfo, order_token_t::ignore, token, &non_interruptor);
+        store.set_metainfo(new_metainfo, order_token_t::ignore, &token, &non_interruptor);
     }
 
     temp_file_t temp_file;

@@ -484,19 +484,19 @@ memcached_protocol_t::store_t::~store_t() {
     assert_thread();
 }
 
-void memcached_protocol_t::store_t::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) {
+void memcached_protocol_t::store_t::new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
     fifo_enforcer_read_token_t token = token_source.enter_read();
-    token_out.reset(new fifo_enforcer_sink_t::exit_read_t(&token_sink, token));
+    token_out->init(new fifo_enforcer_sink_t::exit_read_t(&token_sink, token));
 }
 
-void memcached_protocol_t::store_t::new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) {
+void memcached_protocol_t::store_t::new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
     fifo_enforcer_write_token_t token = token_source.enter_write();
-    token_out.reset(new fifo_enforcer_sink_t::exit_write_t(&token_sink, token));
+    token_out->init(new fifo_enforcer_sink_t::exit_write_t(&token_sink, token));
 }
 
 void memcached_protocol_t::store_t::acquire_superblock_for_read(
         access_t access,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
         boost::scoped_ptr<transaction_t> &txn_out,
         boost::scoped_ptr<real_superblock_t> &sb_out,
         signal_t *interruptor)
@@ -504,8 +504,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_read(
 
     btree->assert_thread();
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
-    local_token.swap(token);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_read");
@@ -515,7 +514,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_read(
 }
 
 void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
         boost::scoped_ptr<transaction_t> &txn_out,
         boost::scoped_ptr<real_superblock_t> &sb_out,
         signal_t *interruptor)
@@ -523,8 +522,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
 
     btree->assert_thread();
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
-    local_token.swap(token);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_backfill");
@@ -536,7 +534,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
 void memcached_protocol_t::store_t::acquire_superblock_for_write(
         access_t access,
         int expected_change_count,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
         boost::scoped_ptr<transaction_t> &txn_out,
         boost::scoped_ptr<real_superblock_t> &sb_out,
         signal_t *interruptor)
@@ -544,8 +542,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_write(
 
     btree->assert_thread();
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
-    local_token.swap(token);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_write");
@@ -556,7 +553,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_write(
 
 memcached_protocol_t::store_t::metainfo_t
 memcached_protocol_t::store_t::get_metainfo(UNUSED order_token_t order_token,  // TODO
-                                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                                            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     boost::scoped_ptr<transaction_t> txn;
     boost::scoped_ptr<real_superblock_t> superblock;
@@ -593,7 +590,7 @@ region_map_t<memcached_protocol_t, binary_blob_t> memcached_protocol_t::store_t:
 
 void memcached_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
                                                  UNUSED order_token_t order_token,  // TODO
-                                                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                                                 scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     boost::scoped_ptr<transaction_t> txn;
     boost::scoped_ptr<real_superblock_t> superblock;
@@ -644,7 +641,7 @@ memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(
         DEBUG_ONLY(const metainfo_checker_t<memcached_protocol_t>& metainfo_checker, )
         const memcached_protocol_t::read_t &read,
         UNUSED order_token_t order_token,  // TODO
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
@@ -702,7 +699,7 @@ memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(
         const memcached_protocol_t::write_t &write,
         transition_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
@@ -804,7 +801,7 @@ bool memcached_protocol_t::store_t::send_backfill(
         const boost::function<bool(const metainfo_t&)> &should_backfill,
         const boost::function<void(memcached_protocol_t::backfill_chunk_t)> &chunk_fun,
         backfill_progress_t *progress,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
@@ -875,7 +872,7 @@ private:
 
 void memcached_protocol_t::store_t::receive_backfill(
         const memcached_protocol_t::backfill_chunk_t &chunk,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
@@ -907,7 +904,7 @@ private:
 void memcached_protocol_t::store_t::reset_data(
         const hash_region_t<key_range_t>& subregion,
         const metainfo_t &new_metainfo,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
