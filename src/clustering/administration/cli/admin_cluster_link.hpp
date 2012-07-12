@@ -127,9 +127,9 @@ private:
                                            const datacenter_id_t dc,
                                            obj_map *metadata);
 
-    void do_admin_set_datacenter_machine(machines_semilattice_metadata_t::machine_map_t& metadata,
-                                         const uuid_t obj_uuid,
+    void do_admin_set_datacenter_machine(const uuid_t obj_uuid,
                                          const datacenter_id_t dc,
+                                         machines_semilattice_metadata_t::machine_map_t *metadata,
                                          cluster_semilattice_metadata_t *cluster_metadata);
 
     void remove_datacenter_references(const datacenter_id_t& datacenter, cluster_semilattice_metadata_t *cluster_metadata);
@@ -224,7 +224,7 @@ private:
     std::map<datacenter_id_t, datacenter_info_t> build_datacenter_info(const cluster_semilattice_metadata_t& cluster_metadata);
 
     template <class map_type>
-    void add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t>& results);
+    void add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t> *results);
 
     void list_single_datacenter(const datacenter_id_t& dc_id,
                                 const datacenter_semilattice_metadata_t& dc,
@@ -284,9 +284,12 @@ private:
     struct metadata_info_t;
 
     void clear_metadata_maps();
+
     void update_metadata_maps();
+
     template <class T>
-    void add_subset_to_maps(const std::string& base, T& data_map);
+    void add_subset_to_maps(const std::string& base, const T& data_map);
+
     metadata_info_t *get_info_from_id(const std::string& id);
 
     local_issue_tracker_t local_issue_tracker;

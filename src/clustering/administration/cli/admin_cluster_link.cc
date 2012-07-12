@@ -285,7 +285,7 @@ void admin_cluster_link_t::clear_metadata_maps() {
 }
 
 template <class T>
-void admin_cluster_link_t::add_subset_to_maps(const std::string& base, T& data_map) {
+void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& data_map) {
     for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
         if (i->second.is_deleted()) {
             continue;
@@ -1308,25 +1308,27 @@ std::map<datacenter_id_t, admin_cluster_link_t::datacenter_info_t> admin_cluster
     }
 
     // TODO: this will list affinities, but not actual state (in case of impossible requirements)
-    add_datacenter_affinities(cluster_metadata.dummy_namespaces.namespaces, results);
-    add_datacenter_affinities(cluster_metadata.memcached_namespaces.namespaces, results);
+    add_datacenter_affinities(cluster_metadata.dummy_namespaces.namespaces, &results);
+    add_datacenter_affinities(cluster_metadata.memcached_namespaces.namespaces, &results);
 
     return results;
 }
 
 template <class map_type>
-void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t>& results) {
+void admin_cluster_link_t::add_datacenter_affinities(const map_type& ns_map, std::map<datacenter_id_t, datacenter_info_t> *results) {
     for (typename map_type::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
         if (!i->second.is_deleted()) {
             if (!i->second.get().primary_datacenter.in_conflict()) {
-                ++results[i->second.get().primary_datacenter.get()].namespaces;
+                // TODO: Is this correct?  Are we creating a new value
+                // here?  Do maps of ints initialize the value to 0?
+                ++(*results)[i->second.get().primary_datacenter.get()].namespaces;
             }
 
             if (!i->second.get().replica_affinities.in_conflict()) {
                 std::map<datacenter_id_t, int> affinities = i->second.get().replica_affinities.get();
                 for (std::map<datacenter_id_t, int>::iterator j = affinities.begin(); j != affinities.end(); ++j) {
                     if (j->second > 0) {
-                        ++results[j->first].namespaces;
+                        ++(*results)[j->first].namespaces;
                     }
                 }
             }
@@ -1807,7 +1809,7 @@ void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t:
     }
 
     if (obj_info->path[0] == "machines") {
-        do_admin_set_datacenter_machine(cluster_metadata.machines.machines, obj_info->uuid, datacenter_uuid, &cluster_metadata);
+        do_admin_set_datacenter_machine(obj_info->uuid, datacenter_uuid, &cluster_metadata.machines.machines, &cluster_metadata);
     } else {
         throw admin_cluster_exc_t("target object is not a machine");
     }
@@ -1833,12 +1835,12 @@ void admin_cluster_link_t::do_admin_set_datacenter_namespace(const uuid_t obj_uu
     i->second.get_mutable().primary_datacenter.upgrade_version(change_request_id);
 }
 
-void admin_cluster_link_t::do_admin_set_datacenter_machine(machines_semilattice_metadata_t::machine_map_t& metadata,
-                                                           const uuid_t obj_uuid,
+void admin_cluster_link_t::do_admin_set_datacenter_machine(const uuid_t obj_uuid,
                                                            const datacenter_id_t dc,
+                                                           machines_semilattice_metadata_t::machine_map_t *metadata,
                                                            cluster_semilattice_metadata_t *cluster_metadata) {
-    machines_semilattice_metadata_t::machine_map_t::iterator i = metadata.find(obj_uuid);
-    if (i == metadata.end() || i->second.is_deleted()) {
+    machines_semilattice_metadata_t::machine_map_t::iterator i = metadata->find(obj_uuid);
+    if (i == metadata->end() || i->second.is_deleted()) {
         throw admin_cluster_exc_t("unexpected error when looking up object: " + uuid_to_str(obj_uuid));
     } else if (i->second.get_mutable().datacenter.in_conflict()) {
         throw admin_cluster_exc_t("machine's datacenter is in conflict, run 'help resolve' for more information");
