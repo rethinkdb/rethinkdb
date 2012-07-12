@@ -149,7 +149,7 @@ private:
                               std::vector<std::vector<std::string> > *table);
 
     template <class map_type>
-    void add_namespaces(const std::string& protocol, bool long_format, map_type& namespaces, std::vector<std::vector<std::string> >& table);
+    void add_namespaces(const std::string& protocol, bool long_format, const map_type& namespaces, std::vector<std::vector<std::string> > *table);
 
     struct shard_input_t {
         struct {
@@ -160,11 +160,11 @@ private:
     };
 
     template <class protocol_t>
-    void do_admin_pin_shard_internal(namespace_semilattice_metadata_t<protocol_t>& ns,
-                                     const shard_input_t& shard_in,
+    void do_admin_pin_shard_internal(const shard_input_t& shard_in,
                                      const std::string& primary_str,
                                      const std::vector<std::string>& secondary_strs,
-                                     const cluster_semilattice_metadata_t& cluster_metadata);
+                                     const cluster_semilattice_metadata_t& cluster_metadata,
+                                     namespace_semilattice_metadata_t<protocol_t>* ns);
 
     template <class protocol_t>
     typename protocol_t::region_t find_shard_in_namespace(const namespace_semilattice_metadata_t<protocol_t>& ns,
