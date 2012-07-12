@@ -5,6 +5,7 @@ module 'LogView', ->
         className: 'log-view'
         template: Handlebars.compile $('#log-container-template').html()
         header_template: Handlebars.compile $('#log-header-template').html()
+        header_template_no_log: Handlebars.compile $('#log-header-no-logtemplate').html()
         max_log_entries: 10
 
         current_logs: []
@@ -20,7 +21,7 @@ module 'LogView', ->
         initialize: ->
             log_initial '(initializing) events view: container'
             
-           #@set_interval = setInterval @check_for_new_updates, updateInterval
+            @set_interval = setInterval @check_for_new_updates, updateInterval
 
         render: =>
             @.$el.html @template({})
@@ -46,7 +47,6 @@ module 'LogView', ->
                 if log_entries.length > 0
                     @max_timestamp = parseFloat(log_entries[log_entries.length-1].timestamp) if @max_timestamp < parseFloat(log_entries[log_entries.length-1].timestamp)
 
-                last_position = 0
                 for json in log_entries # For each new log
                     log_saved = false
                     # Looking if it has been already added
@@ -57,7 +57,6 @@ module 'LogView', ->
                                 is_same_log = false
                         if is_same_log
                             log_saved = true
-                            console.log 'break'
                             break
 
                     # If it wasn't saved before, look if its place is IN the list 
@@ -79,7 +78,6 @@ module 'LogView', ->
             if @current_logs.length <= @displayed_logs
                 @.$('.no-more-entries').show()
                 @.$('.next-log-entries').hide()
-                return
             else
                 for i in [0..@max_log_entries-1]
                     if @current_logs[@displayed_logs]?
@@ -91,7 +89,7 @@ module 'LogView', ->
                         @.$('.no-more-entries').show()
                         @.$('.next-log-entries').hide()
  
-
+            @render_header()
 
         next_entries: (event) =>
             event.preventDefault()
@@ -100,35 +98,11 @@ module 'LogView', ->
                 max_length: @max_log_entries
                 max_timestamp: @max_timestamp
 
-        update_log_entries: (event) =>
-            event.preventDefault()
-            if @num_new_entries > @max_log_entries
-                @render()
-            else
-                @fetch_log_entries(
-                    min_timestamp: @log_entries.at(0).get('timestamp')
-                    , (new_log_entries) =>
-                        @log_entries.add new_log_entries.models
-                        @render_header()
-                        @.$('.header .alert').remove()
-
-                        new_log_entries.each (entry) =>
-                            view = new LogView.LogEntry
-                                model: entry
-
-                            # Flash the new entries (highlighted background color that fades away)
-                            $view = $(view.render().el)
-                            $view.css('background-color','#F8EEB1')
-                            @$log_entries.prepend($view)
-                            $view.animate
-                                backgroundColor: '#FFF'
-                            , 2000
-                )
 
         check_for_new_updates: =>
-            if window.location.hash is @log_route and @log_entries.length > 0
-                min_timestamp = @log_entries.at(0).get('timestamp')
-                route = "/ajax/log/_?min_timestamp=#{min_timestamp}" if min_timestamp?
+            min_timestamp = @current_logs[0].get('timestamp')
+            if min_timestamp?
+                route = "/ajax/log/_?min_timestamp=#{min_timestamp}"
 
                 @num_new_entries = 0
                 $.getJSON route, (log_data_from_server) =>
@@ -136,16 +110,57 @@ module 'LogView', ->
                         @num_new_entries += log_entries.length
                     @render_header()
 
-
         render_header: =>
-            @.$('.header').html @header_template
-                new_entries: @num_new_entries > 0
-                num_new_entries: @num_new_entries
-                too_many_new_entries: @num_new_entries > @max_log_entries
-                max_log_entries: @max_log_entries
-                from_date: new XDate(@log_entries.at(0).get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
-                to_date: new XDate(@log_entries.at(@log_entries.length-1).get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
+            if @current_logs.length > 0
+                 @.$('.header').html @header_template
+                    new_entries: @num_new_entries > 0
+                    num_new_entries: @num_new_entries
+                    too_many_new_entries: @num_new_entries > @max_log_entries
+                    max_log_entries: @max_log_entries
+                    from_date: new XDate(@current_logs[0].get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
+                    to_date: new XDate(@current_logs[@displayed_logs-1].get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
+            else
+                @.$('.header').html @header_template_no_log
+ 
+        update_log_entries: (event) =>
+            event.preventDefault()
+            if @num_new_entries > @max_log_entries
+                @render()
+            else
+                route = "/ajax/log/_?min_timestamp="+ @current_logs[0].get('timestamp')
 
+                $.getJSON route, @parse_new_log
+
+        parse_new_log: (log_data_from_server) =>
+            for machine_uuid, log_entries of log_data_from_server
+                for json in log_entries # For each new log
+                    log_saved = false
+                    for log, i in @current_logs
+                        if parseFloat(json.timestamp) > parseFloat(log.get('timestamp'))
+                            entry = new LogEntry json
+                            entry.set('machine_uuid',machine_uuid)
+                            @current_logs.splice i, 0, entry
+                            log_saved = true
+                            break
+
+                    if log_saved is false
+                        entry = new LogEntry json
+                        entry.set('machine_uuid',machine_uuid)
+                        @current_logs.push entry
+
+            for i in [@num_new_entries-1..0]
+                view = new LogView.LogEntry
+                    model: @current_logs[i]
+                rendered_view = $(view.render().el)
+                rendered_view.css('background-color','#F8EEB1')
+                @.$('.log-entries').prepend view.render().el
+                rendered_view.animate
+                    backgroundColor: '#FFF'
+                , 2000
+                @displayed_logs++
+
+            @render_header()
+            @.$('.header .alert').remove()
 
         destroy: =>
             clearInterval @set_interval

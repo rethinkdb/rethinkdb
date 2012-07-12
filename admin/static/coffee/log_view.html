@@ -8,8 +8,14 @@
         <p><a href="#" class='next-log-entries'>Older log entries &raquo;</a></p>
     </div>
 </script>
+
 <script id="log-header-template" type="text/x-handlebars-template">
-    <h1>Log entries <small>from {{from_date}} to {{to_date}}</small></h1>
+    {{#if from_date}}
+        <h1>Log entries <small>from {{from_date}} to {{to_date}}</small></h1>
+    {{else}}
+        <h1>No log found</h1>
+    {{/if}}
+
     {{#if new_entries}}
         <div class="alert">
             <button class="close" data-dismiss="alert">×</button>
@@ -21,6 +27,9 @@
         </div>
     {{/if}}
 </script>
+
+
+
 <script id="log-entry-template" type="text/x-handlebars-template">
     <div class="entry-metadata">
         <p>Reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a> on {{datetime}}</p>
