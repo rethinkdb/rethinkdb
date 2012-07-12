@@ -49,15 +49,13 @@ In particular:
                 BRANCH3 = 2;
             };
             required ExampleType type = 1;
-
             message Branch1 {
                 required int foo = 1;
                 required string blah = 2;
                 repeated Example children = 3;
             };
-            optional Branch1 branch1;
-
-            optional int branch2;
+            optional Branch1 branch1 = 2;
+            optional int branch2 = 3;
         };
 
    And the following C++ checker code:
