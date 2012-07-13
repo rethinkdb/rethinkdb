@@ -10,14 +10,14 @@ struct memcached_delete_oper_t : public memcached_modify_oper_t {
     bool dont_put_in_delete_queue;
     btree_slice_t *slice;
 
-    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t>& value) {
-        if (value) {
+    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t> *value) {
+        if (value->has()) {
             result = dr_deleted;
             {
-                blob_t b(value->value_ref(), blob::btree_maxreflen);
+                blob_t b((*value)->value_ref(), blob::btree_maxreflen);
                 b.clear(txn);
             }
-            value.reset();
+            value->reset();
             return true;
         } else {
             result = dr_not_found;

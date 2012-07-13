@@ -97,7 +97,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 /* Fill in the blueprints */
                 try {
                     fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us);
-                } catch (missing_machine_exc_t &e) { }
+                } catch (const missing_machine_exc_t &e) { }
 
                 metadata_change_handler->update(cluster_metadata);
 
@@ -117,7 +117,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
 
                 try {
                     fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us);
-                } catch (missing_machine_exc_t &e) { }
+                } catch (const missing_machine_exc_t &e) { }
 
                 metadata_change_handler->update(cluster_metadata);
 
@@ -175,7 +175,7 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 /* Fill in the blueprints */
                 try {
                     fill_in_blueprints(&cluster_metadata, directory_metadata->get(), us);
-                } catch (missing_machine_exc_t &e) { }
+                } catch (const missing_machine_exc_t &e) { }
 
                 metadata_change_handler->update(cluster_metadata);
 
@@ -196,17 +196,17 @@ http_res_t semilattice_http_app_t::handle(const http_req_t &req) {
                 return http_res_t(405);
                 break;
         }
-    } catch (schema_mismatch_exc_t &e) {
+    } catch (const schema_mismatch_exc_t &e) {
         http_res_t res(400);
         logINF("HTTP request throw a schema_mismatch_exc_t with what = %s", e.what());
         res.set_body("application/text", e.what());
         return res;
-    } catch (permission_denied_exc_t &e) {
+    } catch (const permission_denied_exc_t &e) {
         http_res_t res(400);
         logINF("HTTP request throw a permission_denied_exc_t with what = %s", e.what());
         res.set_body("application/text", e.what());
         return res;
-    } catch (cannot_satisfy_goals_exc_t &e) {
+    } catch (const cannot_satisfy_goals_exc_t &e) {
         http_res_t res(500);
         logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s", e.what());
         res.set_body("application/text", e.what());

@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
@@ -170,10 +169,10 @@ public:
     static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 
     class store_t : public store_view_t<memcached_protocol_t> {
-        boost::scoped_ptr<standard_serializer_t> serializer;
+        scoped_ptr_t<standard_serializer_t> serializer;
         mirrored_cache_config_t cache_dynamic_config;
-        boost::scoped_ptr<cache_t> cache;
-        boost::scoped_ptr<btree_slice_t> btree;
+        scoped_ptr_t<cache_t> cache;
+        scoped_ptr_t<btree_slice_t> btree;
         order_source_t order_source;
 
         fifo_enforcer_source_t token_source;
@@ -243,22 +242,22 @@ public:
         void acquire_superblock_for_read(
                 access_t access,
                 scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
+                scoped_ptr_t<transaction_t> *txn_out,
+                scoped_ptr_t<real_superblock_t> *sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void acquire_superblock_for_backfill(
                 scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
+                scoped_ptr_t<transaction_t> *txn_out,
+                scoped_ptr_t<real_superblock_t> *sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void acquire_superblock_for_write(
                 access_t access,
                 int expected_change_count,
                 scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
+                scoped_ptr_t<transaction_t> *txn_out,
+                scoped_ptr_t<real_superblock_t> *sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void check_and_update_metainfo(

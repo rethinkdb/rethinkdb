@@ -59,7 +59,7 @@ buf_patch_t *buf_patch_t::load_patch(const char *source) {
         }
         result->set_block_sequence_id(applies_to_block_sequence_id);
         return result;
-    } catch (patch_deserialization_error_t &e) {
+    } catch (const patch_deserialization_error_t &e) {
         logERR("%s", e.c_str());
         throw e;
     }

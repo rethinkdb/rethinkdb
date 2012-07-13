@@ -15,7 +15,7 @@ public:
         reset();
     }
 
-    // reset with a sanity-check for first-time use.
+    // includes a sanity-check for first-time use.
     void init(T *value) {
         rassert(ptr_ == NULL);
 
@@ -199,7 +199,7 @@ public:
         other.ptr_ = reinterpret_cast<U *>(tmp);
     }
 
-    operator bool() const {
+    bool has() const {
         return ptr_ != NULL;
     }
 

@@ -104,12 +104,12 @@ private:
                                   bool console);
 
     void build_command_descriptions();
-    void destroy_command_descriptions(std::map<std::string, command_info_t *>& cmd_map);
-    command_info_t *add_command(std::map<std::string, command_info_t *>& cmd_map,
-                               const std::string& full_cmd,
-                               const std::string& cmd,
-                               const std::string& usage,
-                               void (admin_cluster_link_t::*const fn)(const command_data&));
+    static void destroy_command_descriptions(std::map<std::string, command_info_t *> *cmd_map);
+    command_info_t *add_command(const std::string& full_cmd,
+                                const std::string& cmd,
+                                const std::string& usage,
+                                void (admin_cluster_link_t::*const fn)(const command_data&),
+                                std::map<std::string, command_info_t *> *cmd_map);
     admin_cluster_link_t *get_cluster();
 
     void do_admin_help(const command_data& data);

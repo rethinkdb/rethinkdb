@@ -28,7 +28,7 @@ class patch_deserialization_error_t {
     std::string message;
 public:
     patch_deserialization_error_t(const char *file, int line, const char *msg);
-    const char *c_str() { return message.c_str(); }
+    const char *c_str() const { return message.c_str(); }
 };
 #define guarantee_patch_format(cond, msg...) do {    \
         if (!(cond)) {                  \

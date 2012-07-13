@@ -411,42 +411,40 @@ admin_command_parser_t::~admin_command_parser_t() {
     rassert(instance == this);
     instance = NULL;
 
-    destroy_command_descriptions(commands);
+    destroy_command_descriptions(&commands);
 }
 
-void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, command_info_t *>& cmd_map) {
-    for (std::map<std::string, command_info_t *>::iterator i = cmd_map.begin(); i != cmd_map.end(); ++i) {
-        if (!i->second->subcommands.empty()) {
-            destroy_command_descriptions(i->second->subcommands);
-        }
+void admin_command_parser_t::destroy_command_descriptions(std::map<std::string, command_info_t *> *cmd_map) {
+    for (std::map<std::string, command_info_t *>::iterator i = cmd_map->begin(); i != cmd_map->end(); ++i) {
+        destroy_command_descriptions(&i->second->subcommands);
         delete i->second;
     }
-    cmd_map.clear();
+    cmd_map->clear();
 }
 
-admin_command_parser_t::command_info_t *admin_command_parser_t::add_command(std::map<std::string, command_info_t *>& cmd_map,
-                                                  const std::string& full_cmd,
-                                                  const std::string& cmd,
-                                                  const std::string& usage,
-                                                  void (admin_cluster_link_t::*const fn)(const command_data&)) {
+admin_command_parser_t::command_info_t *admin_command_parser_t::add_command(const std::string& full_cmd,
+                                                                            const std::string& cmd,
+                                                                            const std::string& usage,
+                                                                            void (admin_cluster_link_t::*const fn)(const command_data&),
+                                                                            std::map<std::string, command_info_t *> *cmd_map) {
     command_info_t *info = NULL;
     size_t space_index = cmd.find_first_of(" \t\r\n");
 
     // Parse out the beginning of the command, in case it's a multi-level command, and do the add recursively
     if (space_index != std::string::npos) {
         std::string fragment(cmd.substr(0, space_index));
-        std::map<std::string, command_info_t *>::iterator i = cmd_map.find(fragment);
+        std::map<std::string, command_info_t *>::iterator i = cmd_map->find(fragment);
 
-        if (i == cmd_map.end()) {
-            i = cmd_map.insert(std::make_pair(fragment, new command_info_t(full_cmd, fragment, "", NULL))).first;
+        if (i == cmd_map->end()) {
+            i = cmd_map->insert(std::make_pair(fragment, new command_info_t(full_cmd, fragment, "", NULL))).first;
         }
 
-        info = add_command(i->second->subcommands, full_cmd, cmd.substr(space_index + 1), usage, fn);
+        info = add_command(full_cmd, cmd.substr(space_index + 1), usage, fn, &i->second->subcommands);
     } else {
-        std::map<std::string, command_info_t *>::iterator i = cmd_map.find(cmd);
+        std::map<std::string, command_info_t *>::iterator i = cmd_map->find(cmd);
 
-        if (i == cmd_map.end()) {
-            i = cmd_map.insert(std::make_pair(cmd, new command_info_t(full_cmd, cmd, usage, fn))).first;
+        if (i == cmd_map->end()) {
+            i = cmd_map->insert(std::make_pair(cmd, new command_info_t(full_cmd, cmd, usage, fn))).first;
         } else {
             // This node already exists, but this command should overwrite the current values
             i->second->usage = usage;
@@ -463,87 +461,87 @@ void admin_command_parser_t::build_command_descriptions() {
     rassert(commands.empty());
     command_info_t *info = NULL;
 
-    info = add_command(commands, pin_shard_command, pin_shard_command, pin_shard_usage, &admin_cluster_link_t::do_admin_pin_shard);
+    info = add_command(pin_shard_command, pin_shard_command, pin_shard_usage, &admin_cluster_link_t::do_admin_pin_shard, &commands);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("key", 1, true); // TODO: list possible shards
     info->add_flag("master", 1, false)->add_option("!machine");
     info->add_flag("replicas", -1, false)->add_option("!machine");
 
-    info = add_command(commands, split_shard_command, split_shard_command, split_shard_usage, &admin_cluster_link_t::do_admin_split_shard);
+    info = add_command(split_shard_command, split_shard_command, split_shard_usage, &admin_cluster_link_t::do_admin_split_shard, &commands);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("split-points", -1, true);
 
-    info = add_command(commands, merge_shard_command, merge_shard_command, merge_shard_usage, &admin_cluster_link_t::do_admin_merge_shard);
+    info = add_command(merge_shard_command, merge_shard_command, merge_shard_usage, &admin_cluster_link_t::do_admin_merge_shard, &commands);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("split-points", -1, true); // TODO: list possible shards
 
-    info = add_command(commands, resolve_command, resolve_command, resolve_usage, &admin_cluster_link_t::do_admin_resolve);
+    info = add_command(resolve_command, resolve_command, resolve_usage, &admin_cluster_link_t::do_admin_resolve, &commands);
     info->add_positional("id", 1, true)->add_option("!conflict");
     info->add_positional("field", 1, true); // TODO: list the conflicted fields in the previous id
 
-    info = add_command(commands, set_name_command, set_name_command, set_name_usage, &admin_cluster_link_t::do_admin_set_name);
+    info = add_command(set_name_command, set_name_command, set_name_usage, &admin_cluster_link_t::do_admin_set_name, &commands);
     info->add_positional("id", 1, true)->add_option("!id");
     info->add_positional("new-name", 1, true);
 
-    info = add_command(commands, set_acks_command, set_acks_command, set_acks_usage, &admin_cluster_link_t::do_admin_set_acks);
+    info = add_command(set_acks_command, set_acks_command, set_acks_usage, &admin_cluster_link_t::do_admin_set_acks, &commands);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
     info->add_positional("num-acks", 1, true);
 
-    info = add_command(commands, set_replicas_command, set_replicas_command, set_replicas_usage, &admin_cluster_link_t::do_admin_set_replicas);
+    info = add_command(set_replicas_command, set_replicas_command, set_replicas_usage, &admin_cluster_link_t::do_admin_set_replicas, &commands);
     info->add_positional("namespace", 1, true)->add_option("!namespace");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
     info->add_positional("num-replicas", 1, true);
 
-    info = add_command(commands, set_primary_command, set_primary_command, set_primary_usage, &admin_cluster_link_t::do_admin_set_primary);
+    info = add_command(set_primary_command, set_primary_command, set_primary_usage, &admin_cluster_link_t::do_admin_set_primary, &commands);
     info->add_positional("id", 1, true)->add_option("!namespace");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
 
-    info = add_command(commands, set_datacenter_command, set_datacenter_command, set_datacenter_usage, &admin_cluster_link_t::do_admin_set_datacenter);
+    info = add_command(set_datacenter_command, set_datacenter_command, set_datacenter_usage, &admin_cluster_link_t::do_admin_set_datacenter, &commands);
     info->add_positional("id", 1, true)->add_option("!machine");
     info->add_positional("datacenter", 1, true)->add_option("!datacenter");
 
-    info = add_command(commands, list_command, list_command, list_usage, &admin_cluster_link_t::do_admin_list);
+    info = add_command(list_command, list_command, list_usage, &admin_cluster_link_t::do_admin_list, &commands);
     info->add_positional("object", 1, false)->add_options("!id", NULL);
     info->add_flag("long", 0, false);
 
-    info = add_command(commands, list_stats_command, list_stats_command, list_stats_usage, &admin_cluster_link_t::do_admin_list_stats);
+    info = add_command(list_stats_command, list_stats_command, list_stats_usage, &admin_cluster_link_t::do_admin_list_stats, &commands);
     info->add_positional("id-filter", -1, false)->add_options("!machine", "!namespace", NULL);
 
-    info = add_command(commands, list_issues_command, list_issues_command, list_issues_usage, &admin_cluster_link_t::do_admin_list_issues);
+    info = add_command(list_issues_command, list_issues_command, list_issues_usage, &admin_cluster_link_t::do_admin_list_issues, &commands);
 
-    info = add_command(commands, list_machines_command, list_machines_command, list_machines_usage, &admin_cluster_link_t::do_admin_list_machines);
+    info = add_command(list_machines_command, list_machines_command, list_machines_usage, &admin_cluster_link_t::do_admin_list_machines, &commands);
     info->add_flag("long", 0, false);
 
-    info = add_command(commands, list_directory_command, list_directory_command, list_directory_usage, &admin_cluster_link_t::do_admin_list_directory);
+    info = add_command(list_directory_command, list_directory_command, list_directory_usage, &admin_cluster_link_t::do_admin_list_directory, &commands);
     info->add_flag("long", 0, false);
 
-    info = add_command(commands, list_namespaces_command, list_namespaces_command, list_namespaces_usage, &admin_cluster_link_t::do_admin_list_namespaces);
+    info = add_command(list_namespaces_command, list_namespaces_command, list_namespaces_usage, &admin_cluster_link_t::do_admin_list_namespaces, &commands);
     info->add_flag("protocol", 1, false)->add_options("memcached", "dummy", NULL);
     info->add_flag("long", 0, false);
 
-    info = add_command(commands, list_datacenters_command, list_datacenters_command, list_datacenters_usage, &admin_cluster_link_t::do_admin_list_datacenters);
+    info = add_command(list_datacenters_command, list_datacenters_command, list_datacenters_usage, &admin_cluster_link_t::do_admin_list_datacenters, &commands);
     info->add_flag("long", 0, false);
 
-    info = add_command(commands, create_namespace_command, create_namespace_command, create_namespace_usage, &admin_cluster_link_t::do_admin_create_namespace);
+    info = add_command(create_namespace_command, create_namespace_command, create_namespace_usage, &admin_cluster_link_t::do_admin_create_namespace, &commands);
     info->add_positional("name", 1, true);
     info->add_flag("protocol", 1, true)->add_options("memcached", "dummy", NULL);
     info->add_flag("primary", 1, true)->add_option("!datacenter");
     info->add_flag("port", 1, true);
 
-    info = add_command(commands, create_datacenter_command, create_datacenter_command, create_datacenter_usage, &admin_cluster_link_t::do_admin_create_datacenter);
+    info = add_command(create_datacenter_command, create_datacenter_command, create_datacenter_usage, &admin_cluster_link_t::do_admin_create_datacenter, &commands);
     info->add_positional("name", 1, true);
 
-    info = add_command(commands, remove_machine_command, remove_machine_command, remove_usage, &admin_cluster_link_t::do_admin_remove_machine);
+    info = add_command(remove_machine_command, remove_machine_command, remove_usage, &admin_cluster_link_t::do_admin_remove_machine, &commands);
     info->add_positional("id", -1, true)->add_option("!id");
 
-    info = add_command(commands, remove_namespace_command, remove_namespace_command, remove_usage, &admin_cluster_link_t::do_admin_remove_namespace);
+    info = add_command(remove_namespace_command, remove_namespace_command, remove_usage, &admin_cluster_link_t::do_admin_remove_namespace, &commands);
     info->add_positional("id", -1, true)->add_option("!id");
 
-    info = add_command(commands, remove_datacenter_command, remove_datacenter_command, remove_usage, &admin_cluster_link_t::do_admin_remove_datacenter);
+    info = add_command(remove_datacenter_command, remove_datacenter_command, remove_usage, &admin_cluster_link_t::do_admin_remove_datacenter, &commands);
     info->add_positional("id", -1, true)->add_option("!id");
 
-    info = add_command(commands, help_command, help_command, help_usage, NULL); // Special case, 'help' is not done through the cluster
+    info = add_command(help_command, help_command, help_usage, NULL, &commands); // Special case, 'help' is not done through the cluster
     info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", NULL);
     info->add_positional("subcommand", 1, false);
 }
@@ -672,8 +670,8 @@ void admin_command_parser_t::run_command(const command_data& data) {
             try {
                 (get_cluster()->*(data.info->do_function))(data);
                 break;
-            } catch (admin_retry_exc_t& ex) { // commit rejected by the selected peer
-            } catch (resource_lost_exc_t& ex) { // selected peer went down
+            } catch (const admin_retry_exc_t& ex) { // commit rejected by the selected peer
+            } catch (const resource_lost_exc_t& ex) { // selected peer went down
             }
 
             if (tries == MAX_RETRIES) {
@@ -691,7 +689,7 @@ void admin_command_parser_t::completion_generator_hook(const char *raw, linenois
         try {
             std::vector<std::string> line = parse_line(raw);
             instance->completion_generator(line, completions, partial);
-        } catch(std::exception& ex) {
+        } catch (const std::exception& ex) {
             // Do nothing - if the line can't be parsed or completions failed, we just can't complete the line
         }
     }
@@ -919,7 +917,7 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
 
         command_data data(parse_command(info, std::vector<std::string>(line.begin() + index, line.end())));
         run_command(data);
-    } catch (admin_parse_exc_t& ex) {
+    } catch (const admin_parse_exc_t& ex) {
         std::string exception_str(ex.what());
         if (info != NULL) {
             // Cut off the trailing newline from get_subcommands_usage
@@ -927,7 +925,7 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
             exception_str += "\nusage: " + usage_str.substr(0, usage_str.size() - 1);
         }
         throw admin_parse_exc_t(exception_str);
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
         throw;
     }
 }
@@ -977,11 +975,11 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
                 if (!split_line.empty()) {
                     parse_and_run_command(split_line);
                 }
-            } catch (admin_no_connection_exc_t& ex) {
+            } catch (const admin_no_connection_exc_t& ex) {
                 free(raw_line);
                 console_mode = false;
                 throw admin_cluster_exc_t("fatal error: connection to cluster failed");
-            } catch (std::exception& ex) {
+            } catch (const std::exception& ex) {
                 if (exit_on_failure) {
                     free(raw_line);
                     console_mode = false;
