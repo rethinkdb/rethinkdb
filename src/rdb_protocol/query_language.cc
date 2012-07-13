@@ -161,16 +161,10 @@ bool is_well_defined(const Builtin &b) {
         CHECK(b.has_reduce());
         CHECK_WELL_DEFINED(b.reduce());
         break;
-    case Builtin::GROUPEDMAPREDUCE:
-        CHECK(b.has_grouped_map_reduce());
-        CHECK_WELL_DEFINED(b.grouped_map_reduce().group_mapping());
-        CHECK_WELL_DEFINED(b.grouped_map_reduce().map_reduce().change_mapping());
-        CHECK_WELL_DEFINED(b.grouped_map_reduce().map_reduce().reduction());
-        break;
-    case Builtin::MAPREDUCE:
-        CHECK(b.has_map_reduce());
-        CHECK_WELL_DEFINED(b.map_reduce().change_mapping());
-        CHECK_WELL_DEFINED(b.map_reduce().reduction());
+    case Builtin::GROUPBY:
+        CHECK(b.has_group_by());
+        CHECK_WELL_DEFINED(b.group_by().group_mapping());
+        CHECK_WELL_DEFINED(b.group_by().reduction());
         break;
     case Builtin::RANGE:
         CHECK(b.has_range());
@@ -457,10 +451,7 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::LENGTH:
         case Builtin::STREAMTOARRAY:
         case Builtin::REDUCE:
-        case Builtin::GROUPEDMAPREDUCE:
-        case Builtin::MAPREDUCE:
-            return function_t(Type::STREAM, 1, Type::JSON);
-            break;
+        case Builtin::GROUPBY:
         case Builtin::UNION:
             return function_t(Type::STREAM, 2, Type::STREAM);
             break;
@@ -1527,14 +1518,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 return acc;
             }
             break;
-        case Builtin::GROUPEDMAPREDUCE:
-            throw runtime_exc_t("Unimplemented: Builtin::GROUPEDMAPREDUCE");
+        case Builtin::GROUPBY:
+            throw runtime_exc_t("Unimplemented: Builtin::GROUPBY");
             break;
         case Builtin::JAVASCRIPT:
             throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPT");
-            break;
-        case Builtin::MAPREDUCE:
-            throw runtime_exc_t("Unimplemented: Builtin::MAPREDUCE");
             break;
         case Builtin::ALL:
             {
@@ -1727,9 +1715,8 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
         case Builtin::NTH:
         case Builtin::STREAMTOARRAY:
         case Builtin::REDUCE:
-        case Builtin::GROUPEDMAPREDUCE:
+        case Builtin::GROUPBY:
         case Builtin::JAVASCRIPT:
-        case Builtin::MAPREDUCE:
         case Builtin::ALL:
         case Builtin::ANY:
             unreachable("eval_stream called on a function that does not return a stream (use eval instead).\n");

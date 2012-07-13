@@ -125,6 +125,9 @@ class Stream(object):
     def limit(self, count):
         return limit(self, count)
 
+    def count(self):
+        return length(self)
+    
     def nth(self, index):
         return nth(self, index)
 
