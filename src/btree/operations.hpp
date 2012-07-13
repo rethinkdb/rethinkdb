@@ -44,7 +44,7 @@ private:
    structure. */
 class real_superblock_t : public superblock_t {
 public:
-    explicit real_superblock_t(buf_lock_t &sb_buf);
+    explicit real_superblock_t(buf_lock_t *sb_buf);
 
     void release();
     buf_lock_t *get() { return &sb_buf_; }

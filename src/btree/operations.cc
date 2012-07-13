@@ -7,8 +7,8 @@
 #include "btree/slice.hpp"
 #include "buffer_cache/blob.hpp"
 
-real_superblock_t::real_superblock_t(buf_lock_t &sb_buf) {
-    sb_buf_.swap(sb_buf);
+real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
+    sb_buf_.swap(*sb_buf);
 }
 
 void real_superblock_t::release() {
@@ -453,7 +453,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
 
 void get_btree_superblock(transaction_t *txn, access_t access, boost::scoped_ptr<real_superblock_t> *got_superblock_out) {
     buf_lock_t tmp_buf(txn, SUPERBLOCK_ID, access);
-    boost::scoped_ptr<real_superblock_t> tmp_sb(new real_superblock_t(tmp_buf));
+    boost::scoped_ptr<real_superblock_t> tmp_sb(new real_superblock_t(&tmp_buf));
     tmp_sb->set_eviction_priority(ZERO_EVICTION_PRIORITY);
     got_superblock_out->swap(tmp_sb);
 }
