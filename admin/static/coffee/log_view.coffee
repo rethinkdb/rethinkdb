@@ -118,7 +118,7 @@ module 'LogView', ->
                 @num_new_entries = 0
                 $.getJSON route, (log_data_from_server) =>
                     for machine_uuid, log_entries of log_data_from_server
-                        if @filter? and not machine_uuid of @filter
+                        if @filter? and not @filter[machine_uuid]?
                             continue
                         @num_new_entries += log_entries.length
                     @render_header()
@@ -143,7 +143,7 @@ module 'LogView', ->
 
         parse_new_log: (log_data_from_server) =>
             for machine_uuid, log_entries of log_data_from_server
-                if @filter? and not machine_uuid of @filter
+                if @filter? and not @filter[machine_uuid]?
                     continue
 
 
