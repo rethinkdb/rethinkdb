@@ -110,7 +110,7 @@ message Builtin {
         STREAMTOARRAY = 26;
         ARRAYTOSTREAM = 27;
         REDUCE = 28;
-        GROUPBY = 29;
+        GROUPEDMAPREDUCE = 29;
         JAVASCRIPT = 30;
         JAVASCRIPTRETURNINGSTREAM = 31;
         ANY = 32;
@@ -162,12 +162,13 @@ message Builtin {
 
     optional Reduction reduce = 9;
 
-    message GroupBy {
+    message GroupedMapReduce {
         required Mapping group_mapping = 1;
-        required Mapping stream_to_json = 2;
+        required Mapping value_mapping = 2;
+        required Reduction reduction = 3;
     };
 
-    optional GroupBy group_by = 10;
+    optional GroupedMapReduce grouped_map_reduce = 10;
 
     message Range {
         required string attrname = 1;

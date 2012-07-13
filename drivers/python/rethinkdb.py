@@ -122,9 +122,6 @@ class Stream(object):
             return self.pluck(*keys).distinct()
         return distinct(self)
 
-    def groupby(self, grouping, stream_name, reduction, row=DEFAULT_ROW_BINDING):
-        return GroupBy(self, grouping, reduction, stream_name, row)
-
     def concat_map(self, mapping, row=DEFAULT_ROW_BINDING):
         return ConcatMap(self, mapping, row)
 
@@ -324,30 +321,6 @@ class Reduce(Stream):
         parent.call.builtin.reduce.var1 = self.arg1
         parent.call.builtin.reduce.var2 = self.arg2
         toTerm(self.body).write_ast(parent.call.builtin.reduce.body)
-        # Parent stream
-        self.parent_view.write_ast(parent.call.args.add())
-
-class GroupBy(Stream):
-    def __init__(self, parent_view, grouping, reduction, stream_name, row):
-        super(GroupBy, self).__init__()
-        self.read_only = True
-        self.grouping = grouping
-        self.reduction = reduction
-        self.stream_name = stream_name
-        self.row = row
-        self.parent_view = parent_view
-
-    def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.GROUPBY
-        # Group mapping
-        mapping = parent.call.builtin.group_by.group_mapping
-        mapping.arg = self.row
-        toTerm(self.grouping).write_ast(mapping.body)
-        # Reduction mapping
-        reduction = parent.call.builtin.group_by.stream_to_json
-        reduction.arg = self.stream_name
-        toTerm(self.reduction).write_ast(reduction.body)
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
 

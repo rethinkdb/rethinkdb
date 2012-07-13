@@ -161,10 +161,11 @@ bool is_well_defined(const Builtin &b) {
         CHECK(b.has_reduce());
         CHECK_WELL_DEFINED(b.reduce());
         break;
-    case Builtin::GROUPBY:
-        CHECK(b.has_group_by());
-        CHECK_WELL_DEFINED(b.group_by().group_mapping());
-        CHECK_WELL_DEFINED(b.group_by().stream_to_json());
+    case Builtin::GROUPEDMAPREDUCE:
+        CHECK(b.has_grouped_map_reduce());
+        CHECK_WELL_DEFINED(b.grouped_map_reduce().group_mapping());
+        CHECK_WELL_DEFINED(b.grouped_map_reduce().value_mapping());
+        CHECK_WELL_DEFINED(b.grouped_map_reduce().reduction());
         break;
     case Builtin::RANGE:
         CHECK(b.has_range());
@@ -451,7 +452,7 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::LENGTH:
         case Builtin::STREAMTOARRAY:
         case Builtin::REDUCE:
-        case Builtin::GROUPBY:
+        case Builtin::GROUPEDMAPREDUCE:
         case Builtin::UNION:
             return function_t(Type::STREAM, 2, Type::STREAM);
             break;
@@ -1518,8 +1519,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 return acc;
             }
             break;
-        case Builtin::GROUPBY:
-            throw runtime_exc_t("Unimplemented: Builtin::GROUPBY");
+        case Builtin::GROUPEDMAPREDUCE:
+            {
+                throw runtime_exc_t("Unimplemented: Builtin::GROUPEDMAPREDUCE");
+            }
             break;
         case Builtin::JAVASCRIPT:
             throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPT");
@@ -1715,7 +1718,7 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
         case Builtin::NTH:
         case Builtin::STREAMTOARRAY:
         case Builtin::REDUCE:
-        case Builtin::GROUPBY:
+        case Builtin::GROUPEDMAPREDUCE:
         case Builtin::JAVASCRIPT:
         case Builtin::ALL:
         case Builtin::ANY:
