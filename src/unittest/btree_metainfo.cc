@@ -90,7 +90,7 @@ void run_metainfo_test() {
             }
             std::string key = random_existing_key(mirror);
             std::vector<char> value_out;
-            bool found = get_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), value_out);
+            bool found = get_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), &value_out);
             EXPECT_TRUE(found);
             if (found) {
                 EXPECT_EQ(mirror[key], vector_to_string(value_out));
@@ -105,7 +105,7 @@ void run_metainfo_test() {
                 continue;
             }
             std::vector<char> value_out;
-            bool found = get_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), value_out);
+            bool found = get_superblock_metainfo(txn.get(), sb_buf, string_to_vector(key), &value_out);
             EXPECT_FALSE(found);
             if (found) {
                 EXPECT_EQ(mirror[key], vector_to_string(value_out));
@@ -148,7 +148,7 @@ void run_metainfo_test() {
             }
         } else {
             std::vector<std::pair<std::vector<char>, std::vector<char> > > pairs;
-            get_superblock_metainfo(txn.get(), sb_buf, pairs);
+            get_superblock_metainfo(txn.get(), sb_buf, &pairs);
             std::map<std::string, std::string> mirror_copy = mirror;
             if (print_log_messages) {
                 puts("scan...");
