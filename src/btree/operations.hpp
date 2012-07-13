@@ -205,7 +205,6 @@ struct superblock_metainfo_iterator_t {
     typedef std::pair<sz_t, char *> value_t;
 
     superblock_metainfo_iterator_t(char *metainfo, char *metainfo_end) : end(metainfo_end) { advance(metainfo); }
-    explicit superblock_metainfo_iterator_t(std::vector<char>& metainfo) : end(metainfo.data() + metainfo.size()) { advance(metainfo.data()); }
 
     bool is_end() { return pos == end; }
 

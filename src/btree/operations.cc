@@ -162,7 +162,7 @@ void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::ve
 
     buffer_group_copy_data(&group_cpy, const_view(&group));
 
-    for (superblock_metainfo_iterator_t kv_iter(metainfo); !kv_iter.is_end(); ++kv_iter) {
+    for (superblock_metainfo_iterator_t kv_iter(metainfo.data(), metainfo.data() + metainfo.size()); !kv_iter.is_end(); ++kv_iter) {
         superblock_metainfo_iterator_t::key_t key = kv_iter.key();
         superblock_metainfo_iterator_t::value_t value = kv_iter.value();
         kv_pairs_out.push_back(std::make_pair(std::vector<char>(key.second, key.second + key.first), std::vector<char>(value.second, value.second + value.first)));
