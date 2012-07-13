@@ -338,11 +338,11 @@ void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, 
 // Split the node if necessary. If the node is a leaf_node, provide the new
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
-void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
+void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                             const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority) {
     txn->assert_thread();
 
-    const node_t *node = reinterpret_cast<const node_t *>(buf.get_data_read());
+    const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
 
     // If the node isn't full, we don't need to split, so we're done.
     if (!node::is_internal(node)) { // This should only be called when update_needed.
@@ -363,23 +363,23 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
     store_key_t median_buffer;
     btree_key_t *median = median_buffer.btree_key();
 
-    node::split(sizer, &buf, reinterpret_cast<node_t *>(rbuf.get_data_major_write()), median);
-    rbuf.set_eviction_priority(buf.get_eviction_priority());
+    node::split(sizer, buf, reinterpret_cast<node_t *>(rbuf.get_data_major_write()), median);
+    rbuf.set_eviction_priority(buf->get_eviction_priority());
 
     // Insert the key that sets the two nodes apart into the parent.
-    if (!last_buf.is_acquired()) {
+    if (!last_buf->is_acquired()) {
         // We're splitting what was previously the root, so create a new root to use as the parent.
         buf_lock_t temp_buf(txn);
-        last_buf.swap(temp_buf);
-        internal_node::init(sizer->block_size(), reinterpret_cast<internal_node_t *>(last_buf.get_data_major_write()));
-        rassert(ZERO_EVICTION_PRIORITY < buf.get_eviction_priority());
-        last_buf.set_eviction_priority(decr_priority(buf.get_eviction_priority()));
-        *root_eviction_priority = last_buf.get_eviction_priority();
+        last_buf->swap(temp_buf);
+        internal_node::init(sizer->block_size(), reinterpret_cast<internal_node_t *>(last_buf->get_data_major_write()));
+        rassert(ZERO_EVICTION_PRIORITY < buf->get_eviction_priority());
+        last_buf->set_eviction_priority(decr_priority(buf->get_eviction_priority()));
+        *root_eviction_priority = last_buf->get_eviction_priority();
 
-        insert_root(last_buf.get_block_id(), sb);
+        insert_root(last_buf->get_block_id(), sb);
     }
 
-    bool success UNUSED = internal_node::insert(sizer->block_size(), &last_buf, median, buf.get_block_id(), rbuf.get_block_id());
+    bool success UNUSED = internal_node::insert(sizer->block_size(), last_buf, median, buf->get_block_id(), rbuf.get_block_id());
     rassert(success, "could not insert internal btree node");
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
@@ -390,18 +390,18 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
 
     } else {
         // The key goes in the new buf (the right one).
-        buf.swap(rbuf);
+        buf->swap(rbuf);
     }
 }
 
 // Merge or level the node if necessary.
 void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
-                                buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
+                                buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                                 const btree_key_t *key) {
-    const node_t *node = reinterpret_cast<const node_t *>(buf.get_data_read());
-    if (last_buf.is_acquired() && node::is_underfull(sizer, node)) { // The root node is never underfull.
+    const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
+    if (last_buf->is_acquired() && node::is_underfull(sizer, node)) { // The root node is never underfull.
 
-        const internal_node_t *parent_node = reinterpret_cast<const internal_node_t *>(last_buf.get_data_read());
+        const internal_node_t *parent_node = reinterpret_cast<const internal_node_t *>(last_buf->get_data_read());
 
         // Acquire a sibling to merge or level with.
         store_key_t key_in_middle;
@@ -420,32 +420,32 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
 
             if (nodecmp_node_with_sib < 0) { // Nodes must be passed to merge in ascending order.
                 node::merge(sizer, const_cast<node_t *>(node), &sib_buf, parent_node);
-                buf.mark_deleted();
-                buf.swap(sib_buf);
+                buf->mark_deleted();
+                buf->swap(sib_buf);
             } else {
-                node::merge(sizer, const_cast<node_t *>(sib_node), &buf, parent_node);
+                node::merge(sizer, const_cast<node_t *>(sib_node), buf, parent_node);
                 sib_buf.mark_deleted();
             }
 
             sib_buf.release();
 
             if (!internal_node::is_singleton(parent_node)) {
-                internal_node::remove(sizer->block_size(), &last_buf, key_in_middle.btree_key());
+                internal_node::remove(sizer->block_size(), last_buf, key_in_middle.btree_key());
             } else {
                 // The parent has only 1 key after the merge (which means that
                 // it's the root and our node is its only child). Insert our
                 // node as the new root.
-                last_buf.mark_deleted();
-                insert_root(buf.get_block_id(), sb);
+                last_buf->mark_deleted();
+                insert_root(buf->get_block_id(), sb);
             }
         } else { // Level
             store_key_t replacement_key_buffer;
             btree_key_t *replacement_key = replacement_key_buffer.btree_key();
 
-            bool leveled = node::level(sizer, nodecmp_node_with_sib, &buf, &sib_buf, replacement_key, parent_node);
+            bool leveled = node::level(sizer, nodecmp_node_with_sib, buf, &sib_buf, replacement_key, parent_node);
 
             if (leveled) {
-                internal_node::update_key(&last_buf, key_in_middle.btree_key(), replacement_key);
+                internal_node::update_key(last_buf, key_in_middle.btree_key(), replacement_key);
             }
         }
     }
