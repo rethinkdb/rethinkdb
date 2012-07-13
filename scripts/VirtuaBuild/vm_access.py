@@ -106,8 +106,8 @@ proc = target.command(("cd %s && " % dir_name) + " ".join(opts["command"]), outp
 
 # Move files from VM
 print >>sys.stderr, "***Transferring files from virtual machine..."
-proc = target.command(" ".join(["cd", dir_name, "&&", "tar", "czf", "tmp.tar.gz", "*"]))
-subprocess.Popen(" ".join(["scp", "%s:%s/tmp.tar.gz tmp.tar.gz" % (target.host, dir_name)])).wait()
+proc = target.command(" ".join(["cd", dir_name, "&&", "rm", "tmp.tar.gz", "&&", "tar", "czf", "tmp.tar.gz", "*"]))
+subprocess.Popen(" ".join(["scp", "%s:%s/tmp.tar.gz tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
 subprocess.Popen(" ".join(["tar", "xzf", "tmp.tar.gz"]), shell = True).wait()
 
 # Shut down VM

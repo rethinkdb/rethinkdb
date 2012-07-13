@@ -240,7 +240,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                     try:
                         prepend = ""
                         if "target_os" in build:
-                            prepend = "./rethinkdb/scripts/VirtuaBuild/vm_access.py --vm-name %s --command cd rethinkdb/src && " % build["target_os"]
+                            prepend = "./rethinkdb/scripts/VirtuaBuild/vm_access.py --vm-name %s --command cd rethinkdb/src \\&\\& " % build["target_os"]
                         remotely.run(
                             command_line = """
 tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
