@@ -33,7 +33,6 @@
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "rpc/semilattice/view/field.hpp"
-#include <stdio.h>
 
 bool do_serve(
     io_backender_t *io_backender,

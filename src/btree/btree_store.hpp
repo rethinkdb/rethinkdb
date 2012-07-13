@@ -1,5 +1,5 @@
-#ifndef BTREE_STORE_HPP_
-#define BTREE_STORE_HPP_
+#ifndef BTREE_BTREE_STORE_HPP_
+#define BTREE_BTREE_STORE_HPP_
 
 #include "protocol_api.hpp"
 #include "btree/slice.hpp"
@@ -208,4 +208,4 @@ private:
 
 #include "btree/btree_store.tcc"
 
-#endif
+#endif  // BTREE_BTREE_STORE_HPP_
