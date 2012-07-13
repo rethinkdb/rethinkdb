@@ -41,7 +41,7 @@ module 'DashboardView', ->
         initialize: ->
             log_initial '(initializing) dashboard cluster status'
             issues.on 'all', @render
-            issues_redundancy.on 'reset', @render # when issues_redundancy is reset
+            issues_redundancy.on 'all', @render # when issues_redundancy is reset
             machines.on 'stats_updated', @render # when the stats of the machines are updated
             directory.on 'all', @render
             namespaces.on 'all', @render
