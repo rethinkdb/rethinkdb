@@ -243,22 +243,22 @@ public:
         void acquire_superblock_for_read(
                 access_t access,
                 scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
+                scoped_ptr_t<transaction_t> *txn_out,
+                scoped_ptr_t<real_superblock_t> *sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void acquire_superblock_for_backfill(
                 scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
+                scoped_ptr_t<transaction_t> *txn_out,
+                scoped_ptr_t<real_superblock_t> *sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void acquire_superblock_for_write(
                 access_t access,
                 int expected_change_count,
                 scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
-                boost::scoped_ptr<transaction_t> &txn_out,
-                boost::scoped_ptr<real_superblock_t> &sb_out,
+                scoped_ptr_t<transaction_t> *txn_out,
+                scoped_ptr_t<real_superblock_t> *sb_out,
                 signal_t *interruptor)
                 THROWS_ONLY(interrupted_exc_t);
         void check_and_update_metainfo(
