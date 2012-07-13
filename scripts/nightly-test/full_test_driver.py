@@ -205,30 +205,29 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                 }
             builds["redhat5_1"] = {
                 "command_line": "make rpm LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1 UNIT_TESTS=0",
-                "products": [],
+                "products": ["rethinkdb/build/debug-legacy-legacy-gcc-no_eventfd"],
                 "target_os": "redhat5_1"
                 }
             builds["debian"] = {
                 "command_line": "make deb NO_EVENTFD=1 LEGACY_LINUX=1 UNIT_TESTS=0",
-                "products": [],
+                "products": ["rethinkdb/build/debug-legacy-no_eventfd"],
                 "target_os": "debian"
                 }
             builds["centos5_5"] = {
                 "command_line": "make rpm LEGACY_GCC=1 LEGACY_LINUX=1 UNIT_TESTS=0",
-                "products": [],
+                "products": ["rethinkdb/build/debug-legacy-legacy-gcc"],
                 "target_os": "centos5_5"
                 }
             builds["suse"] = {
                 "command_line": "make LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 rpm-suse10 UNIT_TESTS=0",
-                "products": [],
+                "products": ["rethinkdb/build/debug-legacy-legacy-gcc-no_eventfd"],
                 "target_os": "suse"
                 }
             builds["centos6"] = {
                 "command_line": "make rpm LEGACY_GCC=1 LEGACY_LINUX=1 UNIT_TESTS=0",
-                "products": [],
+                "products": ["rethinkdb/build/debug-legacy-legacy-gcc"],
                 "target_os": "centos6"
                 }
-
 
         # Run builds
 
