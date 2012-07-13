@@ -110,6 +110,9 @@ class Stream(object):
     def map(self, mapping, row=DEFAULT_ROW_BINDING):
         return Map(self, mapping, row)
 
+    def reduce(self, start, arg1, arg2, body):
+        return Reduce(self, start, arg1, arg2, body)
+
     def update(self, updater, row=DEFAULT_ROW_BINDING):
         self.check_readonly()
         return Update(self, updater, row)
@@ -273,6 +276,27 @@ class Map(Stream):
         mapping = parent.call.builtin.map.mapping
         mapping.arg = self.row
         toTerm(self.mapping).write_ast(mapping.body)
+        # Parent stream
+        self.parent_view.write_ast(parent.call.args.add())
+
+class Reduce(Stream):
+    def __init__(self, parent_view, start, arg1, arg2, body):
+        super(Reduce, self).__init__()
+        self.read_only = True
+        self.parent_view = parent_view
+        self.start = start
+        self.arg1 = arg1
+        self.arg2 = arg2
+        self.body = body
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.REDUCE
+        # Reduction
+        toTerm(self.start).write_ast(parent.call.builtin.reduce.base)
+        parent.call.builtin.reduce.var1 = self.arg1
+        parent.call.builtin.reduce.var2 = self.arg2
+        toTerm(self.body).write_ast(parent.call.builtin.reduce.body)
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
 
