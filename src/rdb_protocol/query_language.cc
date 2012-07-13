@@ -1770,6 +1770,12 @@ struct shared_scoped_less {
     }
 };
 
+boost::shared_ptr<scoped_cJSON_t> map(std::string arg, const Term &term, runtime_environment_t *env, boost::shared_ptr<scoped_cJSON_t> val) {
+    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+    env->scope.put_in_scope(arg, val);
+    return eval(term, env);
+}
+
 boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (c.builtin().type()) {
         //JSON -> JSON
@@ -1810,17 +1816,9 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
         case Builtin::MAP:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
-                throw runtime_exc_t("Unimplemented: Builtin::MAP");
-                //json_stream_t res;
 
-                //for (json_stream_t::iterator it  = stream.begin();
-                //                             it != stream.end();
-                //                             ++it) {
-                //    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                //    env->scope.put_in_scope(c.builtin().map().mapping().arg(), *it);
-                //    res.push_back(eval(c.builtin().map().mapping().body(), env));
-                //}
-                //return res;
+                return boost::shared_ptr<json_stream_t>(new mapping_stream_t<boost::function<boost::shared_ptr<scoped_cJSON_t>(boost::shared_ptr<scoped_cJSON_t>)> >(
+                                                                stream, boost::bind(&map, c.builtin().map().mapping().arg(), c.builtin().map().mapping().body(), env, _1)));
             }
             break;
         case Builtin::CONCATMAP:

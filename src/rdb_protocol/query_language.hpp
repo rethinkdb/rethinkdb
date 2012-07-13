@@ -266,6 +266,26 @@ private:
     P p;
 };
 
+template <class F>
+class mapping_stream_t : public json_stream_t {
+public:
+    mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f) 
+        : stream(_stream), f(_f)
+    { }
+
+    boost::shared_ptr<scoped_cJSON_t> next() { 
+        if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            return f(json);
+        } else {
+            return json;
+        }
+    }
+
+private:
+    boost::shared_ptr<json_stream_t> stream;
+    F f;
+};
+
 //typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_stream_t;
 
 //Scopes for single pieces of json
