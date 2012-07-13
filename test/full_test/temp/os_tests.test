@@ -1,8 +1,17 @@
-os_names = ['ubuntu', 'redhat5_1', 'debian', 'centos5_5', 'suse', 'centos6'] # the last two do not work
+os_list = [
+            ("ubuntu", "rethinkdb/build/debug"),
+            ("redhat5_1", "rethinkdb/build/debug-legacy-legacy-gcc-no_eventfd"),
+            ("debian", "rethinkdb/build/debug-legacy-no_eventfd"),
+            ("centos5_5", "rethinkdb/build/debug-legacy-legacy-gcc"),
+            ("suse", "rethinkdb/build/debug-legacy-legacy-gcc-no_eventfd"),
+            ("centos6", "rethinkdb/build/debug-legacy-legacy-gcc")
+            ]
 
-for os_name in os_names:
+workload = "./rethinkdb/test/workloads/many_keys.py $HOST:$PORT"
+
+for os_name, build_folder in os_list:
     do_test(
-        "$RETHINKDB/scripts/VirtuaBuild/builder.py --target %s --branch alex_os_tests" % os_name,
-        repeat = 1,
-        inputs = ["test/common", "scripts/VirtuaBuild"]
+        "$RETHINKDB/scripts/VirtuaBuild/vm_access.py --vm-name %s --command ./rethinkdb/test/scenarios/static_cluster.py '%s'" % (os_name, workload),
+        repeat = 3,
+        inputs = [build_folder, "test/scenarios", "test/common", "scripts/VirtuaBuild", "test/workloads"]
         )
