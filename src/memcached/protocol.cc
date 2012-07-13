@@ -604,11 +604,11 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
 
     memcached_protocol_t::read_response_t operator()(const get_query_t& get) {
         return memcached_protocol_t::read_response_t(
-            memcached_get(get.key, btree, effective_time, txn->get(), superblock->get()));
+            memcached_get(get.key, btree, effective_time, txn, superblock->get()));
     }
     memcached_protocol_t::read_response_t operator()(const rget_query_t& rget) {
         return memcached_protocol_t::read_response_t(
-            memcached_rget_slice(btree, rget.range, rget.maximum, effective_time, txn->get(), superblock->get()));
+            memcached_rget_slice(btree, rget.range, rget.maximum, effective_time, txn, superblock->get()));
     }
     memcached_protocol_t::read_response_t operator()(const distribution_get_query_t& dget) {
         distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock->get());
@@ -627,12 +627,12 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
     }
 
 
-    read_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t> *txn_, boost::scoped_ptr<superblock_t> *superblock_, exptime_t effective_time_) :
+    read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, boost::scoped_ptr<superblock_t> *superblock_, exptime_t effective_time_) :
         btree(btree_), txn(txn_), superblock(superblock_), effective_time(effective_time_) { }
 
 private:
     btree_slice_t *btree;
-    boost::scoped_ptr<transaction_t> *txn;
+    transaction_t *txn;
     boost::scoped_ptr<superblock_t> *superblock;
     exptime_t effective_time;
 };
@@ -655,38 +655,38 @@ memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(
     boost::scoped_ptr<superblock_t> superblock2;
     superblock.swap(*reinterpret_cast<boost::scoped_ptr<real_superblock_t> *>(&superblock2));
 
-    read_visitor_t v(btree.get(), &txn, &superblock2, read.effective_time);
+    read_visitor_t v(btree.get(), txn.get(), &superblock2, read.effective_time);
     return boost::apply_visitor(v, read.query);
 }
 
 struct write_visitor_t : public boost::static_visitor<memcached_protocol_t::write_response_t> {
     memcached_protocol_t::write_response_t operator()(const get_cas_mutation_t &m) {
         return memcached_protocol_t::write_response_t(
-            memcached_get_cas(m.key, btree, proposed_cas, effective_time, timestamp, txn.get(), superblock));
+            memcached_get_cas(m.key, btree, proposed_cas, effective_time, timestamp, txn, superblock));
     }
     memcached_protocol_t::write_response_t operator()(const sarc_mutation_t &m) {
         return memcached_protocol_t::write_response_t(
-            memcached_set(m.key, btree, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, proposed_cas, effective_time, timestamp, txn.get(), superblock));
+            memcached_set(m.key, btree, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, proposed_cas, effective_time, timestamp, txn, superblock));
     }
     memcached_protocol_t::write_response_t operator()(const incr_decr_mutation_t &m) {
         return memcached_protocol_t::write_response_t(
-            memcached_incr_decr(m.key, btree, (m.kind == incr_decr_INCR), m.amount, proposed_cas, effective_time, timestamp, txn.get(), superblock));
+            memcached_incr_decr(m.key, btree, (m.kind == incr_decr_INCR), m.amount, proposed_cas, effective_time, timestamp, txn, superblock));
     }
     memcached_protocol_t::write_response_t operator()(const append_prepend_mutation_t &m) {
         return memcached_protocol_t::write_response_t(
-            memcached_append_prepend(m.key, btree, m.data, (m.kind == append_prepend_APPEND), proposed_cas, effective_time, timestamp, txn.get(), superblock));
+            memcached_append_prepend(m.key, btree, m.data, (m.kind == append_prepend_APPEND), proposed_cas, effective_time, timestamp, txn, superblock));
     }
     memcached_protocol_t::write_response_t operator()(const delete_mutation_t &m) {
         rassert(proposed_cas == INVALID_CAS);
         return memcached_protocol_t::write_response_t(
-            memcached_delete(m.key, m.dont_put_in_delete_queue, btree, effective_time, timestamp, txn.get(), superblock));
+            memcached_delete(m.key, m.dont_put_in_delete_queue, btree, effective_time, timestamp, txn, superblock));
     }
 
-    write_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t>& txn_, superblock_t *superblock_, cas_t proposed_cas_, exptime_t effective_time_, repli_timestamp_t timestamp_) : btree(btree_), txn(txn_), superblock(superblock_), proposed_cas(proposed_cas_), effective_time(effective_time_), timestamp(timestamp_) { }
+    write_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, cas_t proposed_cas_, exptime_t effective_time_, repli_timestamp_t timestamp_) : btree(btree_), txn(txn_), superblock(superblock_), proposed_cas(proposed_cas_), effective_time(effective_time_), timestamp(timestamp_) { }
 
 private:
     btree_slice_t *btree;
-    boost::scoped_ptr<transaction_t>& txn;
+    transaction_t *txn;
     superblock_t *superblock;
     cas_t proposed_cas;
     exptime_t effective_time;
@@ -710,7 +710,7 @@ memcached_protocol_t::write_response_t memcached_protocol_t::store_t::write(
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
 
-    write_visitor_t v(btree.get(), txn, superblock.get(), write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
+    write_visitor_t v(btree.get(), txn.get(), superblock.get(), write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
     return boost::apply_visitor(v, write.mutation);
 }
 
