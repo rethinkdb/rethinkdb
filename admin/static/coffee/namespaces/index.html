@@ -32,7 +32,7 @@
         <p class="contains">Not assigned to any datacenter</p>
         {{else}}
         <p class="quick_info">
-        Protocol: {{protocol}}, {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}
+        {{nshards}} {{pluralize_noun "shard" nshards}}, {{nreplicas}} {{pluralize_noun "replica" nreplicas}} on {{ndatacenters}} {{pluralize_noun "datacenter" ndatacenters}} across {{nmachines}} {{pluralize_noun "machine" nmachines}}
         </p>
         {{/if}}
         <ul class="list_stats">
@@ -66,21 +66,6 @@
         <label for="name">Name</label>
         <div class="input">
           <input class="xlarge" id="focus_namespace_name" name="name" size="30" type="text" />
-        </div>
-      </div>
-      <div class="clearfix">
-        <label for="port">Port</label>
-        <div class="input">
-          <input class="xlarge" name="port" size="5" type="text" value="{{default_port}}"/>
-        </div>
-      </div>
-      <div class="clearfix">
-        <label for="protocol">Protocol</label>
-        <div class="input">
-          <select class="protocol" name="protocol">
-            <option>Memcached</option>
-            <!-- <option>RethinkDB/option>-->
-          </select>
         </div>
       </div>
       <div class="clearfix">

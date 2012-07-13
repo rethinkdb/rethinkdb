@@ -49,23 +49,27 @@ private:
 };
 
 template <class protocol_t>
-btree_store_t<protocol_t>::btree_store_t(const std::string& filename,
+btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
+                                         const std::string& filename,
                                          bool create,
-                                         perfmon_collection_t *_perfmon_collection) :
+                                         perfmon_collection_t *parent_perfmon_collection) :
     store_view_t<protocol_t>(protocol_t::region_t::universe()),
-    perfmon_collection(filename, _perfmon_collection, true, true)
+    perfmon_collection(),
+    perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, filename)
 {
     if (create) {
         standard_serializer_t::create(
             standard_serializer_t::dynamic_config_t(),
+            io_backender,
             standard_serializer_t::private_dynamic_config_t(filename),
             standard_serializer_t::static_config_t(),
             &perfmon_collection
             );
     }
 
-    serializer.reset(new standard_serializer_t(
+    serializer.init(new standard_serializer_t(
         standard_serializer_t::dynamic_config_t(),
+        io_backender,
         standard_serializer_t::private_dynamic_config_t(filename),
         &perfmon_collection
         ));
@@ -77,24 +81,24 @@ btree_store_t<protocol_t>::btree_store_t(const std::string& filename,
 
     cache_dynamic_config.max_size = GIGABYTE;
     cache_dynamic_config.max_dirty_size = GIGABYTE / 2;
-    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, &perfmon_collection));
+    cache.init(new cache_t(serializer.get(), &cache_dynamic_config, &perfmon_collection));
 
     if (create) {
         btree_slice_t::create(cache.get());
     }
 
-    btree.reset(new btree_slice_t(cache.get(), &perfmon_collection));
+    btree.init(new btree_slice_t(cache.get(), &perfmon_collection));
 
     if (create) {
         // Initialize metainfo to an empty `binary_blob_t` because its domain is
         // required to be `protocol_t::region_t::universe()` at all times
         /* Wow, this is a lot of lines of code for a simple concept. Can we do better? */
 
-        boost::scoped_ptr<transaction_t> txn;
-        boost::scoped_ptr<real_superblock_t> superblock;
+        scoped_ptr_t<transaction_t> txn;
+        scoped_ptr_t<real_superblock_t> superblock;
         order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::store_t::store_t");
         order_token = btree->order_checkpoint_.check_through(order_token);
-        get_btree_superblock(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, txn);
+        get_btree_superblock(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, &txn);
         buf_lock_t* sb_buf = superblock->get();
         clear_superblock_metainfo(txn.get(), sb_buf);
 
@@ -109,26 +113,28 @@ btree_store_t<protocol_t>::btree_store_t(const std::string& filename,
 }
 
 template <class protocol_t>
-btree_store_t<protocol_t>::~btree_store_t() { }
+btree_store_t<protocol_t>::~btree_store_t() {
+    home_thread_mixin_t::assert_thread();
+}
 
 template <class protocol_t>
 typename protocol_t::read_response_t btree_store_t<protocol_t>::read(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const typename protocol_t::read_t &read,
         UNUSED order_token_t order_token,  // TODO
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
-    acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor);
 
     check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());
 
     // Ugly hack
-    boost::scoped_ptr<superblock_t> superblock2;
-    superblock.swap(*reinterpret_cast<boost::scoped_ptr<real_superblock_t> *>(&superblock2));
+    scoped_ptr_t<superblock_t> superblock2;
+    superblock2.init(superblock.release());
 
     return protocol_read(read, btree.get(), txn.get(), superblock2.get());
 }
@@ -140,14 +146,14 @@ typename protocol_t::write_response_t btree_store_t<protocol_t>::write(
         const typename protocol_t::write_t &write,
         transition_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
+    acquire_superblock_for_write(rwi_write, expected_change_count, token, &txn, &superblock, interruptor);
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), superblock.get());
 
@@ -161,13 +167,13 @@ bool btree_store_t<protocol_t>::send_backfill(
         const boost::function<bool(const metainfo_t&)> &should_backfill,
         const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
         typename protocol_t::backfill_progress_t *progress,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
-    acquire_superblock_for_backfill(token, txn, superblock, interruptor);
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    acquire_superblock_for_backfill(token, &txn, &superblock, interruptor);
 
     metainfo_t metainfo = get_metainfo_internal(txn.get(), superblock->get()).mask(start_point.get_domain());
     if (should_backfill(metainfo)) {
@@ -180,15 +186,15 @@ bool btree_store_t<protocol_t>::send_backfill(
 template <class protocol_t>
 void btree_store_t<protocol_t>::receive_backfill(
         const typename protocol_t::backfill_chunk_t &chunk,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
-    acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
+    acquire_superblock_for_write(rwi_write, expected_change_count, token, &txn, &superblock, interruptor);
 
     protocol_receive_backfill(btree.get(), txn.get(), superblock.get(), interruptor, chunk);
 }
@@ -197,12 +203,12 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::reset_data(
         const typename protocol_t::region_t& subregion,
         const metainfo_t &new_metainfo,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
 
     // We're passing 2 for the expected_change_count based on the
     // reasoning that we're probably going to touch a leaf-node-sized
@@ -211,7 +217,7 @@ void btree_store_t<protocol_t>::reset_data(
     // TODO that's not reasonable; reset_data() is sometimes used to wipe out
     // entire databases.
     const int expected_change_count = 2;
-    acquire_superblock_for_write(rwi_write, expected_change_count, token, txn, superblock, interruptor);
+    acquire_superblock_for_write(rwi_write, expected_change_count, token, &txn, &superblock, interruptor);
 
     region_map_t<protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock->get());
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
@@ -269,11 +275,11 @@ void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo, 
 
 template <class protocol_t>
 typename btree_store_t<protocol_t>::metainfo_t btree_store_t<protocol_t>::get_metainfo(UNUSED order_token_t order_token,  // TODO
-                                                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-                                                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
-    acquire_superblock_for_read(rwi_read, false, token, txn, superblock, interruptor);
+                                                                                       scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+                                                                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor);
 
     return get_metainfo_internal(txn.get(), superblock->get());
 }
@@ -281,7 +287,7 @@ typename btree_store_t<protocol_t>::metainfo_t btree_store_t<protocol_t>::get_me
 template <class protocol_t>
 region_map_t<protocol_t, binary_blob_t> btree_store_t<protocol_t>::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf) const THROWS_NOTHING {
     std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
-    get_superblock_metainfo(txn, sb_buf, kv_pairs);   // FIXME: this is inefficient, cut out the middleman (vector)
+    get_superblock_metainfo(txn, sb_buf, &kv_pairs);   // FIXME: this is inefficient, cut out the middleman (vector)
 
     std::vector<std::pair<typename protocol_t::region_t, binary_blob_t> > result;
     for (std::vector<std::pair<std::vector<char>, std::vector<char> > >::iterator i = kv_pairs.begin(); i != kv_pairs.end(); ++i) {
@@ -307,12 +313,12 @@ region_map_t<protocol_t, binary_blob_t> btree_store_t<protocol_t>::get_metainfo_
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
-                                                 UNUSED order_token_t order_token,  // TODO
-                                                 boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-                                                 signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    boost::scoped_ptr<transaction_t> txn;
-    boost::scoped_ptr<real_superblock_t> superblock;
-    acquire_superblock_for_write(rwi_write, 1, token, txn, superblock, interruptor);
+                                             UNUSED order_token_t order_token,  // TODO
+                                             scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+    scoped_ptr_t<transaction_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    acquire_superblock_for_write(rwi_write, 1, token, &txn, &superblock, interruptor);
 
     region_map_t<protocol_t, binary_blob_t> old_metainfo = get_metainfo_internal(txn.get(), superblock->get());
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
@@ -321,77 +327,73 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_read(
         access_t access,
-        bool snapshot,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-        boost::scoped_ptr<transaction_t> &txn_out,
-        boost::scoped_ptr<real_superblock_t> &sb_out,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+        scoped_ptr_t<transaction_t> *txn_out,
+        scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
     btree->assert_thread();
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
-    local_token.swap(token);
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_read");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_reading(btree.get(), access, order_token, snapshot, &sb_out, txn_out);
+    get_btree_superblock_for_reading(btree.get(), access, order_token, CACHE_SNAPSHOTTED_NO, sb_out, txn_out);
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-        boost::scoped_ptr<transaction_t> &txn_out,
-        boost::scoped_ptr<real_superblock_t> &sb_out,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+        scoped_ptr_t<transaction_t> *txn_out,
+        scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
     btree->assert_thread();
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token;
-    local_token.swap(token);
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_backfill");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_backfilling(btree.get(), order_token, &sb_out, txn_out);
+    get_btree_superblock_for_backfilling(btree.get(), order_token, sb_out, txn_out);
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_write(
         access_t access,
         int expected_change_count,
-        boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-        boost::scoped_ptr<transaction_t> &txn_out,
-        boost::scoped_ptr<real_superblock_t> &sb_out,
+        scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+        scoped_ptr_t<transaction_t> *txn_out,
+        scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
     btree->assert_thread();
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token;
-    local_token.swap(token);
+    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_write");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, &sb_out, txn_out);
+    get_btree_superblock(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, sb_out, txn_out);
 }
 
 /* store_view_t interface */
 template <class protocol_t>
-void btree_store_t<protocol_t>::new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) {
+void btree_store_t<protocol_t>::new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
     fifo_enforcer_read_token_t token = token_source.enter_read();
-    token_out.reset(new fifo_enforcer_sink_t::exit_read_t(&token_sink, token));
+    token_out->init(new fifo_enforcer_sink_t::exit_read_t(&token_sink, token));
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) {
+void btree_store_t<protocol_t>::new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
     fifo_enforcer_write_token_t token = token_source.enter_write();
-    token_out.reset(new fifo_enforcer_sink_t::exit_write_t(&token_sink, token));
+    token_out->init(new fifo_enforcer_sink_t::exit_write_t(&token_sink, token));
 }
 

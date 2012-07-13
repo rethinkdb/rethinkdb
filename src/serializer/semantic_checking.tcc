@@ -1,5 +1,7 @@
 #include "serializer/semantic_checking.hpp"
 
+#include <vector>
+
 #include "serializer/semantic_checking_internal.hpp"
 
 template<class inner_serializer_t>
@@ -31,14 +33,14 @@ wrap_token(block_id_t block_id, scs_block_info_t info, intrusive_ptr_t<typename 
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-create(dynamic_config_t config, private_dynamic_config_t private_config, static_config_t static_config) {
-    inner_serializer_t::create(config, private_config, static_config);
+create(dynamic_config_t config, io_backender_t *backender, private_dynamic_config_t private_config, static_config_t static_config) {
+    inner_serializer_t::create(config, backender, private_config, static_config);
 }
 
 template<class inner_serializer_t>
 semantic_checking_serializer_t<inner_serializer_t>::
-semantic_checking_serializer_t(dynamic_config_t config, private_dynamic_config_t private_config)
-    : inner_serializer(config, private_config),
+semantic_checking_serializer_t(dynamic_config_t config, io_backender_t *io_backender, private_dynamic_config_t private_config)
+    : inner_serializer(config, io_backender, private_config),
       last_index_write_started(0), last_index_write_finished(0),
       semantic_fd(-1)
 {

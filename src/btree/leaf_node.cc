@@ -158,24 +158,25 @@ struct entry_iter_t {
     }
 };
 
-void strprint_entry(std::string& out, value_sizer_t<void> *sizer, const entry_t *entry) {
+void strprint_entry(std::string *out, value_sizer_t<void> *sizer, const entry_t *entry) {
     if (entry_is_live(entry)) {
         const btree_key_t *key = entry_key(entry);
-        out += strprintf("%.*s:", int(key->size), key->contents);
-        out += strprintf("[entry size=%d]", entry_size(sizer, entry));
-        out += strprintf("[value size=%d]", sizer->size(entry_value(entry)));
+        *out += strprintf("%.*s:", int(key->size), key->contents);
+        *out += strprintf("[entry size=%d]", entry_size(sizer, entry));
+        *out += strprintf("[value size=%d]", sizer->size(entry_value(entry)));
     } else if (entry_is_deletion(entry)) {
         const btree_key_t *key = entry_key(entry);
-        out += strprintf("%.*s:[deletion]", int(key->size), key->contents);
+        *out += strprintf("%.*s:[deletion]", int(key->size), key->contents);
     } else if (entry_is_skip(entry)) {
-        out += strprintf("[skip %d]", entry_size(sizer, entry));
+        *out += strprintf("[skip %d]", entry_size(sizer, entry));
     } else {
-        out += strprintf("[code %d]", *reinterpret_cast<const uint8_t *>(entry));
+        *out += strprintf("[code %d]", *reinterpret_cast<const uint8_t *>(entry));
     }
 }
 
 
-void strprint(std::string& out, value_sizer_t<void> *sizer, const leaf_node_t *node) {
+std::string strprint_leaf(value_sizer_t<void> *sizer, const leaf_node_t *node) {
+    std::string out;
     out += strprintf("Leaf(magic='%4.4s', num_pairs=%u, live_size=%u, frontmost=%u, tstamp_cutpoint=%u)\n",
             node->magic.bytes, node->num_pairs, node->live_size, node->frontmost, node->tstamp_cutpoint);
 
@@ -188,7 +189,7 @@ void strprint(std::string& out, value_sizer_t<void> *sizer, const leaf_node_t *n
     out += strprintf("  By Key:");
     for (int i = 0; i < node->num_pairs; ++i) {
         out += strprintf(" %d:", node->pair_offsets[i]);
-        strprint_entry(out, sizer, get_entry(node, node->pair_offsets[i]));
+        strprint_entry(&out, sizer, get_entry(node, node->pair_offsets[i]));
     }
     out += strprintf("\n");
 
@@ -201,10 +202,12 @@ void strprint(std::string& out, value_sizer_t<void> *sizer, const leaf_node_t *n
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
             out += strprintf("[t=%u]", tstamp.time);
         }
-        strprint_entry(out, sizer, get_entry(node, iter.offset));
+        strprint_entry(&out, sizer, get_entry(node, iter.offset));
         iter.step(sizer, node);
     }
     out += strprintf("\n");
+
+    return out;
 }
 
 

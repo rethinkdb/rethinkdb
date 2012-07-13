@@ -18,6 +18,7 @@ class Casper
             # If an output directory was specified, save the images to that directory (prepend the output filename with the directory)
             filename = "#{images}/#{filename}" if images isnt true
 
+            console.log filename
             @casper.captureSelector(filename, selector)
 
         casper._run = =>
@@ -29,6 +30,7 @@ class Casper
 
             @casper.test.done()
 
+        @print_options()
         return casper
 
     print_options: =>

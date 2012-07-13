@@ -2,6 +2,7 @@
 #define CONTAINERS_CLONE_PTR_HPP_
 
 #include "containers/archive/archive.hpp"
+#include "containers/scoped.hpp"
 
 /* `clone_ptr_t` is a smart pointer that calls the `clone()` method on its
 underlying object whenever the `clone_ptr_t`'s copy constructor is called. It's
@@ -13,7 +14,6 @@ template<class T>
 class clone_ptr_t {
 public:
     clone_ptr_t() THROWS_NOTHING;
-    ~clone_ptr_t() THROWS_NOTHING;
 
     /* Takes ownership of the argument. */
     explicit clone_ptr_t(T *) THROWS_NOTHING;
@@ -40,7 +40,7 @@ private:
     void truth_value_method_for_use_in_boolean_conversions();
 
     friend class write_message_t;
-    void rdb_serialize(write_message_t &msg) const {
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const {
         // clone pointers own their pointees exclusively, so we don't
         // have to worry about replicating any boost pointer
         // serialization bullshit.
@@ -53,13 +53,15 @@ private:
 
     friend class archive_deserializer_t;
     archive_result_t rdb_deserialize(read_stream_t *s) {
-        rassert(!object);
-        delete object;
-        object = NULL;
-        return deserialize(s, &object);
+        rassert(!object.has());
+        object.reset();
+        T *tmp;
+        archive_result_t res = deserialize(s, &tmp);
+        object.init(tmp);
+        return res;
     }
 
-    T *object;
+    scoped_ptr_t<T> object;
 };
 
 #include "containers/clone_ptr.tcc"

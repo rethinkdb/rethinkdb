@@ -6,181 +6,183 @@
 
 #include "http/json.hpp"
 
-#define CHECK_WELL_DEFINED(x) if (!is_well_defined(x)) { return false; }
+#define CHECK(x) if (!(x)) { return false; }
+#define CHECK_WELL_DEFINED(x) CHECK(is_well_defined(x))
 
 bool is_well_defined(const VarTermTuple &v) {
     return is_well_defined(v.term());
 }
 
 bool is_well_defined(const Term &t) {
-    rassert(t.has_type());
-    rassert(Term_TermType_IsValid(t.type()));
+    std::vector<const google::protobuf::FieldDescriptor *> fields;
+    t.GetReflection()->ListFields(t, &fields);
+    int field_count = fields.size();
 
-    if (t.has_var()) {
-        if (t.type() != Term::VAR) {
-            return false;
-        } else {
-            //no other way for this to fail
-        }
-    }
+    CHECK(field_count <= 2);
 
-    if (t.has_let()) {
-        if (t.type() != Term::LET) {
-            return false;
-        } else {
-            for (int i = 0; i < t.let().binds_size(); ++i) {
-                CHECK_WELL_DEFINED(t.let().binds(i));
-            }
+    switch (t.type()) {
+    case Term::VAR:
+        CHECK(t.has_var());
+        break;
+    case Term::LET:
+        CHECK(t.has_let());
+        for (int i = 0; i < t.let().binds_size(); ++i) {
+            CHECK_WELL_DEFINED(t.let().binds(i));
         }
         CHECK_WELL_DEFINED(t.let().expr());
-    }
-
-    if (t.has_call()) {
-        if (t.type() != Term::CALL) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(t.call().builtin());
-            for (int i = 0; i < t.call().args_size(); ++i) {
-                CHECK_WELL_DEFINED(t.call().args(i));
-            }
+        break;
+    case Term::CALL:
+        CHECK(t.has_call());
+        CHECK_WELL_DEFINED(t.call().builtin());
+        for (int i = 0; i < t.call().args_size(); ++i) {
+            CHECK_WELL_DEFINED(t.call().args(i));
         }
-    }
-
-    if (t.has_if_()) {
-        if (t.type() != Term::IF) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(t.if_().test());
-            CHECK_WELL_DEFINED(t.if_().true_branch());
-            CHECK_WELL_DEFINED(t.if_().false_branch());
+        break;
+    case Term::IF:
+        CHECK(t.has_if_());
+        CHECK_WELL_DEFINED(t.if_().test());
+        CHECK_WELL_DEFINED(t.if_().true_branch());
+        CHECK_WELL_DEFINED(t.if_().false_branch());
+        break;
+    case Term::ERROR:
+        CHECK(t.has_error());
+        break;
+    case Term::NUMBER:
+        CHECK(t.has_number());
+        break;
+    case Term::STRING:
+        CHECK(t.has_valuestring());
+        break;
+    case Term::JSON:
+        CHECK(t.has_jsonstring());
+        break;
+    case Term::BOOL:
+        CHECK(t.has_valuebool());
+        break;
+    case Term::JSON_NULL:
+        CHECK(field_count == 1); // null term has only a type field
+        break;
+    case Term::ARRAY:
+        if (t.array_size() == 0) { // empty arrays are valid
+            CHECK(field_count == 1);
         }
-    }
-
-    if (t.has_try_()) {
-        if (t.type() != Term::TRY) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(t.try_().try_term());
-            CHECK_WELL_DEFINED(t.try_().var_and_catch_term().term());
+        for (int i = 0; i < t.array_size(); ++i) {
+            CHECK_WELL_DEFINED(t.array(i));
         }
-    }
-
-    if (t.has_error() && t.type() != Term::ERROR) {
-        return false;
-    }
-
-    if (t.has_number() && t.type() != Term::NUMBER) {
-        return false;
-    }
-
-    if (t.has_valuestring() && t.type() != Term::STRING) {
-        return false;
-    }
-
-    if (t.has_valuebool() && t.type() != Term::BOOL) {
-        return false;
-    }
-
-    if (t.array_size() > 0 && t.type() != Term::ARRAY) {
-        return false;
-    }
-
-    if (t.map_size() > 0 && t.type() != Term::MAP) {
-        return false;
-    }
-
-    if (t.has_view_as_stream() && t.type() != Term::VIEWASSTREAM) {
-        return false;
-    }
-
-    if (t.has_get_by_key()) {
-        if (t.type() != Term::GETBYKEY) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(t.get_by_key().key());
+        break;
+    case Term::OBJECT:
+        if (t.object_size() == 0) { // empty objects are valid
+            CHECK(field_count == 1);
         }
+        for (int i = 0; i < t.object_size(); ++i) {
+            CHECK_WELL_DEFINED(t.object(i).term());
+        }
+        break;
+    case Term::GETBYKEY:
+        CHECK(t.has_get_by_key());
+        CHECK_WELL_DEFINED(t.get_by_key().key());
+        break;
+    case Term::TABLE:
+        CHECK(t.has_table());
+        break;
+    default:
+        return false;
     }
 
     return true;
 }
 
 bool is_well_defined(const Builtin &b) {
-    rassert(b.has_type());
-    rassert(Builtin_BuiltinType_IsValid(b.type()));
+    std::vector<const google::protobuf::FieldDescriptor *> fields;
 
-    if (b.has_attr() && b.type() != Builtin::GETATTR && b.type() != Builtin::HASATTR) {
+    b.GetReflection()->ListFields(b, &fields);
+
+    int field_count = fields.size();
+
+    if (field_count > 2) {
         return false;
     }
 
-    if (b.attrs_size() > 0 && b.type() != Builtin::PICKATTRS) {
+    switch (b.type()) {
+    case Builtin::NOT:
+    case Builtin::MAPMERGE:
+    case Builtin::ARRAYAPPEND:
+    case Builtin::ARRAYCONCAT:
+    case Builtin::ARRAYSLICE:
+    case Builtin::ARRAYNTH:
+    case Builtin::ARRAYLENGTH:
+    case Builtin::ADD:
+    case Builtin::SUBTRACT:
+    case Builtin::MULTIPLY:
+    case Builtin::DIVIDE:
+    case Builtin::MODULO:
+    case Builtin::DISTINCT:
+    case Builtin::LIMIT:
+    case Builtin::LENGTH:
+    case Builtin::UNION:
+    case Builtin::NTH:
+    case Builtin::STREAMTOARRAY:
+    case Builtin::ARRAYTOSTREAM:
+    case Builtin::JAVASCRIPT:
+    case Builtin::JAVASCRIPTRETURNINGSTREAM:
+    case Builtin::ANY:
+    case Builtin::ALL:
+        // these builtins only have
+        // Builtin.type set
+        CHECK(field_count == 1);
+        break;
+    case Builtin::COMPARE:
+        CHECK(b.has_comparison());
+        break;
+    case Builtin::GETATTR:
+    case Builtin::HASATTR:
+        CHECK(b.has_attr());
+        break;
+    case Builtin::PICKATTRS:
+        CHECK(b.attrs_size());
+        break;
+    case Builtin::FILTER:
+        CHECK(b.has_filter());
+        CHECK_WELL_DEFINED(b.filter().predicate());
+        break;
+    case Builtin::MAP:
+        CHECK(b.has_map());
+        CHECK_WELL_DEFINED(b.map().mapping());
+        break;
+    case Builtin::CONCATMAP:
+        CHECK(b.has_concat_map());
+        CHECK_WELL_DEFINED(b.concat_map().mapping());
+        break;
+    case Builtin::ORDERBY:
+        CHECK(b.has_order_by());
+        CHECK_WELL_DEFINED(b.order_by().mapping());
+        break;
+    case Builtin::REDUCE:
+        CHECK(b.has_reduce());
+        CHECK_WELL_DEFINED(b.reduce());
+        break;
+    case Builtin::GROUPEDMAPREDUCE:
+        CHECK(b.has_grouped_map_reduce());
+        CHECK_WELL_DEFINED(b.grouped_map_reduce().group_mapping());
+        CHECK_WELL_DEFINED(b.grouped_map_reduce().map_reduce().change_mapping());
+        CHECK_WELL_DEFINED(b.grouped_map_reduce().map_reduce().reduction());
+        break;
+    case Builtin::MAPREDUCE:
+        CHECK(b.has_map_reduce());
+        CHECK_WELL_DEFINED(b.map_reduce().change_mapping());
+        CHECK_WELL_DEFINED(b.map_reduce().reduction());
+        break;
+    case Builtin::RANGE:
+        CHECK(b.has_range());
+        if (b.range().has_lowerbound()) {
+            CHECK_WELL_DEFINED(b.range().lowerbound());
+        }
+        if (b.range().has_upperbound()) {
+            CHECK_WELL_DEFINED(b.range().lowerbound());
+        }
+        break;
+    default:
         return false;
-    }
-
-    if (b.has_filter()) {
-        if (b.type() != Builtin::FILTER) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.filter().predicate());
-        }
-    }
-
-    if (b.has_map()) {
-        if (b.type() != Builtin::MAP) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.map().mapping());
-        }
-    }
-
-    if (b.has_concat_map()) {
-        if (b.type() != Builtin::CONCATMAP) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.concat_map().mapping());
-        }
-    }
-
-    if (b.has_order_by()) {
-        if (b.type() != Builtin::ORDERBY) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.order_by().mapping());
-        }
-    }
-
-    if (b.has_distinct()) {
-        if (b.type() != Builtin::DISTINCT) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.distinct().mapping());
-        }
-    }
-
-    if (b.has_reduce()) {
-        if (b.type() != Builtin::REDUCE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.reduce().reduction());
-        }
-    }
-
-    if (b.has_grouped_map_reduce()) {
-        if (b.type() != Builtin::GROUPEDMAPREDUCE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.grouped_map_reduce().group_mapping());
-            CHECK_WELL_DEFINED(b.grouped_map_reduce().map_reduce().change_mapping());
-            CHECK_WELL_DEFINED(b.grouped_map_reduce().map_reduce().reduction());
-        }
-    }
-
-    if (b.has_map_reduce()) {
-        if (b.type() != Builtin::MAPREDUCE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.map_reduce().change_mapping());
-            CHECK_WELL_DEFINED(b.map_reduce().reduction());
-        }
     }
 
     return true;
@@ -202,139 +204,82 @@ bool is_well_defined(const Predicate &p) {
     return true;
 }
 
-bool is_well_defined(const View &v) {
-    if (v.has_table() && v.type() != View::TABLE) {
-        return false;
-    }
-
-    if (v.has_filter_view()) {
-        if (v.type() != View::FILTERVIEW) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(v.filter_view().view());
-            CHECK_WELL_DEFINED(v.filter_view().predicate());
-        }
-    }
-
-    if (v.has_range_view()) {
-        if (v.type() != View::RANGEVIEW) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(v.range_view().view());
-            CHECK_WELL_DEFINED(v.range_view().lowerbound());
-            CHECK_WELL_DEFINED(v.range_view().upperbound());
-        }
-    }
-
-    return true;
-}
-
 bool is_well_defined(const ReadQuery &r) {
     return is_well_defined(r.term());
 }
 
 bool is_well_defined(const WriteQuery &w) {
-    rassert(w.has_type());
-    rassert(WriteQuery_WriteQueryType_IsValid(w.type()));
+    std::vector<const google::protobuf::FieldDescriptor *> fields;
+    w.GetReflection()->ListFields(w, &fields);
+    CHECK(fields.size() == 2);
 
-    if (w.has_update()) {
-        if (w.type() != WriteQuery::UPDATE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.update().view());
-            CHECK_WELL_DEFINED(w.update().mapping());
+    switch (w.type()) {
+    case WriteQuery::UPDATE:
+        CHECK(w.has_update());
+        CHECK_WELL_DEFINED(w.update().view());
+        CHECK_WELL_DEFINED(w.update().mapping());
+        break;
+    case WriteQuery::DELETE:
+        CHECK(w.has_delete_());
+        CHECK_WELL_DEFINED(w.delete_().view());
+        break;
+    case WriteQuery::MUTATE:
+        CHECK(w.has_mutate());
+        CHECK_WELL_DEFINED(w.mutate().view());
+        CHECK_WELL_DEFINED(w.mutate().mapping());
+        break;
+    case WriteQuery::INSERT:
+        CHECK(w.has_insert());
+        for (int i = 0; i < w.insert().terms_size(); ++i) {
+            CHECK_WELL_DEFINED(w.insert().terms(i));
         }
-    }
-
-    if (w.has_delete_()) {
-        if (w.type() != WriteQuery::DELETE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.delete_().view());
+        break;
+    case WriteQuery::INSERTSTREAM:
+        CHECK(w.has_insert_stream());
+        CHECK_WELL_DEFINED(w.insert_stream().stream());
+        break;
+    case WriteQuery::FOREACH:
+        CHECK(w.has_for_each());
+        CHECK_WELL_DEFINED(w.for_each().stream());
+        for (int i = 0; i < w.for_each().queries_size(); ++i) {
+            CHECK_WELL_DEFINED(w.for_each().queries(i));
         }
-    }
-
-    if (w.has_mutate()) {
-        if (w.type() != WriteQuery::MUTATE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.mutate().view());
-            CHECK_WELL_DEFINED(w.mutate().mapping());
-        }
-    }
-
-    if (w.has_insert()) {
-        if (w.type() != WriteQuery::INSERT) {
-            return false;
-        } else {
-            for (int i = 0; i < w.insert().terms_size(); ++i) {
-                CHECK_WELL_DEFINED(w.insert().terms(i));
-            }
-        }
-    }
-
-    if (w.has_insert_stream()) {
-        if (w.type() != WriteQuery::INSERTSTREAM) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.insert_stream().stream());
-        }
-    }
-
-    if (w.has_for_each()) {
-        if (w.type() != WriteQuery::FOREACH) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.for_each().stream());
-            for (int i = 0; i < w.for_each().queries_size(); ++i) {
-                CHECK_WELL_DEFINED(w.for_each().queries(i));
-            }
-        }
-    }
-
-    if (w.has_point_update()) {
-        if (w.type() != WriteQuery::POINTUPDATE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.point_update().key());
-            CHECK_WELL_DEFINED(w.point_update().mapping());
-        }
-    }
-
-    if (w.has_point_delete()) {
-        if (w.type() != WriteQuery::POINTDELETE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.point_delete().key());
-        }
-    }
-
-    if (w.has_point_mutate()) {
-        if (w.type() != WriteQuery::POINTMUTATE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.point_mutate().key());
-        }
+        break;
+    case WriteQuery::POINTUPDATE:
+        CHECK(w.has_point_update());
+        CHECK_WELL_DEFINED(w.point_update().key());
+        CHECK_WELL_DEFINED(w.point_update().mapping());
+        break;
+    case WriteQuery::POINTDELETE:
+        CHECK(w.has_point_delete());
+        CHECK_WELL_DEFINED(w.point_delete().key());
+        break;
+    case WriteQuery::POINTMUTATE:
+        CHECK(w.has_point_mutate());
+        CHECK_WELL_DEFINED(w.point_mutate().key());
+        CHECK_WELL_DEFINED(w.point_mutate().mapping());
+        break;
+    default:
+        return false;
     }
 
     return true;
 }
 
 bool is_well_defined(const Query &q) {
-    if (q.has_read_query()) {
-        if (q.type() != Query::READ) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(q.read_query());
-        }
-    }
-
-    if (q.has_write_query()) {
-        if (q.type() != Query::WRITE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(q.write_query());
-        }
+    switch (q.type()) {
+    case Query::READ:
+        CHECK(q.has_read_query());
+        CHECK(!q.has_write_query());
+        CHECK_WELL_DEFINED(q.read_query());
+        break;
+    case Query::WRITE:
+        CHECK(q.has_write_query());
+        CHECK(!q.has_read_query());
+        CHECK_WELL_DEFINED(q.write_query());
+        break;
+    default:
+        return false;
     }
 
     return true;
@@ -394,20 +339,6 @@ const type_t get_type(const Term &t, variable_type_scope_t *scope) {
                 }
                 break;
             }
-        case Term::TRY:
-            {
-                type_t try_type = get_type(t.try_().try_term(), scope);
-                scope->push();
-                scope->put_in_scope(t.try_().var_and_catch_term().var(), Type::ERROR);
-                type_t catch_type = get_type(t.try_().var_and_catch_term().term(), scope);
-                scope->pop();
-                if (!(try_type == catch_type)) {
-                    return error_t("Mismatch between try and catch branch types.");
-                } else {
-                    return try_type;
-                }
-                break;
-            }
         case Term::ERROR:
             return Type::ERROR;
         case Term::NUMBER:
@@ -426,21 +357,18 @@ const type_t get_type(const Term &t, variable_type_scope_t *scope) {
                 return Type::JSON;
             }
             break;
-        case Term::MAP:
+        case Term::OBJECT:
             return Type::JSON;
-        case Term::VIEWASSTREAM:
-            if (get_type(t.view_as_stream(), scope) == Type::VIEW) {
-                return Type::STREAM;
-            } else {
-                return type_t(error_t());
-            }
-            break;
         case Term::GETBYKEY:
             if (get_type(t.get_by_key().key(), scope) == Type::JSON) {
                 return Type::JSON;
             } else {
                 return error_t("Key must be a json value.");
             }
+            break;
+        case Term::TABLE:
+            //no way for this to be incorrect
+            return Type::VIEW;
             break;
         default:
             crash("unreachable");
@@ -540,6 +468,9 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
             return function_t(Type::JSON, 1, Type::STREAM);
             break;
+        case Builtin::RANGE:
+            return function_t(Type::VIEW, 1, Type::VIEW);
+            break;
         default:
             crash("unreachable");
             break;
@@ -582,37 +513,6 @@ const type_t get_type(const Predicate &p, variable_type_scope_t *scope) {
     } else {
         return Type::JSON;
     }
-}
-
-const type_t get_type(const View &v, variable_type_scope_t *scope) {
-    switch(v.type()) {
-        case View::TABLE:
-            //no way for this to be incorrect
-            return Type::VIEW;
-            break;
-        case View::FILTERVIEW:
-            {
-                printf("first: %d\n", get_type(v.filter_view().view(), scope) == Type::VIEW);
-                printf("second: %d\n", get_type(v.filter_view().predicate(), scope) == Type::JSON);
-                if (get_type(v.filter_view().view(), scope) == Type::VIEW &&
-                    get_type(v.filter_view().predicate(), scope) == Type::JSON) {
-                    return Type::VIEW;
-                } else {
-                    printf("hala\n");
-                }
-            }
-            break;
-        case View::RANGEVIEW:
-            if (get_type(v.range_view().view(), scope) == Type::VIEW &&
-                get_type(v.range_view().lowerbound(), scope) == Type::JSON &&
-                get_type(v.range_view().upperbound(), scope) == Type::JSON) {
-                return Type::READ;
-            }
-            break;
-        default:
-            crash("Unreachable");
-    }
-    crash("Unreachable");
 }
 
 const type_t get_type(const ReadQuery &r, variable_type_scope_t *scope) {
@@ -780,7 +680,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
     switch (w.type()) {
         case WriteQuery::UPDATE:
             {
-                view_t view = eval(w.update().view(), env);
+                view_t view = eval_view(w.update().view().table(), env);
 
                 int modified = 0,
                     error = 0;
@@ -808,7 +708,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
             break;
         case WriteQuery::DELETE:
             {
-                view_t view = eval(w.delete_().view(), env);
+                view_t view = eval_view(w.delete_().view().table(), env);
 
                 int deleted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
@@ -825,7 +725,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
             break;
         case WriteQuery::MUTATE:
             {
-                view_t view = eval(w.update().view(), env);
+                view_t view = eval_view(w.update().view().table(), env);
 
                 int modified = 0, deleted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
@@ -990,7 +890,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
 
                 eval_let_binds(t.let(), env);
 
-                return eval(t.let().expr(), env);;
+                return eval(t.let().expr(), env);
             }
             break;
         case Term::CALL:
@@ -1012,11 +912,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
                 return res;
             }
             break;
-        case Term::TRY:
-            throw runtime_exc_t("Unimplemented: Term::TRY");
-            break;
         case Term::ERROR:
-            throw runtime_exc_t("Unimplemented: Term::ERROR");
+            throw runtime_exc_t(t.error());
             break;
         case Term::NUMBER:
             {
@@ -1050,19 +947,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
                 return res;
             }
             break;
-        case Term::MAP:
+        case Term::OBJECT:
             {
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateObject()));
-                for (int i = 0; i < t.map_size(); ++i) {
-                    std::string item_name(t.map(i).var());
-                    cJSON_AddItemToObject(res->get(), item_name.c_str(), eval(t.map(i).term(), env)->release());
+                for (int i = 0; i < t.object_size(); ++i) {
+                    std::string item_name(t.object(i).var());
+                    cJSON_AddItemToObject(res->get(), item_name.c_str(), eval(t.object(i).term(), env)->release());
                 }
                 return res;
-            }
-            break;
-        case Term::VIEWASSTREAM:
-            {
-                crash("This is implemented elsewhere, we should never have gotten here (yields a stream, not a scalar).");
             }
             break;
         case Term::GETBYKEY:
@@ -1088,6 +980,9 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
                 return p_res->data;
                 break;
             }
+        case Term::TABLE:
+            throw runtime_exc_t("Term::TABLE must be evaluated with eval_stream or eval_view");
+            break;
         default:
             crash("unreachable");
             break;
@@ -1109,7 +1004,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_
 
                 eval_let_binds(t.let(), env);
 
-                return eval_stream(t.let().expr(), env);;
+                return eval_stream(t.let().expr(), env);
             }
             break;
         case Term::CALL:
@@ -1129,40 +1024,22 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_
                 }
             }
             break;
-        case Term::TRY:
-            throw runtime_exc_t("Unimplemented: Term::TRY");
-            break;
-        case Term::ERROR:
-            throw runtime_exc_t("Unimplemented: Term::ERROR");
-            break;
-        case Term::NUMBER:
-            unreachable("A NUMBER term should never be evaluated with eval_stream");
-            break;
-        case Term::STRING:
-            unreachable("A STRING term should never be evaluated with eval_stream");
-            break;
-        case Term::JSON:
-            unreachable("A JSON term should never be evaluated with eval_stream");
-            break;
-        case Term::BOOL:
-            unreachable("A BOOL term should never be evaluated with eval_stream");
-            break;
-        case Term::JSON_NULL:
-            unreachable("A NULL term should never be evaluated with eval_stream");
-            break;
-        case Term::ARRAY:
-            unreachable("A ARRAY term should never be evaluated with eval_stream");
-            break;
-        case Term::MAP:
-            unreachable("A MAP term should never be evaluated with eval_stream");
-            break;
-        case Term::VIEWASSTREAM:
+        case Term::TABLE:
             {
-                return eval(t.view_as_stream(), env).stream;
+                return eval_view(t.table(), env).stream;
             }
             break;
+        case Term::ERROR:
+        case Term::NUMBER:
+        case Term::STRING:
+        case Term::JSON:
+        case Term::BOOL:
+        case Term::JSON_NULL:
+        case Term::ARRAY:
+        case Term::OBJECT:
         case Term::GETBYKEY:
-            unreachable("A GETBYKEY term should never be evaluated with eval_stream");
+            unreachable("eval_stream called on a function that does not return a stream (use eval instead).\n");
+            break;
         default:
             crash("unreachable");
             break;
@@ -1196,14 +1073,13 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     throw runtime_exc_t("Data must be an object");
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> attr
-                    = shared_scoped_json(cJSON_DeepCopy(cJSON_GetObjectItem(data->get(), c.builtin().attr().c_str())));
+                cJSON *value = cJSON_GetObjectItem(data->get(), c.builtin().attr().c_str());
 
-                if (!attr->get()) {
-                    throw runtime_exc_t("Failed to find attribute");
-                } else {
-                    return attr;
+                if (!value) {
+                    throw runtime_exc_t("Object is missing attribute \"" + c.builtin().attr() + "\"");
                 }
+
+                return shared_scoped_json(cJSON_DeepCopy(value));
             }
             break;
         case Builtin::HASATTR:
@@ -1236,7 +1112,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 for (int i = 0; i < c.builtin().attrs_size(); ++i) {
                     cJSON *item = cJSON_DeepCopy(cJSON_GetObjectItem(data->get(), c.builtin().attrs(i).c_str()));
                     if (!item) {
-                        throw runtime_exc_t("Attempting to pick non existant attribute.");
+                        throw runtime_exc_t("Attempting to pick missing attribute.");
                     } else {
                         cJSON_AddItemToObject(res->get(), item->string, item);
                     }
@@ -1290,7 +1166,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> array2  = eval(c.args(1), env);
                 if (array2->get()->type != cJSON_Array) {
-                    throw runtime_exc_t("The first argument must be an array.");
+                    throw runtime_exc_t("The second argument must be an array.");
                 }
                 // Create new array and deep copy all the elements
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
@@ -1637,28 +1513,23 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             }
             break;
         case Builtin::FILTER:
-            throw runtime_exc_t("Unimplemented: Builtin::FILTER");
-            break;
         case Builtin::MAP:
-            throw runtime_exc_t("Unimplemented: Builtin::MAP");
-            break;
         case Builtin::CONCATMAP:
-            throw runtime_exc_t("Unimplemented: Builtin::CONCATMAP");
-            break;
         case Builtin::ORDERBY:
-            throw runtime_exc_t("Unimplemented: Builtin::ORDERBY");
-            break;
         case Builtin::DISTINCT:
-            throw runtime_exc_t("Unimplemented: Builtin::DISTINCT");
-            break;
         case Builtin::LIMIT:
-            throw runtime_exc_t("Unimplemented: Builtin::LIMIT");
+        case Builtin::ARRAYTOSTREAM:
+        case Builtin::JAVASCRIPTRETURNINGSTREAM:
+        case Builtin::UNION:
+        case Builtin::RANGE:
+            unreachable("eval called on a function that returns a stream (use eval_stream instead).\n");
             break;
         case Builtin::LENGTH:
-            throw runtime_exc_t("Unimplemented: Builtin::LENGTH");
-            break;
-        case Builtin::UNION:
-            throw runtime_exc_t("Unimplemented: Builtin::UNION");
+            {
+                throw runtime_exc_t("length not implemented\n");
+                //json_stream_t stream = eval_stream(c.args(0), env);
+                //return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(stream.size())));
+            }
             break;
         case Builtin::NTH:
             {
@@ -1701,20 +1572,32 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 return res;
             }
             break;
-        case Builtin::ARRAYTOSTREAM:
-            throw runtime_exc_t("Unimplemented: Builtin::ARRAYTOSTREAM");
-            break;
         case Builtin::REDUCE:
-            throw runtime_exc_t("Unimplemented: Builtin::REDUCE");
+            {
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
+                
+                throw runtime_exc_t("Not implemented reduce");
+                // Start off accumulator with the base
+                //boost::shared_ptr<scoped_cJSON_t> acc = eval(c.builtin().reduce().base(), env);
+
+                //for (json_stream_t::iterator it  = stream.begin();
+                //                             it != stream.end();
+                //                             ++it)
+                //{
+                //    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                //    env->scope.put_in_scope(c.builtin().reduce().var1(), acc);
+                //    env->scope.put_in_scope(c.builtin().reduce().var2(), *it);
+
+                //    acc = eval(c.builtin().reduce().body(), env);
+                //}
+                //return acc;
+            }
             break;
         case Builtin::GROUPEDMAPREDUCE:
             throw runtime_exc_t("Unimplemented: Builtin::GROUPEDMAPREDUCE");
             break;
         case Builtin::JAVASCRIPT:
             throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPT");
-            break;
-        case Builtin::JAVASCRIPTRETURNINGSTREAM:
-            throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPTRETURNINGSTREAM");
             break;
         case Builtin::MAPREDUCE:
             throw runtime_exc_t("Unimplemented: Builtin::MAPREDUCE");
@@ -1730,7 +1613,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     }
                     if (arg->get()->type != cJSON_True) {
                         result = false;
-                        break;
                     }
                 }
 
@@ -1749,7 +1631,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     }
                     if (arg->get()->type == cJSON_True) {
                         result = true;
-                        break;
                     }
                 }
 
@@ -1785,6 +1666,19 @@ public:
 private:
     Predicate pred;
     runtime_environment_t *env;
+};
+
+class not_t {
+public:
+    explicit not_t(const predicate_t &_pred)
+        : pred(_pred)
+    { }
+    bool operator()(boost::shared_ptr<scoped_cJSON_t> json) {
+        bool res = pred(json);
+        return !res;
+    }
+private:
+    predicate_t pred;
 };
 
 bool less(cJSON *l, cJSON *r) {
@@ -1865,6 +1759,17 @@ private:
     runtime_environment_t *env;
 };
 
+struct shared_scoped_less {
+    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &a,
+                      const boost::shared_ptr<scoped_cJSON_t> &b) {
+        if (a->get()->type == b->get()->type) {
+            return less(a->get(), b->get());
+        } else {
+            return a->get()->type > b->get()->type;
+        }
+    }
+};
+
 boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (c.builtin().type()) {
         //JSON -> JSON
@@ -1893,7 +1798,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
         case Builtin::MAPREDUCE:
         case Builtin::ALL:
         case Builtin::ANY:
-            unreachable("eval stream called on a function that does not return a stream.\n");
+            unreachable("eval_stream called on a function that does not return a stream (use eval instead).\n");
             break;
         case Builtin::FILTER:
             {
@@ -1926,22 +1831,6 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
                 throw runtime_exc_t("Unimplemented: Builtin::CONCATMAP");
                 //json_stream_t res;
-
-                //for (json_stream_t::iterator it  = stream.begin();
-                //                             it != stream.end();
-                //                             ++it) {
-                //    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                //    env->scope.put_in_scope(c.builtin().map().mapping().arg(), *it);
-
-                //    json_stream_t inner_stream = eval_stream(c.builtin().map().mapping().body(), env);
-
-                //    for (json_stream_t::iterator jt  = inner_stream.begin();
-                //                                 jt != inner_stream.end();
-                //                                 ++jt) {
-                //        res.push_back(*it);
-                //    }
-                //}
-                //return res;
             }
             break;
         case Builtin::ORDERBY:
@@ -1954,7 +1843,25 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
             }
             break;
         case Builtin::DISTINCT:
-            throw runtime_exc_t("Unimplemented: Builtin::DISTINCT");
+            {
+                std::set<boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less> seen;
+
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
+
+                throw runtime_exc_t("unimplemented distinct");
+                //json_stream_t res;
+
+                //for (json_stream_t::iterator it  = stream.begin();
+                //                             it != stream.end();
+                //                             ++it) {
+                //    if (seen.find(*it) == seen.end()) {
+                //        res.push_back(*it);
+                //        seen.insert(*it);
+                //    }
+                //}
+
+                //return res;
+            }
             break;
         case Builtin::LIMIT:
             {
@@ -1970,7 +1877,6 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
                 if (limit_float != limit) {
                     throw runtime_exc_t("The second argument must be an integer.");
                 }
-
 
                 throw runtime_exc_t("Unimplemented: Builtin::LIMIT");
                 //if (int(stream.size()) > limit) {
@@ -2003,6 +1909,9 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
                 return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
             }
             break;
+        case Builtin::RANGE:
+            throw runtime_exc_t("Unimplemented: Builtin::RANGE");
+            break;
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
             throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPTRETURNINGSTREAM");
             break;
@@ -2025,8 +1934,22 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_envir
     }
 }
 
-view_t eval(const View &v, runtime_environment_t *env) {
+view_t eval_view(const Term::Table &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
+    namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t.table_ref(), env);
+    key_range_t range = rdb_protocol_t::region_t::universe();
+    rdb_protocol_t::rget_read_t rget_read(range);
+    rdb_protocol_t::read_t read(rget_read);
+    rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
+    rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+    rassert(p_res);
+    boost::shared_ptr<json_stream_t> stream(new in_memory_stream_t(p_res->data.begin(), p_res->data.end()));
+    return view_t(ns_access, stream);
+}
+
+/*
+view_t eval(const Term &v, runtime_environment_t *env) {
     switch (v.type()) {
+<<<<<<< HEAD
         case View::TABLE:
             {
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(v.table().table_ref(), env);
@@ -2040,14 +1963,38 @@ view_t eval(const View &v, runtime_environment_t *env) {
                 return view_t(ns_access, stream);
             }
             break;
+||||||| merged common ancestors
+        case View::TABLE:
+            {
+                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(v.table().table_ref(), env);
+                key_range_t range = rdb_protocol_t::region_t::universe();
+                rdb_protocol_t::rget_read_t rget_read(range);
+                rdb_protocol_t::read_t read(rget_read);
+                rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
+                rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+                rassert(p_res);
+                json_stream_t stream(p_res->data.begin(), p_res->data.end());
+                return view_t(ns_access, stream);
+            }
+            break;
+=======
+>>>>>>> d75e165ac28d5d867dae49b972b611ae981bbcc8
         case View::FILTERVIEW:
             {
                 view_t subview = eval(v.filter_view().view(), env);
 
                 predicate_t p(v.filter_view().predicate(), env);
+<<<<<<< HEAD
                 throw runtime_exc_t("Unimplemented: Builtin::FILTERVIEW");
                 //subview.stream.remove_if(p);
                 //return subview;
+||||||| merged common ancestors
+                subview.stream.remove_if(p);
+                return subview;
+=======
+                subview.stream.remove_if(not_t(p));
+                return subview;
+>>>>>>> d75e165ac28d5d867dae49b972b611ae981bbcc8
             }
             break;
         case View::RANGEVIEW:
@@ -2058,5 +2005,6 @@ view_t eval(const View &v, runtime_environment_t *env) {
             break;
     }
 }
+*/
 
 } //namespace query_language

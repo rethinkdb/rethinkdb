@@ -6,7 +6,7 @@
 #include <algorithm>
 
 #include "arch/arch.hpp"
-#include "containers/scoped_malloc.hpp"
+#include "containers/scoped.hpp"
 #include "containers/segmented_vector.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "btree/slice.hpp"
@@ -134,35 +134,24 @@ private:
 
 // All the files' file_knowledge_t.
 struct knowledge_t {
-    std::vector<nondirect_file_t *> files;
-    std::vector<file_knowledge_t *> file_knog;
-    nondirect_file_t *metadata_file;
-    file_knowledge_t *metadata_file_knog;
+    scoped_array_t<scoped_ptr_t<nondirect_file_t> > files;
+    scoped_array_t<scoped_ptr_t<file_knowledge_t> > file_knog;
+    scoped_ptr_t<nondirect_file_t> metadata_file;
+    scoped_ptr_t<file_knowledge_t> metadata_file_knog;
 
-    knowledge_t(const std::vector<std::string>& filenames, const std::string &metadata_filename)
-        : files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
+    knowledge_t(const std::vector<std::string>& filenames, const std::string &metadata_filename, io_backender_t *io_backender)
+        : files(filenames.size()), file_knog(filenames.size()) {
+
         for (int i = 0, n = filenames.size(); i < n; ++i) {
-            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read, NULL);
-            files[i] = file;
-            file_knog[i] = new file_knowledge_t(filenames[i]);
+            nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read, NULL, io_backender);
+            files[i].init(file);
+            file_knog[i].init(new file_knowledge_t(filenames[i]));
         }
 
         if (!metadata_filename.empty()) {
-            metadata_file = new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read, NULL);
-            metadata_file_knog = new file_knowledge_t(metadata_filename);
-        } else {
-            metadata_file = NULL;
-            metadata_file_knog = NULL;
+            metadata_file.init(new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read, NULL, io_backender));
+            metadata_file_knog.init(new file_knowledge_t(metadata_filename));
         }
-    }
-
-    ~knowledge_t() {
-        for (int i = 0, n = files.size(); i < n; ++i) {
-            delete files[i];
-            delete file_knog[i];
-        }
-        delete metadata_file;
-        delete metadata_file_knog;
     }
 
     int num_files() const { return files.size(); }
@@ -186,7 +175,7 @@ public:
 struct slicecx_t {
     nondirect_file_t *file;
     file_knowledge_t *knog;
-    std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
+    std::map<block_id_t, std::list<buf_patch_t *> > patch_map;
     const config_t *cfg;
 
     int global_slice_id;
@@ -194,9 +183,11 @@ struct slicecx_t {
     int mod_count;
 
     void clear_buf_patches() {
-        for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches)
-            for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch)
+        for (std::map<block_id_t, std::list<buf_patch_t *> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches) {
+            for (std::list<buf_patch_t *>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
                 delete *patch;
+            }
+        }
 
         patch_map.clear();
     }
@@ -240,7 +231,7 @@ public:
 
     // Uses and modifies knog->block_info[cx->to_ser_block_id(block_id)].
     bool init(slicecx_t *cx, block_id_t block_id) {
-        std::list<buf_patch_t*> *patches_list = NULL;
+        std::list<buf_patch_t *> *patches_list = NULL;
         if (!cx->cfg->ignore_diff_log && cx->patch_map.find(block_id) != cx->patch_map.end()) {
             patches_list = &cx->patch_map.find(block_id)->second;
         }
@@ -248,7 +239,7 @@ public:
     }
 
     // Modifies knog->block_info[ser_block_id].
-    bool init(nondirect_file_t *file, file_knowledge_t *knog, block_id_t ser_block_id, std::list<buf_patch_t*> *patches_list = NULL) {
+    bool init(nondirect_file_t *file, file_knowledge_t *knog, block_id_t ser_block_id, std::list<buf_patch_t *> *patches_list = NULL) {
         block_knowledge_t info;
         {
             read_locker_t locker(knog);
@@ -285,7 +276,7 @@ public:
 
         if (patches_list) {
             // Replay patches
-            for (std::list<buf_patch_t*>::iterator patch = patches_list->begin(); patch != patches_list->end(); ++patch) {
+            for (std::list<buf_patch_t *>::iterator patch = patches_list->begin(); patch != patches_list->end(); ++patch) {
                 block_sequence_id_t first_matching_id = NULL_BLOCK_SEQUENCE_ID;
                 if ((*patch)->get_block_sequence_id() >= realbuf->block_sequence_id) {
                     if (first_matching_id == NULL_BLOCK_SEQUENCE_ID) {
@@ -781,7 +772,7 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
                     buf_patch_t *patch;
                     try {
                         patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
-                    } catch (patch_deserialization_error_t &e) {
+                    } catch (const patch_deserialization_error_t &e) {
                         (void)e;
                         ++errs->corrupted_patch_blocks;
                         break;
@@ -804,14 +795,14 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
     }
 
 
-    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = cx->patch_map.begin(); patch_list != cx->patch_map.end(); ++patch_list) {
+    for (std::map<block_id_t, std::list<buf_patch_t *> >::iterator patch_list = cx->patch_map.begin(); patch_list != cx->patch_map.end(); ++patch_list) {
         // Sort the list to get patches in the right order
         patch_list->second.sort(dereferencing_buf_patch_compare_t());
 
         // Verify patches list
         block_sequence_id_t previous_block_sequence = 0;
         patch_counter_t previous_patch_counter = 0;
-        for(std::list<buf_patch_t*>::const_iterator p = patch_list->second.begin(); p != patch_list->second.end(); ++p) {
+        for (std::list<buf_patch_t *>::const_iterator p = patch_list->second.begin(); p != patch_list->second.end(); ++p) {
             if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
                 previous_patch_counter = 0;
             }
@@ -901,9 +892,9 @@ private:
     DISABLE_COPYING(value_sizer_fscker_t);
 };
 
-bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_t<void> >& sizer, block_magic_t magic) {
+bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_t<void> > *sizer, block_magic_t magic) {
     if (magic == value_sizer_t<memcached_value_t>::leaf_magic()) {
-        sizer.reset(new value_sizer_t<memcached_value_t>(bs));
+        sizer->reset(new value_sizer_t<memcached_value_t>(bs));
         return true;
     } else {
         return false;
@@ -914,18 +905,18 @@ void check_subtree_leaf_node(slicecx_t *cx, const leaf_node_t *buf,
                              const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null,
                              node_error *errs) {
     boost::scoped_ptr< value_sizer_t<void> > sizer;
-    if (!construct_sizer_from_magic(cx->block_size(), sizer, buf->magic)) {
+    if (!construct_sizer_from_magic(cx->block_size(), &sizer, buf->magic)) {
         errs->msg = "Unrecognized magic value for leaf node.";
     }
 
     struct : public block_getter_t {
-        bool get_block(block_id_t id, scoped_malloc<char>& buf_out) {
+        bool get_block(block_id_t id, scoped_malloc_t<char> *buf_out) {
             btree_block_t b;
             if (b.init(cx, id)) {
                 // TODO: This copies the block, and there's no reason
                 // we really have to do that.
-                scoped_malloc<char> tmp(reinterpret_cast<char *>(b.buf), reinterpret_cast<char *>(b.buf) + cx->block_size().value());
-                buf_out.swap(tmp);
+                scoped_malloc_t<char> tmp(reinterpret_cast<char *>(b.buf), reinterpret_cast<char *>(b.buf) + cx->block_size().value());
+                buf_out->swap(tmp);
                 return true;
             } else {
                 return false;
@@ -1020,7 +1011,7 @@ void check_subtree(slicecx_t *cx, block_id_t id, const btree_key_t *lo, const bt
     } else {
 
         boost::scoped_ptr< value_sizer_t<void> > sizer_ignore;
-        if (construct_sizer_from_magic(cx->block_size(), sizer_ignore, reinterpret_cast<node_t *>(node.buf)->magic)) {
+        if (construct_sizer_from_magic(cx->block_size(), &sizer_ignore, reinterpret_cast<node_t *>(node.buf)->magic)) {
             sizer_ignore.reset();
             check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, &node_err);
         } else {
@@ -1188,50 +1179,51 @@ bool check_interfile(knowledge_t *knog, interfile_errors *errs) {
     return (errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_creation_timestamp && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->reused_serializer_numbers);
 }
 
-struct all_slices_errors {
-    int n_slices;
-    slice_errors *slice;
-    slice_errors *metadata_slice;
+struct all_slices_errors_t {
+    scoped_array_t<slice_errors> slice;
+    scoped_ptr_t<slice_errors> metadata_slice;
 
-    all_slices_errors(int n_slices_, bool has_metadata_file)
-        : n_slices(n_slices_), slice(new slice_errors[n_slices_]) {
-        metadata_slice = has_metadata_file ? new slice_errors : NULL;
+    all_slices_errors_t(int n_slices_, bool has_metadata_file)
+        : slice(n_slices_) {
+        if (has_metadata_file) {
+            metadata_slice.init(new slice_errors);
+        }
     }
 
-    ~all_slices_errors() {
-        delete[] slice;
-        delete metadata_slice;
+    int n_slices() const {
+        return slice.size();
     }
 };
 
 struct slice_parameter_t {
-    slicecx_t *cx;
+    scoped_ptr_t<slicecx_t> cx;
     slice_errors *errs;
 };
 
 void *do_check_slice(void *slice_param) {
-    slice_parameter_t *p = reinterpret_cast<slice_parameter_t *>(slice_param);
-    check_slice(p->cx, p->errs);
-    delete p->cx;
+    slice_parameter_t *p = static_cast<slice_parameter_t *>(slice_param);
+    check_slice(p->cx.get(), p->errs);
     delete p;
     return NULL;
 }
 
-void launch_check_slice(std::vector<pthread_t>& threads, slicecx_t *cx, slice_errors *errs) {
+void launch_check_slice(std::vector<pthread_t> *threads, scoped_ptr_t<slicecx_t> *cx, slice_errors *errs) {
     // add another thread.
-    threads.resize(threads.size() + 1);
+    threads->push_back(pthread_t());
     slice_parameter_t *param = new slice_parameter_t;
-    param->cx = cx;
+    param->cx.init(cx->release());
     param->errs = errs;
-    guarantee_err(!pthread_create(&threads[threads.size() - 1], NULL, do_check_slice, param), "pthread_create not working");
+    int res = pthread_create(&threads->back(), NULL, do_check_slice, param);
+    guarantee_err(res == 0, "pthread_create not working");
 }
 
-void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t>& threads, file_knowledge_t *knog, all_slices_errors *errs, const config_t *cfg) {
+void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t> *threads, file_knowledge_t *knog, all_slices_errors_t *errs, const config_t *cfg) {
     int step = knog->config_block->n_files;
-    for (int i = knog->config_block->this_serializer; i < errs->n_slices; i += step) {
+    for (int i = knog->config_block->this_serializer; i < errs->n_slices(); i += step) {
         errs->slice[i].global_slice_number = i;
         errs->slice[i].home_filename = knog->filename;
-        launch_check_slice(threads, new slicecx_t(file, knog, i, cfg), &errs->slice[i]);
+        scoped_ptr_t<slicecx_t> cx(new slicecx_t(file, knog, i, cfg));
+        launch_check_slice(threads, &cx, &errs->slice[i]);
     }
 }
 
@@ -1443,15 +1435,15 @@ bool report_slice_errors(const std::string &slice_name, const slice_errors *errs
     return no_diff_log_errors && no_subtree_errors && no_other_block_errors;
 }
 
-bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
+bool report_post_config_block_errors(const all_slices_errors_t& slices_errs) {
     bool ok = true;
-    for (int i = 0; i < slices_errs.n_slices; ++i) {
+    for (int i = 0; i < slices_errs.n_slices(); ++i) {
         ok &= report_slice_errors(strprintf("slice %d", i), &slices_errs.slice[i]);
     }
 
     // report errors in metadata file
-    if (slices_errs.metadata_slice)
-        ok &= report_slice_errors("metadata slice", slices_errs.metadata_slice);
+    if (slices_errs.metadata_slice.has())
+        ok &= report_slice_errors("metadata slice", slices_errs.metadata_slice.get());
 
     return ok;
 }
@@ -1486,8 +1478,11 @@ std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config
 }
 
 bool check_files(const config_t *cfg) {
+    boost::scoped_ptr<io_backender_t> backender;
+    make_io_backender(cfg->io_backend, &backender);
+
     // 1. Open.
-    knowledge_t knog(cfg->input_filenames, cfg->metadata_filename);
+    knowledge_t knog(cfg->input_filenames, cfg->metadata_filename, backender.get());
 
     int num_files = knog.num_files();
 
@@ -1499,21 +1494,21 @@ bool check_files(const config_t *cfg) {
         }
     }
 
-    if (knog.metadata_file && !knog.metadata_file->exists())
+    if (knog.metadata_file.has() && !knog.metadata_file->exists())
         fail_due_to_user_error("No such file \"%s\"", knog.metadata_file_knog->filename.c_str());
 
     /* A few early exits if we want some specific pieces of information */
     if (cfg->print_file_version) {
-        printf("VERSION: %s\n", extract_static_config_version(knog.files[0], knog.file_knog[0]).c_str());
+        printf("VERSION: %s\n", extract_static_config_version(knog.files[0].get(), knog.file_knog[0].get()).c_str());
         return true;
     }
 
     bool success = true;
     for (int i = 0; i < num_files; ++i)
-        success &= check_and_report_to_config_block(knog.files[i], knog.file_knog[i], cfg);
+        success &= check_and_report_to_config_block(knog.files[i].get(), knog.file_knog[i].get(), cfg);
 
-    if (knog.metadata_file)
-        success &= check_and_report_to_config_block(knog.metadata_file, knog.metadata_file_knog, cfg);
+    if (knog.metadata_file.has())
+        success &= check_and_report_to_config_block(knog.metadata_file.get(), knog.metadata_file_knog.get(), cfg);
 
     if (!success) return false;
 
@@ -1528,9 +1523,9 @@ bool check_files(const config_t *cfg) {
 
     if (cfg->print_command_line) {
         std::string flags("FLAGS: ");
-        flags.append(extract_static_config_flags(knog.files[0], knog.file_knog[0]));
+        flags.append(extract_static_config_flags(knog.files[0].get(), knog.file_knog[0].get()));
         flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
-        flags.append(extract_cache_flags(knog.files[0], *knog.file_knog[0]->config_block, *knog.file_knog[0]->mc_config_block));
+        flags.append(extract_cache_flags(knog.files[0].get(), *knog.file_knog[0]->config_block, *knog.file_knog[0]->mc_config_block));
         printf("%s\n", flags.c_str());
         return true;
     }
@@ -1540,15 +1535,15 @@ bool check_files(const config_t *cfg) {
     // A thread for every slice.
     int n_slices = knog.file_knog[0]->config_block->n_proxies;
     std::vector<pthread_t> threads;
-    all_slices_errors slices_errs(n_slices, knog.metadata_file != NULL);
+    all_slices_errors_t slices_errs(n_slices, knog.metadata_file.has());
     for (int i = 0; i < num_files; ++i) {
-        launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs, cfg);
+        launch_check_after_config_block(knog.files[i].get(), &threads, knog.file_knog[i].get(), &slices_errs, cfg);
     }
 
     // ... and one for the metadata slice
-    if (knog.metadata_file) {
-        launch_check_slice(threads, new slicecx_t(knog.metadata_file, knog.metadata_file_knog, 0, cfg),
-                           slices_errs.metadata_slice);
+    if (knog.metadata_file.has()) {
+        scoped_ptr_t<slicecx_t> cx(new slicecx_t(knog.metadata_file.get(), knog.metadata_file_knog.get(), 0, cfg));
+        launch_check_slice(&threads, &cx, slices_errs.metadata_slice.get());
     }
 
     // Wait for all threads to finish.

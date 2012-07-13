@@ -1,12 +1,12 @@
 #include "arch/runtime/runtime.hpp"
-#include "arch/runtime/starter.hpp"
-
 
 #include "utils.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/runtime/starter.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "do_on_thread.hpp"
+
 
 int get_thread_id() {
     return linux_thread_pool_t::thread_id;
@@ -55,8 +55,8 @@ private:
     }
 };
 
-void run_in_thread_pool(const boost::function<void()>& fun, int num_threads) {
-    linux_thread_pool_t thread_pool(num_threads, false);
+void run_in_thread_pool(const boost::function<void()>& fun, int worker_threads) {
+    linux_thread_pool_t thread_pool(worker_threads, false);
     starter_t starter(&thread_pool, fun);
     thread_pool.run(&starter);
 }

@@ -1,8 +1,10 @@
-#ifndef PERFMON_PERFMON_ARCHIVE_HPP_
-#define PERFMON_PERFMON_ARCHIVE_HPP_
+#ifndef PERFMON_ARCHIVE_HPP_
+#define PERFMON_ARCHIVE_HPP_
+
+#include <string>
+#include <utility>
 
 #include "perfmon/perfmon.hpp"
-#include "containers/archive/boost_types.hpp"
 #include "rpc/serialize_macros.hpp"
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(perfmon_result_t::perfmon_result_type_t, int8_t, perfmon_result_t::type_value, perfmon_result_t::type_map);
@@ -81,4 +83,4 @@ inline archive_result_t deserialize(read_stream_t *s, perfmon_result_t *thing) {
     return ARCHIVE_SUCCESS;
 }
 
-#endif /* PERFMON_PERFMON_ARCHIVE_HPP_ */
+#endif /* PERFMON_ARCHIVE_HPP_ */

@@ -1,6 +1,9 @@
 #ifndef BTREE_PARALLEL_TRAVERSAL_HPP_
 #define BTREE_PARALLEL_TRAVERSAL_HPP_
 
+#include <utility>
+#include <vector>
+
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -8,7 +11,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
-#include "containers/scoped_malloc.hpp"
+#include "containers/scoped.hpp"
 
 struct btree_superblock_t;
 class traversal_state_t;
@@ -55,7 +58,7 @@ public:
     int get_level();
 
 private:
-    scoped_malloc<internal_node_t> node_;
+    scoped_malloc_t<internal_node_t> node_;
     block_id_t forced_block_id_;
     const btree_key_t *left_exclusive_or_null_;
     const btree_key_t *right_inclusive_or_null_;
@@ -72,7 +75,7 @@ public:
     void on_in_line();
     void decr_acquisition_countdown();
 
-    interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, boost::shared_ptr<ranged_block_ids_t>& _ids_source)
+    interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, const boost::shared_ptr<ranged_block_ids_t>& _ids_source)
         : state(_state), releaser(_releaser), level(_level), acquisition_countdown(1), ids_source(_ids_source) { }
 
 private:

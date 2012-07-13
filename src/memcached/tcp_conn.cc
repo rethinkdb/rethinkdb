@@ -104,9 +104,7 @@ memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcac
       stats(parent)
 { }
 
-memcache_listener_t::~memcache_listener_t() {
-    delete tcp_listener;
-}
+memcache_listener_t::~memcache_listener_t() { }
 
 class memcache_conn_closing_subscription_t : public signal_t::subscription_t {
 public:
@@ -122,7 +120,7 @@ private:
     DISABLE_COPYING(memcache_conn_closing_subscription_t);
 };
 
-void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
+void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     assert_thread();
 
     block_pm_duration conn_timer(&stats.pm_conns);
@@ -138,7 +136,7 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped
 
     on_thread_t thread_switcher(chosen_thread);
     boost::scoped_ptr<tcp_conn_t> conn;
-    nconn->ennervate(conn);
+    nconn->ennervate(&conn);
 
     /* Set up an object that will close the network connection when a shutdown signal
     is delivered */

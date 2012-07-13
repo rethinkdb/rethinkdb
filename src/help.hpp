@@ -18,13 +18,8 @@
 
 #define MAX_HELP_MSG_LEN (1024*1024)
 
-class Help_Pager {
+class help_pager_t {
 private:
-    friend class admin_command_parser_t;
-
-    char msg[MAX_HELP_MSG_LEN];
-    char *msg_hd;
-
     /* !< \brief the number of lines in the terminal
      */
     int term_lines() {
@@ -39,8 +34,6 @@ private:
 #endif /* TIOCGSIZE */
     }
 
-    /* !< \brief The number of lines in the message
-     */
     int msg_lines() {
         char *c = msg;
         int nlines = 0;
@@ -51,12 +44,13 @@ private:
         return nlines;
     }
 
-    Help_Pager() {
-        msg[0] = '\0'; //in case someone tries to print an empty message
+public:
+    help_pager_t() {
+        msg[0] = '\0';
         msg_hd = msg;
     }
 
-    ~Help_Pager() {
+    ~help_pager_t() {
         FILE *print_to;
         if (msg_lines() > term_lines()) {
             print_to = popen(HELP_VIEWER, "w");
@@ -71,9 +65,8 @@ private:
             fclose(print_to);
     }
 
-public:
-    static Help_Pager* instance() {
-        static Help_Pager help;
+    static help_pager_t* instance() {
+        static help_pager_t help;
         return &help;
     }
     int pagef(const char *format, ...) __attribute__ ((format (printf, 2, 3))) {
@@ -91,6 +84,12 @@ public:
         va_end(arg);
         return res;
     }
+
+private:
+    char msg[MAX_HELP_MSG_LEN];
+    char *msg_hd;
+
+    DISABLE_COPYING(help_pager_t);
 };
 
 #endif // HELP_HPP_

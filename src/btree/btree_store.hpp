@@ -1,44 +1,48 @@
-#ifndef BTREE_STORE_HPP_
-#define BTREE_STORE_HPP_
+#ifndef BTREE_BTREE_STORE_HPP_
+#define BTREE_BTREE_STORE_HPP_
 
 #include "protocol_api.hpp"
 #include "btree/slice.hpp"
 #include "btree/operations.hpp"
+#include "perfmon/perfmon.hpp"
+
+class io_backender_t;
 
 template <class protocol_t>
 class btree_store_t : public store_view_t<protocol_t> {
 private:
-    boost::scoped_ptr<standard_serializer_t> serializer;
+    scoped_ptr_t<standard_serializer_t> serializer;
     mirrored_cache_config_t cache_dynamic_config;
-    boost::scoped_ptr<cache_t> cache;
-    boost::scoped_ptr<btree_slice_t> btree;
+    scoped_ptr_t<cache_t> cache;
+    scoped_ptr_t<btree_slice_t> btree;
     order_source_t order_source;
 
     fifo_enforcer_source_t token_source;
     fifo_enforcer_sink_t token_sink;
 
 public:
-    btree_store_t(const std::string& filename,
-                     bool create,
-                     perfmon_collection_t *collection);
+    btree_store_t(io_backender_t *io_backender,
+                  const std::string& filename,
+                  bool create,
+                  perfmon_collection_t *parent_perfmon_collection);
     ~btree_store_t();
 
     /* store_view_t interface */
-    void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out);
-    void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out);
+    void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
+    void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
     metainfo_t get_metainfo(
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void set_metainfo(
             const metainfo_t &new_metainfo,
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -46,7 +50,7 @@ public:
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const typename protocol_t::read_t &read,
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -56,7 +60,7 @@ public:
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -65,20 +69,20 @@ public:
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
             typename protocol_t::backfill_progress_t *progress,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -161,26 +165,25 @@ private:
 
     void acquire_superblock_for_read(
             access_t access,
-            bool snapshot,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-            boost::scoped_ptr<transaction_t> &txn_out,
-            boost::scoped_ptr<real_superblock_t> &sb_out,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            scoped_ptr_t<transaction_t> *txn_out,
+            scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_superblock_for_backfill(
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
-            boost::scoped_ptr<transaction_t> &txn_out,
-            boost::scoped_ptr<real_superblock_t> &sb_out,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            scoped_ptr_t<transaction_t> *txn_out,
+            scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_superblock_for_write(
             access_t access,
             int expected_change_count,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
-            boost::scoped_ptr<transaction_t> &txn_out,
-            boost::scoped_ptr<real_superblock_t> &sb_out,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            scoped_ptr_t<transaction_t> *txn_out,
+            scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
@@ -200,8 +203,9 @@ private:
     void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
 
     perfmon_collection_t perfmon_collection;
+    perfmon_membership_t perfmon_collection_membership;
 };
 
 #include "btree/btree_store.tcc"
 
-#endif
+#endif  // BTREE_BTREE_STORE_HPP_

@@ -14,18 +14,18 @@ message Term {
         LET = 1;
         CALL = 2;
         IF = 3;
-        TRY = 4;
-        ERROR = 5;
-        NUMBER = 6;
-        STRING = 7;
-        JSON = 8;
-        BOOL = 9;
-        JSON_NULL = 10; //can't use just "NULL" here we get in trouble
-        ARRAY = 11;
-        MAP = 12;       // creates json objects (TODO: rename to something like make_object)
-        VIEWASSTREAM = 13;
-        GETBYKEY = 14;
+        ERROR = 4;
+        NUMBER = 5;
+        STRING = 6;
+        JSON = 7;
+        BOOL = 8;
+        JSON_NULL = 9; //can't use just "NULL" here we get in trouble
+        ARRAY = 10;
+        OBJECT = 11;
+        GETBYKEY = 12;
+        TABLE = 13;
     };
+
     required TermType type = 1;
 
     optional string var = 2;
@@ -50,38 +50,34 @@ message Term {
         required Term false_branch = 3;
     };
 
-    optional If if_ = 5; //Underscore to avoid conflicting with c++ keyword
+    optional If if_ = 5;
 
-    message Try {
-        required Term try_term = 1;
-        required VarTermTuple var_and_catch_term = 2;
-    };
+    optional string error = 6;
 
-    optional Try try_ = 6; //Underscore to avoid conflicting with c++ keyword
+    optional double number = 7;
 
-    optional string error = 7;
+    optional string valuestring = 8;
 
-    optional double number = 8;
+    optional string jsonstring = 9;
 
-    optional string valuestring = 9;
+    optional bool valuebool = 10;
 
-    optional string jsonstring = 10;
+    repeated Term array = 11;
 
-    optional bool valuebool = 11;
-
-    repeated Term array = 12;
-
-    repeated VarTermTuple map = 13;
-
-    optional View view_as_stream = 14;
-
+    repeated VarTermTuple object = 12;
     message GetByKey {
         required TableRef table_ref = 1;
         required string attrname = 2;
         required Term key = 3;
     };
 
-    optional GetByKey get_by_key = 15;
+    optional GetByKey get_by_key = 14;
+
+    message Table {
+        required TableRef table_ref = 1;
+    };
+
+    optional Table table = 15;
 };
 
 message Builtin {
@@ -120,6 +116,7 @@ message Builtin {
         MAPREDUCE = 32;
         ANY = 33;
         ALL = 34;
+        RANGE = 35;
     };
 
     enum Comparison {
@@ -164,31 +161,29 @@ message Builtin {
 
     optional OrderBy order_by = 8;
 
-    message Distinct {
-        required Mapping mapping = 1;
-    };
-
-    optional Distinct distinct = 9;
-
-    message Reduce {
-        required Reduction reduction = 1;
-    };
-
-    optional Reduce reduce = 10;
+    optional Reduction reduce = 9;
 
     message GroupedMapReduce {
         required Mapping group_mapping = 1;
         required MapReduce map_reduce = 2;
     };
 
-    optional GroupedMapReduce grouped_map_reduce = 11;
+    optional GroupedMapReduce grouped_map_reduce = 10;
 
     message MapReduce {
         required Mapping change_mapping = 1;
         required Reduction reduction = 2;
     };
 
-    optional MapReduce map_reduce = 12;
+    optional MapReduce map_reduce = 11;
+
+    message Range {
+        required string attrname = 1;
+        optional Term lowerbound = 2;
+        optional Term upperbound = 3;
+    };
+
+    optional Range range = 12;
 };
 
 message Reduction {
@@ -206,38 +201,6 @@ message Mapping {
 message Predicate {
     required string arg = 1;
     required Term body = 2;
-};
-
-message View {
-    enum ViewType {
-        TABLE = 1;
-        FILTERVIEW = 2;
-        RANGEVIEW = 3;
-    };
-
-    required ViewType type = 1;
-
-    message Table {
-        required TableRef table_ref = 1;
-    };
-
-    optional Table table = 2;
-
-    message FilterView {
-        required View view = 1;
-        required Predicate predicate = 2;
-    };
-
-    optional FilterView filter_view = 3;
-
-    message RangeView {
-        required View view = 1;
-        required string attrname = 2;
-        optional Term lowerbound = 3;
-        optional Term upperbound = 4;
-    };
-
-    optional RangeView range_view = 4;
 };
 
 enum OrderDirection {
@@ -265,20 +228,20 @@ message WriteQuery {
     required WriteQueryType type = 1;
 
     message Update {
-        required View view = 1;
+        required Term view = 1;
         required Mapping mapping = 2;
     };
 
     optional Update update = 2;
 
     message Delete {
-        required View view = 1;
+        required Term view = 1;
     };
 
-    optional Delete delete_ = 3; //underscore to avoid conflicting with C++ keyword
+    optional Delete delete = 3;
 
     message Mutate {
-        required View view = 1;
+        required Term view = 1;
         required Mapping mapping = 2;
     };
 

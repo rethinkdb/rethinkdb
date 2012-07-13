@@ -1,7 +1,10 @@
 #ifndef BUFFER_CACHE_MIRRORED_MIRRORED_HPP_
 #define BUFFER_CACHE_MIRRORED_MIRRORED_HPP_
 
+#include <algorithm>
 #include <map>
+#include <utility>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
@@ -149,8 +152,8 @@ class mc_buf_lock_t : public home_thread_mixin_t {
 public:
     mc_buf_lock_t(mc_transaction_t *txn, block_id_t block_id, access_t mode,
             buffer_cache_order_mode_t order_mode = buffer_cache_order_mode_check,
-            lock_in_line_callback_t *call_when_in_line = 0);
-    explicit mc_buf_lock_t(mc_transaction_t *txn); // Constructor used to allocate a new block
+            lock_in_line_callback_t *call_when_in_line = 0) THROWS_NOTHING;
+    explicit mc_buf_lock_t(mc_transaction_t *txn) THROWS_NOTHING; // Constructor used to allocate a new block
     mc_buf_lock_t();
     ~mc_buf_lock_t();
 
@@ -235,6 +238,11 @@ private:
     // transaction, it may have a different value.
     repli_timestamp_t subtree_recency;
 
+    // Used solely for asserting (with guarantee, in release mode!)
+    // that there are no acquired buf locks upon destruction of the
+    // transaction.
+    mc_transaction_t *parent_transaction;
+
     DISABLE_COPYING(mc_buf_lock_t);
 };
 
@@ -293,6 +301,8 @@ private:
 
     typedef std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> > owned_snapshots_list_t;
     owned_snapshots_list_t owned_buf_snapshots;
+
+    int64_t num_buf_locks_acquired;
 
     DISABLE_COPYING(mc_transaction_t);
 };

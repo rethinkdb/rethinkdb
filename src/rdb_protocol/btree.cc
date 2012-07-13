@@ -9,6 +9,7 @@
 #include "btree/depth_first_traversal.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "containers/scoped.hpp"
 
 boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction_t *txn) {
     blob_t blob(const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
@@ -17,8 +18,7 @@ boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value, transaction
 
     /* Grab the data from the blob. */
     //TODO unnecessary copies, I hate them
-    std::string serialized_data;
-    blob.read_to_string(serialized_data, txn, 0, blob.valuesize());
+    std::string serialized_data = blob.read_to_string(txn, 0, blob.valuesize());
 
     /* Deserialize the value and return it. */
     std::vector<char> data_vec(serialized_data.begin(), serialized_data.end());
@@ -39,7 +39,7 @@ point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
 
-    if (!kv_location.value) {
+    if (!kv_location.value.has()) {
         return point_read_response_t();
     }
 
@@ -55,9 +55,9 @@ point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_
 
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
-    bool already_existed = bool(kv_location.value);
-    
-    scoped_malloc<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
+    bool already_existed = kv_location.value.has();
+
+    scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
     bzero(new_value.get(), MAX_RDB_VALUE_SIZE);
 
     //TODO unnecessary copies they must go away.
@@ -122,7 +122,7 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_time
 point_delete_response_t rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
-    bool exists = bool(kv_location.value);
+    bool exists = kv_location.value.has();
     if(exists) {
         blob_t blob(kv_location.value->value_ref(), blob::btree_maxreflen);
         blob.clear(txn);

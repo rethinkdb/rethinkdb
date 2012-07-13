@@ -14,7 +14,7 @@ protected:
     void get_root(scoped_cJSON_t *json_out);
 
 private:
-    cJSON *get_metadata_json(cluster_directory_metadata_t& metadata, http_req_t::resource_t::iterator path_begin, http_req_t::resource_t::iterator path_end) THROWS_ONLY(schema_mismatch_exc_t);
+    cJSON *get_metadata_json(cluster_directory_metadata_t *metadata, http_req_t::resource_t::iterator path_begin, http_req_t::resource_t::iterator path_end) THROWS_ONLY(schema_mismatch_exc_t);
 
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory_metadata;
 

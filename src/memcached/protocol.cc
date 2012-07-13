@@ -1,8 +1,11 @@
-#include <errors.hpp>
+#include "memcached/protocol.hpp"
+
+#include "errors.hpp"
 #include <boost/variant.hpp>
 #include <boost/bind.hpp>
 
 #include "btree/operations.hpp"
+#include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/pmap.hpp"
@@ -18,7 +21,6 @@
 #include "memcached/btree/incr_decr.hpp"
 #include "memcached/btree/rget.hpp"
 #include "memcached/btree/set.hpp"
-#include "memcached/protocol.hpp"
 #include "memcached/queries.hpp"
 #include "stl_utils.hpp"
 #include "serializer/config.hpp"
@@ -429,26 +431,29 @@ region_t memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int n
     return region_t(beg, end, key_range_t::universe());
 }
 
-store_t::store_t(const std::string& filename,
+store_t::store_t(io_backender_t *io_backend,
+                 const std::string& filename,
                  bool create,
-                 perfmon_collection_t *_perfmon_collection) :
-    btree_store_t(filename, create, _perfmon_collection) { }
+                 perfmon_collection_t *parent_perfmon_collection) :
+    btree_store_t(io_backend, filename, create, parent_perfmon_collection) { }
 
-store_t::~store_t() { }
+store_t::~store_t() {
+    assert_thread();
+}
 
 struct read_visitor_t : public boost::static_visitor<read_response_t> {
-
     read_response_t operator()(const get_query_t& get) {
         return read_response_t(
             memcached_get(get.key, btree, effective_time, txn, superblock));
     }
+
     read_response_t operator()(const rget_query_t& rget) {
         return read_response_t(
             memcached_rget_slice(btree, rget.range, rget.maximum, effective_time, txn, superblock));
     }
+
     read_response_t operator()(const distribution_get_query_t& dget) {
         distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock);
-
         for (std::map<store_key_t, int>::iterator it  = dstr.key_counts.begin();
                                                   it != dstr.key_counts.end();
                                                   /* increments done in loop */) {
@@ -461,7 +466,6 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
 
         return read_response_t(dstr);
     }
-
 
     read_visitor_t(btree_slice_t *btree_, transaction_t *txn_, superblock_t *superblock_, exptime_t effective_time_) :
         btree(btree_), txn(txn_), superblock(superblock_), effective_time(effective_time_) { }

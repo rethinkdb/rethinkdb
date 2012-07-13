@@ -3,8 +3,6 @@
 
 #include "utils.hpp"
 
-#include <boost/tokenizer.hpp>
-
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -14,16 +12,18 @@
 #include <string.h>
 #include <sys/time.h>
 
+#ifdef VALGRIND
+#include <valgrind/memcheck.h>
+#endif
+
+#include <boost/tokenizer.hpp>
+
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
 #include "thread_local.hpp"
-
-#ifdef VALGRIND
-#include <valgrind/memcheck.h>
-#endif
 
 // fast non-null terminated string comparison
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
@@ -139,10 +139,6 @@ struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_erro
 #ifndef NDEBUG
 
 void home_thread_mixin_t::assert_thread() const {
-    if(home_thread() != get_thread_id()) {
-        printf("Homethread: %d current thread:%d\n", home_thread(), get_thread_id());
-        BREAKPOINT;
-    }
     rassert(home_thread() == get_thread_id());
 }
 #endif

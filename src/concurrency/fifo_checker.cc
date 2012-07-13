@@ -1,11 +1,11 @@
 #include "concurrency/fifo_checker.hpp"
 
+#include <vector>
+
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
 
 #ifndef NDEBUG
-
-#include <vector>
 
 #define ORDER_INVALID (-2)
 #define ORDER_INVALID (-2)

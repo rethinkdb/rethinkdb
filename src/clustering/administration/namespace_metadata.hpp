@@ -112,25 +112,30 @@ public:
         return res;
     }
 
-    branch_history_t<protocol_t> branch_history;
-
-    RDB_MAKE_ME_SERIALIZABLE_2(namespaces, branch_history);
+    RDB_MAKE_ME_SERIALIZABLE_1(namespaces);
 };
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_2(namespaces_semilattice_metadata_t<protocol_t>, namespaces, branch_history);
+RDB_MAKE_SEMILATTICE_JOINABLE_1(namespaces_semilattice_metadata_t<protocol_t>, namespaces);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_2(namespaces_semilattice_metadata_t<protocol_t>, namespaces, branch_history);
+RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_semilattice_metadata_t<protocol_t>, namespaces);
 
 // json adapter concept for namespaces_semilattice_metadata_t
 
 template <class ctx_t, class protocol_t>
 typename json_adapter_if_t<ctx_t>::json_adapter_map_t get_json_subfields(namespaces_semilattice_metadata_t<protocol_t> *target, const ctx_t &ctx) {
     namespace_semilattice_metadata_t<protocol_t> default_namespace;
+
     std::set<typename protocol_t::region_t> default_shards;
     default_shards.insert(protocol_t::region_t::universe());
     default_namespace.shards = default_namespace.shards.make_new_version(default_shards, ctx.us);
+
+    /* It's important to initialize this because otherwise it will be
+    initialized with a default-constructed UUID, which doesn't initialize its
+    contents, so Valgrind will complain. */
+    region_map_t<protocol_t, machine_id_t> default_primary_pinnings(protocol_t::region_t::universe(), nil_uuid());
+    default_namespace.primary_pinnings = default_namespace.primary_pinnings.make_new_version(default_primary_pinnings, ctx.us);
 
     deletable_t<namespace_semilattice_metadata_t<protocol_t> > default_ns_in_deletable(default_namespace);
     return json_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, ctx_t>(&target->namespaces, boost::bind(&generate_uuid), default_ns_in_deletable).get_subfields(ctx);
@@ -155,12 +160,10 @@ template <class protocol_t>
 class namespaces_directory_metadata_t {
 public:
     typedef std::map<namespace_id_t, directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > reactor_bcards_map_t;
-    typedef std::map<namespace_id_t, std::map<master_id_t, master_business_card_t<protocol_t> > > master_maps_map_t;
 
     reactor_bcards_map_t reactor_bcards;
-    master_maps_map_t master_maps;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(reactor_bcards, master_maps);
+    RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
 };
 
 struct namespace_metadata_ctx_t {

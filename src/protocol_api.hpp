@@ -1,22 +1,25 @@
 #ifndef PROTOCOL_API_HPP_
 #define PROTOCOL_API_HPP_
 
-#include <functional>
-#include <list>
+#include <algorithm>
+#include <set>
+#include <string>
 #include <utility>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/binary_blob.hpp"
+#include "containers/scoped.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
+
+namespace boost {
+template <class> class function;
+template <class> class scoped_ptr;
+}
 
 /* This file describes the relationship between the protocol-specific logic for
 each protocol and the protocol-agnostic logic that routes queries for all the
@@ -44,6 +47,7 @@ template<class protocol_t>
 class namespace_interface_t {
 public:
     virtual typename protocol_t::read_response_t read(typename protocol_t::read_t, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
+    virtual typename protocol_t::read_response_t read_outdated(typename protocol_t::read_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
     virtual typename protocol_t::write_response_t write(typename protocol_t::write_t, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) = 0;
 
     /* These calls are for the sole purpose of optimizing queries; don't rely
@@ -240,6 +244,18 @@ private:
 };
 
 template <class protocol_t>
+struct trivial_metainfo_checker_callback_t : public metainfo_checker_callback_t<protocol_t> {
+
+    trivial_metainfo_checker_callback_t() { }
+    void check_metainfo(UNUSED const region_map_t<protocol_t, binary_blob_t>& metainfo, UNUSED const typename protocol_t::region_t& region) const {
+        /* do nothing */
+    }
+
+private:
+    DISABLE_COPYING(trivial_metainfo_checker_callback_t);
+};
+
+template <class protocol_t>
 class metainfo_checker_t {
 public:
     metainfo_checker_t(const metainfo_checker_callback_t<protocol_t> *callback,
@@ -272,25 +288,27 @@ of metadata which is keyed by region. The metadata is currently implemented as
 opaque binary blob (`binary_blob_t`).
 */
 
-template<class protocol_t>
-class store_view_t {
+template <class protocol_t>
+class store_view_t : public home_thread_mixin_t {
 public:
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
-    virtual ~store_view_t() { }
+    virtual ~store_view_t() {
+        assert_thread();
+    }
 
     typename protocol_t::region_t get_region() {
         return region;
     }
 
-    virtual void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) = 0;
-    virtual void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) = 0;
+    virtual void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) = 0;
+    virtual void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out) = 0;
 
     /* Gets the metainfo.
     [Postcondition] return_value.get_domain() == view->get_region()
     [May block] */
     virtual metainfo_t get_metainfo(order_token_t order_token,
-                                    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                                    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                     signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Replaces the metainfo over the view's entire range with the given metainfo.
@@ -299,7 +317,7 @@ public:
     [May block] */
     virtual void set_metainfo(const metainfo_t &new_metainfo,
                               order_token_t order_token,
-                              boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                              scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
     /* Performs a read.
@@ -310,7 +328,7 @@ public:
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_expecter, )
             const typename protocol_t::read_t &read,
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -325,7 +343,7 @@ public:
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -341,7 +359,7 @@ public:
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
             typename protocol_t::backfill_progress_t *progress,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -353,7 +371,7 @@ public:
     */
     virtual void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -364,7 +382,7 @@ public:
     virtual void reset_data(
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -425,23 +443,23 @@ public:
 
     using store_view_t<protocol_t>::get_region;
 
-    void new_read_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token_out) {
+    void new_read_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
         store_view->new_read_token(token_out);
     }
 
-    void new_write_token(boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token_out) {
+    void new_write_token(scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
         store_view->new_write_token(token_out);
     }
 
     metainfo_t get_metainfo(order_token_t order_token,
-                            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+                            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         return store_view->get_metainfo(order_token, token, interruptor).mask(get_region());
     }
 
     void set_metainfo(const metainfo_t &new_metainfo,
                       order_token_t order_token,
-                      boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+                      scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
         store_view->set_metainfo(new_metainfo, order_token, token, interruptor);
@@ -451,7 +469,7 @@ public:
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const typename protocol_t::read_t &read,
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
@@ -465,7 +483,7 @@ public:
             const typename protocol_t::write_t &write,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
@@ -479,7 +497,7 @@ public:
             const boost::function<bool(const metainfo_t&)> &should_backfill,
             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
             typename protocol_t::backfill_progress_t *p,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         rassert(region_is_superset(get_region(), start_point.get_domain()));
@@ -489,7 +507,7 @@ public:
 
     void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
                 store_view->receive_backfill(chunk, token, interruptor);
@@ -498,7 +516,7 @@ public:
     void reset_data(
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> &token,
+            scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         rassert(region_is_superset(get_region(), subregion));

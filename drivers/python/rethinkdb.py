@@ -114,6 +114,37 @@ class Stream(object):
         self.check_readonly()
         return Update(self, updater, row)
 
+    def distinct(self, *keys):
+        if keys:
+            return self.pluck(*keys).distinct()
+        return distinct(self)
+
+    def limit(self, count):
+        return limit(self, count)
+
+    def nth(self, index):
+        return nth(self, index)
+
+    def union(self, other):
+        return union(self, other)
+
+    def pluck(self, *rows):
+        if len(rows) == 1:
+            #return self.map(rows[0])
+            return self.map('row.' + rows[0])
+        else:
+            return self.map(list('row.' + var for var in rows))
+
+    def _finalize_query(self, root):
+        term = _finalize_internal(root, p.Term)
+        self.write_ast(term)
+
+    def _write_call(self, parent, type, *args):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = type
+        for arg in args:
+            toTerm(arg).write_ast(parent.call.args.add())
+
 class Table(Stream):
     def __init__(self, db, name):
         super(Table, self).__init__()
@@ -141,13 +172,12 @@ class Table(Stream):
         parent.table_name = self.name
 
     def write_ast(self, parent):
-        parent.type = p.View.TABLE
+        parent.type = p.Term.TABLE
         self.write_ref_ast(parent.table.table_ref)
 
     def _finalize_query(self, root):
         term = _finalize_internal(root, p.Term)
-        term.type = p.Term.VIEWASSTREAM
-        self.write_ast(term.view_as_stream)
+        self.write_ast(term)
         return term
 
 class Insert(object):
@@ -171,56 +201,19 @@ class Filter(Stream):
     def __init__(self, parent_view, selector, row):
         super(Filter, self).__init__()
         if type(selector) is dict:
-            self.selector = self._and_eq(selector)
+            self.selector = Conjunction(eq(row + '.' + k, v) for k, v in selector.iteritems())
         else:
             self.selector = toTerm(selector)
         self.row = row # don't do to term so we can compare in self.filter without overriding bs
         self.parent_view = parent_view
 
     def write_ast(self, parent):
-        if self.is_readonly():
-            self.write_term_ast(parent)
-        else:
-            self.write_view_ast(parent)
-
-    def write_term_ast(self, parent):
         parent.type = p.Term.CALL
         parent.call.builtin.type = p.Builtin.FILTER
         predicate = parent.call.builtin.filter.predicate
         predicate.arg = self.row
         self.selector.write_ast(predicate.body)
         self.parent_view.write_ast(parent.call.args.add())
-
-    def write_view_ast(self, parent):
-        parent.type = p.View.FILTERVIEW
-        self.parent_view.write_ast(parent.filter_view.view)
-        parent.filter_view.predicate.arg = self.row
-        self.selector.write_ast(parent.filter_view.predicate.body)
-
-    def _finalize_query(self, root):
-        if self.is_readonly():
-            res = self._finalize_term_query(root)
-        else:
-            res = self._finalize_view_query(root)
-        return res
-
-    def _finalize_term_query(self, root):
-        term = _finalize_internal(root, p.Term)
-        self.write_ast(term)
-        return term
-
-    def _finalize_view_query(self, root):
-        term = _finalize_internal(root, p.Term)
-        term.type = p.Term.VIEWASSTREAM
-        self.write_ast(term.view_as_stream)
-        return term
-
-    def _and_eq(self, _hash):
-        terms = []
-        for key in _hash.iterkeys():
-            val = _hash[key]
-            terms.append(eq(key, val))
-        return Conjunction(terms)
 
 class Update(object):
     # Accepts a dict, and eventually, javascript
@@ -281,28 +274,7 @@ class Map(Stream):
         mapping.arg = self.row
         toTerm(self.mapping).write_ast(mapping.body)
         # Parent stream
-        term = parent.call.args.add()
-        term.type = p.Term.VIEWASSTREAM
-        self.parent_view.write_ast(term.view_as_stream)
-
-    def _finalize_query(self, root):
-        term = _finalize_internal(root, p.Term)
-        self.write_ast(term)
-
-class ArrayToStream(Stream):
-    def __init__(self, array):
-        super(ArrayToStream, self).__init__()
-        self.read_only = True
-        self.array = array
-
-    def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.ARRAYTOSTREAM
-        toTerm(self.array).write_ast(parent.call.args.add())
-
-    def _finalize_query(self, root):
-        term = _finalize_internal(root, p.Term)
-        self.write_ast(term)
+        self.parent_view.write_ast(parent.call.args.add())
 
 class Term(object):
     def __init__(self):
@@ -408,14 +380,16 @@ class val(Term):
             self.make_json(parent)
         elif isinstance(self.value, list):
             self.make_array(parent)
+        elif self.value is None:
+            parent.type = p.Term.JSON_NULL
         else:
             raise ValueError
 
     def make_json(self, parent):
-        parent.type = p.Term.MAP
+        parent.type = p.Term.OBJECT
         for key in self.value:
             _value = self.value[key]
-            pair = parent.map.add()
+            pair = parent.object.add()
             pair.var = key
             toTerm(_value).write_ast(pair.term)
 
@@ -471,29 +445,39 @@ class var(Term):
         self.name = name
 
     def attr(self, name):
-        return attr(name, self)
+        return attr(self, name)
 
     def write_ast(self, parent):
         parent.type = p.Term.VAR
         parent.var = self.name
 
 class attr(Term):
-    def __init__(self, name, parent):
+    def __init__(self, parent, name):
         if not name:
             raise ValueError
         attrs = name.rsplit('.', 1)
         self.name = attrs[-1]
         if len(attrs) > 1:
-            self.parent = attr(attrs[0], parent)
+            self.parent = attr(parent, attrs[0])
         else:
             self.parent = parent
 
     def attr(self, name):
-        return attr(name, self)
+        return attr(self, name)
 
     def write_ast(self, parent):
         self._write_call(parent, p.Builtin.GETATTR, self.parent)
         parent.call.builtin.attr = self.name
+
+class has(Term):
+    def __init__(self, parent, key):
+        self.parent = parent
+        self.key = key
+
+    def write_ast(self, parent):
+        self._write_call(parent, p.Builtin.HASATTR, self.parent)
+        parent.call.builtin.attr = self.key
+
 
 class Let(Term):
     def __init__(self, pairs, expr):
@@ -517,12 +501,17 @@ def let(*args):
 def toTerm(value):
     if isinstance(value, (bool, int, float, dict, list)):
         return val(value)
-    if isinstance(value, str):
+    elif isinstance(value, str):
         return parseStringTerm(value)
+    elif value is None:
+        return val(value)
     else:
         return value
 
 def parseStringTerm(value):
+    # Empty strings get passed through
+    if not value:
+        return val(value)
     # If the string is quoted, it's a value
     if ((value.strip().startswith('"') and value.strip().endswith('"'))
         or (value.strip().startswith("'") and value.strip().endswith("'"))):
@@ -574,10 +563,28 @@ size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
 concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
 slice = _make_builtin("slice", p.Builtin.ARRAYSLICE, "array", "start", "end")
-has = _make_builtin("has", p.Builtin.HASATTR, "object", "key")
-union = _make_builtin("union", p.Builtin.UNION, "a", "b")
-length = _make_builtin("length", p.Builtin.LENGTH, "stream")
-limit = _make_builtin("limit", p.Builtin.LIMIT, "stream", "count")
-nth = _make_builtin("nth", p.Builtin.NTH, "stream", "index")
-stream = ArrayToStream
 array = _make_builtin("array", p.Builtin.STREAMTOARRAY, "stream")
+length = _make_builtin("length", p.Builtin.LENGTH, "stream")
+nth = _make_builtin("nth", p.Builtin.NTH, "stream", "index")
+
+def _make_stream_builtin(name, builtin, *args):
+    n_args = len(args)
+    signature = "%s(%s)" % (name, ", ".join(args))
+
+    def __init__(self, *args):
+        Stream.__init__(self)
+        self.read_only = True
+        if len(args) != n_args:
+            raise TypeError("%s takes exactly %d arguments (%d given)"
+                            % (signature, n_args, len(args)))
+        self.args = args
+
+    def write_ast(self, parent):
+        self._write_call(parent, builtin, *self.args)
+
+    return type(name, (Stream,), {"__init__": __init__, "write_ast": write_ast})
+
+distinct = _make_stream_builtin("distinct", p.Builtin.DISTINCT, "stream")
+limit = _make_stream_builtin("limit", p.Builtin.LIMIT, "stream", "count")
+union = _make_stream_builtin("union", p.Builtin.UNION, "a", "b")
+stream = _make_stream_builtin("stream", p.Builtin.ARRAYTOSTREAM, "array")

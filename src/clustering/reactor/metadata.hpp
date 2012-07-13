@@ -5,6 +5,7 @@
 #include <boost/optional.hpp>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
+#include "clustering/immediate_consistency/query/metadata.hpp"
 #include "rpc/serialize_macros.hpp"
 
 /* `reactor_business_card_t` is the way that each peer tells peers what's
@@ -51,8 +52,11 @@ public:
         : broadcaster(_broadcaster)
     { }
 
-    primary_t(broadcaster_business_card_t<protocol_t> _broadcaster, replier_business_card_t<protocol_t> _replier)
-        : broadcaster(_broadcaster), replier(_replier)
+    primary_t(broadcaster_business_card_t<protocol_t> _broadcaster,
+            replier_business_card_t<protocol_t> _replier,
+            master_business_card_t<protocol_t> _master,
+            direct_reader_business_card_t<protocol_t> _direct_reader)
+        : broadcaster(_broadcaster), replier(_replier), master(_master), direct_reader(_direct_reader)
     { }
 
     primary_t() { }
@@ -68,23 +72,29 @@ public:
      */
     boost::optional<replier_business_card_t<protocol_t> > replier;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(broadcaster, replier);
+    boost::optional<master_business_card_t<protocol_t> > master;
+    boost::optional<direct_reader_business_card_t<protocol_t> > direct_reader;
+
+    RDB_MAKE_ME_SERIALIZABLE_4(broadcaster, replier, master, direct_reader);
 };
 
 /* This peer is currently a secondary in working order. */
 template <class protocol_t>
 class secondary_up_to_date_t {
 public:
-    secondary_up_to_date_t(branch_id_t _branch_id, replier_business_card_t<protocol_t> _replier)
-        : branch_id(_branch_id), replier(_replier)
+    secondary_up_to_date_t(branch_id_t _branch_id,
+            replier_business_card_t<protocol_t> _replier,
+            direct_reader_business_card_t<protocol_t> _direct_reader)
+        : branch_id(_branch_id), replier(_replier), direct_reader(_direct_reader)
     { }
 
     secondary_up_to_date_t() { }
 
     branch_id_t branch_id;
     replier_business_card_t<protocol_t> replier;
+    direct_reader_business_card_t<protocol_t> direct_reader;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(branch_id, replier);
+    RDB_MAKE_ME_SERIALIZABLE_3(branch_id, replier, direct_reader);
 };
 
 /* This peer would like to be a secondary but cannot because it failed to

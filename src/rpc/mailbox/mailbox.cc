@@ -1,5 +1,9 @@
 #include "rpc/mailbox/mailbox.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
+
 #include "logger.hpp"
 
 /* raw_mailbox_t */

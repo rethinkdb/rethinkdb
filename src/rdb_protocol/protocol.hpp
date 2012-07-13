@@ -297,7 +297,10 @@ struct rdb_protocol_t {
 
     class store_t : public btree_store_t<rdb_protocol_t> {
     public:
-        store_t(const std::string& filename, bool create, perfmon_collection_t *collection);
+        store_t(io_backender_t *io_backend,
+                const std::string& filename,
+                bool create,
+                perfmon_collection_t *parent_perfmon_collection);
         virtual ~store_t();
 
     private:

@@ -1,5 +1,6 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
 
 #include "btree/erase_range.hpp"
 #include "btree/slice.hpp"
@@ -105,6 +106,7 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
         rg_response.key_range = get_region();
         typedef std::vector<read_response_t>::iterator rri_t;
         for(rri_t i = responses.begin(); i != responses.end(); ++i) {
+            // TODO: we're ignoring the limit when recombining.
             const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
             rassert(_rr);
             rg_response.data.insert(rg_response.data.end(), _rr->data.begin(), _rr->data.end());
@@ -168,12 +170,15 @@ write_response_t write_t::multistore_unshard(const std::vector<write_response_t>
     return unshard(responses, cache);
 }
 
-store_t::store_t(const std::string& filename,
+store_t::store_t(io_backender_t *io_backend,
+                 const std::string& filename,
                  bool create,
-                 perfmon_collection_t *_perfmon_collection) :
-    btree_store_t(filename, create, _perfmon_collection) { }
+                 perfmon_collection_t *parent_perfmon_collection) :
+    btree_store_t(io_backend, filename, create, parent_perfmon_collection) { }
 
-store_t::~store_t() { }
+store_t::~store_t() {
+    assert_thread();
+}
 
 struct read_visitor_t : public boost::static_visitor<read_response_t> {
     read_response_t operator()(const point_read_t& get) {
@@ -232,10 +237,12 @@ write_response_t store_t::protocol_write(const write_t &write,
 }
 
 struct rdb_backfill_callback_t : public backfill_callback_t {
+public:
     typedef backfill_chunk_t chunk_t;
-    const boost::function<void(chunk_t)> &chunk_fun;
 
-    explicit rdb_backfill_callback_t(const boost::function<void(chunk_t)> &chunk_fun_) : chunk_fun(chunk_fun_) { }
+    explicit rdb_backfill_callback_t(const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun_)
+        : chunk_fun(chunk_fun_) { }
+    ~rdb_backfill_callback_t() { }
 
     void on_delete_range(const region_t &range) {
         chunk_fun(chunk_t::delete_range(range));
@@ -248,11 +255,16 @@ struct rdb_backfill_callback_t : public backfill_callback_t {
     void on_keyvalue(const backfill_atom_t& atom) {
         chunk_fun(chunk_t::set_key(atom));
     }
-    ~rdb_backfill_callback_t() { }
+
 protected:
     store_key_t to_store_key(const btree_key_t *key) {
         return store_key_t(key->size, key->contents);
     }
+
+private:
+    const boost::function<void(rdb_protocol_t::backfill_chunk_t)> &chunk_fun;
+
+    DISABLE_COPYING(rdb_backfill_callback_t);
 };
 
 static void call_rdb_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,

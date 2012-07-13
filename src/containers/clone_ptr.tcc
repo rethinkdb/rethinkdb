@@ -4,43 +4,28 @@ template<class T>
 clone_ptr_t<T>::clone_ptr_t() THROWS_NOTHING : object(NULL) { }
 
 template<class T>
-clone_ptr_t<T>::~clone_ptr_t() THROWS_NOTHING {
-    if (object) {
-        delete object;
-    }
-}
-
-template<class T>
 clone_ptr_t<T>::clone_ptr_t(T *o) THROWS_NOTHING : object(o) { }
 
 template<class T>
 clone_ptr_t<T>::clone_ptr_t(const clone_ptr_t &x) THROWS_NOTHING {
-    if (x.object) {
-        object = x.object->clone();
-    } else {
-        object = NULL;
+    if (x.object.has()) {
+        object.init(x.object->clone());
     }
 }
 
 template<class T> template<class U>
 clone_ptr_t<T>::clone_ptr_t(const clone_ptr_t<U> &x) THROWS_NOTHING {
-    if (x.object) {
-        object = x.object->clone();
-    } else {
-        object = NULL;
+    if (x.object.has()) {
+        object.init(x.object->clone());
     }
 }
 
 template<class T>
 clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t &x) THROWS_NOTHING {
     if (&x != this) {
-        if (object) {
-            delete object;
-        }
-        if (x.object) {
-            object = x.object->clone();
-        } else {
-            object = NULL;
+        object.reset();
+        if (x.object.has()) {
+            object.init(x.object->clone());
         }
     }
     return *this;
@@ -49,13 +34,9 @@ clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t &x) THROWS_NOTHING {
 template<class T> template<class U>
 clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t<U> &x) THROWS_NOTHING {
     if (&x != this) {
-        if (object) {
-            delete object;
-        }
-        if (x.object) {
-            object = x.object->clone();
-        } else {
-            object = NULL;
+        object.reset();
+        if (x.object.has()) {
+            object.init(x.object->clone());
         }
     }
     return *this;
@@ -63,22 +44,22 @@ clone_ptr_t<T> &clone_ptr_t<T>::operator=(const clone_ptr_t<U> &x) THROWS_NOTHIN
 
 template<class T>
 T &clone_ptr_t<T>::operator*() const THROWS_NOTHING {
-    return *object;
+    return *object.get();
 }
 
 template<class T>
 T *clone_ptr_t<T>::operator->() const THROWS_NOTHING {
-    return object;
+    return object.get();
 }
 
 template<class T>
 T *clone_ptr_t<T>::get() const THROWS_NOTHING {
-    return object;
+    return object.get();
 }
 
 template<class T>
 clone_ptr_t<T>::operator booleanish_t() const THROWS_NOTHING {
-    if (object) {
+    if (object.has()) {
         return &clone_ptr_t::truth_value_method_for_use_in_boolean_conversions;
     } else {
         return 0;

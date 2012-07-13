@@ -1,4 +1,4 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python
 #
 # Copyright (c) 2009 Google Inc. All rights reserved.
 #
@@ -298,6 +298,7 @@ _CPP_SYS_HEADER = 2
 _LIKELY_MY_HEADER = 3
 _POSSIBLE_MY_HEADER = 4
 _OTHER_HEADER = 5
+_ERRORS_HPP_HEADER = 88
 
 
 _regexp_compile_cache = {}
@@ -400,6 +401,7 @@ class _IncludeState(dict):
       _LIKELY_MY_HEADER: 'header this file implements',
       _POSSIBLE_MY_HEADER: 'header this file may implement',
       _OTHER_HEADER: 'other header',
+      _ERRORS_HPP_HEADER: 'errors.hpp header',
       }
   _SECTION_NAMES = {
       _INITIAL_SECTION: "... nothing. (This can't be an error.)",
@@ -489,6 +491,15 @@ class _IncludeState(dict):
       else:
         # This will always be the fallback because we're not sure
         # enough that the header is associated with this file.
+        self._section = self._OTHER_H_SECTION
+    elif header_type == _ERRORS_HPP_HEADER:
+      # errors.hpp can appear before boost headers, so we allow it in
+      # the cpp section.
+      if self._section <= self._CPP_SECTION:
+        self._section = self._CPP_SECTION
+      elif self._section <= self._MY_H_SECTION:
+        self._section = self._MY_H_SECTION
+      else:
         self._section = self._OTHER_H_SECTION
     else:
       assert header_type == _OTHER_HEADER
@@ -2368,7 +2379,7 @@ def _ClassifyInclude(fileinfo, include, is_system):
   # This is a list of all standard c++ header files, except
   # those already checked for above.
   is_stl_h = include in _STL_HEADERS
-  is_cpp_h = is_stl_h or include in _CPP_HEADERS
+  is_cpp_h = is_stl_h or include in _CPP_HEADERS or include.startswith('boost/')
 
   if is_system:
     if is_cpp_h:
@@ -2397,6 +2408,11 @@ def _ClassifyInclude(fileinfo, include, is_system):
       target_first_component.group(0) ==
       include_first_component.group(0)):
     return _POSSIBLE_MY_HEADER
+
+  # errors.hpp or utils.hpp must be used before boost.  This isn't to
+  # ensure that it's used before boost, unfortunately.
+  if include == 'errors.hpp' or include == 'utils.hpp':
+    return _ERRORS_HPP_HEADER
 
   return _OTHER_HEADER
 
