@@ -7,7 +7,7 @@ os_list = [
             ("centos6", "build/centos6/rethinkdb")
             ]
 
-workload = "test/workloads/many_keys.py $HOST:$PORT"
+workload = "test/workloads/many_keys.py \\$HOST:\\$PORT"
 
 for os_name, build_folder in os_list:
     mode = build_folder[len('build/'):-len('/rethinkdb')]
