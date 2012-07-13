@@ -233,7 +233,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
         if (*it != any_machine_id_wildcard) {
             try {
                 requested_machine_id = str_to_uuid(*it);
-            } catch (std::runtime_error &e) {
+            } catch (const std::runtime_error &e) {
                 throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid uuid\n", it->c_str()));
             }
 
@@ -251,7 +251,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
         if (*it != any_machine_id_wildcard) {
             try {
                 requested_namespace_id = str_to_uuid(*it);
-            } catch (std::runtime_error &e) {
+            } catch (const std::runtime_error &e) {
                 throw schema_mismatch_exc_t(strprintf("Failed to parse %s as valid uuid\n", it->c_str()));
             }
             if (requested_namespace_id->is_nil()) {

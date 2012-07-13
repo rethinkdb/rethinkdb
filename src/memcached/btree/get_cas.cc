@@ -20,28 +20,28 @@ struct memcached_get_cas_oper_t : public memcached_modify_oper_t, public home_th
     memcached_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
-    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t>& value) {
-        if (!value) {
+    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t> *value) {
+        if (!value->has()) {
             // If not found, there's nothing to do.
             res->pulse(get_result_t());
             return false;
         }
 
-        bool there_was_cas_before = value->has_cas();
+        bool there_was_cas_before = (*value)->has_cas();
         cas_t cas_to_report;
         if (there_was_cas_before) {
             // How convenient, there already was a CAS.
-            cas_to_report = value->cas();
+            cas_to_report = (*value)->cas();
         } else {
             // This doesn't set the CAS -- it just makes room for the
             // CAS, and run_memcached_modify_oper() sets the CAS.
-            value->add_cas(txn->get_cache()->get_block_size());
+            (*value)->add_cas(txn->get_cache()->get_block_size());
             cas_to_report = proposed_cas;
         }
 
         // Deliver the value to the client via the promise_t we got.
-        intrusive_ptr_t<data_buffer_t> dp = value_to_data_buffer(value.get(), txn);
-        res->pulse(get_result_t(dp, value->mcflags(), cas_to_report));
+        intrusive_ptr_t<data_buffer_t> dp = value_to_data_buffer(value->get(), txn);
+        res->pulse(get_result_t(dp, (*value)->mcflags(), cas_to_report));
 
         // Return whether we made a change to the value.
         return !there_was_cas_before;
