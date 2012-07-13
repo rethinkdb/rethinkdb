@@ -604,14 +604,14 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
 
     memcached_protocol_t::read_response_t operator()(const get_query_t& get) {
         return memcached_protocol_t::read_response_t(
-            memcached_get(get.key, btree, effective_time, txn.get(), superblock.get()));
+            memcached_get(get.key, btree, effective_time, txn->get(), superblock->get()));
     }
     memcached_protocol_t::read_response_t operator()(const rget_query_t& rget) {
         return memcached_protocol_t::read_response_t(
-            memcached_rget_slice(btree, rget.range, rget.maximum, effective_time, txn.get(), superblock.get()));
+            memcached_rget_slice(btree, rget.range, rget.maximum, effective_time, txn->get(), superblock->get()));
     }
     memcached_protocol_t::read_response_t operator()(const distribution_get_query_t& dget) {
-        distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock.get());
+        distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock->get());
 
         for (std::map<store_key_t, int>::iterator it  = dstr.key_counts.begin();
                                                   it != dstr.key_counts.end();
@@ -627,13 +627,13 @@ struct read_visitor_t : public boost::static_visitor<memcached_protocol_t::read_
     }
 
 
-    read_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t>& txn_, boost::scoped_ptr<superblock_t> &superblock_, exptime_t effective_time_) :
+    read_visitor_t(btree_slice_t *btree_, boost::scoped_ptr<transaction_t> *txn_, boost::scoped_ptr<superblock_t> *superblock_, exptime_t effective_time_) :
         btree(btree_), txn(txn_), superblock(superblock_), effective_time(effective_time_) { }
 
 private:
     btree_slice_t *btree;
-    boost::scoped_ptr<transaction_t>& txn;
-    boost::scoped_ptr<superblock_t> &superblock;
+    boost::scoped_ptr<transaction_t> *txn;
+    boost::scoped_ptr<superblock_t> *superblock;
     exptime_t effective_time;
 };
 
@@ -655,7 +655,7 @@ memcached_protocol_t::read_response_t memcached_protocol_t::store_t::read(
     boost::scoped_ptr<superblock_t> superblock2;
     superblock.swap(*reinterpret_cast<boost::scoped_ptr<real_superblock_t> *>(&superblock2));
 
-    read_visitor_t v(btree.get(), txn, superblock2, read.effective_time);
+    read_visitor_t v(btree.get(), &txn, &superblock2, read.effective_time);
     return boost::apply_visitor(v, read.query);
 }
 
