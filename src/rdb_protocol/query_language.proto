@@ -157,11 +157,7 @@ message Builtin {
 
     optional OrderBy order_by = 8;
 
-    message Reduce {
-        required Reduction reduction = 1;
-    };
-
-    optional Reduce reduce = 9;
+    optional Reduction reduce = 9;
 
     message GroupedMapReduce {
         required Mapping group_mapping = 1;

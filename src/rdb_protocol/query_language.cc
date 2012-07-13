@@ -158,7 +158,7 @@ bool is_well_defined(const Builtin &b) {
         break;
     case Builtin::REDUCE:
         CHECK(b.has_reduce());
-        CHECK_WELL_DEFINED(b.reduce().reduction());
+        CHECK_WELL_DEFINED(b.reduce());
         break;
     case Builtin::GROUPEDMAPREDUCE:
         CHECK(b.has_grouped_map_reduce());
@@ -1555,7 +1555,24 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             }
             break;
         case Builtin::REDUCE:
-            throw runtime_exc_t("Unimplemented: Builtin::REDUCE");
+            {
+                json_stream_t stream = eval_stream(c.args(0), env);
+                
+                // Start off accumulator with the base
+                boost::shared_ptr<scoped_cJSON_t> acc = eval(c.builtin().reduce().base(), env);
+
+                for (json_stream_t::iterator it  = stream.begin();
+                                             it != stream.end();
+                                             ++it)
+                {
+                    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                    env->scope.put_in_scope(c.builtin().reduce().var1(), acc);
+                    env->scope.put_in_scope(c.builtin().reduce().var2(), *it);
+
+                    acc = eval(c.builtin().reduce().body(), env);
+                }
+                return acc;
+            }
             break;
         case Builtin::GROUPEDMAPREDUCE:
             throw runtime_exc_t("Unimplemented: Builtin::GROUPEDMAPREDUCE");
