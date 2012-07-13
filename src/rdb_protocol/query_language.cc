@@ -70,19 +70,20 @@ bool is_well_defined(const Term &t) {
             CHECK_WELL_DEFINED(t.array(i));
         }
         break;
-    case Term::MAP:
-        // CHECK(t.map_size());
-        for (int i = 0; i < t.map_size(); ++i) {
-            CHECK_WELL_DEFINED(t.map(i).term());
+    case Term::OBJECT:
+        if (t.object_size() == 0) { // empty objects are valid
+            CHECK(field_count == 1);
         }
-        break;
-    case Term::VIEWASSTREAM:
-        CHECK(t.has_view_as_stream());
-        CHECK_WELL_DEFINED(t.view_as_stream());
+        for (int i = 0; i < t.object_size(); ++i) {
+            CHECK_WELL_DEFINED(t.object(i).term());
+        }
         break;
     case Term::GETBYKEY:
         CHECK(t.has_get_by_key());
         CHECK_WELL_DEFINED(t.get_by_key().key());
+        break;
+    case Term::TABLE:
+        CHECK(t.has_table());
         break;
     default:
         return false;
@@ -171,6 +172,15 @@ bool is_well_defined(const Builtin &b) {
         CHECK_WELL_DEFINED(b.map_reduce().change_mapping());
         CHECK_WELL_DEFINED(b.map_reduce().reduction());
         break;
+    case Builtin::RANGE:
+        CHECK(b.has_range());
+        if (b.range().has_lowerbound()) {
+            CHECK_WELL_DEFINED(b.range().lowerbound());
+        }
+        if (b.range().has_upperbound()) {
+            CHECK_WELL_DEFINED(b.range().lowerbound());
+        }
+        break;
     default:
         return false;
     }
@@ -191,33 +201,6 @@ bool is_well_defined(const Mapping &m) {
 
 bool is_well_defined(const Predicate &p) {
     CHECK_WELL_DEFINED(p.body());
-    return true;
-}
-
-bool is_well_defined(const View &v) {
-    std::vector<const google::protobuf::FieldDescriptor *> fields;
-    v.GetReflection()->ListFields(v, &fields);
-    CHECK(fields.size() == 2);
-
-    switch (v.type()) {
-    case View::TABLE:
-        CHECK(v.has_table());
-        break;
-    case View::FILTERVIEW:
-        CHECK(v.has_filter_view());
-        CHECK_WELL_DEFINED(v.filter_view().view());
-        CHECK_WELL_DEFINED(v.filter_view().predicate());
-        break;
-    case View::RANGEVIEW:
-        CHECK(v.has_range_view());
-        CHECK_WELL_DEFINED(v.range_view().view());
-        CHECK_WELL_DEFINED(v.range_view().lowerbound());
-        CHECK_WELL_DEFINED(v.range_view().upperbound());
-        break;
-    default:
-        return false;
-    }
-
     return true;
 }
 
@@ -374,21 +357,18 @@ const type_t get_type(const Term &t, variable_type_scope_t *scope) {
                 return Type::JSON;
             }
             break;
-        case Term::MAP:
+        case Term::OBJECT:
             return Type::JSON;
-        case Term::VIEWASSTREAM:
-            if (get_type(t.view_as_stream(), scope) == Type::VIEW) {
-                return Type::STREAM;
-            } else {
-                return type_t(error_t());
-            }
-            break;
         case Term::GETBYKEY:
             if (get_type(t.get_by_key().key(), scope) == Type::JSON) {
                 return Type::JSON;
             } else {
                 return error_t("Key must be a json value.");
             }
+            break;
+        case Term::TABLE:
+            //no way for this to be incorrect
+            return Type::VIEW;
             break;
         default:
             crash("unreachable");
@@ -488,6 +468,9 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
             return function_t(Type::JSON, 1, Type::STREAM);
             break;
+        case Builtin::RANGE:
+            return function_t(Type::VIEW, 1, Type::VIEW);
+            break;
         default:
             crash("unreachable");
             break;
@@ -530,35 +513,6 @@ const type_t get_type(const Predicate &p, variable_type_scope_t *scope) {
     } else {
         return Type::JSON;
     }
-}
-
-const type_t get_type(const View &v, variable_type_scope_t *scope) {
-    switch(v.type()) {
-        case View::TABLE:
-            //no way for this to be incorrect
-            return Type::VIEW;
-            break;
-        case View::FILTERVIEW:
-            {
-                if (get_type(v.filter_view().view(), scope) == Type::VIEW &&
-                    get_type(v.filter_view().predicate(), scope) == Type::JSON) {
-                    return Type::VIEW;
-                } else {
-                    return type_t(error_t()); // TODO: better info about the error?
-                }
-            }
-            break;
-        case View::RANGEVIEW:
-            if (get_type(v.range_view().view(), scope) == Type::VIEW &&
-                get_type(v.range_view().lowerbound(), scope) == Type::JSON &&
-                get_type(v.range_view().upperbound(), scope) == Type::JSON) {
-                return Type::READ;
-            }
-            break;
-        default:
-            crash("Unreachable");
-    }
-    crash("Unreachable");
 }
 
 const type_t get_type(const ReadQuery &r, variable_type_scope_t *scope) {
@@ -870,7 +824,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
 
                 eval_let_binds(t.let(), env);
 
-                return eval(t.let().expr(), env);;
+                return eval(t.let().expr(), env);
             }
             break;
         case Term::CALL:
@@ -927,19 +881,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
                 return res;
             }
             break;
-        case Term::MAP:
+        case Term::OBJECT:
             {
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateObject()));
-                for (int i = 0; i < t.map_size(); ++i) {
-                    std::string item_name(t.map(i).var());
-                    cJSON_AddItemToObject(res->get(), item_name.c_str(), eval(t.map(i).term(), env)->release());
+                for (int i = 0; i < t.object_size(); ++i) {
+                    std::string item_name(t.object(i).var());
+                    cJSON_AddItemToObject(res->get(), item_name.c_str(), eval(t.object(i).term(), env)->release());
                 }
                 return res;
-            }
-            break;
-        case Term::VIEWASSTREAM:
-            {
-                crash("This is implemented elsewhere, we should never have gotten here (yields a stream, not a scalar).");
             }
             break;
         case Term::GETBYKEY:
@@ -965,6 +914,9 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
                 return p_res->data;
                 break;
             }
+        case Term::TABLE:
+            throw runtime_exc_t("Term::TABLE must be evaluated with eval_stream or eval_view");
+            break;
         default:
             crash("unreachable");
             break;
@@ -986,7 +938,7 @@ json_stream_t eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY
 
                 eval_let_binds(t.let(), env);
 
-                return eval_stream(t.let().expr(), env);;
+                return eval_stream(t.let().expr(), env);
             }
             break;
         case Term::CALL:
@@ -1006,6 +958,11 @@ json_stream_t eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY
                 }
             }
             break;
+        case Term::TABLE:
+            {
+                return eval_view(t.table(), env).stream;
+            }
+            break;
         case Term::ERROR:
         case Term::NUMBER:
         case Term::STRING:
@@ -1013,14 +970,9 @@ json_stream_t eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY
         case Term::BOOL:
         case Term::JSON_NULL:
         case Term::ARRAY:
+        case Term::OBJECT:
         case Term::GETBYKEY:
-        case Term::MAP:
             unreachable("eval_stream called on a function that does not return a stream (use eval instead).\n");
-            break;
-        case Term::VIEWASSTREAM:
-            {
-                return eval(t.view_as_stream(), env).stream;
-            }
             break;
         default:
             crash("unreachable");
@@ -1503,6 +1455,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
         case Builtin::ARRAYTOSTREAM:
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
         case Builtin::UNION:
+        case Builtin::RANGE:
             unreachable("eval called on a function that returns a stream (use eval_stream instead).\n");
             break;
         case Builtin::LENGTH:
@@ -1651,7 +1604,7 @@ private:
 
 class not_t {
 public:
-    not_t(const predicate_t &_pred)
+    explicit not_t(const predicate_t &_pred)
         : pred(_pred)
     { }
     bool operator()(boost::shared_ptr<scoped_cJSON_t> json) {
@@ -1907,6 +1860,9 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
                 return res;
             }
             break;
+        case Builtin::RANGE:
+            throw runtime_exc_t("Unimplemented: Builtin::RANGE");
+            break;
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
             throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPTRETURNINGSTREAM");
             break;
@@ -1929,21 +1885,21 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_envir
     }
 }
 
-view_t eval(const View &v, runtime_environment_t *env) {
+view_t eval_view(const Term::Table &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
+    namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t.table_ref(), env);
+    key_range_t range = rdb_protocol_t::region_t::universe();
+    rdb_protocol_t::rget_read_t rget_read(range);
+    rdb_protocol_t::read_t read(rget_read);
+    rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
+    rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+    rassert(p_res);
+    json_stream_t stream(p_res->data.begin(), p_res->data.end());
+    return view_t(ns_access, stream);
+}
+
+/*
+view_t eval(const Term &v, runtime_environment_t *env) {
     switch (v.type()) {
-        case View::TABLE:
-            {
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(v.table().table_ref(), env);
-                key_range_t range = rdb_protocol_t::region_t::universe();
-                rdb_protocol_t::rget_read_t rget_read(range);
-                rdb_protocol_t::read_t read(rget_read);
-                rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
-                rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
-                rassert(p_res);
-                json_stream_t stream(p_res->data.begin(), p_res->data.end());
-                return view_t(ns_access, stream);
-            }
-            break;
         case View::FILTERVIEW:
             {
                 view_t subview = eval(v.filter_view().view(), env);
@@ -1961,5 +1917,6 @@ view_t eval(const View &v, runtime_environment_t *env) {
             break;
     }
 }
+*/
 
 } //namespace query_language

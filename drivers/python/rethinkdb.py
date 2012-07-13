@@ -172,9 +172,8 @@ class Table(Stream):
         parent.table_name = self.name
 
     def write_ast(self, parent):
-        parent.type = p.Term.VIEWASSTREAM
-        parent.view_as_stream.type = p.View.TABLE
-        self.write_ref_ast(parent.view_as_stream.table.table_ref)
+        parent.type = p.Term.TABLE
+        self.write_ref_ast(parent.table.table_ref)
 
     def _finalize_query(self, root):
         term = _finalize_internal(root, p.Term)
@@ -202,42 +201,19 @@ class Filter(Stream):
     def __init__(self, parent_view, selector, row):
         super(Filter, self).__init__()
         if type(selector) is dict:
-            self.selector = Conjunction(eq(k, v) for k, v in selector.iteritems())
+            self.selector = Conjunction(eq(row + '.' + k, v) for k, v in selector.iteritems())
         else:
             self.selector = toTerm(selector)
         self.row = row # don't do to term so we can compare in self.filter without overriding bs
         self.parent_view = parent_view
 
     def write_ast(self, parent):
-        if self.is_readonly():
-            self.write_term_ast(parent)
-        else:
-            self.write_view_ast(parent)
-
-    def write_term_ast(self, parent):
         parent.type = p.Term.CALL
         parent.call.builtin.type = p.Builtin.FILTER
         predicate = parent.call.builtin.filter.predicate
         predicate.arg = self.row
         self.selector.write_ast(predicate.body)
         self.parent_view.write_ast(parent.call.args.add())
-
-    def write_view_ast(self, parent):
-        parent.type = p.View.FILTERVIEW
-        self.parent_view.write_ast(parent.filter_view.view)
-        parent.filter_view.predicate.arg = self.row
-        self.selector.write_ast(parent.filter_view.predicate.body)
-
-    def _finalize_query(self, root):
-        if self.is_readonly():
-            term = _finalize_internal(root, p.Term)
-            self.write_ast(term)
-            return term
-        else:
-            term = _finalize_internal(root, p.Term)
-            term.type = p.Term.VIEWASSTREAM
-            self.write_ast(term.view_as_stream)
-            return term
 
 class Update(object):
     # Accepts a dict, and eventually, javascript
@@ -410,10 +386,10 @@ class val(Term):
             raise ValueError
 
     def make_json(self, parent):
-        parent.type = p.Term.MAP
+        parent.type = p.Term.OBJECT
         for key in self.value:
             _value = self.value[key]
-            pair = parent.map.add()
+            pair = parent.object.add()
             pair.var = key
             toTerm(_value).write_ast(pair.term)
 

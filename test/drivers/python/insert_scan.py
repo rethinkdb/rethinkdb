@@ -216,6 +216,8 @@ class TestTableRef(unittest.TestCase):
         def distinct(arr):
             return r.array(r.stream(arr).distinct())
 
+        self.table.map({"foo": "bar"})
+
         expect(distinct([]), [])
         expect(distinct(range(10)*10), range(10))
         expect(distinct([1, 2, 3, 2]), [1, 2, 3])
@@ -244,6 +246,8 @@ class TestTableRef(unittest.TestCase):
             assert json.loads(resp.response[0]) == doc
 
         self.expect(r.array(self.table.distinct('a')), [3, 9])
+
+        self.expect(self.table.filter({"a": 3}), docs[0])
 
 if __name__ == '__main__':
     unittest.main()

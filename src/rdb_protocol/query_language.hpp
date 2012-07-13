@@ -17,37 +17,21 @@
 //TODO maybe we can merge well definedness and type checking. */
 
 /* Make sure that the protocol buffers we receive are a well defined type. That
- * is they specifiy which type they are and have the correct optional fields
+ * is they specify which type they are and have the correct optional fields
  * filled in (and none of the others). */
 
 bool is_well_defined(const VarTermTuple &);
-
 bool is_well_defined(const Term &);
-
 bool is_well_defined(const Builtin &);
-
 bool is_well_defined(const Reduction &);
-
 bool is_well_defined(const Mapping &);
-
 bool is_well_defined(const Predicate &);
-
-bool is_well_defined(const View &);
-
 bool is_well_defined(const Builtin &);
-
 bool is_well_defined(const ReadQuery &);
-
 bool is_well_defined(const WriteQuery &);
-
 bool is_well_defined(const Query &);
 
 namespace query_language {
-struct unimplemented_exc_t : public std::exception {
-    const char *what() const throw () {
-        return "Unimplemented functionality";
-    }
-};
 
 struct error_t;
 struct primitive_t;
@@ -88,6 +72,9 @@ struct primitive_t {
     { }
 
     bool operator==(const primitive_t &p) const {
+        if (value == VIEW && p.value == STREAM) {
+            return true;
+        }
         return value == p.value;
     }
 };
@@ -186,22 +173,14 @@ typedef variable_type_scope_t::new_scope_t new_scope_t;
 
 /* get_type functions assume that the contained value is well defined. */
 const type_t get_type(const Term &t, variable_type_scope_t *scope);
+const type_t get_type(const Reduction &r, variable_type_scope_t *scope);
+const type_t get_type(const Mapping &m, variable_type_scope_t *scope);
+const type_t get_type(const Predicate &p, variable_type_scope_t *scope);
+const type_t get_type(const ReadQuery &r, variable_type_scope_t *scope);
+const type_t get_type(const WriteQuery &w, variable_type_scope_t *scope);
+const type_t get_type(const Query &q, variable_type_scope_t *scope);
 
 const function_t get_type(const Builtin &b, variable_type_scope_t *scope);
-
-const type_t get_type(const Reduction &r, variable_type_scope_t *scope);
-
-const type_t get_type(const Mapping &m, variable_type_scope_t *scope);
-
-const type_t get_type(const Predicate &p, variable_type_scope_t *scope);
-
-const type_t get_type(const View &v, variable_type_scope_t *scope);
-
-const type_t get_type(const ReadQuery &r, variable_type_scope_t *scope);
-
-const type_t get_type(const WriteQuery &w, variable_type_scope_t *scope);
-
-const type_t get_type(const Query &q, variable_type_scope_t *scope);
 
 /* functions to evaluate the queries */
 
@@ -268,7 +247,6 @@ boost::shared_ptr<scoped_cJSON_t> eval_cmp(const Term::Call &c, runtime_environm
 
 namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
-
 class view_t {
 public:
     view_t(const namespace_repo_t<rdb_protocol_t>::access_t &_access,
@@ -279,7 +257,7 @@ public:
     json_stream_t stream;
 };
 
-view_t eval(const View &v, runtime_environment_t *env);
+view_t eval_view(const Term::Table &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 
 } //namespace query_language
 
