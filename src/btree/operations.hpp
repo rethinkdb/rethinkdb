@@ -44,7 +44,7 @@ private:
    structure. */
 class real_superblock_t : public superblock_t {
 public:
-    explicit real_superblock_t(buf_lock_t &sb_buf);
+    explicit real_superblock_t(buf_lock_t *sb_buf);
 
     void release();
     buf_lock_t *get() { return &sb_buf_; }
@@ -205,7 +205,6 @@ struct superblock_metainfo_iterator_t {
     typedef std::pair<sz_t, char *> value_t;
 
     superblock_metainfo_iterator_t(char *metainfo, char *metainfo_end) : end(metainfo_end) { advance(metainfo); }
-    explicit superblock_metainfo_iterator_t(std::vector<char>& metainfo) : end(metainfo.data() + metainfo.size()) { advance(metainfo.data()); }
 
     bool is_end() { return pos == end; }
 
@@ -235,15 +234,15 @@ private:
 
 void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority);
 
-void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
+void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                             const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority);
 
 void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
-                                buf_lock_t& buf, buf_lock_t& last_buf, superblock_t *sb,
+                                buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                                 const btree_key_t *key);
 
-bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> &value_out);
-void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > &kv_pairs_out);
+bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> *value_out);
+void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
 
 void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
 

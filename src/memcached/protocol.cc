@@ -442,7 +442,6 @@ store_t::~store_t() {
 }
 
 struct read_visitor_t : public boost::static_visitor<read_response_t> {
-
     read_response_t operator()(const get_query_t& get) {
         return read_response_t(
             memcached_get(get.key, btree, effective_time, txn, superblock));
@@ -451,6 +450,7 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
         return read_response_t(
             memcached_rget_slice(btree, rget.range, rget.maximum, effective_time, txn, superblock));
     }
+
     read_response_t operator()(const distribution_get_query_t& dget) {
         distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.range.left, effective_time, txn, superblock);
         for (std::map<store_key_t, int>::iterator it  = dstr.key_counts.begin();

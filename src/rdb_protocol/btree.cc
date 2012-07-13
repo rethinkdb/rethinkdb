@@ -39,7 +39,7 @@ point_read_response_t rdb_get(const store_key_t &store_key, btree_slice_t *slice
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
 
-    if (!kv_location.value) {
+    if (!kv_location.value.has()) {
         return point_read_response_t();
     }
 
@@ -55,8 +55,8 @@ point_write_response_t rdb_set(const store_key_t &key, boost::shared_ptr<scoped_
 
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
-    bool already_existed = bool(kv_location.value);
-    
+    bool already_existed = kv_location.value.has();
+
     scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
     bzero(new_value.get(), MAX_RDB_VALUE_SIZE);
 
@@ -122,7 +122,7 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_time
 point_delete_response_t rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
-    bool exists = bool(kv_location.value);
+    bool exists = kv_location.value.has();
     if(exists) {
         blob_t blob(kv_location.value->value_ref(), blob::btree_maxreflen);
         blob.clear(txn);

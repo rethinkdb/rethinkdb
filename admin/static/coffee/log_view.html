@@ -5,11 +5,17 @@
     <ul class="log-entries"></ul>
     <div class="any-more-log-entries">
         <div class="no-more-entries">No more log entries to show</div>
-        <p><a class='next-log-entries'>Older log entries &raquo;</a></p>
+        <p><a href="#" class='next-log-entries'>Older log entries &raquo;</a></p>
     </div>
 </script>
+
 <script id="log-header-template" type="text/x-handlebars-template">
-    <h1>Log entries <small>from {{from_date}} to {{to_date}}</small></h1>
+    {{#if from_date}}
+        <h1>Log entries <small>from {{from_date}} to {{to_date}}</small></h1>
+    {{else}}
+        <h1>No log found</h1>
+    {{/if}}
+
     {{#if new_entries}}
         <div class="alert">
             <button class="close" data-dismiss="alert">×</button>
@@ -21,16 +27,70 @@
         </div>
     {{/if}}
 </script>
+
+<script id="log-header-machine-template" type="text/x-handlebars-template">
+    {{#if from_date}}
+        <h3 class="title">Log from this machine <small>from {{from_date}} to {{to_date}}</small></h3>
+    {{else}}
+        <h3>No log found</h3>
+    {{/if}}
+
+    {{#if new_entries}}
+        <div class="alert">
+            <button class="close" data-dismiss="alert">×</button>
+            {{#if too_many_new_entries}}
+                <strong>More than {{max_log_entries}} new log entries have  been reported.</strong> <a class="update-log-entries" href="#">Reload logs</a>
+            {{else}}
+                <strong>{{num_new_entries}} new log {{pluralize_noun "entry" num_new_entries}} {{pluralize_verb_to_have num_new_entries}} just been reported.</strong> <a class="update-log-entries" href="#">Update entries</a>
+            {{/if}}
+        </div>
+    {{/if}}
+</script>
+
+<script id="log-header-datacenter-template" type="text/x-handlebars-template">
+    {{#if from_date}}
+        <h3 class="title">Log from this datacenter <small>from {{from_date}} to {{to_date}}</small></h3>
+    {{else}}
+        <h3>No log found</h3>
+    {{/if}}
+
+    {{#if new_entries}}
+        <div class="alert">
+            <button class="close" data-dismiss="alert">×</button>
+            {{#if too_many_new_entries}}
+                <strong>More than {{max_log_entries}} new log entries have  been reported.</strong> <a class="update-log-entries" href="#">Reload logs</a>
+            {{else}}
+                <strong>{{num_new_entries}} new log {{pluralize_noun "entry" num_new_entries}} {{pluralize_verb_to_have num_new_entries}} just been reported.</strong> <a class="update-log-entries" href="#">Update entries</a>
+            {{/if}}
+        </div>
+    {{/if}}
+</script>
+
 <script id="log-entry-template" type="text/x-handlebars-template">
     <div class="entry-metadata">
-        <p>Reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a></p>
-        <p>{{datetime}}</p>
+        <p>Reported from <a href="#machines/{{machine_uuid}}">{{machine_name}}</a> on {{datetime}}</p>
     </div>
-    <p class="level">{{level}}</p>
     <p class="message">
-        {{formatted_message}}
         {{#if json}}
-                <a href="#" class="json" rel="popover" data-content="<pre>{{json}}</pre>" data-title="JSON applied to server">examine JSON</a>
+            <span class="more-details"><a href="#" class="more-details-link">More details</a></span>
+        {{/if}}
+        <strong>Log: </strong>
+
+        {{formatted_message}}
+        {{#if concerns_memcached_namespaces}}
+            namespace ({{links_to_namespaces_inline memcached_namespaces}})
+        {{/if}}
+
+        {{#if concerns_machines}}
+            machine ({{links_to_machines_inline machines}})
+        {{/if}}
+
+        {{#if concerns_datacenters}}
+            datacenter ({{links_to_datacenters_inline datacenters}})
         {{/if}}
     </p>
+
+    {{#if json}}    
+        <pre class="details">{{json}}</pre>
+    {{/if}}
 </script>

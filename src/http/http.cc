@@ -320,7 +320,7 @@ bool tcp_http_msg_parser_t::parse(tcp_conn_t *conn, http_req_t *req) {
 }
 
 #define HTTP_VERSION_PREFIX "HTTP/"
-bool tcp_http_msg_parser_t::version_parser_t::parse(std::string &src) {
+bool tcp_http_msg_parser_t::version_parser_t::parse(const std::string &src) {
     // Very simple, src will almost always be 'HTTP/1.1', we just need the '1.1'
     if(strncmp(HTTP_VERSION_PREFIX, src.c_str(), strlen(HTTP_VERSION_PREFIX)) == 0) {
         version = std::string(src.begin() + strlen(HTTP_VERSION_PREFIX), src.end());
@@ -329,8 +329,8 @@ bool tcp_http_msg_parser_t::version_parser_t::parse(std::string &src) {
     return false;
 }
 
-bool tcp_http_msg_parser_t::resource_string_parser_t::parse(std::string &src) {
-    std::string::iterator iter = src.begin();
+bool tcp_http_msg_parser_t::resource_string_parser_t::parse(const std::string &src) {
+    std::string::const_iterator iter = src.begin();
     while(iter != src.end() && *iter != '?') {
         ++iter;
     }
@@ -350,13 +350,13 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(std::string &src) {
         query_parameter_t param;
 
         // Skip to the end of this param
-        std::string::iterator query_start = iter;
+        std::string::const_iterator query_start = iter;
         while(!(iter == src.end() || *iter == '&')) {
             ++iter;
         }
 
         // Find '=' that splits the key and value
-        std::string::iterator query_iter = query_start;
+        std::string::const_iterator query_iter = query_start;
         while(!(query_iter == iter || *query_iter == '=')) {
             ++query_iter;
         }
@@ -378,8 +378,8 @@ bool tcp_http_msg_parser_t::resource_string_parser_t::parse(std::string &src) {
     return true;
 }
 
-bool tcp_http_msg_parser_t::header_line_parser_t::parse(std::string &src) {
-    std::string::iterator iter = src.begin();
+bool tcp_http_msg_parser_t::header_line_parser_t::parse(const std::string &src) {
+    std::string::const_iterator iter = src.begin();
     while(iter != src.end() && *iter != ':') {
         ++iter;
     }

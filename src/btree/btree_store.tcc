@@ -287,7 +287,7 @@ typename btree_store_t<protocol_t>::metainfo_t btree_store_t<protocol_t>::get_me
 template <class protocol_t>
 region_map_t<protocol_t, binary_blob_t> btree_store_t<protocol_t>::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf) const THROWS_NOTHING {
     std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
-    get_superblock_metainfo(txn, sb_buf, kv_pairs);   // FIXME: this is inefficient, cut out the middleman (vector)
+    get_superblock_metainfo(txn, sb_buf, &kv_pairs);   // FIXME: this is inefficient, cut out the middleman (vector)
 
     std::vector<std::pair<typename protocol_t::region_t, binary_blob_t> > result;
     for (std::vector<std::pair<std::vector<char>, std::vector<char> > >::iterator i = kv_pairs.begin(); i != kv_pairs.end(); ++i) {
