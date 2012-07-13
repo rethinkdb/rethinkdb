@@ -200,32 +200,32 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
         if options.build_mode == "all" or options.build_mode == "minimal-with-os": # do the operating system builds
             builds["ubuntu"] = {
                 "command_line": "make deb UNIT_TESTS=0",
-                "products": ["rethinkdb/build/debug"],
+                "products": ["rethinkdb/build/debug/rethinkdb"],
                 "target_os": "ubuntu"
                 }
             builds["redhat5_1"] = {
                 "command_line": "make rpm LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1 UNIT_TESTS=0",
-                "products": ["rethinkdb/build/debug-legacy-legacy-gcc-no_eventfd"],
+                "products": ["rethinkdb/build/debug-legacy-legacy-gcc-no_eventfd/rethinkdb"],
                 "target_os": "redhat5_1"
                 }
             builds["debian"] = {
                 "command_line": "make deb NO_EVENTFD=1 LEGACY_LINUX=1 UNIT_TESTS=0",
-                "products": ["rethinkdb/build/debug-legacy-no_eventfd"],
+                "products": ["rethinkdb/build/debug-legacy-no_eventfd/rethinkdb"],
                 "target_os": "debian"
                 }
             builds["centos5_5"] = {
                 "command_line": "make rpm LEGACY_GCC=1 LEGACY_LINUX=1 UNIT_TESTS=0",
-                "products": ["rethinkdb/build/debug-legacy-legacy-gcc"],
+                "products": ["rethinkdb/build/debug-legacy-legacy-gcc/rethinkdb"],
                 "target_os": "centos5_5"
                 }
             builds["suse"] = {
                 "command_line": "make LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 rpm-suse10 UNIT_TESTS=0",
-                "products": ["rethinkdb/build/debug-legacy-legacy-gcc-no_eventfd"],
+                "products": ["rethinkdb/build/debug-legacy-legacy-gcc-no_eventfd/rethinkdb"],
                 "target_os": "suse"
                 }
             builds["centos6"] = {
                 "command_line": "make rpm LEGACY_GCC=1 LEGACY_LINUX=1 UNIT_TESTS=0",
-                "products": ["rethinkdb/build/debug-legacy-legacy-gcc"],
+                "products": ["rethinkdb/build/debug-legacy-legacy-gcc/rethinkdb"],
                 "target_os": "centos6"
                 }
 
