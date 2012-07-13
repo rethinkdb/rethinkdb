@@ -56,12 +56,12 @@ def help():
     print "       --help      Print this help."
     print "       --vm-name   The target virtual machine to run the command on. Options are:"
     print "                   ", vm_list.keys()
-    print "       --command   The command to run on the virtual machine. Must be specified after the vm-name."
+    print "       --command   The command to run on the virtual machine."
 
 o = OptParser()
 o["help"] = BoolFlag("--help")
 o["vm-name"] = StringFlag("--vm-name", None)
-o["command"] = AllArgsAfterFlag("--command", default = None)
+o["command"] = StringFlag("--command", default = None)
 
 try:
     opts = o.parse(sys.argv)
