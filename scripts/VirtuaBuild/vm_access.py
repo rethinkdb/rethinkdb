@@ -97,7 +97,7 @@ print "***Will be working in directory " + dir_name
 
 # Move files to VM
 print "***Transferring files to virtual machine..."
-subprocess.Popen(" ".join(["tar", "czf", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
+subprocess.Popen(" ".join((["cd", os.environ["RETHINKDB"] + "/.."] if "RETHINKDB" in os.environ else []) + ["tar", "czf", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
 target.command(" ".join(["cd", dir_name, "&&", "tar", "xzf", "tmp.tar.gz"]))
 
 # Execute command
