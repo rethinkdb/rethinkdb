@@ -129,23 +129,24 @@ set_log_entries = (log_data_from_server) ->
         if not machines.get(machine_uuid)?
             continue # Machine not ready or down, we skip
 
-        if not machines.get(machine_uuid).get('log_entries')?
-            machines.get(machine_uuid).set 'log_entries', new LogEntries
-            
         for json in log_entries
-            entry = new LogEntry json
-            entry.set('machine_uuid',machine_uuid)
 
-            machines.get(machine_uuid).get('log_entries').add entry
+            new_timestamp = parseFloat(json.timestamp)
+            for entry, i in recent_log_entries.models
+                if new_timestamp > parseFloat(entry.get('timestamp'))
+                    entry = new LogEntry json
+                    entry.set('machine_uuid',machine_uuid)
 
+                    recent_log_entries.splice i, 0, entry
+                    if recent_log_entries.length > 3
+                        recent_log_entries.shift()
 
-            if recent_log_entries.length > 3
-                recent_log_entries.shift()
-            recent_log_entries.add entry
-
-
-            if parseFloat(json.timestamp) > recent_log_entries.min_timestamp
-                recent_log_entries.min_timestamp = Math.ceil parseFloat json.timestamp # /ajax/log juste compare integers
+                    if parseFloat(json.timestamp) > recent_log_entries.min_timestamp
+                        recent_log_entries.min_timestamp = Math.ceil parseFloat json.timestamp # /ajax/log juste compare integers
+            if recent_log_entries.length < 4
+                entry = new LogEntry json
+                entry.set('machine_uuid',machine_uuid)
+                recent_log_entries.push entry
 
 set_stats = (stat_data) ->
     for machine_id, data of stat_data
