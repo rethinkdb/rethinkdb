@@ -893,7 +893,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             }
             break;
         case Term::ERROR:
-            throw runtime_exc_t("Unimplemented: Term::ERROR");
+            throw runtime_exc_t(t.error());
             break;
         case Term::NUMBER:
             {
@@ -1007,8 +1007,6 @@ json_stream_t eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY
             }
             break;
         case Term::ERROR:
-            throw runtime_exc_t("Unimplemented: Term::ERROR");
-            break;
         case Term::NUMBER:
         case Term::STRING:
         case Term::JSON:
