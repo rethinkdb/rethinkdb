@@ -63,7 +63,7 @@ module 'NamespaceView', ->
 
             @check_has_unsatisfiable_goals()
             issues.on 'all', @check_has_unsatisfiable_goals
-            namespaces.on 'all', @render
+            @model.on 'all', @render
 
         check_has_unsatisfiable_goals: =>
             if @should_be_hidden

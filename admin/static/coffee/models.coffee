@@ -23,6 +23,8 @@ class Namespace extends Backbone.Model
                     distr_keys.push(key)
                 _.sortBy(distr_keys, _.identity)
                 @set('key_distr_sorted', distr_keys)
+            error: ->
+                window.issues_redundancy.compute_redundancy_errors() # In case a master is down, we have redundancy error
     sorted_key_distr_keys: =>
         keys = @get('key_distr_sorted')
         if keys?

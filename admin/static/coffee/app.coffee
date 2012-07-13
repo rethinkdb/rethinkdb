@@ -50,6 +50,7 @@ apply_to_collection = (collection, collection_data) ->
                 need_update = need_update_objects(data, collection.get(id))
                 if need_update is true
                     collection.get(id).set(data)
+                    collection.trigger('change')
             else
                 data.id = id
                 collection.add(new collection.model(data))
