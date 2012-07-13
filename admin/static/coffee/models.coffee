@@ -1,13 +1,17 @@
 #Models for Backbone.js
 class Namespace extends Backbone.Model
     initialize: ->
-        # TODO: magic number + uniformize setInterval and setTImeout
-        setInterval @load_key_distr, 5000
+
 
         # Add a computed shards property for convenience and metadata
         @.set 'computed_shards', new DataUtils.Shards [],@
 
-    # TODO Fix this leak
+    set_interval_key_distr: ->
+        @set_interval = setInterval @load_key_distr, 5000
+
+    clear_interval_key_distr: ->
+        clearInterval @set_interval
+
     # Cache key distribution info.
     load_key_distr: =>
         $.ajax

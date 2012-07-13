@@ -18,6 +18,9 @@ module 'NamespaceView', ->
         initialize: ->
             log_initial '(initializing) namespace view: container'
 
+            @model.load_key_distr()
+            @model.set_interval_key_distr()
+        
             # Panels for namespace view
             @title = new NamespaceView.Title(model: @model)
             @profile = new NamespaceView.Profile(model: @model)
@@ -63,7 +66,8 @@ module 'NamespaceView', ->
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
         destroy: =>
-            @unbind()
+            @model.clear_interval_key_distr()
+
             @title.destroy()
             @profile.destroy()
             @replicas.destroy()
