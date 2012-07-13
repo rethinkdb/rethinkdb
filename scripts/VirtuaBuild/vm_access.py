@@ -25,7 +25,7 @@ class VM(object):
             if output:
                 line = proc.stdout.readline()
                 if line:
-                    print line.strip()
+                    print >>sys.stderr, line.strip()
             else:
                 pass
         if proc.poll():
@@ -82,7 +82,7 @@ if opts["vm-name"] not in vm_list:
 
 target = vm_list[opts["vm-name"]]
 
-print "Begin: Running command:", " ".join(opts["command"])
+print >>sys.stderr, "Begin: Running command:", " ".join(opts["command"])
 print "\ton VM", target.name
 
 # Start VM
