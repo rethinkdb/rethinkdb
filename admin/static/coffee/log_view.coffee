@@ -9,7 +9,6 @@ module 'LogView', ->
 
         route: "/ajax/log/_?"
 
-        current_logs: []
         displayed_logs: 0
         max_timestamp: 0
 
@@ -26,8 +25,11 @@ module 'LogView', ->
                 @route = data.route
             if data?.template_header?
                 @header_template = data.template_header
+            if data?.filter?
+                @filter = data.filter
 
-            
+
+            @current_logs = []
             
             @set_interval = setInterval @check_for_new_updates, updateInterval
 
@@ -50,6 +52,8 @@ module 'LogView', ->
         parse_log: (log_data_from_server) =>
             @max_timestamp = 0
             for machine_uuid, log_entries of log_data_from_server
+                if @filter? and not @filter[machine_uuid]?
+                    continue
 
                 if log_entries.length > 0
                     @max_timestamp = parseFloat(log_entries[log_entries.length-1].timestamp) if @max_timestamp < parseFloat(log_entries[log_entries.length-1].timestamp)
@@ -114,6 +118,8 @@ module 'LogView', ->
                 @num_new_entries = 0
                 $.getJSON route, (log_data_from_server) =>
                     for machine_uuid, log_entries of log_data_from_server
+                        if @filter? and not machine_uuid of @filter
+                            continue
                         @num_new_entries += log_entries.length
                     @render_header()
 
@@ -137,6 +143,10 @@ module 'LogView', ->
 
         parse_new_log: (log_data_from_server) =>
             for machine_uuid, log_entries of log_data_from_server
+                if @filter? and not machine_uuid of @filter
+                    continue
+
+
                 for json in log_entries # For each new log
                     log_saved = false
                     for log, i in @current_logs
@@ -168,7 +178,6 @@ module 'LogView', ->
 
         destroy: =>
             clearInterval @set_interval
-            @current_logs = []
 
     class @LogEntry extends Backbone.View
         className: 'log-entry'

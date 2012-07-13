@@ -188,25 +188,3 @@ module 'MachineView', ->
         destroy: =>
             @model.off()
             directory.off()
-
-    # MachineView.RecentLogEntry
-    class @RecentLogEntry extends Backbone.View
-        className: 'recent-log-entry'
-        template: Handlebars.compile $('#machine_view-recent_log_entry-template').html()
-
-        events: ->
-            'click a[rel=popover]': 'do_nothing'
-
-        do_nothing: (event) -> event.preventDefault()
-
-        render: =>
-            json = _.extend @model.toJSON(), @model.get_formatted_message()
-            @.$el.html @template _.extend json,
-
-                machine_name: machines.get(@model.get('machine_uuid')).get('name')
-                timeago_timestamp: @model.get_iso_8601_timestamp()
-
-            @.$('abbr.timeago').timeago()
-            @.$('a[rel=popover]').popover
-                html: true
-            return @
