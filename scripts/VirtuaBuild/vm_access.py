@@ -13,7 +13,7 @@ class VM(object):
         subprocess.Popen(["ssh %s 'VBoxManage startvm --type headless %s'" % (control_user, self.uuid)], shell = True).wait()
         start_time = time.time()
         while os.system("ssh %s 'true'" % self.host) and time.time() - start_time < 5 * 60: # timeout after 5 minutes
-            pass
+            time.sleep(1)
         if not os.system("ssh %s 'true'" % self.host):
             print "(VM successfully started)"
         else:
@@ -97,7 +97,7 @@ print "***Will be working in directory " + dir_name
 
 # Move files to VM
 print "***Transferring files to virtual machine..."
-subprocess.Popen(" ".join((["cd", os.environ["RETHINKDB"] + "/.."] if "RETHINKDB" in os.environ else []) + ["tar", "czf", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
+subprocess.Popen(" ".join((["cd", os.environ["RETHINKDB"] + "/..", "&&"] if "RETHINKDB" in os.environ else []) + ["tar", "czf", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
 target.command(" ".join(["cd", dir_name, "&&", "tar", "xzf", "tmp.tar.gz"]))
 
 # Execute command
