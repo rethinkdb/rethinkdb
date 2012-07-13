@@ -1986,28 +1986,21 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
             break;
         case Builtin::UNION:
             {
-                boost::shared_ptr<json_stream_t> stream1 = eval_stream(c.args(0), env),
-                                                 stream2 = eval_stream(c.args(1), env);
+                union_stream_t::stream_list_t streams;
 
-                throw runtime_exc_t("Unimplemented: Builtin::UNION");
-                //stream1.splice(stream1.end(), stream2);
-                //return stream1;
+                streams.push_back(eval_stream(c.args(0), env));
+                streams.push_back(eval_stream(c.args(1), env));
+
+                return boost::shared_ptr<json_stream_t>(new union_stream_t(streams));
             }
             break;
         case Builtin::ARRAYTOSTREAM:
             {
-                boost::shared_ptr<json_stream_t> res;
 
                 boost::shared_ptr<scoped_cJSON_t> array = eval(c.args(0), env);
                 json_array_iterator_t it(array->get());
 
-                throw runtime_exc_t("Unimplemented: Builtin::UNION");
-                //cJSON *elt;
-                //while ((elt = it.next())) {
-                //    res.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(elt))));
-                //}
-
-                //return res;
+                return boost::shared_ptr<json_stream_t>(new in_memory_stream_t(it));
             }
             break;
         case Builtin::JAVASCRIPTRETURNINGSTREAM:

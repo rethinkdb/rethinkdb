@@ -209,6 +209,60 @@ public:
     virtual ~json_stream_t() { }
 };
 
+class in_memory_stream_t : public json_stream_t {
+public:
+    typedef std::list<boost::shared_ptr<scoped_cJSON_t> > cJSON_list_t;
+
+    template <class iterator>
+    in_memory_stream_t(const iterator &begin, const iterator &end)
+        : data(begin, end), hd(data.begin())
+    { }
+
+    in_memory_stream_t(json_array_iterator_t it) {
+        while (cJSON *json = it.next()) {
+            data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
+        }
+        hd = data.begin();
+    }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        if (hd == data.end()) {
+            return boost::shared_ptr<scoped_cJSON_t>();
+        } else {
+            boost::shared_ptr<scoped_cJSON_t> res = *hd;
+            ++hd;
+            return res;
+        }
+    }
+private:
+    cJSON_list_t data;
+    cJSON_list_t::iterator hd;
+};
+
+class union_stream_t : public json_stream_t {
+public:
+    typedef std::list<boost::shared_ptr<json_stream_t> > stream_list_t;
+
+    union_stream_t(const stream_list_t &_streams)
+        : streams(_streams), hd(streams.begin())
+    { }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        while (hd != streams.end()) {
+            if (boost::shared_ptr<scoped_cJSON_t> json = (*hd)->next()) {
+                return json;
+            } else {
+                ++hd;
+            }
+        }
+        return boost::shared_ptr<scoped_cJSON_t>();
+    }
+
+private:
+    stream_list_t streams;
+    stream_list_t::iterator hd;
+};
+
 //typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_stream_t;
 
 //Scopes for single pieces of json
