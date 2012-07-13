@@ -105,6 +105,8 @@ target.command(" ".join(["cd", dir_name, "&&", "tar", "xzvf", "tmp.tar.gz"]), ou
 
 # Execute command
 print "***Executing command..."
+# modifications
+opts["command"] = opts["command"].replace('_HOST', '$HOST').replace('_PORT', '$PORT')
 proc = target.command(("cd %s && " % dir_name) + opts["command"], output = True)
 
 # Move files from VM
