@@ -1804,10 +1804,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
             {
                 predicate_t p(c.builtin().filter().predicate(), env);
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
-                crash("unimplemented");
-                //TODO, add a filtering stream here.
-                //stream.remove_if(p);
-                return stream;
+                return boost::shared_ptr<json_stream_t>(new filter_stream_t<predicate_t>(stream, p));
             }
             break;
         case Builtin::MAP:

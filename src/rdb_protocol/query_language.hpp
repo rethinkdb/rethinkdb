@@ -244,6 +244,28 @@ private:
     stream_list_t::iterator hd;
 };
 
+template <class P>
+class filter_stream_t : public json_stream_t {
+public:
+    typedef boost::function<bool(boost::shared_ptr<scoped_cJSON_t>)> predicate;
+    filter_stream_t(boost::shared_ptr<json_stream_t> _stream, const P &_p)
+        : stream(_stream), p(_p)
+    { }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            if (p(json)) {
+                return json;
+            }
+        }
+        return boost::shared_ptr<scoped_cJSON_t>();
+    }
+
+private:
+    boost::shared_ptr<json_stream_t> stream;
+    P p;
+};
+
 //typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_stream_t;
 
 //Scopes for single pieces of json
