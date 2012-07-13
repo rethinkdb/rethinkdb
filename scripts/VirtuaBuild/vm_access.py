@@ -97,8 +97,8 @@ print >>sys.stderr, "***Will be working in directory " + dir_name
 
 # Move files to VM
 print >>sys.stderr, "***Transferring files to virtual machine..."
-subprocess.Popen(" ".join(["tar", "cvzf", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
-target.command(" ".join(["cd", dir_name, "&&", "tar", "xvzf", "tmp.tar.gz"]))
+subprocess.Popen(" ".join(["tar", "czf", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
+target.command(" ".join(["cd", dir_name, "&&", "tar", "xzf", "tmp.tar.gz"]))
 
 # Execute command
 print >>sys.stderr, "***Executing command..."
@@ -106,8 +106,8 @@ proc = target.command(("cd %s && " % dir_name) + " ".join(opts["command"]), outp
 
 # Move files from VM
 print >>sys.stderr, "***Transferring files from virtual machine..."
-proc = target.command(" ".join(["cd", dir_name, "&&", "tar", "cvzf", "tmp.tar.gz", "*", "&&", "scp", "%s:%s/tmp.tar.gz tmp.tar.gz" % (target.host, dir_name)]))
-subprocess.Popen(" ".join(["tar", "xvzf", "tmp.tar.gz"]), shell = True).wait()
+proc = target.command(" ".join(["cd", dir_name, "&&", "tar", "czf", "tmp.tar.gz", "*", "&&", "scp", "%s:%s/tmp.tar.gz tmp.tar.gz" % (target.host, dir_name)]))
+subprocess.Popen(" ".join(["tar", "xzf", "tmp.tar.gz"]), shell = True).wait()
 
 # Shut down VM
 print >>sys.stderr, "***Shutting down VM..."
