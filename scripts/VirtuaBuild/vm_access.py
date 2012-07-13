@@ -83,7 +83,7 @@ if opts["vm-name"] not in vm_list:
 
 target = vm_list[opts["vm-name"]]
 
-print "Begin: Running command:", " ".join(opts["command"])
+print "Begin: Running command:", opts["command"]
 print "\ton VM", target.name
 
 # Start VM
@@ -105,7 +105,7 @@ target.command(" ".join(["cd", dir_name, "&&", "tar", "xzvf", "tmp.tar.gz"]), ou
 
 # Execute command
 print "***Executing command..."
-proc = target.command(("cd %s && " % dir_name) + " ".join(opts["command"]), output = True)
+proc = target.command(("cd %s && " % dir_name) + opts["command"], output = True)
 
 # Move files from VM
 print "***Transferring files from virtual machine..."
