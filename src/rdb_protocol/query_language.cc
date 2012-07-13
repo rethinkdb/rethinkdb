@@ -6,173 +6,178 @@
 
 #include "http/json.hpp"
 
-#define CHECK_WELL_DEFINED(x) if (!is_well_defined(x)) { return false; }
+#define CHECK(x) if (!(x)) { return false; }
+#define CHECK_WELL_DEFINED(x) CHECK(is_well_defined(x))
 
 bool is_well_defined(const VarTermTuple &v) {
     return is_well_defined(v.term());
 }
 
 bool is_well_defined(const Term &t) {
-    rassert(t.has_type());
-    rassert(Term_TermType_IsValid(t.type()));
+    std::vector<const google::protobuf::FieldDescriptor *> fields;
+    t.GetReflection()->ListFields(t, &fields);
+    int field_count = fields.size();
 
-    if (t.has_var()) {
-        if (t.type() != Term::VAR) {
-            return false;
-        } else {
-            //no other way for this to fail
-        }
-    }
+    CHECK(field_count <= 2);
 
-    if (t.has_let()) {
-        if (t.type() != Term::LET) {
-            return false;
-        } else {
-            for (int i = 0; i < t.let().binds_size(); ++i) {
-                CHECK_WELL_DEFINED(t.let().binds(i));
-            }
+    switch (t.type()) {
+    case Term::VAR:
+        CHECK(t.has_var());
+        break;
+    case Term::LET:
+        CHECK(t.has_let());
+        for (int i = 0; i < t.let().binds_size(); ++i) {
+            CHECK_WELL_DEFINED(t.let().binds(i));
         }
         CHECK_WELL_DEFINED(t.let().expr());
-    }
-
-    if (t.has_call()) {
-        if (t.type() != Term::CALL) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(t.call().builtin());
-            for (int i = 0; i < t.call().args_size(); ++i) {
-                CHECK_WELL_DEFINED(t.call().args(i));
-            }
+        break;
+    case Term::CALL:
+        CHECK(t.has_call());
+        CHECK_WELL_DEFINED(t.call().builtin());
+        for (int i = 0; i < t.call().args_size(); ++i) {
+            CHECK_WELL_DEFINED(t.call().args(i));
         }
-    }
-
-    if (t.has_if_()) {
-        if (t.type() != Term::IF) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(t.if_().test());
-            CHECK_WELL_DEFINED(t.if_().true_branch());
-            CHECK_WELL_DEFINED(t.if_().false_branch());
+        break;
+    case Term::IF:
+        CHECK(t.has_if_());
+        CHECK_WELL_DEFINED(t.if_().test());
+        CHECK_WELL_DEFINED(t.if_().true_branch());
+        CHECK_WELL_DEFINED(t.if_().false_branch());
+        break;
+    case Term::TRY:
+        CHECK(t.has_try_());
+        CHECK_WELL_DEFINED(t.try_().try_term());
+        CHECK_WELL_DEFINED(t.try_().var_and_catch_term().term());
+        break;
+    case Term::ERROR:
+        CHECK(t.has_error());
+        break;
+    case Term::NUMBER:
+        CHECK(t.has_number());
+        break;
+    case Term::STRING:
+        CHECK(t.has_valuestring());
+        break;
+    case Term::JSON:
+        CHECK(t.has_jsonstring());
+        break;
+    case Term::BOOL:
+        CHECK(t.has_valuebool());
+        break;
+    case Term::JSON_NULL:
+        CHECK(field_count == 1); // null term has only a type field
+        break;
+    case Term::ARRAY:
+        if (t.array_size() == 0) { // empty arrays are valid
+            CHECK(field_count == 1);
         }
-    }
-
-    if (t.has_try_()) {
-        if (t.type() != Term::TRY) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(t.try_().try_term());
-            CHECK_WELL_DEFINED(t.try_().var_and_catch_term().term());
+        for (int i = 0; i < t.array_size(); ++i) {
+            CHECK_WELL_DEFINED(t.array(i));
         }
-    }
-
-    if (t.has_error() && t.type() != Term::ERROR) {
-        return false;
-    }
-
-    if (t.has_number() && t.type() != Term::NUMBER) {
-        return false;
-    }
-
-    if (t.has_valuestring() && t.type() != Term::STRING) {
-        return false;
-    }
-
-    if (t.has_valuebool() && t.type() != Term::BOOL) {
-        return false;
-    }
-
-    if (t.array_size() > 0 && t.type() != Term::ARRAY) {
-        return false;
-    }
-
-    if (t.map_size() > 0 && t.type() != Term::MAP) {
-        return false;
-    }
-
-    if (t.has_view_as_stream() && t.type() != Term::VIEWASSTREAM) {
-        return false;
-    }
-
-    if (t.has_get_by_key()) {
-        if (t.type() != Term::GETBYKEY) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(t.get_by_key().key());
+        break;
+    case Term::MAP:
+        // CHECK(t.map_size());
+        for (int i = 0; i < t.map_size(); ++i) {
+            CHECK_WELL_DEFINED(t.map(i).term());
         }
+        break;
+    case Term::VIEWASSTREAM:
+        CHECK(t.has_view_as_stream());
+        CHECK_WELL_DEFINED(t.view_as_stream());
+        break;
+    case Term::GETBYKEY:
+        CHECK(t.has_get_by_key());
+        CHECK_WELL_DEFINED(t.get_by_key().key());
+        break;
+    default:
+        return false;
     }
 
     return true;
 }
 
 bool is_well_defined(const Builtin &b) {
-    rassert(b.has_type());
-    rassert(Builtin_BuiltinType_IsValid(b.type()));
+    std::vector<const google::protobuf::FieldDescriptor *> fields;
 
-    if (b.has_attr() && b.type() != Builtin::GETATTR && b.type() != Builtin::HASATTR) {
+    b.GetReflection()->ListFields(b, &fields);
+
+    int field_count = fields.size();
+
+    if (field_count > 2) {
         return false;
     }
 
-    if (b.attrs_size() > 0 && b.type() != Builtin::PICKATTRS) {
+    switch (b.type()) {
+    case Builtin::NOT:
+    case Builtin::MAPMERGE:
+    case Builtin::ARRAYAPPEND:
+    case Builtin::ARRAYCONCAT:
+    case Builtin::ARRAYSLICE:
+    case Builtin::ARRAYNTH:
+    case Builtin::ARRAYLENGTH:
+    case Builtin::ADD:
+    case Builtin::SUBTRACT:
+    case Builtin::MULTIPLY:
+    case Builtin::DIVIDE:
+    case Builtin::MODULO:
+    case Builtin::DISTINCT:
+    case Builtin::LIMIT:
+    case Builtin::LENGTH:
+    case Builtin::UNION:
+    case Builtin::NTH:
+    case Builtin::STREAMTOARRAY:
+    case Builtin::ARRAYTOSTREAM:
+    case Builtin::JAVASCRIPT:
+    case Builtin::JAVASCRIPTRETURNINGSTREAM:
+    case Builtin::ANY:
+    case Builtin::ALL:
+        // these builtins only have
+        // Builtin.type set
+        CHECK(field_count == 1);
+        break;
+    case Builtin::COMPARE:
+        CHECK(b.has_comparison());
+        break;
+    case Builtin::GETATTR:
+    case Builtin::HASATTR:
+        CHECK(b.has_attr());
+        break;
+    case Builtin::PICKATTRS:
+        CHECK(b.attrs_size());
+        break;
+    case Builtin::FILTER:
+        CHECK(b.has_filter());
+        CHECK_WELL_DEFINED(b.filter().predicate());
+        break;
+    case Builtin::MAP:
+        CHECK(b.has_map());
+        CHECK_WELL_DEFINED(b.map().mapping());
+        break;
+    case Builtin::CONCATMAP:
+        CHECK(b.has_concat_map());
+        CHECK_WELL_DEFINED(b.concat_map().mapping());
+        break;
+    case Builtin::ORDERBY:
+        CHECK(b.has_order_by());
+        CHECK_WELL_DEFINED(b.order_by().mapping());
+        break;
+    case Builtin::REDUCE:
+        CHECK(b.has_reduce());
+        CHECK_WELL_DEFINED(b.reduce().reduction());
+        break;
+    case Builtin::GROUPEDMAPREDUCE:
+        CHECK(b.has_grouped_map_reduce());
+        CHECK_WELL_DEFINED(b.grouped_map_reduce().group_mapping());
+        CHECK_WELL_DEFINED(b.grouped_map_reduce().map_reduce().change_mapping());
+        CHECK_WELL_DEFINED(b.grouped_map_reduce().map_reduce().reduction());
+        break;
+    case Builtin::MAPREDUCE:
+        CHECK(b.has_map_reduce());
+        CHECK_WELL_DEFINED(b.map_reduce().change_mapping());
+        CHECK_WELL_DEFINED(b.map_reduce().reduction());
+        break;
+    default:
         return false;
-    }
-
-    if (b.has_filter()) {
-        if (b.type() != Builtin::FILTER) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.filter().predicate());
-        }
-    }
-
-    if (b.has_map()) {
-        if (b.type() != Builtin::MAP) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.map().mapping());
-        }
-    }
-
-    if (b.has_concat_map()) {
-        if (b.type() != Builtin::CONCATMAP) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.concat_map().mapping());
-        }
-    }
-
-    if (b.has_order_by()) {
-        if (b.type() != Builtin::ORDERBY) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.order_by().mapping());
-        }
-    }
-
-    if (b.has_reduce()) {
-        if (b.type() != Builtin::REDUCE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.reduce().reduction());
-        }
-    }
-
-    if (b.has_grouped_map_reduce()) {
-        if (b.type() != Builtin::GROUPEDMAPREDUCE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.grouped_map_reduce().group_mapping());
-            CHECK_WELL_DEFINED(b.grouped_map_reduce().map_reduce().change_mapping());
-            CHECK_WELL_DEFINED(b.grouped_map_reduce().map_reduce().reduction());
-        }
-    }
-
-    if (b.has_map_reduce()) {
-        if (b.type() != Builtin::MAPREDUCE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(b.map_reduce().change_mapping());
-            CHECK_WELL_DEFINED(b.map_reduce().reduction());
-        }
     }
 
     return true;
@@ -195,27 +200,27 @@ bool is_well_defined(const Predicate &p) {
 }
 
 bool is_well_defined(const View &v) {
-    if (v.has_table() && v.type() != View::TABLE) {
+    std::vector<const google::protobuf::FieldDescriptor *> fields;
+    v.GetReflection()->ListFields(v, &fields);
+    CHECK(fields.size() == 2);
+
+    switch (v.type()) {
+    case View::TABLE:
+        CHECK(v.has_table());
+        break;
+    case View::FILTERVIEW:
+        CHECK(v.has_filter_view());
+        CHECK_WELL_DEFINED(v.filter_view().view());
+        CHECK_WELL_DEFINED(v.filter_view().predicate());
+        break;
+    case View::RANGEVIEW:
+        CHECK(v.has_range_view());
+        CHECK_WELL_DEFINED(v.range_view().view());
+        CHECK_WELL_DEFINED(v.range_view().lowerbound());
+        CHECK_WELL_DEFINED(v.range_view().upperbound());
+        break;
+    default:
         return false;
-    }
-
-    if (v.has_filter_view()) {
-        if (v.type() != View::FILTERVIEW) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(v.filter_view().view());
-            CHECK_WELL_DEFINED(v.filter_view().predicate());
-        }
-    }
-
-    if (v.has_range_view()) {
-        if (v.type() != View::RANGEVIEW) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(v.range_view().view());
-            CHECK_WELL_DEFINED(v.range_view().lowerbound());
-            CHECK_WELL_DEFINED(v.range_view().upperbound());
-        }
     }
 
     return true;
@@ -226,107 +231,77 @@ bool is_well_defined(const ReadQuery &r) {
 }
 
 bool is_well_defined(const WriteQuery &w) {
-    rassert(w.has_type());
-    rassert(WriteQuery_WriteQueryType_IsValid(w.type()));
+    std::vector<const google::protobuf::FieldDescriptor *> fields;
+    w.GetReflection()->ListFields(w, &fields);
+    CHECK(fields.size() == 2);
 
-    if (w.has_update()) {
-        if (w.type() != WriteQuery::UPDATE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.update().view());
-            CHECK_WELL_DEFINED(w.update().mapping());
+    switch (w.type()) {
+    case WriteQuery::UPDATE:
+        CHECK(w.has_update());
+        CHECK_WELL_DEFINED(w.update().view());
+        CHECK_WELL_DEFINED(w.update().mapping());
+        break;
+    case WriteQuery::DELETE:
+        CHECK(w.has_delete_());
+        CHECK_WELL_DEFINED(w.delete_().view());
+        break;
+    case WriteQuery::MUTATE:
+        CHECK(w.has_mutate());
+        CHECK_WELL_DEFINED(w.mutate().view());
+        CHECK_WELL_DEFINED(w.mutate().mapping());
+        break;
+    case WriteQuery::INSERT:
+        CHECK(w.has_insert());
+        for (int i = 0; i < w.insert().terms_size(); ++i) {
+            CHECK_WELL_DEFINED(w.insert().terms(i));
         }
-    }
-
-    if (w.has_delete_()) {
-        if (w.type() != WriteQuery::DELETE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.delete_().view());
+        break;
+    case WriteQuery::INSERTSTREAM:
+        CHECK(w.has_insert_stream());
+        CHECK_WELL_DEFINED(w.insert_stream().stream());
+        break;
+    case WriteQuery::FOREACH:
+        CHECK(w.has_for_each());
+        CHECK_WELL_DEFINED(w.for_each().stream());
+        for (int i = 0; i < w.for_each().queries_size(); ++i) {
+            CHECK_WELL_DEFINED(w.for_each().queries(i));
         }
-    }
-
-    if (w.has_mutate()) {
-        if (w.type() != WriteQuery::MUTATE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.mutate().view());
-            CHECK_WELL_DEFINED(w.mutate().mapping());
-        }
-    }
-
-    if (w.has_insert()) {
-        if (w.type() != WriteQuery::INSERT) {
-            return false;
-        } else {
-            for (int i = 0; i < w.insert().terms_size(); ++i) {
-                CHECK_WELL_DEFINED(w.insert().terms(i));
-            }
-        }
-    }
-
-    if (w.has_insert_stream()) {
-        if (w.type() != WriteQuery::INSERTSTREAM) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.insert_stream().stream());
-        }
-    }
-
-    if (w.has_for_each()) {
-        if (w.type() != WriteQuery::FOREACH) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.for_each().stream());
-            for (int i = 0; i < w.for_each().queries_size(); ++i) {
-                CHECK_WELL_DEFINED(w.for_each().queries(i));
-            }
-        }
-    }
-
-    if (w.has_point_update()) {
-        if (w.type() != WriteQuery::POINTUPDATE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.point_update().key());
-            CHECK_WELL_DEFINED(w.point_update().mapping());
-        }
-    }
-
-    if (w.has_point_delete()) {
-        if (w.type() != WriteQuery::POINTDELETE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.point_delete().key());
-        }
-    }
-
-    if (w.has_point_mutate()) {
-        if (w.type() != WriteQuery::POINTMUTATE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(w.point_mutate().key());
-        }
+        break;
+    case WriteQuery::POINTUPDATE:
+        CHECK(w.has_point_update());
+        CHECK_WELL_DEFINED(w.point_update().key());
+        CHECK_WELL_DEFINED(w.point_update().mapping());
+        break;
+    case WriteQuery::POINTDELETE:
+        CHECK(w.has_point_delete());
+        CHECK_WELL_DEFINED(w.point_delete().key());
+        break;
+    case WriteQuery::POINTMUTATE:
+        CHECK(w.has_point_mutate());
+        CHECK_WELL_DEFINED(w.point_mutate().key());
+        CHECK_WELL_DEFINED(w.point_mutate().mapping());
+        break;
+    default:
+        return false;
     }
 
     return true;
 }
 
 bool is_well_defined(const Query &q) {
-    if (q.has_read_query()) {
-        if (q.type() != Query::READ) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(q.read_query());
-        }
-    }
-
-    if (q.has_write_query()) {
-        if (q.type() != Query::WRITE) {
-            return false;
-        } else {
-            CHECK_WELL_DEFINED(q.write_query());
-        }
+    switch (q.type()) {
+    case Query::READ:
+        CHECK(q.has_read_query());
+        CHECK(!q.has_write_query());
+        CHECK_WELL_DEFINED(q.read_query());
+        break;
+    case Query::WRITE:
+        CHECK(q.has_write_query());
+        CHECK(!q.has_read_query());
+        CHECK_WELL_DEFINED(q.write_query());
+        break;
+    default:
+        return false;
     }
 
     return true;

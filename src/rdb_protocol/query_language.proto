@@ -26,6 +26,7 @@ message Term {
         VIEWASSTREAM = 13;
         GETBYKEY = 14;
     };
+
     required TermType type = 1;
 
     optional string var = 2;
@@ -50,14 +51,14 @@ message Term {
         required Term false_branch = 3;
     };
 
-    optional If if_ = 5; //Underscore to avoid conflicting with c++ keyword
+    optional If if_ = 5;
 
     message Try {
         required Term try_term = 1;
         required VarTermTuple var_and_catch_term = 2;
     };
 
-    optional Try try_ = 6; //Underscore to avoid conflicting with c++ keyword
+    optional Try try = 6;
 
     optional string error = 7;
 
@@ -269,7 +270,7 @@ message WriteQuery {
         required View view = 1;
     };
 
-    optional Delete delete_ = 3; //underscore to avoid conflicting with C++ keyword
+    optional Delete delete = 3;
 
     message Mutate {
         required View view = 1;

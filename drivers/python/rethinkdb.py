@@ -114,14 +114,26 @@ class Stream(object):
         self.check_readonly()
         return Update(self, updater, row)
 
-    def distinct(self):
+    def distinct(self, *keys):
+        if keys:
+            return self.pluck(*keys).distinct()
         return distinct(self)
 
     def limit(self, count):
         return limit(self, count)
 
+    def nth(self, index):
+        return nth(self, index)
+
     def union(self, other):
         return union(self, other)
+
+    def pluck(self, *rows):
+        if len(rows) == 1:
+            #return self.map(rows[0])
+            return self.map('row.' + rows[0])
+        else:
+            return self.map(list('row.' + var for var in rows))
 
     def _finalize_query(self, root):
         term = _finalize_internal(root, p.Term)
@@ -160,13 +172,13 @@ class Table(Stream):
         parent.table_name = self.name
 
     def write_ast(self, parent):
-        parent.type = p.View.TABLE
-        self.write_ref_ast(parent.table.table_ref)
+        parent.type = p.Term.VIEWASSTREAM
+        parent.view_as_stream.type = p.View.TABLE
+        self.write_ref_ast(parent.view_as_stream.table.table_ref)
 
     def _finalize_query(self, root):
         term = _finalize_internal(root, p.Term)
-        term.type = p.Term.VIEWASSTREAM
-        self.write_ast(term.view_as_stream)
+        self.write_ast(term)
         return term
 
 class Insert(object):
@@ -286,20 +298,7 @@ class Map(Stream):
         mapping.arg = self.row
         toTerm(self.mapping).write_ast(mapping.body)
         # Parent stream
-        term = parent.call.args.add()
-        term.type = p.Term.VIEWASSTREAM
-        self.parent_view.write_ast(term.view_as_stream)
-
-class ArrayToStream(Stream):
-    def __init__(self, array):
-        super(ArrayToStream, self).__init__()
-        self.read_only = True
-        self.array = array
-
-    def write_ast(self, parent):
-        parent.type = p.Term.CALL
-        parent.call.builtin.type = p.Builtin.ARRAYTOSTREAM
-        toTerm(self.array).write_ast(parent.call.args.add())
+        self.parent_view.write_ast(parent.call.args.add())
 
 class Term(object):
     def __init__(self):

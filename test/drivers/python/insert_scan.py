@@ -20,14 +20,16 @@ class TestTableRef(unittest.TestCase):
 
     def expect(self, query, expected):
         res = self.conn.run(query)
-        if not res.response:
+        try:
+            self.assertEqual(res.status_code, 0, res.response[0])
+            self.assertEqual(json.loads(res.response[0]), expected)
+        except Exception:
             root_ast = r.p.Query()
             root_ast.token = self.conn.get_token()
             r.toTerm(query)._finalize_query(root_ast)
             print root_ast
             print res
-        self.assertEqual(res.status_code, 0, res.response[0])
-        self.assertEqual(json.loads(res.response[0]), expected)
+            raise
 
     def expectfail(self, query, msg):
         res = self.conn.run(query)
@@ -240,6 +242,8 @@ class TestTableRef(unittest.TestCase):
             resp = self.conn.run(q)
             assert resp.status_code == 0
             assert json.loads(resp.response[0]) == doc
+
+        self.expect(r.array(self.table.distinct('a')), [3, 9])
 
 if __name__ == '__main__':
     unittest.main()

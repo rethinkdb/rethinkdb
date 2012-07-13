@@ -111,6 +111,8 @@ public:
     const type_t& get_arg_type(int n) const;
     const type_t& get_return_type() const;
     bool is_variadic() const;
+    bool is_error() const;
+
     int get_n_args() const;
 private:
     type_t arg_type[3];
