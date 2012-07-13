@@ -28,6 +28,10 @@ module 'MachineView', ->
             @data = new MachineView.Data(model: @model)
             @stats_panel = new Vis.StatsPanel(@model.get_stats_for_performance)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
+
+            @logs = new LogView.Container
+                route: "/ajax/log/"+@model.get('id')+"_?"
+                template_header: Handlebars.compile $('#log-header-machine-template').html()
         
         rename_machine: (event) ->
             event.preventDefault()
@@ -55,15 +59,7 @@ module 'MachineView', ->
             @.$('.data').html @data.render().$el
 
             # log entries
-            if @model.get('log_entries')?
-                entries_to_render = []
-                @model.get('log_entries').each (log_entry) =>
-                    entries_to_render.push(new MachineView.RecentLogEntry
-                        model: log_entry)
-                entries_to_render = entries_to_render.slice(0, @max_log_entries_to_render)
-                @.$('.recent-log-entries').append entry.render().el for entry in entries_to_render
-
-                @.$('.nav-tabs').tab()
+            @.$('.recent-log-entries').html @logs.render().$el
 
             return @
 
@@ -83,6 +79,7 @@ module 'MachineView', ->
             @data.destroy()
             @stats_panel.destroy()
             @performance_graph.destroy()
+            @logs.destroy()
 
     # MachineView.Title
     class @Title extends Backbone.View

@@ -5,8 +5,9 @@ module 'LogView', ->
         className: 'log-view'
         template: Handlebars.compile $('#log-container-template').html()
         header_template: Handlebars.compile $('#log-header-template').html()
-        header_template_no_log: Handlebars.compile $('#log-header-no-logtemplate').html()
         max_log_entries: 20
+
+        route: "/ajax/log/_?"
 
         current_logs: []
         displayed_logs: 0
@@ -18,8 +19,15 @@ module 'LogView', ->
             'click .next-log-entries': 'next_entries'
             'click .update-log-entries': 'update_log_entries'
 
-        initialize: ->
+        initialize: (data) ->
             log_initial '(initializing) events view: container'
+
+            if data?.route?
+                @route = data.route
+            if data?.template_header?
+                @header_template = data.template_header
+
+            
             
             @set_interval = setInterval @check_for_new_updates, updateInterval
 
@@ -34,10 +42,9 @@ module 'LogView', ->
             return @
 
         fetch_log_entries: (url_params) =>
-            route = "/ajax/log/_?"
+            route = @route
             for param, value of url_params
                 route+="&#{param}=#{value}"
-            
             $.getJSON route, @parse_log
             
         parse_log: (log_data_from_server) =>
@@ -102,7 +109,7 @@ module 'LogView', ->
         check_for_new_updates: =>
             min_timestamp = @current_logs[0].get('timestamp')
             if min_timestamp?
-                route = "/ajax/log/_?min_timestamp=#{min_timestamp}"
+                route = @route+"&min_timestamp=#{min_timestamp}"
 
                 @num_new_entries = 0
                 $.getJSON route, (log_data_from_server) =>
@@ -111,17 +118,14 @@ module 'LogView', ->
                     @render_header()
 
         render_header: =>
-            if @current_logs.length > 0
-                 @.$('.header').html @header_template
-                    new_entries: @num_new_entries > 0
-                    num_new_entries: @num_new_entries
-                    too_many_new_entries: @num_new_entries > @max_log_entries
-                    max_log_entries: @max_log_entries
-                    from_date: new XDate(@current_logs[0].get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
-                    to_date: new XDate(@current_logs[@displayed_logs-1].get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
-            else
-                @.$('.header').html @header_template_no_log
- 
+             @.$('.header').html @header_template
+                new_entries: @num_new_entries > 0
+                num_new_entries: @num_new_entries
+                too_many_new_entries: @num_new_entries > @max_log_entries
+                max_log_entries: @max_log_entries
+                from_date: new XDate(@current_logs[0].get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
+                to_date: new XDate(@current_logs[@displayed_logs-1].get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
+
         update_log_entries: (event) =>
             event.preventDefault()
             if @num_new_entries > @max_log_entries
@@ -164,6 +168,7 @@ module 'LogView', ->
 
         destroy: =>
             clearInterval @set_interval
+            @current_logs = []
 
     class @LogEntry extends Backbone.View
         className: 'log-entry'
