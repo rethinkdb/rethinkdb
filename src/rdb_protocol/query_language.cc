@@ -1796,9 +1796,9 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
                                              it != stream.end();
                                              ++it) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-                    env->scope.put_in_scope(c.builtin().map().mapping().arg(), *it);
+                    env->scope.put_in_scope(c.builtin().concat_map().mapping().arg(), *it);
 
-                    json_stream_t inner_stream = eval_stream(c.builtin().map().mapping().body(), env);
+                    json_stream_t inner_stream = eval_stream(c.builtin().concat_map().mapping().body(), env);
 
                     for (json_stream_t::iterator jt  = inner_stream.begin();
                                                  jt != inner_stream.end();
