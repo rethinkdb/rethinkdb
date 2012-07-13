@@ -17,6 +17,7 @@ module 'LogView', ->
         events: ->
             'click .next-log-entries': 'next_entries'
             'click .update-log-entries': 'update_log_entries'
+            'click .expand_all': 'expand_all'
 
         initialize: (data) ->
             log_initial '(initializing) events view: container'
@@ -176,6 +177,19 @@ module 'LogView', ->
             @render_header()
             @.$('.header .alert').remove()
 
+        expand_all: (event) =>
+            event.preventDefault()
+            if @.$(event.target).html() is 'Show all details'
+                @.$(event.target).html 'Hide all details'
+                @.$('.more-details-link').each ->
+                    $(this).html 'Hide details'
+                    $(this).parent().parent().next().slideDown 'fast'
+            else
+                @.$(event.target).html 'Show all details'
+                @.$('.more-details-link').each ->
+                    $(this).html 'More details'
+                    $(this).parent().parent().next().slideUp 'fast'
+
         destroy: =>
             clearInterval @set_interval
 
@@ -192,9 +206,28 @@ module 'LogView', ->
             if @.$(event.target).html() is 'More details'
                 @.$(event.target).html 'Hide details'
                 @.$(event.target).parent().parent().next().slideDown 'fast'
+                
+                # Check if we can show other details
+                found_more_details_link = false
+                $('.more-details-link').each ->
+                    if $(this).html() is 'More details'
+                        found_more_details_link = true
+                        return false
+                if found_more_details_link is false
+                    $('.expand_all_link').html 'Hide all details'
             else
                 @.$(event.target).html 'More details'
                 @.$(event.target).parent().parent().next().slideUp 'fast'
+
+                # Check if we can show other details
+                found_hide_details_link = false
+                $('.more-details-link').each ->
+                    if $(this).html() is 'Hide details'
+                        found_hide_details_link = true
+                        return false
+                console.log found_hide_details_link
+                if found_hide_details_link is false
+                    $('.expand_all_link').html 'Show all details'
 
         render: =>
             json = _.extend @model.toJSON(), @model.get_formatted_message()

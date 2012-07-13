@@ -137,7 +137,7 @@ set_log_entries = (log_data_from_server) ->
                     entry = new LogEntry json
                     entry.set('machine_uuid',machine_uuid)
 
-                    recent_log_entries.splice i, 0, entry
+                    recent_log_entries.add entry, {at: i}
                     if recent_log_entries.length > 3
                         recent_log_entries.shift()
 
