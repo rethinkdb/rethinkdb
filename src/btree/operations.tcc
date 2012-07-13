@@ -36,10 +36,10 @@ void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblo
     // Walk down the tree to the leaf.
     while (node::is_internal(reinterpret_cast<const node_t *>(buf.get_data_read()))) {
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-        check_and_handle_split(&sizer, txn, buf, last_buf, superblock, key, reinterpret_cast<Value *>(NULL), root_eviction_priority);
+        check_and_handle_split(&sizer, txn, &buf, &last_buf, superblock, key, reinterpret_cast<Value *>(NULL), root_eviction_priority);
 
         // Check if the node is underfull, and merge/level if it is.
-        check_and_handle_underfull(&sizer, txn, buf, last_buf, superblock, key);
+        check_and_handle_underfull(&sizer, txn, &buf, &last_buf, superblock, key);
 
         // Release the superblock, if we've gone past the root (and haven't
         // already released it). If we're still at the root or at one of
@@ -137,14 +137,14 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
      * (should be -1, 0 or 1) */
     int population_change;
 
-    if (kv_loc->value) {
+    if (kv_loc->value.has()) {
         // We have a value to insert.
 
         // Split the node if necessary, to make sure that we have room
         // for the value.  Not necessary when deleting, because the
         // node won't grow.
 
-        check_and_handle_split(&sizer, txn, kv_loc->buf, kv_loc->last_buf, kv_loc->superblock, key, kv_loc->value.get(), root_eviction_priority);
+        check_and_handle_split(&sizer, txn, &kv_loc->buf, &kv_loc->last_buf, kv_loc->superblock, key, kv_loc->value.get(), root_eviction_priority);
 
         rassert(!leaf::is_full(&sizer, reinterpret_cast<const leaf_node_t *>(kv_loc->buf.get_data_read()),
                 key, kv_loc->value.get()));
@@ -178,7 +178,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
 
     // Check to see if the leaf is underfull (following a change in
     // size or a deletion, and merge/level if it is.
-    check_and_handle_underfull(&sizer, txn, kv_loc->buf, kv_loc->last_buf, kv_loc->superblock, key);
+    check_and_handle_underfull(&sizer, txn, &kv_loc->buf, &kv_loc->last_buf, kv_loc->superblock, key);
 
     //Modify the stats block
     buf_lock_t stat_block(txn, kv_loc->stat_block, rwi_write, buffer_cache_order_mode_ignore);

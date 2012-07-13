@@ -451,7 +451,7 @@ void interesting_children_callback_t::decr_acquisition_countdown() {
 
 
 int ranged_block_ids_t::num_block_ids() const {
-    if (node_) {
+    if (node_.has()) {
         return node_->npairs;
     } else {
         return 1;
@@ -462,7 +462,7 @@ void ranged_block_ids_t::get_block_id_and_bounding_interval(int index,
                                                             block_id_t *block_id_out,
                                                             const btree_key_t **left_excl_bound_out,
                                                             const btree_key_t **right_incl_bound_out) const {
-    if (node_) {
+    if (node_.has()) {
         rassert(index >= 0);
         rassert(index < node_->npairs);
 

@@ -98,12 +98,12 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
             return res;
         }
         unreachable();
-    } catch (schema_mismatch_exc_t &e) {
+    } catch (const schema_mismatch_exc_t &e) {
         http_res_t res(404);
         logINF("HTTP request threw a schema_mismatch_exc_t with what = %s", e.what());
         res.set_body("application/text", e.what());
         return res;
-    } catch (permission_denied_exc_t &e) {
+    } catch (const permission_denied_exc_t &e) {
         http_res_t res(403); // TODO: should that be 405 Method Not Allowed?
         logINF("HTTP request threw a permission_denied_exc_t with what = %s", e.what());
         res.set_body("application/text", e.what());

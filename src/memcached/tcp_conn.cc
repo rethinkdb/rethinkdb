@@ -120,7 +120,7 @@ private:
     DISABLE_COPYING(memcache_conn_closing_subscription_t);
 };
 
-void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
+void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     assert_thread();
 
     block_pm_duration conn_timer(&stats.pm_conns);

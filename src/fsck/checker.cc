@@ -772,7 +772,7 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
                     buf_patch_t *patch;
                     try {
                         patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
-                    } catch (patch_deserialization_error_t &e) {
+                    } catch (const patch_deserialization_error_t &e) {
                         (void)e;
                         ++errs->corrupted_patch_blocks;
                         break;
@@ -802,7 +802,7 @@ void check_and_load_diff_log(slicecx_t *cx, diff_log_errors *errs) {
         // Verify patches list
         block_sequence_id_t previous_block_sequence = 0;
         patch_counter_t previous_patch_counter = 0;
-        for(std::list<buf_patch_t *>::const_iterator p = patch_list->second.begin(); p != patch_list->second.end(); ++p) {
+        for (std::list<buf_patch_t *>::const_iterator p = patch_list->second.begin(); p != patch_list->second.end(); ++p) {
             if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
                 previous_patch_counter = 0;
             }
@@ -892,9 +892,9 @@ private:
     DISABLE_COPYING(value_sizer_fscker_t);
 };
 
-bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_t<void> >& sizer, block_magic_t magic) {
+bool construct_sizer_from_magic(block_size_t bs, boost::scoped_ptr< value_sizer_t<void> > *sizer, block_magic_t magic) {
     if (magic == value_sizer_t<memcached_value_t>::leaf_magic()) {
-        sizer.reset(new value_sizer_t<memcached_value_t>(bs));
+        sizer->reset(new value_sizer_t<memcached_value_t>(bs));
         return true;
     } else {
         return false;
@@ -905,18 +905,18 @@ void check_subtree_leaf_node(slicecx_t *cx, const leaf_node_t *buf,
                              const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null,
                              node_error *errs) {
     boost::scoped_ptr< value_sizer_t<void> > sizer;
-    if (!construct_sizer_from_magic(cx->block_size(), sizer, buf->magic)) {
+    if (!construct_sizer_from_magic(cx->block_size(), &sizer, buf->magic)) {
         errs->msg = "Unrecognized magic value for leaf node.";
     }
 
     struct : public block_getter_t {
-        bool get_block(block_id_t id, scoped_malloc_t<char>& buf_out) {
+        bool get_block(block_id_t id, scoped_malloc_t<char> *buf_out) {
             btree_block_t b;
             if (b.init(cx, id)) {
                 // TODO: This copies the block, and there's no reason
                 // we really have to do that.
                 scoped_malloc_t<char> tmp(reinterpret_cast<char *>(b.buf), reinterpret_cast<char *>(b.buf) + cx->block_size().value());
-                buf_out.swap(tmp);
+                buf_out->swap(tmp);
                 return true;
             } else {
                 return false;
@@ -1011,7 +1011,7 @@ void check_subtree(slicecx_t *cx, block_id_t id, const btree_key_t *lo, const bt
     } else {
 
         boost::scoped_ptr< value_sizer_t<void> > sizer_ignore;
-        if (construct_sizer_from_magic(cx->block_size(), sizer_ignore, reinterpret_cast<node_t *>(node.buf)->magic)) {
+        if (construct_sizer_from_magic(cx->block_size(), &sizer_ignore, reinterpret_cast<node_t *>(node.buf)->magic)) {
             sizer_ignore.reset();
             check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, &node_err);
         } else {
@@ -1207,17 +1207,17 @@ void *do_check_slice(void *slice_param) {
     return NULL;
 }
 
-void launch_check_slice(std::vector<pthread_t>& threads, scoped_ptr_t<slicecx_t> *cx, slice_errors *errs) {
+void launch_check_slice(std::vector<pthread_t> *threads, scoped_ptr_t<slicecx_t> *cx, slice_errors *errs) {
     // add another thread.
-    threads.resize(threads.size() + 1);
+    threads->push_back(pthread_t());
     slice_parameter_t *param = new slice_parameter_t;
     param->cx.init(cx->release());
     param->errs = errs;
-    int res = pthread_create(&threads[threads.size() - 1], NULL, do_check_slice, param);
+    int res = pthread_create(&threads->back(), NULL, do_check_slice, param);
     guarantee_err(res == 0, "pthread_create not working");
 }
 
-void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t>& threads, file_knowledge_t *knog, all_slices_errors_t *errs, const config_t *cfg) {
+void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t> *threads, file_knowledge_t *knog, all_slices_errors_t *errs, const config_t *cfg) {
     int step = knog->config_block->n_files;
     for (int i = knog->config_block->this_serializer; i < errs->n_slices(); i += step) {
         errs->slice[i].global_slice_number = i;
@@ -1537,13 +1537,13 @@ bool check_files(const config_t *cfg) {
     std::vector<pthread_t> threads;
     all_slices_errors_t slices_errs(n_slices, knog.metadata_file.has());
     for (int i = 0; i < num_files; ++i) {
-        launch_check_after_config_block(knog.files[i].get(), threads, knog.file_knog[i].get(), &slices_errs, cfg);
+        launch_check_after_config_block(knog.files[i].get(), &threads, knog.file_knog[i].get(), &slices_errs, cfg);
     }
 
     // ... and one for the metadata slice
     if (knog.metadata_file.has()) {
         scoped_ptr_t<slicecx_t> cx(new slicecx_t(knog.metadata_file.get(), knog.metadata_file_knog.get(), 0, cfg));
-        launch_check_slice(threads, &cx, slices_errs.metadata_slice.get());
+        launch_check_slice(&threads, &cx, slices_errs.metadata_slice.get());
     }
 
     // Wait for all threads to finish.
