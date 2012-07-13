@@ -1,10 +1,10 @@
 os_list = [
-            ("ubuntu", "rethinkdb/build/debug"),
-            ("redhat5_1", "rethinkdb/build/debug-legacy-legacy-gcc-no_eventfd"),
-            ("debian", "rethinkdb/build/debug-legacy-no_eventfd"),
-            ("centos5_5", "rethinkdb/build/debug-legacy-legacy-gcc"),
-            ("suse", "rethinkdb/build/debug-legacy-legacy-gcc-no_eventfd"),
-            ("centos6", "rethinkdb/build/debug-legacy-legacy-gcc")
+            ("ubuntu", "build/debug"),
+            ("redhat5_1", "build/debug-legacy-legacy-gcc-no_eventfd"),
+            ("debian", "build/debug-legacy-no_eventfd"),
+            ("centos5_5", "build/debug-legacy-legacy-gcc"),
+            ("suse", "build/debug-legacy-legacy-gcc-no_eventfd"),
+            ("centos6", "build/debug-legacy-legacy-gcc")
             ]
 
 workload = "./rethinkdb/test/workloads/many_keys.py $HOST:$PORT"
