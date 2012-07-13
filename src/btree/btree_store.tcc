@@ -67,7 +67,7 @@ btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
             );
     }
 
-    serializer.reset(new standard_serializer_t(
+    serializer.init(new standard_serializer_t(
         standard_serializer_t::dynamic_config_t(),
         io_backender,
         standard_serializer_t::private_dynamic_config_t(filename),
@@ -81,13 +81,13 @@ btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
 
     cache_dynamic_config.max_size = GIGABYTE;
     cache_dynamic_config.max_dirty_size = GIGABYTE / 2;
-    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, &perfmon_collection));
+    cache.init(new cache_t(serializer.get(), &cache_dynamic_config, &perfmon_collection));
 
     if (create) {
         btree_slice_t::create(cache.get());
     }
 
-    btree.reset(new btree_slice_t(cache.get(), &perfmon_collection));
+    btree.init(new btree_slice_t(cache.get(), &perfmon_collection));
 
     if (create) {
         // Initialize metainfo to an empty `binary_blob_t` because its domain is

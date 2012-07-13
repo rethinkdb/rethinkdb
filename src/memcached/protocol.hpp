@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
