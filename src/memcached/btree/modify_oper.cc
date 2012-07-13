@@ -24,7 +24,7 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
         the_value.reset();
     }
 
-    bool update_needed = oper->operate(txn, the_value);
+    bool update_needed = oper->operate(txn, &the_value);
     update_needed = update_needed || expired;
 
     // Add a CAS to the value if necessary

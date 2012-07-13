@@ -15,9 +15,9 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
     ~memcached_set_oper_t() {
     }
 
-    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t> *value) {
         // We may be instructed to abort, depending on the old value.
-        if (value.has()) {
+        if (value->has()) {
             switch (replace_policy) {
             case replace_policy_yes:
                 break;
@@ -25,7 +25,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
                 result = sr_didnt_replace;
                 return false;
             case replace_policy_if_cas_matches:
-                if (!value->has_cas() || value->cas() != req_cas) {
+                if (!(*value)->has_cas() || (*value)->cas() != req_cas) {
                     result = sr_didnt_replace;
                     return false;
                 }
@@ -45,37 +45,37 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
             }
         }
 
-        if (!value.has()) {
+        if (!value->has()) {
             scoped_malloc_t<memcached_value_t> tmp(MAX_MEMCACHED_VALUE_SIZE);
-            value.swap(tmp);
-            memset(value.get(), 0, MAX_MEMCACHED_VALUE_SIZE);
+            value->swap(tmp);
+            memset(value->get(), 0, MAX_MEMCACHED_VALUE_SIZE);
         }
 
         // Whatever the case, shrink the old value.
         {
-            blob_t b(value->value_ref(), blob::btree_maxreflen);
+            blob_t b((*value)->value_ref(), blob::btree_maxreflen);
             b.clear(txn);
         }
 
         if (data->size() > MAX_VALUE_SIZE) {
             result = sr_too_large;
-            value.reset();
+            value->reset();
             return true;
         }
 
         {
             scoped_malloc_t<memcached_value_t> tmp(MAX_MEMCACHED_VALUE_SIZE);
-            if (value->has_cas()) {
+            if ((*value)->has_cas()) {
                 // run_memcached_modify_oper will set an actual CAS later.
                 metadata_write(&tmp->metadata_flags, tmp->contents, mcflags, exptime, 0xCA5ADDED);
             } else {
                 metadata_write(&tmp->metadata_flags, tmp->contents, mcflags, exptime);
             }
-            memcpy(tmp->value_ref(), value->value_ref(), blob::ref_size(txn->get_cache()->get_block_size(), value->value_ref(), blob::btree_maxreflen));
-            value.swap(tmp);
+            memcpy(tmp->value_ref(), (*value)->value_ref(), blob::ref_size(txn->get_cache()->get_block_size(), (*value)->value_ref(), blob::btree_maxreflen));
+            value->swap(tmp);
         }
 
-        blob_t b(value->value_ref(), blob::btree_maxreflen);
+        blob_t b((*value)->value_ref(), blob::btree_maxreflen);
 
         b.append_region(txn, data->size());
         buffer_group_t bg;
