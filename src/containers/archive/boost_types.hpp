@@ -9,7 +9,7 @@
 #include "containers/archive/archive.hpp"
 
 inline
-write_message_t &operator<<(UNUSED write_message_t &msg, UNUSED boost::detail::variant::void_ &v) {
+write_message_t &operator<<(UNUSED write_message_t &msg /* NOLINT */, UNUSED const boost::detail::variant::void_ &v) {
     unreachable("You cannot do operator<<(write_message_t &, boost::detail::variant::void_ &).");
 }
 
@@ -20,7 +20,7 @@ MUST_USE archive_result_t deserialize(UNUSED read_stream_t *s, UNUSED boost::det
 
 
 #define ARCHIVE_VARIANT_SERIALIZE_VISITOR_METHOD(i)     \
-    void operator()(const T##i &x) {                    \
+    void operator()(const T##i &x /* NOLINT */) {       \
         uint8_t n = i;                                  \
         *(this->msg) << n;                              \
         *(this->msg) << x;                              \

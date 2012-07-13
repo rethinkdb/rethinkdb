@@ -358,7 +358,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
     stats->pm_serializer_index_writes_size.record(write_ops.size());
 
     index_write_context_t context;
-    index_write_prepare(context, io_account);
+    index_write_prepare(&context, io_account);
 
     {
         // The in-memory index updates, at least due to the needs of
@@ -401,22 +401,22 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
         }
     }
 
-    index_write_finish(context, io_account);
+    index_write_finish(&context, io_account);
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }
 
-void log_serializer_t::index_write_prepare(index_write_context_t &context, file_account_t *io_account) {
+void log_serializer_t::index_write_prepare(index_write_context_t *context, file_account_t *io_account) {
     active_write_count++;
 
     /* Start an extent manager transaction so we can allocate and release extents */
-    extent_manager->begin_transaction(&context.extent_txn);
+    extent_manager->begin_transaction(&context->extent_txn);
 
     /* Just to make sure that the LBA GC gets exercised */
     lba_index->consider_gc(io_account);
 }
 
-void log_serializer_t::index_write_finish(index_write_context_t &context, file_account_t *io_account) {
+void log_serializer_t::index_write_finish(index_write_context_t *context, file_account_t *io_account) {
     metablock_t mb_buffer;
 
     /* Sync the LBA */
@@ -432,7 +432,7 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
 
     /* Stop the extent manager transaction so another one can start, but don't commit it
     yet */
-    extent_manager->end_transaction(context.extent_txn);
+    extent_manager->end_transaction(context->extent_txn);
 
     /* Get in line for the metablock manager */
     bool waiting_for_prev_write;
@@ -443,7 +443,7 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
     } else {
         waiting_for_prev_write = false;
     }
-    last_write = &context;
+    last_write = context;
 
     if (!offsets_were_written) on_lba_sync.wait();
     if (waiting_for_prev_write) on_prev_write_submitted_metablock.wait();
@@ -455,10 +455,10 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
 
     /* If there was another transaction waiting for us to write our metablock so it could
     write its metablock, notify it now so it can write its metablock. */
-    if (context.next_metablock_write) {
-        context.next_metablock_write->pulse();
+    if (context->next_metablock_write) {
+        context->next_metablock_write->pulse();
     } else {
-        rassert(&context == last_write);
+        rassert(context == last_write);
         last_write = NULL;
     }
 
@@ -467,7 +467,7 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
     active_write_count--;
 
     /* End the extent manager transaction so the extents can actually get reused. */
-    extent_manager->commit_transaction(&context.extent_txn);
+    extent_manager->commit_transaction(&context->extent_txn);
 
     //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
     consider_start_gc();

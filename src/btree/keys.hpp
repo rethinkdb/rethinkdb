@@ -124,7 +124,7 @@ public:
         return sized_strcmp(contents(), size(), k.contents(), k.size());
     }
 
-    void rdb_serialize(write_message_t &msg) const {
+    void rdb_serialize(write_message_t &msg /* NOLINT */) const {
         uint8_t sz = size();
         msg << sz;
         msg.append(contents(), sz);

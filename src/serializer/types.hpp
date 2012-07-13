@@ -190,7 +190,7 @@ public:
 
     void free(serializer_t *ser);
     void init_malloc(serializer_t *ser);
-    void init_clone(serializer_t *ser, serializer_data_ptr_t& other);
+    void init_clone(serializer_t *ser, const serializer_data_ptr_t& other);
 
     void swap(serializer_data_ptr_t& other) {
         void *tmp = ptr_;

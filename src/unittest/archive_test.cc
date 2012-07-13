@@ -7,8 +7,8 @@
 
 namespace unittest {
 
-void dump_to_string(write_message_t &msg, std::string *out) {
-    intrusive_list_t<write_buffer_t> *buffers = msg.unsafe_expose_buffers();
+void dump_to_string(write_message_t *msg, std::string *out) {
+    intrusive_list_t<write_buffer_t> *buffers = msg->unsafe_expose_buffers();
 
     out->clear();
     for (write_buffer_t *p = buffers->head(); p; p = buffers->next(p)) {
@@ -24,7 +24,7 @@ TEST(WriteMessageTest, Variant) {
     msg << v;
 
     std::string s;
-    dump_to_string(msg, &s);
+    dump_to_string(&msg, &s);
 
     std::vector<char> u(s.begin(), s.end());
 

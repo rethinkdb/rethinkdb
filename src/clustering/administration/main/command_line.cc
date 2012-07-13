@@ -94,10 +94,10 @@ void run_rethinkdb_admin(const std::vector<host_and_port_t> &joins, int client_p
             admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).run_completion(command_args);
         else
             admin_command_parser_t(host_port, look_up_peers_addresses(joins), client_port, &sigint_cond).parse_and_run_command(command_args);
-    } catch (admin_no_connection_exc_t& ex) {
+    } catch (const admin_no_connection_exc_t& ex) {
         fprintf(stderr, "%s\n", ex.what());
         fprintf(stderr, "valid --join option required to handle command, run 'rethinkdb admin help' for more information\n");
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
         *result_out = false;
     }
@@ -363,7 +363,7 @@ po::options_description get_rethinkdb_porcelain_options() {
 }
 
 // Returns true upon success.
-MUST_USE bool pull_io_backend_option(po::variables_map& vm, io_backend_t *out) {
+MUST_USE bool pull_io_backend_option(const po::variables_map& vm, io_backend_t *out) {
     std::string io_backend = vm["io-backend"].as<std::string>();
     if (io_backend == "pool") {
         *out = aio_pool;
@@ -381,7 +381,7 @@ int parse_commands(int argc, char *argv[], po::variables_map *vm, const po::opti
         po::store(po::parse_command_line(argc, argv, options), *vm);
         po::notify(*vm);
         return 0;
-    } catch (po::unknown_option& ex) {
+    } catch (const po::unknown_option& ex) {
         fprintf(stderr, "%s\n", ex.what());
         return 1;
     }
@@ -492,7 +492,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, client_port, cmd_args, exit_on_failure, &result),
                            num_workers);
 
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
         fprintf(stderr, "%s\n", ex.what());
         result = false;
     }
