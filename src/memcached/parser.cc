@@ -1025,7 +1025,7 @@ void do_delete(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, int argc, ch
 
 /* "stats" command */
 
-void format_stats(const perfmon_result_t *stats, const std::string& name, const std::set<std::string>& names_to_match, std::vector<std::string>& result) {
+void format_stats(const perfmon_result_t *stats, const std::string& name, const std::set<std::string>& names_to_match, std::vector<std::string> *result) {
     // `switch` is used instead of `if` with `is_map` and `is_string` checks
     // because that way the compiler guarantees us an error message if someone
     // adds another type of `perfmon_results_t` and forgets to change this code
@@ -1034,7 +1034,7 @@ void format_stats(const perfmon_result_t *stats, const std::string& name, const 
              // This is not super-efficient (better to only scan for the stats
              // that match the name), but we don't care right now
             if (names_to_match.empty() || names_to_match.count(name) != 0) {
-                result.push_back(strprintf("STAT %s %s\r\n", name.c_str(), stats->get_string()->c_str()));
+                result->push_back(strprintf("STAT %s %s\r\n", name.c_str(), stats->get_string()->c_str()));
             }
             break;
         case perfmon_result_t::type_map:
@@ -1048,7 +1048,7 @@ void format_stats(const perfmon_result_t *stats, const std::string& name, const 
     }
 }
 
-void memcached_stats(int argc, char **argv, std::vector<std::string>& stat_response_lines) {
+void memcached_stats(int argc, char **argv, std::vector<std::string> *stat_response_lines) {
     static const std::string end_marker("END\r\n");
 
     // parse args, if any
@@ -1059,7 +1059,7 @@ void memcached_stats(int argc, char **argv, std::vector<std::string>& stat_respo
 
     boost::scoped_ptr<perfmon_result_t> stats(perfmon_get_stats());
     format_stats(stats.get(), std::string(), names_to_match, stat_response_lines);
-    stat_response_lines.push_back(end_marker);
+    stat_response_lines->push_back(end_marker);
 }
 
 /* Handle memcached, takes a txt_memcached_handler_t and handles the memcached commands that come in on it */
@@ -1156,7 +1156,7 @@ void handle_memcache(memcached_interface_t *interface, namespace_interface_t<mem
             pipeliner_acq.begin_operation();
 
             std::vector<std::string> stat_response_lines;
-            memcached_stats(args.size(), args.data(), stat_response_lines);
+            memcached_stats(args.size(), args.data(), &stat_response_lines);
 
             // We block everybody before writing.  I don't think we care.
             pipeliner_acq.done_argparsing();
