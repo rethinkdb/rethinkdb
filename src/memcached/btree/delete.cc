@@ -11,7 +11,7 @@ struct memcached_delete_oper_t : public memcached_modify_oper_t {
     btree_slice_t *slice;
 
     bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t>& value) {
-        if (value) {
+        if (value.has()) {
             result = dr_deleted;
             {
                 blob_t b(value->value_ref(), blob::btree_maxreflen);

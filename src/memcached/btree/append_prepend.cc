@@ -10,7 +10,7 @@ struct memcached_append_prepend_oper_t : public memcached_modify_oper_t {
     { }
 
     bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t>& value) {
-        if (!value) {
+        if (!value.has()) {
             result = apr_not_found;
             return false;
         }

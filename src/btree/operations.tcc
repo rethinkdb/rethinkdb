@@ -137,7 +137,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
      * (should be -1, 0 or 1) */
     int population_change;
 
-    if (kv_loc->value) {
+    if (kv_loc->value.has()) {
         // We have a value to insert.
 
         // Split the node if necessary, to make sure that we have room

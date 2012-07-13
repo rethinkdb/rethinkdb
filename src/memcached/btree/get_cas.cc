@@ -21,7 +21,7 @@ struct memcached_get_cas_oper_t : public memcached_modify_oper_t, public home_th
         : proposed_cas(proposed_cas_), res(res_) { }
 
     bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t>& value) {
-        if (!value) {
+        if (!value.has()) {
             // If not found, there's nothing to do.
             res->pulse(get_result_t());
             return false;

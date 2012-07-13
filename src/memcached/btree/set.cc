@@ -17,7 +17,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
     bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t>& value) {
         // We may be instructed to abort, depending on the old value.
-        if (value) {
+        if (value.has()) {
             switch (replace_policy) {
             case replace_policy_yes:
                 break;
@@ -45,7 +45,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
             }
         }
 
-        if (!value) {
+        if (!value.has()) {
             scoped_malloc_t<memcached_value_t> tmp(MAX_MEMCACHED_VALUE_SIZE);
             value.swap(tmp);
             memset(value.get(), 0, MAX_MEMCACHED_VALUE_SIZE);
