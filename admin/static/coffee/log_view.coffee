@@ -225,7 +225,6 @@ module 'LogView', ->
                     if $(this).html() is 'Hide details'
                         found_hide_details_link = true
                         return false
-                console.log found_hide_details_link
                 if found_hide_details_link is false
                     $('.expand_all_link').html 'Show all details'
 
