@@ -44,11 +44,6 @@ bool is_well_defined(const Term &t) {
         CHECK_WELL_DEFINED(t.if_().true_branch());
         CHECK_WELL_DEFINED(t.if_().false_branch());
         break;
-    case Term::TRY:
-        CHECK(t.has_try_());
-        CHECK_WELL_DEFINED(t.try_().try_term());
-        CHECK_WELL_DEFINED(t.try_().var_and_catch_term().term());
-        break;
     case Term::ERROR:
         CHECK(t.has_error());
         break;
@@ -358,20 +353,6 @@ const type_t get_type(const Term &t, variable_type_scope_t *scope) {
                     return error_t("Mismatch between true and false branch types.");
                 } else {
                     return true_branch;
-                }
-                break;
-            }
-        case Term::TRY:
-            {
-                type_t try_type = get_type(t.try_().try_term(), scope);
-                scope->push();
-                scope->put_in_scope(t.try_().var_and_catch_term().var(), Type::ERROR);
-                type_t catch_type = get_type(t.try_().var_and_catch_term().term(), scope);
-                scope->pop();
-                if (!(try_type == catch_type)) {
-                    return error_t("Mismatch between try and catch branch types.");
-                } else {
-                    return try_type;
                 }
                 break;
             }
@@ -911,9 +892,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
                 return res;
             }
             break;
-        case Term::TRY:
-            throw runtime_exc_t("Unimplemented: Term::TRY");
-            break;
         case Term::ERROR:
             throw runtime_exc_t("Unimplemented: Term::ERROR");
             break;
@@ -1027,9 +1005,6 @@ json_stream_t eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY
                     return eval_stream(t.if_().false_branch(), env);
                 }
             }
-            break;
-        case Term::TRY:
-            throw runtime_exc_t("Unimplemented: Term::TRY");
             break;
         case Term::ERROR:
             throw runtime_exc_t("Unimplemented: Term::ERROR");

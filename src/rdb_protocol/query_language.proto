@@ -14,17 +14,16 @@ message Term {
         LET = 1;
         CALL = 2;
         IF = 3;
-        TRY = 4;
-        ERROR = 5;
-        NUMBER = 6;
-        STRING = 7;
-        JSON = 8;
-        BOOL = 9;
-        JSON_NULL = 10; //can't use just "NULL" here we get in trouble
-        ARRAY = 11;
-        MAP = 12;       // creates json objects (TODO: rename to something like make_object)
-        VIEWASSTREAM = 13;
-        GETBYKEY = 14;
+        ERROR = 4;
+        NUMBER = 5;
+        STRING = 6;
+        JSON = 7;
+        BOOL = 8;
+        JSON_NULL = 9; //can't use just "NULL" here we get in trouble
+        ARRAY = 10;
+        MAP = 11;       // creates json objects (TODO: rename to something like make_object)
+        VIEWASSTREAM = 12;
+        GETBYKEY = 13;
     };
 
     required TermType type = 1;
@@ -53,28 +52,21 @@ message Term {
 
     optional If if_ = 5;
 
-    message Try {
-        required Term try_term = 1;
-        required VarTermTuple var_and_catch_term = 2;
-    };
+    optional string error = 6;
 
-    optional Try try = 6;
+    optional double number = 7;
 
-    optional string error = 7;
+    optional string valuestring = 8;
 
-    optional double number = 8;
+    optional string jsonstring = 9;
 
-    optional string valuestring = 9;
+    optional bool valuebool = 10;
 
-    optional string jsonstring = 10;
+    repeated Term array = 11;
 
-    optional bool valuebool = 11;
+    repeated VarTermTuple map = 12;
 
-    repeated Term array = 12;
-
-    repeated VarTermTuple map = 13;
-
-    optional View view_as_stream = 14;
+    optional View view_as_stream = 13;
 
     message GetByKey {
         required TableRef table_ref = 1;
@@ -82,7 +74,7 @@ message Term {
         required Term key = 3;
     };
 
-    optional GetByKey get_by_key = 15;
+    optional GetByKey get_by_key = 14;
 };
 
 message Builtin {
