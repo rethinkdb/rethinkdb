@@ -98,8 +98,10 @@ print "***Will be working in directory " + dir_name
 
 # Move files to VM
 print "***Transferring files to virtual machine..."
-subprocess.Popen(" ".join((["cd", os.environ["RETHINKDB"] + "/..", "&&"] if "RETHINKDB" in os.environ else []) + ["tar", "czf", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
-target.command(" ".join(["cd", dir_name, "&&", "tar", "xzf", "tmp.tar.gz"]))
+if "RETHINKDB" in os.environ:
+    print "*****(debug: we are currently running a test)"
+subprocess.Popen(" ".join((["cd", os.environ["RETHINKDB"] + "/..", "&&"] if "RETHINKDB" in os.environ else []) + ["tar", "czvf", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
+target.command(" ".join(["cd", dir_name, "&&", "tar", "xzvf", "tmp.tar.gz"]), output = True)
 
 # Execute command
 print "***Executing command..."
@@ -107,9 +109,9 @@ proc = target.command(("cd %s && " % dir_name) + " ".join(opts["command"]), outp
 
 # Move files from VM
 print "***Transferring files from virtual machine..."
-proc = target.command(" ".join(["cd", dir_name, "&&", "rm", "tmp.tar.gz", "&&", "tar", "czf", "tmp.tar.gz", "*"]))
+proc = target.command(" ".join(["cd", dir_name, "&&", "rm", "tmp.tar.gz", "&&", "tar", "czvf", "tmp.tar.gz", "*"]), output = True)
 subprocess.Popen(" ".join(["scp", "%s:%s/tmp.tar.gz tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
-subprocess.Popen(" ".join(["tar", "xzf", "tmp.tar.gz"]), shell = True).wait()
+subprocess.Popen(" ".join(["tar", "xzvf", "tmp.tar.gz"]), shell = True).wait()
 
 # Shut down VM
 print "***Shutting down VM..."
