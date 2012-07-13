@@ -32,7 +32,8 @@ class VM(object):
             sys_exit("Error: command \"%s\" finished with exit value %d." % (cmd, proc.poll()), proc.poll(), True)
         return proc
     def shut_down(self):
-        subprocess.Popen(["ssh %s 'VBoxManage controlvm %s poweroff'" % (control_user, self.uuid)], shell = True).wait()
+        pass # shutting down is currently disabled
+        #subprocess.Popen(["ssh %s 'VBoxManage controlvm %s poweroff'" % (control_user, self.uuid)], shell = True).wait()
 
 def sys_exit(message, exit_code, shut_down = False):
     print message
