@@ -127,7 +127,6 @@ std::list<int> data_blocks_to_list_of_ints(const test_iterator_t::data_blocks_t&
         for (std::list<int>::const_iterator i = it->begin(); i != it->end(); ++i) {
             result.push_back(*i);
         }
-        //std::copy((*it).begin(), (*it).end(), result.end());
     }
     return result;
 }
