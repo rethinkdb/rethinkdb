@@ -15,17 +15,17 @@ class VM(object):
         while os.system("ssh %s 'true'" % self.host) and time.time() - start_time < 5 * 60: # timeout after 5 minutes
             pass
         if not os.system("ssh %s 'true'" % self.host):
-            print >>sys.stderr, "(VM successfully started)"
+            print "(VM successfully started)"
         else:
             sys_exit("Error: Failed to connect to VM", -1)
     def command(self, cmd, output = False):
-        print >>sys.stderr, "Executing on VM:", cmd
+        print "Executing on VM:", cmd
         proc = subprocess.Popen(["ssh %s '%s'" % (self.host, cmd)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell = True)
         while proc.poll() == None: # TODO: add timeout?
             if output:
                 line = proc.stdout.readline()
                 if line:
-                    print >>sys.stderr, line.strip()
+                    print line.strip()
             else:
                 pass
         if proc.poll():
@@ -35,7 +35,7 @@ class VM(object):
         subprocess.Popen(["ssh %s 'VBoxManage controlvm %s poweroff'" % (control_user, self.uuid)], shell = True).wait()
 
 def sys_exit(message, exit_code, shut_down = False):
-    print >>sys.stderr, message
+    print message
     if shut_down:
         target.shut_down()
     sys.exit(exit_code)
@@ -50,12 +50,12 @@ centos6 = VM('centos6', 'd9058650-a45a-44a5-953f-c2402253a614', 'rethinkdb@192.1
 vm_list = {"suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5, "centos6" : centos6}
 
 def help():
-    print >>sys.stderr, "VM Access:"
-    print >>sys.stderr, "       Runs a command on a remote virtual machine. Starts the virtual machine if necessary, and shuts it down on completion. If the command fails or if the virtual machine is inaccessible, then this script will throw an exception. All virtual machines are controlled through " + control_user + ". Before commands are run, the curent directory is compressed and sent over. The command is run in a temporary directory and all its resulting contents are copied back."
-    print >>sys.stderr, "       --help      Print this help."
-    print >>sys.stderr, "       --vm-name   The target virtual machine to run the command on. Options are:"
-    print >>sys.stderr, "                   ", vm_list.keys()
-    print >>sys.stderr, "       --command   The command to run on the virtual machine. Must be specified after the vm-name."
+    print "VM Access:"
+    print "       Runs a command on a remote virtual machine. Starts the virtual machine if necessary, and shuts it down on completion. If the command fails or if the virtual machine is inaccessible, then this script will throw an exception. All virtual machines are controlled through " + control_user + ". Before commands are run, the curent directory is compressed and sent over. The command is run in a temporary directory and all its resulting contents are copied back."
+    print "       --help      Print this help."
+    print "       --vm-name   The target virtual machine to run the command on. Options are:"
+    print "                   ", vm_list.keys()
+    print "       --command   The command to run on the virtual machine. Must be specified after the vm-name."
 
 o = OptParser()
 o["help"] = BoolFlag("--help")
@@ -82,36 +82,36 @@ if opts["vm-name"] not in vm_list:
 
 target = vm_list[opts["vm-name"]]
 
-print >>sys.stderr, "Begin: Running command:", " ".join(opts["command"])
+print "Begin: Running command:", " ".join(opts["command"])
 print "\ton VM", target.name
 
 # Start VM
-print >>sys.stderr, "***Starting VM..."
+print "***Starting VM..."
 target.start()
 
 # Make a temporary directory on VM
-print >>sys.stderr, "***Making a temporary directory on the virtual machine..."
+print "***Making a temporary directory on the virtual machine..."
 proc = target.command("cd /tmp && mktemp -d test.XXXXXXXXXX")
 dir_name = "/tmp/" + proc.stdout.readline().strip()
-print >>sys.stderr, "***Will be working in directory " + dir_name
+print "***Will be working in directory " + dir_name
 
 # Move files to VM
-print >>sys.stderr, "***Transferring files to virtual machine..."
+print "***Transferring files to virtual machine..."
 subprocess.Popen(" ".join(["tar", "czf", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
 target.command(" ".join(["cd", dir_name, "&&", "tar", "xzf", "tmp.tar.gz"]))
 
 # Execute command
-print >>sys.stderr, "***Executing command..."
+print "***Executing command..."
 proc = target.command(("cd %s && " % dir_name) + " ".join(opts["command"]), output = True)
 
 # Move files from VM
-print >>sys.stderr, "***Transferring files from virtual machine..."
+print "***Transferring files from virtual machine..."
 proc = target.command(" ".join(["cd", dir_name, "&&", "rm", "tmp.tar.gz", "&&", "tar", "czf", "tmp.tar.gz", "*"]))
 subprocess.Popen(" ".join(["scp", "%s:%s/tmp.tar.gz tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
 subprocess.Popen(" ".join(["tar", "xzf", "tmp.tar.gz"]), shell = True).wait()
 
 # Shut down VM
-print >>sys.stderr, "***Shutting down VM..."
+print "***Shutting down VM..."
 vm_list[opts["vm-name"]].shut_down()
 
 sys_exit("Done.", 0)
