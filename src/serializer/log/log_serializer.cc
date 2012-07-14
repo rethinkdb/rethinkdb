@@ -9,33 +9,51 @@
 
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
-#include "do_on_thread.hpp"
 #include "perfmon/perfmon.hpp"
 
 log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent) 
-    : serializer_collection("serializer", parent, true, true),
-      pm_serializer_block_reads("serializer_block_reads", secs_to_ticks(1), &serializer_collection),
-      pm_serializer_index_reads("serializer_index_reads", &serializer_collection),
-      pm_serializer_block_writes("serializer_block_writes", &serializer_collection),
-      pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1), &serializer_collection),
-      pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1), false, &serializer_collection),
-      pm_extents_in_use("serializer_extents_in_use", &serializer_collection),
-      pm_bytes_in_use("serializer_bytes_in_use", &serializer_collection),
-      pm_serializer_lba_extents("serializer_lba_extents", &serializer_collection),
-      pm_serializer_data_extents("serializer_data_extents", &serializer_collection),
-      pm_serializer_data_extents_allocated("serializer_data_extents_allocated", &serializer_collection),
-      pm_serializer_data_extents_reclaimed("serializer_data_extents_reclaimed", &serializer_collection),
-      pm_serializer_data_extents_gced("serializer_data_extents_gced", &serializer_collection),
-      pm_serializer_data_blocks_written("serializer_data_blocks_written", &serializer_collection),
-      pm_serializer_old_garbage_blocks("serializer_old_garbage_blocks", &serializer_collection),
-      pm_serializer_old_total_blocks("serializer_old_total_blocks", &serializer_collection),
-      pm_serializer_lba_gcs("serializer_lba_gcs", &serializer_collection)
+    : serializer_collection(),
+      pm_serializer_block_reads(secs_to_ticks(1)),
+      pm_serializer_index_reads(),
+      pm_serializer_block_writes(),
+      pm_serializer_index_writes(secs_to_ticks(1)),
+      pm_serializer_index_writes_size(secs_to_ticks(1), false),
+      pm_extents_in_use(),
+      pm_bytes_in_use(),
+      pm_serializer_lba_extents(),
+      pm_serializer_data_extents(),
+      pm_serializer_data_extents_allocated(),
+      pm_serializer_data_extents_reclaimed(),
+      pm_serializer_data_extents_gced(),
+      pm_serializer_data_blocks_written(),
+      pm_serializer_old_garbage_blocks(),
+      pm_serializer_old_total_blocks(),
+      pm_serializer_lba_gcs(),
+      parent_collection_membership(parent, &serializer_collection, "serializer"),
+      stats_membership(&serializer_collection,
+          &pm_serializer_block_reads, "serializer_block_reads",
+          &pm_serializer_index_reads, "serializer_index_reads",
+          &pm_serializer_block_writes, "serializer_block_writes",
+          &pm_serializer_index_writes, "serializer_index_writes",
+          &pm_serializer_index_writes_size, "serializer_index_writes_size",
+          &pm_extents_in_use, "serializer_extents_in_use",
+          &pm_bytes_in_use, "serializer_bytes_in_use",
+          &pm_serializer_lba_extents, "serializer_lba_extents",
+          &pm_serializer_data_extents, "serializer_data_extents",
+          &pm_serializer_data_extents_allocated, "serializer_data_extents_allocated",
+          &pm_serializer_data_extents_reclaimed, "serializer_data_extents_reclaimed",
+          &pm_serializer_data_extents_gced, "serializer_data_extents_gced",
+          &pm_serializer_data_blocks_written, "serializer_data_blocks_written",
+          &pm_serializer_old_garbage_blocks, "serializer_old_garbage_blocks",
+          &pm_serializer_old_total_blocks, "serializer_old_total_blocks",
+          &pm_serializer_lba_gcs, "serializer_lba_gcs",
+          NULL)
 { }
 
-void log_serializer_t::create(dynamic_config_t dynamic_config, private_dynamic_config_t private_dynamic_config, static_config_t static_config, perfmon_collection_t *stats_parent) {
+void log_serializer_t::create(dynamic_config_t dynamic_config, io_backender_t *backender, private_dynamic_config_t private_dynamic_config, static_config_t static_config, perfmon_collection_t *stats_parent) {
     log_serializer_on_disk_static_config_t *on_disk_config = &static_config;
 
-    direct_file_t df(private_dynamic_config.db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, stats_parent, dynamic_config.io_backend, dynamic_config.io_batch_factor);
+    direct_file_t df(private_dynamic_config.db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, stats_parent, backender, dynamic_config.io_batch_factor);
 
     co_static_header_write(&df, on_disk_config, sizeof(*on_disk_config));
 
@@ -74,7 +92,7 @@ struct ls_start_existing_fsm_t :
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
 
-        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, &ser->disk_stats_collection, ser->dynamic_config.io_backend, ser->dynamic_config.io_batch_factor);
+        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, &ser->disk_stats_collection, ser->io_backender, ser->dynamic_config.io_batch_factor);
         if (!ser->dbfile->exists()) {
             crash("Database file \"%s\" does not exist.\n", ser->db_path);
         }
@@ -199,9 +217,10 @@ struct ls_start_existing_fsm_t :
     log_serializer_t::metablock_t metablock_buffer;
 };
 
-log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dynamic_config_t private_config_, perfmon_collection_t *_perfmon_collection)
+log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, io_backender_t *io_backender_, private_dynamic_config_t private_config_, perfmon_collection_t *_perfmon_collection)
     : stats(new log_serializer_stats_t(_perfmon_collection)),
-      disk_stats_collection("disk", _perfmon_collection, true, true),
+      disk_stats_collection(),
+      disk_stats_membership(_perfmon_collection, &disk_stats_collection, "disk"),
 #ifndef NDEBUG
       expecting_no_more_tokens(false),
 #endif
@@ -216,7 +235,8 @@ log_serializer_t::log_serializer_t(dynamic_config_t dynamic_config_, private_dyn
       lba_index(NULL),
       data_block_manager(NULL),
       last_write(NULL),
-      active_write_count(0) {
+      active_write_count(0),
+      io_backender(io_backender_) {
     /* This is because the serializer is not completely converted to coroutines yet. */
     ls_start_existing_fsm_t *s = new ls_start_existing_fsm_t(this);
     cond_t cond;
@@ -232,13 +252,13 @@ log_serializer_t::~log_serializer_t() {
     rassert(active_write_count == 0);
 }
 
-void ls_check_existing(const char *filename, log_serializer_t::check_callback_t *cb) {
-    direct_file_t df(filename, file_t::mode_read, NULL);
+void ls_check_existing(const char *filename, io_backender_t *io_backender, log_serializer_t::check_callback_t *cb) {
+    direct_file_t df(filename, file_t::mode_read, NULL, io_backender);
     cb->on_serializer_check(static_header_check(&df));
 }
 
-void log_serializer_t::check_existing(const char *filename, check_callback_t *cb) {
-    coro_t::spawn(boost::bind(ls_check_existing, filename, cb));
+void log_serializer_t::check_existing(const char *filename, io_backender_t *io_backender, check_callback_t *cb) {
+    coro_t::spawn(boost::bind(ls_check_existing, filename, io_backender, cb));
 }
 
 void *log_serializer_t::malloc() {
@@ -338,7 +358,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
     stats->pm_serializer_index_writes_size.record(write_ops.size());
 
     index_write_context_t context;
-    index_write_prepare(context, io_account);
+    index_write_prepare(&context, io_account);
 
     {
         // The in-memory index updates, at least due to the needs of
@@ -381,22 +401,22 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
         }
     }
 
-    index_write_finish(context, io_account);
+    index_write_finish(&context, io_account);
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }
 
-void log_serializer_t::index_write_prepare(index_write_context_t &context, file_account_t *io_account) {
+void log_serializer_t::index_write_prepare(index_write_context_t *context, file_account_t *io_account) {
     active_write_count++;
 
     /* Start an extent manager transaction so we can allocate and release extents */
-    context.extent_txn = extent_manager->begin_transaction();
+    extent_manager->begin_transaction(&context->extent_txn);
 
     /* Just to make sure that the LBA GC gets exercised */
     lba_index->consider_gc(io_account);
 }
 
-void log_serializer_t::index_write_finish(index_write_context_t &context, file_account_t *io_account) {
+void log_serializer_t::index_write_finish(index_write_context_t *context, file_account_t *io_account) {
     metablock_t mb_buffer;
 
     /* Sync the LBA */
@@ -412,7 +432,7 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
 
     /* Stop the extent manager transaction so another one can start, but don't commit it
     yet */
-    extent_manager->end_transaction(context.extent_txn);
+    extent_manager->end_transaction(context->extent_txn);
 
     /* Get in line for the metablock manager */
     bool waiting_for_prev_write;
@@ -423,7 +443,7 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
     } else {
         waiting_for_prev_write = false;
     }
-    last_write = &context;
+    last_write = context;
 
     if (!offsets_were_written) on_lba_sync.wait();
     if (waiting_for_prev_write) on_prev_write_submitted_metablock.wait();
@@ -435,10 +455,10 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
 
     /* If there was another transaction waiting for us to write our metablock so it could
     write its metablock, notify it now so it can write its metablock. */
-    if (context.next_metablock_write) {
-        context.next_metablock_write->pulse();
+    if (context->next_metablock_write) {
+        context->next_metablock_write->pulse();
     } else {
-        rassert(&context == last_write);
+        rassert(context == last_write);
         last_write = NULL;
     }
 
@@ -447,7 +467,7 @@ void log_serializer_t::index_write_finish(index_write_context_t &context, file_a
     active_write_count--;
 
     /* End the extent manager transaction so the extents can actually get reused. */
-    extent_manager->commit_transaction(context.extent_txn);
+    extent_manager->commit_transaction(&context->extent_txn);
 
     //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
     consider_start_gc();
@@ -472,10 +492,11 @@ log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account
     // TODO: Implement a duration sampler perfmon for this
     ++stats->pm_serializer_block_writes;
 
-    extent_manager_t::transaction_t *em_trx = extent_manager->begin_transaction();
+    extent_manager_t::transaction_t em_trx;
+    extent_manager->begin_transaction(&em_trx);
     const off64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb);
     extent_manager->end_transaction(em_trx);
-    extent_manager->commit_transaction(em_trx);
+    extent_manager->commit_transaction(&em_trx);
 
     return generate_block_token(offset);
 }

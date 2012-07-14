@@ -4,6 +4,7 @@ import subprocess
 import signal
 import time
 import random
+import sys
 
 names = """Nervous Energy
 Prosthetic Conscience
@@ -118,8 +119,12 @@ Partial Photic Boundary""".splitlines()
 
 
 def usage():
-    print os.sys.argv[0], "p N"
-    print "Where p is the port you want the cluster to use and  N is the number of machines you want in the cluster"
+    print os.sys.argv[0], "p N [data_root_directory] [--keep]"
+    print """Where: 
+    p is the port you want the cluster to use 
+    N is the number of machines you want in the cluster
+    data_root_directory is the directory where RethinkDB will store each server data
+    --keep preserve the data directories between runs (by default they are deleted)"""
 
 if len(os.sys.argv) < 3:
     usage()
@@ -131,18 +136,26 @@ if n_machines < 1:
     usage()
     exit(1)
 else:
+    parent_dir = ''
+    keep_data = False
+    for opt in os.sys.argv[3:]:
+        if opt == '--keep':
+            keep_data = True
+        else:
+            parent_dir = opt
     kids = []
     machine_names = random.sample(names, n_machines)
     for i, machine_name in enumerate(machine_names):
+        directory = os.path.join(parent_dir, "cluster_directory_%d" % i)
         # cleanup the directory
-        directory = "cluster_directory_%d" % i
-        os.system("rm -rf " + directory)
+        if not keep_data:
+            os.system("rm -rf " + directory)
         if (i == 0):
             cl = ["../build/debug/rethinkdb", "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
         else:
             cl = ["../build/debug/rethinkdb", "--port", str(port+i), "--directory", directory, "--name", machine_name, "--join", "newton:%d" % port, "--port-offset", str(i+port)]
         print ' '.join(cl)
-        kids += [subprocess.Popen(cl)]
+        kids += [subprocess.Popen(cl, stdout=sys.stdout, stderr=sys.stderr)]
         time.sleep(1)
 
     time.sleep(1)
@@ -155,8 +168,8 @@ else:
 
     print ""
 
-    import sys
     sys.stdout.flush()
+    sys.stderr.flush()
 
     try:
         signal.pause()

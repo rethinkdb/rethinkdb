@@ -1,0 +1,11 @@
+tests = [
+    "$RETHINKDB/test/ui_test/add-a-namespace.coffee",
+    "$RETHINKDB/test/ui_test/view-dashboard.coffee"
+    ]
+
+for test in tests:
+    do_test(
+        'source /etc/profile.d/phantomjs.sh; $RETHINKDB/test/ui_test/ui_driver.py "%s"' % test,
+        repeat = 3,
+        inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "test/ui_test"]
+        )

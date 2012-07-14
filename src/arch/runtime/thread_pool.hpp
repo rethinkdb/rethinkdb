@@ -4,6 +4,7 @@
 #include <pthread.h>
 
 #include <map>
+#include <string>
 
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"
@@ -35,7 +36,7 @@ and shutting down the threads and event queues. */
 
 class linux_thread_pool_t {
 public:
-    linux_thread_pool_t(int n_threads, bool do_set_affinity);
+    linux_thread_pool_t(int worker_threads, bool do_set_affinity);
 
     // When the process receives a SIGINT or SIGTERM, interrupt_message will be delivered to the
     // same thread that initial_message was delivered to, and interrupt_message will be set to
@@ -154,7 +155,7 @@ public:
     void pump();   // Called by the event queue
     bool should_shut_down();   // Called by the event queue
 #ifndef NDEBUG
-    void initiate_shut_down(std::map<std::string, size_t> &coroutine_counts); // Can be called from any thread
+    void initiate_shut_down(std::map<std::string, size_t> *coroutine_counts); // Can be called from any thread
 #else
     void initiate_shut_down(); // Can be called from any thread
 #endif

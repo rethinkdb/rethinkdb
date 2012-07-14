@@ -3,6 +3,11 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
+#include <algorithm>
+#include <map>
+#include <set>
+#include <utility>
+
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
@@ -15,10 +20,7 @@ semilattice_manager_t<metadata_t>::semilattice_manager_t(message_service_t *ms, 
     metadata_version(0),
     metadata(initial_metadata),
     next_sync_from_query_id(0), next_sync_to_query_id(0),
-    event_watcher(
-        boost::bind(&semilattice_manager_t<metadata_t>::on_connect, this, _1),
-        boost::bind(&semilattice_manager_t<metadata_t>::on_disconnect, this, _1))
-{
+    event_watcher(this) {
     ASSERT_FINITE_CORO_WAITING;
     connectivity_service_t::peers_list_freeze_t freeze(message_service->get_connectivity_service());
     rassert(message_service->get_connectivity_service()->get_peers_list().empty());

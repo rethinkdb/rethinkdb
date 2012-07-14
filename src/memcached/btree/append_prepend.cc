@@ -9,19 +9,19 @@ struct memcached_append_prepend_oper_t : public memcached_modify_oper_t {
         : data(_data), append(_append)
     { }
 
-    bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
-        if (!value) {
+    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t> *value) {
+        if (!value->has()) {
             result = apr_not_found;
             return false;
         }
 
-        size_t new_size = value->value_size() + data->size();
+        size_t new_size = (*value)->value_size() + data->size();
         if (new_size > MAX_VALUE_SIZE) {
             result = apr_too_large;
             return false;
         }
 
-        blob_t b(value->value_ref(), blob::btree_maxreflen);
+        blob_t b((*value)->value_ref(), blob::btree_maxreflen);
         buffer_group_t buffer_group;
         blob_acq_t acqs;
 

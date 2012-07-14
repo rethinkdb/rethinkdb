@@ -1,8 +1,12 @@
-#include "arch/runtime/runtime.hpp"
-
+#include "arch/runtime/coroutines.hpp"
 
 #include <stdio.h>
 #include <string.h>
+
+#ifndef NDEBUG
+#include <cxxabi.h>   // For __cxa_current_exception_type (see below)
+#include <stack>
+#endif
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -16,13 +20,11 @@
 #include "perfmon/perfmon.hpp"
 #include "utils.hpp"
 
-#ifndef NDEBUG
-#include <cxxabi.h>   // For __cxa_current_exception_type (see below)
-#include <stack>
-#endif
-
-perfmon_counter_t pm_active_coroutines("active_coroutines", &get_global_perfmon_collection()),
-                  pm_allocated_coroutines("allocated_coroutines", &get_global_perfmon_collection());
+static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
+static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),
+    &pm_active_coroutines, "active_coroutines",
+    &pm_allocated_coroutines, "allocated_coroutines",
+    NULL);
 
 size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
 
@@ -258,7 +260,7 @@ void coro_t::notify_now_deprecated() {
 
 #ifndef NDEBUG
     rassert(cglobals->assert_no_coro_waiting_counter == 0,
-        "This code path is not supposed to use notify_now_deprecated() or spawn_now_deprecated().");
+        "This code path is not supposed to use notify_now_deprecated() or spawn_now().");
 
     /* Record old value of `assert_finite_coro_waiting_counter`. It must be legal to call
     `coro_t::wait()` within the coro we are going to jump to, or else we would never jump
@@ -357,7 +359,12 @@ bool is_coroutine_stack_overflow(void *addr) {
     return cglobals->current_coro && cglobals->current_coro->stack.address_is_stack_overflow(addr);
 }
 
+bool coroutines_have_been_initialized() {
+    return cglobals != NULL;
+}
+
 coro_t * coro_t::get_coro() {
+    rassert(coroutines_have_been_initialized());
     coro_t *coro;
 
     if (cglobals->free_coros.size() == 0) {

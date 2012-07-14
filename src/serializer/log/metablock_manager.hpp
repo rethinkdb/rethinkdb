@@ -11,11 +11,12 @@
  * use a different type you may have some difficulty and should look at what's
  * going on in the aforementioned files. */
 
+#include <stddef.h>
+#include <string.h>
+
 #include <vector>
 
 #include <boost/crc.hpp>
-#include <stddef.h>
-#include <string.h>
 
 #include "arch/types.hpp"
 #include "concurrency/mutex.hpp"
@@ -26,6 +27,7 @@
 
 #define MB_NEXTENTS 2
 #define MB_EXTENT_SEPARATION 4 /* !< every MB_EXTENT_SEPARATIONth extent is for MB, up to MB_NEXTENTS many */
+#define MB_BLOCKS_PER_EXTENT 4
 
 #define MB_BAD_VERSION (-1)
 #define MB_START_VERSION 1

@@ -26,9 +26,9 @@ class disk_backed_queue_wrapper_t : public passive_producer_t<T> {
 public:
     static const int memory_queue_capacity = 1000;
 
-    disk_backed_queue_wrapper_t(const std::string &filename, perfmon_collection_t *stats_parent) :
+    disk_backed_queue_wrapper_t(io_backender_t *io_backender, const std::string &filename, perfmon_collection_t *stats_parent) :
         passive_producer_t<T>(&available_control),
-        disk_queue(filename, stats_parent), disk_queue_in_use(false),
+        disk_queue(io_backender, filename, stats_parent), disk_queue_in_use(false),
         memory_queue(memory_queue_capacity),
         notify_when_room_in_memory_queue(NULL),
         items_in_queue(0) { }

@@ -4,16 +4,16 @@
 
 template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::swap(scc_buf_lock_t<inner_cache_t>& swapee) {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     std::swap(cache, swapee.cache);
-    internal_buf_lock->swap(*swapee.internal_buf_lock);
+    internal_buf_lock->swap(*swapee.internal_buf_lock.get());
     std::swap(snapshotted, swapee.snapshotted);
     std::swap(has_been_changed, swapee.has_been_changed);
 }
 
 template<class inner_cache_t>
 bool scc_buf_lock_t<inner_cache_t>::is_acquired() const {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     return internal_buf_lock->is_acquired();
 }
 
@@ -26,66 +26,66 @@ void scc_buf_lock_t<inner_cache_t>::release_if_acquired() {
 
 template<class inner_cache_t>
 block_id_t scc_buf_lock_t<inner_cache_t>::get_block_id() const {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     return internal_buf_lock->get_block_id();
 }
 
 template<class inner_cache_t>
 const void *scc_buf_lock_t<inner_cache_t>::get_data_read() const {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     return internal_buf_lock->get_data_read();
 }
 
 template<class inner_cache_t>
 void *scc_buf_lock_t<inner_cache_t>::get_data_major_write() {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     has_been_changed = true;
     return internal_buf_lock->get_data_major_write();
 }
 
 template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::set_data(void *dest, const void *src, const size_t n) {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     has_been_changed = true;
     internal_buf_lock->set_data(dest, src, n);
 }
 
 template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::move_data(void *dest, const void *src, const size_t n) {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     has_been_changed = true;
     internal_buf_lock->move_data(dest, src, n);
 }
 
 template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::apply_patch(buf_patch_t *patch) {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     has_been_changed = true;
     internal_buf_lock->apply_patch(patch);
 }
 
 template<class inner_cache_t>
 patch_counter_t scc_buf_lock_t<inner_cache_t>::get_next_patch_counter() {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     return internal_buf_lock->get_next_patch_counter();
 }
 
 template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::mark_deleted() {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     internal_buf_lock->mark_deleted();
 }
 
 template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::touch_recency(repli_timestamp_t timestamp) {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     // TODO: Why are we not tracking this?
     internal_buf_lock->touch_recency(timestamp);
 }
 
 template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::release() {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     if (!snapshotted && !internal_buf_lock->is_deleted()) {
         if (!has_been_changed && cache->crc_map.get(internal_buf_lock->get_block_id())) {
             rassert(compute_crc() == cache->crc_map.get(internal_buf_lock->get_block_id()));
@@ -104,7 +104,7 @@ void scc_buf_lock_t<inner_cache_t>::release() {
 
 template<class inner_cache_t>
 repli_timestamp_t scc_buf_lock_t<inner_cache_t>::get_recency() const {
-    rassert(internal_buf_lock);
+    rassert(internal_buf_lock.has());
     return internal_buf_lock->get_recency();
 }
 
@@ -115,7 +115,6 @@ scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t()
 template<class inner_cache_t>
 scc_buf_lock_t<inner_cache_t>::~scc_buf_lock_t() {
     release_if_acquired();
-    delete internal_buf_lock;
 }
 
 /* Transaction */
@@ -149,7 +148,7 @@ scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t(scc_transaction_t<inner_cache_t> *
         cache->sink_map[block_id].check_out(txn->order_token);
     }
 
-    internal_buf_lock = new typename inner_cache_t::buf_lock_t(&txn->inner_transaction, block_id, mode, order_mode, call_when_in_line);
+    internal_buf_lock.init(new typename inner_cache_t::buf_lock_t(&txn->inner_transaction, block_id, mode, order_mode, call_when_in_line));
     rassert(block_id == get_block_id());
     if (!txn->snapshotted) {
         if (cache->crc_map.get(block_id)) {

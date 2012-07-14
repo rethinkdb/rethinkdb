@@ -1,12 +1,11 @@
 #include <set>
 #include <string>
-#include <fstream>
-#include <streambuf>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
 #include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
+#include "containers/archive/file_stream.hpp"
 #include "http/file_app.hpp"
 #include "logger.hpp"
 #include "stl_utils.hpp"
@@ -49,8 +48,6 @@ bool ends_with(const std::string& str, const std::string& end) {
 }
 
 void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out) {
-    // FIXME: make sure that we won't walk out of our sandbox! Check symbolic links, etc.
-    std::ifstream f((asset_dir + filename).c_str());
 
     // TODO more robust mimetype detection?
     std::string mimetype = "text/plain";
@@ -62,38 +59,34 @@ void file_http_app_t::handle_blocking(std::string filename, http_res_t *res_out)
         mimetype = "text/html";
     }
 
+    // FIXME: make sure that we won't walk out of our sandbox! Check symbolic links, etc.
+    blocking_read_file_stream_t stream;
+    bool initialized = stream.init((asset_dir + filename).c_str());
+
     res_out->add_header_line("Content-Type", mimetype);
 
-    if (f.fail()) {
+    if (!initialized) {
         res_out->code = 404;
         return;
     }
 
-    f.seekg(0, std::ios::end);
+    std::vector<char> body;
 
-    if (f.fail()) {
-        goto INTERNAL_ERROR;
+    for (;;) {
+        const int bufsize = 4096;
+        char buf[bufsize];
+        int64_t res = stream.read(buf, bufsize);
+
+        if (res > 0) {
+            body.insert(body.end(), buf, buf + res);
+        } else if (res == 0) {
+            break;
+        } else {
+            res_out->code = 500;
+            return;
+        }
     }
 
-    res_out->body.reserve(f.tellg());
-
-    if (f.fail()) {
-        goto INTERNAL_ERROR;
-    }
-
-    f.seekg(0, std::ios::beg);
-
-    if (f.fail()) {
-        goto INTERNAL_ERROR;
-    }
-
-    res_out->body.assign((std::istreambuf_iterator<char>(f)),
-                          std::istreambuf_iterator<char>());
-
+    res_out->body.assign(body.begin(), body.end());
     res_out->code = 200;
-
-    return;
-
-INTERNAL_ERROR:
-    res_out->code = 500;
 }

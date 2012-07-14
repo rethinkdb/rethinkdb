@@ -25,7 +25,7 @@ std::string LineParser::readLine() {
 // Both ensures that next line read is exactly bytes long and is able
 // to operate more efficiently than readLine.
 std::string LineParser::readLineOf(size_t bytes) {
-    // TODO: Don't use alloca for fuck's sake.
+    // TODO: Don't use alloca.
 
     // Since we know exactly how much we want to read we'll buffer ourselves
     // +2 is for expected terminating CRLF

@@ -6,6 +6,7 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
+#include "clustering/immediate_consistency/query/direct_reader.hpp"
 
 template <class protocol_t>
 bool reactor_t<protocol_t>::find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > > > &reactor_directory,
@@ -155,15 +156,14 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                  * Also this is potentially a performance boost because it
                  * allows other secondaries to preemptively backfill before the
                  * primary is up. */
-                backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history, svs);
+                backfiller_t<protocol_t> backfiller(mailbox_manager, branch_history_manager, svs);
 
                 /* Tell everyone in the cluster what state we're in. */
-                const int num_stores = svs->num_stores();
-                boost::scoped_array< boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> > read_tokens(new boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t>[num_stores]);
-                svs->new_read_tokens(read_tokens.get(), num_stores);
+                scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> read_token;
+                svs->new_read_token(&read_token);
 
                 typename reactor_business_card_t<protocol_t>::secondary_without_primary_t
-                    activity(svs->get_all_metainfos(order_token_t::ignore, read_tokens.get(), num_stores, interruptor),
+                    activity(svs->get_all_metainfos(order_token_t::ignore, &read_token, interruptor),
                              backfiller.get_business_card());
 
                 directory_entry.set(activity);
@@ -212,19 +212,22 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, m
                 directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_backfilling_t(backfill_location));
 
                 std::string region_name(render_region_as_string(&region, 0));
-                perfmon_collection_t region_perfmon_collection(region_name, &regions_perfmon_collection, true, true);
+                perfmon_collection_t region_perfmon_collection;
+                perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t<protocol_t> listener(mailbox_manager, broadcaster, branch_history, svs, location_to_backfill_from, backfill_session_id, &regions_perfmon_collection, interruptor);
+                listener_t<protocol_t> listener(io_backender, mailbox_manager, broadcaster, branch_history_manager, svs, location_to_backfill_from, backfill_session_id, &regions_perfmon_collection, interruptor);
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use
                  * us for backfills. */
                 replier_t<protocol_t> replier(&listener);
 
+                direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
+
                 /* Make the directory reflect the new role that we are filling.
                  * (Being a secondary). */
-                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t(branch_id, replier.get_business_card()));
+                directory_entry.set(typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t(branch_id, replier.get_business_card(), direct_reader.get_business_card()));
 
                 /* Wait for something to change. */
                 wait_interruptible(listener.get_broadcaster_lost_signal(), interruptor);

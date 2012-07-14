@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/circular_buffer.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "arch/io/io_utils.hpp"
 #include "clustering/administration/issues/local.hpp"

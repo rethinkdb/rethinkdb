@@ -6,7 +6,7 @@
 #include <set>
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/mailbox/mailbox.hpp"
-#include "perfmon/perfmon_types.hpp"
+#include "perfmon/types.hpp"
 
 class stat_manager_t {
 public:
@@ -20,8 +20,13 @@ public:
     get_stats_mailbox_address_t get_address();
 
 private:
-    static void send_stats(mailbox_manager_t* mailbox_manager, return_address_t& reply_address, std::set<stat_id_t>& requested_stats);
+    void on_stats_request(const return_address_t& reply_address, const std::set<stat_id_t>& requested_stats);
+    void perform_stats_request(const return_address_t& reply_address, const std::set<stat_id_t>& requested_stats, auto_drainer_t::lock_t);
+
+    mailbox_manager_t *mailbox_manager;
     get_stats_mailbox_t get_stats_mailbox;
+
+    auto_drainer_t drainer;
 
     DISABLE_COPYING(stat_manager_t);
 };

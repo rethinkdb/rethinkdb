@@ -11,6 +11,7 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/scoped_array.hpp>
 
 #include "arch/io/io_utils.hpp"   /* for `scoped_fd_t` and `_gettid()` */
 #include "arch/timing.hpp"
@@ -222,21 +223,29 @@ public:
 };
 
 proc_stats_collector_t::proc_stats_collector_t(perfmon_collection_t *stats) :
-    instantaneous_stats_collector(stats),
-    cpu_thread_user("cpu_user", secs_to_ticks(5), false, stats),
-    cpu_thread_system("cpu_system", secs_to_ticks(5), false, stats),
-    cpu_thread_combined("cpu_combined", secs_to_ticks(5), false, stats),
-    cpu_global_combined("global_cpu_util", secs_to_ticks(5), false, stats),
-    net_global_received("global_net_recv_persec", secs_to_ticks(5), false, stats),
-    net_global_sent("global_net_sent_persec", secs_to_ticks(5), false, stats),
-    memory_faults("memory_faults_persec", secs_to_ticks(5), false, stats)
+    instantaneous_stats_collector(),
+    cpu_thread_user(secs_to_ticks(5), false),
+    cpu_thread_system(secs_to_ticks(5), false),
+    cpu_thread_combined(secs_to_ticks(5), false),
+    cpu_global_combined(secs_to_ticks(5), false),
+    net_global_received(secs_to_ticks(5), false),
+    net_global_sent(secs_to_ticks(5), false),
+    memory_faults(secs_to_ticks(5), false),
+    stats_membership(stats,
+        &instantaneous_stats_collector, NULL,
+        &cpu_thread_user, "cpu_user",
+        &cpu_thread_system, "cpu_system",
+        &cpu_thread_combined, "cpu_combined",
+        &cpu_global_combined, "global_cpu_util",
+        &net_global_received, "global_net_recv_persec",
+        &net_global_sent, "global_net_sent_persec",
+        &memory_faults, "memory_faults_persec",
+        NULL)
 {
     coro_t::spawn_sometime(boost::bind(&proc_stats_collector_t::collect_periodically, this, auto_drainer_t::lock_t(&drainer)));
 }
 
-proc_stats_collector_t::instantaneous_stats_collector_t::instantaneous_stats_collector_t(perfmon_collection_t *stats) :
-    perfmon_t(stats, true)
-{
+proc_stats_collector_t::instantaneous_stats_collector_t::instantaneous_stats_collector_t() {
     // Whoever you are, please don't change this to start_time =
     // time(NULL) it results in a negative uptime stat.
     struct timespec now;
@@ -253,28 +262,33 @@ void proc_stats_collector_t::instantaneous_stats_collector_t::visit_stats(void *
     /* Do nothing; the things we need to get can be gotten on any thread */
 }
 
-void proc_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *, perfmon_result_t *dest) { 
+perfmon_result_t *proc_stats_collector_t::instantaneous_stats_collector_t::end_stats(void *) {
+    perfmon_result_t *result;
+    perfmon_result_t::alloc_map_result(&result);
+
     // Basic process stats (version, pid, uptime)
     struct timespec now;
     int res = clock_gettime(CLOCK_MONOTONIC, &now);
     guarantee_err(res == 0, "clock_gettime(CLOCK_MONOTONIC) failed");
-    dest->insert("uptime", new perfmon_result_t(strprintf("%ld", now.tv_sec - start_time)));
-    dest->insert("timestamp", new perfmon_result_t(format_time(now)));
 
-    dest->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
-    dest->insert("pid", new perfmon_result_t(strprintf("%d", getpid())));
+    result->insert("uptime", new perfmon_result_t(strprintf("%ld", now.tv_sec - start_time)));
+    result->insert("timestamp", new perfmon_result_t(format_time(now)));
+
+    result->insert("version", new perfmon_result_t(std::string(RETHINKDB_VERSION)));
+    result->insert("pid", new perfmon_result_t(strprintf("%d", getpid())));
 
     try {
         proc_pid_stat_t pid_stat = proc_pid_stat_t::for_pid(getpid());
-        dest->insert("memory_virtual", new perfmon_result_t(strprintf("%lu", pid_stat.vsize)));
-        dest->insert("memory_real", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
+        result->insert("memory_virtual", new perfmon_result_t(strprintf("%lu", pid_stat.vsize)));
+        result->insert("memory_real", new perfmon_result_t(strprintf("%ld", pid_stat.rss * sysconf(_SC_PAGESIZE))));
 
         global_sys_stat_t global_stat = global_sys_stat_t::read_global_stats();
-        dest->insert("global_mem_total", new perfmon_result_t(strprintf("%ld", global_stat.mem_total)));
-        dest->insert("global_mem_used", new perfmon_result_t(strprintf("%ld", global_stat.mem_total - global_stat.mem_free)));
+        result->insert("global_mem_total", new perfmon_result_t(strprintf("%ld", global_stat.mem_total)));
+        result->insert("global_mem_used", new perfmon_result_t(strprintf("%ld", global_stat.mem_total - global_stat.mem_free)));
     } catch (const std::runtime_error &e) {
         logWRN("Error in collecting system stats (on demand): %s", e.what());
     }
+    return result;
 }
 
 static void fetch_tid(int thread, pid_t *out) {

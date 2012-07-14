@@ -1,5 +1,6 @@
 #include <backtrace.hpp>
 
+#include <cxxabi.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -12,7 +13,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
-#include "containers/scoped_malloc.hpp"
+#include "containers/scoped.hpp"
 
 
 
@@ -86,8 +87,6 @@ to the way it was originally.
 
 Please don't change this function without talking to the people who have already
 been involved in this. */
-
-#include <cxxabi.h>
 
 std::string demangle_cpp_name(const char *mangled_name) {
     int res;
@@ -194,7 +193,7 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     if (symbols) {
         for (int i = 0; i < size; i ++) {
             // Parse each line of the backtrace
-            scoped_malloc<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
+            scoped_malloc_t<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
             char *executable, *function, *offset, *address;
 
             fprintf(out, "%d: ", i+1);

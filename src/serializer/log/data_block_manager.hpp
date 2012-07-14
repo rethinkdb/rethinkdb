@@ -4,6 +4,8 @@
 #include "utils.hpp"
 #include <boost/scoped_ptr.hpp>
 
+#include <vector>
+
 #include "arch/types.hpp"
 #include "serializer/log/config.hpp"
 #include "containers/priority_queue.hpp"
@@ -11,7 +13,7 @@
 #include "containers/bitset.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/types.hpp"
-#include "perfmon/perfmon_types.hpp"
+#include "perfmon/types.hpp"
 
 class log_serializer_t;
 

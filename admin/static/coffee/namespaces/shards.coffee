@@ -63,6 +63,7 @@ module 'NamespaceView', ->
 
             @check_has_unsatisfiable_goals()
             issues.on 'all', @check_has_unsatisfiable_goals
+            @model.on 'all', @render
 
         check_has_unsatisfiable_goals: =>
             if @should_be_hidden
@@ -197,9 +198,12 @@ module 'NamespaceView', ->
 
             @model.on 'change', @render_summary
             directory.on 'all', @render_summary
+            ###
             @namespace.on 'change:replica_affinities', @reset_list
             @namespace.on 'change:secondary_pinnings', @reset_list
             @namespace.on 'change:blueprint', @reset_list
+            ###
+            @namespace.on 'all', @reset_list
 
         reset_list: =>
             @machine_list.reset_element_views()
@@ -310,7 +314,7 @@ module 'NamespaceView', ->
                     $('#user-alert-space').append (@alert_tmpl {})
                     
                     # Trigger a manual refresh of the data
-                    collect_server_data(true)
+                    collect_server_data_once(false)
             )
 
         get_available_machines_in_datacenter: =>
@@ -573,6 +577,8 @@ module 'NamespaceView', ->
             @.$el.remove()
             $('.namespace-view .sharding').show()
             $('#user-alert-space').append(@alert_tmpl({}))
+            #TODO Update data
+            collect_server_data_once(false)
 
         destroy: =>
             @namespace.off()

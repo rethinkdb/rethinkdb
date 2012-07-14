@@ -1,5 +1,6 @@
 #include "errors.hpp"
 
+#include <cxxabi.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -58,8 +59,6 @@ void generic_crash_handler(int signum) {
 
 void ignore_crash_handler(UNUSED int signum) { }
 
-#include <cxxabi.h>
-
 void terminate_handler() {
     std::type_info *t = abi::__cxa_current_exception_type();
     if (t) {
@@ -72,7 +71,7 @@ void terminate_handler() {
         try {
             /* This will rethrow whatever unexpected exception was thrown. */
             throw;
-        } catch (std::exception& e) {
+        } catch (const std::exception& e) {
             crash("Uncaught exception of type \"%s\"\n  what(): %s", name.c_str(), e.what());
         } catch (...) {
             crash("Uncaught exception of type \"%s\"", name.c_str());

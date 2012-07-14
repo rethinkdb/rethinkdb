@@ -4,12 +4,10 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/variant/get.hpp>
 
 #include "arch/arch.hpp"
-
 #include "buffer_cache/mirrored/mirrored.hpp"
-#include "do_on_thread.hpp"
+#include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/serializer.hpp"
 
@@ -254,12 +252,13 @@ public:
         public thread_message_t,
         public home_thread_mixin_t {
         writeback_t *parent;
-        mc_buf_lock_t *buf;
         intrusive_ptr_t<standard_block_token_t> token;
 
     private:
         friend class buf_writer_t;
         cond_t finished_;
+
+        scoped_ptr_t<mc_buf_lock_t> buf;
 
     public:
         void on_write_launched(const intrusive_ptr_t<standard_block_token_t>& tok) {
@@ -284,7 +283,7 @@ public:
 
     buf_writer_t(writeback_t *wb, mc_buf_lock_t *buf) {
         launch_cb.parent = wb;
-        launch_cb.buf = buf;
+        launch_cb.buf.init(buf);
         launch_cb.parent->cache->assert_thread();
         /* When we spawn a flush, the block ceases to be dirty, so we release the
         semaphore. To avoid releasing a tidal wave of write transactions every time
@@ -313,7 +312,6 @@ public:
         assert_thread();
         rassert(self_cond_.is_pulsed());
         rassert(launch_cb.finished_.is_pulsed());
-        delete launch_cb.buf;
     }
 };
 
@@ -337,7 +335,7 @@ void writeback_t::start_concurrent_flush() {
     coro_t::spawn(boost::bind(&writeback_t::do_concurrent_flush, this));
 }
 
-// TODO (rntz) break this up into smaller functions
+// TODO(rntz) break this up into smaller functions
 void writeback_t::do_concurrent_flush() {
     ticks_t start_time;
     cache->stats->pm_flushes_locking.begin(&start_time);
@@ -390,7 +388,7 @@ void writeback_t::do_concurrent_flush() {
         // Go through the different flushing steps...
         flush_prepare_patches();
         cache->stats->pm_flushes_writing.begin(&start_time);
-        flush_acquire_bufs(transaction, state);
+        flush_acquire_bufs(transaction, &state);
     }
 
     // Now that preparations are complete, send the writes to the serializer
@@ -515,7 +513,7 @@ void writeback_t::flush_prepare_patches() {
                     // writeback. Use lbuf->last_patch_materialized to make
                     // that decision. This way we never have duplicate patches on disk.
                     if (lbuf->last_patch_materialized() < (*range.second)->get_patch_counter()) {
-                        if (!cache->patch_disk_storage->store_patch(*(*range.second), block_sequence_id)) {
+                        if (!cache->patch_disk_storage->store_patch(*range.second, block_sequence_id)) {
                             patch_storage_failure = true;
                             // We were not able to store all the patches to disk,
                             // so we fall back to re-writing the block itself.
@@ -566,17 +564,17 @@ void writeback_t::flush_prepare_patches() {
         cache->stats->pm_flushes_diff_storage_failures.record(patches_stored);
 }
 
-void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &state) {
+void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t *state) {
     /* Request read locks on all of the blocks we need to flush. */
     // Log the size of this flush
     cache->stats->pm_flushes_blocks.record(dirty_bufs.size());
 
     // Request read locks on all of the blocks we need to flush.
-    state.serializer_writes.reserve(deleted_blocks.size() + dirty_bufs.size());
+    state->serializer_writes.reserve(deleted_blocks.size() + dirty_bufs.size());
 
     // Write deleted block_ids.
     for (size_t i = 0; i < deleted_blocks.size(); i++) {
-        state.serializer_writes.push_back(serializer_write_t::make_delete(deleted_blocks[i]));
+        state->serializer_writes.push_back(serializer_write_t::make_delete(deleted_blocks[i]));
     }
     deleted_blocks.clear();
 
@@ -610,8 +608,8 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
 
             // Fill the serializer structure
             buf_writer_t *buf_writer = new buf_writer_t(this, buf);
-            state.buf_writers.push_back(buf_writer);
-            state.serializer_writes.push_back(
+            state->buf_writers.push_back(buf_writer);
+            state->serializer_writes.push_back(
                 serializer_write_t::make_update(inner_buf->block_id,
                                                 inner_buf->subtree_recency,
                                                 buf->get_data_read(),
@@ -619,7 +617,7 @@ void writeback_t::flush_acquire_bufs(transaction_t *transaction, flush_state_t &
                                                 &buf_writer->launch_cb));
         } else if (recency_dirty) {
             // No need to acquire the block, since we're only writing its recency & don't need its contents.
-            state.serializer_writes.push_back(serializer_write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency));
+            state->serializer_writes.push_back(serializer_write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency));
         }
 
     }

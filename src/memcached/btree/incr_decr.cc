@@ -5,7 +5,7 @@
 
 #include "containers/buffer_group.hpp"
 #include "containers/printf_buffer.hpp"
-#include "containers/scoped_malloc.hpp"
+#include "containers/scoped.hpp"
 #include "memcached/btree/modify_oper.hpp"
 #include "repli_timestamp.hpp"
 
@@ -15,9 +15,9 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         : increment(_increment), delta(_delta)
     { }
 
-    bool operate(transaction_t *txn, scoped_malloc<memcached_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc_t<memcached_value_t> *value) {
         // If the key didn't exist before, we fail.
-        if (!value) {
+        if (!value->has()) {
             result.res = incr_decr_result_t::idr_not_found;
             return false;
         }
@@ -26,7 +26,7 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         bool valid;
         uint64_t number;
 
-        blob_t b(value->value_ref(), blob::btree_maxreflen);
+        blob_t b((*value)->value_ref(), blob::btree_maxreflen);
         rassert(50 <= blob::btree_maxreflen);
         if (b.valuesize() < 50) {
             buffer_group_t buffergroup;

@@ -52,20 +52,30 @@ def deb_get_binary(path):
 def deb_uninstall(cmd_name): 
     return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\\1/' | xargs dpkg -r" % cmd_name
 
+class VMError(Exception):
+    def __init__(self, str):
+        self.str = str
+    def __str__(self):
+        return repr(self.str)
+
 class VM():
-    def __init__(self, uuid, hostname, username = 'rethinkdb', rootname = 'root', startup = True):
+    def __init__(self, uuid, hostname, username = 'rethinkdb', rootname = 'root', vbox_username = 'rethinkdb', vbox_hostname = 'deadshot', startup = True):
         self.uuid = uuid
         self.hostname = hostname
         self.username = username
         self.rootname = rootname
+        self.vbox_username = vbox_username
+        self.vbox_hostname = vbox_hostname
         if (startup):
-            os.system("VBoxManage startvm %s --type headless" % self.uuid)
-            time.sleep(80)
-            while (self.command("true") != 0):
+            os.system("ssh %s@%s VBoxManage startvm %s --type headless" % (self.vbox_username, self.vbox_hostname, self.uuid))
+            start_time = time.time()
+            while (self.command("true") != 0) and time.time() - start_time < 5 * 60: # give up after some number of seconds
                 time.sleep(3)
+            if self.command("true") != 0:
+                raise VMError("Failed to connect to Virtual Machine %s." % uuid)
 
     def __del__(self):
-        os.system("VBoxManage controlvm %s poweroff" % self.uuid)
+        os.system("ssh %s@%s VBoxManage controlvm %s poweroff" % (self.vbox_username, self.vbox_hostname, self.uuid))
 
     def command(self, cmd_str, root = False, bg = False):
         str = "ssh -o ConnectTimeout=1000 %s@%s \"%s\"" % ((self.rootname if root else self.username), self.hostname, (cmd_str + ("&" if bg else ""))) + ("&" if bg else "")
@@ -83,7 +93,7 @@ class VM():
         return os.popen("ssh %s@%s \"%s\"" % (self.username, self.hostname, cmd_str), mode)
 
 class target():
-    def __init__(self, build_uuid, build_hostname, username, build_cl, res_ext, install_cl_f, uninstall_cl_f, get_binary_f):
+    def __init__(self, build_uuid, build_hostname, username, build_cl, res_ext, install_cl_f, uninstall_cl_f, get_binary_f, vbox_username, vbox_hostname):
         self.build_uuid = build_uuid 
         self.build_hostname = build_hostname 
         self.username = username
@@ -92,6 +102,8 @@ class target():
         self.install_cl_f = install_cl_f # path -> install cmd
         self.uninstall_cl_f = uninstall_cl_f
         self.get_binary_f = get_binary_f
+        self.vbox_username = vbox_username # username and hostname for running VirtualBox through ssh
+        self.vbox_hostname = vbox_hostname
 
     class RunError(Exception):
         def __init__(self, str):
@@ -100,7 +112,10 @@ class target():
             return repr(self.str)
 
     def start_vm(self):
-        return VM(self.build_uuid, self.build_hostname, self.username)
+        return VM(self.build_uuid, self.build_hostname, self.username, vbox_username = self.vbox_username, vbox_hostname = self.vbox_hostname) # startup = True
+
+    def get_vm(self):
+        return VM(self.build_uuid, self.build_hostname, self.username, vbox_username = self.vbox_username, vbox_hostname = self.vbox_hostname, startup = False)
 
     def interact(self, short_name):
         build_vm = self.start_vm()
@@ -156,6 +171,8 @@ class target():
                 os.mkdir(os.path.join(dest, short_name))
 
             #install antiquated packages here
+            if not os.path.exists('old_versions'):
+                os.makedirs('old_versions')
             for old_version in os.listdir('old_versions'):
                 pkg = os.listdir(os.path.join('old_versions', old_version, short_name))[0]
                 build_vm.copy_to_tmp(os.path.join('old_versions', old_version, short_name, pkg))
@@ -214,7 +231,7 @@ class target():
 
         #clean up is used to just shutdown the machine, kind of a hack but oh well
     def clean_up(self):
-        build_vm = VM(self.build_uuid, self.build_hostname, self.username, startup=False)
+        build_vm = get_vm()
         return #this calls the build_vms __del__ method which shutsdown the machine
 
 def build(targets):

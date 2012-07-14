@@ -28,6 +28,14 @@ module 'DatacenterView', ->
             @stats_panel = new Vis.StatsPanel(@model.get_stats_for_performance)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
+            filter = {}
+            for machine in machines.models
+                if machine.get('datacenter_uuid') is @model.get('id')
+                    filter[machine.get('id')] = true
+            @logs = new LogView.Container
+                template_header: Handlebars.compile $('#log-header-datacenter-template').html()
+                filter: filter
+        
         rename_datacenter: (event) ->
             event.preventDefault()
             rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'datacenter'
@@ -55,18 +63,8 @@ module 'DatacenterView', ->
             # Filter all the machines for those belonging to this datacenter and append logs
             machines_in_datacenter = machines.filter (machine) => return machine.get('datacenter_uuid') is @model.get('id')
 
-            dc_log_entries = new LogEntries
-            for machine in machines_in_datacenter
-                if machine.get('log_entries')?
-                    dc_log_entries.add machine.get('log_entries').models
-
-            entries_to_render = []
-            dc_log_entries.each (log_entry) =>
-                entries_to_render.push(new DatacenterView.RecentLogEntry
-                    model: log_entry)
-            entries_to_render = entries_to_render.slice(0, @max_log_entries_to_render)
-
-            @.$('.recent-log-entries').append entry.render().el for entry in entries_to_render
+            # log entries
+            @.$('.recent-log-entries').html @logs.render().$el
 
             @.$('.nav-tabs').tab()
 
@@ -90,6 +88,7 @@ module 'DatacenterView', ->
             @data.destroy()
             @stats_panel.destroy()
             @performance_graph.destroy()
+            @logs.destroy()
 
         
     # DatacenterView.Title
@@ -270,25 +269,3 @@ module 'DatacenterView', ->
             @model.off()
             machines.off()
             directory.off()
-
-
-    # DatacenterView.RecentLogEntry
-    class @RecentLogEntry extends Backbone.View
-        className: 'recent-log-entry'
-        template: Handlebars.compile $('#datacenter_view-recent_log_entry-template').html()
-
-        events: ->
-            'click a[rel=popover]': 'do_nothing'
-
-        do_nothing: (event) -> event.preventDefault()
-
-        render: =>
-            json = _.extend @model.toJSON(), @model.get_formatted_message()
-            @.$el.html @template _.extend json,
-                machine_name: machines.get(@model.get('machine_uuid')).get('name')
-                timeago_timestamp: @model.get_iso_8601_timestamp()
-
-            @.$('abbr.timeago').timeago()
-            @.$('a[rel=popover]').popover
-                html: true
-            return @

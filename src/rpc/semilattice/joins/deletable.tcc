@@ -20,9 +20,4 @@ void semilattice_join(deletable_t<T> *a, const deletable_t<T> &b) {
     }
 }
 
-template <class T>
-T &deletable_getter(deletable_t<T> &target) {
-    return target.get_mutable();
-}
-
 #endif  // RPC_SEMILATTICE_JOINS_DELETABLE_TCC_

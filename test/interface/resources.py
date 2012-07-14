@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 import sys, os, time, urllib2
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, http_admin
+import driver, http_admin, scenario_common
 from vcoptparse import *
 
 op = OptParser()
-op["mode"] = StringFlag("--mode", "debug")
+scenario_common.prepare_option_parser_mode_flags(op)
 opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
-    executable_path = driver.find_rethinkdb_executable(opts["mode"])
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Spinning up a process..."
-    files = driver.Files(metacluster, db_path = "db", log_path = "create-output", executable_path = executable_path)
-    proc = driver.Process(cluster, files, log_path = "serve-output", executable_path = executable_path)
+    files = driver.Files(metacluster, db_path = "db", log_path = "create-output", executable_path = executable_path, command_prefix = command_prefix)
+    proc = driver.Process(cluster, files, log_path = "serve-output",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     proc.wait_until_started_up()
     cluster.check()
     access = http_admin.ClusterAccess([("localhost", proc.http_port)])

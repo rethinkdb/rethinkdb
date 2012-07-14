@@ -12,7 +12,7 @@ get_result_t memcached_get(const store_key_t &store_key, btree_slice_t *slice, e
     keyvalue_location_t<memcached_value_t> kv_location;
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
 
-    if (!kv_location.value) {
+    if (!kv_location.value.has()) {
         return get_result_t();
     }
 

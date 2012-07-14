@@ -26,7 +26,7 @@ public:
     friend bool is_coroutine_stack_overflow(void *);
 
     template<class Callable>
-    static void spawn_now_deprecated(const Callable &action) {
+    static void spawn_now(const Callable &action) {
         get_and_init_coro(action)->notify_now_deprecated();
     }
 
@@ -161,6 +161,7 @@ private:
 
 /* Returns true if the given address is in the protection page of the current coroutine. */
 bool is_coroutine_stack_overflow(void *addr);
+bool coroutines_have_been_initialized();
 
 #ifndef NDEBUG
 

@@ -1,5 +1,5 @@
 /* Please avoid #include'ing this file from other headers unless you absolutely
- * need to. Please #include "perfmon/perfmon_types.hpp" instead. This helps avoid
+ * need to. Please #include "perfmon/types.hpp" instead. This helps avoid
  * potential circular dependency problems, since perfmons are used all over the
  * place but also depend on a significant chunk of our threading infrastructure
  * (by way of get_thread_id() & co).
@@ -7,13 +7,14 @@
 #ifndef PERFMON_PERFMON_HPP_
 #define PERFMON_PERFMON_HPP_
 
+#include <algorithm>
 #include <limits>
 #include <string>
 #include <map>
 
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
-#include "perfmon/perfmon_types.hpp"
+#include "perfmon/types.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "utils.hpp"
 #include "perfmon/core.hpp"
@@ -32,7 +33,7 @@ extern bool global_full_perfmon;
 // Abstract perfmon subclass that implements perfmon tracking by combining per-thread values.
 template<typename thread_stat_t, typename combined_stat_t = thread_stat_t>
 struct perfmon_perthread_t : public perfmon_t {
-    explicit perfmon_perthread_t(perfmon_collection_t *parent) : perfmon_t(parent) { }
+    perfmon_perthread_t() { }
 
     void *begin_stats() {
         return new thread_stat_t[get_num_threads()];
@@ -40,16 +41,17 @@ struct perfmon_perthread_t : public perfmon_t {
     void visit_stats(void *data) {
         get_thread_stat(&(reinterpret_cast<thread_stat_t *>(data))[get_thread_id()]);
     }
-    void end_stats(void *data, perfmon_result_t *dest) {
+    perfmon_result_t *end_stats(void *data) {
         combined_stat_t combined = combine_stats(reinterpret_cast<thread_stat_t *>(data));
-        output_stat(combined, dest);
+        perfmon_result_t *result = output_stat(combined);
         delete[] reinterpret_cast<thread_stat_t *>(data);
+        return result;
     }
 
 protected:
     virtual void get_thread_stat(thread_stat_t *) = 0;
     virtual combined_stat_t combine_stats(thread_stat_t *) = 0;
-    virtual void output_stat(const combined_stat_t &, perfmon_result_t *) = 0;
+    virtual perfmon_result_t *output_stat(const combined_stat_t &) = 0;
 };
 
 /* perfmon_counter_t is a perfmon_t that keeps a global counter that can be
@@ -60,16 +62,15 @@ class perfmon_counter_t : public perfmon_perthread_t<cache_line_padded_t<int64_t
     friend class perfmon_counter_step_t;
 protected:
     typedef cache_line_padded_t<int64_t> padded_int64_t;
-    std::string name;
     padded_int64_t *thread_data;
 
     int64_t &get();
 
     void get_thread_stat(padded_int64_t *);
     int64_t combine_stats(padded_int64_t *);
-    void output_stat(const int64_t&, perfmon_result_t *);
+    perfmon_result_t *output_stat(const int64_t&);
 public:
-    perfmon_counter_t(const std::string& name, perfmon_collection_t *parent);
+    perfmon_counter_t();
     virtual ~perfmon_counter_t();
     void operator++() { get()++; }
     void operator+=(int64_t num) { get() += num; }
@@ -128,15 +129,14 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
 
     void get_thread_stat(stats_t *);
     stats_t combine_stats(stats_t *);
-    void output_stat(const stats_t&, perfmon_result_t *);
+    perfmon_result_t *output_stat(const stats_t&);
 
     void update(ticks_t now);
 
-    std::string name;
     ticks_t length;
     bool include_rate;
 public:
-    perfmon_sampler_t(const std::string& _name, ticks_t _length, bool _include_rate, perfmon_collection_t *parent);
+    perfmon_sampler_t(ticks_t _length, bool _include_rate);
     virtual ~perfmon_sampler_t();
     void record(double value);
 };
@@ -173,17 +173,15 @@ struct perfmon_stddev_t : public perfmon_perthread_t<stddev_t> {
 private:
 public:
     // should be possible to make this a templated class if necessary
-    perfmon_stddev_t(const std::string& name, perfmon_collection_t *parent);
+    perfmon_stddev_t();
     void record(float value);
 
 protected:
-    std::string name;
-
     void get_thread_stat(stddev_t *);
     stddev_t combine_stats(stddev_t *);
-    void output_stat(const stddev_t&, perfmon_result_t *);
+    perfmon_result_t *output_stat(const stddev_t&);
 private:
-    stddev_t thread_data[MAX_THREADS]; // TODO (rntz) should this be cache-line padded?
+    stddev_t thread_data[MAX_THREADS]; // TODO(rntz) should this be cache-line padded?
 };
 
 /* `perfmon_rate_monitor_t` keeps track of the number of times some event
@@ -197,16 +195,17 @@ private:
     struct thread_info_t {
         double current_count, last_count;
         int current_interval;
+
+        thread_info_t() : current_count(0), last_count(0), current_interval(1) { }
     } thread_data[MAX_THREADS];
     void update(ticks_t now);
-    std::string name;
     ticks_t length;
 
     void get_thread_stat(double *);
     double combine_stats(double *);
-    void output_stat(const double&, perfmon_result_t *);
+    perfmon_result_t *output_stat(const double&);
 public:
-    perfmon_rate_monitor_t(const std::string& name, ticks_t length, perfmon_collection_t *parent);
+    explicit perfmon_rate_monitor_t(ticks_t length);
     void record(double value = 1.0);
 };
 
@@ -230,17 +229,15 @@ public:
 
 private:
     friend class internal_function_t;
-    std::string name;
     intrusive_list_t<internal_function_t> funs[MAX_THREADS];
 
 public:
-    perfmon_function_t(std::string _name, perfmon_collection_t *parent)
-        : perfmon_t(parent), name(_name) { }
+    perfmon_function_t() : perfmon_t() { }
     virtual ~perfmon_function_t() { }
 
     void *begin_stats();
     void visit_stats(void *data);
-    void end_stats(void *data, perfmon_result_t *dest);
+    perfmon_result_t *end_stats(void *data);
 };
 
 /* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a
@@ -250,23 +247,31 @@ public:
  * so on. If `global_full_perfmon` is false, it won't report any timing-related
  * stats because `get_ticks()` is rather slow.
  *
- * Frequently we're in the case
- * where we'd like to have a single slow perfmon up, but don't want the other
- * ones, perfmon_duration_sampler_t has an ignore_global_full_perfmon
- * field on it, which when true makes it run regardless of --full-perfmon flag
- * this can also be enable and disabled at runtime.
+ * Frequently we're in the case where we'd like to have a single slow perfmon
+ * up, but don't want the other ones, perfmon_duration_sampler_t has an
+ * ignore_global_full_perfmon field on it, which when true makes it run
+ * regardless of --full-perfmon flag this can also be enable and disabled at
+ * runtime.
  */
-struct perfmon_duration_sampler_t {
+struct perfmon_duration_sampler_t : public perfmon_t {
 private:
     perfmon_collection_t stat;
     perfmon_counter_t active;
     perfmon_counter_t total;
     perfmon_sampler_t recent;
+    perfmon_membership_t active_membership;
+    perfmon_membership_t total_membership;
+    perfmon_membership_t recent_membership;
+
     bool ignore_global_full_perfmon;
 public:
-    perfmon_duration_sampler_t(const std::string& name, ticks_t length, perfmon_collection_t *parent, bool _ignore_global_full_perfmon = false);
+    explicit perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon = false);
     void begin(ticks_t *v);
     void end(ticks_t *v);
+
+    void *begin_stats();
+    void visit_stats(void *data);
+    perfmon_result_t *end_stats(void *data);
 
 public:
     //Control interface used for enabling and disabling duration samplers at run time

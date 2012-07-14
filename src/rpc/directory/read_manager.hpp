@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
@@ -12,8 +13,8 @@
 template<class metadata_t>
 class directory_read_manager_t :
     public home_thread_mixin_t,
-    public message_handler_t
-{
+    public message_handler_t,
+    private peers_list_callback_t {
 public:
     explicit directory_read_manager_t(connectivity_service_t *connectivity_service) THROWS_NOTHING;
     ~directory_read_manager_t() THROWS_NOTHING;
@@ -27,10 +28,10 @@ private:
     when they disconnect. A new `session_t` is created if they reconnect. */
     class session_t {
     public:
-        explicit session_t(boost::uuids::uuid si) : session_id(si) { }
+        explicit session_t(uuid_t si) : session_id(si) { }
         /* We get this by calling `get_connection_session_id()` on the
         `connectivity_service_t` from `super_connectivity_service`. */
-        const boost::uuids::uuid session_id;
+        const uuid_t session_id;
         cond_t got_initial_message;
         boost::scoped_ptr<fifo_enforcer_sink_t> metadata_fifo_sink;
         auto_drainer_t drainer;
@@ -43,13 +44,13 @@ private:
 
     /* These will be called in a blocking fashion by the connectivity service
     (or message service, in the case of `on_message()`) */
-    void on_connect(peer_id_t peer) THROWS_NOTHING;
     void on_message(peer_id_t, read_stream_t *) THROWS_NOTHING;
+    void on_connect(peer_id_t peer) THROWS_NOTHING;
     void on_disconnect(peer_id_t peer) THROWS_NOTHING;
 
     /* These are meant to be spawned in new coroutines */
-    void propagate_initialization(peer_id_t peer, boost::uuids::uuid session_id, metadata_t new_value, fifo_enforcer_source_t::state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
-    void propagate_update(peer_id_t peer, boost::uuids::uuid session_id, metadata_t new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
+    void propagate_initialization(peer_id_t peer, uuid_t session_id, metadata_t new_value, fifo_enforcer_source_t::state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
+    void propagate_update(peer_id_t peer, uuid_t session_id, metadata_t new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
     void interrupt_updates_and_free_session(session_t *session, auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING;
 
     /* The connectivity service telling us which peers are connected */

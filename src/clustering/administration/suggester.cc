@@ -85,9 +85,9 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
                             machine_id_translation_table,
                             machine_data_centers
                             )));
-            } catch (cannot_satisfy_goals_exc_t &e) {
+            } catch (const cannot_satisfy_goals_exc_t &e) {
                 logERR("Namespace %s has unsatisfiable goals", uuid_to_str(it->first).c_str());
-            } catch (in_conflict_exc_t &e) {
+            } catch (const in_conflict_exc_t &e) {
                 logERR("Namespace %s has internal conflicts", uuid_to_str(it->first).c_str());
             }
         }
@@ -118,7 +118,7 @@ void fill_in_blueprints_for_protocol(
 
 void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
                         std::map<peer_id_t, cluster_directory_metadata_t> directory,
-                        const boost::uuids::uuid &us) {
+                        const uuid_t &us) {
     std::map<machine_id_t, datacenter_id_t> machine_assignments;
 
     for (std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::iterator it = cluster_metadata->machines.machines.begin();

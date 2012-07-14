@@ -1,21 +1,23 @@
 #!/usr/bin/python
 import sys, os, time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import http_admin, driver, workload_runner
+import http_admin, driver, workload_runner, scenario_common
 from vcoptparse import *
 
 op = OptParser()
-op["mode"] = StringFlag("--mode", "debug")
+scenario_common.prepare_option_parser_mode_flags(op)
 op["workload"] = PositionalArg()
 op["timeout"] = IntFlag("--timeout", 600)
 opts = op.parse(sys.argv)
 
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
+    executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
     print "Starting cluster..."
-    executable_path = driver.find_rethinkdb_executable(opts["mode"])
-    serve_process = driver.Process(cluster, driver.Files(metacluster, db_path = "db"), executable_path = executable_path, log_path = "serve-output")
-    proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', executable_path = executable_path, log_path = 'proxy-output')
+    serve_process = driver.Process(cluster, driver.Files(metacluster, db_path = "db", executable_path = executable_path, command_prefix = command_prefix), log_path = "serve-output",
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
+    proxy_process = driver.ProxyProcess(cluster, 'proxy-logfile', log_path = 'proxy-output',
+        executable_path = executable_path, command_prefix = command_prefix, extra_options = serve_options)
     processes = [serve_process, proxy_process]
     for process in processes:
         process.wait_until_started_up()
