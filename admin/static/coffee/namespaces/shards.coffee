@@ -282,7 +282,7 @@ module 'NamespaceView', ->
 
                 $.ajax
                     processData: false
-                    url: "/ajax/#{@namespace.get("protocol")}_namespaces/#{@namespace.get('id')}/secondary_pinnings"
+                    url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.get('id')}/secondary_pinnings"
                     type: 'POST'
                     data: JSON.stringify(post_data)
                     success: (response) =>
