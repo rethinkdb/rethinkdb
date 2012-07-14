@@ -14,50 +14,22 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.pb.h"
 
-//TODO maybe we can merge well definedness and type checking. */
-
-/* Make sure that the protocol buffers we receive are a well defined type. That
- * is they specify which type they are and have the correct optional fields
- * filled in (and none of the others). */
-
-bool is_well_defined(const VarTermTuple &);
-bool is_well_defined(const Term &);
-bool is_well_defined(const Builtin &);
-bool is_well_defined(const Reduction &);
-bool is_well_defined(const Mapping &);
-bool is_well_defined(const Predicate &);
-bool is_well_defined(const Builtin &);
-bool is_well_defined(const ReadQuery &);
-bool is_well_defined(const WriteQuery &);
-bool is_well_defined(const Query &);
-
 namespace query_language {
 
-struct error_t;
-struct primitive_t;
+class type_error_t {
+public:
+    explicit type_error_t(const std::string &s) : message(s) { }
 
-typedef boost::variant<error_t, primitive_t> type_t;
-
-struct error_t {
-    error_t()
-        : desc("Unknown error.")
-    { }
-
-    explicit error_t(const std::string &_desc)
-        : desc(_desc)
-    { }
-
-    std::string desc;
-
-    bool operator==(const error_t &e) const {
-        return desc == e.desc;
+    std::string what() const throw () {
+        return message;
     }
+private:
+    std::string message;
 };
 
-/* TODO in what sense are these primitive types now? maybe these should just be
- * types. */
-struct primitive_t {
-    enum primitive_type_t {
+struct type_t {
+    enum Type {
+        INVALID,
         ERROR,
         JSON,
         STREAM,
@@ -67,26 +39,30 @@ struct primitive_t {
         QUERY
     } value;
 
-    explicit primitive_t(primitive_type_t _value)
-        : value(_value)
-    { }
+    type_t() : value(INVALID) { }
 
-    bool operator==(const primitive_t &p) const {
+    explicit type_t(Type _value) : value(_value) { }
+
+    bool operator==(const type_t &p) const {
         if (value == VIEW && p.value == STREAM) {
-            return true;
+            return true; // we can coerce a view to a stream
         }
         return value == p.value;
+    }
+
+    bool operator!=(const type_t &p) const {
+        return !(operator==(p));
     }
 };
 
 namespace Type {
-    const type_t ERROR = primitive_t(primitive_t::ERROR);
-    const type_t JSON = primitive_t(primitive_t::JSON);
-    const type_t STREAM = primitive_t(primitive_t::STREAM);
-    const type_t VIEW = primitive_t(primitive_t::VIEW);
-    const type_t READ = primitive_t(primitive_t::READ);
-    const type_t WRITE = primitive_t(primitive_t::WRITE);
-    const type_t QUERY = primitive_t(primitive_t::WRITE);
+    const type_t ERROR = type_t(type_t::ERROR);
+    const type_t JSON = type_t(type_t::JSON);
+    const type_t STREAM = type_t(type_t::STREAM);
+    const type_t VIEW = type_t(type_t::VIEW);
+    const type_t READ = type_t(type_t::READ);
+    const type_t WRITE = type_t(type_t::WRITE);
+    const type_t QUERY = type_t(type_t::WRITE);
 }
 
 class function_t {
@@ -171,7 +147,8 @@ typedef variable_scope_t<type_t> variable_type_scope_t;
 
 typedef variable_type_scope_t::new_scope_t new_scope_t;
 
-/* get_type functions assume that the contained value is well defined. */
+/* get_type functions throw exceptions if their inputs aren't well defined or
+   fail type-checking. (A well-defined input has the correct fields filled in)  */
 const type_t get_type(const Term &t, variable_type_scope_t *scope);
 const type_t get_type(const Reduction &r, variable_type_scope_t *scope);
 const type_t get_type(const Mapping &m, variable_type_scope_t *scope);
@@ -198,7 +175,7 @@ typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
 
 class runtime_exc_t {
 public:
-    explicit runtime_exc_t(std::string _what)
+    explicit runtime_exc_t(const std::string &_what)
         : what_happened(_what)
     { }
 

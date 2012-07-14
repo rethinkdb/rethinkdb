@@ -1,4 +1,3 @@
-
 # TO RUN: python -m unittest insert_scan
 
 import json
