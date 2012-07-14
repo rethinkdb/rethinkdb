@@ -51,8 +51,6 @@ class OptParser(object):
     def parse(self, args):
     
         args = args[1:]   # Cut off name of program
-
-        print "VCOPTPARSE ARGS:", args
         
         values = dict((key, NoValue) for key in self.parsers_by_key.keys())
         
@@ -98,8 +96,6 @@ class OptParser(object):
             if hasattr(parser, "positional"):
                 set_value(key, parser.positional(positionals))
         
-        print "REMAINING POSITIONALS", positionals
-
         if positionals:
             raise OptError("Unexpected extra positional argument(s): %s" % \
                 ", ".join(repr(x) for x in positionals))
