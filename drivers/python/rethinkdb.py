@@ -125,6 +125,9 @@ class Stream(object):
     def concat_map(self, mapping, row=DEFAULT_ROW_BINDING):
         return ConcatMap(self, mapping, row)
 
+    def grouped_map_reduce(self, group_mapping, value_mapping, reduction, row=DEFAULT_ROW_BINDING):
+        return GroupedMapReduce(self, group_mapping, value_mapping, reduction, row)
+
     def limit(self, count):
         return limit(self, count)
 
@@ -303,6 +306,46 @@ class ConcatMap(Stream):
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
 
+class GroupedMapReduce(Stream):
+    def __init__(self, parent_view, group_mapping, value_mapping, reduction, row):
+        super(GroupedMapReduce, self).__init__()
+        self.read_only = True
+        self.parent_view = parent_view
+        self.group_mapping = group_mapping
+        self.value_mapping = value_mapping
+        self.reduction = reduction
+        self.row = row
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.GROUPEDMAPREDUCE
+        # Group mapping
+        group_mapping = parent.call.builtin.grouped_map_reduce.group_mapping
+        group_mapping.arg = self.row
+        toTerm(self.group_mapping).write_ast(group_mapping.body)
+        # Value mapping
+        value_mapping = parent.call.builtin.grouped_map_reduce.value_mapping
+        value_mapping.arg = self.row
+        toTerm(self.value_mapping).write_ast(value_mapping.body)
+        # Reduction
+        toTerm(self.reduction).write_ast(parent.call.builtin.grouped_map_reduce.reduction)
+        # Parent stream
+        self.parent_view.write_ast(parent.call.args.add())
+
+class Reduction():
+    def __init__(self, start, arg1, arg2, body):
+        self.start = start
+        self.arg1 = arg1
+        self.arg2 = arg2
+        self.body = body
+
+    def write_ast(self, parent):
+        # Reduction
+        toTerm(self.start).write_ast(parent.base)
+        parent.var1 = self.arg1
+        parent.var2 = self.arg2
+        toTerm(self.body).write_ast(parent.body)
+
 class Reduce(Stream):
     def __init__(self, parent_view, start, arg1, arg2, body):
         super(Reduce, self).__init__()
@@ -317,10 +360,7 @@ class Reduce(Stream):
         parent.type = p.Term.CALL
         parent.call.builtin.type = p.Builtin.REDUCE
         # Reduction
-        toTerm(self.start).write_ast(parent.call.builtin.reduce.base)
-        parent.call.builtin.reduce.var1 = self.arg1
-        parent.call.builtin.reduce.var2 = self.arg2
-        toTerm(self.body).write_ast(parent.call.builtin.reduce.body)
+        Reduction(self.start, self.arg1, self.arg2, self.body).write_ast(parent.call.builtin.reduce)
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
 

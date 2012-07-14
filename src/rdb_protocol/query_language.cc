@@ -453,6 +453,8 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *) {
         case Builtin::STREAMTOARRAY:
         case Builtin::REDUCE:
         case Builtin::GROUPEDMAPREDUCE:
+            return function_t(Type::STREAM, 1, Type::STREAM);
+            break;
         case Builtin::UNION:
             return function_t(Type::STREAM, 2, Type::STREAM);
             break;
@@ -610,6 +612,66 @@ const type_t get_type(const Query &q, variable_type_scope_t *scope) {
     }
     crash("unreachable");
 }
+
+bool less(cJSON *l, cJSON *r) {
+    switch (l->type) {
+        case cJSON_False:
+            if (r->type == cJSON_True) {
+                return true;
+            } else if (r->type == cJSON_False) {
+                return false;
+            } else {
+                throw runtime_exc_t("Comparing boolean to non boolean\n");
+            }
+            break;
+        case cJSON_True:
+            if (r->type == cJSON_True) {
+                return false;
+            } else if (r->type == cJSON_False) {
+                return false;
+            } else {
+                throw runtime_exc_t("Comparing boolean to non boolean\n");
+            }
+            break;
+        case cJSON_NULL:
+            throw runtime_exc_t("Can't compare null to anything\n");
+            break;
+        case cJSON_Number:
+            if (r->type == cJSON_Number) {
+                return l->valuedouble < r->valuedouble;
+            } else {
+                throw runtime_exc_t("Numbers can only be compared to other numbers.");
+            }
+            break;
+        case cJSON_String:
+            if (r->type == cJSON_String) {
+                return (strcmp(l->valuestring, r->valuestring) < 0);
+            } else {
+                throw runtime_exc_t("Strings can only be compared to other strings.");
+            }
+            break;
+        case cJSON_Array:
+            throw runtime_exc_t("Can't compare arrays.");
+            break;
+        case cJSON_Object:
+            throw runtime_exc_t("Can't compare objects.");
+            break;
+        default:
+            unreachable();
+            break;
+    }
+}
+
+struct shared_scoped_less {
+    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &a,
+                      const boost::shared_ptr<scoped_cJSON_t> &b) {
+        if (a->get()->type == b->get()->type) {
+            return less(a->get(), b->get());
+        } else {
+            return a->get()->type > b->get()->type;
+        }
+    }
+};
 
 Response eval(const Query &q, runtime_environment_t *env) {
     switch (q.type()) {
@@ -1446,6 +1508,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
         case Builtin::LIMIT:
         case Builtin::ARRAYTOSTREAM:
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
+        case Builtin::GROUPEDMAPREDUCE:
         case Builtin::UNION:
         case Builtin::RANGE:
             unreachable("eval called on a function that returns a stream (use eval_stream instead).\n");
@@ -1517,11 +1580,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     acc = eval(c.builtin().reduce().body(), env);
                 }
                 return acc;
-            }
-            break;
-        case Builtin::GROUPEDMAPREDUCE:
-            {
-                throw runtime_exc_t("Unimplemented: Builtin::GROUPEDMAPREDUCE");
             }
             break;
         case Builtin::JAVASCRIPT:
@@ -1606,55 +1664,6 @@ private:
     predicate_t pred;
 };
 
-bool less(cJSON *l, cJSON *r) {
-    switch (l->type) {
-        case cJSON_False:
-            if (r->type == cJSON_True) {
-                return true;
-            } else if (r->type == cJSON_False) {
-                return false;
-            } else {
-                throw runtime_exc_t("Comparing boolean to non boolean\n");
-            }
-            break;
-        case cJSON_True:
-            if (r->type == cJSON_True) {
-                return false;
-            } else if (r->type == cJSON_False) {
-                return false;
-            } else {
-                throw runtime_exc_t("Comparing boolean to non boolean\n");
-            }
-            break;
-        case cJSON_NULL:
-            throw runtime_exc_t("Can't compare null to anything\n");
-            break;
-        case cJSON_Number:
-            if (r->type == cJSON_Number) {
-                return l->valuedouble < r->valuedouble;
-            } else {
-                throw runtime_exc_t("Numbers can only be compared to other numbers.");
-            }
-            break;
-        case cJSON_String:
-            if (r->type == cJSON_String) {
-                return (strcmp(l->valuestring, r->valuestring) < 0);
-            } else {
-                throw runtime_exc_t("Strings can only be compared to other strings.");
-            }
-            break;
-        case cJSON_Array:
-            throw runtime_exc_t("Can't compare arrays.");
-            break;
-        case cJSON_Object:
-            throw runtime_exc_t("Can't compare objects.");
-            break;
-        default:
-            unreachable();
-            break;
-    }
-}
-
 class ordering_t {
 public:
     ordering_t(const Mapping &_mapping,  runtime_environment_t *_env)
@@ -1684,17 +1693,6 @@ private:
     runtime_environment_t *env;
 };
 
-struct shared_scoped_less {
-    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &a,
-                      const boost::shared_ptr<scoped_cJSON_t> &b) {
-        if (a->get()->type == b->get()->type) {
-            return less(a->get(), b->get());
-        } else {
-            return a->get()->type > b->get()->type;
-        }
-    }
-};
-
 json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (c.builtin().type()) {
         //JSON -> JSON
@@ -1719,6 +1717,60 @@ json_stream_t eval_stream(const Term::Call &c, runtime_environment_t *env) THROW
         case Builtin::STREAMTOARRAY:
         case Builtin::REDUCE:
         case Builtin::GROUPEDMAPREDUCE:
+            {
+                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less> groups;
+                json_stream_t stream = eval_stream(c.args(0), env);
+
+                for (json_stream_t::iterator it  = stream.begin();
+                                             it != stream.end();
+                                             ++it) {
+                    boost::shared_ptr<scoped_cJSON_t> group_mapped_row, value_mapped_row, reduced_row;
+                    
+                    // Figure out which group we belong to
+                    {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                        env->scope.put_in_scope(c.builtin().grouped_map_reduce().group_mapping().arg(), *it);
+                        group_mapped_row = eval(c.builtin().grouped_map_reduce().group_mapping().body(), env);
+                    }
+
+                    // Map the value for comfy reduction goodness
+                    {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                        env->scope.put_in_scope(c.builtin().grouped_map_reduce().value_mapping().arg(), *it);
+                        value_mapped_row = eval(c.builtin().grouped_map_reduce().value_mapping().body(), env);
+                    }
+
+                    // Do the reduction
+                    {
+                        variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+                        std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less>::iterator
+                            elem = groups.find(group_mapped_row);
+                        if(elem != groups.end()) {
+                            env->scope.put_in_scope(c.builtin().grouped_map_reduce().reduction().var1(),
+                                                    (*elem).second);
+                        } else {
+                            env->scope.put_in_scope(c.builtin().grouped_map_reduce().reduction().var1(),
+                                                    eval(c.builtin().grouped_map_reduce().reduction().base(), env));
+                        }
+                        env->scope.put_in_scope(c.builtin().grouped_map_reduce().reduction().var2(), value_mapped_row);
+
+                        reduced_row = eval(c.builtin().grouped_map_reduce().reduction().body(), env);
+                    }
+
+                    // Phew, update the relevant group
+                    groups[group_mapped_row] = reduced_row;
+                    
+                }
+                
+                // Phew, convert the whole shebang to a stream
+                json_stream_t res;
+                std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less>::iterator it;
+                for(it = groups.begin(); it != groups.end(); ++it) {
+                    res.push_back((*it).second);
+                }
+                return res;
+            }
+            break;
         case Builtin::JAVASCRIPT:
         case Builtin::ALL:
         case Builtin::ANY:
@@ -1886,27 +1938,5 @@ view_t eval_view(const Term::Table &t, runtime_environment_t *env) THROWS_ONLY(r
     json_stream_t stream(p_res->data.begin(), p_res->data.end());
     return view_t(ns_access, stream);
 }
-
-/*
-view_t eval(const Term &v, runtime_environment_t *env) {
-    switch (v.type()) {
-        case View::FILTERVIEW:
-            {
-                view_t subview = eval(v.filter_view().view(), env);
-
-                predicate_t p(v.filter_view().predicate(), env);
-                subview.stream.remove_if(not_t(p));
-                return subview;
-            }
-            break;
-        case View::RANGEVIEW:
-            throw runtime_exc_t("Unimplemented: View::RANGEVIEW");
-            break;
-        default:
-            unreachable();
-            break;
-    }
-}
-*/
 
 } //namespace query_language
