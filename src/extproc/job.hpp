@@ -32,7 +32,7 @@ class job_t {
 
     // Sends us over a stream.
     // Returns 0 on success, -1 on error.
-    int send(write_stream_t *stream);
+    int send_over(write_stream_t *stream);
 
     // Receives and runs a job. Called on worker process side. Returns 0 on
     // success, -1 on failure.

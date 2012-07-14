@@ -28,14 +28,15 @@ pool_t::pool_t(pool_group_t *group)
       worker_semaphore_(group_->config_.max_workers)
 {
     // Spawn initial worker pool.
-    spawn_workers(config()->min_workers);
+    repair_invariants();
 }
 
 pool_t::~pool_t() {
     // Kill worker processes.
     worker_t *w;
-    while ((w = idle_workers_.head()))
+    while ((w = idle_workers_.head())) {
         end_worker(&idle_workers_, w);
+    }
 
     while ((w = busy_workers_.head())) {
         logWRN("Busy worker at pool shutdown: %d", w->pid_);
@@ -44,19 +45,26 @@ pool_t::~pool_t() {
 }
 
 int pool_t::spawn_job(job_t *job, job_handle_t *handle) {
-    int res = connect(handle);
-    if (!res) {
-        res = job->send(handle);
-        // If sending failed, the handle should have disconnected.
-        rassert(0 == res || !handle->worker_);
-    }
+    worker_t *worker = acquire_worker();
+    guarantee(worker);          // for now, acquiring worker can't fail
+    handle->connect(worker);
+    int res = job->send_over(handle);
+    // If sending failed, the handle should have disconnected.
+    rassert(0 == res || !handle->connected());
     return res;
-
 }
 
-int pool_t::connect(job_handle_t *handle) {
+void pool_t::repair_invariants() {
+    int need = config()->min_workers - num_workers();
+    if (need > 0)
+        spawn_workers(need);
+
+    // Double-check.
+    rassert(num_workers() >= config()->min_workers);
+}
+
+pool_t::worker_t *pool_t::acquire_worker() {
     assert_thread();
-    rassert(handle->worker_ == NULL); // handle must be uninitialized
 
     // We're going to be using up a worker process, so we lock the semaphore.
     // This blocks if `config()->max_workers` workers are currently in use. We
@@ -80,15 +88,10 @@ int pool_t::connect(job_handle_t *handle) {
     worker_t *worker = idle_workers_.head();
     idle_workers_.remove(worker);
     busy_workers_.push_back(worker);
-    handle->worker_ = worker;
-
-    return 0;
+    return worker;
 }
 
-void pool_t::disconnect(job_handle_t *handle) {
-    assert_thread();
-
-    worker_t *worker = handle->worker_;
+void pool_t::release_worker(worker_t *worker) {
     rassert(worker && worker->pool_ == this);
 
     // If the worker's stream isn't open, something bad has happened.
@@ -108,6 +111,15 @@ void pool_t::disconnect(job_handle_t *handle) {
     worker_semaphore_.unlock();
 }
 
+void pool_t::interrupt_worker(worker_t *worker) {
+    rassert(worker && worker->pool_ == this);
+
+    end_worker(&busy_workers_, worker);
+    worker_semaphore_.unlock();
+
+    repair_invariants();
+}
+
 // The root job that runs on spawned worker processes.
 class job_acceptor_t :
         public auto_job_t<job_acceptor_t>
@@ -125,8 +137,9 @@ class job_acceptor_t :
     RDB_MAKE_ME_SERIALIZABLE_0();
 };
 
-void pool_t::spawn_workers(unsigned int num) {
+void pool_t::spawn_workers(int num) {
     assert_thread();
+    guarantee(num > 0);
 
     num_spawning_workers_ += num;
     guarantee(num_workers() <= config()->max_workers);
@@ -136,18 +149,18 @@ void pool_t::spawn_workers(unsigned int num) {
     boost::scoped_array<scoped_fd_t> fds(new scoped_fd_t[num]);
     {
         on_thread_t switcher(spawner()->home_thread());
-        for (unsigned int i = 0; i < num; ++i) {
+        for (int i = 0; i < num; ++i) {
             pids[i] = spawner()->spawn_process(&fds[i]);
             guarantee(-1 != pids[i], "could not spawn worker process");
         }
     }
 
     // For every process spawned, create a corresponding worker_t.
-    for (unsigned int i = 0; i < num; ++i) {
+    for (int i = 0; i < num; ++i) {
         worker_t *worker = new worker_t(this, pids[i], &fds[i]);
 
         // Send it a job that just loops accepting jobs.
-        guarantee(0 == job_acceptor_t().send(worker),
+        guarantee(0 == job_acceptor_t().send_over(worker),
                   "Could not initialize worker process.");
 
         // We've successfully spawned one worker.
@@ -157,11 +170,11 @@ void pool_t::spawn_workers(unsigned int num) {
     }
 }
 
+// May only call when we're sure that the worker is not already dead.
 void pool_t::end_worker(workers_t *list, worker_t *worker) {
-    // This function is only called during a clean shut-down, so we can assume
-    // that none of our worker processes have unexpectedly died (if they have,
-    // that's cause for crashing rather than continuing a clean shut-down).
-    guarantee_err(0 == kill(worker->pid_, SIGKILL), "couldn't kill worker process");
+    rassert(worker && worker->pool_ == this);
+
+    guarantee_err(0 ==  kill(worker->pid_, SIGKILL), "could not kill worker");
     list->remove(worker);
     delete worker;
 }
@@ -203,13 +216,23 @@ job_handle_t::job_handle_t()
     : worker_(NULL) {}
 
 job_handle_t::~job_handle_t() {
-    if (worker_)
-        disconnect();
+    rassert(!connected(), "job handle still connected on destruction");
 }
 
-void job_handle_t::disconnect() {
-    rassert(worker_);
-    worker_->pool_->disconnect(this);
+void job_handle_t::connect(pool_t::worker_t *worker) {
+    rassert(!connected() && worker);
+    worker_ = worker;
+}
+
+void job_handle_t::release() {
+    rassert(connected());
+    worker_->release();
+    worker_ = NULL;
+}
+
+void job_handle_t::interrupt() {
+    rassert(connected());
+    worker_->interrupt();
     worker_ = NULL;
 }
 

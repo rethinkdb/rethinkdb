@@ -34,13 +34,23 @@ class js_eval_job_t :
     };
 
   private:
-    void eval(v8::Handle<v8::Context> cx, result_t *result) {
+    void eval(control_t *control, v8::Handle<v8::Context> cx, result_t *result) {
         v8::Context::Scope cx_scope(cx);
         v8::HandleScope handle_scope;
         v8::Handle<v8::String> src = v8::String::New(js_src.c_str());
 
         v8::TryCatch try_catch;
+
+        // Compile the script immediately.
         v8::Handle<v8::Script> script = v8::Script::Compile(src);
+
+        // Wait for a signal to actually run the script.
+        char c;
+        guarantee_err(1 == control->read(&c, 1), "couldn't read signal");
+        guarantee(c == '\0', "bad signal value");
+
+        // We need to do this after receiving the signal, otherwise we could get
+        // out of sync with the other end and data could be corrupted.
         if (script.IsEmpty()) {
             result->message = "script compilation failed";
             return;
@@ -64,7 +74,7 @@ class js_eval_job_t :
 
   public:
     virtual void run_job(control_t *control) {
-        control->log("Running js_eval_job_t");
+        control->log("Running js_eval_job_t, src=%s", js_src.c_str());
 
         result_t res;
         res.success = false;
@@ -72,7 +82,7 @@ class js_eval_job_t :
 
         // Evaluate the script
         v8::Persistent<v8::Context> cx = v8::Context::New();
-        eval(cx, &res);
+        eval(control, cx, &res);
         cx.Dispose();
 
         // Send back the result.
@@ -123,12 +133,47 @@ void run_rethinkdb_js(extproc::spawner_t::info_t *info, bool *result) {
             break;
         }
 
+        const char *cmd = line;
+        size_t cmdlen = strlen(cmd);
+
+        // Look for command modifiers.
+        bool interrupt = false, badsignal = false;
+        const size_t nmods = 2;
+        bool *(mod_ptrs[]) = {&interrupt, &badsignal};
+        const char *mod_names[] = {"interrupt ", "badsignal "};
+
+        size_t i;
+        do {
+            for (i = 0; i < nmods; ++i) {
+                const char *name = mod_names[i];
+                size_t len = strlen(name);
+                if (len <= cmdlen && 0 == memcmp(cmd, name, len)) {
+                    *(mod_ptrs[i]) = true;
+                    cmd += len;
+                    cmdlen -= len;
+                    break;
+                }
+            }
+        } while (i < nmods);
+
         // Send a job that evaluates the javascript.
-        js_eval_job_t job(line);
+        js_eval_job_t job(cmd);
         extproc::job_handle_t handle;
         if(-1 == pool->spawn_job(&job, &handle)) {
             printf("!! could not spawn job\n");
             break;
+        }
+
+        // Send the signal to complete the job. (Send a bad signal if
+        // requested.)
+        guarantee_err(1 == handle.write(badsignal ? "x" : "\0", 1),
+                      "could not send signal to job");
+
+        // Interrupt the job if requested.
+        if (interrupt) {
+            handle.interrupt();
+            printf("interrupting job and trying again\n");
+            continue;
         }
 
         // Read back the result.
@@ -143,6 +188,9 @@ void run_rethinkdb_js(extproc::spawner_t::info_t *info, bool *result) {
                    "unknown error");
             break;
         }
+
+        // Done with the job now.
+        handle.release();
 
         // Print the result.
         printf(result.success ? "success!\nresult: %s\n" : "failure! :(\nreason: %s\n",

@@ -22,14 +22,14 @@ class pool_group_t
     friend class pool_t;
 
   public:
-    static const unsigned int DEFAULT_MIN_WORKERS = 2;
-    static const unsigned int DEFAULT_MAX_WORKERS = 2;
+    static const int DEFAULT_MIN_WORKERS = 2;
+    static const int DEFAULT_MAX_WORKERS = 2;
 
     struct config_t {
         config_t()
             : min_workers(DEFAULT_MIN_WORKERS), max_workers(DEFAULT_MAX_WORKERS) {}
-        unsigned int min_workers;        // >= 0
-        unsigned int max_workers;        // >= min_workers, > 0
+        int min_workers;        // >= 0
+        int max_workers;        // >= min_workers, > 0
     };
 
     static const config_t DEFAULTS;
@@ -67,6 +67,8 @@ class pool_t :
         public intrusive_list_node_t<worker_t>,
         public unix_socket_stream_t
     {
+        friend class job_handle_t;
+
       public:
         worker_t(pool_t *pool, pid_t pid, scoped_fd_t *fd);
         ~worker_t();
@@ -79,6 +81,9 @@ class pool_t :
         // condition on our socket. Calls on_error().
         virtual void on_event(int events);
 
+        void release() { pool_->release_worker(this); }
+        void interrupt() { pool_->interrupt_worker(this); }
+
         pool_t *pool_;
         pid_t pid_;
 
@@ -89,17 +94,23 @@ class pool_t :
     typedef intrusive_list_t<worker_t> workers_t;
 
   private:
+    // Checks & repairs invariants, namely:
+    // - num_workers() >= config()->min_workers
+    void repair_invariants();
+
     // Connects us to a worker. Private; used only by spawn_job.
-    int connect(job_handle_t *handle);
+    worker_t *acquire_worker();
 
     // Called by job_handle_t to indicate the job has finished or errored.
-    void disconnect(job_handle_t *handle);
+    void release_worker(worker_t *worker);
 
-    void spawn_workers(unsigned int n);
-    void create_worker(pid_t pid, fd_t fd);
+    // Called by job_handle_t to interrupt a running job.
+    void interrupt_worker(worker_t *worker);
+
+    void spawn_workers(int n);
     void end_worker(workers_t *list, worker_t *worker);
 
-    unsigned int num_workers() {
+    int num_workers() {
         return idle_workers_.size() + busy_workers_.size() + num_spawning_workers_;
     }
 
@@ -112,7 +123,7 @@ class pool_t :
     // Count of the number of workers in the process of being spawned. Necessary
     // in order to maintain (min_workers, max_workers) bounds without race
     // conditions.
-    unsigned int num_spawning_workers_;
+    int num_spawning_workers_;
 
     // Used to signify that you're using a worker. In particular, lets us block
     // for a worker to become available when we already have
@@ -127,30 +138,42 @@ class job_handle_t :
     friend class pool_t;
 
   public:
-    // When constructed, job handles are in an "uninitialized" state, not
-    // safe to use. They get initialized by pool_t::connect(), which is
-    // called by pool_t::spawn_job.
+    // When constructed, job handles are "disconnected", not associated with a
+    // job. They are connected by pool_t::spawn_job().
     job_handle_t();
+
+    // Job handles must be disconnected before they are destroyed. See finish()
+    // and interrupt().
     ~job_handle_t();
 
-    // On either read or write error, the job handle becomes "uninitialized"
-    // again and must not be used.
+    bool connected() { return worker_ != NULL; }
+
+    // Indicates the job has either finished normally or experienced an I/O
+    // error; disconnects the job handle.
+    void release();
+
+    // Forcibly interrupts a running job; disconnects the job handle.
+    void interrupt();
+
+    // On either read or write error, the job handle becomes disconnected and
+    // must not be used.
     virtual MUST_USE int64_t read(void *p, int64_t n) {
         rassert(worker_);
         int res = worker_->read(p, n);
-        if (-1 == res || 0 == res) disconnect();
+        if (-1 == res || 0 == res) release();
         return res;
     }
 
     virtual int64_t write(const void *p, int64_t n) {
         rassert(worker_);
         int res = worker_->write(p, n);
-        if (-1 == res) disconnect();
+        if (-1 == res) release();
         return res;
     }
 
   private:
-    void disconnect();
+    // Called by spawn_job.
+    void connect(pool_t::worker_t *worker);
 
   private:
     pool_t::worker_t *worker_;
