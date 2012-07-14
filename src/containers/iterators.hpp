@@ -6,6 +6,7 @@
 #include <queue>
 #include <set>
 #include <vector>
+#include <utility>
 
 #include "utils.hpp"
 #include <boost/function.hpp>

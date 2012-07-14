@@ -1,6 +1,10 @@
 #ifndef CLUSTERING_SUGGESTER_SUGGESTER_HPP_
 #define CLUSTERING_SUGGESTER_SUGGESTER_HPP_
 
+#include <map>
+#include <set>
+#include <string>
+
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/persistable_blueprint.hpp"
 #include "clustering/reactor/metadata.hpp"

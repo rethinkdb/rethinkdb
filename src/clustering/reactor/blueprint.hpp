@@ -1,6 +1,10 @@
 #ifndef CLUSTERING_REACTOR_BLUEPRINT_HPP_
 #define CLUSTERING_REACTOR_BLUEPRINT_HPP_
 
+#include <map>
+#include <set>
+#include <vector>
+
 #include "containers/archive/archive.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"

@@ -2,6 +2,9 @@
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_HPP_
 
 #include <map>
+#include <set>
+#include <string>
+#include <utility>
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"

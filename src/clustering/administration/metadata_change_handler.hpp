@@ -3,6 +3,9 @@
 
 #include <set>
 
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "clustering/resource.hpp"
