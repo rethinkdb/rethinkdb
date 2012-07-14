@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_STAT_APP_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_STAT_APP_HPP_
 
+#include <map>
+
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"

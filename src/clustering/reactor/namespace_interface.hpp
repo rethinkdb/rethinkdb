@@ -2,7 +2,12 @@
 #define CLUSTERING_REACTOR_NAMESPACE_INTERFACE_HPP_
 
 #include <math.h>
+
 #include <algorithm>
+#include <map>
+#include <string>
+#include <vector>
+#include <set>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
