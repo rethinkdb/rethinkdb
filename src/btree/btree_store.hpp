@@ -206,6 +206,4 @@ private:
     perfmon_membership_t perfmon_collection_membership;
 };
 
-#include "btree/btree_store.tcc"
-
 #endif  // BTREE_BTREE_STORE_HPP_
