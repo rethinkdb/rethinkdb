@@ -549,10 +549,13 @@ void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::s
 Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (w.type()) {
         case WriteQuery::UPDATE:
+            throw runtime_exc_t("Unimplemented: UPDATE");
             break;
         case WriteQuery::DELETE:
+            throw runtime_exc_t("Unimplemented: DELETE");
             break;
         case WriteQuery::MUTATE:
+            throw runtime_exc_t("Unimplemented: MUTATE");
             break;
         case WriteQuery::INSERT:
             {
@@ -648,6 +651,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
             }
             break;
         case WriteQuery::POINTMUTATE:
+            throw runtime_exc_t("Unimplemented: POINTMUTATE");
             break;
         default:
             unreachable();
