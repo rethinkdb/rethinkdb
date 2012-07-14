@@ -133,7 +133,7 @@ class Stream(object):
 
     def count(self):
         return count(self)
-    
+
     def nth(self, index):
         return nth(self, index)
 
@@ -142,7 +142,6 @@ class Stream(object):
 
     def pluck(self, *rows):
         if len(rows) == 1:
-            #return self.map(rows[0])
             return self.map('row.' + rows[0])
         else:
             return self.map(list('row.' + var for var in rows))
