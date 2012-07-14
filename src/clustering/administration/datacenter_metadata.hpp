@@ -1,6 +1,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_DATACENTER_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_DATACENTER_METADATA_HPP_
 
+#include <map>
+#include <string>
+
 #include "clustering/administration/http/json_adapters.hpp"
 #include "containers/uuid.hpp"
 #include "http/json.hpp"

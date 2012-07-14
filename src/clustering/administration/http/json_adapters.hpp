@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_JSON_ADAPTERS_HPP_
 
+#include <string>
+
 #include "http/json/json_adapter.hpp"
 #include "protocol_api.hpp"
 #include "rpc/connectivity/connectivity.hpp"

@@ -1,6 +1,10 @@
 #ifndef CLUSTERING_REACTOR_METADATA_HPP_
 #define CLUSTERING_REACTOR_METADATA_HPP_
 
+#include <map>
+#include <vector>
+#include <utility>
+
 #include "errors.hpp"
 #include <boost/optional.hpp>
 

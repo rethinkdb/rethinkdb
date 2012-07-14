@@ -1,6 +1,10 @@
 #ifndef CLUSTERING_REGISTRAR_HPP_
 #define CLUSTERING_REGISTRAR_HPP_
 
+#include <algorithm>
+#include <map>
+#include <utility>
+
 #include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"
 #include "rpc/mailbox/typed.hpp"

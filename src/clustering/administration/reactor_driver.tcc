@@ -3,8 +3,10 @@
 
 #include "clustering/administration/reactor_driver.hpp"
 
+#include <map>
+#include <set>
+
 #include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"

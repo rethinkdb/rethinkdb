@@ -1,6 +1,8 @@
 #ifndef RPC_DIRECTORY_READ_MANAGER_HPP_
 #define RPC_DIRECTORY_READ_MANAGER_HPP_
 
+#include <map>
+
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/scoped_ptr.hpp>

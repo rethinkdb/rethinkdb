@@ -2,6 +2,8 @@
 #define CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
 
 #include <map>
+#include <set>
+#include <string>
 
 #include "utils.hpp"
 #include <boost/bind.hpp>

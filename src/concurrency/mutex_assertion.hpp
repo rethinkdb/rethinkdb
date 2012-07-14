@@ -1,6 +1,8 @@
 #ifndef CONCURRENCY_MUTEX_ASSERTION_HPP_
 #define CONCURRENCY_MUTEX_ASSERTION_HPP_
 
+#include <algorithm>
+
 #include "utils.hpp"
 
 /* `mutex_assertion_t` is like a mutex, except that it raises an assertion if

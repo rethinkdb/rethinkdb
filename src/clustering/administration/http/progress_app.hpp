@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_PROGRESS_APP_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_PROGRESS_APP_HPP_
 
+#include <map>
+
 #include "clustering/administration/metadata.hpp"
 #include "containers/clone_ptr.hpp"
 #include "http/http.hpp"
