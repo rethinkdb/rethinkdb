@@ -1,6 +1,8 @@
 #ifndef MOCK_DUMMY_PROTOCOL_JSON_ADAPTER_HPP_
 #define MOCK_DUMMY_PROTOCOL_JSON_ADAPTER_HPP_
 
+#include <string>
+
 #include "http/json/json_adapter.hpp"
 #include "mock/dummy_protocol.hpp"
 

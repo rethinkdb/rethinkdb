@@ -1,6 +1,9 @@
 #ifndef HTTP_HTTP_HPP_
 #define HTTP_HTTP_HPP_
 
+#include <string>
+#include <vector>
+
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
 #include <boost/scoped_ptr.hpp>

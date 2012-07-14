@@ -1,6 +1,10 @@
 #ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
 #define RPC_CONNECTIVITY_CLUSTER_HPP_
 
+#include <map>
+#include <set>
+#include <utility>
+
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"

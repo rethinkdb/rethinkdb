@@ -2,6 +2,7 @@
 #define CONCURRENCY_FIFO_ENFORCER_HPP_
 
 #include <map>
+#include <utility>
 
 #include "concurrency/mutex_assertion.hpp"
 #include "rpc/serialize_macros.hpp"

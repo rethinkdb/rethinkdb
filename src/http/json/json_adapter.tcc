@@ -3,6 +3,12 @@
 
 #include "http/json/json_adapter.hpp"
 
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+#include <utility>
+
 #include "containers/uuid.hpp"
 #include "utils.hpp"
 #include "logger.hpp"
