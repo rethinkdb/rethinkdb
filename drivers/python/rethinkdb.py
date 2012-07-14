@@ -122,11 +122,17 @@ class Stream(object):
             return self.pluck(*keys).distinct()
         return distinct(self)
 
+    def groupby(self, grouping, stream_name, reduction, row=DEFAULT_ROW_BINDING):
+        return GroupBy(self, grouping, reduction, stream_name, row)
+
+    def concat_map(self, mapping, row=DEFAULT_ROW_BINDING):
+        return ConcatMap(self, mapping, row)
+
     def limit(self, count):
         return limit(self, count)
 
     def count(self):
-        return length(self)
+        return count(self)
     
     def nth(self, index):
         return nth(self, index)
@@ -282,6 +288,24 @@ class Map(Stream):
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
 
+class ConcatMap(Stream):
+    def __init__(self, parent_view, mapping, row):
+        super(ConcatMap, self).__init__()
+        self.read_only = True
+        self.mapping = mapping
+        self.row = row
+        self.parent_view = parent_view
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.CONCATMAP
+        # Mapping
+        mapping = parent.call.builtin.concat_map.mapping
+        mapping.arg = self.row
+        toTerm(self.mapping).write_ast(mapping.body)
+        # Parent stream
+        self.parent_view.write_ast(parent.call.args.add())
+
 class Reduce(Stream):
     def __init__(self, parent_view, start, arg1, arg2, body):
         super(Reduce, self).__init__()
@@ -300,6 +324,30 @@ class Reduce(Stream):
         parent.call.builtin.reduce.var1 = self.arg1
         parent.call.builtin.reduce.var2 = self.arg2
         toTerm(self.body).write_ast(parent.call.builtin.reduce.body)
+        # Parent stream
+        self.parent_view.write_ast(parent.call.args.add())
+
+class GroupBy(Stream):
+    def __init__(self, parent_view, grouping, reduction, stream_name, row):
+        super(GroupBy, self).__init__()
+        self.read_only = True
+        self.grouping = grouping
+        self.reduction = reduction
+        self.stream_name = stream_name
+        self.row = row
+        self.parent_view = parent_view
+
+    def write_ast(self, parent):
+        parent.type = p.Term.CALL
+        parent.call.builtin.type = p.Builtin.GROUPBY
+        # Group mapping
+        mapping = parent.call.builtin.group_by.group_mapping
+        mapping.arg = self.row
+        toTerm(self.grouping).write_ast(mapping.body)
+        # Reduction mapping
+        reduction = parent.call.builtin.group_by.stream_to_json
+        reduction.arg = self.stream_name
+        toTerm(self.reduction).write_ast(reduction.body)
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
 
@@ -591,7 +639,7 @@ append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
 concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
 slice = _make_builtin("slice", p.Builtin.ARRAYSLICE, "array", "start", "end")
 array = _make_builtin("array", p.Builtin.STREAMTOARRAY, "stream")
-length = _make_builtin("length", p.Builtin.LENGTH, "stream")
+count = _make_builtin("count", p.Builtin.LENGTH, "stream")
 nth = _make_builtin("nth", p.Builtin.NTH, "stream", "index")
 
 def _make_stream_builtin(name, builtin, *args):

@@ -164,7 +164,7 @@ bool is_well_defined(const Builtin &b) {
     case Builtin::GROUPBY:
         CHECK(b.has_group_by());
         CHECK_WELL_DEFINED(b.group_by().group_mapping());
-        CHECK_WELL_DEFINED(b.group_by().reduction());
+        CHECK_WELL_DEFINED(b.group_by().stream_to_json());
         break;
     case Builtin::RANGE:
         CHECK(b.has_range());

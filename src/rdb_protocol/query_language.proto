@@ -164,7 +164,7 @@ message Builtin {
 
     message GroupBy {
         required Mapping group_mapping = 1;
-        required Reduction reduction = 2;
+        required Mapping stream_to_json = 2;
     };
 
     optional GroupBy group_by = 10;
