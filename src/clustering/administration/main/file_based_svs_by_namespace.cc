@@ -4,10 +4,11 @@
 
 template <class protocol_t>
 void
-file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon_collection,
-                                                   namespace_id_t namespace_id,
-                                                   boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > *stores_out,
-                                                   boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
+file_based_svs_by_namespace_t<protocol_t>::get_svs(
+                perfmon_collection_t *perfmon_collection,
+                namespace_id_t namespace_id,
+                boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > *stores_out,
+                boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
 
     // TODO: If the server gets killed when starting up, we can
     // get a database in an invalid startup state.
@@ -86,6 +87,11 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *perfmon
                                       num_stores,
                                       &dummy_interruptor);
     }
+}
+
+template <class protocol_t>
+void file_based_svs_by_namespace_t<protocol_t>::destroy_svs(namespace_id_t namespace_id) {
+    (void)namespace_id;
 }
 
 #include "mock/dummy_protocol.hpp"
