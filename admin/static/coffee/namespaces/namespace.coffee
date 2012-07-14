@@ -181,6 +181,12 @@ module 'NamespaceView', ->
                 svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
                 arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
 
+
+            #namespaces.models[0].get('computed_shards')
+            #namespaces.models[0].compute_shard_rows_approximation(["", "hgughs49"])
+            #namespaces.models[0].compute_shard_rows_approximation(namespaces.models[0].get('computed_shards').models[0])
+ 
+
             return @
 
         update_history_opsec: =>
