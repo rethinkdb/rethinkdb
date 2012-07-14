@@ -92,7 +92,7 @@ target.start()
 
 # Make a temporary directory on VM
 print "***Making a temporary directory on the virtual machine..."
-proc = target.command("cd /tmp && mktemp -d test.XXXXXXXXXX")
+proc = target.command("cd /tmp && rm -rf test.* && mktemp -d test.XXXXXXXXXX")
 dir_name = "/tmp/" + proc.stdout.readline().strip()
 print "***Will be working in directory " + dir_name
 
