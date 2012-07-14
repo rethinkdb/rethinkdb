@@ -26,7 +26,7 @@ module 'NamespaceView', ->
             @profile = new NamespaceView.Profile(model: @model)
             @replicas = new NamespaceView.Replicas(model: @model)
             @shards = new NamespaceView.Sharding(model: @model)
-            @stats_panel = new NamespaceView.StatsPanel(model: @model)
+            @overview = new NamespaceView.Overview(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
         rename_namespace: (event) ->
@@ -49,13 +49,13 @@ module 'NamespaceView', ->
             @.$('.performance-graph').html @performance_graph.render().$el
 
             # display the data on the machines
-            @.$('.section.namespace-stats').html @stats_panel.render().el
+            @.$('.namespace-overview-container').html @overview.render().$el
 
             # Display the replicas
-            @.$('.section.replication').html @replicas.render().el
+            @.$('.replication').html @replicas.render().el
 
             # Display the shards
-            @.$('.section.sharding').html @shards.render().el
+            @.$('.sharding').html @shards.render().el
 
             @.$('.nav-tabs').tab()
 
@@ -72,7 +72,7 @@ module 'NamespaceView', ->
             @profile.destroy()
             @replicas.destroy()
             @shards.destroy()
-            @stats_panel.destroy()
+            @overview.destroy()
             @performance_graph.destroy()
 
 
@@ -82,7 +82,7 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#namespace_view_title-template').html()
         initialize: ->
             @name = @model.get('name')
-            namespaces.on 'all', @update
+            @model.on 'change:name', @update
         
         update: =>
             if @name isnt @model.get('name')
@@ -123,49 +123,63 @@ module 'NamespaceView', ->
 
             return @
 
-    class @StatsPanel extends Backbone.View
-        className: 'namespace-stats'
+    class @Overview extends Backbone.View
+        className: 'namespace-overview'
 
-        template: Handlebars.compile $('#namespace_stats-template').html()
+        template: Handlebars.compile $('#namespace_overview-template').html()
 
         history_opsec: []
 
         initialize: ->
-            @model.on 'all', @render
-            machines.on 'all', @render
-            # Initialize history
-            for i in [0..40]
-                @history_opsec.push 0
+            machines.on 'change', @render
+            @json =
+                data_in_memory_percent: -1
+                data_in_memory: -1
+                data_total: -1
 
         render: =>
             data_in_memory = 0
             data_total = 0
             #TODO These are being calculated incorrectly. As they stand, data_in_memory is correct, but data_total is measuring the disk space used by this namespace. Issue filed.
             for machine in machines.models
-                if machine.get('stats')? and @model.get('id') of machine.get('stats')
-                    stats = machine.get('stats')
-                    if stats.cache?
-                        data_in_memory += stats.cache.block_size * stats.cache.blocks_in_memory
-                        data_total += stats.cache.block_size * stats.cache.blocks_total
-
+                if machine.get('stats')? and @model.get('id') of machine.get('stats') and machine.get('stats')[@model.get('id')].serializers?
+                    for key of machine.get('stats')[@model.get('id')].serializers
+                        if machine.get('stats')[@model.get('id')].serializers[key].cache?.blocks_in_memory?
+                            data_in_memory += parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.blocks_in_memory) * parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.block_size)
+                            data_total += parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.blocks_total) * parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.block_size)
             json =
                 data_in_memory_percent: Math.floor(data_in_memory/data_total*100)
                 data_in_memory: human_readable_units(data_in_memory, units_space)
+                data_not_in_memory: human_readable_units(data_total-data_in_memory, units_space)
                 data_total: human_readable_units(data_total, units_space)
 
-            @update_history_opsec()
-            sparkline_attr =
-                fillColor: false
-                spotColor: false
-                minSpotColor: false
-                maxSpotColor: false
-                chartRangeMin: 0
-                width: '75px'
-                height: '15px'
+            # So we don't update every seconds
+            need_update = false
+            for key of json
+                if @json[key] isnt json[key]
+                    need_update = true
+                    break
+            @json = json
+            if need_update 
+                @.$el.html @template @json
 
-            @.$el.html @template json
+            if data_in_memory isnt 0 and data_total isnt 0
+                r = 100
+                width = 270
+                height = 270
+                color = (i) ->
+                    if i is 0
+                        return '#f00'
+                    else
+                        return '#1f77b4'
 
-            @.$('.opsec_sparkline').sparkline @history_opsec, sparkline_attr
+                data_pie = [data_in_memory, data_total-data_in_memory]
+
+                @.$('pie_chart-data_in_memory').html ''
+
+                arc = d3.svg.arc().innerRadius(0).outerRadius(r);
+                svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
+                arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
 
             return @
 
