@@ -18,7 +18,7 @@ int job_t::accept_job(control_t *control) {
     return 0;
 }
 
-int job_t::send_over(write_stream_t *stream) {
+int job_t::send_over(write_stream_t *stream) const {
     write_message_t msg;
 
     // This is kind of a hack.

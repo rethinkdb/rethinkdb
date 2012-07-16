@@ -42,11 +42,11 @@ pool_t::~pool_t() {
         end_worker(&idle_workers_, w);
 }
 
-int pool_t::spawn_job(job_t *job, job_handle_t *handle) {
+int pool_t::spawn_job(const job_t &job, job_handle_t *handle) {
     worker_t *worker = acquire_worker();
     guarantee(worker);          // for now, acquiring worker can't fail
     handle->connect(worker);
-    int res = job->send_over(handle);
+    int res = job.send_over(handle);
     // If sending failed, the handle should have disconnected.
     rassert(0 == res || !handle->connected());
     return res;

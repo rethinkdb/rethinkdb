@@ -32,7 +32,7 @@ class job_t {
 
     // Sends us over a stream.
     // Returns 0 on success, -1 on error.
-    int send_over(write_stream_t *stream);
+    int send_over(write_stream_t *stream) const;
 
     // Receives and runs a job. Called on worker process side. Returns 0 on
     // success, -1 on failure.
@@ -46,7 +46,7 @@ class job_t {
     // Returns a function that deserializes & runs an instance of the
     // appropriate job type. Called on worker process side.
     typedef void (*func_t)(control_t*);
-    virtual func_t job_runner() = 0;
+    virtual func_t job_runner() const = 0;
 
     // Serialization methods. Suggest implementing by invoking
     // RDB_MAKE_ME_SERIALIZABLE_#(..) in subclass definition.
@@ -76,7 +76,7 @@ class auto_job_t : public job_t {
         job.run_job(control);
     }
 
-    func_t job_runner() { return job_runner_func; }
+    func_t job_runner() const { return job_runner_func; }
 };
 
 } // namespace extproc
