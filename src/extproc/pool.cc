@@ -42,7 +42,7 @@ pool_t::~pool_t() {
         end_worker(&idle_workers_, w);
 }
 
-int pool_t::spawn_job(const job_t &job, job_handle_t *handle) {
+int pool_t::spawn_job(job_handle_t *handle, const job_t &job) {
     worker_t *worker = acquire_worker();
     guarantee(worker);          // for now, acquiring worker can't fail
     handle->connect(worker);
@@ -90,6 +90,7 @@ pool_t::worker_t *pool_t::acquire_worker() {
 }
 
 void pool_t::release_worker(worker_t *worker) {
+    assert_thread();
     rassert(worker && worker->pool_ == this);
 
     // If the worker's stream isn't open, something bad has happened.
@@ -110,6 +111,7 @@ void pool_t::release_worker(worker_t *worker) {
 }
 
 void pool_t::interrupt_worker(worker_t *worker) {
+    assert_thread();
     rassert(worker && worker->pool_ == this);
 
     end_worker(&busy_workers_, worker);
@@ -220,6 +222,7 @@ job_handle_t::~job_handle_t() {
 void job_handle_t::connect(pool_t::worker_t *worker) {
     rassert(!connected() && worker);
     worker_ = worker;
+    worker_->assert_thread();
 }
 
 void job_handle_t::release() {

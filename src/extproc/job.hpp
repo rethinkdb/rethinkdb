@@ -30,9 +30,12 @@ class job_t {
         pid_t pid_;
     };
 
-    // Sends us over a stream.
-    // Returns 0 on success, -1 on error.
+    // Sends us over a stream. The recipient must be a fork()ed child (or
+    // grandchild, or parent, etc) of us. Returns 0 on success, -1 on error.
     int send_over(write_stream_t *stream) const;
+
+    // Appends us to a write message. Same constraints on recipient as above.
+    void append_to(write_message_t *message) const;
 
     // Receives and runs a job. Called on worker process side. Returns 0 on
     // success, -1 on failure.

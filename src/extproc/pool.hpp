@@ -56,7 +56,7 @@ class pool_t :
 
     // Spawns `job` off and initializes `handle` with a connection to it.
     // Returns 0 on success, -1 on error.
-    int spawn_job(const job_t &job, job_handle_t *handle);
+    int spawn_job(job_handle_t *handle, const job_t &job);
 
   private:
     pool_group_t::config_t *config() { return &group_->config_; }

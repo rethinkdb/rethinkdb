@@ -18,20 +18,22 @@ int job_t::accept_job(control_t *control) {
     return 0;
 }
 
-int job_t::send_over(write_stream_t *stream) const {
-    write_message_t msg;
-
+void job_t::append_to(write_message_t *msg) const {
     // This is kind of a hack.
     //
     // We send the address of the function that runs the job we want. This works
     // only because the worker processes we are sending to are fork()s of
     // ourselves, and so have the same address space layout.
     job_t::func_t funcptr = job_runner();
-    msg.append(&funcptr, sizeof funcptr);
+    msg->append(&funcptr, sizeof funcptr);
 
     // We send the job over as well; job_runner will deserialize it.
-    this->rdb_serialize(msg);
+    this->rdb_serialize(*msg);
+}
 
+int job_t::send_over(write_stream_t *stream) const {
+    write_message_t msg;
+    append_to(&msg);
     return send_write_message(stream, &msg);
 }
 
