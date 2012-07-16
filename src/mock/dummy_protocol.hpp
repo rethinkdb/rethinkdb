@@ -153,8 +153,6 @@ public:
                         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> *token,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-        static void destroy_store(store_t *store);
-
         std::map<std::string, std::string> values;
         std::map<std::string, state_timestamp_t> timestamps;
 

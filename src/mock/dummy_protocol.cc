@@ -459,12 +459,6 @@ void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &sub
     metainfo.update(new_metainfo);
 }
 
-void dummy_protocol_t::store_t::destroy_store(dummy_protocol_t::store_t *store) {
-    std::string file_to_remove = store->filename;
-    delete store;
-    unlink(file_to_remove.c_str());
-}
-
 void dummy_protocol_t::store_t::initialize_empty() {
     dummy_protocol_t::region_t region = get_region();
     for (std::set<std::string>::iterator it = region.keys.begin();
