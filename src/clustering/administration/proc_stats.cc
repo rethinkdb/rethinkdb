@@ -84,10 +84,12 @@ private:
                           " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
                           " %d %d"
                           " %u %u"
-                          " %" SCNu64
 #ifndef LEGACY_PROC_STAT
                           " %" SCNu64
+                          " %" SCNu64
                           " %" SCNd64,
+#else
+                          " %" SCNu64,
 #endif
                           &pid,
                           name,
@@ -103,10 +105,12 @@ private:
                           &sigignore, &sigcatch, &wchan, &nswap, &cnswap,
                           &exit_signal, &processor,
                           &rt_priority, &policy,
-                          &delayacct_blkio_ticks,
 #ifndef LEGACY_PROC_STAT
+                          &delayacct_blkio_ticks,
                           &guest_time,
                           &cguest_time
+#else
+                          &delayacct_blkio_ticks
 #endif
                           );
         if (res2 != items_to_parse) {
