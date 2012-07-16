@@ -88,9 +88,7 @@ print 'Testing...'
 res = test_against(ip, port)
 
 print 'Tests completed. Killing instance now...'
-#proc.send_signal(signal.SIGKILL) # for some reason, SIGINT isn't working
-print 'PID:', proc.pid
-os.system('kill -2 %d' % proc.pid)
+proc.send_signal(signal.SIGINT)
 
 if res != (num_keys, num_keys):
     print 'Done: FAILED'
