@@ -31,18 +31,16 @@ def wait_until_started_up(proc, host, port, timeout = 600):
     else:
         raise RuntimeError("Could not connect to process.")
 
-def test_against(host, port, timeout = 300):
-    time_limit = time.time() + timeout
+def test_against(host, port):
     with workload_common.make_memcache_connection({"address": (host, port), "mclib": "pylibmc", "protocol": "text"}) as mc:
         temp = 0
-        while not temp and time.time() < time_limit:
+        while not temp:
             try:
                 temp = mc.set("test", "test")
-                print temp
+		print temp
             except Exception, e:
-                print e
+		print e
                 pass
-            time.sleep(1)
 
         goodsets = 0
         goodgets = 0
@@ -66,14 +64,14 @@ def test_against(host, port, timeout = 300):
 executable = driver.find_rethinkdb_executable(opts["mode"])
 
 base = 11213
-port = random.randint(base + 1, 65535)
+port = random.randint(base + 1, 65535 - 100)
 port2 = random.randint(base + 1, 65535)
 port_offset = port - base
 
 print 'Connecting...'
 
 os.system('rm -rf rethinkdb_cluster_data')
-proc = subprocess.Popen(' '.join([executable, "--port", str(port2), "--port-offset", str(port_offset)]), shell = True)
+proc = subprocess.Popen([executable, "--port", str(port2), "--port-offset", str(port_offset)])
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.connect(("gmail.com",80))
@@ -89,7 +87,9 @@ print 'Testing...'
 res = test_against(ip, port)
 
 print 'Tests completed. Killing instance now...'
-proc.send_signal(signal.SIGINT)
+#proc.send_signal(signal.SIGKILL) # for some reason, SIGINT isn't working
+print 'PID:', proc.pid
+os.system('kill -2 %d' % proc.pid)
 
 if res != (num_keys, num_keys):
     print 'Done: FAILED'
