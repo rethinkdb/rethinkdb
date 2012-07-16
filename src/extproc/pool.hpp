@@ -142,7 +142,7 @@ class job_handle_t :
     // job. They are connected by pool_t::spawn_job().
     job_handle_t();
 
-    // Job handles must be disconnected before they are destroyed. See finish()
+    // Job handles must be disconnected before they are destroyed. See release()
     // and interrupt().
     ~job_handle_t();
 
