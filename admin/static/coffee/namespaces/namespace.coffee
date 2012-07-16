@@ -140,6 +140,7 @@ module 'NamespaceView', ->
         render: =>
             data_in_memory = 0
             data_total = 0
+            data_is_ready = false
             #TODO These are being calculated incorrectly. As they stand, data_in_memory is correct, but data_total is measuring the disk space used by this namespace. Issue filed.
             for machine in machines.models
                 if machine.get('stats')? and @model.get('id') of machine.get('stats') and machine.get('stats')[@model.get('id')].serializers?
@@ -147,12 +148,21 @@ module 'NamespaceView', ->
                         if machine.get('stats')[@model.get('id')].serializers[key].cache?.blocks_in_memory?
                             data_in_memory += parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.blocks_in_memory) * parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.block_size)
                             data_total += parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.blocks_total) * parseInt(machine.get('stats')[@model.get('id')].serializers[key].cache.block_size)
-            json =
-                data_in_memory_percent: Math.floor(data_in_memory/data_total*100)
-                data_in_memory: human_readable_units(data_in_memory, units_space)
-                data_not_in_memory: human_readable_units(data_total-data_in_memory, units_space)
-                data_total: human_readable_units(data_total, units_space)
-
+                            data_is_ready = true
+            
+            if data_is_ready
+                json =
+                    data_in_memory_percent: Math.floor(data_in_memory/data_total*100)+'%'
+                    data_in_memory: human_readable_units(data_in_memory, units_space)
+                    data_not_in_memory: human_readable_units(data_total-data_in_memory, units_space)
+                    data_total: human_readable_units(data_total, units_space)
+            else
+                json =
+                    data_in_memory_percent: 'loading...'
+                    data_in_memory: 'loading...'
+                    data_not_in_memory: 'loading...'
+                    data_total: 'loading...'
+ 
             # So we don't update every seconds
             need_update = false
             for key of json
@@ -175,11 +185,12 @@ module 'NamespaceView', ->
 
                 data_pie = [data_in_memory, data_total-data_in_memory]
 
-                @.$('pie_chart-data_in_memory').html ''
+                @.$('.loading_text-svg').fadeOut '600', -> $(@).remove() 
+
 
                 arc = d3.svg.arc().innerRadius(0).outerRadius(r);
                 svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
-                arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
+                arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc).style('opacity', 0).transition().duration(600).style('opacity', 1)
 
 
             #namespaces.models[0].get('computed_shards')
