@@ -161,7 +161,8 @@ public:
     // buffers to the buffer_group_t, initializing acq_group_out so
     // that it holds the acquisition of such buffers.  acq_group_out
     // must not be destroyed until the buffers are finished being
-    // used.
+    // used.  If you want to expose the region in a _readonly_
+    // fashion, use a const_cast!  I am so sorry.
     void expose_region(transaction_t *txn, access_t mode, int64_t offset, int64_t size, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
     void expose_all(transaction_t *txn, access_t mode, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
 
