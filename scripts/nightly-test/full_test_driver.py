@@ -204,7 +204,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                 "target_os": "ubuntu"
                 }
             builds["redhat5_1"] = {
-                "command_line": "cd rethinkdb/src && make LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1 LEGACY_STAT_PROC=1 UNIT_TESTS=0 && mv ../build/debug-legacy-legacy-gcc-no_eventfd-legacy-stat-proc ../build/redhat5_1",
+                "command_line": "cd rethinkdb/src && make LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 UNIT_TESTS=0 && mv ../build/debug-legacy-legacy-gcc-no_eventfd-legacy-proc-stat ../build/redhat5_1",
                 "products": ["rethinkdb/build/redhat5_1/rethinkdb"],
                 "target_os": "redhat5_1"
                 }
@@ -214,17 +214,17 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                 "target_os": "debian"
                 }
             builds["centos5_5"] = {
-                "command_line": "cd rethinkdb/src && make LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_STAT_PROC=1 UNIT_TESTS=0 && mv ../build/debug-legacy-legacy-gcc-legacy-stat-proc ../build/centos5_5",
+                "command_line": "cd rethinkdb/src && make LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_PROC_STAT=1 UNIT_TESTS=0 && mv ../build/debug-legacy-legacy-gcc-legacy-proc-stat ../build/centos5_5",
                 "products": ["rethinkdb/build/centos5_5/rethinkdb"],
                 "target_os": "centos5_5"
                 }
             builds["suse"] = {
-                "command_line": "cd rethinkdb/src && make LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 LEGACY_STAT_PROC=1 UNIT_TESTS=0 && mv ../build/debug-legacy-legacy-gcc-no_eventfd-legacy-stat-proc ../build/suse",
+                "command_line": "cd rethinkdb/src && make LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 UNIT_TESTS=0 && mv ../build/debug-legacy-legacy-gcc-no_eventfd-legacy-proc-stat ../build/suse",
                 "products": ["rethinkdb/build/suse/rethinkdb"],
                 "target_os": "suse"
                 }
             builds["centos6"] = {
-                "command_line": "cd rethinkdb/src && make LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_STAT_PROC=1 UNIT_TESTS=0 && mv ../build/debug-legacy-legacy-gcc-legacy-stat-proc ../build/centos6",
+                "command_line": "cd rethinkdb/src && make LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_PROC_STAT=1 UNIT_TESTS=0 && mv ../build/debug-legacy-legacy-gcc-legacy-proc-stat ../build/centos6",
                 "products": ["rethinkdb/build/centos6/rethinkdb"],
                 "target_os": "centos6"
                 }

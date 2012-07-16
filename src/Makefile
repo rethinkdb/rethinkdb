@@ -251,9 +251,9 @@ BUILD_DIR:=$(BUILD_DIR)-valgrind
 NO_TCMALLOC:=1
 endif
 
-ifeq ($(LEGACY_STAT_PROC),1)
-CXXFLAGS+=-DLEGACY_STAT_PROC
-BUILD_DIR:=$(BUILD_DIR)-legacy-stat-proc
+ifeq ($(LEGACY_PROC_STAT),1)
+CXXFLAGS+=-DLEGACY_PROC_STAT
+BUILD_DIR:=$(BUILD_DIR)-legacy-proc-stat
 endif
 
 PROTO_DIR:=$(BUILD_DIR)/proto
