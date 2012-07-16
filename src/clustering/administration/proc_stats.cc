@@ -80,8 +80,10 @@ private:
                           " %d %d"
                           " %u %u"
                           " %" SCNu64
+#ifndef LEGACY_PROC_STAT
                           " %" SCNu64
                           " %" SCNd64,
+#endif
                           &pid,
                           name,
                           &state,
@@ -97,8 +99,11 @@ private:
                           &exit_signal, &processor,
                           &rt_priority, &policy,
                           &delayacct_blkio_ticks,
+#ifndef LEGACY_PROC_STAT
                           &guest_time,
-                          &cguest_time);
+                          &cguest_time
+#endif
+                          );
         if (res2 != items_to_parse) {
             throw std::runtime_error(strprintf("Could not parse '%s': expected "
                 "to parse %d items, parsed %d. Buffer contents: %s", path,
