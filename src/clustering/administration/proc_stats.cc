@@ -70,7 +70,12 @@ private:
 
         buffer[res] = '\0';
 
+#ifndef LEGACY_PROC_STAT
         const int items_to_parse = 44;
+#else
+        const int items_to_parse = 42;
+#endif
+
         int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u"
                           " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
                           " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64
