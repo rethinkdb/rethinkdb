@@ -1,6 +1,9 @@
 #ifndef MEMCACHED_REGION_HPP_
 #define MEMCACHED_REGION_HPP_
 
+#include <string>
+#include <vector>
+
 #include "btree/keys.hpp"
 #include "utils.hpp"
 

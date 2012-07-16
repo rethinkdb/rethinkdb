@@ -121,13 +121,12 @@ test_iterator_t::data_blocks_t parse_data_blocks(const std::string &_db) {
     return result;
 }
 
-std::list<int> data_blocks_to_list_of_ints(test_iterator_t::data_blocks_t& db) {
+std::list<int> data_blocks_to_list_of_ints(const test_iterator_t::data_blocks_t& db) {
     std::list<int> result;
-    for (test_iterator_t::data_blocks_t::iterator it = db.begin(); it != db.end(); ++it) {
-        for (std::list<int>::iterator i = (*it).begin(); i != (*it).end(); ++i) {
+    for (test_iterator_t::data_blocks_t::const_iterator it = db.begin(); it != db.end(); ++it) {
+        for (std::list<int>::const_iterator i = it->begin(); i != it->end(); ++i) {
             result.push_back(*i);
         }
-        //std::copy((*it).begin(), (*it).end(), result.end());
     }
     return result;
 }

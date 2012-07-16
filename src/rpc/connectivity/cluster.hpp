@@ -1,6 +1,10 @@
 #ifndef RPC_CONNECTIVITY_CLUSTER_HPP_
 #define RPC_CONNECTIVITY_CLUSTER_HPP_
 
+#include <map>
+#include <set>
+#include <utility>
+
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
@@ -127,7 +131,7 @@ public:
             run_t *value;
         };
 
-        void on_new_connection(boost::scoped_ptr<nascent_tcp_conn_t> &, auto_drainer_t::lock_t) THROWS_NOTHING;
+        void on_new_connection(const boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
         /* `connectivity_cluster_t::join_blocking()` is spawned in a new
         coroutine by `connectivity_cluster_t::join()`. It's also run by

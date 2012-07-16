@@ -39,7 +39,7 @@ public:
 
     void reset(T *other) {
         intrusive_ptr_t tmp(other);
-        swap(tmp);
+        swap(tmp);  // NOLINT
     }
 
     T *operator->() const {

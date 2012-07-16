@@ -1,6 +1,9 @@
 #ifndef HTTP_HTTP_HPP_
 #define HTTP_HTTP_HPP_
 
+#include <string>
+#include <vector>
+
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -103,21 +106,21 @@ private:
     struct version_parser_t {
         std::string version;
 
-        bool parse(std::string &src);
+        bool parse(const std::string &src);
     };
 
     struct resource_string_parser_t {
         std::string resource;
         std::vector<query_parameter_t> query_params;
 
-        bool parse(std::string &src);
+        bool parse(const std::string &src);
     };
 
     struct header_line_parser_t {
         std::string key;
         std::string val;
 
-        bool parse(std::string &src);
+        bool parse(const std::string &src);
     };
 };
 

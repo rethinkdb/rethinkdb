@@ -1,7 +1,7 @@
 #ifndef CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_
 #define CLUSTERING_ADMINISTRATION_SUGGESTER_HPP_
 
-#include "errors.hpp"
+#include <map>
 
 #include "clustering/suggester/suggester.hpp"
 #include "clustering/administration/metadata.hpp"

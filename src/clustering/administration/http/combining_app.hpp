@@ -2,6 +2,7 @@
 #define CLUSTERING_ADMINISTRATION_HTTP_COMBINING_APP_HPP_
 
 #include <map>
+#include <string>
 
 #include "http/http.hpp"
 

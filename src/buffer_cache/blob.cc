@@ -611,7 +611,7 @@ bool deep_fsck_region(block_getter_t *getter, block_size_t bs, int levels, int64
         int64_t suboffset, subsize;
         blob::shrink(bs, levels, offset, size, i, &suboffset, &subsize);
         scoped_malloc_t<char> block;
-        if (!getter->get_block(ids[i], block)) {
+        if (!getter->get_block(ids[i], &block)) {
             *msg_out = strprintf("could not read block %u", ids[i]);
             return false;
         }

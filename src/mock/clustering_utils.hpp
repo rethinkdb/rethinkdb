@@ -1,6 +1,9 @@
 #ifndef MOCK_CLUSTERING_UTILS_HPP_
 #define MOCK_CLUSTERING_UTILS_HPP_
 
+#include <map>
+#include <string>
+
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"

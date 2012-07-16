@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSISTABLE_BLUEPRINT_HPP_
 
+#include <map>
+
 #include "clustering/reactor/blueprint.hpp"
 #include "clustering/administration/machine_metadata.hpp"
 

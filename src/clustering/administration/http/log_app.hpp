@@ -1,6 +1,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_LOG_APP_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_LOG_APP_HPP_
 
+#include <map>
+#include <vector>
+
 #include "clustering/administration/log_transfer.hpp"
 #include "clustering/administration/machine_metadata.hpp"
 #include "http/http.hpp"

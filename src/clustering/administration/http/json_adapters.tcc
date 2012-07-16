@@ -3,6 +3,8 @@
 
 #include "clustering/administration/http/json_adapters.hpp"
 
+#include <string>
+
 #include "http/json.hpp"
 #include "http/json/json_adapter.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"

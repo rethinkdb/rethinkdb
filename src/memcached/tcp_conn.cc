@@ -98,10 +98,10 @@ void serve_memcache(tcp_conn_t *conn, namespace_interface_t<memcached_protocol_t
 memcache_listener_t::memcache_listener_t(int _port, namespace_interface_t<memcached_protocol_t> *namespace_if_, perfmon_collection_t *_parent)
     : port(_port), namespace_if(namespace_if_),
       next_thread(0),
-      tcp_listener(new tcp_listener_t(port, boost::bind(&memcache_listener_t::handle,
-                                                        this, auto_drainer_t::lock_t(&drainer), _1))),
       parent(_parent),
-      stats(parent)
+      stats(parent),
+      tcp_listener(new tcp_listener_t(port, boost::bind(&memcache_listener_t::handle,
+                                                        this, auto_drainer_t::lock_t(&drainer), _1)))
 { }
 
 memcache_listener_t::~memcache_listener_t() { }
@@ -120,7 +120,7 @@ private:
     DISABLE_COPYING(memcache_conn_closing_subscription_t);
 };
 
-void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
+void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
     assert_thread();
 
     block_pm_duration conn_timer(&stats.pm_conns);

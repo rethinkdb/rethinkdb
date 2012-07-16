@@ -1,5 +1,7 @@
 #include "rpc/directory/read_manager.hpp"
 
+#include <map>
+
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/archive.hpp"
 

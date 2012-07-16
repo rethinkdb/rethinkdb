@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_MACHINE_ID_TO_PEER_ID_HPP_
 #define CLUSTERING_ADMINISTRATION_MACHINE_ID_TO_PEER_ID_HPP_
 
+#include <map>
+
 #include "clustering/administration/machine_metadata.hpp"
 
 inline peer_id_t machine_id_to_peer_id(const machine_id_t &input, const std::map<peer_id_t, machine_id_t> &translation_table) {

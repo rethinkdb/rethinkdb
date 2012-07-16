@@ -21,7 +21,7 @@ int64_t tcp_conn_stream_t::read(void *p, int64_t n) {
         rassert(result > 0);
         rassert(int64_t(result) <= n);
         return result;
-    } catch (tcp_conn_t::read_closed_exc_t &e) {
+    } catch (const tcp_conn_t::read_closed_exc_t &e) {
         return 0;
     }
 }
@@ -31,7 +31,7 @@ int64_t tcp_conn_stream_t::write(const void *p, int64_t n) {
         // write writes everything or throws an exception.
         conn_->write(p, n);
         return n;
-    } catch (tcp_conn_t::write_closed_exc_t &e) {
+    } catch (const tcp_conn_t::write_closed_exc_t &e) {
         return -1;
     }
 }

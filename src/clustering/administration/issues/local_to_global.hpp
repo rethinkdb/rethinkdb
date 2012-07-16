@@ -1,6 +1,10 @@
 #ifndef CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP_
 #define CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_TO_GLOBAL_HPP_
 
+#include <list>
+#include <map>
+#include <string>
+
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/machine_metadata.hpp"

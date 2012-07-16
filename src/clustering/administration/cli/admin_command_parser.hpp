@@ -1,9 +1,15 @@
 #ifndef CLUSTERING_ADMINISTRATION_CLI_ADMIN_COMMAND_PARSER_HPP_
 #define CLUSTERING_ADMINISTRATION_CLI_ADMIN_COMMAND_PARSER_HPP_
 
-#include <vector>
+#include <map>
+#include <set>
 #include <string>
+#include <vector>
+#include <utility>
+
+#include "errors.hpp"
 #include <boost/program_options.hpp>
+
 #include "clustering/administration/cli/linenoise.hpp"
 #include "rpc/connectivity/cluster.hpp"
 

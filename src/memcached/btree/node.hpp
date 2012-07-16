@@ -1,6 +1,8 @@
 #ifndef MEMCACHED_BTREE_NODE_HPP_
 #define MEMCACHED_BTREE_NODE_HPP_
 
+#include <string>
+
 #include "btree/node.hpp"
 #include "memcached/btree/value.hpp"
 

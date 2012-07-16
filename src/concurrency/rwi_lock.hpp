@@ -134,13 +134,13 @@ private:
     request_list_t queue;
 };
 
-inline void swap(rwi_lock_t::read_acq_t &a1, rwi_lock_t::read_acq_t &a2) {
+inline void swap(rwi_lock_t::read_acq_t &a1, rwi_lock_t::read_acq_t &a2) {  // NOLINT
     rwi_lock_t *tmp = a1.lock;
     a1.lock = a2.lock;
     a2.lock = tmp;
 }
 
-inline void swap(rwi_lock_t::write_acq_t &a1, rwi_lock_t::write_acq_t &a2) {
+inline void swap(rwi_lock_t::write_acq_t &a1, rwi_lock_t::write_acq_t &a2) {  // NOLINT
     rwi_lock_t *tmp = a1.lock;
     a1.lock = a2.lock;
     a2.lock = tmp;
