@@ -32,16 +32,14 @@ pool_t::pool_t(pool_group_t *group)
 }
 
 pool_t::~pool_t() {
+    // All workers should be idle before we shut down (clients can interrupt
+    // them if necessary).
+    guarantee(busy_workers_.empty(), "Busy workers at pool shutdown!");
+
     // Kill worker processes.
     worker_t *w;
-    while ((w = idle_workers_.head())) {
+    while ((w = idle_workers_.head()))
         end_worker(&idle_workers_, w);
-    }
-
-    while ((w = busy_workers_.head())) {
-        logWRN("Busy worker at pool shutdown: %d", w->pid_);
-        end_worker(&busy_workers_, w);
-    }
 }
 
 int pool_t::spawn_job(job_t *job, job_handle_t *handle) {
