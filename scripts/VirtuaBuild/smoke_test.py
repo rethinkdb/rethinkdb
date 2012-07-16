@@ -31,10 +31,11 @@ def wait_until_started_up(proc, host, port, timeout = 600):
     else:
         raise RuntimeError("Could not connect to process.")
 
-def test_against(host, port):
+def test_against(host, port, timeout = 300):
+    time_limit = time.time() + timeout
     with workload_common.make_memcache_connection({"address": (host, port), "mclib": "pylibmc", "protocol": "text"}) as mc:
         temp = 0
-        while not temp:
+        while not temp and time.time() < time_limit:
             try:
                 temp = mc.set("test", "test")
                 print temp
