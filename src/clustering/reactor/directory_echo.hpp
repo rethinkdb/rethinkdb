@@ -4,8 +4,7 @@
 #include <map>
 
 #include "utils.hpp"
-#include <boost/optional.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include "concurrency/watchable.hpp"
 #include "rpc/mailbox/typed.hpp"
