@@ -206,6 +206,20 @@ public:
         hd = data.begin();
     }
 
+    in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
+        while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            data.push_back(json);
+        }
+        hd = data.begin();
+    }
+
+    template <class Ordering>
+    void sort(const Ordering &o) {
+        guarantee(hd == data.begin(), "Can't sort a stream if you've already consumed from it");
+        data.sort(o);
+        hd = data.begin();
+    }
+
     boost::shared_ptr<scoped_cJSON_t> next() {
         if (hd == data.end()) {
             return boost::shared_ptr<scoped_cJSON_t>();
@@ -286,7 +300,27 @@ private:
     F f;
 };
 
-//typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_stream_t;
+class limit_stream_t : public json_stream_t {
+public:
+    limit_stream_t(boost::shared_ptr<json_stream_t> _stream, int _limit) 
+        : stream(_stream), limit(_limit)
+    { 
+        guarantee(limit >= 0);
+    }
+
+    boost::shared_ptr<scoped_cJSON_t> next() { 
+        if (limit == 0) {
+            return boost::shared_ptr<scoped_cJSON_t>();
+        } else {
+            return stream->next();
+        }
+    }
+
+private:
+    boost::shared_ptr<json_stream_t> stream;
+    int limit;
+};
+
 
 //Scopes for single pieces of json
 typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;

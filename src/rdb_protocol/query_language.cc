@@ -1526,9 +1526,13 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
         case Builtin::LENGTH:
             {
-                throw runtime_exc_t("length not implemented\n");
-                //json_stream_t stream = eval_stream(c.args(0), env);
-                //return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(stream.size())));
+                boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
+                int length = 0;
+                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+                    ++length;
+                }
+
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(length)));
             }
             break;
         case Builtin::NTH:
@@ -1832,9 +1836,10 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
             {
                 ordering_t o(c.builtin().order_by().mapping(), env);
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
-                throw runtime_exc_t("Unimplemented: Builtin::ORDERBY");
-                //stream.sort(o);
-                //return stream;
+                
+                boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(stream));
+                sorted_stream->sort(o);
+                return sorted_stream;
             }
             break;
         case Builtin::DISTINCT:
@@ -1843,19 +1848,11 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
 
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
 
-                throw runtime_exc_t("unimplemented distinct");
-                //json_stream_t res;
+                while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+                    seen.insert(json);
+                }
 
-                //for (json_stream_t::iterator it  = stream.begin();
-                //                             it != stream.end();
-                //                             ++it) {
-                //    if (seen.find(*it) == seen.end()) {
-                //        res.push_back(*it);
-                //        seen.insert(*it);
-                //    }
-                //}
-
-                //return res;
+                return boost::shared_ptr<in_memory_stream_t>(new in_memory_stream_t(seen.begin(), seen.end()));
             }
             break;
         case Builtin::LIMIT:
@@ -1873,16 +1870,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
                     throw runtime_exc_t("The second argument must be an integer.");
                 }
 
-                throw runtime_exc_t("Unimplemented: Builtin::LIMIT");
-                //if (int(stream.size()) > limit) {
-                //    json_stream_t::iterator it = stream.begin();
-                //    for (int i = 0; i < limit; ++i) {
-                //        ++it;
-                //    }
-                //    stream.erase(it, stream.end());
-                //}
-
-                //return stream;
+                return boost::shared_ptr<json_stream_t>(new limit_stream_t(stream, limit));
             }
             break;
         case Builtin::UNION:
