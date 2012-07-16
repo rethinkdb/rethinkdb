@@ -41,6 +41,7 @@ def test_against(host, port):
             except Exception, e:
                 print e
                 pass
+            time.sleep(1)
 
         goodsets = 0
         goodgets = 0
