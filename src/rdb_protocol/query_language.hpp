@@ -148,10 +148,7 @@ typedef variable_scope_t<type_t> variable_type_scope_t;
 typedef variable_type_scope_t::new_scope_t new_scope_t;
 
 /* get_type functions throw exceptions if their inputs aren't well defined or
-   fail type-checking. (A well-defined input has the correct fields filled in)
-
-    DO NOT CALL THESE DURING EVALUATION           */
-
+   fail type-checking. (A well-defined input has the correct fields filled in)  */
 const type_t get_type(const Term &t, variable_type_scope_t *scope);
 const type_t get_type(const Reduction &r, variable_type_scope_t *scope);
 const type_t get_type(const Mapping &m, variable_type_scope_t *scope);
