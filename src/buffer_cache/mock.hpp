@@ -1,6 +1,8 @@
 #ifndef BUFFER_CACHE_MOCK_HPP_
 #define BUFFER_CACHE_MOCK_HPP_
 
+#include <algorithm>
+
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 

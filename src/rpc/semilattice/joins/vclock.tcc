@@ -3,6 +3,8 @@
 
 #include "rpc/semilattice/joins/vclock.hpp"
 
+#include <vector>
+
 #include "stl_utils.hpp"
 
 template <class T>

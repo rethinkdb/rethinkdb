@@ -2,6 +2,7 @@
 #define CONCURRENCY_MUTEX_HPP_
 
 #include <deque>
+#include <algorithm>
 
 #include "utils.hpp"
 

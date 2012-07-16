@@ -4,8 +4,13 @@
 #include "db_thread_info.hpp"
 
 template <class protocol_t>
-void do_construct_existing_store(int i, io_backender_t *io_backender, perfmon_collection_t *serializers_perfmon_collection, const std::string& file_name_base,
-                                 int num_db_threads, stores_lifetimer_t<protocol_t> *stores_out, store_view_t<protocol_t> **store_views) {
+void do_construct_existing_store(int i, io_backender_t *io_backender,
+                                 perfmon_collection_t *serializers_perfmon_collection,
+                                 file_based_svs_by_namespace_t<protocol_t> *fbssvsbn,
+                                 namespace_id_t namespace_id,
+                                 int num_db_threads,
+                                 stores_lifetimer_t<protocol_t> *stores_out,
+                                 store_view_t<protocol_t> **store_views) {
 
     // TODO: Exceptions?  Can exceptions happen, and then this doesn't
     // catch it, and the caller doesn't handle it.
@@ -17,7 +22,7 @@ void do_construct_existing_store(int i, io_backender_t *io_backender, perfmon_co
     // threads.
     on_thread_t th(i % num_db_threads);
 
-    const std::string file_name = file_name_base + "_" + strprintf("%d", i);
+    std::string file_name = fbssvsbn->file_name_for(namespace_id, i);
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
     typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, false, serializers_perfmon_collection);
@@ -26,12 +31,17 @@ void do_construct_existing_store(int i, io_backender_t *io_backender, perfmon_co
 }
 
 template <class protocol_t>
-void do_create_new_store(int i, io_backender_t *io_backender, perfmon_collection_t *serializers_perfmon_collection, const std::string& file_name_base,
-                         int num_db_threads, stores_lifetimer_t<protocol_t> *stores_out, store_view_t<protocol_t> **store_views) {
+void do_create_new_store(int i, io_backender_t *io_backender,
+                         perfmon_collection_t *serializers_perfmon_collection,
+                         file_based_svs_by_namespace_t<protocol_t> *fbssvsbn,
+                         namespace_id_t namespace_id,
+                         int num_db_threads,
+                         stores_lifetimer_t<protocol_t> *stores_out,
+                         store_view_t<protocol_t> **store_views) {
     // TODO: See the todo about thread distribution in do_construct_existing_store.  It is applicable here, too.
     on_thread_t th(i % num_db_threads);
 
-    const std::string file_name = file_name_base + "_" + strprintf("%d", i);
+    std::string file_name = fbssvsbn->file_name_for(namespace_id, i);
 
     typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, true, serializers_perfmon_collection);
     stores_out->stores()[i].reset(store);
@@ -40,16 +50,16 @@ void do_create_new_store(int i, io_backender_t *io_backender, perfmon_collection
 
 template <class protocol_t>
 void
-file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *serializers_perfmon_collection,
-                                                   namespace_id_t namespace_id,
-                                                   stores_lifetimer_t<protocol_t> *stores_out,
-                                                   boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
+file_based_svs_by_namespace_t<protocol_t>::get_svs(
+            perfmon_collection_t *serializers_perfmon_collection,
+            namespace_id_t namespace_id,
+            stores_lifetimer_t<protocol_t> *stores_out,
+            boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
 
     const int num_db_threads = get_num_db_threads();
 
     // TODO: If the server gets killed when starting up, we can
     // get a database in an invalid startup state.
-    const std::string file_name_base = file_path_ + "/" + uuid_to_str(namespace_id);
 
     // TODO: This is quite suspicious in that we check if the file
     // exists and then assume it exists or does not exist when
@@ -58,15 +68,16 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *seriali
     // TODO: We should use N slices on M serializers, not N slices
     // on N serializers.
 
-    int res = access((file_name_base + "_" + strprintf("%d", 0)).c_str(), R_OK | W_OK);
+    int res = access(this->file_name_for(namespace_id, 0).c_str(), R_OK | W_OK);
     if (res == 0) {
         int num_stores = 1;
-        while (0 == access((file_name_base + "_" + strprintf("%d", num_stores)).c_str(), R_OK | W_OK)) {
+        while (0 == access(file_name_for(namespace_id, num_stores).c_str(), R_OK | W_OK)) {
             ++num_stores;
         }
 
         // The files already exist, thus we don't create them.
-        boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
+        boost::scoped_array<store_view_t<protocol_t> *> store_views(
+                                        new store_view_t<protocol_t> *[num_stores]);
         stores_out->stores().reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
         stores_out->set_num_stores(num_stores);
 
@@ -76,8 +87,10 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *seriali
         // store_views' values would leak.  That is, are we handling
         // them in the pmap?  No.
 
-        pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>, _1, io_backender_, serializers_perfmon_collection,
-                                     boost::ref(file_name_base), num_db_threads, stores_out, store_views.get()));
+        pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
+                                     _1, io_backender_, serializers_perfmon_collection,
+                                     this, namespace_id,
+                                     num_db_threads, stores_out, store_views.get()));
 
         svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
     } else {
@@ -92,9 +105,12 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *seriali
 
         // The files do not exist, create them.
         // TODO: This should use pmap.
-        boost::scoped_array<store_view_t<protocol_t> *> store_views(new store_view_t<protocol_t> *[num_stores]);
+        boost::scoped_array<store_view_t<protocol_t> *> store_views(
+                                            new store_view_t<protocol_t> *[num_stores]);
 
-        pmap(num_stores, boost::bind(do_create_new_store<protocol_t>, _1, io_backender_, serializers_perfmon_collection, boost::ref(file_name_base),
+        pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
+                                     _1, io_backender_, serializers_perfmon_collection,
+                                     this, namespace_id,
                                      num_db_threads, stores_out, store_views.get()));
 
         svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
@@ -111,6 +127,20 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(perfmon_collection_t *seriali
                                       &write_token,
                                       &dummy_interruptor);
     }
+}
+
+template <class protocol_t>
+void file_based_svs_by_namespace_t<protocol_t>::destroy_svs(namespace_id_t namespace_id) {
+    for(int i = 0; access(file_name_for(namespace_id, i).c_str(), R_OK | W_OK) == 0; ++i) {
+        unlink(file_name_for(namespace_id, i).c_str());
+    }
+}
+
+template <class protocol_t>
+std::string file_based_svs_by_namespace_t<protocol_t>::file_name_for(
+                                            namespace_id_t namespace_id, int i) {
+    const std::string file_name_base = file_path_ + "/" + uuid_to_str(namespace_id);
+    return file_name_base + "_" + strprintf("%d", i);
 }
 
 #include "mock/dummy_protocol.hpp"

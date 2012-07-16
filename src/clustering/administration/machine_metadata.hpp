@@ -3,7 +3,9 @@
 
 #include "utils.hpp"
 
+#include <map>
 #include <set>
+#include <string>
 
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "http/json/json_adapter.hpp"

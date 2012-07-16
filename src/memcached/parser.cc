@@ -1060,7 +1060,7 @@ void memcached_stats(int argc, char **argv, std::vector<std::string> *stat_respo
         names_to_match.insert(argv[i]);
     }
 
-    boost::scoped_ptr<perfmon_result_t> stats(perfmon_get_stats());
+    scoped_ptr_t<perfmon_result_t> stats(perfmon_get_stats());
     format_stats(stats.get(), std::string(), names_to_match, stat_response_lines);
     stat_response_lines->push_back(end_marker);
 }

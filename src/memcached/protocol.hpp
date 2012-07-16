@@ -1,10 +1,10 @@
 #ifndef MEMCACHED_PROTOCOL_HPP_
 #define MEMCACHED_PROTOCOL_HPP_
 
+#include <string>
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
@@ -170,10 +170,10 @@ public:
     static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 
     class store_t : public store_view_t<memcached_protocol_t> {
-        boost::scoped_ptr<standard_serializer_t> serializer;
+        scoped_ptr_t<standard_serializer_t> serializer;
         mirrored_cache_config_t cache_dynamic_config;
-        boost::scoped_ptr<cache_t> cache;
-        boost::scoped_ptr<btree_slice_t> btree;
+        scoped_ptr_t<cache_t> cache;
+        scoped_ptr_t<btree_slice_t> btree;
         order_source_t order_source;
 
         fifo_enforcer_source_t token_source;
