@@ -1595,6 +1595,12 @@ boost::shared_ptr<scoped_cJSON_t> map(std::string arg, const Term &term, runtime
     return eval(term, env);
 }
 
+boost::shared_ptr<json_stream_t> concatmap(std::string arg, const Term &term, runtime_environment_t *env, boost::shared_ptr<scoped_cJSON_t> val) {
+    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+    env->scope.put_in_scope(arg, val);
+    return eval_stream(term, env);
+}
+
 boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (c.builtin().type()) {
         //JSON -> JSON
@@ -1698,8 +1704,9 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
         case Builtin::CONCATMAP:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
-                throw runtime_exc_t("Unimplemented: Builtin::CONCATMAP");
-                //json_stream_t res;
+
+                return boost::shared_ptr<json_stream_t>(new concat_mapping_stream_t<boost::function<boost::shared_ptr<json_stream_t>(boost::shared_ptr<scoped_cJSON_t>)> >(
+                                                                stream, boost::bind(&concatmap, c.builtin().map().mapping().arg(), c.builtin().map().mapping().body(), env, _1)));
             }
             break;
         case Builtin::ORDERBY:

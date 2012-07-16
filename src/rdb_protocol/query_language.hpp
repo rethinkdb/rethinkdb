@@ -280,6 +280,41 @@ private:
     F f;
 };
 
+template <class F>
+class concat_mapping_stream_t : public  json_stream_t {
+public:
+    concat_mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f)
+        : stream(_stream), f(_f)
+    { 
+        f = _f;
+        if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            substream = f(json);
+        }
+    }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        boost::shared_ptr<scoped_cJSON_t> res;
+
+        while (!res) {
+            if (!substream) {
+                return res;
+            } else if ((res = substream->next())) {
+                continue;
+            } else if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+                substream = f(json);
+            } else {
+                substream.reset();
+            }
+        }
+
+        return res;
+    }
+
+private:
+    boost::shared_ptr<json_stream_t> stream, substream;
+    F f;
+};
+
 class limit_stream_t : public json_stream_t {
 public:
     limit_stream_t(boost::shared_ptr<json_stream_t> _stream, int _limit) 
