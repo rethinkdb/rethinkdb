@@ -153,7 +153,7 @@ void run_rethinkdb_js(extproc::spawner_t::info_t *info, bool *result) {
 
         // Send a job that evaluates the javascript.
         extproc::job_handle_t handle;
-        if(-1 == handle.spawn(pool, js_eval_job_t(cmd))) {
+        if(-1 == handle.begin(pool, js_eval_job_t(cmd))) {
             printf("!! could not spawn job\n");
             break;
         }

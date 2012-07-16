@@ -144,13 +144,14 @@ class job_handle_t :
     // However, as a convenience in the case of exception-raising code, if the
     // handle is connected, the destructor will log a warning and interrupt the
     // job.
-    ~job_handle_t();
+    virtual ~job_handle_t();
 
     bool connected() { return worker_ != NULL; }
 
-    // Spawns `job` off on `pool`. Must be disconnected beforehand. On success,
-    // returns 0 and connects us to the spawned job. Returns -1 on error.
-    int spawn(pool_t *pool, const job_t &job);
+    // Begins running `job` on `pool`. Must be disconnected beforehand. On
+    // success, returns 0 and connects us to the spawned job. Returns -1 on
+    // error.
+    int begin(pool_t *pool, const job_t &job);
 
     // Indicates the job has either finished normally or experienced an I/O
     // error; disconnects the job handle.

@@ -217,7 +217,7 @@ job_handle_t::~job_handle_t() {
     rassert(!connected(), "job handle still connected on destruction");
 }
 
-int job_handle_t::spawn(pool_t *pool, const job_t &job) {
+int job_handle_t::begin(pool_t *pool, const job_t &job) {
     rassert(!connected());
 
     worker_ = pool->acquire_worker();
