@@ -135,10 +135,17 @@ bool deep_fsck(block_getter_t *getter, block_size_t bs, const char *ref, int max
 
 class blob_t {
 public:
-    //TODO this is a really confusing api. In order for this to create a new
-    //blob you need to manually bzero ref otherwise it will interpret the
-    //garbage data as a valid ref.
-    // maxreflen must be less than the block size minus 4 bytes.
+    // This is a really confusing api. In order for this to create a
+    // new blob you need to manually bzero ref.  Otherwise, it will
+    // interpret the garbage data as a valid ref.
+
+    // If you're going to modify the blob, ref must be a pointer to an
+    // array of length maxreflen.  If you're going to use the blob
+    // in-place, it does not need to be so.  (For example, blob refs
+    // in leaf nodes usually take much less space -- the average size
+    // for a large blob would be half the space (or less, thanks to
+    // Benford's law), and the size for a small blob is 1 plus the
+    // size of the blob, or maybe 2 plus the size of the blob.
     blob_t(char *ref, int maxreflen);
 
     // Returns ref_size(block_size, ref, maxreflen), the number of
