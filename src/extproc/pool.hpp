@@ -54,10 +54,6 @@ class pool_t :
     explicit pool_t(pool_group_t *group);
     ~pool_t();
 
-    // Spawns `job` off and initializes `handle` with a connection to it.
-    // Returns 0 on success, -1 on error.
-    int spawn_job(job_handle_t *handle, const job_t &job);
-
   private:
     pool_group_t::config_t *config() { return &group_->config_; }
     spawner_t *spawner() { return &group_->spawner_; }
@@ -98,7 +94,7 @@ class pool_t :
     // - num_workers() >= config()->min_workers
     void repair_invariants();
 
-    // Connects us to a worker. Private; used only by spawn_job.
+    // Connects us to a worker. Private; used only by job_handle_t::spawn().
     worker_t *acquire_worker();
 
     // Called by job_handle_t to indicate the job has finished or errored.
@@ -152,6 +148,10 @@ class job_handle_t :
 
     bool connected() { return worker_ != NULL; }
 
+    // Spawns `job` off on `pool`. Must be disconnected beforehand. On success,
+    // returns 0 and connects us to the spawned job. Returns -1 on error.
+    int spawn(pool_t *pool, const job_t &job);
+
     // Indicates the job has either finished normally or experienced an I/O
     // error; disconnects the job handle.
     void release();
@@ -174,10 +174,6 @@ class job_handle_t :
         if (-1 == res) release();
         return res;
     }
-
-  private:
-    // Called by spawn_job.
-    void connect(pool_t::worker_t *worker);
 
   private:
     pool_t::worker_t *worker_;

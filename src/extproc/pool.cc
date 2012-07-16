@@ -42,16 +42,6 @@ pool_t::~pool_t() {
         end_worker(&idle_workers_, w);
 }
 
-int pool_t::spawn_job(job_handle_t *handle, const job_t &job) {
-    worker_t *worker = acquire_worker();
-    guarantee(worker);          // for now, acquiring worker can't fail
-    handle->connect(worker);
-    int res = job.send_over(handle);
-    // If sending failed, the handle should have disconnected.
-    rassert(0 == res || !handle->connected());
-    return res;
-}
-
 void pool_t::repair_invariants() {
     int need = config()->min_workers - num_workers();
     if (need > 0)
@@ -227,10 +217,16 @@ job_handle_t::~job_handle_t() {
     rassert(!connected(), "job handle still connected on destruction");
 }
 
-void job_handle_t::connect(pool_t::worker_t *worker) {
-    rassert(!connected() && worker);
-    worker_ = worker;
-    worker_->assert_thread();
+int job_handle_t::spawn(pool_t *pool, const job_t &job) {
+    rassert(!connected());
+
+    worker_ = pool->acquire_worker();
+    guarantee(worker_);         // for now, acquiring worker can't fail
+
+    int res = job.send_over(this);
+    // If sending failed, write() should have disconnected us.
+    rassert(0 == res ? connected() : !connected());
+    return res;
 }
 
 void job_handle_t::release() {
