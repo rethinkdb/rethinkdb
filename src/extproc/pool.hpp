@@ -142,8 +142,12 @@ class job_handle_t :
     // job. They are connected by pool_t::spawn_job().
     job_handle_t();
 
-    // Job handles must be disconnected before they are destroyed. See release()
-    // and interrupt().
+    // You MUST call release() to finish a job normally, and you SHOULD call
+    // interrupt() explicitly to interrupt a job.
+    //
+    // However, as a convenience in the case of exception-raising code, if the
+    // handle is connected, the destructor will log a warning and interrupt the
+    // job.
     ~job_handle_t();
 
     bool connected() { return worker_ != NULL; }

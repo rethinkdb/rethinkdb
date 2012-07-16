@@ -216,6 +216,14 @@ job_handle_t::job_handle_t()
     : worker_(NULL) {}
 
 job_handle_t::~job_handle_t() {
+    if (connected()) {
+        // Please call interrupt() explicitly. This is here so that you don't
+        // have to write try/finally every time you use a job handle in a
+        // context where exceptions might be raised.
+        logWRN("job handle still connected on destruction");
+        debugf("job handle still connected on destruction, interrupting\n");
+        interrupt();
+    }
     rassert(!connected(), "job handle still connected on destruction");
 }
 
