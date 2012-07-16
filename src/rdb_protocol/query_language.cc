@@ -31,12 +31,7 @@ const type_t get_type(const Term &t, variable_type_scope_t *scope) {
             CHECK(t.has_let());
             scope->push(); //create a new scope
             for (int i = 0; i < t.let().binds_size(); ++i) {
-                type_t bind_type = get_type(t.let().binds(i).term(), scope);
-                scope->put_in_scope(t.let().binds(i).var(), bind_type);
-
-                // HACKY: we store the type so later evaluation knows whether the bound var
-                // should be treated as a stream. (get_type(ReadQuery) does something similar)
-                const_cast<VarTermTuple&>(t.let().binds(i)).set__type(bind_type.value);
+                scope->put_in_scope(t.let().binds(i).var(), get_type(t.let().binds(i).term(), scope));
             }
             type_t res = get_type(t.let().expr(), scope);
             scope->pop();
@@ -353,10 +348,6 @@ const type_t get_type(const ReadQuery &r, variable_type_scope_t *scope) {
     if (res != Type::JSON && res != Type::STREAM) {
         throw type_error_t("ReadQueries must produce either JSON or a STREAM.");
     }
-
-    // HACKY: store type for eval later. Cf. get_type(Term)'s LET case
-    const_cast<ReadQuery&>(r).set__type(res.value);
-
     return Type::READ;
 }
 
@@ -518,7 +509,7 @@ Response eval(const Query &q, runtime_environment_t *env) {
 Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     Response res;
 
-    type_t type(static_cast<type_t::Type>(r._type())); // depends on get_type(ReadQuery) storing the type
+    type_t type = get_type(r.term(), &env->type_scope);
 
     if (type == Type::JSON) {
         boost::shared_ptr<scoped_cJSON_t> json = eval(r.term(), env);
@@ -570,7 +561,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
 
                     env->scope.put_in_scope(w.update().mapping().arg(), json);
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w.update().mapping().body(), env);
-                    if (!cJSON_Equal(cJSON_GetObjectItem(json->get(), "id"), 
+                    if (!cJSON_Equal(cJSON_GetObjectItem(json->get(), "id"),
                                      cJSON_GetObjectItem(val->get(), "id"))) {
                         error++;
                     } else {
@@ -741,7 +732,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
 void eval_let_binds(const Term::Let &let, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     // Go through the bindings in a let and add them one by one
     for (int i = 0; i < let.binds_size(); ++i) {
-        type_t type(static_cast<type_t::Type>(let.binds(i)._type())); //depends on get_type(Term) storing the type previously
+        type_t type = get_type(let.binds(i).term(), &env->type_scope);
 
         if (type == Type::JSON) {
             env->scope.put_in_scope(let.binds(i).var(),
@@ -1460,7 +1451,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
         case Builtin::REDUCE:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
-                
+
                 throw runtime_exc_t("Not implemented reduce");
                 // Start off accumulator with the base
                 //boost::shared_ptr<scoped_cJSON_t> acc = eval(c.builtin().reduce().base(), env);
@@ -1713,7 +1704,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
             {
                 ordering_t o(c.builtin().order_by().mapping(), env);
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
-                
+
                 boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(stream));
                 sorted_stream->sort(o);
                 return sorted_stream;

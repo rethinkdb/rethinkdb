@@ -6,7 +6,6 @@ message TableRef {
 message VarTermTuple {
     required string var = 1;
     required Term term = 2;
-    optional int32 _type = 3; // used internally
 };
 
 message Term {
@@ -204,7 +203,6 @@ enum OrderDirection {
 
 message ReadQuery {
     required Term term = 1;
-    optional int32 _type = 2; // used internally
 };
 
 message WriteQuery {
