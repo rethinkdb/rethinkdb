@@ -2,7 +2,7 @@
 
 # usage: ./smoke_test.py --mode OS_NAME --num-keys SOME_NUMBER_HERE
 
-import time, sys, os, socket, random, time, signal
+import time, sys, os, socket, random, time, signal, subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'test', 'common')))
 import workload_common, driver
 from vcoptparse import *
@@ -14,15 +14,15 @@ opts = op.parse(sys.argv)
 
 num_keys = opts["num_keys"]
 
-def wait_until_started_up(proc, port, timeout = 600):
+def wait_until_started_up(proc, host, port, timeout = 600):
     time_limit = time.time() + timeout
     while time.time() < time_limit:
         if proc.poll() is not None:
-            raise RuntimeError("Process stopped unexpectedly with return code %d." % proc.poll()
+            raise RuntimeError("Process stopped unexpectedly with return code %d." % proc.poll())
         s = socket.socket()
         try:
-            s.connect(("localhost", port))
-        except socker.error, e:
+            s.connect((host, port))
+        except socket.error, e:
             time.sleep(1)
         else:
             break
@@ -33,14 +33,13 @@ def wait_until_started_up(proc, port, timeout = 600):
 
 def test_against(host, port):
     with workload_common.make_memcache_connection({"address": (host, port), "mclib": "pylibmc", "protocol": "text"}) as mc:
-        while True:
+        temp = 0
+        while not temp:
             try:
                 temp = mc.set("test", "test")
-                if temp == 0:
-                    break
-                else:
-                    time.sleep(5)
-            except:
+                print temp
+            except Exception, e:
+                print e
                 pass
 
         goodsets = 0
@@ -65,26 +64,34 @@ def test_against(host, port):
 executable = driver.find_rethinkdb_executable(opts["mode"])
 
 base = 11213
-port = random.randint(base + 1, 9999)
-port2 = random.randint(base + 1, 9999)
+port = random.randint(base + 1, 65535)
+port2 = random.randint(base + 1, 65535)
 port_offset = port - base
 
 print 'Connecting...'
 
-proc = subprocess.Popen([executable, "--port", str(port2), "--port-offset", str(port_offset)], shell = True)
+os.system('rm -rf rethinkdb_cluster_data')
+proc = subprocess.Popen(' '.join([executable, "--port", str(port2), "--port-offset", str(port_offset)]), shell = True)
 
-wait_until_started_up(proc, port)
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect(("gmail.com",80))
+ip = s.getsockname()[0]
+s.close()
+
+print 'IP Address detected:', ip
+
+wait_until_started_up(proc, ip, port)
 
 print 'Testing...'
 
-res = test_against('localhost', port)
+res = test_against(ip, port)
 
 print 'Tests completed. Killing instance now...'
 proc.send_signal(signal.SIGINT)
 
-if res == (num_keys, num_keys):
+if res != (num_keys, num_keys):
     print 'Done: FAILED'
-    print 'Results: %d successful sets, %d successful gets (%d total)' % (goodsets, goodgets, num_keys)
+    print 'Results: %d successful sets, %d successful gets (%d total)' % (res[0], res[1], num_keys)
     exit(0)
 else:
     print 'Done: PASSED ALL'
