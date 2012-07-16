@@ -1,6 +1,9 @@
 #ifndef RPC_MAILBOX_MAILBOX_HPP_
 #define RPC_MAILBOX_MAILBOX_HPP_
 
+#include <map>
+#include <string>
+
 #include "errors.hpp"
 #include <boost/function.hpp>
 

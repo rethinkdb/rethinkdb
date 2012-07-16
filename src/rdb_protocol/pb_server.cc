@@ -9,17 +9,17 @@ Response query_server_t::handle(const Query &q) {
     Response res;
     res.set_token(q.token());
 
-    if (!is_well_defined(q)) {
-        res.set_status_code(-1);
-        res.add_response("Ill defined message");
-        return res;
-    }
-
     query_language::variable_type_scope_t scope;
 
-    if (!(get_type(q, &scope) == query_language::Type::QUERY)) {
+    try {
+        guarantee(get_type(q, &scope) == query_language::Type::QUERY);
+    } catch (query_language::runtime_exc_t &e) {
+        res.set_status_code(-3);
+        res.add_response("Runtime Exception: " + e.what());
+        return res;
+    } catch (query_language::type_error_t &e) {
         res.set_status_code(-2);
-        res.add_response("Message failed to type check");
+        res.add_response("Message failed to type check: " + e.what());
         return res;
     }
 

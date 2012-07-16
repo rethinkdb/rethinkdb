@@ -1,6 +1,11 @@
 #ifndef CLUSTERING_ADMINISTRATION_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_METADATA_HPP_
 
+#include <list>
+#include <map>
+#include <string>
+#include <vector>
+
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/log_transfer.hpp"

@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_DIRECTORY_APP_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_DIRECTORY_APP_HPP_
 
+#include <map>
+
 #include "clustering/administration/metadata.hpp"
 #include "http/http.hpp"
 #include "http/json/cJSON.hpp"

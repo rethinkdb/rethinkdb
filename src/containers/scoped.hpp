@@ -183,7 +183,7 @@ public:
         swap(tmp);
     }
 
-    void swap(scoped_malloc_t& other) {
+    void swap(scoped_malloc_t& other) {  // NOLINT
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;

@@ -1,5 +1,5 @@
-
-# TO RUN: python -m unittest insert_scan
+# TO RUN: PORT=1234 python insert_scan.py
+# also respects HOST env variable (defaults to localhost)
 
 import json
 import os

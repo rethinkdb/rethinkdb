@@ -6,6 +6,7 @@ message TableRef {
 message VarTermTuple {
     required string var = 1;
     required Term term = 2;
+    optional int32 _type = 3; // used internally
 };
 
 message Term {
@@ -113,10 +114,9 @@ message Builtin {
         GROUPEDMAPREDUCE = 29;
         JAVASCRIPT = 30;
         JAVASCRIPTRETURNINGSTREAM = 31;
-        MAPREDUCE = 32;
-        ANY = 33;
-        ALL = 34;
-        RANGE = 35;
+        ANY = 32;
+        ALL = 33;
+        RANGE = 34;
     };
 
     enum Comparison {
@@ -165,17 +165,11 @@ message Builtin {
 
     message GroupedMapReduce {
         required Mapping group_mapping = 1;
-        required MapReduce map_reduce = 2;
+        required Mapping value_mapping = 2;
+        required Reduction reduction = 3;
     };
 
     optional GroupedMapReduce grouped_map_reduce = 10;
-
-    message MapReduce {
-        required Mapping change_mapping = 1;
-        required Reduction reduction = 2;
-    };
-
-    optional MapReduce map_reduce = 11;
 
     message Range {
         required string attrname = 1;
@@ -183,7 +177,7 @@ message Builtin {
         optional Term upperbound = 3;
     };
 
-    optional Range range = 12;
+    optional Range range = 11;
 };
 
 message Reduction {
@@ -210,6 +204,7 @@ enum OrderDirection {
 
 message ReadQuery {
     required Term term = 1;
+    optional int32 _type = 2; // used internally
 };
 
 message WriteQuery {

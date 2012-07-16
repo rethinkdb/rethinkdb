@@ -4,6 +4,7 @@
 #include "memcached/protocol_json_adapter.hpp"
 
 #include <exception>
+#include <string>
 
 #include "http/http.hpp"
 #include "http/json.hpp"

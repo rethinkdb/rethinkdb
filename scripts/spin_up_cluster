@@ -121,8 +121,12 @@ Partial Photic Boundary""".splitlines()
 
 
 def usage():
-    print os.sys.argv[0], "p N"
-    print "Where p is the port you want the cluster to use and  N is the number of machines you want in the cluster"
+    print os.sys.argv[0], "p N [data_root_directory] [--keep]"
+    print """Where: 
+    p is the port you want the cluster to use 
+    N is the number of machines you want in the cluster
+    data_root_directory is the directory where RethinkDB will store each server data
+    --keep preserve the data directories between runs (by default they are deleted)"""
 
 
 if len(os.sys.argv) < 3:
@@ -135,20 +139,21 @@ if n_machines < 1:
     usage()
     exit(1)
 else:
-    if getpass.getuser() != 'jdoliner':
-        # find the newest debug build
-        git_root = commands.getoutput("git rev-parse --show-toplevel")
-        possibles = [os.path.join(git_root, 'build', entry, 'rethinkdb') for entry in os.listdir(git_root + '/build')]
-        binary = max(possibles, key=lambda f: os.path.exists(f) and os.stat(f).st_mtime)
-    else:
-        binary = '../build/debug/rethinkdb'
-
+    parent_dir = ''
+    keep_data = False
+    for opt in os.sys.argv[3:]:
+        if opt == '--keep':
+            keep_data = True
+        else:
+            parent_dir = opt
     kids = []
     machine_names = random.sample(names, n_machines)
     for i, machine_name in enumerate(machine_names):
+        directory = os.path.join(parent_dir, "cluster_directory_%d" % i)
         # cleanup the directory
-        directory = "cluster_directory_%d" % i
-        os.system("rm -rf " + directory)
+        if not keep_data:
+            os.system("rm -rf " + directory)
+        binary = "../build/debug/rethinkdb"
         if (i == 0):
             cl = [binary, "--port", str(port), "--directory", directory, "--name", machine_name, "--port-offset", str(i+port)]
         else:

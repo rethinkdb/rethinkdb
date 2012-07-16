@@ -50,6 +50,7 @@ apply_to_collection = (collection, collection_data) ->
                 need_update = need_update_objects(data, collection.get(id))
                 if need_update is true
                     collection.get(id).set(data)
+                    collection.trigger('change')
             else
                 data.id = id
                 collection.add(new collection.model(data))
@@ -139,7 +140,7 @@ set_log_entries = (log_data_from_server) ->
                     entry = new LogEntry json
                     entry.set('machine_uuid',machine_uuid)
 
-                    recent_log_entries.splice i, 0, entry
+                    recent_log_entries.add entry, {at: i}
                     if recent_log_entries.length > 3
                         recent_log_entries.shift()
 

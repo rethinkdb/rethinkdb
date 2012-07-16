@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_HPP_
 #define CLUSTERING_ADMINISTRATION_REACTOR_DRIVER_HPP_
 
+#include <map>
+
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>

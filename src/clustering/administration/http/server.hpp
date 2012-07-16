@@ -1,6 +1,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_
 
+#include <map>
+#include <string>
+
 #include "clustering/administration/admin_tracker.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/metadata_change_handler.hpp"

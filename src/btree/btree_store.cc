@@ -1,5 +1,8 @@
+#include "btree/btree_store.hpp"
+
+#include "errors.hpp"
+#include <boost/function.hpp>
 #include <boost/variant.hpp>
-#include <boost/bind.hpp>
 
 #include "serializer/config.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -175,7 +178,7 @@ bool btree_store_t<protocol_t>::send_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_backfill(token, &txn, &superblock, interruptor);
 
-    metainfo_t metainfo = get_metainfo_internal(txn.get(), superblock->get()).mask(start_point.get_domain());
+    region_map_t<protocol_t, binary_blob_t> metainfo = get_metainfo_internal(txn.get(), superblock->get()).mask(start_point.get_domain());
     if (should_backfill(metainfo)) {
         protocol_send_backfill(start_point, chunk_fun, superblock.get(), btree.get(), txn.get(), progress);
         return true;
@@ -397,3 +400,8 @@ void btree_store_t<protocol_t>::new_write_token(scoped_ptr_t<fifo_enforcer_sink_
     token_out->init(new fifo_enforcer_sink_t::exit_write_t(&token_sink, token));
 }
 
+#include "memcached/protocol.hpp"
+template class btree_store_t<memcached_protocol_t>;
+
+#include "rdb_protocol/protocol.hpp"
+template class btree_store_t<rdb_protocol_t>;
