@@ -37,10 +37,11 @@ def test_against(host, port):
         while not temp:
             try:
                 temp = mc.set("test", "test")
-		print temp
+                print temp
             except Exception, e:
-		print e
+                print e
                 pass
+            time.sleep(1)
 
         goodsets = 0
         goodgets = 0
