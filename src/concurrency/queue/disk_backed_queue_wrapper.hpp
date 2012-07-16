@@ -1,6 +1,8 @@
 #ifndef CONCURRENCY_QUEUE_DISK_BACKED_QUEUE_WRAPPER_HPP_
 #define CONCURRENCY_QUEUE_DISK_BACKED_QUEUE_WRAPPER_HPP_
 
+#include <string>
+
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/circular_buffer.hpp>

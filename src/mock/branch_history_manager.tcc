@@ -3,6 +3,9 @@
 
 #include "mock/branch_history_manager.hpp"
 
+#include <map>
+#include <set>
+
 #include "arch/timing.hpp"
 
 namespace mock {

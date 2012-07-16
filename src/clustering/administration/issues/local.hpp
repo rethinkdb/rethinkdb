@@ -2,6 +2,7 @@
 #define CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_
 
 #include <list>
+#include <set>
 #include <string>
 
 #include "clustering/administration/issues/json.hpp"

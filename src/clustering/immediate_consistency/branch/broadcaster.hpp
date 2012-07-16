@@ -1,9 +1,11 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
 
+#include <list>
+#include <map>
+
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
 
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"

@@ -3,6 +3,9 @@
 
 #include "clustering/reactor/json_adapters.hpp"
 
+#include <string>
+#include <vector>
+
 #include "http/json.hpp"
 
 namespace reactor_business_card_details {

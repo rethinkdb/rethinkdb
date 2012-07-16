@@ -5,6 +5,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "utils.hpp"
 #include <boost/function.hpp>

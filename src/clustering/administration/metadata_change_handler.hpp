@@ -1,6 +1,11 @@
 #ifndef CLUSTERING_ADMINISTRATION_METADATA_CHANGE_HANDLER_HPP_
 #define CLUSTERING_ADMINISTRATION_METADATA_CHANGE_HANDLER_HPP_
 
+#include <set>
+
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "clustering/resource.hpp"

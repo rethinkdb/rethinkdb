@@ -3,6 +3,8 @@
 
 #include "clustering/administration/parser_maker.hpp"
 
+#include <string>
+
 template<class protocol_t, class parser_t>
 parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox_manager,
                                boost::shared_ptr<semilattice_read_view_t<namespaces_semilattice_metadata_t<protocol_t> > > _namespaces_semilattice_metadata,

@@ -3,6 +3,9 @@
 
 #include "mock/dummy_protocol_json_adapter.hpp"
 
+#include <set>
+#include <string>
+
 #include "http/json/json_adapter.hpp"
 
 namespace mock {

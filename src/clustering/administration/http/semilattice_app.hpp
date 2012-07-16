@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_HTTP_SEMILATTICE_APP_HPP_
 #define CLUSTERING_ADMINISTRATION_HTTP_SEMILATTICE_APP_HPP_
 
+#include <map>
+
 #include "clustering/administration/metadata.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "http/json.hpp"

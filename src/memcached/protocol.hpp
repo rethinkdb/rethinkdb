@@ -1,6 +1,7 @@
 #ifndef MEMCACHED_PROTOCOL_HPP_
 #define MEMCACHED_PROTOCOL_HPP_
 
+#include <string>
 #include <vector>
 
 #include "errors.hpp"

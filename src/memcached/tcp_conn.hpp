@@ -26,15 +26,15 @@ private:
 
     int next_thread;
 
+    perfmon_collection_t *parent;
+
+    memcached_stats_t stats;
+
     /* We use this to make sure that all TCP connections stop when the
     `memcached_listener_t` is destroyed. */
     auto_drainer_t drainer;
 
     scoped_ptr_t<tcp_listener_t> tcp_listener;
-
-    perfmon_collection_t *parent;
-
-    memcached_stats_t stats;
 
     void handle(auto_drainer_t::lock_t keepalive, const boost::scoped_ptr<nascent_tcp_conn_t>& conn);
 };
