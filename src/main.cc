@@ -8,6 +8,9 @@
 #include "help.hpp"
 #include "config/args.hpp"
 
+// TODO (rntz): this shouldn't be in here permanently
+#include "extproc/example.hpp"
+
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION
 #ifndef NDEBUG
@@ -48,6 +51,10 @@ int main(int argc, char *argv[]) {
 
         } else if (subcommand == "admin") {
             return main_rethinkdb_admin(argc, argv);
+
+        } else if (subcommand == "js") {
+            // TODO (rntz): this shouldn't be in here permanently
+            return main_rethinkdb_js(argc, argv);
 
         } else if (subcommand == "--version") {
             if (argc != 2) {
