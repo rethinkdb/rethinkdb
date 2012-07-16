@@ -1,10 +1,5 @@
 #include "extproc/example.hpp"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-
-#include <cstring>              // strerror
-
 #include <v8.h>
 
 #include "errors.hpp"
@@ -14,7 +9,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/logger.hpp"
-#include "containers/archive/socket_stream.hpp"
+#include "containers/archive/archive.hpp"
 #include "extproc/job.hpp"
 #include "extproc/pool.hpp"
 #include "extproc/spawner.hpp"
@@ -46,7 +41,7 @@ class js_eval_job_t :
 
         // Wait for a signal to actually run the script.
         char c;
-        guarantee_err(1 == control->read(&c, 1), "couldn't read signal");
+        guarantee_err(1 == force_read(control, &c, 1), "couldn't read signal");
         guarantee(c == '\0', "bad signal value");
 
         // We need to do this after receiving the signal, otherwise we could get
@@ -158,7 +153,7 @@ void run_rethinkdb_js(extproc::spawner_t::info_t *info, bool *result) {
 
         // Send a job that evaluates the javascript.
         extproc::job_handle_t handle;
-        if(-1 == pool->spawn_job(js_eval_job_t(cmd), &handle)) {
+        if(-1 == pool->spawn_job(&handle, js_eval_job_t(cmd))) {
             printf("!! could not spawn job\n");
             break;
         }
