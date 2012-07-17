@@ -8,7 +8,6 @@
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
-// #include "btree/parallel_traversal.hpp"  // TODO: sigh
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/boost_types.hpp"

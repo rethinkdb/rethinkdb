@@ -165,6 +165,8 @@ public:
 
 private:
     boost::ptr_vector<traversal_progress_t> constituents;
+
+    DISABLE_COPYING(traversal_progress_combiner_t);
 };
 
 #endif  // BTREE_PARALLEL_TRAVERSAL_HPP_

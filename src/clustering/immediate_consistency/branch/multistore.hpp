@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
+#include <boost/function.hpp>
 
 #include "concurrency/fifo_enforcer.hpp"
 #include "containers/scoped.hpp"
