@@ -481,7 +481,7 @@ template<class T, class cxt_t>
 std::string render_as_json_string(const T &t, const cxt_t cxt) {
     T copy = t;
     scoped_cJSON_t json(render_as_json(&copy, cxt));
-    return cJSON_print_unformatted_std_string(json.get());
+    return json.PrintUnformatted();
 }
 
 template<class T>

@@ -6,7 +6,6 @@ message TableRef {
 message VarTermTuple {
     required string var = 1;
     required Term term = 2;
-    optional int32 _type = 3; // used internally
 };
 
 message Term {
@@ -155,11 +154,11 @@ message Builtin {
     optional ConcatMap concat_map = 7;
 
     message OrderBy {
-        required OrderDirection order_direction = 1;
-        required Mapping mapping = 2;
+        required string attr = 1;
+        optional bool ascending = 2 [default = true];
     };
 
-    optional OrderBy order_by = 8;
+    repeated OrderBy order_by = 8;
 
     optional Reduction reduce = 9;
 
@@ -197,14 +196,8 @@ message Predicate {
     required Term body = 2;
 };
 
-enum OrderDirection {
-    ASCENDING = 1;
-    DESCENDING = 2;
-}
-
 message ReadQuery {
     required Term term = 1;
-    optional int32 _type = 2; // used internally
 };
 
 message WriteQuery {

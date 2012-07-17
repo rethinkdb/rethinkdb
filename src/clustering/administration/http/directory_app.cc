@@ -53,7 +53,7 @@ void directory_http_app_t::get_root(scoped_cJSON_t *json_out) {
         json_read_only_adapter_t<cluster_directory_metadata_t, namespace_metadata_ctx_t> json_adapter(&metadata);
         namespace_metadata_ctx_t json_ctx(metadata.machine_id);
 
-        cJSON_AddItemToObject(json_out->get(), machine_id.c_str(), json_adapter.render(json_ctx));
+        json_out->AddItemToObject(machine_id.c_str(), json_adapter.render(json_ctx));
     }
 }
 
@@ -77,10 +77,10 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
             for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
                 cluster_directory_metadata_t metadata = i->second;
                 std::string machine_id = uuid_to_str(metadata.machine_id);
-                cJSON_AddItemToObject(body.get(), machine_id.c_str(), get_metadata_json(&metadata, it, req.resource.end()));
+                body.AddItemToObject(machine_id.c_str(), get_metadata_json(&metadata, it, req.resource.end()));
             }
             http_res_t res(200);
-            res.set_body("application/json", cJSON_print_std_string(body.get()));
+            res.set_body("application/json", body.Print());
             return res;
         } else {
             for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = md.begin(); i != md.end(); ++i) {
@@ -89,7 +89,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
                 if (*requested_machine_id == machine_id) {
                     scoped_cJSON_t machine_json = scoped_cJSON_t(get_metadata_json(&metadata, it, req.resource.end()));
                     http_res_t res(200);
-                    res.set_body("application/json", cJSON_print_std_string(machine_json.get()));
+                    res.set_body("application/json", machine_json.Print());
                     return res;
                 }
             }

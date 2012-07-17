@@ -26,9 +26,9 @@ std::string pinnings_shards_mismatch_issue_t<protocol_t>::get_description() cons
                       "Primary pinnings:\n %s\n"
                       "Secondary pinnings:\n %s\n",
                       uuid_to_str(offending_namespace).c_str(),
-                      cJSON_print_std_string(scoped_cJSON_t(render_as_json(&_shards, 0)).get()).c_str(),
-                      cJSON_print_std_string(scoped_cJSON_t(render_as_json(&_primary_pinnings, 0)).get()).c_str(),
-                      cJSON_print_std_string(scoped_cJSON_t(render_as_json(&_secondary_pinnings, 0)).get()).c_str());
+                      scoped_cJSON_t(render_as_json(&_shards, 0)).Print().c_str(),
+                      scoped_cJSON_t(render_as_json(&_primary_pinnings, 0)).Print().c_str(),
+                      scoped_cJSON_t(render_as_json(&_secondary_pinnings, 0)).Print().c_str());
 }
 
 template <class protocol_t>

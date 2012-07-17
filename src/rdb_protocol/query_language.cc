@@ -125,12 +125,7 @@ term_type_t get_term_type(const Term &t, variable_type_scope_t *scope) {
             check_protobuf(t.has_let());
             scope->push(); //create a new scope
             for (int i = 0; i < t.let().binds_size(); ++i) {
-                term_type_t bind_type = get_term_type(t.let().binds(i).term(), scope);
-                scope->put_in_scope(t.let().binds(i).var(), bind_type);
-
-                // HACKY: we store the type so later evaluation knows whether the bound var
-                // should be treated as a stream. (get_type(ReadQuery) does something similar)
-                const_cast<VarTermTuple&>(t.let().binds(i)).set__type(static_cast<int>(bind_type));
+                scope->put_in_scope(t.let().binds(i).var(), get_term_type(t.let().binds(i).term(), scope));
             }
             term_type_t res = get_term_type(t.let().expr(), scope);
             scope->pop();
@@ -307,8 +302,7 @@ function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope
         check_mapping_type(b.map().mapping(), TERM_TYPE_STREAM, scope);
         break;
     case Builtin::ORDERBY:
-        check_protobuf(b.has_order_by());
-        check_mapping_type(b.order_by().mapping(), TERM_TYPE_JSON, scope);
+        check_protobuf(b.order_by_size() > 0);
         break;
     case Builtin::REDUCE:
         check_protobuf(b.has_reduce());
@@ -424,10 +418,10 @@ void check_predicate_type(const Predicate &p, variable_type_scope_t *scope) {
 }
 
 void check_read_query_type(const ReadQuery &rq, variable_type_scope_t *scope) {
-    term_type_t res = get_term_type(rq.term(), scope);
-
-    // HACKY: store type for eval later. Cf. get_type(Term)'s LET case
-    const_cast<ReadQuery&>(rq).set__type(static_cast<int>(res));
+    /* Read queries could return anything--a view, a stream, a JSON, or an
+    error. Views will be automatically converted to streams at evaluation time.
+    */
+    get_term_type(rq.term(), scope);
 }
 
 void check_write_query_type(const WriteQuery &w, variable_type_scope_t *scope) {
@@ -508,45 +502,64 @@ void check_query_type(const Query &q, variable_type_scope_t *scope) {
     }
 }
 
-bool less(cJSON *l, cJSON *r) {
+int cJSON_cmp(cJSON *l, cJSON *r) {
     switch (l->type) {
         case cJSON_False:
             if (r->type == cJSON_True) {
-                return true;
+                return -1;
             } else if (r->type == cJSON_False) {
-                return false;
+                return 0;
             } else {
-                throw runtime_exc_t("Comparing boolean to non boolean\n");
+                throw runtime_exc_t("Booleans can only be compared to other booleans");
             }
             break;
         case cJSON_True:
             if (r->type == cJSON_True) {
-                return false;
+                return 0;
             } else if (r->type == cJSON_False) {
-                return false;
+                return 1;
             } else {
-                throw runtime_exc_t("Comparing boolean to non boolean\n");
+                throw runtime_exc_t("Booleans can only be compared to other booleans");
             }
             break;
         case cJSON_NULL:
-            throw runtime_exc_t("Can't compare null to anything\n");
+            throw runtime_exc_t("Can't compare null to anything");
             break;
         case cJSON_Number:
-            if (r->type == cJSON_Number) {
-                return l->valuedouble < r->valuedouble;
-            } else {
+            if (r->type != cJSON_Number) {
                 throw runtime_exc_t("Numbers can only be compared to other numbers.");
+            }
+            if (l->valuedouble < r->valuedouble) {
+                return -1;
+            } else if (l->valuedouble > r->valuedouble) {
+                return 1;
+            } else {
+                return 0;   // TODO: Handle NaN?
             }
             break;
         case cJSON_String:
-            if (r->type == cJSON_String) {
-                return (strcmp(l->valuestring, r->valuestring) < 0);
+            if (r->type != cJSON_String) {
+                throw runtime_exc_t("Strings can only be compared to other strings.");
+            }
+            return strcmp(l->valuestring, r->valuestring) < 0;
+            break;
+        case cJSON_Array:
+            if (r->type == cJSON_Array) {
+                int lsize = cJSON_GetArraySize(l),
+                    rsize = cJSON_GetArraySize(r);
+                for (int i = 0; i < lsize; ++i) {
+                    if (i >= rsize) {
+                        return 1;  // e.g. cmp([0, 1], [0])
+                    }
+                    int cmp = cJSON_cmp(cJSON_GetArrayItem(l, i), cJSON_GetArrayItem(r, i));
+                    if (cmp) {
+                        return cmp;
+                    }
+                }
+                return -1;  // e.g. cmp([0], [0, 1]);
             } else {
                 throw runtime_exc_t("Strings can only be compared to other strings.");
             }
-            break;
-        case cJSON_Array:
-            throw runtime_exc_t("Can't compare arrays.");
             break;
         case cJSON_Object:
             throw runtime_exc_t("Can't compare objects.");
@@ -560,10 +573,10 @@ bool less(cJSON *l, cJSON *r) {
 struct shared_scoped_less {
     bool operator()(const boost::shared_ptr<scoped_cJSON_t> &a,
                       const boost::shared_ptr<scoped_cJSON_t> &b) {
-        if (a->get()->type == b->get()->type) {
-            return less(a->get(), b->get());
+        if (a->type() == b->type()) {
+            return cJSON_cmp(a->get(), b->get()) < 0;
         } else {
-            return a->get()->type > b->get()->type;
+            return a->type() > b->type();
         }
     }
 };
@@ -585,19 +598,19 @@ Response eval(const Query &q, runtime_environment_t *env) {
 Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     Response res;
 
-    term_type_t type = static_cast<term_type_t>(r._type()); // depends on check_read_query_type() storing the type
+    term_type_t type = get_term_type(r.term(), &env->type_scope);
 
     switch (type) {
     case TERM_TYPE_JSON: {
         boost::shared_ptr<scoped_cJSON_t> json = eval(r.term(), env);
-        res.add_response(cJSON_print_std_string(json->get()));
+        res.add_response(json->Print());
         break;
     }
     case TERM_TYPE_STREAM:
     case TERM_TYPE_VIEW: {
         boost::shared_ptr<json_stream_t> stream = eval_stream(r.term(), env);
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            res.add_response(cJSON_print_std_string(json->get()));
+            res.add_response(json->Print());
         }
         break;
     }
@@ -616,11 +629,11 @@ Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtim
 }
 
 void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env) {
-    if (!cJSON_GetObjectItem(data->get(), "id")) {
+    if (!data->GetObjectItem("id")) {
         throw runtime_exc_t("Must have a field named id.");
     }
 
-    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(cJSON_GetObjectItem(data->get(), "id"))), data));
+    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(data->GetObjectItem("id"))), data));
     ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
 }
 
@@ -646,8 +659,8 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
 
                     env->scope.put_in_scope(w.update().mapping().arg(), json);
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w.update().mapping().body(), env);
-                    if (!cJSON_Equal(cJSON_GetObjectItem(json->get(), "id"), 
-                                     cJSON_GetObjectItem(val->get(), "id"))) {
+                    if (!cJSON_Equal(json->GetObjectItem("id"),
+                                     val->GetObjectItem("id"))) {
                         error++;
                     } else {
                         insert(view.access, val, env);
@@ -669,7 +682,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
 
                 int deleted = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
-                    point_delete(view.access, cJSON_GetObjectItem(json->get(), "id"), env);
+                    point_delete(view.access, json->GetObjectItem("id"), env);
                     deleted++;
                 }
 
@@ -690,8 +703,8 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                     env->scope.put_in_scope(w.update().mapping().arg(), json);
                     boost::shared_ptr<scoped_cJSON_t> val = eval(w.update().mapping().body(), env);
 
-                    if (val->get()->type == cJSON_NULL) {
-                        point_delete(view.access, cJSON_GetObjectItem(json->get(), "id"), env);
+                    if (val->type() == cJSON_NULL) {
+                        point_delete(view.access, json->GetObjectItem("id"), env);
                         ++deleted;
                     } else {
                         insert(view.access, eval(w.update().mapping().body(), env), env);
@@ -811,7 +824,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
 void eval_let_binds(const Term::Let &let, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     // Go through the bindings in a let and add them one by one
     for (int i = 0; i < let.binds_size(); ++i) {
-        term_type_t type = static_cast<term_type_t>(let.binds(i)._type()); //depends on get_term_type() storing the type previously
+        term_type_t type = get_term_type(let.binds(i).term(), &env->type_scope);
 
         if (type == TERM_TYPE_JSON) {
             env->scope.put_in_scope(let.binds(i).var(),
@@ -853,12 +866,12 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
         case Term::IF:
             {
                 boost::shared_ptr<scoped_cJSON_t> test = eval(t.if_().test(), env);
-                if (test->get()->type != cJSON_True && test->get()->type != cJSON_False) {
+                if (test->type() != cJSON_True && test->type() != cJSON_False) {
                     throw runtime_exc_t("The IF test must evaluate to a boolean.");
                 }
 
                 boost::shared_ptr<scoped_cJSON_t> res;
-                if (test->get()->type == cJSON_True) {
+                if (test->type() == cJSON_True) {
                     res = eval(t.if_().true_branch(), env);
                 } else {
                     res = eval(t.if_().false_branch(), env);
@@ -896,7 +909,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             {
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
                 for (int i = 0; i < t.array_size(); ++i) {
-                    cJSON_AddItemToArray(res->get(), eval(t.array(i), env)->release());
+                    res->AddItemToArray(eval(t.array(i), env)->release());
                 }
                 return res;
             }
@@ -906,7 +919,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateObject()));
                 for (int i = 0; i < t.object_size(); ++i) {
                     std::string item_name(t.object(i).var());
-                    cJSON_AddItemToObject(res->get(), item_name.c_str(), eval(t.object(i).term(), env)->release());
+                    res->AddItemToObject(item_name.c_str(), eval(t.object(i).term(), env)->release());
                 }
                 return res;
             }
@@ -927,7 +940,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
                 namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t.get_by_key().table_ref(), env);
 
                 boost::shared_ptr<scoped_cJSON_t> key = eval(t.get_by_key().key(), env);
-                rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(cJSON_print_std_string(key->get()))));
+                rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(key->Print())));
                 rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
 
                 rdb_protocol_t::point_read_response_t *p_res = boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
@@ -965,11 +978,11 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_
         case Term::IF:
             {
                 boost::shared_ptr<scoped_cJSON_t> test = eval(t.if_().test(), env);
-                if (test->get()->type != cJSON_True && test->get()->type != cJSON_False) {
+                if (test->type() != cJSON_True && test->type() != cJSON_False) {
                     throw runtime_exc_t("The IF test must evaluate to a boolean.");
                 }
 
-                if (test->get()->type == cJSON_True) {
+                if (test->type() == cJSON_True) {
                     return eval_stream(t.if_().true_branch(), env);
                 } else {
                     return eval_stream(t.if_().false_branch(), env);
@@ -990,7 +1003,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_
         case Term::ARRAY:
         case Term::OBJECT:
         case Term::GETBYKEY:
-            unreachable("eval_stream called on a function that does not return a stream (use eval instead).\n");
+            unreachable("eval_stream called on a function that does not return a stream (use eval instead).");
             break;
         default:
             unreachable();
@@ -1020,11 +1033,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             {
                 boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env);
 
-                if (!data->get()->type == cJSON_Object) {
+                if (!data->type() == cJSON_Object) {
                     throw runtime_exc_t("Data must be an object");
                 }
 
-                cJSON *value = cJSON_GetObjectItem(data->get(), c.builtin().attr().c_str());
+                cJSON *value = data->GetObjectItem(c.builtin().attr().c_str());
 
                 if (!value) {
                     throw runtime_exc_t("Object is missing attribute \"" + c.builtin().attr() + "\"");
@@ -1037,11 +1050,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             {
                 boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env);
 
-                if (!data->get()->type == cJSON_Object) {
+                if (!data->type() == cJSON_Object) {
                     throw runtime_exc_t("Data must be an object");
                 }
 
-                cJSON *attr = cJSON_GetObjectItem(data->get(), c.builtin().attr().c_str());
+                cJSON *attr = data->GetObjectItem(c.builtin().attr().c_str());
 
                 if (attr) {
                     return shared_scoped_json(cJSON_CreateTrue());
@@ -1054,18 +1067,18 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             {
                 boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env);
 
-                if (!data->get()->type == cJSON_Object) {
+                if (!data->type() == cJSON_Object) {
                     throw runtime_exc_t("Data must be an object");
                 }
 
                 boost::shared_ptr<scoped_cJSON_t> res = shared_scoped_json(cJSON_CreateObject());
 
                 for (int i = 0; i < c.builtin().attrs_size(); ++i) {
-                    cJSON *item = cJSON_DeepCopy(cJSON_GetObjectItem(data->get(), c.builtin().attrs(i).c_str()));
+                    cJSON *item = cJSON_DeepCopy(data->GetObjectItem(c.builtin().attrs(i).c_str()));
                     if (!item) {
                         throw runtime_exc_t("Attempting to pick missing attribute.");
                     } else {
-                        cJSON_AddItemToObject(res->get(), item->string, item);
+                        res->AddItemToObject(item->string, item);
                     }
                 }
                 return res;
@@ -1075,21 +1088,21 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             {
                 boost::shared_ptr<scoped_cJSON_t> left  = eval(c.args(0), env),
                                                   right = eval(c.args(1), env);
-                if (left->get()->type != cJSON_Object) {
+                if (left->type() != cJSON_Object) {
                     throw runtime_exc_t("Data must be an object");
                 }
 
-                if (right->get()->type != cJSON_Object) {
+                if (right->type() != cJSON_Object) {
                     throw runtime_exc_t("Data must be an object");
                 }
 
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_DeepCopy(left->get())));
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(left->DeepCopy()));
 
                 // Extend with the right side (and overwrite if necessary)
-                for(int i = 0; i < cJSON_GetArraySize(right->get()); i++) {
-                    cJSON *item = cJSON_GetArrayItem(right->get(), i);
-                    cJSON_DeleteItemFromObject(res->get(), item->string);
-                    cJSON_AddItemToObject(res->get(), item->string, cJSON_DeepCopy(item));
+                for(int i = 0; i < right->GetArraySize(); i++) {
+                    cJSON *item = right->GetArrayItem(i);
+                    res->DeleteItemFromObject(item->string);
+                    res->AddItemToObject(item->string, cJSON_DeepCopy(item));
                 }
 
                 return res;
@@ -1099,11 +1112,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             {
                 // Check first arg type
                 boost::shared_ptr<scoped_cJSON_t> array  = eval(c.args(0), env);
-                if (array->get()->type != cJSON_Array) {
+                if (array->type() != cJSON_Array) {
                     throw runtime_exc_t("The first argument must be an array.");
                 }
-                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_DeepCopy(array->get())));
-                cJSON_AddItemToArray(res->get(), eval(c.args(1), env)->release());
+                boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(array->DeepCopy()));
+                res->AddItemToArray(eval(c.args(1), env)->release());
                 return res;
             }
             break;
@@ -1111,21 +1124,21 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             {
                 // Check first arg type
                 boost::shared_ptr<scoped_cJSON_t> array1  = eval(c.args(0), env);
-                if (array1->get()->type != cJSON_Array) {
+                if (array1->type() != cJSON_Array) {
                     throw runtime_exc_t("The first argument must be an array.");
                 }
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> array2  = eval(c.args(1), env);
-                if (array2->get()->type != cJSON_Array) {
+                if (array2->type() != cJSON_Array) {
                     throw runtime_exc_t("The second argument must be an array.");
                 }
                 // Create new array and deep copy all the elements
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
-                for(int i = 0; i < cJSON_GetArraySize(array1->get()); i++) {
-                    cJSON_AddItemToArray(res->get(), cJSON_DeepCopy(cJSON_GetArrayItem(array1->get(), i)));
+                for(int i = 0; i < array1->GetArraySize(); i++) {
+                    res->AddItemToArray(cJSON_DeepCopy(array1->GetArrayItem(i)));
                 }
-                for(int j = 0; j < cJSON_GetArraySize(array2->get()); j++) {
-                    cJSON_AddItemToArray(res->get(), cJSON_DeepCopy(cJSON_GetArrayItem(array2->get(), j)));
+                for(int j = 0; j < array2->GetArraySize(); j++) {
+                    res->AddItemToArray(cJSON_DeepCopy(array2->GetArrayItem(j)));
                 }
 
                 return res;
@@ -1135,13 +1148,13 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             {
                 // Check first arg type
                 boost::shared_ptr<scoped_cJSON_t> array = eval(c.args(0), env);
-                if (array->get()->type != cJSON_Array) {
+                if (array->type() != cJSON_Array) {
                     throw runtime_exc_t("The first argument must be an array.");
                 }
 
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> start_json  = eval(c.args(1), env);
-                if (start_json->get()->type != cJSON_Number) {
+                if (start_json->type() != cJSON_Number) {
                     throw runtime_exc_t("The second argument must be an integer.");
                 }
 
@@ -1153,7 +1166,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 // Check third arg type
                 boost::shared_ptr<scoped_cJSON_t> end_json  = eval(c.args(2), env);
-                if (end_json->get()->type != cJSON_Number) {
+                if (end_json->type() != cJSON_Number) {
                     throw runtime_exc_t("The third argument must be an integer.");
                 }
                 float float_end = end_json->get()->valuedouble;
@@ -1162,7 +1175,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     throw runtime_exc_t("The third argument must be an integer.");
                 }
 
-                int length = cJSON_GetArraySize(array->get());
+                int length = array->GetArraySize();
 
                 if (start < 0) {
                     start = std::max(start + length, 0);
@@ -1184,7 +1197,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 }
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
                 for(int i = start; i < stop; i++) {
-                    cJSON_AddItemToArray(res->get(), cJSON_DeepCopy(cJSON_GetArrayItem(array->get(), i)));
+                    res->AddItemToArray(cJSON_DeepCopy(array->GetArrayItem(i)));
                 }
 
                 return res;
@@ -1194,13 +1207,13 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             {
                 // Check first arg type
                 boost::shared_ptr<scoped_cJSON_t> array  = eval(c.args(0), env);
-                if (array->get()->type != cJSON_Array) {
+                if (array->type() != cJSON_Array) {
                     throw runtime_exc_t("The first argument must be an array.");
                 }
 
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> index_json  = eval(c.args(1), env);
-                if (index_json->get()->type != cJSON_Number) {
+                if (index_json->type() != cJSON_Number) {
                     throw runtime_exc_t("The second argument must be an integer.");
                 }
                 float float_index = index_json->get()->valuedouble;
@@ -1209,7 +1222,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     throw runtime_exc_t("The second argument must be an integer.");
                 }
 
-                int length = cJSON_GetArraySize(array->get());
+                int length = array->GetArraySize();
 
                 if (index < 0) {
                     index += length;
@@ -1218,18 +1231,17 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     throw runtime_exc_t("Array index out of bounds.");
                 }
 
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(cJSON_GetArrayItem(array->get(),
-                                                                                                              index))));
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(array->GetArrayItem(index))));
             }
             break;
         case Builtin::ARRAYLENGTH:
             {
                 // Check first arg type
                 boost::shared_ptr<scoped_cJSON_t> array  = eval(c.args(0), env);
-                if (array->get()->type != cJSON_Array) {
+                if (array->type() != cJSON_Array) {
                     throw runtime_exc_t("The first argument must be an array.");
                 }
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(cJSON_GetArraySize(array->get()))));
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_CreateNumber(array->GetArraySize())));
             }
             break;
         case Builtin::ADD:
@@ -1238,7 +1250,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 for (int i = 0; i < c.args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
-                    if (arg->get()->type != cJSON_Number) {
+                    if (arg->type() != cJSON_Number) {
                         throw runtime_exc_t("All operands to ADD must be numbers.");
                     }
                     result += arg->get()->valuedouble;
@@ -1254,7 +1266,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 if (c.args_size() > 0) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(0), env);
-                    if (arg->get()->type != cJSON_Number) {
+                    if (arg->type() != cJSON_Number) {
                         throw runtime_exc_t("All operands to SUBTRACT must be numbers.");
                     }
                     if (c.args_size() == 1) {
@@ -1265,7 +1277,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                     for (int i = 1; i < c.args_size(); ++i) {
                         boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
-                        if (arg->get()->type != cJSON_Number) {
+                        if (arg->type() != cJSON_Number) {
                             throw runtime_exc_t("All operands to SUBTRACT must be numbers.");
                         }
                         result -= arg->get()->valuedouble;
@@ -1282,7 +1294,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 for (int i = 0; i < c.args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
-                    if (arg->get()->type != cJSON_Number) {
+                    if (arg->type() != cJSON_Number) {
                         throw runtime_exc_t("All operands of MULTIPLY must be numbers.");
                     }
                     result *= arg->get()->valuedouble;
@@ -1298,7 +1310,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 if (c.args_size() > 0) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(0), env);
-                    if (arg->get()->type != cJSON_Number) {
+                    if (arg->type() != cJSON_Number) {
                         throw runtime_exc_t("All operands to SUBTRACT must be numbers.");
                     }
                     if (c.args_size() == 1) {
@@ -1309,7 +1321,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                     for (int i = 1; i < c.args_size(); ++i) {
                         boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
-                        if (arg->get()->type != cJSON_Number) {
+                        if (arg->type() != cJSON_Number) {
                             throw runtime_exc_t("All operands to DIVIDE must be numbers.");
                         }
                         result /= arg->get()->valuedouble;
@@ -1324,7 +1336,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             {
                 boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env),
                     rhs = eval(c.args(1), env);
-                if (lhs->get()->type != cJSON_Number || rhs->get()->type != cJSON_Number) {
+                if (lhs->type() != cJSON_Number || rhs->type() != cJSON_Number) {
                     throw runtime_exc_t("Both operands to MOD must be numbers.");
                 }
 
@@ -1338,7 +1350,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 boost::shared_ptr<scoped_cJSON_t> lhs = eval(c.args(0), env);
 
-                int type = lhs->get()->type;
+                int type = lhs->type();
 
                 if (type != cJSON_Number &&
                     type != cJSON_String &&
@@ -1352,7 +1364,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     boost::shared_ptr<scoped_cJSON_t> rhs = eval(c.args(i), env);
 
                     if (type == cJSON_Number) {
-                        if (rhs->get()->type != type) {
+                        if (rhs->type() != type) {
                             throw runtime_exc_t("Cannot compare these types.");
                         }
 
@@ -1383,7 +1395,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                             break;
                         }
                     } else if (type == cJSON_String) {
-                        if (rhs->get()->type != type) {
+                        if (rhs->type() != type) {
                             throw runtime_exc_t("Cannot compare these types.");
                         }
 
@@ -1415,12 +1427,12 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                             break;
                         }
                     } else { // cJSON_True / cJSON_False
-                        if (rhs->get()->type != cJSON_True && rhs->get()->type != cJSON_False) {
+                        if (rhs->type() != cJSON_True && rhs->type() != cJSON_False) {
                             throw runtime_exc_t("Cannot compare these types.");
                         }
 
-                        int lefttype = lhs->get()->type;
-                        int righttype = rhs->get()->type;
+                        int lefttype = lhs->type();
+                        int righttype = rhs->type();
 
                         bool eq = (lefttype == righttype);
                         bool lt = (lefttype == cJSON_False && righttype == cJSON_True);
@@ -1474,7 +1486,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
         case Builtin::GROUPEDMAPREDUCE:
         case Builtin::UNION:
         case Builtin::RANGE:
-            unreachable("eval called on a function that returns a stream (use eval_stream instead).\n");
+            unreachable("eval called on a function that returns a stream (use eval_stream instead).");
             break;
         case Builtin::LENGTH:
             {
@@ -1493,7 +1505,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> index_json  = eval(c.args(1), env);
-                if (index_json->get()->type != cJSON_Number) {
+                if (index_json->type() != cJSON_Number) {
                     throw runtime_exc_t("The second argument must be an integer.");
                 }
                 float index_float = index_json->get()->valuedouble;
@@ -1510,9 +1522,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                     }
                 }
 
-                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(
-                    cJSON_DeepCopy(json->get())
-                ));
+                if (!json) {
+                    throw runtime_exc_t("Index out of bounds");
+                }
+
+                return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(json->DeepCopy()));
             }
             break;
         case Builtin::STREAMTOARRAY:
@@ -1522,7 +1536,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 boost::shared_ptr<scoped_cJSON_t> res(new scoped_cJSON_t(cJSON_CreateArray()));
 
                 while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-                    cJSON_AddItemToArray(res->get(), cJSON_DeepCopy(json->get()));
+                    res->AddItemToArray(json->DeepCopy());
                 }
 
                 return res;
@@ -1531,7 +1545,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
         case Builtin::REDUCE:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
-                
+
                 throw runtime_exc_t("Not implemented reduce");
                 // Start off accumulator with the base
                 //boost::shared_ptr<scoped_cJSON_t> acc = eval(c.builtin().reduce().base(), env);
@@ -1558,10 +1572,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 for (int i = 0; i < c.args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
-                    if (arg->get()->type != cJSON_False && arg->get()->type != cJSON_True) {
+                    if (arg->type() != cJSON_False && arg->type() != cJSON_True) {
                         throw runtime_exc_t("All operands to ALL must be booleans.");
                     }
-                    if (arg->get()->type != cJSON_True) {
+                    if (arg->type() != cJSON_True) {
                         result = false;
                     }
                 }
@@ -1576,10 +1590,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
                 for (int i = 0; i < c.args_size(); ++i) {
                     boost::shared_ptr<scoped_cJSON_t> arg = eval(c.args(i), env);
-                    if (arg->get()->type != cJSON_False && arg->get()->type != cJSON_True) {
+                    if (arg->type() != cJSON_False && arg->type() != cJSON_True) {
                         throw runtime_exc_t("All operands to ANY must be booleans.");
                     }
-                    if (arg->get()->type == cJSON_True) {
+                    if (arg->type() == cJSON_True) {
                         result = true;
                     }
                 }
@@ -1605,12 +1619,12 @@ public:
         env->scope.put_in_scope(pred.arg(), json);
         boost::shared_ptr<scoped_cJSON_t> a_bool = eval(pred.body(), env);
 
-        if (a_bool->get()->type == cJSON_True) {
+        if (a_bool->type() == cJSON_True) {
             return true;
-        } else if (a_bool->get()->type == cJSON_False) {
+        } else if (a_bool->type() == cJSON_False) {
             return false;
         } else {
-            throw runtime_exc_t("Predicate failed to evaluate to a bool\n");
+            throw runtime_exc_t("Predicate failed to evaluate to a bool");
         }
     }
 private:
@@ -1633,37 +1647,45 @@ private:
 
 class ordering_t {
 public:
-    ordering_t(const Mapping &_mapping,  runtime_environment_t *_env)
-        : mapping(_mapping), env(_env)
+    ordering_t(const google::protobuf::RepeatedPtrField<Builtin::OrderBy> &_order)
+        : order(_order)
     { }
 
-    //returns true of x < y
-    bool operator()(boost::shared_ptr<scoped_cJSON_t> x, boost::shared_ptr<scoped_cJSON_t> y) {
-        boost::shared_ptr<scoped_cJSON_t> x_mapped, y_mapped;
-        {
-            variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-            env->scope.put_in_scope(mapping.arg(), x);
-            x_mapped = eval(mapping.body(), env);
+    //returns true if x < y according to the ordering
+    bool operator()(const boost::shared_ptr<scoped_cJSON_t> &x, const boost::shared_ptr<scoped_cJSON_t> &y) {
+        for (int i = 0; i < order.size(); ++i) {
+            const Builtin::OrderBy& cur = order.Get(i);
+
+            cJSON *a = cJSON_GetObjectItem(x->get(), cur.attr().c_str());
+            cJSON *b = cJSON_GetObjectItem(y->get(), cur.attr().c_str());
+
+            if (a == NULL || b == NULL) {
+                throw runtime_exc_t("OrderBy encountered a row missing attr " + cur.attr());
+            }
+
+            int cmp = cJSON_cmp(a, b);
+            if (cmp) {
+                return (cmp > 0) ^ cur.ascending();
+            }
         }
 
-        {
-            variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-            env->scope.put_in_scope(mapping.arg(), y);
-            y_mapped = eval(mapping.body(), env);
-        }
-
-        return less(x_mapped->get(), y_mapped->get());
+        return false;
     }
 
 private:
-    Mapping mapping;
-    runtime_environment_t *env;
+    const google::protobuf::RepeatedPtrField<Builtin::OrderBy> &order;
 };
 
 boost::shared_ptr<scoped_cJSON_t> map(std::string arg, const Term &term, runtime_environment_t *env, boost::shared_ptr<scoped_cJSON_t> val) {
     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
     env->scope.put_in_scope(arg, val);
     return eval(term, env);
+}
+
+boost::shared_ptr<json_stream_t> concatmap(std::string arg, const Term &term, runtime_environment_t *env, boost::shared_ptr<scoped_cJSON_t> val) {
+    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
+    env->scope.put_in_scope(arg, val);
+    return eval_stream(term, env);
 }
 
 boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
@@ -1692,7 +1714,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
         case Builtin::JAVASCRIPT:
         case Builtin::ALL:
         case Builtin::ANY:
-            unreachable("eval_stream called on a function that does not return a stream (use eval instead).\n");
+            unreachable("eval_stream called on a function that does not return a stream (use eval instead).");
             break;
         case Builtin::GROUPEDMAPREDUCE:
             {
@@ -1769,15 +1791,16 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
         case Builtin::CONCATMAP:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
-                throw runtime_exc_t("Unimplemented: Builtin::CONCATMAP");
-                //json_stream_t res;
+
+                return boost::shared_ptr<json_stream_t>(new concat_mapping_stream_t<boost::function<boost::shared_ptr<json_stream_t>(boost::shared_ptr<scoped_cJSON_t>)> >(
+                                                                stream, boost::bind(&concatmap, c.builtin().map().mapping().arg(), c.builtin().map().mapping().body(), env, _1)));
             }
             break;
         case Builtin::ORDERBY:
             {
-                ordering_t o(c.builtin().order_by().mapping(), env);
+                ordering_t o(c.builtin().order_by());
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env);
-                
+
                 boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(stream));
                 sorted_stream->sort(o);
                 return sorted_stream;
@@ -1802,13 +1825,13 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
 
                 // Check second arg type
                 boost::shared_ptr<scoped_cJSON_t> limit_json  = eval(c.args(1), env);
-                if (limit_json->get()->type != cJSON_Number) {
-                    throw runtime_exc_t("The second argument must be an integer.");
+                if (limit_json->type() != cJSON_Number) {
+                    throw runtime_exc_t("The limit must be a nonnegative integer.");
                 }
                 float limit_float = limit_json->get()->valuedouble;
                 int limit = (int)limit_float;
-                if (limit_float != limit) {
-                    throw runtime_exc_t("The second argument must be an integer.");
+                if (limit_float != limit || limit < 0) {
+                    throw runtime_exc_t("The limit must be a nonnegative integer.");
                 }
 
                 return boost::shared_ptr<json_stream_t>(new limit_stream_t(stream, limit));
@@ -1869,88 +1892,5 @@ view_t eval_view(const Term::Table &t, runtime_environment_t *env) THROWS_ONLY(r
     boost::shared_ptr<json_stream_t> stream(new in_memory_stream_t(p_res->data.begin(), p_res->data.end()));
     return view_t(ns_access, stream);
 }
-
-/*
-view_t eval(const Term &v, runtime_environment_t *env) {
-    switch (v.type()) {
-<<<<<<< HEAD
-        case View::TABLE:
-            {
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(v.table().table_ref(), env);
-                key_range_t range = rdb_protocol_t::region_t::universe();
-                rdb_protocol_t::rget_read_t rget_read(range);
-                rdb_protocol_t::read_t read(rget_read);
-                rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
-                rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
-                rassert(p_res);
-                boost::shared_ptr<json_stream_t> stream;//(p_res->data.begin(), p_res->data.end());
-                return view_t(ns_access, stream);
-            }
-            break;
-||||||| merged common ancestors
-        case View::TABLE:
-            {
-                namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(v.table().table_ref(), env);
-                key_range_t range = rdb_protocol_t::region_t::universe();
-                rdb_protocol_t::rget_read_t rget_read(range);
-                rdb_protocol_t::read_t read(rget_read);
-                rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
-                rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
-                rassert(p_res);
-                json_stream_t stream(p_res->data.begin(), p_res->data.end());
-                return view_t(ns_access, stream);
-            }
-            break;
-=======
->>>>>>> d75e165ac28d5d867dae49b972b611ae981bbcc8
-        case View::FILTERVIEW:
-            {
-                view_t subview = eval(v.filter_view().view(), env);
-
-                predicate_t p(v.filter_view().predicate(), env);
-<<<<<<< HEAD
-                throw runtime_exc_t("Unimplemented: Builtin::FILTERVIEW");
-                //subview.stream.remove_if(p);
-                //return subview;
-||||||| merged common ancestors
-                subview.stream.remove_if(p);
-                return subview;
-=======
-                subview.stream.remove_if(not_t(p));
-                return subview;
->>>>>>> d75e165ac28d5d867dae49b972b611ae981bbcc8
-            }
-            break;
-        case View::RANGEVIEW:
-            throw runtime_exc_t("Unimplemented: View::RANGEVIEW");
-            break;
-        default:
-            unreachable();
-            break;
-    }
-}
-*/
-
-/*
-view_t eval(const Term &v, runtime_environment_t *env) {
-    switch (v.type()) {
-        case View::FILTERVIEW:
-            {
-                view_t subview = eval(v.filter_view().view(), env);
-
-                predicate_t p(v.filter_view().predicate(), env);
-                subview.stream.remove_if(not_t(p));
-                return subview;
-            }
-            break;
-        case View::RANGEVIEW:
-            throw runtime_exc_t("Unimplemented: View::RANGEVIEW");
-            break;
-        default:
-            unreachable();
-            break;
-    }
-}
-*/
 
 } //namespace query_language

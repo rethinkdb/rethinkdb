@@ -140,10 +140,8 @@ typedef variable_scope_t<term_type_t> variable_type_scope_t;
 
 typedef variable_type_scope_t::new_scope_t new_scope_t;
 
-/* get_type functions throw exceptions if their inputs aren't well defined or
-   fail type-checking. (A well-defined input has the correct fields filled in)
-
-    DO NOT CALL THESE DURING EVALUATION           */
+/* These functions throw exceptions if their inputs aren't well defined or
+fail type-checking. (A well-defined input has the correct fields filled in.) */
 
 term_type_t get_term_type(const Term &t, variable_type_scope_t *scope);
 void check_term_type(const Term &t, term_type_t expected, variable_type_scope_t *scope);
@@ -256,11 +254,11 @@ private:
 template <class F>
 class mapping_stream_t : public json_stream_t {
 public:
-    mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f) 
+    mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f)
         : stream(_stream), f(_f)
     { }
 
-    boost::shared_ptr<scoped_cJSON_t> next() { 
+    boost::shared_ptr<scoped_cJSON_t> next() {
         if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             return f(json);
         } else {
@@ -273,18 +271,54 @@ private:
     F f;
 };
 
+template <class F>
+class concat_mapping_stream_t : public  json_stream_t {
+public:
+    concat_mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f)
+        : stream(_stream), f(_f)
+    {
+        f = _f;
+        if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            substream = f(json);
+        }
+    }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        boost::shared_ptr<scoped_cJSON_t> res;
+
+        while (!res) {
+            if (!substream) {
+                return res;
+            } else if ((res = substream->next())) {
+                continue;
+            } else if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+                substream = f(json);
+            } else {
+                substream.reset();
+            }
+        }
+
+        return res;
+    }
+
+private:
+    boost::shared_ptr<json_stream_t> stream, substream;
+    F f;
+};
+
 class limit_stream_t : public json_stream_t {
 public:
-    limit_stream_t(boost::shared_ptr<json_stream_t> _stream, int _limit) 
+    limit_stream_t(boost::shared_ptr<json_stream_t> _stream, int _limit)
         : stream(_stream), limit(_limit)
-    { 
+    {
         guarantee(limit >= 0);
     }
 
-    boost::shared_ptr<scoped_cJSON_t> next() { 
+    boost::shared_ptr<scoped_cJSON_t> next() {
         if (limit == 0) {
             return boost::shared_ptr<scoped_cJSON_t>();
         } else {
+            limit--;
             return stream->next();
         }
     }
