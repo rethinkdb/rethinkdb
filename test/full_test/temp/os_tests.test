@@ -1,14 +1,14 @@
 os_list = [
-            ("ubuntu", "build/ubuntu/rethinkdb", "deb"),
-            ("redhat5_1", "build/redhat5_1/rethinkdb", "rpm"),
-            ("debian", "build/debian/rethinkdb", "deb"),
-            ("centos5_5", "build/centos5_5/rethinkdb", "rpm"),
-            ("suse", "build/suse/rethinkdb", "rpm"),
-            ("centos6", "build/centos6/rethinkdb", "rpm")
+            ("ubuntu", "build/ubuntu", "deb"),
+            ("redhat5_1", "build/redhat5_1", "rpm"),
+            ("debian", "build/debian", "deb"),
+            ("centos5_5", "build/centos5_5", "rpm"),
+            ("suse", "build/suse", "rpm"),
+            ("centos6", "build/centos6", "rpm")
             ]
 
 for os_name, build_folder, pkg_type in os_list:
-    mode = build_folder[len('build/'):-len('/rethinkdb')]
+    mode = build_folder[len('build/')]
     do_test(
         "$RETHINKDB/scripts/VirtuaBuild/vm_access.py --vm-name %s --command 'cd rethinkdb && scripts/VirtuaBuild/smoke_test.py --mode %s --pkg-type %s'" % (os_name, mode, pkg_type),
         repeat = 1,
