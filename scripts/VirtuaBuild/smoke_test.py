@@ -8,7 +8,7 @@ import workload_common, driver
 from vcoptparse import *
 
 op = OptParser()
-op["num_keys"] = IntFlag("--num-keys", 100)
+op["num_keys"] = IntFlag("--num-keys", 500)
 op["mode"] = StringFlag("--mode", "debug")
 opts = op.parse(sys.argv)
 
@@ -69,13 +69,13 @@ port = random.randint(base + 1, 65535 - 100)
 port2 = random.randint(base + 1, 65535)
 port_offset = port - base
 
-print 'Connecting...'
+print 'Starting RethinkDB...'
 
-os.system('rm -rf rethinkdb_cluster_data')
 proc = subprocess.Popen([executable, "--port", str(port2), "--port-offset", str(port_offset)])
 
+# gets the IP address
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.connect(("gmail.com",80))
+s.connect(("rethinkdb.com", 80))
 ip = s.getsockname()[0]
 s.close()
 
@@ -88,7 +88,7 @@ print 'Testing...'
 res = test_against(ip, port)
 
 print 'Tests completed. Killing instance now...'
-proc.send_signal(signal.SIGKILL) # TODO: why isn't SIGINT working here?
+proc.send_signal(signal.SIGINT)
 
 if res != (num_keys, num_keys):
     print 'Done: FAILED'
