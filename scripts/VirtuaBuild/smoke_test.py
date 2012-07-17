@@ -16,7 +16,7 @@ opts = op.parse(sys.argv)
 num_keys = opts["num_keys"]
 base_port = 11213 # port that RethinkDB runs from by default
 
-if op["pkg_type"] == "rpm":
+if opts["pkg_type"] == "rpm":
     def install(path):
         return "rpm -i %s" % path
 
@@ -25,7 +25,7 @@ if op["pkg_type"] == "rpm":
 
     def uninstall(cmd_name): 
         return "which %s | xargs readlink -f | xargs rpm -qf | xargs rpm -e" % cmd_name
-elif op["pkg_type"] == "deb":
+elif opts["pkg_type"] == "deb":
     def install(path):
         return "dpkg -i %s" % path
 
@@ -39,19 +39,30 @@ else:
     exit(0)
 
 def purge_installed_packages():
-    old_binaries_raw = exec_command(["ls", "/usr/bin/rethinkdb*"]).stdout.readlines()
+    try:
+        old_binaries_raw = exec_command(["ls", "/usr/bin/rethinkdb*"]).stdout.readlines()
+    except Exception, e:
+        print "Nothing to remove."
+        return
     old_binaries = map(lambda x: x.strip('\n'), old_binaries_raw)
     print "Binaries scheduled for removal: ", old_binaries
 
     for old_binary in old_binaries:
         exec_command(uninstall(old_binary))
 
-def exec_command(cmd, bg = False):
+def exec_command(cmd, bg = False, shell = False):
+    if type(cmd) == type("") and not shell:
+        cmd = cmd.split(" ")
+    elif type(cmd) == type([]) and shell:
+        cmd = " ".join(cmd)
+    print cmd
     if bg:
-        return subprocess.Popen(cmd + " &", stdout = subprocess.PIPE)
+        return subprocess.Popen(cmd + (" &" if shell else [" &"]), stdout = subprocess.PIPE, shell = shell)
     else:
-        proc = subprocess.Popen(cmd, stdout = subprocess.PIPE)
+        proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, shell = shell)
         proc.wait()
+        if proc.poll():
+            raise RuntimeError("Error: command ended with signal %d." % proc.poll())
         return proc
 
 def wait_until_started_up(proc, host, port, timeout = 600):
@@ -103,20 +114,22 @@ def test_against(host, port, timeout = 600):
         
         return goodsets, goodgets
 
-cur_dir = exec_command("ls").stdout.readline().strip('\n')
-p = exec_command(["find rethinkdb/build/%s -regex .*\\\\\\\\.%s" % (opts["mode"], opts["pkg_type"])])
-raw = p.readlines()
+cur_dir = exec_command("pwd").stdout.readline().strip('\n')
+p = exec_command("find build/%s -name *.%s" % (opts["mode"], opts["pkg_type"]))
+raw = p.stdout.readlines()
 res_paths = map(lambda x: os.path.join(cur_dir, x.strip('\n')), raw)
 print "Packages to install:", res_paths
 failed_test = False
 
 for path in res_paths:
+    print "TESTING A NEW PACKAGE"
+
     print "Uninstalling old packages..."
     purge_installed_packages()
     print "Done uninstalling..."
 
     print "Installing RethinkDB..."
-    target_binary_name = exec_command(get_binary(path)).stdout.readlines()[0].strip('\n')
+    target_binary_name = exec_command(get_binary(path), shell = True).stdout.readlines()[0].strip('\n')
     print "Target binary name:", target_binary_name
     exec_command(install(path))
 
@@ -132,7 +145,7 @@ for path in res_paths:
 
     print "IP Address detected:", ip
 
-    wait_until_started_up(proc, ip, port)
+    wait_until_started_up(proc, ip, base_port)
 
     print "Testing..."
 
