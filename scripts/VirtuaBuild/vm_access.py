@@ -33,11 +33,12 @@ class VM(object):
             proc.send_signal(signal.SIGKILL)
             sys_exit("Error: process did not finish within the time limit.")
         if proc.poll():
-            sys_exit("Error: command \"%s\" finished with exit value %d." % (cmd, proc.poll()), proc.poll(), True)
+            sys_exit("Error: command \"%s\" finished with exit value %d." % (cmd, proc.poll()), proc.poll())
         return proc
-    def shut_down(self):
-        pass # shutting down is currently disabled
-        #subprocess.Popen(["ssh %s 'VBoxManage controlvm %s poweroff'" % (control_user, self.uuid)], shell = True).wait()
+    def shut_down(self, remove_temp = False):
+        if remove_temp:
+            command("rm -rf /tmp/test.*")
+        subprocess.Popen(["ssh %s 'VBoxManage controlvm %s poweroff'" % (control_user, self.uuid)], shell = True).wait()
 
 def sys_exit(message, exit_code, shut_down = False):
     print message
@@ -60,12 +61,14 @@ def help():
     print "       --help      Print this help."
     print "       --vm-name   The target virtual machine to run the command on. Options are:"
     print "                   ", vm_list.keys()
-    print "       --command   The command to run on the virtual machine."
+    print "       --command   The command to run on the virtual machine. Either command or shut-down must be specified."
+    print "       --shut-down Use this flag to shut down the specified VM."
 
 o = OptParser()
 o["help"] = BoolFlag("--help")
 o["vm-name"] = StringFlag("--vm-name", None)
 o["command"] = StringFlag("--command", default = None)
+o["shut-down"] = BoolFlag("--shut-down")
 
 try:
     opts = o.parse(sys.argv)
@@ -79,13 +82,17 @@ if opts["help"]:
 if not opts["vm-name"]:
     sys_exit("Error: must specify a VM name.", -1)
 
-if not opts["command"]:
-    sys_exit("Error: must specify a command.", -1)
+if not opts["command"] and not opts["shut-down"]:
+    sys_exit("Error: must specify a command or call shut-down.", -1)
 
 if opts["vm-name"] not in vm_list:
     sys_exit("Error: invalid VM name.", -1)
 
 target = vm_list[opts["vm-name"]]
+
+if opts["shut-down"]:
+    target.shut_down(remove_temp = True)
+    exit(0)
 
 print "Begin: Running command:", opts["command"]
 print "\ton VM", target.name
@@ -119,8 +126,6 @@ proc = target.command(" ".join(["cd", dir_name, "&&", "rm", "tmp.tar.gz", "&&", 
 subprocess.Popen(" ".join(["scp", "%s:%s/tmp.tar.gz tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
 subprocess.Popen(" ".join(["tar", "xzvf", "tmp.tar.gz"]), shell = True).wait()
 
-# Shut down VM
-print "***Shutting down VM..."
-vm_list[opts["vm-name"]].shut_down()
+# Note: VMs are not shut down here in case multiple tests are going on.
 
 sys_exit("Done.", 0)

@@ -31,10 +31,11 @@ def wait_until_started_up(proc, host, port, timeout = 600):
     else:
         raise RuntimeError("Could not connect to process.")
 
-def test_against(host, port):
+def test_against(host, port, timeout = 600):
     with workload_common.make_memcache_connection({"address": (host, port), "mclib": "pylibmc", "protocol": "text"}) as mc:
         temp = 0
-        while not temp:
+        time_limit = time.time() + timeout
+        while not temp and time.time() < time_limit:
             try:
                 temp = mc.set("test", "test")
                 print temp
@@ -69,7 +70,7 @@ port = random.randint(base + 1, 65535 - 100)
 port2 = random.randint(base + 1, 65535)
 port_offset = port - base
 
-print 'Starting RethinkDB...'
+print "Starting RethinkDB..."
 
 proc = subprocess.Popen([executable, "--port", str(port2), "--port-offset", str(port_offset)])
 
@@ -79,21 +80,21 @@ s.connect(("rethinkdb.com", 80))
 ip = s.getsockname()[0]
 s.close()
 
-print 'IP Address detected:', ip
+print "IP Address detected:", ip
 
 wait_until_started_up(proc, ip, port)
 
-print 'Testing...'
+print "Testing..."
 
 res = test_against(ip, port)
 
-print 'Tests completed. Killing instance now...'
+print "Tests completed. Killing instance now..."
 proc.send_signal(signal.SIGINT)
 
 if res != (num_keys, num_keys):
-    print 'Done: FAILED'
-    print 'Results: %d successful sets, %d successful gets (%d total)' % (res[0], res[1], num_keys)
+    print "Done: FAILED"
+    print "Results: %d successful sets, %d successful gets (%d total)" % (res[0], res[1], num_keys)
     exit(1)
 else:
-    print 'Done: PASSED ALL'
+    print "Done: PASSED ALL"
     exit(0)
