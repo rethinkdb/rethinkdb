@@ -739,7 +739,7 @@ void eval_let_binds(const Term::Let &let, runtime_environment_t *env) THROWS_ONL
                     eval(let.binds(i).term(), env));
         } else if (type == Type::STREAM) {
             env->stream_scope.put_in_scope(let.binds(i).var(),
-                    eval_stream(let.binds(i).term(), env));
+                    boost::shared_ptr<stream_multiplexer_t>(new stream_multiplexer_t(eval_stream(let.binds(i).term(), env))));
         }
 
         env->type_scope.put_in_scope(let.binds(i).var(),
@@ -864,7 +864,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
 boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     switch (t.type()) {
         case Term::VAR:
-            return env->stream_scope.get(t.var());
+            return boost::shared_ptr<json_stream_t>(new stream_multiplexer_t::stream_t(env->stream_scope.get(t.var())));
             break;
         case Term::LET:
             {

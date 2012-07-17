@@ -207,53 +207,53 @@ private:
 };
 
 class stream_multiplexer_t {
-    stream_multiplexer_t(boost::shared_ptr<json_stream_t> _stream)
+public:
+
+    stream_multiplexer_t() { }
+    explicit stream_multiplexer_t(boost::shared_ptr<json_stream_t> _stream)
         : stream(_stream)
     { }
 
+    typedef std::vector<boost::shared_ptr<scoped_cJSON_t> > cJSON_vector_t;
+
     class stream_t : public json_stream_t {
     public:
-        stream_t(stream_multiplexer_t *_parent)
-            : parent(_parent)
-        { 
-            if (parent->data.empty()) {
-                parent->maybe_read_more();
-            }
-            hd = parent->data.begin();
+        stream_t(boost::shared_ptr<stream_multiplexer_t> _parent)
+            : parent(_parent), index(0)
+        {
+            rassert(parent->stream);
         }
 
         boost::shared_ptr<scoped_cJSON_t> next() {
-            if (hd == parent->data.end()) {
-                return boost::shared_ptr<scoped_cJSON_t>();
-            } else {
-                boost::shared_ptr<scoped_cJSON_t> res = *hd;
-                cJSON_list_t::iterator next = hd;
-                ++next;
-                if (next != parent->data.end()) {
-                    hd = next;
-                } else {
-                    parent->maybe_read_more();
-                    ++hd;
+            while (index >= parent->data.size()) {
+                if (!parent->maybe_read_more()) {
+                    return boost::shared_ptr<scoped_cJSON_t>();
                 }
-
-                return res;
             }
+
+            return parent->data[index++];
         }
     private:
-        stream_multiplexer_t *parent;
-        cJSON_list_t::iterator hd;
+        boost::shared_ptr<stream_multiplexer_t> parent;
+        cJSON_vector_t::size_type index;
     };
 
 private:
     friend class stream_t;
 
-    void maybe_read_more() {
+    bool maybe_read_more() {
         if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             data.push_back(json);
+            return true;
+        } else {
+            return false;
         }
     }
+
+    //TODO this should probably not be a vector
     boost::shared_ptr<json_stream_t> stream;
-    cJSON_list_t data;
+
+    cJSON_vector_t data;
 };
 
 class union_stream_t : public json_stream_t {
@@ -385,7 +385,7 @@ typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_
 typedef variable_val_scope_t::new_scope_t new_val_scope_t;
 
 //scopes for json streams
-typedef variable_scope_t<boost::shared_ptr<json_stream_t> > variable_stream_scope_t;
+typedef variable_scope_t<boost::shared_ptr<stream_multiplexer_t> > variable_stream_scope_t;
 
 typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
 
