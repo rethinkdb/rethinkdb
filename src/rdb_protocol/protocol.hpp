@@ -5,6 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
+#include "hash_region.hpp"
 #include "btree/keys.hpp"
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
@@ -50,7 +51,10 @@ struct backfill_atom_t {
 
 struct rdb_protocol_t {
     static const std::string protocol_name;
-    typedef key_range_t region_t;
+    typedef hash_region_t<key_range_t> region_t;
+
+    // Construct a region containing only the specified key
+    static region_t monokey_region(const store_key_t &k);
 
     struct temporary_cache_t { };
 
@@ -113,8 +117,8 @@ struct rdb_protocol_t {
     struct read_t {
         boost::variant<point_read_t, rget_read_t> read;
 
-        key_range_t get_region() const THROWS_NOTHING;
-        read_t shard(const key_range_t &region) const THROWS_NOTHING;
+        region_t get_region() const THROWS_NOTHING;
+        read_t shard(const region_t &region) const THROWS_NOTHING;
         read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
         read_response_t multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
@@ -186,8 +190,8 @@ struct rdb_protocol_t {
     struct write_t {
         boost::variant<point_write_t, point_delete_t> write;
 
-        key_range_t get_region() const THROWS_NOTHING;
-        write_t shard(key_range_t region) const THROWS_NOTHING;
+        region_t get_region() const THROWS_NOTHING;
+        write_t shard(const region_t &region) const THROWS_NOTHING;
         write_response_t unshard(std::vector<write_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
         write_response_t multistore_unshard(const std::vector<write_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
@@ -210,10 +214,10 @@ struct rdb_protocol_t {
             RDB_MAKE_ME_SERIALIZABLE_1(key);
         };
         struct delete_range_t {
-            key_range_t range;
+            region_t range;
 
             delete_range_t() { }
-            explicit delete_range_t(const key_range_t& _range) : range(_range) { }
+            explicit delete_range_t(const region_t& _range) : range(_range) { }
 
             RDB_MAKE_ME_SERIALIZABLE_1(range);
         };
@@ -230,7 +234,7 @@ struct rdb_protocol_t {
         explicit backfill_chunk_t(boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val_) : val(val_) { }
         boost::variant<delete_range_t, delete_key_t, key_value_pair_t> val;
 
-        static backfill_chunk_t delete_range(const key_range_t& range) {
+        static backfill_chunk_t delete_range(const region_t& range) {
             return backfill_chunk_t(delete_range_t(range));
         }
         static backfill_chunk_t delete_key(const store_key_t& key, const repli_timestamp_t& recency) {
@@ -240,28 +244,7 @@ struct rdb_protocol_t {
             return backfill_chunk_t(key_value_pair_t(key));
         }
 
-        static key_range_t monokey_region(const store_key_t &k) {
-            return key_range_t(key_range_t::closed, k, key_range_t::closed, k);
-        }
-
-        struct backfill_chunk_get_region_visitor_t : public boost::static_visitor<key_range_t> {
-            key_range_t operator()(const backfill_chunk_t::delete_key_t &del) {
-                return monokey_region(del.key);
-            }
-
-            key_range_t operator()(const backfill_chunk_t::delete_range_t &del) {
-                return del.range;
-            }
-
-            key_range_t operator()(const backfill_chunk_t::key_value_pair_t &kv) {
-                return monokey_region(kv.backfill_atom.key);
-            }
-        };
-
-        region_t get_region() const {
-            backfill_chunk_get_region_visitor_t v;
-            return boost::apply_visitor(v, val);
-        }
+        region_t get_region() const;
 
         struct backfill_chunk_shard_visitor_t : public boost::static_visitor<rdb_protocol_t::backfill_chunk_t> {
         public:
@@ -334,7 +317,7 @@ struct rdb_protocol_t {
                                  superblock_t *superblock);
     };
 
-    static key_range_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
+    static region_t cpu_sharding_subspace(int subregion_number, int num_cpu_shards);
 };
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_

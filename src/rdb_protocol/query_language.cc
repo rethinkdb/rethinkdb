@@ -1883,7 +1883,7 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_envir
 
 view_t eval_view(const Term::Table &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t.table_ref(), env);
-    key_range_t range = rdb_protocol_t::region_t::universe();
+    key_range_t range = key_range_t::universe();
     rdb_protocol_t::rget_read_t rget_read(range);
     rdb_protocol_t::read_t read(rget_read);
     rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);

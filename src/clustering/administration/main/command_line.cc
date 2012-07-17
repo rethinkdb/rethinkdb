@@ -234,8 +234,8 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
                 namespace_metadata.port = vclock_t<int>(11213, our_machine_id);
 
                 persistable_blueprint_t<rdb_protocol_t> blueprint;
-                std::map<key_range_t, blueprint_details::role_t> roles;
-                roles.insert(std::make_pair(key_range_t::universe(), blueprint_details::role_primary));
+                std::map<rdb_protocol_t::region_t, blueprint_details::role_t> roles;
+                roles.insert(std::make_pair(rdb_protocol_t::region_t::universe(), blueprint_details::role_primary));
                 blueprint.machines_roles.insert(std::make_pair(our_machine_id, roles));
                 namespace_metadata.blueprint = vclock_t<persistable_blueprint_t<rdb_protocol_t> >(blueprint, our_machine_id);
 
@@ -249,9 +249,9 @@ void run_rethinkdb_porcelain(const std::string &filepath, const std::string &mac
                 ack_expectations.insert(std::make_pair(datacenter_id, 1));
                 namespace_metadata.ack_expectations = vclock_t<std::map<datacenter_id_t, int> >(ack_expectations, our_machine_id);
 
-                std::set<key_range_t> shards;
-                shards.insert(key_range_t::universe());
-                namespace_metadata.shards = vclock_t<std::set<key_range_t> >(shards, our_machine_id);
+                std::set<rdb_protocol_t::region_t> shards;
+                shards.insert(rdb_protocol_t::region_t::universe());
+                namespace_metadata.shards = vclock_t<std::set<rdb_protocol_t::region_t> >(shards, our_machine_id);
 
                 semilattice_metadata.rdb_namespaces.namespaces.insert(std::make_pair(namespace_id, namespace_metadata));
             }
