@@ -161,6 +161,8 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *scope);
 
 /* functions to evaluate the queries */
 
+typedef std::list<boost::shared_ptr<scoped_cJSON_t> > cJSON_list_t;
+
 class json_stream_t {
 public:
     virtual boost::shared_ptr<scoped_cJSON_t> next() = 0;
@@ -169,46 +171,89 @@ public:
 
 class in_memory_stream_t : public json_stream_t {
 public:
-    typedef std::list<boost::shared_ptr<scoped_cJSON_t> > cJSON_list_t;
-
     template <class iterator>
     in_memory_stream_t(const iterator &begin, const iterator &end)
-        : data(begin, end), hd(data.begin())
+        : data(begin, end)
     { }
 
     in_memory_stream_t(json_array_iterator_t it) {
         while (cJSON *json = it.next()) {
             data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
         }
-        hd = data.begin();
     }
 
     in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             data.push_back(json);
         }
-        hd = data.begin();
     }
 
     template <class Ordering>
     void sort(const Ordering &o) {
-        guarantee(hd == data.begin(), "Can't sort a stream if you've already consumed from it");
         data.sort(o);
-        hd = data.begin();
     }
 
     boost::shared_ptr<scoped_cJSON_t> next() {
-        if (hd == data.end()) {
+        if (data.empty()) {
             return boost::shared_ptr<scoped_cJSON_t>();
         } else {
-            boost::shared_ptr<scoped_cJSON_t> res = *hd;
-            ++hd;
+            boost::shared_ptr<scoped_cJSON_t> res = data.front();
+            data.pop_front();
             return res;
         }
     }
 private:
     cJSON_list_t data;
-    cJSON_list_t::iterator hd;
+};
+
+class stream_multiplexer_t {
+    stream_multiplexer_t(boost::shared_ptr<json_stream_t> _stream)
+        : stream(_stream)
+    { }
+
+    class stream_t : public json_stream_t {
+    public:
+        stream_t(stream_multiplexer_t *_parent)
+            : parent(_parent)
+        { 
+            if (parent->data.empty()) {
+                parent->maybe_read_more();
+            }
+            hd = parent->data.begin();
+        }
+
+        boost::shared_ptr<scoped_cJSON_t> next() {
+            if (hd == parent->data.end()) {
+                return boost::shared_ptr<scoped_cJSON_t>();
+            } else {
+                boost::shared_ptr<scoped_cJSON_t> res = *hd;
+                cJSON_list_t::iterator next = hd;
+                ++next;
+                if (next != parent->data.end()) {
+                    hd = next;
+                } else {
+                    parent->maybe_read_more();
+                    ++hd;
+                }
+
+                return res;
+            }
+        }
+    private:
+        stream_multiplexer_t *parent;
+        cJSON_list_t::iterator hd;
+    };
+
+private:
+    friend class stream_t;
+
+    void maybe_read_more() {
+        if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            data.push_back(json);
+        }
+    }
+    boost::shared_ptr<json_stream_t> stream;
+    cJSON_list_t data;
 };
 
 class union_stream_t : public json_stream_t {
