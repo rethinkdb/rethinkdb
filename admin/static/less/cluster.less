@@ -930,6 +930,49 @@
             }
         }
     }
+    
+    .data_repartition-graph{
+        rect{
+            fill: #ed993e;
+        }
+    }
+
+    .data_repartition-legend{
+        overflow: auto;
+        .legend{
+            margin: 40px 0px 0px 0px;
+            li{
+                list-style: none;
+            }
+            .title-legend{
+                margin: 0px 0px 10px 0px;
+            }
+            .data_in_memory-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .data_not_in_memory-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .more_statistics{
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+        }
+        .legend_left{
+            float: left;
+            width: 350px;
+            margin: 20px 0px 30px 0px;
+        }
+        .legend_right{
+            float: left;
+            margin: 350px;
+            margin: 20px 0px 30px 0px;
+        }
+    }
 
     .namespace-shards{
         position: relative;

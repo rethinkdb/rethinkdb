@@ -58,7 +58,7 @@
     <div class="two-panel-section">
         <div class="pie_container panel-left">
             <svg class="pie_chart-data_in_memory" width="270" height="270">
-                <text x="100" y="135" class="loading_text-svg">Loading data...</text>
+                <text x="100" y="135" class="loading_text-pie_chart">Loading data...</text>
             </svg>
         </div>
         <div class="pie_legend panel-right">
@@ -74,6 +74,79 @@
             </ul>
         </div>
     </div>
-    <div class="pie_legend">
-    </div>
+    
+    {{#if has_shards}}
+        <h3 class="title">Data repartition</h3>
+        {{#if numerous_shards}}
+            <div class="data_repartition-graph">
+                <svg class="data_repartition-diagram" width="700" height="350">
+                    <text x="300" y="150" class="loading_text-diagram">Loading data...</text>
+                </svg>
+            </div>
+
+            <div class="data_repartition-legend">
+                <ul class="legend legend_left">
+                    <li class="title-legend"><h4>More statistics</h4></li>
+
+                    <li class="more_statistics">
+                        {{#if max_keys}}
+                        Biggest shard has {{max_keys}} keys
+                        {{else}}
+                        Loading stats for biggest shards
+                        {{/if}}
+                    </li>
+                    <li class="more_statistics">
+                        {{#if min_keys}}
+                        Smallest shard has {{min_keys}} keys
+                        {{else}}
+                        Loading stats for smallest shards
+                        {{/if}}
+     
+                    </li>
+                </ul>
+                <ul class="legend legend_right">
+                    <li class="title-legend"><h4>Operations on shards</h4></li>
+                    <li class="more_statistics"><a href="#">Rebalance shards</a></li>
+                    <li class="more_statistics"><a href="#">Add/Modify/Remove shards</a></li>
+                </ul>
+            </div>
+     
+        {{else}}
+        <div class="two-panel-section">
+            <div class="data_repartition-graph panel-left">
+                <svg class="data_repartition-diagram" width="270" height="270">
+                    <text x="100" y="135" class="loading_text-diagram">Loading data...</text>
+                </svg>
+            </div>
+            <div class="data_repartition-legend panel-right">
+                <ul class="legend">
+                    <li class="title-legend"><h4>More statistics</h4></li>
+
+                    <li class="more_statistics">
+                        {{#if max_keys}}
+                        Biggest shard has {{max_keys}} keys
+                        {{else}}
+                        Loading stats for biggest shards
+                        {{/if}}
+                    </li>
+                    <li class="more_statistics">
+                        {{#if min_keys}}
+                        Smallest shard has {{min_keys}} keys
+                        {{else}}
+                        Loading stats for smallest shards
+                        {{/if}}
+     
+                    </li>
+                </ul>
+                <ul class="legend">
+                    <li class="title-legend"><h4>Operations on shards</h4></li>
+                    <li class="more_statistics"><a href="#">Rebalance shards</a></li>
+                    <li class="more_statistics"><a href="#">Add/Modify/Remove shards</a></li>
+                </ul>
+            </div>
+        </div>
+        {{/if}}
+    {{/if}}
+
+
 </script>

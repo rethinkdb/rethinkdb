@@ -46,10 +46,12 @@ apply_to_collection = (collection, collection_data) ->
                             delete collection_data[id].blueprint.peers_roles[machine_uuid]
             if collection.get(id)
                 # We update only if something changed so we don't trigger to much 'update'
+                ###
                 need_update = need_update_objects(data, collection.get(id))
                 if need_update is true
-                    collection.get(id).set(data)
-                    collection.trigger('change')
+                ###
+                collection.get(id).set(data)
+                collection.trigger('change')
             else
                 data.id = id
                 collection.add(new collection.model(data))

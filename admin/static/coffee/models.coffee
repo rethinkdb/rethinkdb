@@ -1,8 +1,6 @@
 #Models for Backbone.js
 class Namespace extends Backbone.Model
     initialize: ->
-
-
         # Add a computed shards property for convenience and metadata
         @.set 'computed_shards', new DataUtils.Shards [],@
 

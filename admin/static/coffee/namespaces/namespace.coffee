@@ -128,8 +128,6 @@ module 'NamespaceView', ->
 
         template: Handlebars.compile $('#namespace_overview-template').html()
 
-        history_opsec: []
-
         initialize: ->
             machines.on 'change', @render
             @json =
@@ -138,6 +136,8 @@ module 'NamespaceView', ->
                 data_total: -1
 
         render: =>
+            $('.tooltip').remove()
+
             data_in_memory = 0
             data_total = 0
             data_is_ready = false
@@ -152,7 +152,7 @@ module 'NamespaceView', ->
             
             if data_is_ready
                 json =
-                    data_in_memory_percent: Math.floor(data_in_memory/data_total*100)+'%'
+                    data_in_memory_percent: Math.floor(data_in_memory/data_total*100).toString()+'%'
                     data_in_memory: human_readable_units(data_in_memory, units_space)
                     data_not_in_memory: human_readable_units(data_total-data_in_memory, units_space)
                     data_total: human_readable_units(data_total, units_space)
@@ -163,41 +163,150 @@ module 'NamespaceView', ->
                     data_not_in_memory: 'loading...'
                     data_total: 'loading...'
  
+
+
+
+            shards = []
+            for shard in namespaces.models[0].get('computed_shards').models
+                new_shard =
+                    boundaries: shard.get('shard_boundaries')
+                    num_keys: @model.compute_shard_rows_approximation(shard.get('shard_boundaries'))
+                shards.push new_shard
+
+            # We could probably use apply for a cleaner code, but d3.max has a strange behavior.
+            max_keys = d3.max shards, (d) -> return d.num_keys
+            min_keys = d3.min shards, (d) -> return d.num_keys
+
+            json = _.extend json,
+                max_keys: max_keys
+                min_keys: min_keys
+
+            if shards.length > 1
+                json.has_shards = true
+                if shards.length > 6
+                    json.numerous_shards = true
+
             # So we don't update every seconds
             need_update = false
             for key of json
-                if @json[key] isnt json[key]
+                if not @json[key]? or @json[key] != json[key]
                     need_update = true
                     break
-            @json = json
-            if need_update 
+ 
+            if need_update
+                @json = json
                 @.$el.html @template @json
 
-            if data_in_memory isnt 0 and data_total isnt 0
-                r = 100
-                width = 270
-                height = 270
-                color = (i) ->
-                    if i is 0
-                        return '#f00'
+
+                # Draw pie chart
+                if data_in_memory isnt 0 and data_total isnt 0
+                    r = 100
+                    width = 270
+                    height = 270
+                    color = (i) ->
+                        if i is 0
+                            return '#f00'
+                        else
+                            return '#1f77b4'
+
+                    data_pie = [data_in_memory, data_total-data_in_memory]
+
+                    # Remove transition for the time being. We have to use transition with opacity only the first time
+                    # For update, we should just move/extend pieces, too much work for now
+                    #@.$('.loading_text-svg').fadeOut '600', -> $(@).remove() 
+                    @.$('.pie_chart-data_in_memory > g').remove()
+                    @.$('.loading_text-pie_chart').remove()
+
+                    
+
+                    arc = d3.svg.arc().innerRadius(0).outerRadius(r);
+                    svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
+                    arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
+
+                    # No transition for now
+                    #arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc).style('opacity', 0).transition().duration(600).style('opacity', 1)
+
+
+                # Draw histogram
+                if json.max_keys? and shards.length isnt 0
+                    @.$('.data_repartition-diagram > g').remove()
+                    @.$('.loading_text-diagram').remove()
+                    
+                    if json.numerous_shards? and json.numerous_shards
+                        svg_width = 700
+                        svg_height = 350
                     else
-                        return '#1f77b4'
+                        svg_width = 350
+                        svg_height = 270
+                    margin_width = 20
+                    margin_height = 20
 
-                data_pie = [data_in_memory, data_total-data_in_memory]
-
-                @.$('.loading_text-svg').fadeOut '600', -> $(@).remove() 
-
-
-                arc = d3.svg.arc().innerRadius(0).outerRadius(r);
-                svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
-                arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc).style('opacity', 0).transition().duration(600).style('opacity', 1)
-
-
-            #namespaces.models[0].get('computed_shards')
-            #namespaces.models[0].compute_shard_rows_approximation(["", "hgughs49"])
-            #namespaces.models[0].compute_shard_rows_approximation(namespaces.models[0].get('computed_shards').models[0])
+                    width = Math.floor(svg_width/shards.length*0.7)
+                    x = d3.scale.linear().domain([0, shards.length]).range([margin_width+Math.floor(width/2), svg_width-margin_width*2])
+                    y = d3.scale.linear().domain([0, json.max_keys]).range([0, svg_height-margin_height*2.5])
  
 
+                    svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
+                    svg.selectAll('rect').data(shards)
+                        .enter()
+                        .append('rect')
+                        .attr('x', (d, i) -> return x(i))
+                        .attr('y', (d) -> return svg_height-y(d.num_keys)-margin_height)
+                        .attr('width', width)
+                        .attr( 'height', (d) -> return y(d.num_keys))
+                        .attr( 'title', (d) -> return 'Shard:'+d.boundaries+'<br />'+d.num_keys+' keys')
+                        ###
+                        .attr('data-num_keys', (d) -> return d.num_keys)
+                        .attr('data-shard', (d) -> return d.boundaries)
+                        ###
+
+
+                    arrow_width = 4
+                    arrow_length = 7
+                    extra_data = []
+                    extra_data.push
+                        x1: margin_width
+                        x2: margin_width
+                        y1: margin_height
+                        y2: svg_height-margin_height
+
+                    extra_data.push
+                        x1: margin_width
+                        x2: svg_width-margin_width
+                        y1: svg_height-margin_height
+                        y2: svg_height-margin_height
+ 
+                    svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
+                    svg.selectAll('line').data(extra_data).enter().append('line')
+                        .attr('x1', (d) -> return d.x1)
+                        .attr('x2', (d) -> return d.x2)
+                        .attr('y1', (d) -> return d.y1)
+                        .attr('y2', (d) -> return d.y2)
+                        .style('stroke', '#000')
+
+                    axe_legend = []
+                    axe_legend.push
+                        x: margin_width
+                        y: Math.floor(margin_height/2)
+                        string: 'Keys'
+                        anchor: 'middle'
+                    axe_legend.push
+                        x: Math.floor(svg_width/2)
+                        y: svg_height
+                        string: 'Shards'
+                        anchor: 'middle'
+ 
+                    svg.selectAll('.legend')
+                        .data(axe_legend).enter().append('text')
+                        .attr('x', (d) -> return d.x)
+                        .attr('y', (d) -> return d.y)
+                        .attr('text-anchor', (d) -> return d.anchor)
+                        .text((d) -> return d.string)
+
+                    @.$('rect').tooltip
+                        trigger: 'hover'
+
+            @delegateEvents()
             return @
 
         update_history_opsec: =>
