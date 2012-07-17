@@ -7,10 +7,8 @@
         {{/if}}
         <form class="form">
             <div class="sharding-scheme">
-                <table class="shards table">
-                    <tbody>
-                    </tbody>
-                </table>
+                <div class="shards-container">
+                </div>
                 {{#if suggest_shards_view}}
                 <div class="shard-suggester clearfix">
                     <a id="cancel_shards_suggester_btn" href="#" class="close_link">Close</a>
@@ -47,29 +45,33 @@
 </script>
 
 <script id="modify_shards-view_shard-template" type="text/x-handlebars-template">
-  {{#with shard}}
-    <td class="name">
-        {{> shard_name}}
-    </td>
-    <td class="actions">
-        <p>
-            (<a href="#" class="split" data-index="{{index}}">split</a>)
-            {{#if notlast}}
-                (<a href="#" class="merge" data-index="{{index}}">merge with next</a>)
-            {{/if}}
-        </p>
-    </td>
-  {{/with}}
+    <div class="name">
+    </div>
+    <div class="actions">
+        <input type="button" class="split btn" data-index="{{index}}" value="Split">
+        {{#if shard.notlast}}
+        <input type="button" class="merge btn" data-index="{{index}}" value="Merge with next"
+        {{/if}}
+    </div>
+</script>
+
+<script id="shard_name-shard_keys-template" type="text/x-handlebars-template">
+    <h4>{{name}}</h4>
+    <span class="shard_num_keys">
+    {{#if shard_stats.rows_approx}}
+        About {{shard_stats.rows_approx}} {{pluralize_noun "key" shard_stats.rows_approx}}
+    {{else}}
+        Loading data...
+    {{/if}}
+    </span>
 </script>
 
 <script id="modify_shards-edit_shard-template" type="text/x-handlebars-template">
   {{#with shard}}
-    <td class="name">
-        {{> shard_name}}
-    </td>
+    <div class="name">
+    </div>
   {{/with}}
-  <td class="status">
-    <div class="action">
+    <div class="actions action-coming">
       {{#if splitting}}
       <label for="splitpoint">
         <p>Split point:</p>
@@ -86,6 +88,5 @@
       </p>
       {{/if}}
     </div>
-  </td>
 </script>
 

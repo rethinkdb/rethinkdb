@@ -49,7 +49,7 @@ module 'NamespaceView', ->
             'click .btn-reset': 'reset_shards'
             'click .btn-primary-commit': 'on_submit'
 
-        initialize: (namespace_id, shard_set) ->
+        initialize: (namespace_id, shard_set) =>
             log_initial '(initializing) view: ModifyShards'
             @namespace_id = @model.get('id')
             @namespace = namespaces.get(@namespace_id)
@@ -73,7 +73,7 @@ module 'NamespaceView', ->
             @render()
 
         reset_button_enable: ->
-            @.$('.btn-reset').button('Remove uncommited changes')
+            @.$('.btn-reset').button('reset')
 
         reset_button_disable: ->
             @.$('.btn-reset').button('loading')
@@ -211,15 +211,17 @@ module 'NamespaceView', ->
         render_only_shards: =>
             for shard in @shard_views
                 shard.destroy()
-            @shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => new NamespaceView.ModifySingleShard @namespace, shard, @)
-            @.$('.shards tbody').html ''
-            @.$('.shards tbody').append view.render().el for view in @shard_views
+            @shard_views = _.map(compute_renderable_shards_array(@namespace.get('id'), @shard_set), (shard) => 
+                new NamespaceView.ModifySingleShard @namespace, shard, @
+            )
+            @.$('.shards-container').html ''
+            @.$('.shards-container').append view.render().el for view in @shard_views
 
 
 
         on_submit: (e) =>
             e.preventDefault()
-            @.$('.btn-primary').button('loading')
+            @.$('.btn-primary').button('Loading')
             formdata = form_data_as_object($('form', @el))
 
             empty_master_pin = {}
@@ -256,9 +258,7 @@ module 'NamespaceView', ->
     class @ModifySingleShard extends Backbone.View
         template: Handlebars.compile $('#modify_shards-view_shard-template').html()
         editable_tmpl: Handlebars.compile $('#modify_shards-edit_shard-template').html()
-
-        tagName: 'tr'
-        class: 'shard'
+        className: 'shard-element'
 
         events: ->
             'click .split': 'split'
@@ -273,12 +273,15 @@ module 'NamespaceView', ->
             @namespace = namespace
             @shard = shard
             @parent = parent_modal
-            @name_view = new NamespaceView.ShardName  @namespace, @shard
+
+            @name_view = new NamespaceView.ShardName()
+
             @namespace.on 'change:key_distr_sorted', @render_num_keys
 
         render: =>
             @.$el.html @template
                 shard: @shard
+            @.$('.name').html @name_view.render(@shard).$el
 
             return @
 
@@ -299,7 +302,7 @@ module 'NamespaceView', ->
             @.$el.html @editable_tmpl
                 splitting: true
                 shard: @shard
-
+            @.$('.name').html @name_view.render(@shard).$el
             e.preventDefault()
 
         cancel_split: (e) ->
@@ -317,6 +320,8 @@ module 'NamespaceView', ->
             @.$el.html @editable_tmpl
                 merging: true
                 shard: @shard
+            @.$('.name').html @name_view.render(@shard).$el
+
             e.preventDefault()
 
         cancel_merge: (e) =>
@@ -333,9 +338,8 @@ module 'NamespaceView', ->
 
 
     class @ShardName extends Backbone.View
+        template: Handlebars.compile $('#shard_name-shard_keys-template').html()
         className: 'shard_name'
-        template: Handlebars.compile $('#shard_name-partial').html()
-
         render: (shard) =>
             @.$el.html @template
                 name: shard.name

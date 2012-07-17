@@ -77,6 +77,7 @@ module 'NamespaceView', ->
             @profile.destroy()
             @replicas.destroy()
             @shards.destroy()
+            @pins.destroy()
             @overview.destroy()
             @performance_graph.destroy()
 

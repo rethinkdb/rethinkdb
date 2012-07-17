@@ -1074,20 +1074,18 @@
         } 
     }
 
-   table.shards {
-        margin-bottom: 15px;
-        td {
-            border-bottom: thin solid @grayLighter;
-            padding: 10px 0;
-            &.name {
-                width: 15%;
+   .shards-container {
+        .shard-element{
+            margin: 10px 0px;
+            padding: 10px 0px;
+            border-bottom: 1px solid #eaeaea;
+            overflow: auto;
+            .name{
+                float: left;
             }
-        }
-        td.summary {
-            width: 130px;
-        }
-        div.progress {
-            width: 200px;
+            .actions{
+                float: right;
+            }
         }
     }
 
@@ -1525,8 +1523,8 @@
     .shard-suggester {
         margin-top: 1em;
     }
-    .action, .shard-suggester, .unsaved-settings-warning {
-       margin-right: 1em;
+    .action-coming, .shard-suggester, .unsaved-settings-warning {
+       margin: 0px;
         .border-radius(4px);
         background-color: #F0F2EB;
         border: thin solid #B9D7D9;
