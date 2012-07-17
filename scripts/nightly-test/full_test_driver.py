@@ -199,32 +199,32 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
 
         if options.build_mode == "all" or options.build_mode == "minimal-with-os": # do the operating system builds
             builds["ubuntu"] = {
-                "command_line": "cd rethinkdb/src && make deb DEBUG=0 && mv ../build/packages ../build/ubuntu",
+                "command_line": "cd rethinkdb/src && make deb PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 && mv ../build/packages ../build/ubuntu",
                 "products": ["rethinkdb/build/ubuntu"],
                 "target_os": "ubuntu"
                 }
             builds["redhat5_1"] = {
-                "command_line": "cd rethinkdb/src && make rpm DEBUG=0 LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/redhat5_1",
+                "command_line": "cd rethinkdb/src && make rpm PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/redhat5_1",
                 "products": ["rethinkdb/build/redhat5_1"],
                 "target_os": "redhat5_1"
                 }
             builds["debian"] = {
-                "command_line": "cd rethinkdb/src && make deb DEBUG=0 NO_EVENTFD=1 LEGACY_LINUX=1 && mv ../build/packages ../build/debian",
+                "command_line": "cd rethinkdb/src && make deb PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 NO_EVENTFD=1 LEGACY_LINUX=1 && mv ../build/packages ../build/debian",
                 "products": ["rethinkdb/build/debian"],
                 "target_os": "debian"
                 }
             builds["centos5_5"] = {
-                "command_line": "cd rethinkdb/src && make rpm DEBUG=0 LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/centos5_5",
+                "command_line": "cd rethinkdb/src && make rpm PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/centos5_5",
                 "products": ["rethinkdb/build/centos5_5"],
                 "target_os": "centos5_5"
                 }
             builds["suse"] = {
-                "command_line": "cd rethinkdb/src && make rpm-suse10 DEBUG=0 LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/suse",
+                "command_line": "cd rethinkdb/src && make rpm-suse10 PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/suse",
                 "products": ["rethinkdb/build/suse"],
                 "target_os": "suse"
                 }
             builds["centos6"] = {
-                "command_line": "cd rethinkdb/src && make rpm DEBUG=0 LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/centos6",
+                "command_line": "cd rethinkdb/src && make rpm PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/centos6",
                 "products": ["rethinkdb/build/centos6"],
                 "target_os": "centos6"
                 }
