@@ -129,7 +129,7 @@ const char *set_datacenter_machine_option_desc = "the machine to move to the spe
 const char *set_datacenter_datacenter_option_desc = "the datacenter to move to";
 const char *create_namespace_name_option_desc = "the name of the new namespace";
 const char *create_namespace_port_option_desc = "the port for the namespace to serve data from for every machine in the cluster";
-const char *create_namespace_protocol_option_desc = "the protocol for the namespace to use, only memcached is supported at the moment";
+const char *create_namespace_protocol_option_desc = "the protocol for the namespace to use";
 const char *create_namespace_primary_option_desc = "the primary datacenter of the new namespace, this datacenter will host the master replicas of each shard";
 const char *create_datacenter_name_option_desc = "the name of the new datacenter";
 const char *remove_id_option_desc = "the name or uuid of the object to remove";
@@ -517,7 +517,11 @@ void admin_command_parser_t::build_command_descriptions() {
     info->add_flag("long", 0, false);
 
     info = add_command(list_namespaces_command, list_namespaces_command, list_namespaces_usage, &admin_cluster_link_t::do_admin_list_namespaces, &commands);
-    info->add_flag("protocol", 1, false)->add_options("memcached", "dummy", NULL);
+#ifndef NO_MEMCACHE
+    info->add_flag("protocol", 1, false)->add_options("rdb", NULL);
+#else
+    info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULL);
+#endif
     info->add_flag("long", 0, false);
 
     info = add_command(list_datacenters_command, list_datacenters_command, list_datacenters_usage, &admin_cluster_link_t::do_admin_list_datacenters, &commands);
@@ -525,7 +529,11 @@ void admin_command_parser_t::build_command_descriptions() {
 
     info = add_command(create_namespace_command, create_namespace_command, create_namespace_usage, &admin_cluster_link_t::do_admin_create_namespace, &commands);
     info->add_positional("name", 1, true);
-    info->add_flag("protocol", 1, true)->add_options("memcached", "dummy", NULL);
+#ifndef NO_MEMCACHE
+    info->add_flag("protocol", 1, false)->add_options("rdb", NULL);
+#else
+    info->add_flag("protocol", 1, false)->add_options("rdb", "memcached", NULL);
+#endif
     info->add_flag("primary", 1, true)->add_option("!datacenter");
     info->add_flag("port", 1, true);
 
