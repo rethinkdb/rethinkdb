@@ -41,15 +41,15 @@ template <class ctx_t>
 std::string render_region_as_string(key_range_t *target, const ctx_t &c) {
     scoped_cJSON_t res(cJSON_CreateArray());
 
-    cJSON_AddItemToArray(res.get(), render_as_json(&target->left, c));
+    res.AddItemToArray(render_as_json(&target->left, c));
 
     if (!target->right.unbounded) {
-        cJSON_AddItemToArray(res.get(), render_as_json(&target->right.key, c));
+        res.AddItemToArray(render_as_json(&target->right.key, c));
     } else {
-        cJSON_AddItemToArray(res.get(), cJSON_CreateNull());
+        res.AddItemToArray(cJSON_CreateNull());
     }
 
-    return cJSON_print_std_string(res.get());
+    return res.Print();
 }
 
 template <class ctx_t>

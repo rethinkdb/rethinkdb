@@ -16,71 +16,64 @@
 
 namespace query_language {
 
-class type_error_t {
-public:
-    explicit type_error_t(const std::string &s) : message(s) { }
+/* `bad_protobuf_exc_t` is thrown if the client sends us a protocol buffer that
+doesn't match our schema. This should only happen if the client itself is
+broken. */
 
-    std::string what() const throw () {
-        return message;
+class bad_protobuf_exc_t : public std::exception {
+public:
+    ~bad_protobuf_exc_t() throw () { }
+
+    const char *what() const throw () {
+        return "bad protocol buffer";
     }
+};
+
+/* `bad_query_exc_t` is thrown if the user writes a query that accesses
+undefined variables or that has mismatched types. The difference between this
+and `bad_protobuf_exc_t` is that `bad_protobuf_exc_t` is the client's fault and
+`bad_query_exc_t` is the client's user's fault. */
+
+class bad_query_exc_t : public std::exception {
+public:
+    explicit bad_query_exc_t(const std::string &s) : message(s) { }
+
+    ~bad_query_exc_t() throw () { }
+
+    const char *what() const throw () {
+        return message.c_str();
+    }
+
 private:
     std::string message;
 };
 
-struct type_t {
-    enum Type {
-        INVALID,
-        ERROR,
-        JSON,
-        STREAM,
-        VIEW,
-        READ,
-        WRITE,
-        QUERY
-    } value;
+enum term_type_t {
+    TERM_TYPE_JSON,
+    TERM_TYPE_STREAM,
+    TERM_TYPE_VIEW,
 
-    type_t() : value(INVALID) { }
-
-    explicit type_t(Type _value) : value(_value) { }
-
-    bool operator==(const type_t &p) const {
-        if (value == VIEW && p.value == STREAM) {
-            return true; // we can coerce a view to a stream
-        }
-        return value == p.value;
-    }
-
-    bool operator!=(const type_t &p) const {
-        return !(operator==(p));
-    }
+    /* This is the type of `Error` terms. It's called "arbitrary" because an
+    `Error` term can be either a stream or an object. It is a subtype of every
+    type. */
+    TERM_TYPE_ARBITRARY
 };
 
-namespace Type {
-    const type_t ERROR = type_t(type_t::ERROR);
-    const type_t JSON = type_t(type_t::JSON);
-    const type_t STREAM = type_t(type_t::STREAM);
-    const type_t VIEW = type_t(type_t::VIEW);
-    const type_t READ = type_t(type_t::READ);
-    const type_t WRITE = type_t(type_t::WRITE);
-    const type_t QUERY = type_t(type_t::WRITE);
-}
-
-class function_t {
+class function_type_t {
 public:
     // _n_args==-1 indicates a variadic function
-    function_t(const type_t& _arg_type, int _n_args, const type_t& _return_type);
-    function_t(const type_t& _arg1_type, const type_t& _arg2_type, const type_t& _return_type);
+    function_type_t(const term_type_t& _arg_type, int _n_args, const term_type_t& _return_type);
+    function_type_t(const term_type_t& _arg1_type, const term_type_t& _arg2_type, const term_type_t& _return_type);
 
-    const type_t& get_arg_type(int n) const;
-    const type_t& get_return_type() const;
+    const term_type_t& get_arg_type(int n) const;
+    const term_type_t& get_return_type() const;
     bool is_variadic() const;
-    bool is_error() const;
 
     int get_n_args() const;
 private:
-    type_t arg_type[3];
+    term_type_t arg_type[3];
     int n_args;
-    type_t return_type;
+    term_type_t return_type;
 };
 
 template <class T>
@@ -143,21 +136,22 @@ private:
     scopes_t scopes;
 };
 
-typedef variable_scope_t<type_t> variable_type_scope_t;
+typedef variable_scope_t<term_type_t> variable_type_scope_t;
 
 typedef variable_type_scope_t::new_scope_t new_scope_t;
 
-/* get_type functions throw exceptions if their inputs aren't well defined or
-   fail type-checking. (A well-defined input has the correct fields filled in)  */
-const type_t get_type(const Term &t, variable_type_scope_t *scope);
-const type_t get_type(const Reduction &r, variable_type_scope_t *scope);
-const type_t get_type(const Mapping &m, variable_type_scope_t *scope);
-const type_t get_type(const Predicate &p, variable_type_scope_t *scope);
-const type_t get_type(const ReadQuery &r, variable_type_scope_t *scope);
-const type_t get_type(const WriteQuery &w, variable_type_scope_t *scope);
-const type_t get_type(const Query &q, variable_type_scope_t *scope);
+/* These functions throw exceptions if their inputs aren't well defined or
+fail type-checking. (A well-defined input has the correct fields filled in.) */
 
-const function_t get_type(const Builtin &b, variable_type_scope_t *scope);
+term_type_t get_term_type(const Term &t, variable_type_scope_t *scope);
+void check_term_type(const Term &t, term_type_t expected, variable_type_scope_t *scope);
+function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope);
+void check_reduction_type(const Reduction &m, variable_type_scope_t *scope);
+void check_mapping_type(const Mapping &m, term_type_t return_type, variable_type_scope_t *scope);
+void check_predicate_type(const Predicate &m, variable_type_scope_t *scope);
+void check_read_query_type(const ReadQuery &rq, variable_type_scope_t *scope);
+void check_write_query_type(const WriteQuery &wq, variable_type_scope_t *scope);
+void check_query_type(const Query &q, variable_type_scope_t *scope);
 
 /* functions to evaluate the queries */
 
@@ -305,11 +299,11 @@ private:
 template <class F>
 class mapping_stream_t : public json_stream_t {
 public:
-    mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f) 
+    mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f)
         : stream(_stream), f(_f)
     { }
 
-    boost::shared_ptr<scoped_cJSON_t> next() { 
+    boost::shared_ptr<scoped_cJSON_t> next() {
         if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             return f(json);
         } else {
@@ -327,7 +321,7 @@ class concat_mapping_stream_t : public  json_stream_t {
 public:
     concat_mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f)
         : stream(_stream), f(_f)
-    { 
+    {
         f = _f;
         if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             substream = f(json);
@@ -359,16 +353,17 @@ private:
 
 class limit_stream_t : public json_stream_t {
 public:
-    limit_stream_t(boost::shared_ptr<json_stream_t> _stream, int _limit) 
+    limit_stream_t(boost::shared_ptr<json_stream_t> _stream, int _limit)
         : stream(_stream), limit(_limit)
-    { 
+    {
         guarantee(limit >= 0);
     }
 
-    boost::shared_ptr<scoped_cJSON_t> next() { 
+    boost::shared_ptr<scoped_cJSON_t> next() {
         if (limit == 0) {
             return boost::shared_ptr<scoped_cJSON_t>();
         } else {
+            limit--;
             return stream->next();
         }
     }
@@ -391,7 +386,7 @@ typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
 
 class runtime_exc_t {
 public:
-    explicit runtime_exc_t(const std::string &_what)
+    runtime_exc_t(const std::string &_what)
         : what_happened(_what)
     { }
 
