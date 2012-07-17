@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, subprocess, os, time
+import sys, subprocess, os, time, signal
 from vcoptparse import *
 
 control_user = "rethinkdb@deadshot"
@@ -18,16 +18,20 @@ class VM(object):
             print "(VM successfully started)"
         else:
             sys_exit("Error: Failed to connect to VM", -1)
-    def command(self, cmd, output = False):
+    def command(self, cmd, output = False, timeout = 600):
         print "Executing on VM:", cmd
         proc = subprocess.Popen(["ssh %s '%s'" % (self.host, cmd)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell = True)
-        while proc.poll() == None: # TODO: add timeout?
+        start_time = time.time()
+        while proc.poll() == None and time.time() - start_time < timeout:
             if output:
                 line = proc.stdout.readline()
                 if line:
                     print line.strip()
             else:
                 pass
+        if proc.poll() == None:
+            proc.send_signal(signal.SIGKILL)
+            sys_exit("Error: process did not finish within the time limit.")
         if proc.poll():
             sys_exit("Error: command \"%s\" finished with exit value %d." % (cmd, proc.poll()), proc.poll(), True)
         return proc

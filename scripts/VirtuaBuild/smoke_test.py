@@ -88,12 +88,12 @@ print 'Testing...'
 res = test_against(ip, port)
 
 print 'Tests completed. Killing instance now...'
-proc.send_signal(signal.SIGINT)
+proc.send_signal(signal.SIGKILL) # TODO: why isn't SIGINT working here?
 
 if res != (num_keys, num_keys):
     print 'Done: FAILED'
     print 'Results: %d successful sets, %d successful gets (%d total)' % (res[0], res[1], num_keys)
-    exit(0)
+    exit(1)
 else:
     print 'Done: PASSED ALL'
     exit(0)
