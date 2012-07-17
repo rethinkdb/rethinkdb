@@ -4,15 +4,55 @@
 
 import time, sys, os, socket, random, time, signal, subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'test', 'common')))
-import workload_common, driver
+import driver
 from vcoptparse import *
 
 op = OptParser()
 op["num_keys"] = IntFlag("--num-keys", 500)
 op["mode"] = StringFlag("--mode", "debug")
+op["pkg_type"] = StringFlag("--pkg-type", "deb") # "deb" or "rpm"
 opts = op.parse(sys.argv)
 
 num_keys = opts["num_keys"]
+base_port = 11213 # port that RethinkDB runs from by default
+
+if op["pkg_type"] == "rpm":
+    def install(path):
+        return "rpm -i %s" % path
+
+    def get_binary(path):
+        return "rpm -qpil %s | grep /usr/bin" % path
+
+    def uninstall(cmd_name): 
+        return "which %s | xargs readlink -f | xargs rpm -qf | xargs rpm -e" % cmd_name
+elif op["pkg_type"] == "deb":
+    def install(path):
+        return "dpkg -i %s" % path
+
+    def get_binary(path):
+        return "dpkg -c %s | grep /usr/bin/rethinkdb-.* | sed 's/^.*\(\/usr.*\)$/\\1/'" % path
+
+    def uninstall(cmd_name): 
+        return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\\1/' | xargs dpkg -r" % cmd_name
+else:
+    print >>sys.stderr, "Error: Unknown package type."
+    exit(0)
+
+def purge_installed_packages():
+    old_binaries_raw = exec_command(["ls", "/usr/bin/rethinkdb*"]).stdout.readlines()
+    old_binaries = map(lambda x: x.strip('\n'), old_binaries_raw)
+    print "Binaries scheduled for removal: ", old_binaries
+
+    for old_binary in old_binaries:
+        exec_command(uninstall(old_binary))
+
+def exec_command(cmd, bg = False):
+    if bg:
+        return subprocess.Popen(cmd + " &", stdout = subprocess.PIPE)
+    else:
+        proc = subprocess.Popen(cmd, stdout = subprocess.PIPE)
+        proc.wait()
+        return proc
 
 def wait_until_started_up(proc, host, port, timeout = 600):
     time_limit = time.time() + timeout
@@ -63,38 +103,54 @@ def test_against(host, port, timeout = 600):
         
         return goodsets, goodgets
 
-executable = driver.find_rethinkdb_executable(opts["mode"])
+cur_dir = exec_command("ls").stdout.readline().strip('\n')
+p = exec_command(["find rethinkdb/build/%s -regex .*\\\\\\\\.%s" % (opts["mode"], opts["pkg_type"])])
+raw = p.readlines()
+res_paths = map(lambda x: os.path.join(cur_dir, x.strip('\n')), raw)
+print "Packages to install:", res_paths
+failed_test = False
 
-base = 11213
-port = random.randint(base + 1, 65535 - 100)
-port2 = random.randint(base + 1, 65535)
-port_offset = port - base
+for path in res_paths:
+    print "Uninstalling old packages..."
+    purge_installed_packages()
+    print "Done uninstalling..."
 
-print "Starting RethinkDB..."
+    print "Installing RethinkDB..."
+    target_binary_name = exec_command(get_binary(path)).stdout.readlines()[0].strip('\n')
+    print "Target binary name:", target_binary_name
+    exec_command(install(path))
 
-proc = subprocess.Popen([executable, "--port", str(port2), "--port-offset", str(port_offset)])
+    print "Starting RethinkDB..."
 
-# gets the IP address
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.connect(("rethinkdb.com", 80))
-ip = s.getsockname()[0]
-s.close()
+    proc = exec_command("rethinkdb", bg = True)
 
-print "IP Address detected:", ip
+    # gets the IP address
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("rethinkdb.com", 80))
+    ip = s.getsockname()[0]
+    s.close()
 
-wait_until_started_up(proc, ip, port)
+    print "IP Address detected:", ip
 
-print "Testing..."
+    wait_until_started_up(proc, ip, port)
 
-res = test_against(ip, port)
+    print "Testing..."
 
-print "Tests completed. Killing instance now..."
-proc.send_signal(signal.SIGINT)
+    res = test_against(ip, port)
 
-if res != (num_keys, num_keys):
-    print "Done: FAILED"
-    print "Results: %d successful sets, %d successful gets (%d total)" % (res[0], res[1], num_keys)
+    print "Tests completed. Killing instance now..."
+    proc.send_signal(signal.SIGINT)
+
+    if res != (num_keys, num_keys):
+        print "Done: FAILED"
+        print "Results: %d successful sets, %d successful gets (%d total)" % (res[0], res[1], num_keys)
+        failed_test = True
+    else:
+        print "Done: PASSED"
+
+print "Done."
+
+if failed_test:
     exit(1)
 else:
-    print "Done: PASSED ALL"
     exit(0)
