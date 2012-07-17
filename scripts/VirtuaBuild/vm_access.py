@@ -18,7 +18,7 @@ class VM(object):
             print "(VM successfully started)"
         else:
             sys_exit("Error: Failed to connect to VM", -1)
-    def command(self, cmd, output = False, timeout = 600):
+    def command(self, cmd, output = False, timeout = 1200):
         print "Executing on VM:", cmd
         proc = subprocess.Popen(["ssh %s '%s'" % (self.host, cmd)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell = True)
         start_time = time.time()
@@ -31,7 +31,7 @@ class VM(object):
                 pass
         if proc.poll() == None:
             proc.send_signal(signal.SIGKILL)
-            sys_exit("Error: process did not finish within the time limit.")
+            sys_exit("Error: process did not finish within the time limit.", -1)
         if proc.poll():
             sys_exit("Error: command \"%s\" finished with exit value %d." % (cmd, proc.poll()), proc.poll())
         return proc
