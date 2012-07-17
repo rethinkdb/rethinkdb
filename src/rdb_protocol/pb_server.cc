@@ -25,10 +25,12 @@ Response query_server_t::handle(const Query &q) {
 
     query_language::runtime_environment_t runtime_environment(ns_repo, semilattice_metadata);
     try {
-        return eval(q, &runtime_environment);
+        res.set_status_code(0);
+        execute(q, &runtime_environment, &res);
     } catch (query_language::runtime_exc_t &e) {
         res.set_status_code(-4);
         res.add_response("runtime exception: " + std::string(e.what()));
-        return res;
     }
+
+    return res;
 }

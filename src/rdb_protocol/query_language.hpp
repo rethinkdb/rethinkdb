@@ -373,7 +373,6 @@ private:
     int limit;
 };
 
-
 //Scopes for single pieces of json
 typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;
 
@@ -417,11 +416,11 @@ public:
 
 //TODO most of these functions that are supposed to only throw runtime exceptions
 
-Response eval(const Query &q, runtime_environment_t *);
+void execute(const Query &q, runtime_environment_t *, Response *res);
 
-Response eval(const ReadQuery &r, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+void execute(const ReadQuery &r, runtime_environment_t *, Response *res) THROWS_ONLY(runtime_exc_t);
 
-Response eval(const WriteQuery &r, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+void execute(const WriteQuery &r, runtime_environment_t *, Response *res) THROWS_ONLY(runtime_exc_t);
 
 boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
 

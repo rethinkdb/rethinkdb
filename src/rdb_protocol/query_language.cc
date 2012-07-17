@@ -581,36 +581,30 @@ struct shared_scoped_less {
     }
 };
 
-Response eval(const Query &q, runtime_environment_t *env) {
-    switch (q.type()) {
-        case Query::READ:
-            return eval(q.read_query(), env);
-            break;
-        case Query::WRITE:
-            return eval(q.write_query(), env);
-            break;
-        default:
-            crash("unreachable");
+void execute(const Query &q, runtime_environment_t *env, Response *res) {
+    if (q.type() == Query::READ) {
+        execute(q.read_query(), env, res);
+    } else if (q.type() == Query::WRITE) {
+        execute(q.write_query(), env, res);
+    } else {
+        crash("unreachable");
     }
-    crash("unreachable");
 }
 
-Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
-    Response res;
-
+void execute(const ReadQuery &r, runtime_environment_t *env, Response *res) THROWS_ONLY(runtime_exc_t) {
     term_type_t type = get_term_type(r.term(), &env->type_scope);
 
     switch (type) {
     case TERM_TYPE_JSON: {
         boost::shared_ptr<scoped_cJSON_t> json = eval(r.term(), env);
-        res.add_response(json->Print());
+        res->add_response(json->PrintUnformatted());
         break;
     }
     case TERM_TYPE_STREAM:
     case TERM_TYPE_VIEW: {
         boost::shared_ptr<json_stream_t> stream = eval_stream(r.term(), env);
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            res.add_response(json->Print());
+            res->add_response(json->PrintUnformatted());
         }
         break;
     }
@@ -622,10 +616,6 @@ Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtim
     default:
         unreachable("read query type invalid.");
     }
-
-    res.set_status_code(0);
-    res.set_token(0);
-    return res;
 }
 
 void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env) {
@@ -646,13 +636,13 @@ void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::s
     point_delete(ns_access, id->get(), env);
 }
 
-Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
+void execute(const WriteQuery &w, runtime_environment_t *env, Response *res) THROWS_ONLY(runtime_exc_t) {
     switch (w.type()) {
         case WriteQuery::UPDATE:
             {
                 view_t view = eval_view(w.update().view().table(), env);
 
-                int modified = 0,
+                int updated = 0,
                     error = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
@@ -664,16 +654,11 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                         error++;
                     } else {
                         insert(view.access, val, env);
-                        modified++;
+                        updated++;
                     }
                 }
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response(strprintf("Modified %d rows.", modified));
-                res.add_response(strprintf("%d errors.", error));
-                return res;
+                res->add_response(strprintf("{\"updated\": %d, \"errors\": %d}", updated, error));
             }
             break;
         case WriteQuery::DELETE:
@@ -686,11 +671,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                     deleted++;
                 }
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response(strprintf("Deleted %d rows.", deleted));
-                return res;
+                res->add_response(strprintf("{\"deleted\": %d}", deleted));
             }
             break;
         case WriteQuery::MUTATE:
@@ -712,12 +693,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                     }
                 }
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response(strprintf("Deleted %d rows.", deleted));
-                res.add_response(strprintf("Modified %d rows.", modified));
-                return res;
+                res->add_response(strprintf("{\"modified\": %d, \"deleted\": %d}", modified, deleted));
             }
             break;
         case WriteQuery::INSERT:
@@ -728,11 +704,8 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
 
                     insert(ns_access, data, env);
                 }
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response(strprintf("Inserted %d rows.", w.insert().terms_size()));
-                return res;
+
+                res->add_response(strprintf("{\"inserted\": %d}", w.insert().terms_size()));
             }
             break;
         case WriteQuery::INSERTSTREAM:
@@ -747,11 +720,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                     insert(ns_access, json, env);
                 }
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response(strprintf("Inserted %d rows.", inserted));
-                return res;
+                res->add_response(strprintf("{\"inserted\": %d}", inserted));
             }
             break;
         case WriteQuery::FOREACH:
@@ -763,7 +732,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                     env->scope.put_in_scope(w.for_each().var(), json);
 
                     for (int i = 0; i < w.for_each().queries_size(); ++i) {
-                        eval(w.for_each().queries(i), env);
+                        execute(w.for_each().queries(i), env, res);
                     }
                 }
             }
@@ -790,11 +759,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
 
                 insert(ns_access, new_val, env);
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response("Updated 1 rows.");
-                return res;
+                res->add_response(strprintf("{\"updated\": %d, \"errors\": %d}", 1, 0));
             }
             break;
         case WriteQuery::POINTDELETE:
@@ -803,12 +768,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
                 boost::shared_ptr<scoped_cJSON_t> id = eval(w.point_delete().key(), env);
                 point_delete(ns_access, id, env);
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response("Deleted 1 rows.");
-
-                return res;
+                res->add_response(strprintf("{\"deleted\": %d}", 1));
             }
             break;
         case WriteQuery::POINTMUTATE:
@@ -817,7 +777,6 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
         default:
             unreachable();
     }
-    unreachable();
 }
 
 //This doesn't create a scope for the evals
