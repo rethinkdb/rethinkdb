@@ -6,122 +6,229 @@
 
 #include "http/json.hpp"
 
-#define CHECK(x) if (!(x)) { throw runtime_exc_t("malformed query protobuf"); }
-#define CHECK_TYPE(a, b, err) if (get_type((a), scope) != (b)) { throw type_error_t(err); }
-
 namespace query_language {
 
-const type_t get_type(const Term &t, variable_type_scope_t *scope) {
+void check_protobuf(bool cond) {
+    if (!cond) {
+        throw bad_protobuf_exc_t();
+    }
+}
+
+std::string term_type_name(term_type_t tt) {
+    switch (tt) {
+        case TERM_TYPE_JSON:
+            return "object";
+        case TERM_TYPE_STREAM:
+            return "stream";
+        case TERM_TYPE_VIEW:
+            return "view";
+        case TERM_TYPE_ARBITRARY:
+            return "arbitrary";
+        default:
+            unreachable();
+    }
+}
+
+bool term_type_is_convertible(term_type_t input, term_type_t desired) {
+    switch (input) {
+        case TERM_TYPE_ARBITRARY:
+            return true;
+        case TERM_TYPE_JSON:
+            return desired == TERM_TYPE_JSON;
+        case TERM_TYPE_STREAM:
+            return desired == TERM_TYPE_STREAM;
+        case TERM_TYPE_VIEW:
+            return desired == TERM_TYPE_STREAM || desired == TERM_TYPE_VIEW;
+        default:
+            unreachable();
+    }
+}
+
+bool term_type_least_upper_bound(term_type_t left, term_type_t right, term_type_t *out) {
+    if (term_type_is_convertible(left, TERM_TYPE_ARBITRARY) &&
+            term_type_is_convertible(right, TERM_TYPE_ARBITRARY)) {
+        *out = TERM_TYPE_ARBITRARY;
+        return true;
+    } else if (term_type_is_convertible(left, TERM_TYPE_JSON) &&
+            term_type_is_convertible(right, TERM_TYPE_JSON)) {
+        *out = TERM_TYPE_JSON;
+        return true;
+    } else if (term_type_is_convertible(left, TERM_TYPE_VIEW) &&
+            term_type_is_convertible(right, TERM_TYPE_VIEW)) {
+        *out = TERM_TYPE_VIEW;
+        return true;
+    } else if (term_type_is_convertible(left, TERM_TYPE_STREAM) &&
+            term_type_is_convertible(right, TERM_TYPE_STREAM)) {
+        *out = TERM_TYPE_STREAM;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function_type_t::function_type_t(const term_type_t& _arg_type, int _n_args, const term_type_t& _return_type)
+    : n_args(_n_args), return_type(_return_type) {
+    arg_type[0] = _arg_type;
+    /* This weird loop starting from 1 is so that we don't fill any more slots
+    if `n_args` is -1. */
+    for (int i = 1; i < _n_args; ++i) {
+        arg_type[i] = _arg_type;
+    }
+}
+
+function_type_t::function_type_t(const term_type_t& _arg1_type, const term_type_t& _arg2_type, const term_type_t& _return_type)
+    : n_args(2), return_type(_return_type) {
+    arg_type[0] = _arg1_type;
+    arg_type[1] = _arg2_type;
+}
+
+const term_type_t& function_type_t::get_arg_type(int n) const {
+    rassert(n >= 0);
+    if (is_variadic()) {
+        return arg_type[0];
+    } else {
+        rassert(n < n_args);
+        return arg_type[n];
+    }
+}
+
+const term_type_t& function_type_t::get_return_type() const {
+    return return_type;
+}
+
+bool function_type_t::is_variadic() const {
+    return n_args == -1;
+}
+
+int function_type_t::get_n_args() const {
+    rassert(!is_variadic());
+    return n_args;
+}
+
+term_type_t get_term_type(const Term &t, variable_type_scope_t *scope) {
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     t.GetReflection()->ListFields(t, &fields);
     int field_count = fields.size();
 
-    CHECK(field_count <= 2);
+    check_protobuf(field_count <= 2);
 
     switch (t.type()) {
     case Term::VAR:
-        CHECK(t.has_var());
+        check_protobuf(t.has_var());
         if (!scope->is_in_scope(t.var())) {
-            throw type_error_t(strprintf("Symbol %s is not in scope", t.var().c_str()));
+            throw bad_query_exc_t(strprintf("symbol '%s' is not in scope", t.var().c_str()));
         }
         return scope->get(t.var());
         break;
     case Term::LET:
         {
-            CHECK(t.has_let());
+            check_protobuf(t.has_let());
             scope->push(); //create a new scope
             for (int i = 0; i < t.let().binds_size(); ++i) {
-                type_t bind_type = get_type(t.let().binds(i).term(), scope);
+                term_type_t bind_type = get_term_type(t.let().binds(i).term(), scope);
                 scope->put_in_scope(t.let().binds(i).var(), bind_type);
 
                 // HACKY: we store the type so later evaluation knows whether the bound var
                 // should be treated as a stream. (get_type(ReadQuery) does something similar)
-                const_cast<VarTermTuple&>(t.let().binds(i)).set__type(bind_type.value);
+                const_cast<VarTermTuple&>(t.let().binds(i)).set__type(static_cast<int>(bind_type));
             }
-            type_t res = get_type(t.let().expr(), scope);
+            term_type_t res = get_term_type(t.let().expr(), scope);
             scope->pop();
             return res;
         }
         break;
     case Term::CALL:
         {
-            CHECK(t.has_call());
-            function_t signature = get_type(t.call().builtin(), scope);
+            check_protobuf(t.has_call());
+            function_type_t signature = get_function_type(t.call().builtin(), scope);
             if (!signature.is_variadic()) {
                 int n_args = signature.get_n_args();
                 if (t.call().args_size() != n_args) {
                     const char* fn_name = Builtin::BuiltinType_Name(t.call().builtin().type()).c_str();
-                    throw type_error_t(strprintf("%s takes %d argument%s (%d given)", fn_name, n_args, n_args>1?"s":"", t.call().args_size()));
+                    throw bad_query_exc_t(strprintf(
+                        "%s takes %d argument%s (%d given)",
+                        fn_name,
+                        n_args,
+                        n_args > 1 ? "s" : "",
+                        t.call().args_size()
+                        ));
                 }
             }
             for (int i = 0; i < t.call().args_size(); ++i) {
-                CHECK_TYPE(t.call().args(i), signature.get_arg_type(i), "Type mismatch in function call");
+                check_term_type(t.call().args(i), signature.get_arg_type(i), scope);
             }
             return signature.get_return_type();
         }
         break;
     case Term::IF:
         {
-            CHECK(t.has_if_());
-            CHECK_TYPE(t.if_().test(), Type::JSON, "If test must be JSON");
+            check_protobuf(t.has_if_());
+            check_term_type(t.if_().test(), TERM_TYPE_JSON, scope);
 
-            type_t true_branch  = get_type(t.if_().true_branch(), scope);
+            term_type_t true_branch = get_term_type(t.if_().true_branch(), scope);
+            term_type_t false_branch = get_term_type(t.if_().false_branch(), scope);
 
-            CHECK_TYPE(t.if_().false_branch(), true_branch, "If true and false branches must have the same type");
-
-            return true_branch;
+            term_type_t combined_type;
+            if (!term_type_least_upper_bound(true_branch, false_branch, &combined_type)) {
+                throw bad_query_exc_t(strprintf(
+                    "true-branch has type %s, but false-branch has type %s",
+                    term_type_name(true_branch).c_str(),
+                    term_type_name(false_branch).c_str()
+                    ));
+            }
+            return combined_type;
         }
         break;
     case Term::ERROR:
-        CHECK(t.has_error());
-        return Type::ERROR;
+        check_protobuf(t.has_error());
+        return TERM_TYPE_ARBITRARY;
         break;
     case Term::NUMBER:
-        CHECK(t.has_number());
-        return Type::JSON;
+        check_protobuf(t.has_number());
+        return TERM_TYPE_JSON;
         break;
     case Term::STRING:
-        CHECK(t.has_valuestring());
-        return Type::JSON;
+        check_protobuf(t.has_valuestring());
+        return TERM_TYPE_JSON;
         break;
     case Term::JSON:
-        CHECK(t.has_jsonstring());
-        return Type::JSON;
+        check_protobuf(t.has_jsonstring());
+        return TERM_TYPE_JSON;
         break;
     case Term::BOOL:
-        CHECK(t.has_valuebool());
-        return Type::JSON;
+        check_protobuf(t.has_valuebool());
+        return TERM_TYPE_JSON;
         break;
     case Term::JSON_NULL:
-        CHECK(field_count == 1); // null term has only a type field
-        return Type::JSON;
+        check_protobuf(field_count == 1); // null term has only a type field
+        return TERM_TYPE_JSON;
         break;
     case Term::ARRAY:
         if (t.array_size() == 0) { // empty arrays are valid
-            CHECK(field_count == 1);
+            check_protobuf(field_count == 1);
         }
         for (int i = 0; i < t.array_size(); ++i) {
-            CHECK_TYPE(t.array(i), Type::JSON, "Array elements must be JSON");
+            check_term_type(t.array(i), TERM_TYPE_JSON, scope);
         }
-        return Type::JSON;
+        return TERM_TYPE_JSON;
         break;
     case Term::OBJECT:
         if (t.object_size() == 0) { // empty objects are valid
-            CHECK(field_count == 1);
+            check_protobuf(field_count == 1);
         }
         for (int i = 0; i < t.object_size(); ++i) {
-            CHECK_TYPE(t.object(i).term(), Type::JSON, "Object values must be JSON");
+            check_term_type(t.object(i).term(), TERM_TYPE_JSON, scope);
         }
-        return Type::JSON;
+        return TERM_TYPE_JSON;
         break;
     case Term::GETBYKEY:
-        CHECK(t.has_get_by_key());
-        CHECK_TYPE(t.get_by_key().key(), Type::JSON, "GetByKey Key must be JSON");
-        return Type::JSON;
+        check_protobuf(t.has_get_by_key());
+        check_term_type(t.get_by_key().key(), TERM_TYPE_JSON, scope);
+        return TERM_TYPE_JSON;
         break;
     case Term::TABLE:
-        CHECK(t.has_table());
-        return Type::VIEW;
+        check_protobuf(t.has_table());
+        return TERM_TYPE_VIEW;
         break;
     default:
         unreachable("unhandled Term case");
@@ -129,48 +236,22 @@ const type_t get_type(const Term &t, variable_type_scope_t *scope) {
     crash("unreachable");
 }
 
-function_t::function_t(const type_t& _arg_type, int _n_args, const type_t& _return_type)
-    : n_args(_n_args), return_type(_return_type) {
-    arg_type[0] = _arg_type;
-    for (int i = 1; i < _n_args; ++i) {
-        arg_type[i] = _arg_type;
+void check_term_type(const Term &t, term_type_t expected, variable_type_scope_t *scope) {
+    term_type_t actual = get_term_type(t, scope);
+    if (!term_type_is_convertible(actual, expected)) {
+        throw bad_query_exc_t(strprintf("expected a %s; got a %s",
+            term_type_name(expected).c_str(), term_type_name(actual).c_str()));
     }
 }
 
-function_t::function_t(const type_t& _arg1_type, const type_t& _arg2_type, const type_t& _return_type)
-    : n_args(2), return_type(_return_type) {
-    arg_type[0] = _arg1_type;
-    arg_type[1] = _arg2_type;
-}
-
-const type_t& function_t::get_arg_type(int n) const {
-    if (n >= 0 && n < n_args) {
-        return arg_type[n];
-    } else {
-        return arg_type[0];
-    }
-}
-
-const type_t& function_t::get_return_type() const {
-    return return_type;
-}
-
-bool function_t::is_variadic() const {
-    return n_args == -1;
-}
-
-int function_t::get_n_args() const {
-    return n_args;
-}
-
-const function_t get_type(const Builtin &b, variable_type_scope_t *scope) {
+function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope) {
     std::vector<const google::protobuf::FieldDescriptor *> fields;
 
     b.GetReflection()->ListFields(b, &fields);
 
     int field_count = fields.size();
 
-    CHECK(field_count <= 2);
+    check_protobuf(field_count <= 2);
 
     // this is a bit cleaner when we check well-formedness separate
     // from returning the type
@@ -201,51 +282,51 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *scope) {
     case Builtin::ALL:
         // these builtins only have
         // Builtin.type set
-        CHECK(field_count == 1);
+        check_protobuf(field_count == 1);
         break;
     case Builtin::COMPARE:
-        CHECK(b.has_comparison());
+        check_protobuf(b.has_comparison());
         break;
     case Builtin::GETATTR:
     case Builtin::HASATTR:
-        CHECK(b.has_attr());
+        check_protobuf(b.has_attr());
         break;
     case Builtin::PICKATTRS:
-        CHECK(b.attrs_size());
+        check_protobuf(b.attrs_size());
         break;
     case Builtin::FILTER:
-        CHECK(b.has_filter());
-        CHECK_TYPE(b.filter().predicate(), Type::JSON, "Filter predicate must return JSON");
+        check_protobuf(b.has_filter());
+        check_predicate_type(b.filter().predicate(), scope);
         break;
     case Builtin::MAP:
-        CHECK(b.has_map());
-        CHECK_TYPE(b.map().mapping(), Type::JSON, "Map mapping must return JSON");
+        check_protobuf(b.has_map());
+        check_mapping_type(b.map().mapping(), TERM_TYPE_JSON, scope);
         break;
     case Builtin::CONCATMAP:
-        CHECK(b.has_concat_map());
-        CHECK_TYPE(b.concat_map().mapping(), Type::JSON, "ConcatMap mapping must return JSON");
+        check_protobuf(b.has_concat_map());
+        check_mapping_type(b.map().mapping(), TERM_TYPE_STREAM, scope);
         break;
     case Builtin::ORDERBY:
-        CHECK(b.has_order_by());
-        CHECK_TYPE(b.order_by().mapping(), Type::JSON, "OrderBy mapping must return JSON");
+        check_protobuf(b.has_order_by());
+        check_mapping_type(b.order_by().mapping(), TERM_TYPE_JSON, scope);
         break;
     case Builtin::REDUCE:
-        CHECK(b.has_reduce());
-        CHECK_TYPE(b.reduce(), Type::JSON, "Reduce reduction must return JSON");
+        check_protobuf(b.has_reduce());
+        check_reduction_type(b.reduce(), scope);
         break;
     case Builtin::GROUPEDMAPREDUCE:
-        CHECK(b.has_grouped_map_reduce());
-        CHECK_TYPE(b.grouped_map_reduce().group_mapping(), Type::JSON, "GroupedMapReduce group mapping must return JSON");
-        CHECK_TYPE(b.grouped_map_reduce().value_mapping(), Type::JSON, "GroupedMapReduce value mapping must return JSON");
-        CHECK_TYPE(b.grouped_map_reduce().reduction(), Type::JSON, "GroupedMapReduce reduction must return JSON");
+        check_protobuf(b.has_grouped_map_reduce());
+        check_mapping_type(b.grouped_map_reduce().group_mapping(), TERM_TYPE_JSON, scope);
+        check_mapping_type(b.grouped_map_reduce().value_mapping(), TERM_TYPE_JSON, scope);
+        check_reduction_type(b.grouped_map_reduce().reduction(), scope);
         break;
     case Builtin::RANGE:
-        CHECK(b.has_range());
+        check_protobuf(b.has_range());
         if (b.range().has_lowerbound()) {
-            CHECK_TYPE(b.range().lowerbound(), Type::JSON, "Range lower bound must be JSON");
+            check_term_type(b.range().lowerbound(), TERM_TYPE_JSON, scope);
         }
         if (b.range().has_upperbound()) {
-            CHECK_TYPE(b.range().upperbound(), Type::JSON, "Range upper bound must be JSON");
+            check_term_type(b.range().upperbound(), TERM_TYPE_JSON, scope);
         }
         break;
     default:
@@ -260,14 +341,14 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *scope) {
         case Builtin::PICKATTRS:
         case Builtin::ARRAYLENGTH:
         case Builtin::JAVASCRIPT:
-            return function_t(Type::JSON, 1, Type::JSON);
+            return function_type_t(TERM_TYPE_JSON, 1, TERM_TYPE_JSON);
             break;
         case Builtin::MAPMERGE:
         case Builtin::ARRAYAPPEND:
         case Builtin::ARRAYCONCAT:
         case Builtin::ARRAYNTH:
         case Builtin::MODULO:
-            return function_t(Type::JSON, 2, Type::JSON);
+            return function_type_t(TERM_TYPE_JSON, 2, TERM_TYPE_JSON);
             break;
         case Builtin::ADD:
         case Builtin::SUBTRACT:
@@ -276,39 +357,39 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *scope) {
         case Builtin::COMPARE:
         case Builtin::ANY:
         case Builtin::ALL:
-            return function_t(Type::JSON, -1, Type::JSON);  // variadic JSON type
+            return function_type_t(TERM_TYPE_JSON, -1, TERM_TYPE_JSON);  // variadic JSON type
             break;
         case Builtin::ARRAYSLICE:
-            return function_t(Type::JSON, 3, Type::JSON);
+            return function_type_t(TERM_TYPE_JSON, 3, TERM_TYPE_JSON);
             break;
         case Builtin::FILTER:
         case Builtin::MAP:
         case Builtin::CONCATMAP:
         case Builtin::ORDERBY:
         case Builtin::DISTINCT:
-            return function_t(Type::STREAM, 1, Type::STREAM);
+            return function_type_t(TERM_TYPE_STREAM, 1, TERM_TYPE_STREAM);
             break;
         case Builtin::LIMIT:
-            return function_t(Type::STREAM, Type::JSON, Type::STREAM);
+            return function_type_t(TERM_TYPE_STREAM, TERM_TYPE_JSON, TERM_TYPE_STREAM);
             break;
         case Builtin::NTH:
-            return function_t(Type::STREAM, Type::JSON, Type::JSON);
+            return function_type_t(TERM_TYPE_STREAM, TERM_TYPE_JSON, TERM_TYPE_JSON);
             break;
         case Builtin::LENGTH:
         case Builtin::STREAMTOARRAY:
         case Builtin::REDUCE:
         case Builtin::GROUPEDMAPREDUCE:
-            return function_t(Type::STREAM, 1, Type::JSON);
+            return function_type_t(TERM_TYPE_STREAM, 1, TERM_TYPE_JSON);
             break;
         case Builtin::UNION:
-            return function_t(Type::STREAM, 2, Type::STREAM);
+            return function_type_t(TERM_TYPE_STREAM, 2, TERM_TYPE_STREAM);
             break;
         case Builtin::ARRAYTOSTREAM:
         case Builtin::JAVASCRIPTRETURNINGSTREAM:
-            return function_t(Type::JSON, 1, Type::STREAM);
+            return function_type_t(TERM_TYPE_JSON, 1, TERM_TYPE_STREAM);
             break;
         case Builtin::RANGE:
-            return function_t(Type::VIEW, 1, Type::VIEW);
+            return function_type_t(TERM_TYPE_VIEW, 1, TERM_TYPE_VIEW);
             break;
         default:
             crash("unreachable");
@@ -318,127 +399,113 @@ const function_t get_type(const Builtin &b, variable_type_scope_t *scope) {
     crash("unreachable");
 }
 
-const type_t get_type(const Reduction &r, variable_type_scope_t *scope) {
-    CHECK_TYPE(r.base(), Type::JSON, "Reduction base must be JSON");
+void check_reduction_type(const Reduction &r, variable_type_scope_t *scope) {
+    check_term_type(r.base(), TERM_TYPE_JSON, scope);
 
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(r.var1(), Type::JSON);
-    scope->put_in_scope(r.var2(), Type::JSON);
+    scope->put_in_scope(r.var1(), TERM_TYPE_JSON);
+    scope->put_in_scope(r.var2(), TERM_TYPE_JSON);
 
-    CHECK_TYPE(r.body(), Type::JSON, "Reduction function must return JSON");
-
-    return Type::JSON;
+    check_term_type(r.body(), TERM_TYPE_JSON, scope);
 }
 
-const type_t get_type(const Mapping &m, variable_type_scope_t *scope) {
+void check_mapping_type(const Mapping &m, term_type_t return_type, variable_type_scope_t *scope) {
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(m.arg(), Type::JSON);
+    scope->put_in_scope(m.arg(), TERM_TYPE_JSON);
 
-    CHECK_TYPE(m.body(), Type::JSON, "Mapping must return JSON");
-
-    return Type::JSON;
+    check_term_type(m.body(), return_type, scope);
 }
 
-const type_t get_type(const Predicate &p, variable_type_scope_t *scope) {
+void check_predicate_type(const Predicate &p, variable_type_scope_t *scope) {
     new_scope_t scope_maker(scope);
-    scope->put_in_scope(p.arg(), Type::JSON);
+    scope->put_in_scope(p.arg(), TERM_TYPE_JSON);
 
-    CHECK_TYPE(p.body(), Type::JSON, "Predicate must return JSON");
-
-    return Type::JSON;
+    check_term_type(p.body(), TERM_TYPE_JSON, scope);
 }
 
-const type_t get_type(const ReadQuery &r, variable_type_scope_t *scope) {
-    type_t res = get_type(r.term(), scope);
-    if (res != Type::JSON && res != Type::STREAM) {
-        throw type_error_t("ReadQueries must produce either JSON or a STREAM.");
-    }
+void check_read_query_type(const ReadQuery &rq, variable_type_scope_t *scope) {
+    term_type_t res = get_term_type(rq.term(), scope);
 
     // HACKY: store type for eval later. Cf. get_type(Term)'s LET case
-    const_cast<ReadQuery&>(r).set__type(res.value);
-
-    return Type::READ;
+    const_cast<ReadQuery&>(rq).set__type(static_cast<int>(res));
 }
 
-const type_t get_type(const WriteQuery &w, variable_type_scope_t *scope) {
+void check_write_query_type(const WriteQuery &w, variable_type_scope_t *scope) {
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     w.GetReflection()->ListFields(w, &fields);
-    CHECK(fields.size() == 2);
+    check_protobuf(fields.size() == 2);
 
     switch (w.type()) {
         case WriteQuery::UPDATE:
-            CHECK(w.has_update());
-            CHECK_TYPE(w.update().view(), Type::VIEW, "Update must operate on a View");
-            CHECK_TYPE(w.update().mapping(), Type::JSON, "Update mapping must return JSON");
+            check_protobuf(w.has_update());
+            check_term_type(w.update().view(), TERM_TYPE_VIEW, scope);
+            check_mapping_type(w.update().mapping(), TERM_TYPE_JSON, scope);
             break;
         case WriteQuery::DELETE:
-            CHECK(w.has_delete_());
-            CHECK_TYPE(w.delete_().view(), Type::VIEW, "Delete must operate on a View");
+            check_protobuf(w.has_delete_());
+            check_term_type(w.delete_().view(), TERM_TYPE_VIEW, scope);
             break;
         case WriteQuery::MUTATE:
-            CHECK(w.has_mutate());
-            CHECK_TYPE(w.mutate().view(), Type::VIEW, "Mutate must operate on a View");
-            CHECK_TYPE(w.mutate().mapping(), Type::JSON, "Mutate mapping must return JSON");
+            check_protobuf(w.has_mutate());
+            check_term_type(w.mutate().view(), TERM_TYPE_VIEW, scope);
+            check_mapping_type(w.mutate().mapping(), TERM_TYPE_JSON, scope);
             break;
         case WriteQuery::INSERT:
-            CHECK(w.has_insert());
+            check_protobuf(w.has_insert());
             for (int i = 0; i < w.insert().terms_size(); ++i) {
-                CHECK_TYPE(w.insert().terms(i), Type::JSON, "Insert terms must be JSON");
+                check_term_type(w.insert().terms(i), TERM_TYPE_JSON, scope);
             }
             break;
         case WriteQuery::INSERTSTREAM:
-            CHECK(w.has_insert_stream());
-            CHECK_TYPE(w.insert_stream().stream(), Type::STREAM, "InsertStream must operate on a Stream");
+            check_protobuf(w.has_insert_stream());
+            check_term_type(w.insert_stream().stream(), TERM_TYPE_STREAM, scope);
             break;
         case WriteQuery::FOREACH:
             {
-                CHECK(w.has_for_each());
-                CHECK_TYPE(w.for_each().stream(), Type::STREAM, "ForEach must operate on a Stream");
+                check_protobuf(w.has_for_each());
+                check_term_type(w.for_each().stream(), TERM_TYPE_STREAM, scope);
 
                 new_scope_t scope_maker(scope);
-                scope->put_in_scope(w.for_each().var(), Type::JSON);
+                scope->put_in_scope(w.for_each().var(), TERM_TYPE_JSON);
                 for (int i = 0; i < w.for_each().queries_size(); ++i) {
-                    CHECK_TYPE(w.for_each().queries(i), Type::WRITE, "ForEach queries must be write queries");
+                    check_write_query_type(w.for_each().queries(i), scope);
                 }
             }
             break;
         case WriteQuery::POINTUPDATE:
-            CHECK(w.has_point_update());
-            CHECK_TYPE(w.point_update().key(), Type::JSON, "PointUpdate key must be JSON");
-            CHECK_TYPE(w.point_update().mapping(), Type::JSON, "PointUpdate mapping must return JSON");
+            check_protobuf(w.has_point_update());
+            check_term_type(w.point_update().key(), TERM_TYPE_JSON, scope);
+            check_mapping_type(w.point_update().mapping(), TERM_TYPE_JSON, scope);
             break;
         case WriteQuery::POINTDELETE:
-            CHECK(w.has_point_delete());
-            CHECK_TYPE(w.point_delete().key(), Type::JSON, "PointDelete key must be JSON");
+            check_protobuf(w.has_point_delete());
+            check_term_type(w.point_delete().key(), TERM_TYPE_JSON, scope);
             break;
         case WriteQuery::POINTMUTATE:
-            CHECK(w.has_point_mutate());
-            CHECK_TYPE(w.point_mutate().key(), Type::JSON, "PointMutate key must be JSON");
-            CHECK_TYPE(w.point_mutate().mapping(), Type::JSON, "PointMutate mapping must return JSON");
+            check_protobuf(w.has_point_mutate());
+            check_term_type(w.point_mutate().key(), TERM_TYPE_JSON, scope);
+            check_mapping_type(w.point_mutate().mapping(), TERM_TYPE_JSON, scope);
             break;
         default:
             unreachable("unhandled WriteQuery");
     }
-    return Type::WRITE;
 }
 
-const type_t get_type(const Query &q, variable_type_scope_t *scope) {
+void check_query_type(const Query &q, variable_type_scope_t *scope) {
     switch (q.type()) {
     case Query::READ:
-        CHECK(q.has_read_query());
-        CHECK(!q.has_write_query());
-        CHECK_TYPE(q.read_query(), Type::READ, "Malformed read.");
+        check_protobuf(q.has_read_query());
+        check_protobuf(!q.has_write_query());
+        check_read_query_type(q.read_query(), scope);
         break;
     case Query::WRITE:
-        CHECK(q.has_write_query());
-        CHECK(!q.has_read_query());
-        CHECK_TYPE(q.write_query(), Type::WRITE, "Malformed write.");
+        check_protobuf(q.has_write_query());
+        check_protobuf(!q.has_read_query());
+        check_write_query_type(q.write_query(), scope);
         break;
     default:
         unreachable("unhandled Query");
     }
-
-    return Type::QUERY;
 }
 
 bool less(cJSON *l, cJSON *r) {
@@ -518,20 +585,29 @@ Response eval(const Query &q, runtime_environment_t *env) {
 Response eval(const ReadQuery &r, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     Response res;
 
-    type_t type(static_cast<type_t::Type>(r._type())); // depends on get_type(ReadQuery) storing the type
+    term_type_t type = static_cast<term_type_t>(r._type()); // depends on check_read_query_type() storing the type
 
-    if (type == Type::JSON) {
+    switch (type) {
+    case TERM_TYPE_JSON: {
         boost::shared_ptr<scoped_cJSON_t> json = eval(r.term(), env);
         res.add_response(cJSON_print_std_string(json->get()));
-    } else if (type == Type::STREAM) {
+        break;
+    }
+    case TERM_TYPE_STREAM:
+    case TERM_TYPE_VIEW: {
         boost::shared_ptr<json_stream_t> stream = eval_stream(r.term(), env);
-
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             res.add_response(cJSON_print_std_string(json->get()));
         }
-    } else {
-        unreachable("ReadQuery with a termm that doesn't evaluate to JSON"
-                    "or STREAM shouldn't get through the typechecker");
+        break;
+    }
+    case TERM_TYPE_ARBITRARY: {
+        eval(r.term(), env);
+        unreachable("This term has type `TERM_TYPE_ARBITRARY`, so evaluating "
+            "it should throw `runtime_exc_t`.");
+    }
+    default:
+        unreachable("read query type invalid.");
     }
 
     res.set_status_code(0);
@@ -727,28 +803,26 @@ Response eval(const WriteQuery &w, runtime_environment_t *env) THROWS_ONLY(runti
             break;
         default:
             unreachable();
-            break;
     }
-
-    Response res;
-    res.set_status_code(-3);
-    res.set_token(0);
-    res.add_response("Unimplemented");
-    return res;
+    unreachable();
 }
 
 //This doesn't create a scope for the evals
 void eval_let_binds(const Term::Let &let, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
     // Go through the bindings in a let and add them one by one
     for (int i = 0; i < let.binds_size(); ++i) {
-        type_t type(static_cast<type_t::Type>(let.binds(i)._type())); //depends on get_type(Term) storing the type previously
+        term_type_t type = static_cast<term_type_t>(let.binds(i)._type()); //depends on get_term_type() storing the type previously
 
-        if (type == Type::JSON) {
+        if (type == TERM_TYPE_JSON) {
             env->scope.put_in_scope(let.binds(i).var(),
                     eval(let.binds(i).term(), env));
-        } else if (type == Type::STREAM) {
+        } else if (type == TERM_TYPE_STREAM || type == TERM_TYPE_VIEW) {
             env->stream_scope.put_in_scope(let.binds(i).var(),
                     eval_stream(let.binds(i).term(), env));
+        } else if (type == TERM_TYPE_ARBITRARY) {
+            eval(let.binds(i).term(), env);
+            unreachable("This term has type `TERM_TYPE_ARBITRARY`, so "
+                "evaluating it must throw  `runtime_exc_t`.");
         }
 
         env->type_scope.put_in_scope(let.binds(i).var(),
@@ -861,13 +935,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
                 break;
             }
         case Term::TABLE:
-            throw runtime_exc_t("Term::TABLE must be evaluated with eval_stream or eval_view");
-            break;
+            crash("Term::TABLE must be evaluated with eval_stream or eval_view");
         default:
-            crash("unreachable");
-            break;
+            unreachable();
     }
-    crash("unreachable");
+    unreachable();
 }
 
 boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
@@ -921,11 +993,10 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_
             unreachable("eval_stream called on a function that does not return a stream (use eval instead).\n");
             break;
         default:
-            crash("unreachable");
+            unreachable();
             break;
     }
-    crash("unreachable");
-
+    unreachable();
 }
 
 boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *env) THROWS_ONLY(runtime_exc_t) {
@@ -1432,7 +1503,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 }
 
                 boost::shared_ptr<scoped_cJSON_t> json;
-                for (int i = 0; i < index; ++i) {
+                for (int i = 0; i <= index; ++i) {
                     json = stream->next();
                     if (!json) {
                         throw runtime_exc_t("Index out of bounds.");

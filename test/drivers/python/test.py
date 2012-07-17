@@ -134,7 +134,7 @@ class TestTableRef(unittest.TestCase):
         self.expect(r.let(("x", 3), ("x", 4), "x"), 4)
         self.expect(r.let(("x", 3), ("y", 4), "x"), 3)
 
-        self.expectfail("x", "type check")
+        self.expectfail("x", "not in scope")
 
     def test_if(self):
         self.expect(r.if_(True, 3, 4), 3)
@@ -207,7 +207,7 @@ class TestTableRef(unittest.TestCase):
         fail(r.nth(r.stream(arr), []), "integer")
         fail(r.nth(r.stream(arr), .4), "integer")
         fail(r.nth(r.stream(arr), -5), "nonnegative")
-        fail(r.nth(r.stream([0]), 1), "end")
+        fail(r.nth(r.stream([0]), 1), "out of bounds")
 
     def test_stream_fancy(self):
         expect = self.expect

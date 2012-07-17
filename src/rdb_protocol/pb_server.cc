@@ -12,14 +12,14 @@ Response query_server_t::handle(const Query &q) {
     query_language::variable_type_scope_t scope;
 
     try {
-        guarantee(get_type(q, &scope) == query_language::Type::QUERY);
-    } catch (query_language::runtime_exc_t &e) {
+        check_query_type(q, &scope);
+    } catch (query_language::bad_protobuf_exc_t &e) {
         res.set_status_code(-3);
-        res.add_response("Runtime Exception: " + e.what());
+        res.add_response("bad protocol buffer; client is buggy.");
         return res;
-    } catch (query_language::type_error_t &e) {
+    } catch (query_language::bad_query_exc_t &e) {
         res.set_status_code(-2);
-        res.add_response("Message failed to type check: " + e.what());
+        res.add_response("bad query: " + std::string(e.what()));
         return res;
     }
 
@@ -28,7 +28,7 @@ Response query_server_t::handle(const Query &q) {
         return eval(q, &runtime_environment);
     } catch (query_language::runtime_exc_t &e) {
         res.set_status_code(-4);
-        res.add_response("Runtime Exception: " + e.what());
+        res.add_response("runtime exception: " + std::string(e.what()));
         return res;
     }
 }
