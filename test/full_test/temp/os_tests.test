@@ -11,16 +11,6 @@ for os_name, build_folder in os_list:
     mode = build_folder[len('build/'):-len('/rethinkdb')]
     do_test(
         "$RETHINKDB/scripts/VirtuaBuild/vm_access.py --vm-name %s --command 'cd rethinkdb && scripts/VirtuaBuild/smoke_test.py --mode %s'" % (os_name, mode),
-        repeat = 1,
+        repeat = 3,
         inputs = [build_folder, "test/scenarios", "test/common", "scripts/VirtuaBuild", "test/workloads"]
         )
-
-#workload = "test/workloads/many_keys.py \\$HOST:\\$PORT"
-
-#for os_name, build_folder in os_list:
-#    mode = build_folder[len('build/'):-len('/rethinkdb')]
-#    do_test(
-#        "$RETHINKDB/scripts/VirtuaBuild/vm_access.py --vm-name %s --command 'cd rethinkdb && test/scenarios/static_cluster.py --mode %s \"%s\"'" % (os_name, mode, workload),
-#        repeat = 1,
-#        inputs = [build_folder, "test/scenarios", "test/common", "scripts/VirtuaBuild", "test/workloads"]
-#        )
