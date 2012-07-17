@@ -135,7 +135,8 @@ for path in res_paths:
 
     print "Starting RethinkDB..."
 
-    proc = exec_command("rethinkdb", bg = True, shell = True)
+    exec_command('rm -rf rethinkdb_cluster_data')
+    proc = exec_command("rethinkdb", bg = True)
 
     # gets the IP address
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -153,6 +154,7 @@ for path in res_paths:
 
     print "Tests completed. Killing instance now..."
     proc.send_signal(signal.SIGINT)
+    time.sleep(5)
 
     if res != (num_keys, num_keys):
         print "Done: FAILED"
