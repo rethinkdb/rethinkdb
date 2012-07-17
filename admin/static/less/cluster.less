@@ -1419,7 +1419,9 @@
             }
         }
 
-        table.shards { margin-bottom: 10px; }
+        table.shards {
+            margin-bottom: 10px; 
+       }
     }
 
     /* Override Bootstrap */
@@ -1604,6 +1606,27 @@
     }
 }
 
+.shards-table{
+    .summary-tr{
+        height: 30px;
+        vertical-align: top;
+        overflow: auto;
+        td{
+            overflow: auto;
+            .shard-boundaries-name{
+                float: left;
+                margin: 0px 10px 0px 0px;
+            }
+        }
+    }
+    .datacenter-list{
+        padding: 0px 0px 0px 50px;
+        .datacenters{
+            margin-right: 50px;
+        }
+    }
+}
+ 
 /*
     --------------------
     Visualization styles
