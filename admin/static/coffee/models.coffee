@@ -692,7 +692,7 @@ module 'DataUtils', ->
                     total_blocks:         if ratio_available then progress_info[1] else null
                     block_info_available: ratio_available and progress_info[0] isnt -1 and progress_info[1] isnt -1
                     ratio_available:      ratio_available
-                    machine_id:           sender.machine_id
+                    machine_id:           sender.machine_id #TODO can fail
                 _output_json.push json
 
         # Make sure there is stuff to report

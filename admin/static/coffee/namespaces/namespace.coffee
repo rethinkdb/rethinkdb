@@ -26,6 +26,7 @@ module 'NamespaceView', ->
             @profile = new NamespaceView.Profile(model: @model)
             @replicas = new NamespaceView.Replicas(model: @model)
             @shards = new NamespaceView.Sharding(model: @model)
+            @pins = new NamespaceView.Pinning(model: @model)
             @overview = new NamespaceView.Overview(model: @model)
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
@@ -56,6 +57,10 @@ module 'NamespaceView', ->
 
             # Display the shards
             @.$('.sharding').html @shards.render().el
+
+            # Display the pins
+            @.$('.pinning').html @pins.render().el
+
 
             @.$('.nav-tabs').tab()
 
@@ -239,7 +244,7 @@ module 'NamespaceView', ->
 
                 width = Math.floor((svg_width-margin_width*2)/shards.length*0.7)
                 x = d3.scale.linear().domain([0, shards.length]).range([margin_width+Math.floor(width/2), svg_width-margin_width*2])
-                y = d3.scale.linear().domain([0, json.max_keys]).range([0, svg_height-margin_height*2.5])
+                y = d3.scale.linear().domain([1, json.max_keys]).range([0, svg_height-margin_height*2.5])
 
                 svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
                 svg.selectAll('rect').data(shards)
