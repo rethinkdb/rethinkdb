@@ -260,11 +260,11 @@ private:
 template <class F>
 class mapping_stream_t : public json_stream_t {
 public:
-    mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f) 
+    mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f)
         : stream(_stream), f(_f)
     { }
 
-    boost::shared_ptr<scoped_cJSON_t> next() { 
+    boost::shared_ptr<scoped_cJSON_t> next() {
         if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             return f(json);
         } else {
@@ -282,7 +282,7 @@ class concat_mapping_stream_t : public  json_stream_t {
 public:
     concat_mapping_stream_t(boost::shared_ptr<json_stream_t> _stream, const F &_f)
         : stream(_stream), f(_f)
-    { 
+    {
         f = _f;
         if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             substream = f(json);
@@ -314,16 +314,17 @@ private:
 
 class limit_stream_t : public json_stream_t {
 public:
-    limit_stream_t(boost::shared_ptr<json_stream_t> _stream, int _limit) 
+    limit_stream_t(boost::shared_ptr<json_stream_t> _stream, int _limit)
         : stream(_stream), limit(_limit)
-    { 
+    {
         guarantee(limit >= 0);
     }
 
-    boost::shared_ptr<scoped_cJSON_t> next() { 
+    boost::shared_ptr<scoped_cJSON_t> next() {
         if (limit == 0) {
             return boost::shared_ptr<scoped_cJSON_t>();
         } else {
+            limit--;
             return stream->next();
         }
     }
