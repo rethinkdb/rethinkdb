@@ -36,7 +36,7 @@ template <class ctx_t>
 cJSON *render_as_json(perfmon_result_t *target, ctx_t ctx) {
     if (target->is_map()) {
         cJSON *res = cJSON_CreateObject();
-        
+
         for (perfmon_result_t::iterator it  = target->begin();
                                         it != target->end();
                                         ++it) {
@@ -94,11 +94,11 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 
         if (stats_ready->is_pulsed()) {
             perfmon_result_t stats = it->second->stats.wait();
-            cJSON_AddItemToObject(body.get(), uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
+            body.AddItemToObject(uuid_to_str(machine).c_str(), render_as_json(&stats, 0));
         }
     }
 
     http_res_t res(200);
-    res.set_body("application/json", cJSON_print_std_string(body.get()));
+    res.set_body("application/json", body.Print());
     return res;
 }
