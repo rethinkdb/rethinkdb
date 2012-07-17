@@ -478,10 +478,17 @@ module 'DataUtils', ->
             @namespace.on 'add', => @compute_shards @namespace.get('shards')
 
         compute_shards: (shards) =>
+            @namespace.off()
             new_shards = []
             for shard in shards
                 new_shards.push new DataUtils.Shard shard, @namespace
             @.reset new_shards
+            # Looks like @.reset kills the listeners...
+            @namespace.on 'change:shards', => @compute_shards @namespace.get('shards')
+            @namespace.on 'add', => @compute_shards @namespace.get('shards')
+
+
+    #TODO destroy
 
     @get_machine_reachability = (machine_uuid) ->
         reachable = directory.get(machine_uuid)?

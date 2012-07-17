@@ -572,7 +572,7 @@ module 'NamespaceView', ->
 
         on_success: (response) =>
             @.$('.btn-primary').button('reset')
-            namespaces.get(@namespace.id).set(response)
+            @namespace.set(response)
             @.$el.remove()
             $('.namespace-view .sharding').show()
             $('#user-alert-space').append(@alert_tmpl({}))
