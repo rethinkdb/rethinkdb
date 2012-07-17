@@ -4,7 +4,7 @@
 
 import time, sys, os, socket, random, time, signal, subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'test', 'common')))
-import driver
+import driver, workload_common
 from vcoptparse import *
 
 op = OptParser()
@@ -40,15 +40,15 @@ else:
 
 def purge_installed_packages():
     try:
-        old_binaries_raw = exec_command(["ls", "/usr/bin/rethinkdb*"]).stdout.readlines()
+        old_binaries_raw = exec_command(["ls", "/usr/bin/rethinkdb*"], shell = True).stdout.readlines()
     except Exception, e:
         print "Nothing to remove."
         return
     old_binaries = map(lambda x: x.strip('\n'), old_binaries_raw)
     print "Binaries scheduled for removal: ", old_binaries
 
-    for old_binary in old_binaries:
-        exec_command(uninstall(old_binary))
+    exec_command(uninstall(old_binaries[0]), shell = True)
+    purge_installed_packages()
 
 def exec_command(cmd, bg = False, shell = False):
     if type(cmd) == type("") and not shell:
@@ -57,7 +57,7 @@ def exec_command(cmd, bg = False, shell = False):
         cmd = " ".join(cmd)
     print cmd
     if bg:
-        return subprocess.Popen(cmd + (" &" if shell else [" &"]), stdout = subprocess.PIPE, shell = shell)
+        return subprocess.Popen(cmd, stdout = subprocess.PIPE, shell = shell) # doesn't actually run in background: it just skips the waiting part
     else:
         proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, shell = shell)
         proc.wait()
@@ -135,7 +135,7 @@ for path in res_paths:
 
     print "Starting RethinkDB..."
 
-    proc = exec_command("rethinkdb", bg = True)
+    proc = exec_command("rethinkdb", bg = True, shell = True)
 
     # gets the IP address
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -149,7 +149,7 @@ for path in res_paths:
 
     print "Testing..."
 
-    res = test_against(ip, port)
+    res = test_against(ip, base_port)
 
     print "Tests completed. Killing instance now..."
     proc.send_signal(signal.SIGINT)
