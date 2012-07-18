@@ -14,6 +14,8 @@ module 'NamespaceView', ->
         events: ->
             'click a.rename-namespace': 'rename_namespace'
             'click .close': 'close_alert'
+            'click .rebalance_shards-link': 'rebalance_shards'
+            'click .change_shards-link': 'change_shards'
 
         initialize: ->
             log_initial '(initializing) namespace view: container'
@@ -69,6 +71,71 @@ module 'NamespaceView', ->
         close_alert: (event) ->
             event.preventDefault()
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
+
+        change_shards: (event) =>
+            event.preventDefault()
+            @.$('.namespace_sharding-link').tab('show')
+
+        rebalance_shards: (event) =>
+            event.preventDefault()
+            confirmation_modal = new UIComponents.ConfirmationDialogModal
+            confirmation_modal.render("Are you sure you want to rebalance the shards for the namespace "+@model.get('name')+"?",
+                "",
+                {},
+                undefined)
+            confirmation_modal.on_submit = =>
+                # grab the data
+                data = @model.get('key_distr')
+                distr_keys = @model.sorted_key_distr_keys(data)
+                total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
+                desired_shards = @model.get('shards').length
+                rows_per_shard = total_rows / desired_shards
+
+                # Phew. Go through the keys now and compute the bitch ass split points.
+                current_shard_count = 0
+                split_points = [""]
+                no_more_splits = false
+                for key in distr_keys
+                    # Let's not overdo it :-D
+                    if split_points.length >= desired_shards
+                        no_more_splits = true
+                    current_shard_count += data[key]
+                    if current_shard_count >= rows_per_shard and not no_more_splits
+                        # Hellz yeah ho, we got our split point
+                        split_points.push(key)
+                        current_shard_count = 0
+                split_points.push(null)
+
+                # convert split points into whatever bitch ass format we're using here
+                _shard_set = []
+                for splitIndex in [0..(split_points.length - 2)]
+                    _shard_set.push(JSON.stringify([split_points[splitIndex], split_points[splitIndex + 1]]))
+
+                # See if we have enough shards
+                if _shard_set.length < desired_shards
+                    @error_msg = "There is only enough data to suggest " + _shard_set.length + " shards."
+                    @render()
+                    return
+
+
+                empty_master_pin = {}
+                empty_master_pin[JSON.stringify(["", null])] = null
+                empty_replica_pins = {}
+                empty_replica_pins[JSON.stringify(["", null])] = []
+                json =
+                    shards: _shard_set
+                    primary_pinnings: empty_master_pin
+                    secondary_pinnings: empty_replica_pins
+                # TODO detect when there are no changes.
+                $.ajax
+                    processData: false
+                    url: "/ajax/semilattice/#{@model.get('protocol')}_namespaces/#{@model.get('id')}"
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify(json)
+                    success: (response) ->
+                        clear_modals()
+
 
         destroy: =>
             @model.clear_interval_key_distr()
@@ -247,7 +314,7 @@ module 'NamespaceView', ->
 
                 width = Math.floor((svg_width-margin_width*2)/shards.length*0.7)
                 x = d3.scale.linear().domain([0, shards.length]).range([margin_width+Math.floor(width/2), svg_width-margin_width*2])
-                y = d3.scale.linear().domain([1, json.max_keys]).range([0, svg_height-margin_height*2.5])
+                y = d3.scale.linear().domain([0, json.max_keys]).range([1, svg_height-margin_height*2.5])
 
                 svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
                 svg.selectAll('rect').data(shards)
