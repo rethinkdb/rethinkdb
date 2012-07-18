@@ -13,7 +13,7 @@ module 'NamespaceView', ->
                 name: human_readable_shard shards[i]
                 shard: shards[i]
                 shard_stats:
-                    rows_approx: namespaces.get(namespace_uuid).compute_shard_rows_approximation(shards[i]) if namespaces.get(namespace_uuid).compute_shard_rows_approximation(shards[i])?
+                    rows_approx: namespaces.get(namespace_uuid).compute_shard_rows_approximation(shards[i]) if typeof namespaces.get(namespace_uuid).compute_shard_rows_approximation(shards[i]) is 'number'
                 notlast: i != shards.length - 1
                 index: i
                 primary:

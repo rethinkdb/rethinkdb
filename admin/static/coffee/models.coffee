@@ -57,7 +57,7 @@ class Namespace extends Backbone.Model
             if end_key? and key >= end_key
                 break
 
-        return count
+        return count.toString() # Return string since [] == 0 return true (for Handlebars)
 
     # Is x between the lower and upper splitpoints (the open interval) for the given index?
     splitpoint_between: (shard_index, sp) =>
