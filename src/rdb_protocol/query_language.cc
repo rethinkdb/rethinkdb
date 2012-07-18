@@ -171,9 +171,9 @@ term_type_t get_term_type(const Term &t, variable_type_scope_t *scope, const bac
             check_protobuf(t.has_if_());
             check_term_type(t.if_().test(), TERM_TYPE_JSON, scope, backtrace.with("test"));
 
-            term_type_t true_branch = get_term_type(t.if_().true_branch(), scope, backtrace.with("true"));
+            term_type_t true_branch = get_term_type(t.if_().true_branch(), scope, backtrace.with("true_branch"));
 
-            term_type_t false_branch = get_term_type(t.if_().false_branch(), scope, backtrace.with("false"));
+            term_type_t false_branch = get_term_type(t.if_().false_branch(), scope, backtrace.with("false_branch"));
 
             term_type_t combined_type;
             if (!term_type_least_upper_bound(true_branch, false_branch, &combined_type)) {
@@ -325,7 +325,7 @@ function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope
         break;
     case Builtin::REDUCE: {
         check_protobuf(b.has_reduce());
-        check_reduction_type(b.reduce(), scope, backtrace.with("reduction"));
+        check_reduction_type(b.reduce(), scope, backtrace.with("reduce"));
         break;
     }
     case Builtin::GROUPEDMAPREDUCE: {

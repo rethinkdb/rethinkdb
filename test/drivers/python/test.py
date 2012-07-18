@@ -29,18 +29,21 @@ class TestTableRef(unittest.TestCase):
             print res
             raise
 
-    def expectfail(self, query, msg):
-        with self.assertRaises(r.RDBException) as cm:
+    def expect_bad_query(self, query, msg):
+        with self.assertRaises(r.BadQueryError) as cm:
             res = self.conn.run(query)
-
         e = cm.exception
+        self.assertIn(msg, e.message)
 
-        self.assertNotEqual(e.code, 0, e.msg)
-        self.assertIn(msg, e.msg)
+    def expect_execution_error(self, query, msg):
+        with self.assertRaises(r.ExecutionError) as cm:
+            res = self.conn.run(query)
+        e = cm.exception
+        self.assertIn(msg, e.message)
 
     def test_arith(self):
         expect = self.expect
-        fail = self.expectfail
+        fail = self.expect_execution_error
 
         expect(r.add(3, 4), 7)
         expect(r.add(3, 4, 5), 12)
@@ -71,7 +74,7 @@ class TestTableRef(unittest.TestCase):
 
     def test_cmp(self):
         expect = self.expect
-        fail = self.expectfail
+        fail = self.expect_execution_error
 
         expect(r.eq(3, 3), True)
         expect(r.eq(3, 4), False)
@@ -123,34 +126,34 @@ class TestTableRef(unittest.TestCase):
         self.expect(r.all(True, True), True)
         self.expect(r.all(True, True, True), True)
 
-        self.expectfail(r.all(True, 3), "bool")
-        self.expectfail(r.any(True, 4), "bool")
+        self.expect_execution_error(r.all(True, 3), "bool")
+        self.expect_execution_error(r.any(True, 4), "bool")
 
     def test_not(self):
         self.expect(r.not_(True), False)
         self.expect(r.not_(False), True)
-        self.expectfail(r.not_(3), "bool")
+        self.expect_execution_error(r.not_(3), "bool")
 
     def test_let(self):
         self.expect(r.let(("x", 3), "x"), 3)
         self.expect(r.let(("x", 3), ("x", 4), "x"), 4)
         self.expect(r.let(("x", 3), ("y", 4), "x"), 3)
 
-        self.expectfail("x", "not in scope")
+        self.expect_bad_query("x", "not in scope")
 
     def test_if(self):
         self.expect(r.if_(True, 3, 4), 3)
         self.expect(r.if_(False, 4, 5), 5)
         self.expect(r.if_(r.eq(3, 3), r.val("foo"), r.val("bar")), "foo")
 
-        self.expectfail(r.if_(5, 1, 2), "bool")
+        self.expect_execution_error(r.if_(5, 1, 2), "bool")
 
     def test_attr(self):
         self.expect(r.has({"foo": 3}, "foo"), True)
         self.expect(r.has({"foo": 3}, "bar"), False)
 
         self.expect(r.attr({"foo": 3}, "foo"), 3)
-        self.expectfail(r.attr({"foo": 3}, "bar"), "missing")
+        self.expect_execution_error(r.attr({"foo": 3}, "bar"), "missing")
 
         self.expect(r.attr({"a": {"b": 3}}, "a.b"), 3)
 
@@ -159,12 +162,12 @@ class TestTableRef(unittest.TestCase):
         self.expect(r.extend({"a": 5}, {"a": 3}), {"a": 3})
         self.expect(r.extend({"a": 5, "b": 1}, {"a": 3}, {"b": 6}), {"a": 3, "b": 6})
 
-        self.expectfail(r.extend(5, {"a": 3}), "object")
-        self.expectfail(r.extend({"a": 5}, 5), "object")
+        self.expect_execution_error(r.extend(5, {"a": 3}), "object")
+        self.expect_execution_error(r.extend({"a": 5}, 5), "object")
 
     def test_array(self):
         expect = self.expect
-        fail = self.expectfail
+        fail = self.expect_execution_error
 
         expect(r.append([], 2), [2])
         expect(r.append([1], 2), [1, 2])
@@ -198,7 +201,7 @@ class TestTableRef(unittest.TestCase):
 
     def test_stream(self):
         expect = self.expect
-        fail = self.expectfail
+        fail = self.expect_execution_error
         arr = range(10)
 
         expect(r.array(r.stream(arr)), arr)
@@ -213,7 +216,7 @@ class TestTableRef(unittest.TestCase):
 
     def test_stream_fancy(self):
         expect = self.expect
-        fail = self.expectfail
+        fail = self.expect_execution_error
 
         def limit(arr, count):
             return r.array(r.stream(arr).limit(count))
@@ -238,7 +241,7 @@ class TestTableRef(unittest.TestCase):
 
     def test_ordering(self):
         expect = self.expect
-        fail = self.expectfail
+        fail = self.expect_execution_error
 
         def order(arr, **kwargs):
             return r.array(r.stream(arr).orderby(**kwargs))

@@ -9,20 +9,16 @@ class backtrace_t {
 public:
     backtrace_t with(const std::string &step) const {
         backtrace_t bt2 = *this;
-        bt2.steps.push_back(step);
+        bt2.frames.push_back(step);
         return bt2;
     }
 
-    std::string as_string() const {
-        std::string msg;
-        for (int i = 0; i < int(steps.size()); i++) {
-            msg += "/" + steps[i];
-        }
-        return msg;
+    std::vector<std::string> get_frames() const {
+        return frames;
     }
 
 private:
-    std::vector<std::string> steps;
+    std::vector<std::string> frames;
 };
 
 }   /* namespace query_language */
