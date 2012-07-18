@@ -125,7 +125,7 @@ struct btree_traversal_helper_t {
 void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
 
-class traversal_progress_t : public abstract_traversal_progress_t, public home_thread_mixin_t {
+class traversal_progress_t : public abstract_traversal_progress_t {
 public:
     traversal_progress_t()
         : height(-1), print_counter(0)
@@ -159,14 +159,19 @@ private:
     DISABLE_COPYING(traversal_progress_t);
 };
 
-class traversal_progress_combiner_t : public abstract_traversal_progress_t, public home_thread_mixin_t {
+class traversal_progress_combiner_t : public abstract_traversal_progress_t {
 public:
     traversal_progress_combiner_t() { }
 
-    void add_constituent(abstract_traversal_progress_t *);
+    // The constituent is welcome to have a different home thread.
+    void add_constituent(abstract_traversal_progress_t *constituent);
     progress_completion_fraction_t guess_completion() const;
 
 private:
+    // Used by guess_completion in a pmap call to go to the
+    // constituent's home thread.
+    void get_constituent_fraction(int i, std::vector<progress_completion_fraction_t> *outputs) const;
+
     boost::ptr_vector<abstract_traversal_progress_t> constituents;
 
     DISABLE_COPYING(traversal_progress_combiner_t);

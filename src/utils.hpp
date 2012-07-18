@@ -262,8 +262,8 @@ struct progress_completion_fraction_t {
         return progress_completion_fraction_t();
     }
 
-    const int estimate_of_released_nodes;
-    const int estimate_of_total_nodes;
+    int estimate_of_released_nodes;
+    int estimate_of_total_nodes;
 
     bool invalid() const { return estimate_of_total_nodes == -1; }
 
@@ -274,7 +274,7 @@ private:
 
 // TODO: Rename this to traversal_progress_t after it has been pushed
 // and merged into rdb_protocol.
-class abstract_traversal_progress_t {
+class abstract_traversal_progress_t : public home_thread_mixin_t {
 public:
     abstract_traversal_progress_t() { }
 
