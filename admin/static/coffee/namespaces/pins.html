@@ -76,20 +76,22 @@
 </script>
 
 <script id="namespace_view-shard_machine-template" type="text/x-handlebars-template">
+    <div class="action">
+    {{#unless is_master}}
+        {{#unless no_available_machines}} 
+            <input type="button" class="btn change-machine" value="Assign another machine" />
+        {{/unless}}
+        {{#unless cannot_be_master}}
+            <input type="button" class="btn make-master" value="make master" />
+        {{/unless}}
+    {{/unless}}
+    </div>
     {{#if is_master}}
         <span class="master label label-info">Master machine</span>
     {{else}}
         <span class="secondary label label-info">Secondary machine</span>
     {{/if}}
     <a class="machine name" href="#machines/{{id}}">{{name}}</a>
-    {{#unless is_master}}
-        {{#unless no_available_machines}} 
-            <a class="change-machine" href="#">Assign another machine</a>
-        {{/unless}}
-        {{#unless cannot_be_master}}
-            <a class="make-master" data-loading-text="changing master..." href="#">make master</a>
-        {{/unless}}
-    {{/unless}}
     <p class="status">
         {{humanize_machine_reachability status}}{{#if status.reachable}}{{! > backfill_progress_summary}}{{/if}}
         {{#if status.reachable}}
