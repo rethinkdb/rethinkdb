@@ -180,7 +180,7 @@ void backfiller_t<protocol_t>::request_backfill_progress(backfill_session_id_t s
                                                          auto_drainer_t::lock_t) {
     if (std_contains(local_backfill_progress, session_id) && local_backfill_progress[session_id]) {
         progress_completion_fraction_t fraction = local_backfill_progress[session_id]->guess_completion();
-        std::pair<int, int> pair_fraction = std::make_pair(fraction.numerator, fraction.denominator);
+        std::pair<int, int> pair_fraction = std::make_pair(fraction.estimate_of_released_nodes, fraction.estimate_of_total_nodes);
         send(mailbox_manager, response_mbox, pair_fraction);
     } else {
         send(mailbox_manager, response_mbox, std::make_pair(-1, -1));

@@ -557,11 +557,7 @@ progress_completion_fraction_t traversal_progress_t::guess_completion() const {
         total_released_nodes += released[i];
     }
 
-    if (total_released_nodes == 0) {
-        return progress_completion_fraction_t::make_invalid();
-    } else {
-        return progress_completion_fraction_t(total_released_nodes, estimate_of_total_nodes);
-    }
+    return progress_completion_fraction_t(total_released_nodes, estimate_of_total_nodes);
 }
 
 void traversal_progress_combiner_t::add_constituent(abstract_traversal_progress_t *c) {
@@ -571,7 +567,7 @@ void traversal_progress_combiner_t::add_constituent(abstract_traversal_progress_
 
 progress_completion_fraction_t traversal_progress_combiner_t::guess_completion() const {
     assert_thread();
-    int numerator = 0, denominator = 0;
+    int released = 0, total = 0;
     for (boost::ptr_vector<traversal_progress_t>::const_iterator it  = constituents.begin();
          it != constituents.end();
          ++it) {
@@ -580,10 +576,10 @@ progress_completion_fraction_t traversal_progress_combiner_t::guess_completion()
             return n_and_d;
         }
 
-        numerator += n_and_d.numerator;
-        denominator += n_and_d.denominator;
+        released += n_and_d.estimate_of_released_nodes;
+        total += n_and_d.estimate_of_total_nodes;
     }
 
-    return progress_completion_fraction_t(numerator, denominator);
+    return progress_completion_fraction_t(released, total);
 }
 
