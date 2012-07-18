@@ -560,7 +560,7 @@ std::pair<int, int> traversal_progress_t::guess_completion() {
     return std::make_pair(total_released_nodes, estimate_of_total_nodes);
 }
 
-void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
+void traversal_progress_combiner_t::add_constituent(abstract_traversal_progress_t *c) {
     assert_thread();
     constituents.push_back(c);
 }
