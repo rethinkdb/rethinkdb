@@ -226,8 +226,8 @@ term_type_t get_term_type(const Term &t, variable_type_scope_t *scope) {
         return TERM_TYPE_VIEW;
         break;
     case Term::JAVASCRIPT:
-        CHECK(t.has_javascript());
-        return Type::JSON;
+        check_protobuf(t.has_javascript());
+        return TERM_TYPE_JSON;
         break;
     default:
         unreachable("unhandled Term case");
