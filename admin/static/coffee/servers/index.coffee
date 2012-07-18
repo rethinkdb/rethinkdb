@@ -650,3 +650,4 @@ module 'ServerView', ->
                 machine_count: @machines_list.length
             )
 
+        #TODO Handle error

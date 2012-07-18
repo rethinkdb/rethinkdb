@@ -214,12 +214,11 @@ module 'NamespaceView', ->
 
     class @ShardMachine extends Backbone.View
         template: Handlebars.compile $('#namespace_view-shard_machine-template').html()
-        change_machine_popover: Handlebars.compile $('#namespace_view-shard_machine-assign_machine_popover-template').html()
         alert_tmpl: Handlebars.compile $('#edit_machines-alert-template').html()
         tagName: 'li'
 
         events: ->
-            'click a[rel=popover]': 'show_popover'
+            'click .change-machine': 'change_machine'
             'click .make-master': 'make_master'
 
         initialize: ->
@@ -233,6 +232,11 @@ module 'NamespaceView', ->
             directory.on 'all', @render
             #@namespace.on 'change:primary_pinnings', => @list.render()
 
+
+            @set_machine_dialog = new NamespaceView.SetMachineModal @namespace
+
+
+        ###
         show_popover: (event) =>
             event.preventDefault()
             popover_link = @.$(event.currentTarget).popover('show')
@@ -242,7 +246,9 @@ module 'NamespaceView', ->
             $('.chosen-dropdown', $popover).chosen()
             $popover.on 'clickoutside', (event) -> $(event.currentTarget).remove()
             $popover_button.on 'click', (event) =>
+
                 event.preventDefault()
+                $popover_button.button('loading')
 
                 post_data = {}
                 new_pinnings = _.without @get_currently_pinned(), @model.get('id')
@@ -260,7 +266,18 @@ module 'NamespaceView', ->
                             $popover.remove()
                             $('#user-alert-space').append (@alert_tmpl {})
                     #TODO: Handle error
-                $popover_button.button('loading')
+                    error: (response) =>
+                $popover_button.button('reset')
+            ###
+
+        change_machine: (event) =>
+            event.preventDefault()
+            @set_machine_dialog.set_data
+                shard_name: @shard.shard
+                available_machines: @.get_available_machines_in_datacenter()
+                old_pin: JSON.stringify _.without @get_currently_pinned(), @model.get('id')
+                
+            @set_machine_dialog.render()
 
         make_master: (event) =>
             event.preventDefault()
@@ -311,12 +328,14 @@ module 'NamespaceView', ->
                 backfill_progress: DataUtils.get_backfill_progress(@namespace.get('id'), @shard.get('shard_boundaries'), @model.get('id'))
                 no_available_machines: @get_available_machines_in_datacenter().length is 0
 
+            ###
             # Popover to change the machine
             @.$('a[rel=popover]').popover
                 html: true
                 trigger: 'manual'
                 content: @change_machine_popover
                     available_machines: @get_available_machines_in_datacenter()
+            ###
 
             @.delegateEvents()
             return @
@@ -326,3 +345,43 @@ module 'NamespaceView', ->
             @shard.off()
             @model.off()
             directory.off()
+
+    class @SetMachineModal extends UIComponents.AbstractModal
+        template: Handlebars.compile $('#shard-set_machine-template').html()
+        alert_tmpl: Handlebars.compile $('#shard-set_machine-alert-template').html()
+        class: 'set-machine-modal'
+
+        initialize: (namespace) ->
+            log_initial '(initializing) modal dialog: set datacenter'
+            @namespace = namespace
+            @data = 
+                modal_title: 'Set new machine'
+                btn_primary_text: 'Commit'
+                machines: []
+            super
+
+        set_data: (data) =>
+            for key of data
+                @data[key] = data[key]
+
+        render: (_machines_list) ->
+            log_render '(rendering) set machine dialog'
+            super @data
+
+        on_submit: (response) =>
+            super
+            form_data = form_data_as_object($('form', @$modal))
+            post_data = {}
+            old_pin = JSON.parse form_data.old_pin
+            old_pin.push form_data.server_to_pin
+            post_data[form_data.shard_name] = old_pin
+            $.ajax
+                processData: false
+                url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.get('id')}/secondary_pinnings"
+                type: 'POST'
+                data: JSON.stringify(post_data)
+                success: @on_success
+                error: @on_error
+
+        on_success: (response) =>
+            super
