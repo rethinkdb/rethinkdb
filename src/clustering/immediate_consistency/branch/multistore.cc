@@ -246,7 +246,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
                                                          multistore_send_backfill_should_backfill_t<protocol_t> *helper,
                                                          const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                                          const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
-                                                         UNUSED typename protocol_t::backfill_progress_t *progress,
+                                                         traversal_progress_combiner_t *progress,
                                                          const scoped_array_t<fifo_enforcer_read_token_t> &internal_tokens,
                                                          signal_t *interruptor) THROWS_NOTHING {
     store_view_t<protocol_t> *store = store_views_[i];
@@ -256,10 +256,10 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
 
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-    on_thread_t th(dest_thread);
+    typename protocol_t::backfill_progress_t store_progress(dest_thread);
+    progress->add_constituent(&store_progress);
 
-    // TODO: Fix the passing of progress.
-    typename protocol_t::backfill_progress_t tmp_progress;
+    on_thread_t th(dest_thread);
 
     try {
 
@@ -269,7 +269,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
         store->send_backfill(start_point.mask(get_region(i)),
                              boost::bind(&multistore_send_backfill_should_backfill_t<protocol_t>::should_backfill, helper, _1),
                              boost::bind(regionwrap_chunkfun<protocol_t>, chunk_fun, chunk_fun_target_hread, get_region(i), _1),
-                             &tmp_progress,
+                             &store_progress,
                              &store_token,
                              &ct_interruptor);
     } catch (const interrupted_exc_t& exc) {
@@ -292,7 +292,7 @@ template <class protocol_t>
 bool multistore_ptr_t<protocol_t>::send_multistore_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                                             const boost::function<bool(const typename protocol_t::store_t::metainfo_t &)> &should_backfill,
                                                             const boost::function<void(typename protocol_t::backfill_chunk_t)> &chunk_fun,
-                                                            typename protocol_t::backfill_progress_t *progress,
+                                                            traversal_progress_combiner_t *progress,
                                                             scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *external_token,
                                                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     guarantee(region_is_superset(get_multistore_joined_region(), start_point.get_domain()));

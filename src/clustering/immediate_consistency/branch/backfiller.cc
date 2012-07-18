@@ -109,8 +109,8 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
     map_insertion_sentry_t<backfill_session_id_t, cond_t *> be_interruptible(&local_interruptors, session_id, &local_interruptor);
 
     /* Set up a local progress monitor so people can query us for progress. */
-    typename protocol_t::backfill_progress_t local_progress;
-    map_insertion_sentry_t<backfill_session_id_t, typename protocol_t::backfill_progress_t *> display_progress(&local_backfill_progress, session_id, &local_progress);
+    traversal_progress_combiner_t local_progress;
+    map_insertion_sentry_t<backfill_session_id_t, traversal_progress_combiner_t *> display_progress(&local_backfill_progress, session_id, &local_progress);
 
     /* Set up a cond that gets pulsed if we're interrupted by either the
        backfillee stopping or the backfiller destructor being called, but don't

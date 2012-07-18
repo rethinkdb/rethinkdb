@@ -253,37 +253,5 @@ private:
     T old_value;
 };
 
-struct progress_completion_fraction_t {
-    progress_completion_fraction_t(int _released, int _total) : estimate_of_released_nodes(_released), estimate_of_total_nodes(_total) {
-        rassert(0 <= estimate_of_released_nodes && estimate_of_released_nodes <= estimate_of_total_nodes);
-    }
-
-    static progress_completion_fraction_t make_invalid() {
-        return progress_completion_fraction_t();
-    }
-
-    int estimate_of_released_nodes;
-    int estimate_of_total_nodes;
-
-    bool invalid() const { return estimate_of_total_nodes == -1; }
-
-private:
-    // Used only by the static make_invalid() function.
-    progress_completion_fraction_t() : estimate_of_released_nodes(-1), estimate_of_total_nodes(-1) { }
-};
-
-// TODO: Rename this to traversal_progress_t after it has been pushed
-// and merged into rdb_protocol.
-class abstract_traversal_progress_t : public home_thread_mixin_t {
-public:
-    abstract_traversal_progress_t() { }
-
-    virtual progress_completion_fraction_t guess_completion() const = 0;
-
-    // This actually gets used, by traversal_progress_combiner_t.
-    virtual ~abstract_traversal_progress_t() { }
-private:
-    DISABLE_COPYING(abstract_traversal_progress_t);
-};
 
 #endif // UTILS_HPP_

@@ -8,6 +8,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
+#include "backfill_progress.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
@@ -157,24 +158,6 @@ private:
     int print_counter;
 
     DISABLE_COPYING(traversal_progress_t);
-};
-
-class traversal_progress_combiner_t : public abstract_traversal_progress_t {
-public:
-    traversal_progress_combiner_t() { }
-
-    // The constituent is welcome to have a different home thread.
-    void add_constituent(abstract_traversal_progress_t *constituent);
-    progress_completion_fraction_t guess_completion() const;
-
-private:
-    // Used by guess_completion in a pmap call to go to the
-    // constituent's home thread.
-    void get_constituent_fraction(int i, std::vector<progress_completion_fraction_t> *outputs) const;
-
-    boost::ptr_vector<abstract_traversal_progress_t> constituents;
-
-    DISABLE_COPYING(traversal_progress_combiner_t);
 };
 
 #endif  // BTREE_PARALLEL_TRAVERSAL_HPP_
