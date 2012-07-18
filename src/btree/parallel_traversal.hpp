@@ -124,19 +124,6 @@ struct btree_traversal_helper_t {
 
 void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
-// TODO: Rename this to traversal_progress_t after it has been pushed
-// and merged into rdb_protocol.
-class abstract_traversal_progress_t {
-public:
-    abstract_traversal_progress_t() { }
-
-    virtual progress_completion_fraction_t guess_completion() const = 0;
-
-    // This actually gets used, by traversal_progress_combiner_t.
-    virtual ~abstract_traversal_progress_t() { }
-private:
-    DISABLE_COPYING(abstract_traversal_progress_t);
-};
 
 class traversal_progress_t : public abstract_traversal_progress_t, public home_thread_mixin_t {
 public:

@@ -272,4 +272,18 @@ private:
     progress_completion_fraction_t() : numerator(-1), denominator(-1) { }
 };
 
+// TODO: Rename this to traversal_progress_t after it has been pushed
+// and merged into rdb_protocol.
+class abstract_traversal_progress_t {
+public:
+    abstract_traversal_progress_t() { }
+
+    virtual progress_completion_fraction_t guess_completion() const = 0;
+
+    // This actually gets used, by traversal_progress_combiner_t.
+    virtual ~abstract_traversal_progress_t() { }
+private:
+    DISABLE_COPYING(abstract_traversal_progress_t);
+};
+
 #endif // UTILS_HPP_

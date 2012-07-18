@@ -95,8 +95,8 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_3(key, value, timestamp);
     };
 
-    struct backfill_progress_t {
-        progress_completion_fraction_t guess_completion() {
+    struct backfill_progress_t : public abstract_traversal_progress_t {
+        progress_completion_fraction_t guess_completion() const {
             return progress_completion_fraction_t::make_invalid();
         }
     };
