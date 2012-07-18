@@ -203,6 +203,8 @@ module 'NamespaceView', ->
 
         initialize: ->
             machines.on 'change', @render
+            @model.on 'change:key_distr', @render
+            @model.on 'change:shards', @render
             @json =
                 data_in_memory_percent: -1
                 data_in_memory: -1
@@ -299,7 +301,7 @@ module 'NamespaceView', ->
                 #arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc).style('opacity', 0).transition().duration(600).style('opacity', 1)
 
             # Draw histogram
-            if json.max_keys? and shards.length isnt 0
+            if json.max_keys? and json.max_keys isnt NaN and shards.length isnt 0
                 @.$('.data_repartition-diagram > g').remove()
                 @.$('.loading_text-diagram').remove()
                 

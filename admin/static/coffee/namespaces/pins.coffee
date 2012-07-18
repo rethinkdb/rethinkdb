@@ -31,6 +31,10 @@ module 'NamespaceView', ->
             @should_be_hidden = false
             @check_has_unsatisfiable_goals()
             issues.on 'all', @check_has_unsatisfiable_goals
+            @model.on 'change:replica_affinities', @render
+            @model.on 'blueprint', @render
+
+
 
         check_has_unsatisfiable_goals: =>
             if @should_be_hidden
@@ -102,7 +106,6 @@ module 'NamespaceView', ->
                     namespace: @namespace
 
             @namespace.on 'change:key_distr_sorted', @render_summary
-            
             @namespace.on 'change:blueprint', @reset_datacenter_list #TODO bind to peers_roles
 
         render: =>
@@ -128,8 +131,6 @@ module 'NamespaceView', ->
 
     class @ShardDatacenterList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_datacenter_list-template').html()
-
-            
 
     class @ShardDatacenter extends UIComponents.CollapsibleListElement
         template: Handlebars.compile $('#namespace_view-shard_datacenter-template').html()
@@ -203,10 +204,13 @@ module 'NamespaceView', ->
     class @ShardMachineList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_machine_list-template').html()
 
-        initialize: ->
+        initialize: =>
             super
             @namespace = @options.element_args.namespace
             @namespace.on 'change:primary_pinnings', @render
+            @namespace.on 'change:replica_affinities', @render
+            
+
 
         destroy: =>
             @machine_list.off()
