@@ -103,7 +103,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     semilattice_app.reset(new semilattice_http_app_t(_metadata_change_handler, _directory_metadata, _us));
     directory_app.reset(new directory_http_app_t(_directory_metadata));
     issues_app.reset(new issues_http_app_t(&_admin_tracker->issue_aggregator));
-    stat_app.reset(new stat_http_app_t(mbox_manager, _directory_metadata));
+    stat_app.reset(new stat_http_app_t(mbox_manager, _directory_metadata, _semilattice_metadata));
     last_seen_app.reset(new last_seen_http_app_t(&_admin_tracker->last_seen_tracker));
     log_app.reset(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),

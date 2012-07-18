@@ -65,6 +65,7 @@ public:
     virtual void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
                          stores_lifetimer_t<protocol_t> *stores_out,
                          boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) = 0;
+    virtual void destroy_svs(namespace_id_t namespace_id) = 0;
 
 protected:
     virtual ~svs_by_namespace_t() { }
@@ -95,7 +96,10 @@ private:
 
     typedef boost::ptr_map<namespace_id_t, watchable_and_reactor_t<protocol_t> > reactor_map_t;
 
-    void delete_reactor_data(auto_drainer_t::lock_t lock, typename reactor_map_t::auto_type *thing_to_delete);
+    void delete_reactor_data(
+            auto_drainer_t::lock_t lock,
+            typename reactor_map_t::auto_type *thing_to_delete,
+            namespace_id_t namespace_id);
     void on_change();
 
     io_backender_t *io_backender;
