@@ -154,7 +154,6 @@ for path in res_paths:
 
     print "Tests completed. Killing instance now..."
     proc.send_signal(signal.SIGINT)
-    time.sleep(5)
 
     if res != (num_keys, num_keys):
         print "Done: FAILED"
