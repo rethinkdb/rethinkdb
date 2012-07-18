@@ -16,6 +16,12 @@
 
 namespace js {
 
+// Returns an empty pointer on error.
+boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std::string *errmsg);
+
+// Should never error.
+v8::Handle<v8::Value> fromJSON(const cJSON &json);
+
 // Worker-side JS evaluation environment.
 class env_t {
   public:
@@ -48,6 +54,9 @@ class env_t {
 
 // A standard "id or error" result.
 typedef boost::variant<id_t, std::string> id_result_t;
+
+// "json or error".
+typedef boost::variant<boost::shared_ptr<scoped_cJSON_t>, std::string> json_result_t;
 
 // "Mini-jobs" that we run within an env_t.
 class task_t :

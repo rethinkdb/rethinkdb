@@ -5,6 +5,7 @@
 #include "rdb_protocol/javascript_impl.hpp"
 
 #include "utils.hpp"
+#include <boost/make_shared.hpp>
 
 namespace js {
 
@@ -209,6 +210,57 @@ bool eval_t::eval(
     } else {
         return false;
     }
+}
+
+struct get_json_task_t : auto_task_t<get_json_task_t> {
+    get_json_task_t() {}
+    explicit get_json_task_t(id_t id) : id_(id) {}
+    id_t id_;
+    RDB_MAKE_ME_SERIALIZABLE_1(id_);
+
+    void run(env_t *env) {
+        json_result_t result("");
+
+        // Get the object.
+        v8::HandleScope handle_scope;
+        v8::Handle<v8::Value> val = env->findValue(id_);
+        rassert(!val.IsEmpty());
+
+        // JSONify it.
+        boost::shared_ptr<scoped_cJSON_t> ptr = toJSON(val, boost::get<std::string>(&result));
+        if (ptr) {
+            // Store into result for transport.
+            result = ptr;
+        }
+
+        // Send back the result.
+        write_message_t msg;
+        msg << result;
+        guarantee(0 == send_write_message(env->control_, &msg));
+    }
+};
+
+struct json_visitor_t {
+    typedef boost::shared_ptr<scoped_cJSON_t> result_type;
+    json_visitor_t(std::string *errmsg) : errmsg_(errmsg) {}
+    std::string *errmsg_;
+    result_type operator()(const result_type &r) { return r; }
+    result_type operator()(const std::string &msg) { *errmsg_ = msg; return result_type(); }
+};
+
+bool eval_t::getJSON(
+    boost::shared_ptr<scoped_cJSON_t> *out,
+    const js_handle_t *json_handle,
+    std::string *errmsg,
+    UNUSED req_config_t *config)
+{
+    json_result_t result;
+    begin_task(get_json_task_t(json_handle->id_));
+    guarantee(ARCHIVE_SUCCESS == deserialize(this, &result));
+    end_task();
+
+    json_visitor_t v(errmsg);
+    return NULL != (*out = boost::apply_visitor(v, result)).get();
 }
 
 // TODO (rntz)

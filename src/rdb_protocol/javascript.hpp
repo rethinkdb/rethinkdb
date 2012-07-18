@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "extproc/job.hpp"
 #include "extproc/pool.hpp"
@@ -85,12 +85,6 @@ class eval_t :
         long timeout;           // FIXME: wrong type.
     };
 
-    // Sends over a JSON object. Can't fail (except due to job failure).
-    void fromJSON(
-        js_handle_t *out,
-        const cJSON &json,
-        req_config_t *config = NULL);
-
     // Evaluates javascript, storing a handle to it in `*out`.
     // May fail if the javascript does not compile or run.
     //
@@ -111,10 +105,16 @@ class eval_t :
         std::string *errmsg,
         req_config_t *config = NULL);
 
+    // Sends over a JSON object. Can't fail (except due to job failure).
+    void fromJSON(
+        js_handle_t *out,
+        const boost::shared_ptr<scoped_cJSON_t> json,
+        req_config_t *config = NULL);
+
     // Retrieves an object as JSON from the other side.
     // Fails if the object can't be represented as JSON.
     MUST_USE bool getJSON(
-        scoped_cJSON_t *out,
+        boost::shared_ptr<scoped_cJSON_t> *out,
         const js_handle_t *json_handle,
         std::string *errmsg,
         req_config_t *config = NULL);
@@ -145,7 +145,7 @@ class eval_t :
         std::string *errmsg,
         req_config_t *config = NULL);
 
-    // TODO (rntz): a way to send streams over the javascript.
+    // TODO (rntz): a way to send streams over to javascript.
     // TODO (rntz): a way to get streams back from javascript.
     // TODO (rntz): map/reduce jobs & co.
 
