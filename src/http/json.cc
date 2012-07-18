@@ -19,6 +19,24 @@ scoped_cJSON_t::~scoped_cJSON_t() {
     }
 }
 
+
+/* Render a cJSON entity to text for transfer/storage. */
+std::string scoped_cJSON_t::Print() const {
+    char *s = cJSON_Print(val);
+    std::string res(s);
+    free(s);
+
+    return res;
+}
+/* Render a cJSON entity to text for transfer/storage without any formatting. */
+std::string scoped_cJSON_t::PrintUnformatted() const {
+    char *s = cJSON_PrintUnformatted(val);
+    std::string res(s);
+    free(s);
+
+    return res;
+}
+
 cJSON *scoped_cJSON_t::get() const {
     return val;
 }
@@ -40,7 +58,7 @@ copyable_cJSON_t::copyable_cJSON_t(cJSON *_val)
     : val(_val)
 { }
 
-copyable_cJSON_t::copyable_cJSON_t(const copyable_cJSON_t &other) 
+copyable_cJSON_t::copyable_cJSON_t(const copyable_cJSON_t &other)
     : val(cJSON_DeepCopy(other.val))
 { }
 
@@ -171,12 +189,12 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
             msg << cJSON_GetArraySize(&cjson);
 
             cJSON *hd = cjson.child;
-            while (hd) { 
+            while (hd) {
                 if (cjson.type == cJSON_Object) {
                     msg << std::string(hd->string);
                 }
                 msg << *hd;
-                hd = hd->next; 
+                hd = hd->next;
             }
         }
         break;
@@ -195,7 +213,7 @@ write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
 MUST_USE archive_result_t deserialize(read_stream_t *s, cJSON *cjson) {
     archive_result_t res = deserialize(s, &cjson->type);
     CHECK_RES(res);
-    
+
     switch (cjson->type) {
     case cJSON_False:
     case cJSON_True:

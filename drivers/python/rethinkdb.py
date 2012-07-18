@@ -15,6 +15,13 @@ DEFAULT_ROW_BINDING = 'row'
 # > q = r.db("foo").bar
 # > r._debug_ast(q)
 
+class RDBException(Exception):
+    def __init__(self, code, msg):
+        self.code = code
+        self.msg = msg
+    def __str__(self):
+        return '%d: %s' % (self.code, self.msg)
+
 class Connection(object):
     def __init__(self, hostname, port):
         self.hostname = hostname
@@ -45,7 +52,10 @@ class Connection(object):
         if debug:
             print "response:", response
 
-        return response
+        if response.status_code:
+            raise RDBException(response.status_code, response.response[0])
+
+        return [json.loads(s) for s in response.response]
 
     def get_token(self):
         token = self.token
@@ -116,6 +126,9 @@ class Stream(object):
     def update(self, updater, row=DEFAULT_ROW_BINDING):
         self.check_readonly()
         return Update(self, updater, row)
+
+    def orderby(self, **ordering):
+        return OrderBy(self, **ordering)
 
     def distinct(self, *keys):
         if keys:
@@ -331,7 +344,7 @@ class GroupedMapReduce(Stream):
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
 
-class Reduction():
+class Reduction(object):
     def __init__(self, start, arg1, arg2, body):
         self.start = start
         self.arg1 = arg1
@@ -362,6 +375,21 @@ class Reduce(Stream):
         Reduction(self.start, self.arg1, self.arg2, self.body).write_ast(parent.call.builtin.reduce)
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
+
+class OrderBy(Stream):
+    def __init__(self, parent_view, **ordering):
+        super(OrderBy, self).__init__()
+        self.read_only = True
+        self.parent_view = parent_view
+        self.ordering = ordering
+
+    def write_ast(self, parent):
+        self._write_call(parent, p.Builtin.ORDERBY, self.parent_view)
+        for key, val in self.ordering.iteritems():
+            elem = parent.call.builtin.order_by.add()
+            elem.attr = key
+            elem.ascending = bool(val)
+
 
 class Term(object):
     def __init__(self):
@@ -565,6 +593,15 @@ class has(Term):
         self._write_call(parent, p.Builtin.HASATTR, self.parent)
         parent.call.builtin.attr = self.key
 
+class pick(Term):
+    def __init__(self, parent, *attrs):
+        self.parent = parent
+        self.attrs = attrs
+
+    def write_ast(self, parent):
+        self._write_call(parent, p.Builtin.PICKATTRS, self.parent)
+        for attr in self.attrs:
+            parent.call.builtin.attrs.add(attr)
 
 class Let(Term):
     def __init__(self, pairs, expr):
