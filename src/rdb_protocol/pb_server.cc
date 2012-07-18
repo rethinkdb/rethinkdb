@@ -28,11 +28,13 @@ Response query_server_t::handle(const Query &q) {
 
     query_language::runtime_environment_t runtime_environment(ns_repo, semilattice_metadata);
     try {
-        return query_language::eval(q, &runtime_environment, root_backtrace);
+        res.set_status_code(0);
+        execute(q, &runtime_environment, &res, root_backtrace);
     } catch (query_language::runtime_exc_t &e) {
         res.set_status_code(-4);
         res.add_response("runtime exception: " + e.message);
         res.add_response(e.backtrace.as_string());
-        return res;
     }
+
+    return res;
 }

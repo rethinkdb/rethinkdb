@@ -611,36 +611,30 @@ private:
     backtrace_t backtrace;
 };
 
-Response eval(const Query &q, runtime_environment_t *env, const backtrace_t &backtrace) {
-    switch (q.type()) {
-        case Query::READ:
-            return eval(q.read_query(), env, backtrace);
-            break;
-        case Query::WRITE:
-            return eval(q.write_query(), env, backtrace);
-            break;
-        default:
-            crash("unreachable");
+void execute(const Query &q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+    if (q.type() == Query::READ) {
+        execute(q.read_query(), env, res, backtrace);
+    } else if (q.type() == Query::WRITE) {
+        execute(q.write_query(), env, res, backtrace);
+    } else {
+        crash("unreachable");
     }
-    crash("unreachable");
 }
 
-Response eval(const ReadQuery &r, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
-    Response res;
-
+void execute(const ReadQuery &r, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     term_type_t type = get_term_type(r.term(), &env->type_scope, backtrace);
 
     switch (type) {
     case TERM_TYPE_JSON: {
         boost::shared_ptr<scoped_cJSON_t> json = eval(r.term(), env, backtrace);
-        res.add_response(json->Print());
+        res->add_response(json->PrintUnformatted());
         break;
     }
     case TERM_TYPE_STREAM:
     case TERM_TYPE_VIEW: {
         boost::shared_ptr<json_stream_t> stream = eval_stream(r.term(), env, backtrace);
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-            res.add_response(json->Print());
+            res->add_response(json->PrintUnformatted());
         }
         break;
     }
@@ -652,10 +646,6 @@ Response eval(const ReadQuery &r, runtime_environment_t *env, const backtrace_t 
     default:
         unreachable("read query type invalid.");
     }
-
-    res.set_status_code(0);
-    res.set_token(0);
-    return res;
 }
 
 void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_ptr<scoped_cJSON_t> data, runtime_environment_t *env, const backtrace_t &backtrace) {
@@ -684,13 +674,13 @@ void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::s
     point_delete(ns_access, id->get(), env, backtrace);
 }
 
-Response eval(const WriteQuery &w, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
+void execute(const WriteQuery &w, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (w.type()) {
         case WriteQuery::UPDATE:
             {
                 view_t view = eval_view(w.update().view().table(), env, backtrace.with("view"));
 
-                int modified = 0,
+                int updated = 0,
                     error = 0;
                 while (boost::shared_ptr<scoped_cJSON_t> json = view.stream->next()) {
                     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
@@ -702,16 +692,11 @@ Response eval(const WriteQuery &w, runtime_environment_t *env, const backtrace_t
                         error++;
                     } else {
                         insert(view.access, val, env, backtrace);
-                        modified++;
+                        updated++;
                     }
                 }
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response(strprintf("Modified %d rows.", modified));
-                res.add_response(strprintf("%d errors.", error));
-                return res;
+                res->add_response(strprintf("{\"updated\": %d, \"errors\": %d}", updated, error));
             }
             break;
         case WriteQuery::DELETE:
@@ -724,11 +709,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env, const backtrace_t
                     deleted++;
                 }
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response(strprintf("Deleted %d rows.", deleted));
-                return res;
+                res->add_response(strprintf("{\"deleted\": %d}", deleted));
             }
             break;
         case WriteQuery::MUTATE:
@@ -750,12 +731,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env, const backtrace_t
                     }
                 }
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response(strprintf("Deleted %d rows.", deleted));
-                res.add_response(strprintf("Modified %d rows.", modified));
-                return res;
+                res->add_response(strprintf("{\"modified\": %d, \"deleted\": %d}", modified, deleted));
             }
             break;
         case WriteQuery::INSERT:
@@ -767,11 +743,8 @@ Response eval(const WriteQuery &w, runtime_environment_t *env, const backtrace_t
 
                     insert(ns_access, data, env, backtrace);
                 }
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response(strprintf("Inserted %d rows.", w.insert().terms_size()));
-                return res;
+
+                res->add_response(strprintf("{\"inserted\": %d}", w.insert().terms_size()));
             }
             break;
         case WriteQuery::INSERTSTREAM:
@@ -786,11 +759,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env, const backtrace_t
                     insert(ns_access, json, env, backtrace);
                 }
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response(strprintf("Inserted %d rows.", inserted));
-                return res;
+                res->add_response(strprintf("{\"inserted\": %d}", inserted));
             }
             break;
         case WriteQuery::FOREACH:
@@ -802,7 +771,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env, const backtrace_t
                     env->scope.put_in_scope(w.for_each().var(), json);
 
                     for (int i = 0; i < w.for_each().queries_size(); ++i) {
-                        eval(w.for_each().queries(i), env, backtrace.with(strprintf("query:%d", i)));
+                        execute(w.for_each().queries(i), env, res, backtrace.with(strprintf("query:%d", i)));
                     }
                 }
             }
@@ -829,11 +798,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env, const backtrace_t
 
                 insert(ns_access, new_val, env, backtrace);
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response("Updated 1 rows.");
-                return res;
+                res->add_response(strprintf("{\"updated\": %d, \"errors\": %d}", 1, 0));
             }
             break;
         case WriteQuery::POINTDELETE:
@@ -842,12 +807,7 @@ Response eval(const WriteQuery &w, runtime_environment_t *env, const backtrace_t
                 boost::shared_ptr<scoped_cJSON_t> id = eval(w.point_delete().key(), env, backtrace.with("key"));
                 point_delete(ns_access, id, env, backtrace);
 
-                Response res;
-                res.set_status_code(0);
-                res.set_token(0);
-                res.add_response("Deleted 1 rows.");
-
-                return res;
+                res->add_response(strprintf("{\"deleted\": %d}", 1));
             }
             break;
         case WriteQuery::POINTMUTATE:
@@ -856,7 +816,6 @@ Response eval(const WriteQuery &w, runtime_environment_t *env, const backtrace_t
         default:
             unreachable();
     }
-    unreachable();
 }
 
 //This doesn't create a scope for the evals
@@ -871,7 +830,7 @@ void eval_let_binds(const Term::Let &let, runtime_environment_t *env, const back
                     eval(let.binds(i).term(), env, backtrace_bind));
         } else if (type == TERM_TYPE_STREAM || type == TERM_TYPE_VIEW) {
             env->stream_scope.put_in_scope(let.binds(i).var(),
-                    eval_stream(let.binds(i).term(), env, backtrace_bind));
+                    boost::shared_ptr<stream_multiplexer_t>(new stream_multiplexer_t(eval_stream(let.binds(i).term(), env, backtrace_bind))));
         } else if (type == TERM_TYPE_ARBITRARY) {
             eval(let.binds(i).term(), env, backtrace_bind);
             unreachable("This term has type `TERM_TYPE_ARBITRARY`, so "
@@ -1005,7 +964,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
 boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     switch (t.type()) {
         case Term::VAR:
-            return env->stream_scope.get(t.var());
+            return boost::shared_ptr<json_stream_t>(new stream_multiplexer_t::stream_t(env->stream_scope.get(t.var())));
             break;
         case Term::LET:
             {

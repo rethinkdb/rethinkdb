@@ -156,6 +156,8 @@ void check_query_type(const Query &q, variable_type_scope_t *scope, const backtr
 
 /* functions to evaluate the queries */
 
+typedef std::list<boost::shared_ptr<scoped_cJSON_t> > cJSON_list_t;
+
 class json_stream_t {
 public:
     virtual boost::shared_ptr<scoped_cJSON_t> next() = 0;
@@ -164,46 +166,89 @@ public:
 
 class in_memory_stream_t : public json_stream_t {
 public:
-    typedef std::list<boost::shared_ptr<scoped_cJSON_t> > cJSON_list_t;
-
     template <class iterator>
     in_memory_stream_t(const iterator &begin, const iterator &end)
-        : data(begin, end), hd(data.begin())
+        : data(begin, end)
     { }
 
     in_memory_stream_t(json_array_iterator_t it) {
         while (cJSON *json = it.next()) {
             data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
         }
-        hd = data.begin();
     }
 
     in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
         while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
             data.push_back(json);
         }
-        hd = data.begin();
     }
 
     template <class Ordering>
     void sort(const Ordering &o) {
-        guarantee(hd == data.begin(), "Can't sort a stream if you've already consumed from it");
         data.sort(o);
-        hd = data.begin();
     }
 
     boost::shared_ptr<scoped_cJSON_t> next() {
-        if (hd == data.end()) {
+        if (data.empty()) {
             return boost::shared_ptr<scoped_cJSON_t>();
         } else {
-            boost::shared_ptr<scoped_cJSON_t> res = *hd;
-            ++hd;
+            boost::shared_ptr<scoped_cJSON_t> res = data.front();
+            data.pop_front();
             return res;
         }
     }
 private:
     cJSON_list_t data;
-    cJSON_list_t::iterator hd;
+};
+
+class stream_multiplexer_t {
+public:
+
+    stream_multiplexer_t() { }
+    explicit stream_multiplexer_t(boost::shared_ptr<json_stream_t> _stream)
+        : stream(_stream)
+    { }
+
+    typedef std::vector<boost::shared_ptr<scoped_cJSON_t> > cJSON_vector_t;
+
+    class stream_t : public json_stream_t {
+    public:
+        stream_t(boost::shared_ptr<stream_multiplexer_t> _parent)
+            : parent(_parent), index(0)
+        {
+            rassert(parent->stream);
+        }
+
+        boost::shared_ptr<scoped_cJSON_t> next() {
+            while (index >= parent->data.size()) {
+                if (!parent->maybe_read_more()) {
+                    return boost::shared_ptr<scoped_cJSON_t>();
+                }
+            }
+
+            return parent->data[index++];
+        }
+    private:
+        boost::shared_ptr<stream_multiplexer_t> parent;
+        cJSON_vector_t::size_type index;
+    };
+
+private:
+    friend class stream_t;
+
+    bool maybe_read_more() {
+        if (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
+            data.push_back(json);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    //TODO this should probably not be a vector
+    boost::shared_ptr<json_stream_t> stream;
+
+    cJSON_vector_t data;
 };
 
 class union_stream_t : public json_stream_t {
@@ -329,14 +374,13 @@ private:
     int limit;
 };
 
-
 //Scopes for single pieces of json
 typedef variable_scope_t<boost::shared_ptr<scoped_cJSON_t> > variable_val_scope_t;
 
 typedef variable_val_scope_t::new_scope_t new_val_scope_t;
 
 //scopes for json streams
-typedef variable_scope_t<boost::shared_ptr<json_stream_t> > variable_stream_scope_t;
+typedef variable_scope_t<boost::shared_ptr<stream_multiplexer_t> > variable_stream_scope_t;
 
 typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
 
@@ -374,11 +418,11 @@ public:
 
 //TODO most of these functions that are supposed to only throw runtime exceptions
 
-Response eval(const Query &q, runtime_environment_t *, const backtrace_t &backtrace);
+void execute(const Query &q, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-Response eval(const ReadQuery &r, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(const ReadQuery &r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-Response eval(const WriteQuery &r, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+void execute(const WriteQuery &r, runtime_environment_t *, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 

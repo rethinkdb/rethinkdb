@@ -15,6 +15,13 @@ DEFAULT_ROW_BINDING = 'row'
 # > q = r.db("foo").bar
 # > r._debug_ast(q)
 
+class RDBException(Exception):
+    def __init__(self, code, msg):
+        self.code = code
+        self.msg = msg
+    def __str__(self):
+        return '%d: %s' % (self.code, self.msg)
+
 class Connection(object):
     def __init__(self, hostname, port):
         self.hostname = hostname
@@ -45,7 +52,10 @@ class Connection(object):
         if debug:
             print "response:", response
 
-        return response
+        if response.status_code:
+            raise RDBException(response.status_code, response.response[0])
+
+        return [json.loads(s) for s in response.response]
 
     def get_token(self):
         token = self.token
