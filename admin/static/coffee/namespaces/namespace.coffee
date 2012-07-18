@@ -191,6 +191,8 @@ module 'NamespaceView', ->
                 json.has_shards = true
                 if shards.length > 6
                     json.numerous_shards = true
+            else
+                json.has_shards = false
 
             # So we don't update every seconds
             need_update = false

@@ -40,6 +40,7 @@ module 'NamespaceView', ->
         invalid_splitpoint_msg: Handlebars.compile $('#namespace_view_invalid_splitpoint_alert-template').html()
         invalid_merge_msg: Handlebars.compile $('#namespace_view_invalid_merge_alert-template').html()
         invalid_shard_msg: Handlebars.compile $('#namespace_view_invalid_shard_alert-template').html()
+        error_update_forbidden_msg: Handlebars.compile $('#namespace_view-sharding_alert-template').html()
 
         class: 'modify-shards'
         events:
@@ -65,7 +66,40 @@ module 'NamespaceView', ->
             # We should rerender on key distro updates
             @namespace.on 'change:shards', @render_only_shards
             @shard_views = []
+
+            # Forbid changes if issues
+            @should_be_hidden = false
+            @check_has_unsatisfiable_goals()
+            issues.on 'all', @check_has_unsatisfiable_goals
+
             super
+
+        check_has_unsatisfiable_goals: =>
+            if @should_be_hidden
+                should_be_hidden_new = false
+                for issue in issues.models 
+                    if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id') # If unsatisfiable goals, the user should not change shards
+                        should_be_hidden_new = true
+                        break
+                    if issue.get('type') is 'MACHINE_DOWN' # If a machine connected (even with a role nothing) is down, the user should not change shards
+                        if machines.get(issue.get('victim')).get('datacenter_uuid') of @model.get('replica_affinities')
+                            should_be_hidden_new = true
+                            break
+
+                if not should_be_hidden_new
+                    @should_be_hidden = false
+                    @render()
+            else
+                for issue in issues.models
+                    if issue.get('type') is 'UNSATISFIABLE_GOALS' and issue.get('namespace_id') is @model.get('id')
+                        @should_be_hidden = true
+                        @render()
+                        break
+                    if issue.get('type') is 'MACHINE_DOWN'
+                        if machines.get(issue.get('victim')).get('datacenter_uuid') of @model.get('replica_affinities')
+                            @should_be_hidden = true
+                            @render()
+                            break
 
         reset_shards: (e) ->
             e.preventDefault()
@@ -206,6 +240,12 @@ module 'NamespaceView', ->
             else
                 @reset_button_disable()
             $('#focus_num_shards').focus()
+
+            @.$el.toggleClass('namespace-shards-blackout', @should_be_hidden)
+            @.$('.blackout').toggleClass('blackout-active', @should_be_hidden)
+            @.$('.alert_for_sharding').toggle @should_be_hidden
+            @.$('.alert_for_sharding').html @error_update_forbidden_msg if @should_be_hidden
+
             return @
 
         render_only_shards: =>

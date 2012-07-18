@@ -17,11 +17,10 @@ module 'NamespaceView', ->
     class @Pinning extends UIComponents.AbstractList
         className: 'namespace-shards'
         template: Handlebars.compile $('#namespace_view-sharding-template').html()
-        error_msg: Handlebars.compile $('#namespace_view-sharding_alert-template').html()
+        error_update_forbidden_msg: Handlebars.compile $('#namespace_view-sharding_alert-template').html()
 
         events: ->
             'click .change-sharding-scheme': 'change_sharding_scheme'
-        should_be_hidden: false
 
         initialize: ->
             super @model.get('computed_shards'), NamespaceView.Shard, 'table.shards tbody',
@@ -29,6 +28,7 @@ module 'NamespaceView', ->
                     namespace: @model
             @render()
 
+            @should_be_hidden = false
             @check_has_unsatisfiable_goals()
             issues.on 'all', @check_has_unsatisfiable_goals
 
@@ -65,7 +65,7 @@ module 'NamespaceView', ->
             @.$el.toggleClass('namespace-shards-blackout', @should_be_hidden)
             @.$('.blackout').toggleClass('blackout-active', @should_be_hidden)
             @.$('.alert_for_sharding').toggle @should_be_hidden
-            @.$('.alert_for_sharding').html @error_msg if @should_be_hidden
+            @.$('.alert_for_sharding').html @error_update_forbidden_msg if @should_be_hidden
 
             return @
 

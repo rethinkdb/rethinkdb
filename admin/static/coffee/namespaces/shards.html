@@ -1,4 +1,5 @@
 <script id="modify_shards-template" type="text/x-handlebars-template">
+    <div class="alert_for_sharding alert alert-error"></div>
     <div class="modify-shards">
         <h3 class="title">Change sharding settings for <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a>:</h3>
         <div class="invalid_shard_alert alert alert-error"></div>
@@ -35,6 +36,7 @@
             </div>
         </form>
     </div>
+    <div class="blackout"></div>
 </script>
 
 <script id="modify_shards-alert-template" type="text/x-handlebars-template">

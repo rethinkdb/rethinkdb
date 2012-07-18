@@ -79,8 +79,9 @@
         </div>
     </div>
     
+    <h3 class="title">Data repartition</h3>
+
     {{#if has_shards}}
-        <h3 class="title">Data repartition</h3>
         {{#if numerous_shards}}
             <div class="data_repartition-graph">
                 <svg class="data_repartition-diagram" width="700" height="350">
@@ -150,6 +151,8 @@
             </div>
         </div>
         {{/if}}
+    {{else}}
+        <p class="no-shard">You do not have shards for this namespace.</p>    
     {{/if}}
 
 
