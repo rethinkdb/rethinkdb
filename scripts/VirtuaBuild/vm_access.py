@@ -46,12 +46,12 @@ def sys_exit(message, exit_code, shut_down = False):
         target.shut_down()
     sys.exit(exit_code)
 
-suse = VM('suse', '765127b8-2007-43ff-8668-fe4c60176a2b', 'root@192.168.0.173')
+suse = VM('suse', '7bd61095-36c6-4e98-a2c2-4ce6322de5d7', 'root@192.168.0.173')
 redhat5_1 = VM('redhat5_1', '32340f79-cea9-42ca-94d5-2da13d408d02', 'root@192.168.0.159')
 ubuntu = VM('ubuntu', '1f4521a0-6e74-4d20-b4b9-9ffd8e231423', 'root@192.168.0.172')
 debian = VM('debian', 'cc76e2a5-92c0-4208-be08-5c02429c2c50', 'root@192.168.0.176')
 centos5_5 = VM('centos5_5', '7595c315-9be0-4e6d-a757-33f018182937', 'root@192.168.0.177')
-centos6 = VM('centos6', 'a48b00d0-98e8-4b13-a9ea-d58dde484061', 'root@192.168.0.178')
+centos6 = VM('centos6', '3f9e9d18-dccb-40b9-ba31-5a68f627b258', 'root@192.168.0.178')
 
 vm_list = {"suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5, "centos6" : centos6}
 
