@@ -219,7 +219,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                 "target_os": "centos5_5"
                 }
             builds["suse"] = {
-                "command_line": "cd rethinkdb/src && make rpm-suse10 PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/suse",
+                "kpommand_line": "cd rethinkdb/src && make rpm PACKAGE_FOR_SUSE_10=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/suse",
                 "products": ["rethinkdb/build/suse"],
                 "target_os": "suse"
                 }
