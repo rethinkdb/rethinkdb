@@ -11,6 +11,7 @@
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "http/json.hpp"
+#include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.pb.h"
 
@@ -36,7 +37,7 @@ and `bad_protobuf_exc_t` is that `bad_protobuf_exc_t` is the client's fault and
 
 class bad_query_exc_t : public std::exception {
 public:
-    explicit bad_query_exc_t(const std::string &s) : message(s) { }
+    explicit bad_query_exc_t(const std::string &s, const backtrace_t &bt) : message(s), backtrace(bt) { }
 
     ~bad_query_exc_t() throw () { }
 
@@ -44,8 +45,8 @@ public:
         return message.c_str();
     }
 
-private:
     std::string message;
+    backtrace_t backtrace;
 };
 
 enum term_type_t {
@@ -143,15 +144,15 @@ typedef variable_type_scope_t::new_scope_t new_scope_t;
 /* These functions throw exceptions if their inputs aren't well defined or
 fail type-checking. (A well-defined input has the correct fields filled in.) */
 
-term_type_t get_term_type(const Term &t, variable_type_scope_t *scope);
-void check_term_type(const Term &t, term_type_t expected, variable_type_scope_t *scope);
-function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope);
-void check_reduction_type(const Reduction &m, variable_type_scope_t *scope);
-void check_mapping_type(const Mapping &m, term_type_t return_type, variable_type_scope_t *scope);
-void check_predicate_type(const Predicate &m, variable_type_scope_t *scope);
-void check_read_query_type(const ReadQuery &rq, variable_type_scope_t *scope);
-void check_write_query_type(const WriteQuery &wq, variable_type_scope_t *scope);
-void check_query_type(const Query &q, variable_type_scope_t *scope);
+term_type_t get_term_type(const Term &t, variable_type_scope_t *scope, const backtrace_t &backtrace);
+void check_term_type(const Term &t, term_type_t expected, variable_type_scope_t *scope, const backtrace_t &backtrace);
+function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope, const backtrace_t &backtrace);
+void check_reduction_type(const Reduction &m, variable_type_scope_t *scope, const backtrace_t &backtrace);
+void check_mapping_type(const Mapping &m, term_type_t return_type, variable_type_scope_t *scope, const backtrace_t &backtrace);
+void check_predicate_type(const Predicate &m, variable_type_scope_t *scope, const backtrace_t &backtrace);
+void check_read_query_type(const ReadQuery &rq, variable_type_scope_t *scope, const backtrace_t &backtrace);
+void check_write_query_type(const WriteQuery &wq, variable_type_scope_t *scope, const backtrace_t &backtrace);
+void check_query_type(const Query &q, variable_type_scope_t *scope, const backtrace_t &backtrace);
 
 /* functions to evaluate the queries */
 
@@ -341,15 +342,16 @@ typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
 
 class runtime_exc_t {
 public:
-    runtime_exc_t(const std::string &_what)
-        : what_happened(_what)
+    runtime_exc_t(const std::string &_what, const backtrace_t &bt)
+        : message(_what), backtrace(bt)
     { }
 
     std::string what() const throw() {
-        return what_happened;
+        return message;
     }
-private:
-    std::string what_happened;
+
+    std::string message;
+    backtrace_t backtrace;
 };
 
 class runtime_environment_t {
@@ -372,23 +374,23 @@ public:
 
 //TODO most of these functions that are supposed to only throw runtime exceptions
 
-Response eval(const Query &q, runtime_environment_t *);
+Response eval(const Query &q, runtime_environment_t *, const backtrace_t &backtrace);
 
-Response eval(const ReadQuery &r, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+Response eval(const ReadQuery &r, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-Response eval(const WriteQuery &r, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+Response eval(const WriteQuery &r, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval_cmp(const Term::Call &c, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+boost::shared_ptr<scoped_cJSON_t> eval_cmp(const Term::Call &c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 class view_t {
 public:
@@ -400,7 +402,7 @@ public:
     boost::shared_ptr<json_stream_t> stream;
 };
 
-view_t eval_view(const Term::Table &t, runtime_environment_t *) THROWS_ONLY(runtime_exc_t);
+view_t eval_view(const Term::Table &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 } //namespace query_language
 

@@ -11,24 +11,28 @@ Response query_server_t::handle(const Query &q) {
 
     query_language::variable_type_scope_t scope;
 
+    query_language::backtrace_t root_backtrace;
+
     try {
-        check_query_type(q, &scope);
+        query_language::check_query_type(q, &scope, root_backtrace);
     } catch (query_language::bad_protobuf_exc_t &e) {
         res.set_status_code(-3);
         res.add_response("bad protocol buffer; client is buggy.");
         return res;
     } catch (query_language::bad_query_exc_t &e) {
         res.set_status_code(-2);
-        res.add_response("bad query: " + std::string(e.what()));
+        res.add_response("bad query: " + e.message);
+        res.add_response(e.backtrace.as_string());
         return res;
     }
 
     query_language::runtime_environment_t runtime_environment(ns_repo, semilattice_metadata);
     try {
-        return eval(q, &runtime_environment);
+        return query_language::eval(q, &runtime_environment, root_backtrace);
     } catch (query_language::runtime_exc_t &e) {
         res.set_status_code(-4);
-        res.add_response("runtime exception: " + std::string(e.what()));
+        res.add_response("runtime exception: " + e.message);
+        res.add_response(e.backtrace.as_string());
         return res;
     }
 }
