@@ -140,6 +140,66 @@ typedef variable_scope_t<term_type_t> variable_type_scope_t;
 
 typedef variable_type_scope_t::new_scope_t new_scope_t;
 
+/* an implicit_value_t allows for a specific implicit value to exist at certain
+ * points in execution for example the argument to get attr is implicitly
+ * defined to be the value of the row upon entering a filter,map etc.
+ * implicit_value_t supports scopes for its values but does not allow looking
+ * up values in any scope to the current one. */
+template <class T>
+class implicit_value_t {
+public:
+    implicit_value_t() { 
+        push();
+    }
+
+    void push() {
+        scopes.push_front(boost::optional<T>());
+    }
+
+    void push(const T &t) {
+        scopes.push_front(t);
+    }
+
+    void pop() {
+        scopes.pop_front();
+    }
+
+    class impliciter_t {
+    public:
+        explicit impliciter_t(implicit_value_t *_parent) 
+            : parent(_parent)
+        {
+            parent->push();
+        }
+
+        impliciter_t(implicit_value_t *_parent, const T& t) 
+            : parent(_parent)
+        {
+            parent->push(t);
+        }
+
+        ~impliciter_t() {
+            parent->pop();
+        }
+    private:
+        implicit_value_t *parent;
+    };
+
+    bool has_value() {
+        return scopes.front();
+    }
+
+    T get_value() {
+        return *scopes.front();
+    }
+
+private:
+    typedef std::deque<boost::optional<T> > scopes_t;
+    scopes_t scopes;
+};
+
+typedef implicit_value_t<term_type_t> implicit_type_t;
+
 /* These functions throw exceptions if their inputs aren't well defined or
 fail type-checking. (A well-defined input has the correct fields filled in.) */
 
@@ -407,6 +467,8 @@ public:
     variable_val_scope_t scope;
     variable_stream_scope_t stream_scope;
     variable_type_scope_t type_scope;
+
+    implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value_t;
 
     namespace_repo_t<rdb_protocol_t> *ns_repo;
     //TODO this should really just be the namespace metadata... but
