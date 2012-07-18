@@ -82,6 +82,7 @@ module 'NamespaceView', ->
         destroy: ->
             super()
             issues.off()
+            @model.off()
 
     class @Shard extends Backbone.View
         tagName: 'div'
@@ -137,7 +138,7 @@ module 'NamespaceView', ->
         summary_template: Handlebars.compile $('#namespace_view-shard_datacenter-summary-template').html()
 
         initialize: ->
-            super
+            super()
 
             @namespace = @options.args.namespace
 
@@ -168,12 +169,9 @@ module 'NamespaceView', ->
 
             @model.on 'change', @render_summary
             directory.on 'all', @render_summary
-            ###
             @namespace.on 'change:replica_affinities', @reset_list
             @namespace.on 'change:secondary_pinnings', @reset_list
             @namespace.on 'change:blueprint', @reset_list
-            ###
-            @namespace.on 'all', @reset_list
 
         reset_list: =>
             @machine_list.reset_element_views()
@@ -186,7 +184,7 @@ module 'NamespaceView', ->
                 @render_summary()
                 @.$('.machine-list').html @machine_list.render().el
 
-            super
+            super()
 
             return @
 
@@ -197,6 +195,7 @@ module 'NamespaceView', ->
             @.$('.datacenter.summary').html @summary_template json
 
         destroy: =>
+            @machine_list.destroy()
             @model.off()
             directory.off()
             @namespace.off()
@@ -205,7 +204,7 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#namespace_view-shard_machine_list-template').html()
 
         initialize: =>
-            super
+            super()
             @namespace = @options.element_args.namespace
             @namespace.on 'change:primary_pinnings', @render
             @namespace.on 'change:replica_affinities', @render
@@ -213,7 +212,7 @@ module 'NamespaceView', ->
 
 
         destroy: =>
-            @machine_list.off()
+            super()
             @namespace.off()
 
     class @ShardMachine extends Backbone.View
@@ -238,41 +237,6 @@ module 'NamespaceView', ->
 
 
             @set_machine_dialog = new NamespaceView.SetMachineModal @namespace
-
-
-        ###
-        show_popover: (event) =>
-            event.preventDefault()
-            popover_link = @.$(event.currentTarget).popover('show')
-            $popover = $('.popover')
-            $popover_button = $('.btn.change-machine', $popover)
-
-            $('.chosen-dropdown', $popover).chosen()
-            $popover.on 'clickoutside', (event) -> $(event.currentTarget).remove()
-            $popover_button.on 'click', (event) =>
-
-                event.preventDefault()
-                $popover_button.button('loading')
-
-                post_data = {}
-                new_pinnings = _.without @get_currently_pinned(), @model.get('id')
-                new_pinnings.push $('select.chosen-dropdown', $popover).val()
-                post_data[@shard.get('shard_boundaries')] = new_pinnings
-
-                $.ajax
-                    processData: false
-                    url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.get('id')}/secondary_pinnings"
-                    type: 'POST'
-                    data: JSON.stringify(post_data)
-                    success: (response) =>
-                        # Trigger a manual refresh of the data
-                        collect_server_data =>
-                            $popover.remove()
-                            $('#user-alert-space').append (@alert_tmpl {})
-                    #TODO: Handle error
-                    error: (response) =>
-                $popover_button.button('reset')
-            ###
 
         change_machine: (event) =>
             event.preventDefault()
@@ -346,7 +310,6 @@ module 'NamespaceView', ->
 
         destroy: =>
             @shard.off()
-            @shard.off()
             @model.off()
             directory.off()
 
@@ -362,7 +325,7 @@ module 'NamespaceView', ->
                 modal_title: 'Set new machine'
                 btn_primary_text: 'Commit'
                 machines: []
-            super
+            super()
 
         set_data: (data) =>
             for key of data
@@ -373,7 +336,7 @@ module 'NamespaceView', ->
             super @data
 
         on_submit: (response) =>
-            super
+            super()
             form_data = form_data_as_object($('form', @$modal))
             post_data = {}
             old_pin = JSON.parse form_data.old_pin
@@ -388,4 +351,4 @@ module 'NamespaceView', ->
                 error: @on_error
 
         on_success: (response) =>
-            super
+            super()

@@ -290,7 +290,7 @@ module 'NamespaceView', ->
             @render()
 
         destroy: =>
-            @namespace.off()
+            issues.off()
 
 
 
@@ -377,6 +377,7 @@ module 'NamespaceView', ->
             e.preventDefault()
 
         destroy: =>
+            @namespace.off()
             @name_view.destroy()
 
 

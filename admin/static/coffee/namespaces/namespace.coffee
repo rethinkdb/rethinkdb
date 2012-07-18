@@ -384,4 +384,5 @@ module 'NamespaceView', ->
             @history_opsec.shift()
             @history_opsec.push @model.get_stats().keys_read + @model.get_stats().keys_set
 
-
+        destroy: =>
+            @model.off()
