@@ -13,7 +13,7 @@ module 'NamespaceView', ->
                 name: human_readable_shard shards[i]
                 shard: shards[i]
                 shard_stats:
-                    rows_approx: namespaces.get(namespace_uuid).compute_shard_rows_approximation(shards[i]) if typeof namespaces.get(namespace_uuid).compute_shard_rows_approximation(shards[i]) is 'number'
+                    rows_approx: namespaces.get(namespace_uuid).compute_shard_rows_approximation(shards[i]) if typeof namespaces.get(namespace_uuid).compute_shard_rows_approximation(shards[i]) is 'string'
                 notlast: i != shards.length - 1
                 index: i
                 primary:
@@ -317,6 +317,7 @@ module 'NamespaceView', ->
             @name_view = new NamespaceView.ShardName()
 
             @namespace.on 'change:key_distr_sorted', @render_num_keys
+            @namespace.on 'change:shards', @render_num_keys
 
         render: =>
             @.$el.html @template
@@ -327,8 +328,11 @@ module 'NamespaceView', ->
 
         render_num_keys: =>
             @shard.shard_stats.rows_approx =  @namespace.compute_shard_rows_approximation(@shard.shard)
-            @.$('.name').html @name_view.render(@shard).$el
-
+            if @shard.shard_stats.rows_approx?
+                @.$('.name').html @name_view.render(@shard).$el
+            else
+                #setTimeout @render_num_keys 1000 #TODO Magic number (should be greater than the polling time of /ajax/distribution)
+ 
 
         check_if_enter_press: (event) =>
             if event.which is 13

@@ -61,7 +61,7 @@ class Namespace extends Backbone.Model
 
     # Is x between the lower and upper splitpoints (the open interval) for the given index?
     splitpoint_between: (shard_index, sp) =>
-        console.log "splitpoint_between #{shard_index}, #{sp}"
+        #console.log "splitpoint_between #{shard_index}, #{sp}"
         all_sps = @.get('splitpoints')
         return (shard_index == 0 || all_sps[shard_index - 1] < sp) && (shard_index == all_sps.length || sp < all_sps[shard_index])
 
