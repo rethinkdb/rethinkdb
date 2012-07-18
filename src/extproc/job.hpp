@@ -62,8 +62,9 @@ class job_t {
     virtual archive_result_t rdb_deserialize(read_stream_t *s) = 0;
 };
 
-template <class instance_t>
-class auto_job_t : public job_t {
+// NB. base_job_t had better descend from job_t.
+template <class instance_t, class base_job_t = job_t>
+class auto_job_t : public base_job_t {
     static void job_runner_func(job_t::control_t *control, void *extra) {
         // Get the job instance.
         instance_t job;
