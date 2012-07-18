@@ -24,6 +24,7 @@ message Term {
         OBJECT = 11;
         GETBYKEY = 12;
         TABLE = 13;
+        JAVASCRIPT = 14;
     };
 
     required TermType type = 1;
@@ -78,6 +79,8 @@ message Term {
     };
 
     optional Table table = 15;
+
+    optional string javascript = 16;
 };
 
 message Builtin {
@@ -111,8 +114,9 @@ message Builtin {
         ARRAYTOSTREAM = 27;
         REDUCE = 28;
         GROUPEDMAPREDUCE = 29;
-        JAVASCRIPT = 30;
-        JAVASCRIPTRETURNINGSTREAM = 31;
+        // Removed these; they're not builtins anymore.
+        //JAVASCRIPT = 30;
+        //JAVASCRIPTRETURNINGSTREAM = 31;
         ANY = 32;
         ALL = 33;
         RANGE = 34;

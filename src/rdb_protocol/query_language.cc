@@ -225,6 +225,10 @@ term_type_t get_term_type(const Term &t, variable_type_scope_t *scope) {
         check_protobuf(t.has_table());
         return TERM_TYPE_VIEW;
         break;
+    case Term::JAVASCRIPT:
+        CHECK(t.has_javascript());
+        return Type::JSON;
+        break;
     default:
         unreachable("unhandled Term case");
     }
@@ -271,8 +275,6 @@ function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope
     case Builtin::NTH:
     case Builtin::STREAMTOARRAY:
     case Builtin::ARRAYTOSTREAM:
-    case Builtin::JAVASCRIPT:
-    case Builtin::JAVASCRIPTRETURNINGSTREAM:
     case Builtin::ANY:
     case Builtin::ALL:
         // these builtins only have
@@ -334,7 +336,6 @@ function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope
         case Builtin::HASATTR:
         case Builtin::PICKATTRS:
         case Builtin::ARRAYLENGTH:
-        case Builtin::JAVASCRIPT:
             return function_type_t(TERM_TYPE_JSON, 1, TERM_TYPE_JSON);
             break;
         case Builtin::MAPMERGE:
@@ -379,7 +380,6 @@ function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope
             return function_type_t(TERM_TYPE_STREAM, 2, TERM_TYPE_STREAM);
             break;
         case Builtin::ARRAYTOSTREAM:
-        case Builtin::JAVASCRIPTRETURNINGSTREAM:
             return function_type_t(TERM_TYPE_JSON, 1, TERM_TYPE_STREAM);
             break;
         case Builtin::RANGE:
@@ -908,6 +908,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             }
         case Term::TABLE:
             crash("Term::TABLE must be evaluated with eval_stream or eval_view");
+
+        case Term::JAVASCRIPT:
+            // TODO (rntz)
+            crash("unimplemented");
+
         default:
             unreachable();
     }
@@ -962,6 +967,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_
         case Term::ARRAY:
         case Term::OBJECT:
         case Term::GETBYKEY:
+        case Term::JAVASCRIPT:
             unreachable("eval_stream called on a function that does not return a stream (use eval instead).");
             break;
         default:
@@ -1441,7 +1447,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
         case Builtin::DISTINCT:
         case Builtin::LIMIT:
         case Builtin::ARRAYTOSTREAM:
-        case Builtin::JAVASCRIPTRETURNINGSTREAM:
         case Builtin::GROUPEDMAPREDUCE:
         case Builtin::UNION:
         case Builtin::RANGE:
@@ -1521,9 +1526,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 //}
                 //return acc;
             }
-            break;
-        case Builtin::JAVASCRIPT:
-            throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPT");
             break;
         case Builtin::ALL:
             {
@@ -1670,7 +1672,6 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
         case Builtin::NTH:
         case Builtin::STREAMTOARRAY:
         case Builtin::REDUCE:
-        case Builtin::JAVASCRIPT:
         case Builtin::ALL:
         case Builtin::ANY:
             unreachable("eval_stream called on a function that does not return a stream (use eval instead).");
@@ -1817,9 +1818,6 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
             break;
         case Builtin::RANGE:
             throw runtime_exc_t("Unimplemented: Builtin::RANGE");
-            break;
-        case Builtin::JAVASCRIPTRETURNINGSTREAM:
-            throw runtime_exc_t("Unimplemented: Builtin::JAVASCRIPTRETURNINGSTREAM");
             break;
         default:
             crash("unreachable");
