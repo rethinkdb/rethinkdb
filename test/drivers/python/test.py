@@ -18,23 +18,25 @@ class TestTableRef(unittest.TestCase):
                                  12346 + (int(os.getenv('PORT') or 2010)))
         self.table = r.db("").Welcome
 
-    def expect(self, query, expected):
-        res = self.conn.run(query)
+    def expect(self, query, *expected):
         try:
-            self.assertEqual(res.status_code, 0, res.response[0])
-            self.assertEqual(json.loads(res.response[0]), expected)
+            res = self.conn.run(query)
+            self.assertEqual(res, list(expected))
         except Exception:
             root_ast = r.p.Query()
-            root_ast.token = self.conn.get_token()
             r.toTerm(query)._finalize_query(root_ast)
             print root_ast
             print res
             raise
 
     def expectfail(self, query, msg):
-        res = self.conn.run(query)
-        self.assertNotEqual(res.status_code, 0, res.response[0])
-        self.assertIn(msg, res.response[0])
+        with self.assertRaises(r.RDBException) as cm:
+            res = self.conn.run(query)
+
+        e = cm.exception
+
+        self.assertNotEqual(e.code, 0, e.msg)
+        self.assertIn(msg, e.msg)
 
     def test_arith(self):
         expect = self.expect
@@ -251,15 +253,10 @@ class TestTableRef(unittest.TestCase):
     def test_table_insert(self):
         docs = [{"a": 3, "b": 10, "id": 1}, {"a": 9, "b": -5, "id": 2}]
 
-        q = self.table.insert(docs)
-        resp = self.conn.run(q)
-        assert resp.status_code == 0
+        self.expect(self.table.insert(docs), {'inserted': len(docs)})
 
         for doc in docs:
-            q = self.table.find(doc['id'])
-            resp = self.conn.run(q)
-            assert resp.status_code == 0
-            assert json.loads(resp.response[0]) == doc
+            self.expect(self.table.find(doc['id']), doc)
 
         self.expect(r.array(self.table.distinct('a')), [3, 9])
 
