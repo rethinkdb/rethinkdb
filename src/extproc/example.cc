@@ -68,7 +68,7 @@ class js_eval_job_t :
     }
 
   public:
-    virtual void run_job(control_t *control) {
+    virtual void run_job(control_t *control, UNUSED void *extra) {
         control->log("Running js_eval_job_t, src=%s", js_src.c_str());
 
         result_t res;

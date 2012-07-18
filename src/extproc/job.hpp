@@ -2,7 +2,6 @@
 #define EXTPROC_JOB_HPP_
 
 #include <stdarg.h>             // va_list
-#include <stdlib.h>             // exit
 
 #include "arch/runtime/runtime_utils.hpp" // fd_t
 #include "containers/archive/archive.hpp"
@@ -32,23 +31,27 @@ class job_t {
 
     // Sends us over a stream. The recipient must be a fork()ed child (or
     // grandchild, or parent, etc) of us. Returns 0 on success, -1 on error.
-    int send_over(write_stream_t *stream) const;
+    MUST_USE int send_over(write_stream_t *stream) const;
 
     // Appends us to a write message. Same constraints on recipient as above.
     void append_to(write_message_t *message) const;
 
-    // Receives and runs a job. Called on worker process side. Returns 0 on
-    // success, -1 on failure.
-    static int accept_job(control_t *control);
+    // Receives and runs a job. Called on worker process side. `extra` is passed
+    // to the accepted job's run_job() method.
+    //
+    // Returns 0 on success, -1 on failure.
+    static int accept_job(control_t *control, void *extra);
 
     /* ----- Pure virtual methods ----- */
 
-    // Called on worker process side.
-    virtual void run_job(control_t *control) = 0;
+    // Called on worker process side. `extra` comes from accept_job(); it's a
+    // way for job acceptors to pass data to the jobs they accept. (It's quite
+    // normal for it to be unused/ignored.)
+    virtual void run_job(control_t *control, void *extra) = 0;
 
     // Returns a function that deserializes & runs an instance of the
     // appropriate job type. Called on worker process side.
-    typedef void (*func_t)(control_t*);
+    typedef void (*func_t)(control_t*, void*);
     virtual func_t job_runner() const = 0;
 
     // Serialization methods. Suggest implementing by invoking
@@ -61,7 +64,7 @@ class job_t {
 
 template <class instance_t>
 class auto_job_t : public job_t {
-    static void job_runner_func(control_t *control) {
+    static void job_runner_func(job_t::control_t *control, void *extra) {
         // Get the job instance.
         instance_t job;
         archive_result_t res = deserialize(control, &job);
@@ -76,10 +79,10 @@ class auto_job_t : public job_t {
         }
 
         // Run it.
-        job.run_job(control);
+        job.run_job(control, extra);
     }
 
-    func_t job_runner() const { return job_runner_func; }
+    virtual job_t::func_t job_runner() const { return job_runner_func; }
 };
 
 } // namespace extproc
