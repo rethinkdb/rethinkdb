@@ -3,9 +3,9 @@
 namespace extproc {
 
 // ---------- job_t ----------
-int job_t::accept_job(control_t *control) {
+int job_t::accept_job(control_t *control, void *extra) {
     // Try to receive the job.
-    void (*jobfunc)(control_t*);
+    job_t::func_t jobfunc;
     int64_t res = force_read(control, &jobfunc, sizeof jobfunc);
     if (res < (int64_t) sizeof jobfunc) {
         control->log("Couldn't read job function: %s",
@@ -14,7 +14,7 @@ int job_t::accept_job(control_t *control) {
     }
 
     // Run the job.
-    (*jobfunc)(control);
+    (*jobfunc)(control, extra);
     return 0;
 }
 

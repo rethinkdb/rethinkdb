@@ -191,7 +191,7 @@ void spawner_t::exec_worker(fd_t sockfd) {
     // Receive one job and run it.
     scoped_fd_t fd(sockfd);
     job_t::control_t control(getpid(), &fd);
-    exit(job_t::accept_job(&control));
+    exit(job_t::accept_job(&control, NULL));
 }
 
 } // namespace extproc
