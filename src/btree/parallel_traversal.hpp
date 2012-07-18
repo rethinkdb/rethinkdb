@@ -130,7 +130,7 @@ class abstract_traversal_progress_t {
 public:
     abstract_traversal_progress_t() { }
 
-    virtual std::pair<int, int> guess_completion() = 0;
+    virtual progress_completion_fraction_t guess_completion() const = 0;
 
     // This actually gets used, by traversal_progress_combiner_t.
     virtual ~abstract_traversal_progress_t() { }
@@ -158,7 +158,7 @@ public:
 
     void inform(int level, action_t, node_type_t);
 
-    std::pair<int, int> guess_completion();
+    progress_completion_fraction_t guess_completion() const;
 
 private:
     std::vector<int> learned; //How many nodes at each level we believe exist
@@ -177,7 +177,7 @@ public:
     traversal_progress_combiner_t() { }
 
     void add_constituent(abstract_traversal_progress_t *);
-    std::pair<int, int> guess_completion();
+    progress_completion_fraction_t guess_completion() const;
 
 private:
     boost::ptr_vector<abstract_traversal_progress_t> constituents;

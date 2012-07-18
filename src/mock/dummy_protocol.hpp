@@ -96,8 +96,8 @@ public:
     };
 
     struct backfill_progress_t {
-        std::pair<int, int> guess_completion() {
-            return std::make_pair(-1, -1);
+        progress_completion_fraction_t guess_completion() {
+            return progress_completion_fraction_t::make_invalid();
         }
     };
 

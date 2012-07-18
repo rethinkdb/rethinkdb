@@ -526,21 +526,21 @@ void traversal_progress_t::inform(int level, action_t action, node_type_t type) 
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 }
 
-std::pair<int, int> traversal_progress_t::guess_completion() {
+progress_completion_fraction_t traversal_progress_t::guess_completion() const {
     assert_thread();
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 
     if (height == -1) {
-        return std::make_pair(-1, -1);
+        return progress_completion_fraction_t::make_invalid();
     }
 
     /* First we compute the ratio at each stage of the acquired nodes to the
      * learned nodes. This gives us a rough estimate of the branch factor at
      * each level. */
 
-    std::vector<float>released_to_acquired_ratios;
+    std::vector<double> released_to_acquired_ratios;
     for (unsigned i = 0; i < learned.size() - 1; i++) {
-        released_to_acquired_ratios.push_back(float(acquired[i + 1]) / std::max(1.0f, float(released[i])));
+        released_to_acquired_ratios.push_back(double(acquired[i + 1]) / std::max(1.0, double(released[i])));
     }
 
     std::vector<int> population_by_level_guesses;
@@ -557,7 +557,11 @@ std::pair<int, int> traversal_progress_t::guess_completion() {
         total_released_nodes += released[i];
     }
 
-    return std::make_pair(total_released_nodes, estimate_of_total_nodes);
+    if (total_released_nodes == 0) {
+        return progress_completion_fraction_t::make_invalid();
+    } else {
+        return progress_completion_fraction_t(total_released_nodes, estimate_of_total_nodes);
+    }
 }
 
 void traversal_progress_combiner_t::add_constituent(abstract_traversal_progress_t *c) {
@@ -565,21 +569,21 @@ void traversal_progress_combiner_t::add_constituent(abstract_traversal_progress_
     constituents.push_back(c);
 }
 
-std::pair<int, int> traversal_progress_combiner_t::guess_completion() {
+progress_completion_fraction_t traversal_progress_combiner_t::guess_completion() const {
     assert_thread();
     int numerator = 0, denominator = 0;
-    for (boost::ptr_vector<traversal_progress_t>::iterator it  = constituents.begin();
-                                                           it != constituents.end();
-                                                           ++it) {
-        std::pair<int, int> n_and_d = it->guess_completion();
-        if (n_and_d.first == -1) {
-            return std::make_pair(-1, -1);
+    for (boost::ptr_vector<traversal_progress_t>::const_iterator it  = constituents.begin();
+         it != constituents.end();
+         ++it) {
+        progress_completion_fraction_t n_and_d = it->guess_completion();
+        if (n_and_d.invalid()) {
+            return n_and_d;
         }
 
-        numerator += n_and_d.first;
-        denominator += n_and_d.second;
+        numerator += n_and_d.numerator;
+        denominator += n_and_d.denominator;
     }
 
-    return std::make_pair(numerator, denominator);
+    return progress_completion_fraction_t(numerator, denominator);
 }
 
