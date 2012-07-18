@@ -1,6 +1,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP_
 #define CLUSTERING_ADMINISTRATION_PERFMON_COLLECTION_REPO_HPP_
 
+#include "errors.hpp"
+#include <boost/ptr_container/ptr_map.hpp>
+
 #include "perfmon/perfmon.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 
