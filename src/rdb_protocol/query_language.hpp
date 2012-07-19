@@ -467,8 +467,9 @@ public:
 class runtime_environment_t {
 public:
     runtime_environment_t(namespace_repo_t<rdb_protocol_t> *_ns_repo,
-                          boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata)
-        : ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata)
+                          boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                          signal_t *_interruptor)
+        : ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata), interruptor(_interruptor)
     { }
 
     variable_val_scope_t scope;
@@ -481,7 +482,7 @@ public:
     //TODO this should really just be the namespace metadata... but
     //constructing views is too hard :-/
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
-    cond_t interruptor;
+    signal_t *interruptor;
 };
 
 typedef implicit_value_t<boost::shared_ptr<scoped_cJSON_t> >::impliciter_t implicit_value_setter_t;

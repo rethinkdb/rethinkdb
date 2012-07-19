@@ -673,7 +673,7 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_
 
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(cJSON_print_std_string(data->GetObjectItem("id"))), data));
-        ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
+        ns_access.get_namespace_if()->write(write, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
@@ -682,7 +682,7 @@ void insert(namespace_repo_t<rdb_protocol_t>::access_t ns_access, boost::shared_
 void point_delete(namespace_repo_t<rdb_protocol_t>::access_t ns_access, cJSON *id, runtime_environment_t *env, const backtrace_t &backtrace) {
     try {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_delete_t(store_key_t(cJSON_print_std_string(id))));
-        ns_access.get_namespace_if()->write(write, order_token_t::ignore, &env->interruptor);
+        ns_access.get_namespace_if()->write(write, order_token_t::ignore, env->interruptor);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform write: " + std::string(e.what()), backtrace);
     }
@@ -962,7 +962,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
 
                 try {
                     rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(key->Print())));
-                    rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
+                    rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, env->interruptor);
 
                     rdb_protocol_t::point_read_response_t *p_res = boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
                     return p_res->data;
@@ -1058,10 +1058,10 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             {
                 boost::shared_ptr<scoped_cJSON_t> data;
                 if (c.builtin().type() == Builtin::GETATTR) {
-                    boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env, backtrace.with("arg:0"));
+                    data = eval(c.args(0), env, backtrace.with("arg:0"));
                 } else {
                     rassert(env->implicit_attribute_value.has_value());
-                    boost::shared_ptr<scoped_cJSON_t> data = env->implicit_attribute_value.get_value();
+                    data = env->implicit_attribute_value.get_value();
                 }
 
                 if (!data->type() == cJSON_Object) {
@@ -1081,11 +1081,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
         case Builtin::IMPLICIT_HASATTR:
             {
                 boost::shared_ptr<scoped_cJSON_t> data;
-                if (c.builtin().type() == Builtin::GETATTR) {
-                    boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env, backtrace.with("arg:0"));
+                if (c.builtin().type() == Builtin::HASATTR) {
+                    data = eval(c.args(0), env, backtrace.with("arg:0"));
                 } else {
                     rassert(env->implicit_attribute_value.has_value());
-                    boost::shared_ptr<scoped_cJSON_t> data = env->implicit_attribute_value.get_value();
+                    data = env->implicit_attribute_value.get_value();
                 }
 
                 if (!data->type() == cJSON_Object) {
@@ -1105,11 +1105,11 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
         case Builtin::IMPLICIT_PICKATTRS:
             {
                 boost::shared_ptr<scoped_cJSON_t> data;
-                if (c.builtin().type() == Builtin::GETATTR) {
-                    boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env, backtrace.with("arg:0"));
+                if (c.builtin().type() == Builtin::PICKATTRS) {
+                    data = eval(c.args(0), env, backtrace.with("arg:0"));
                 } else {
                     rassert(env->implicit_attribute_value.has_value());
-                    boost::shared_ptr<scoped_cJSON_t> data = env->implicit_attribute_value.get_value();
+                    data = env->implicit_attribute_value.get_value();
                 }
 
                 if (!data->type() == cJSON_Object) {
@@ -1652,14 +1652,14 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
 class predicate_t {
 public:
-    predicate_t(const Predicate &_pred, runtime_environment_t *_env, const backtrace_t &_backtrace)
+    predicate_t(const Predicate &_pred, runtime_environment_t _env, const backtrace_t &_backtrace)
         : pred(_pred), env(_env), backtrace(_backtrace)
     { }
     bool operator()(boost::shared_ptr<scoped_cJSON_t> json) {
-        variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-        env->scope.put_in_scope(pred.arg(), json);
-        implicit_value_setter_t impliciter(&env->implicit_attribute_value, json);
-        boost::shared_ptr<scoped_cJSON_t> a_bool = eval(pred.body(), env, backtrace.with("predicate"));
+        variable_val_scope_t::new_scope_t scope_maker(&env.scope);
+        env.scope.put_in_scope(pred.arg(), json);
+        implicit_value_setter_t impliciter(&env.implicit_attribute_value, json);
+        boost::shared_ptr<scoped_cJSON_t> a_bool = eval(pred.body(), &env, backtrace.with("predicate"));
 
         if (a_bool->type() == cJSON_True) {
             return true;
@@ -1671,7 +1671,7 @@ public:
     }
 private:
     Predicate pred;
-    runtime_environment_t *env;
+    runtime_environment_t env;
     backtrace_t backtrace;
 };
 
@@ -1707,18 +1707,18 @@ private:
     backtrace_t backtrace;
 };
 
-boost::shared_ptr<scoped_cJSON_t> map(std::string arg, const Term &term, runtime_environment_t *env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
-    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-    env->scope.put_in_scope(arg, val);
-    implicit_value_setter_t impliciter(&env->implicit_attribute_value, val);
-    return eval(term, env, backtrace);
+boost::shared_ptr<scoped_cJSON_t> map(std::string arg, const Term &term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
+    variable_val_scope_t::new_scope_t scope_maker(&env.scope);
+    env.scope.put_in_scope(arg, val);
+    implicit_value_setter_t impliciter(&env.implicit_attribute_value, val);
+    return eval(term, &env, backtrace);
 }
 
-boost::shared_ptr<json_stream_t> concatmap(std::string arg, const Term &term, runtime_environment_t *env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
-    variable_val_scope_t::new_scope_t scope_maker(&env->scope);
-    env->scope.put_in_scope(arg, val);
-    implicit_value_setter_t impliciter(&env->implicit_attribute_value, val);
-    return eval_stream(term, env, backtrace);
+boost::shared_ptr<json_stream_t> concatmap(std::string arg, const Term &term, runtime_environment_t env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
+    variable_val_scope_t::new_scope_t scope_maker(&env.scope);
+    env.scope.put_in_scope(arg, val);
+    implicit_value_setter_t impliciter(&env.implicit_attribute_value, val);
+    return eval_stream(term, &env, backtrace);
 }
 
 boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
@@ -1815,7 +1815,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
         case Builtin::FILTER:
             {
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env, backtrace.with("arg:0"));
-                predicate_t p(c.builtin().filter().predicate(), env, backtrace);
+                predicate_t p(c.builtin().filter().predicate(), *env, backtrace);
                 return boost::shared_ptr<json_stream_t>(new filter_stream_t<predicate_t>(stream, p));
             }
             break;
@@ -1824,7 +1824,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env, backtrace.with("arg:0"));
 
                 return boost::shared_ptr<json_stream_t>(new mapping_stream_t<boost::function<boost::shared_ptr<scoped_cJSON_t>(boost::shared_ptr<scoped_cJSON_t>)> >(
-                                                                stream, boost::bind(&map, c.builtin().map().mapping().arg(), c.builtin().map().mapping().body(), env, _1, backtrace.with("mapping"))));
+                                                                stream, boost::bind(&map, c.builtin().map().mapping().arg(), c.builtin().map().mapping().body(), *env, _1, backtrace.with("mapping"))));
             }
             break;
         case Builtin::CONCATMAP:
@@ -1832,7 +1832,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env, backtrace.with("arg:0"));
 
                 return boost::shared_ptr<json_stream_t>(new concat_mapping_stream_t<boost::function<boost::shared_ptr<json_stream_t>(boost::shared_ptr<scoped_cJSON_t>)> >(
-                                                                stream, boost::bind(&concatmap, c.builtin().map().mapping().arg(), c.builtin().map().mapping().body(), env, _1, backtrace.with("mapping"))));
+                                                                stream, boost::bind(&concatmap, c.builtin().map().mapping().arg(), c.builtin().map().mapping().body(), *env, _1, backtrace.with("mapping"))));
             }
             break;
         case Builtin::ORDERBY:
@@ -1915,7 +1915,7 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_envir
         env->semilattice_metadata->get().rdb_namespaces.get_namespace_by_name(t.table_name());
 
     if (namespace_info) {
-        return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, namespace_info->first, &env->interruptor);
+        return namespace_repo_t<rdb_protocol_t>::access_t(env->ns_repo, namespace_info->first, env->interruptor);
     } else {
         throw runtime_exc_t(strprintf("Namespace %s either not found, ambigious or namespace metadata in conflict.", t.table_name().c_str()), backtrace);
     }
@@ -1927,7 +1927,7 @@ view_t eval_view(const Term::Table &t, runtime_environment_t *env, const backtra
     rdb_protocol_t::rget_read_t rget_read(range);
     rdb_protocol_t::read_t read(rget_read);
     try {
-        rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
+        rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, env->interruptor);
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         rassert(p_res);
 

@@ -33,7 +33,8 @@ Response query_server_t::handle(const Query &q) {
         return res;
     }
 
-    query_language::runtime_environment_t runtime_environment(ns_repo, semilattice_metadata);
+    cond_t interruptor;
+    query_language::runtime_environment_t runtime_environment(ns_repo, semilattice_metadata, &interruptor);
     try {
         execute(q, &runtime_environment, &res, root_backtrace);
         res.set_status_code(Response::SUCCESS);
