@@ -286,8 +286,8 @@ void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btre
     }
 
     if (helper->progress) {
-        helper->progress->inform(0, traversal_progress_t::LEARN, traversal_progress_t::INTERNAL);
-        helper->progress->inform(0, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
+        helper->progress->inform(0, parallel_traversal_progress_t::LEARN, parallel_traversal_progress_t::INTERNAL);
+        helper->progress->inform(0, parallel_traversal_progress_t::ACQUIRE, parallel_traversal_progress_t::INTERNAL);
     }
 
     block_id_t root_id = superblock->get_root_block_id();
@@ -337,14 +337,14 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
 
         if (node::is_leaf(node)) {
             if (state->helper->progress) {
-                state->helper->progress->inform(level, traversal_progress_t::ACQUIRE, traversal_progress_t::LEAF);
+                state->helper->progress->inform(level, parallel_traversal_progress_t::ACQUIRE, parallel_traversal_progress_t::LEAF);
             }
             process_a_leaf_node(state, buf, level, left_exclusive_or_null, right_inclusive_or_null);
         } else {
             rassert(node::is_internal(node));
 
             if (state->helper->progress) {
-                state->helper->progress->inform(level, traversal_progress_t::ACQUIRE, traversal_progress_t::INTERNAL);
+                state->helper->progress->inform(level, parallel_traversal_progress_t::ACQUIRE, parallel_traversal_progress_t::INTERNAL);
             }
             process_a_internal_node(state, buf, level, left_exclusive_or_null, right_inclusive_or_null);
         }
@@ -405,7 +405,7 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf
 
     buf->reset();
     if (state->helper->progress) {
-        state->helper->progress->inform(level, traversal_progress_t::RELEASE, traversal_progress_t::LEAF);
+        state->helper->progress->inform(level, parallel_traversal_progress_t::RELEASE, parallel_traversal_progress_t::LEAF);
     }
     state->level_count(level) -= 1;
     state->consider_pulsing();
@@ -415,7 +415,7 @@ void interesting_children_callback_t::receive_interesting_child(int child_index)
     rassert(child_index >= 0 && child_index < ids_source->num_block_ids());
 
     if (state->helper->progress) {
-        state->helper->progress->inform(level, traversal_progress_t::LEARN, traversal_progress_t::UNKNOWN);
+        state->helper->progress->inform(level, parallel_traversal_progress_t::LEARN, parallel_traversal_progress_t::UNKNOWN);
     }
     block_id_t block_id;
     const btree_key_t *left_excl_or_null;
@@ -442,7 +442,7 @@ void interesting_children_callback_t::decr_acquisition_countdown() {
         releaser->release();
         state->level_count(level - 1) -= 1;
         if (state->helper->progress) {
-            state->helper->progress->inform(level - 1, traversal_progress_t::RELEASE, traversal_progress_t::INTERNAL);
+            state->helper->progress->inform(level - 1, parallel_traversal_progress_t::RELEASE, parallel_traversal_progress_t::INTERNAL);
         }
         state->consider_pulsing();
         delete this;
@@ -492,7 +492,7 @@ int ranged_block_ids_t::get_level() {
     return level;
 }
 
-void traversal_progress_t::inform(int level, action_t action, node_type_t type) {
+void parallel_traversal_progress_t::inform(int level, action_t action, node_type_t type) {
     assert_thread();
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
     rassert(level >= 0);
@@ -526,7 +526,7 @@ void traversal_progress_t::inform(int level, action_t action, node_type_t type) 
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 }
 
-progress_completion_fraction_t traversal_progress_t::guess_completion() const {
+progress_completion_fraction_t parallel_traversal_progress_t::guess_completion() const {
     assert_thread();
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 
@@ -557,33 +557,6 @@ progress_completion_fraction_t traversal_progress_t::guess_completion() const {
         total_released_nodes += released[i];
     }
 
-    if (total_released_nodes == 0) {
-        return progress_completion_fraction_t::make_invalid();
-    } else {
-        return progress_completion_fraction_t(total_released_nodes, estimate_of_total_nodes);
-    }
-}
-
-void traversal_progress_combiner_t::add_constituent(abstract_traversal_progress_t *c) {
-    assert_thread();
-    constituents.push_back(c);
-}
-
-progress_completion_fraction_t traversal_progress_combiner_t::guess_completion() const {
-    assert_thread();
-    int numerator = 0, denominator = 0;
-    for (boost::ptr_vector<traversal_progress_t>::const_iterator it  = constituents.begin();
-         it != constituents.end();
-         ++it) {
-        progress_completion_fraction_t n_and_d = it->guess_completion();
-        if (n_and_d.invalid()) {
-            return n_and_d;
-        }
-
-        numerator += n_and_d.numerator;
-        denominator += n_and_d.denominator;
-    }
-
-    return progress_completion_fraction_t(numerator, denominator);
+    return progress_completion_fraction_t(total_released_nodes, estimate_of_total_nodes);
 }
 

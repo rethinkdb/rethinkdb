@@ -253,23 +253,5 @@ private:
     T old_value;
 };
 
-struct progress_completion_fraction_t {
-    progress_completion_fraction_t(int _numerator, int _denominator) : numerator(_numerator), denominator(_denominator) {
-        rassert(numerator >= 0 && denominator > 0);
-    }
-
-    static progress_completion_fraction_t make_invalid() {
-        return progress_completion_fraction_t();
-    }
-
-    const int numerator;
-    const int denominator;
-
-    bool invalid() const { return denominator == -1; }
-
-private:
-    // Used only by the static make_invalid() function.
-    progress_completion_fraction_t() : numerator(-1), denominator(-1) { }
-};
 
 #endif // UTILS_HPP_
