@@ -560,7 +560,7 @@ private:
 
 static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
         memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress) {
-    traversal_progress_t *p = new traversal_progress_t;
+    parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     progress->add_constituent(p);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p);

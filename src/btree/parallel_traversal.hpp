@@ -89,7 +89,7 @@ private:
     DISABLE_COPYING(interesting_children_callback_t);
 };
 
-class traversal_progress_t;
+class parallel_traversal_progress_t;
 
 struct btree_traversal_helper_t {
     btree_traversal_helper_t()
@@ -120,15 +120,15 @@ struct btree_traversal_helper_t {
 
     virtual ~btree_traversal_helper_t() { }
 
-    traversal_progress_t *progress;
+    parallel_traversal_progress_t *progress;
 };
 
 void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
 
-class traversal_progress_t : public abstract_traversal_progress_t {
+class parallel_traversal_progress_t : public abstract_traversal_progress_t {
 public:
-    traversal_progress_t()
+    parallel_traversal_progress_t()
         : height(-1), print_counter(0)
     { }
 
@@ -157,7 +157,7 @@ private:
 
     int print_counter;
 
-    DISABLE_COPYING(traversal_progress_t);
+    DISABLE_COPYING(parallel_traversal_progress_t);
 };
 
 #endif  // BTREE_PARALLEL_TRAVERSAL_HPP_
