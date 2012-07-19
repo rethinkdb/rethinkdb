@@ -8,6 +8,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
+#include "backfill_progress.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
@@ -124,21 +125,8 @@ struct btree_traversal_helper_t {
 
 void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
-// TODO: Rename this to traversal_progress_t after it has been pushed
-// and merged into rdb_protocol.
-class abstract_traversal_progress_t {
-public:
-    abstract_traversal_progress_t() { }
 
-    virtual progress_completion_fraction_t guess_completion() const = 0;
-
-    // This actually gets used, by traversal_progress_combiner_t.
-    virtual ~abstract_traversal_progress_t() { }
-private:
-    DISABLE_COPYING(abstract_traversal_progress_t);
-};
-
-class traversal_progress_t : public abstract_traversal_progress_t, public home_thread_mixin_t {
+class traversal_progress_t : public abstract_traversal_progress_t {
 public:
     traversal_progress_t()
         : height(-1), print_counter(0)
@@ -170,19 +158,6 @@ private:
     int print_counter;
 
     DISABLE_COPYING(traversal_progress_t);
-};
-
-class traversal_progress_combiner_t : public abstract_traversal_progress_t, public home_thread_mixin_t {
-public:
-    traversal_progress_combiner_t() { }
-
-    void add_constituent(abstract_traversal_progress_t *);
-    progress_completion_fraction_t guess_completion() const;
-
-private:
-    boost::ptr_vector<abstract_traversal_progress_t> constituents;
-
-    DISABLE_COPYING(traversal_progress_combiner_t);
 };
 
 #endif  // BTREE_PARALLEL_TRAVERSAL_HPP_

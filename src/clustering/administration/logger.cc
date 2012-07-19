@@ -110,7 +110,7 @@ log_message_t parse_log_message(const std::string &s) THROWS_ONLY(std::runtime_e
         }
 
         // TODO: Seriously?  We assume three decimal places?
-        uptime.tv_nsec = 1e3 * tv_nsec;
+        uptime.tv_nsec = 1000 * tv_nsec;
     }
 
     log_level_t level = parse_log_level(std::string(start_level, end_level - start_level));

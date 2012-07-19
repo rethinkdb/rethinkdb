@@ -547,7 +547,7 @@ progress_completion_fraction_t traversal_progress_t::guess_completion() const {
     population_by_level_guesses.push_back(learned[0]);
 
     for (unsigned i = 0; i < (learned.size() - 1); i++) {
-        population_by_level_guesses.push_back(released_to_acquired_ratios[i] * population_by_level_guesses[i]);
+        population_by_level_guesses.push_back(static_cast<int>(released_to_acquired_ratios[i] * population_by_level_guesses[i]));
     }
 
     int estimate_of_total_nodes = 0;
@@ -557,33 +557,6 @@ progress_completion_fraction_t traversal_progress_t::guess_completion() const {
         total_released_nodes += released[i];
     }
 
-    if (total_released_nodes == 0) {
-        return progress_completion_fraction_t::make_invalid();
-    } else {
-        return progress_completion_fraction_t(total_released_nodes, estimate_of_total_nodes);
-    }
-}
-
-void traversal_progress_combiner_t::add_constituent(abstract_traversal_progress_t *c) {
-    assert_thread();
-    constituents.push_back(c);
-}
-
-progress_completion_fraction_t traversal_progress_combiner_t::guess_completion() const {
-    assert_thread();
-    int numerator = 0, denominator = 0;
-    for (boost::ptr_vector<traversal_progress_t>::const_iterator it  = constituents.begin();
-         it != constituents.end();
-         ++it) {
-        progress_completion_fraction_t n_and_d = it->guess_completion();
-        if (n_and_d.invalid()) {
-            return n_and_d;
-        }
-
-        numerator += n_and_d.numerator;
-        denominator += n_and_d.denominator;
-    }
-
-    return progress_completion_fraction_t(numerator, denominator);
+    return progress_completion_fraction_t(total_released_nodes, estimate_of_total_nodes);
 }
 

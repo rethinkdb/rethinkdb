@@ -12,8 +12,6 @@ op["timeout"] = IntFlag("--timeout", 600)
 op["num-nodes"] = IntFlag("--num-nodes", 3)
 opts = op.parse(sys.argv)
 
-serve_flags = shlex.split(opts["serve-flags"])
-
 with driver.Metacluster() as metacluster:
     cluster = driver.Cluster(metacluster)
     executable_path, command_prefix, serve_options = scenario_common.parse_mode_flags(opts)
