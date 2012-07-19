@@ -25,26 +25,26 @@ private:
 
 // TODO: Rename this to traversal_progress_t after it has been pushed
 // and merged into rdb_protocol.
-class abstract_traversal_progress_t : public home_thread_mixin_t {
+class traversal_progress_t : public home_thread_mixin_t {
 public:
-    abstract_traversal_progress_t() { }
-    abstract_traversal_progress_t(int specified_home_thread) : home_thread_mixin_t(specified_home_thread) { }
+    traversal_progress_t() { }
+    traversal_progress_t(int specified_home_thread) : home_thread_mixin_t(specified_home_thread) { }
 
     virtual progress_completion_fraction_t guess_completion() const = 0;
 
     // This actually gets used, by traversal_progress_combiner_t.
-    virtual ~abstract_traversal_progress_t() { }
+    virtual ~traversal_progress_t() { }
 private:
-    DISABLE_COPYING(abstract_traversal_progress_t);
+    DISABLE_COPYING(traversal_progress_t);
 };
 
-class traversal_progress_combiner_t : public abstract_traversal_progress_t {
+class traversal_progress_combiner_t : public traversal_progress_t {
 public:
-    traversal_progress_combiner_t(int specified_home_thread) : abstract_traversal_progress_t(specified_home_thread) { }
+    traversal_progress_combiner_t(int specified_home_thread) : traversal_progress_t(specified_home_thread) { }
     traversal_progress_combiner_t() { }
 
     // The constituent is welcome to have a different home thread.
-    void add_constituent(abstract_traversal_progress_t *constituent);
+    void add_constituent(traversal_progress_t *constituent);
     progress_completion_fraction_t guess_completion() const;
 
 private:
@@ -52,7 +52,7 @@ private:
     // constituent's home thread.
     void get_constituent_fraction(int i, std::vector<progress_completion_fraction_t> *outputs) const;
 
-    boost::ptr_vector<abstract_traversal_progress_t> constituents;
+    boost::ptr_vector<traversal_progress_t> constituents;
 
     DISABLE_COPYING(traversal_progress_combiner_t);
 };

@@ -5,7 +5,7 @@
 
 #include "concurrency/pmap.hpp"
 
-void traversal_progress_combiner_t::add_constituent(abstract_traversal_progress_t *c) {
+void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
     assert_thread();
     constituents.push_back(c);
 }
