@@ -129,7 +129,11 @@ const char *set_datacenter_machine_option_desc = "the machine to move to the spe
 const char *set_datacenter_datacenter_option_desc = "the datacenter to move to";
 const char *create_namespace_name_option_desc = "the name of the new namespace";
 const char *create_namespace_port_option_desc = "the port for the namespace to serve data from for every machine in the cluster";
-const char *create_namespace_protocol_option_desc = "the protocol for the namespace to use";
+#ifdef NO_MEMCACHE
+const char *create_namespace_protocol_option_desc = "the protocol for the namespace to use, only 'rdb' supported";
+#else
+const char *create_namespace_protocol_option_desc = "the protocol for the namespace to use, either 'rdb' or 'memcached'";
+#endif
 const char *create_namespace_primary_option_desc = "the primary datacenter of the new namespace, this datacenter will host the master replicas of each shard";
 const char *create_datacenter_name_option_desc = "the name of the new datacenter";
 const char *remove_id_option_desc = "the name or uuid of the object to remove";

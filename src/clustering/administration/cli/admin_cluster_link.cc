@@ -97,11 +97,7 @@ void admin_cluster_link_t::admin_stats_to_table(const std::string& machine,
     }
 }
 
-std::string admin_value_to_string(const rdb_protocol_t::region_t& region) {
-    return key_range_to_cli_str(region);
-}
-
-std::string admin_value_to_string(const memcached_protocol_t::region_t& region) {
+std::string admin_value_to_string(const hash_region_t<key_range_t>& region) {
     // TODO(sam): I don't know what is the appropriate sort of thing for an admin_value_to_string call.
     return strprintf("%" PRIu64 ":%" PRIu64 ":%s", region.beg, region.end, key_range_to_cli_str(region.inner).c_str());
 }
@@ -142,20 +138,10 @@ std::string admin_value_to_string(const std::set<mock::dummy_protocol_t::region_
     return result;
 }
 
-std::string admin_value_to_string(const std::set<memcached_protocol_t::region_t>& value) {
+std::string admin_value_to_string(const std::set<hash_region_t<key_range_t> >& value) {
     std::string result;
     size_t count = 0;
     for (std::set<memcached_protocol_t::region_t>::const_iterator i = value.begin(); i != value.end(); ++i) {
-        ++count;
-        result += strprintf("%s%s", admin_value_to_string(*i).c_str(), count == value.size() ? "" : ", ");
-    }
-    return result;
-}
-
-std::string admin_value_to_string(const std::set<rdb_protocol_t::region_t>& value) {
-    std::string result;
-    size_t count = 0;
-    for (std::set<rdb_protocol_t::region_t>::const_iterator i = value.begin(); i != value.end(); ++i) {
         ++count;
         result += strprintf("%s%s", admin_value_to_string(*i).c_str(), count == value.size() ? "" : ", ");
     }
@@ -826,62 +812,6 @@ std::string admin_cluster_link_t::admin_split_shard_internal(namespaces_semilatt
     return error;
 }
 
-// TODO: kind of sloppy to have this for two fairly similar types
-std::string admin_cluster_link_t::split_shards(vclock_t<std::set<key_range_t > > *shards_vclock,
-                                               const std::vector<std::string> &split_points) {
-    std::set<key_range_t> &shards = shards_vclock->get_mutable();
-    std::string error;
-
-    for (size_t i = 0; i < split_points.size(); ++i) {
-        try {
-            store_key_t key;
-            if (!cli_str_to_key(split_points[i], &key)) {
-                throw admin_cluster_exc_t("split point could not be parsed: " + split_points[i]);
-            }
-
-            if (shards.empty()) {
-                // this should never happen, but try to handle it anyway
-                shards.insert(key_range_t(key_range_t::none, store_key_t(), key_range_t::open, store_key_t(key)));
-                shards.insert(key_range_t(key_range_t::closed, store_key_t(key), key_range_t::none, store_key_t()));
-            } else {
-                // TODO: use a better search than linear
-                std::set<key_range_t>::iterator shard = shards.begin();
-                while (true) {
-                    if (shard == shards.end()) {
-                        throw admin_cluster_exc_t("split point could not be placed: " + split_points[i]);
-                    } else if (shard->contains_key(key)) {
-                        break;
-                    }
-                    ++shard;
-                }
-
-                // Don't split if this key is already the split point
-                if (shard->left == key) {
-                    throw admin_cluster_exc_t("split point already exists: " + split_points[i]);
-                }
-
-                // Create the two new shards to be inserted
-                key_range_t left;
-                left.left = shard->left;
-                left.right = key_range_t::right_bound_t(key);
-                key_range_t right;
-                right.left = key;
-                right.right = shard->right;
-
-                shards.erase(shard);
-                shards.insert(left);
-                shards.insert(right);
-            }
-            shards_vclock->upgrade_version(change_request_id);
-        } catch (const std::exception& ex) {
-            error += ex.what();
-            error += "\n";
-        }
-    }
-    return error;
-}
-
-
 std::string admin_cluster_link_t::split_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
                                                const std::vector<std::string> &split_points) {
     std::set<hash_region_t<key_range_t> > &shards = shards_vclock->get_mutable();
@@ -1002,55 +932,6 @@ std::string admin_cluster_link_t::admin_merge_shard_internal(namespaces_semilatt
     ns.primary_pinnings = ns.primary_pinnings.make_resolving_version(new_primaries, change_request_id);
     ns.secondary_pinnings = ns.secondary_pinnings.make_resolving_version(new_secondaries, change_request_id);
 
-    return error;
-}
-
-std::string admin_cluster_link_t::merge_shards(vclock_t<std::set<key_range_t> > *shards_vclock,
-                                               const std::vector<std::string> &split_points) {
-    std::set<key_range_t> &shards = shards_vclock->get_mutable();
-    std::string error;
-    for (size_t i = 0; i < split_points.size(); ++i) {
-        try {
-            store_key_t key;
-            if (!cli_str_to_key(split_points[i], &key)) {
-                throw admin_cluster_exc_t("split point could not be parsed: " + split_points[i]);
-            }
-
-            std::set<key_range_t>::iterator shard = shards.begin();
-            if (shard == shards.end()) {
-                throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
-            }
-
-            std::set<key_range_t>::iterator prev = shard;
-            ++shard;
-            while (true) {
-                if (shard == shards.end()) {
-                    throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
-                } else if (shard->contains_key(key)) {
-                    break;
-                }
-                prev = shard;
-                ++shard;
-            }
-
-            if (shard->left != store_key_t(key)) {
-                throw admin_cluster_exc_t("split point does not exist: " + split_points[i]);
-            }
-
-            // Create the new shard to be inserted
-            key_range_t merged;
-            merged.left = prev->left;
-            merged.right = shard->right;
-
-            shards.erase(shard);
-            shards.erase(prev);
-            shards.insert(merged);
-            shards_vclock->upgrade_version(change_request_id);
-        } catch (const std::exception& ex) {
-            error += ex.what();
-            error += "\n";
-        }
-    }
     return error;
 }
 
