@@ -17,6 +17,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
+#include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/printf_buffer.hpp"
@@ -694,7 +695,7 @@ void bind_socket(fd_t sock_fd, int port) {
     res = bind(sock_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
     if (res != 0) {
         if (errno == EADDRINUSE) {
-            throw linux_tcp_listener_t::address_in_use_exc_t("localhost", port);
+            throw address_in_use_exc_t("localhost", port);
         } else {
             crash("Could not bind socket at localhost:%i - %s\n", port, strerror(errno));
         }
