@@ -66,6 +66,10 @@ bool term_type_least_upper_bound(term_type_t left, term_type_t right, term_type_
     }
 }
 
+function_type_t::function_type_t(const term_type_t &_return_type)
+    : n_args(0), return_type(_return_type)
+{ }
+
 function_type_t::function_type_t(const term_type_t& _arg_type, int _n_args, const term_type_t& _return_type)
     : n_args(_n_args), return_type(_return_type) {
     arg_type[0] = _arg_type;
@@ -105,7 +109,7 @@ int function_type_t::get_n_args() const {
     return n_args;
 }
 
-term_type_t get_term_type(const Term &t, variable_type_scope_t *scope, const backtrace_t &backtrace) {
+term_type_t get_term_type(const Term &t, type_checking_environment_t *env, const backtrace_t &backtrace) {
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     t.GetReflection()->ListFields(t, &fields);
     int field_count = fields.size();
@@ -115,33 +119,32 @@ term_type_t get_term_type(const Term &t, variable_type_scope_t *scope, const bac
     switch (t.type()) {
     case Term::VAR:
         check_protobuf(t.has_var());
-        if (!scope->is_in_scope(t.var())) {
+        if (!env->scope.is_in_scope(t.var())) {
             throw bad_query_exc_t(strprintf("symbol '%s' is not in scope", t.var().c_str()), backtrace);
         }
-        return scope->get(t.var());
+        return env->scope.get(t.var());
         break;
     case Term::LET:
         {
             check_protobuf(t.has_let());
-            scope->push(); //create a new scope
+            new_scope_t scope_maker(&env->scope); //create a new scope
             for (int i = 0; i < t.let().binds_size(); ++i) {
-                scope->put_in_scope(
+                env->scope.put_in_scope(
                     t.let().binds(i).var(),
                     get_term_type(
                         t.let().binds(i).term(),
-                        scope,
+                        env,
                         backtrace.with(strprintf("bind:%s", t.let().binds(i).var().c_str()))
                     ));
             }
-            term_type_t res = get_term_type(t.let().expr(), scope, backtrace.with("expr"));
-            scope->pop();
+            term_type_t res = get_term_type(t.let().expr(), env, backtrace.with("expr"));
             return res;
         }
         break;
     case Term::CALL:
         {
             check_protobuf(t.has_call());
-            function_type_t signature = get_function_type(t.call().builtin(), scope, backtrace);
+            function_type_t signature = get_function_type(t.call().builtin(), env, backtrace);
             if (!signature.is_variadic()) {
                 int n_args = signature.get_n_args();
                 if (t.call().args_size() != n_args) {
@@ -160,7 +163,7 @@ term_type_t get_term_type(const Term &t, variable_type_scope_t *scope, const bac
                 check_term_type(
                     t.call().args(i),
                     signature.get_arg_type(i),
-                    scope,
+                    env,
                     backtrace.with(strprintf("arg:%d", i)));
             }
             return signature.get_return_type();
@@ -169,11 +172,11 @@ term_type_t get_term_type(const Term &t, variable_type_scope_t *scope, const bac
     case Term::IF:
         {
             check_protobuf(t.has_if_());
-            check_term_type(t.if_().test(), TERM_TYPE_JSON, scope, backtrace.with("test"));
+            check_term_type(t.if_().test(), TERM_TYPE_JSON, env, backtrace.with("test"));
 
-            term_type_t true_branch = get_term_type(t.if_().true_branch(), scope, backtrace.with("true"));
+            term_type_t true_branch = get_term_type(t.if_().true_branch(), env, backtrace.with("true"));
 
-            term_type_t false_branch = get_term_type(t.if_().false_branch(), scope, backtrace.with("false"));
+            term_type_t false_branch = get_term_type(t.if_().false_branch(), env, backtrace.with("false"));
 
             term_type_t combined_type;
             if (!term_type_least_upper_bound(true_branch, false_branch, &combined_type)) {
@@ -216,7 +219,7 @@ term_type_t get_term_type(const Term &t, variable_type_scope_t *scope, const bac
             check_protobuf(field_count == 1);
         }
         for (int i = 0; i < t.array_size(); ++i) {
-            check_term_type(t.array(i), TERM_TYPE_JSON, scope, backtrace.with(strprintf("elem:%d", i)));
+            check_term_type(t.array(i), TERM_TYPE_JSON, env, backtrace.with(strprintf("elem:%d", i)));
         }
         return TERM_TYPE_JSON;
         break;
@@ -225,14 +228,14 @@ term_type_t get_term_type(const Term &t, variable_type_scope_t *scope, const bac
             check_protobuf(field_count == 1);
         }
         for (int i = 0; i < t.object_size(); ++i) {
-            check_term_type(t.object(i).term(), TERM_TYPE_JSON, scope,
+            check_term_type(t.object(i).term(), TERM_TYPE_JSON, env,
                 backtrace.with(strprintf("key:%s", t.object(i).var().c_str())));
         }
         return TERM_TYPE_JSON;
         break;
     case Term::GETBYKEY: {
         check_protobuf(t.has_get_by_key());
-        check_term_type(t.get_by_key().key(), TERM_TYPE_JSON, scope, backtrace.with("key"));
+        check_term_type(t.get_by_key().key(), TERM_TYPE_JSON, env, backtrace.with("key"));
         return TERM_TYPE_JSON;
         break;
     }
@@ -246,8 +249,8 @@ term_type_t get_term_type(const Term &t, variable_type_scope_t *scope, const bac
     crash("unreachable");
 }
 
-void check_term_type(const Term &t, term_type_t expected, variable_type_scope_t *scope, const backtrace_t &backtrace) {
-    term_type_t actual = get_term_type(t, scope, backtrace);
+void check_term_type(const Term &t, term_type_t expected, type_checking_environment_t *env, const backtrace_t &backtrace) {
+    term_type_t actual = get_term_type(t, env, backtrace);
     if (!term_type_is_convertible(actual, expected)) {
         throw bad_query_exc_t(strprintf("expected a %s; got a %s",
                 term_type_name(expected).c_str(), term_type_name(actual).c_str()),
@@ -255,7 +258,7 @@ void check_term_type(const Term &t, term_type_t expected, variable_type_scope_t 
     }
 }
 
-function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope, const backtrace_t &backtrace) {
+function_type_t get_function_type(const Builtin &b, type_checking_environment_t *env, const backtrace_t &backtrace) {
     std::vector<const google::protobuf::FieldDescriptor *> fields;
 
     b.GetReflection()->ListFields(b, &fields);
@@ -299,49 +302,57 @@ function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope
         check_protobuf(b.has_comparison());
         break;
     case Builtin::GETATTR:
+    case Builtin::IMPLICIT_GETATTR:
     case Builtin::HASATTR:
+    case Builtin::IMPLICIT_HASATTR:
         check_protobuf(b.has_attr());
         break;
     case Builtin::PICKATTRS:
+    case Builtin::IMPLICIT_PICKATTRS:
         check_protobuf(b.attrs_size());
         break;
     case Builtin::FILTER: {
+        implicit_value_t<term_type_t>::impliciter_t impliciter(&env->implicit_type, TERM_TYPE_JSON); //make the implicit value be of type json
         check_protobuf(b.has_filter());
-        check_predicate_type(b.filter().predicate(), scope, backtrace.with("predicate"));
+        check_predicate_type(b.filter().predicate(), env, backtrace.with("predicate"));
         break;
     }
     case Builtin::MAP: {
+        implicit_value_t<term_type_t>::impliciter_t impliciter(&env->implicit_type, TERM_TYPE_JSON); //make the implicit value be of type json
         check_protobuf(b.has_map());
-        check_mapping_type(b.map().mapping(), TERM_TYPE_JSON, scope, backtrace.with("mapping"));
+        check_mapping_type(b.map().mapping(), TERM_TYPE_JSON, env, backtrace.with("mapping"));
         break;
     }
     case Builtin::CONCATMAP: {
+        implicit_value_t<term_type_t>::impliciter_t impliciter(&env->implicit_type, TERM_TYPE_JSON); //make the implicit value be of type json
         check_protobuf(b.has_concat_map());
-        check_mapping_type(b.map().mapping(), TERM_TYPE_STREAM, scope, backtrace.with("mapping"));
+        check_mapping_type(b.map().mapping(), TERM_TYPE_STREAM, env, backtrace.with("mapping"));
         break;
     }
     case Builtin::ORDERBY:
         check_protobuf(b.order_by_size() > 0);
         break;
     case Builtin::REDUCE: {
+        implicit_value_t<term_type_t>::impliciter_t impliciter(&env->implicit_type, TERM_TYPE_JSON); //make the implicit value be of type json
         check_protobuf(b.has_reduce());
-        check_reduction_type(b.reduce(), scope, backtrace.with("reduction"));
+        check_reduction_type(b.reduce(), env, backtrace.with("reduction"));
         break;
     }
     case Builtin::GROUPEDMAPREDUCE: {
         check_protobuf(b.has_grouped_map_reduce());
-        check_mapping_type(b.grouped_map_reduce().group_mapping(), TERM_TYPE_JSON, scope, backtrace.with("group_mapping"));
-        check_mapping_type(b.grouped_map_reduce().value_mapping(), TERM_TYPE_JSON, scope, backtrace.with("value_mapping"));
-        check_reduction_type(b.grouped_map_reduce().reduction(), scope, backtrace.with("reduction"));
+        implicit_value_t<term_type_t>::impliciter_t impliciter(&env->implicit_type, TERM_TYPE_JSON); //make the implicit value be of type json
+        check_mapping_type(b.grouped_map_reduce().group_mapping(), TERM_TYPE_JSON, env, backtrace.with("group_mapping"));
+        check_mapping_type(b.grouped_map_reduce().value_mapping(), TERM_TYPE_JSON, env, backtrace.with("value_mapping"));
+        check_reduction_type(b.grouped_map_reduce().reduction(), env, backtrace.with("reduction"));
         break;
     }
     case Builtin::RANGE:
         check_protobuf(b.has_range());
         if (b.range().has_lowerbound()) {
-            check_term_type(b.range().lowerbound(), TERM_TYPE_JSON, scope, backtrace.with("lowerbound"));
+            check_term_type(b.range().lowerbound(), TERM_TYPE_JSON, env, backtrace.with("lowerbound"));
         }
         if (b.range().has_upperbound()) {
-            check_term_type(b.range().upperbound(), TERM_TYPE_JSON, scope, backtrace.with("upperbound"));
+            check_term_type(b.range().upperbound(), TERM_TYPE_JSON, env, backtrace.with("upperbound"));
         }
         break;
     default:
@@ -357,6 +368,13 @@ function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope
         case Builtin::ARRAYLENGTH:
         case Builtin::JAVASCRIPT:
             return function_type_t(TERM_TYPE_JSON, 1, TERM_TYPE_JSON);
+            break;
+        case Builtin::IMPLICIT_GETATTR:
+        case Builtin::IMPLICIT_HASATTR:
+        case Builtin::IMPLICIT_PICKATTRS:
+            if (env->implicit_type.has_value() && env->implicit_type.get_value() == TERM_TYPE_JSON) {
+                return function_type_t(TERM_TYPE_JSON);
+            }
             break;
         case Builtin::MAPMERGE:
         case Builtin::ARRAYAPPEND:
@@ -414,35 +432,35 @@ function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope
     crash("unreachable");
 }
 
-void check_reduction_type(const Reduction &r, variable_type_scope_t *scope, const backtrace_t &backtrace) {
-    check_term_type(r.base(), TERM_TYPE_JSON, scope, backtrace.with("base"));
+void check_reduction_type(const Reduction &r, type_checking_environment_t *env, const backtrace_t &backtrace) {
+    check_term_type(r.base(), TERM_TYPE_JSON, env, backtrace.with("base"));
 
-    new_scope_t scope_maker(scope);
-    scope->put_in_scope(r.var1(), TERM_TYPE_JSON);
-    scope->put_in_scope(r.var2(), TERM_TYPE_JSON);
-    check_term_type(r.body(), TERM_TYPE_JSON, scope, backtrace.with("body"));
+    new_scope_t scope_maker(&env->scope);
+    env->scope.put_in_scope(r.var1(), TERM_TYPE_JSON);
+    env->scope.put_in_scope(r.var2(), TERM_TYPE_JSON);
+    check_term_type(r.body(), TERM_TYPE_JSON, env, backtrace.with("body"));
 }
 
-void check_mapping_type(const Mapping &m, term_type_t return_type, variable_type_scope_t *scope, const backtrace_t &backtrace) {
-    new_scope_t scope_maker(scope);
-    scope->put_in_scope(m.arg(), TERM_TYPE_JSON);
-    check_term_type(m.body(), return_type, scope, backtrace);
+void check_mapping_type(const Mapping &m, term_type_t return_type, type_checking_environment_t *env, const backtrace_t &backtrace) {
+    new_scope_t scope_maker(&env->scope);
+    env->scope.put_in_scope(m.arg(), TERM_TYPE_JSON);
+    check_term_type(m.body(), return_type, env, backtrace);
 }
 
-void check_predicate_type(const Predicate &p, variable_type_scope_t *scope, const backtrace_t &backtrace) {
-    new_scope_t scope_maker(scope);
-    scope->put_in_scope(p.arg(), TERM_TYPE_JSON);
-    check_term_type(p.body(), TERM_TYPE_JSON, scope, backtrace);
+void check_predicate_type(const Predicate &p, type_checking_environment_t *env, const backtrace_t &backtrace) {
+    new_scope_t scope_maker(&env->scope);
+    env->scope.put_in_scope(p.arg(), TERM_TYPE_JSON);
+    check_term_type(p.body(), TERM_TYPE_JSON, env, backtrace);
 }
 
-void check_read_query_type(const ReadQuery &rq, variable_type_scope_t *scope, const backtrace_t &backtrace) {
+void check_read_query_type(const ReadQuery &rq, type_checking_environment_t *env, const backtrace_t &backtrace) {
     /* Read queries could return anything--a view, a stream, a JSON, or an
     error. Views will be automatically converted to streams at evaluation time.
     */
-    get_term_type(rq.term(), scope, backtrace);
+    get_term_type(rq.term(), env, backtrace);
 }
 
-void check_write_query_type(const WriteQuery &w, variable_type_scope_t *scope, const backtrace_t &backtrace) {
+void check_write_query_type(const WriteQuery &w, type_checking_environment_t *env, const backtrace_t &backtrace) {
     std::vector<const google::protobuf::FieldDescriptor *> fields;
     w.GetReflection()->ListFields(w, &fields);
     check_protobuf(fields.size() == 2);
@@ -450,60 +468,60 @@ void check_write_query_type(const WriteQuery &w, variable_type_scope_t *scope, c
     switch (w.type()) {
         case WriteQuery::UPDATE: {
             check_protobuf(w.has_update());
-            check_term_type(w.update().view(), TERM_TYPE_VIEW, scope, backtrace.with("view"));
-            check_mapping_type(w.update().mapping(), TERM_TYPE_JSON, scope, backtrace.with("mapping"));
+            check_term_type(w.update().view(), TERM_TYPE_VIEW, env, backtrace.with("view"));
+            check_mapping_type(w.update().mapping(), TERM_TYPE_JSON, env, backtrace.with("mapping"));
             break;
         }
         case WriteQuery::DELETE: {
             check_protobuf(w.has_delete_());
-            check_term_type(w.delete_().view(), TERM_TYPE_VIEW, scope, backtrace.with("view"));
+            check_term_type(w.delete_().view(), TERM_TYPE_VIEW, env, backtrace.with("view"));
             break;
         }
         case WriteQuery::MUTATE: {
             check_protobuf(w.has_mutate());
-            check_term_type(w.mutate().view(), TERM_TYPE_VIEW, scope, backtrace.with("view"));
-            check_mapping_type(w.mutate().mapping(), TERM_TYPE_JSON, scope, backtrace.with("mapping"));
+            check_term_type(w.mutate().view(), TERM_TYPE_VIEW, env, backtrace.with("view"));
+            check_mapping_type(w.mutate().mapping(), TERM_TYPE_JSON, env, backtrace.with("mapping"));
             break;
         }
         case WriteQuery::INSERT: {
             check_protobuf(w.has_insert());
             for (int i = 0; i < w.insert().terms_size(); ++i) {
-                check_term_type(w.insert().terms(i), TERM_TYPE_JSON, scope, backtrace.with(strprintf("term:%d", i)));
+                check_term_type(w.insert().terms(i), TERM_TYPE_JSON, env, backtrace.with(strprintf("term:%d", i)));
             }
             break;
         }
         case WriteQuery::INSERTSTREAM: {
             check_protobuf(w.has_insert_stream());
-            check_term_type(w.insert_stream().stream(), TERM_TYPE_STREAM, scope, backtrace.with("stream"));
+            check_term_type(w.insert_stream().stream(), TERM_TYPE_STREAM, env, backtrace.with("stream"));
             break;
         }
         case WriteQuery::FOREACH:
             {
                 check_protobuf(w.has_for_each());
-                check_term_type(w.for_each().stream(), TERM_TYPE_STREAM, scope, backtrace.with("stream"));
+                check_term_type(w.for_each().stream(), TERM_TYPE_STREAM, env, backtrace.with("stream"));
 
-                new_scope_t scope_maker(scope);
-                scope->put_in_scope(w.for_each().var(), TERM_TYPE_JSON);
+                new_scope_t scope_maker(&env->scope);
+                env->scope.put_in_scope(w.for_each().var(), TERM_TYPE_JSON);
                 for (int i = 0; i < w.for_each().queries_size(); ++i) {
-                    check_write_query_type(w.for_each().queries(i), scope, backtrace.with(strprintf("query:%d", i)));
+                    check_write_query_type(w.for_each().queries(i), env, backtrace.with(strprintf("query:%d", i)));
                 }
             }
             break;
         case WriteQuery::POINTUPDATE: {
             check_protobuf(w.has_point_update());
-            check_term_type(w.point_update().key(), TERM_TYPE_JSON, scope, backtrace.with("key"));
-            check_mapping_type(w.point_update().mapping(), TERM_TYPE_JSON, scope, backtrace.with("mapping"));
+            check_term_type(w.point_update().key(), TERM_TYPE_JSON, env, backtrace.with("key"));
+            check_mapping_type(w.point_update().mapping(), TERM_TYPE_JSON, env, backtrace.with("mapping"));
             break;
         }
         case WriteQuery::POINTDELETE: {
             check_protobuf(w.has_point_delete());
-            check_term_type(w.point_delete().key(), TERM_TYPE_JSON, scope, backtrace.with("key"));
+            check_term_type(w.point_delete().key(), TERM_TYPE_JSON, env, backtrace.with("key"));
             break;
         }
         case WriteQuery::POINTMUTATE: {
             check_protobuf(w.has_point_mutate());
-            check_term_type(w.point_mutate().key(), TERM_TYPE_JSON, scope, backtrace.with("key"));
-            check_mapping_type(w.point_mutate().mapping(), TERM_TYPE_JSON, scope, backtrace.with("mapping"));
+            check_term_type(w.point_mutate().key(), TERM_TYPE_JSON, env, backtrace.with("key"));
+            check_mapping_type(w.point_mutate().mapping(), TERM_TYPE_JSON, env, backtrace.with("mapping"));
             break;
         }
         default:
@@ -511,17 +529,17 @@ void check_write_query_type(const WriteQuery &w, variable_type_scope_t *scope, c
     }
 }
 
-void check_query_type(const Query &q, variable_type_scope_t *scope, const backtrace_t &backtrace) {
+void check_query_type(const Query &q, type_checking_environment_t *env, const backtrace_t &backtrace) {
     switch (q.type()) {
     case Query::READ:
         check_protobuf(q.has_read_query());
         check_protobuf(!q.has_write_query());
-        check_read_query_type(q.read_query(), scope, backtrace);
+        check_read_query_type(q.read_query(), env, backtrace);
         break;
     case Query::WRITE:
         check_protobuf(q.has_write_query());
         check_protobuf(!q.has_read_query());
-        check_write_query_type(q.write_query(), scope, backtrace);
+        check_write_query_type(q.write_query(), env, backtrace);
         break;
     default:
         unreachable("unhandled Query");
@@ -622,7 +640,7 @@ void execute(const Query &q, runtime_environment_t *env, Response *res, const ba
 }
 
 void execute(const ReadQuery &r, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
-    term_type_t type = get_term_type(r.term(), &env->type_scope, backtrace);
+    term_type_t type = get_term_type(r.term(), &env->type_env, backtrace);
 
     switch (type) {
     case TERM_TYPE_JSON: {
@@ -823,7 +841,7 @@ void eval_let_binds(const Term::Let &let, runtime_environment_t *env, const back
     // Go through the bindings in a let and add them one by one
     for (int i = 0; i < let.binds_size(); ++i) {
         backtrace_t backtrace_bind = backtrace.with(strprintf("bind:%s", let.binds(i).var().c_str()));
-        term_type_t type = get_term_type(let.binds(i).term(), &env->type_scope, backtrace_bind);
+        term_type_t type = get_term_type(let.binds(i).term(), &env->type_env, backtrace_bind);
 
         if (type == TERM_TYPE_JSON) {
             env->scope.put_in_scope(let.binds(i).var(),
@@ -837,7 +855,7 @@ void eval_let_binds(const Term::Let &let, runtime_environment_t *env, const back
                 "evaluating it must throw  `runtime_exc_t`.");
         }
 
-        env->type_scope.put_in_scope(let.binds(i).var(),
+        env->type_env.scope.put_in_scope(let.binds(i).var(),
                                      type);
     }
 }
@@ -852,7 +870,7 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
                 // Push the scope
                 variable_val_scope_t::new_scope_t new_scope(&env->scope);
                 variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope);
-                variable_type_scope_t::new_scope_t new_type_scope(&env->type_scope);
+                variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
 
                 eval_let_binds(t.let(), env, backtrace);
 
@@ -971,7 +989,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term &t, runtime_environment_
                 // Push the scope
                 variable_val_scope_t::new_scope_t new_scope(&env->scope);
                 variable_stream_scope_t::new_scope_t new_stream_scope(&env->stream_scope);
-                variable_type_scope_t::new_scope_t new_type_scope(&env->type_scope);
+                variable_type_scope_t::new_scope_t new_type_scope(&env->type_env.scope);
 
                 eval_let_binds(t.let(), env, backtrace);
 
@@ -1036,8 +1054,15 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             }
             break;
         case Builtin::GETATTR:
+        case Builtin::IMPLICIT_GETATTR:
             {
-                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env, backtrace.with("arg:0"));
+                boost::shared_ptr<scoped_cJSON_t> data;
+                if (c.builtin().type() == Builtin::GETATTR) {
+                    boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env, backtrace.with("arg:0"));
+                } else {
+                    rassert(env->implicit_attribute_value.has_value());
+                    boost::shared_ptr<scoped_cJSON_t> data = env->implicit_attribute_value.get_value();
+                }
 
                 if (!data->type() == cJSON_Object) {
                     throw runtime_exc_t("Data must be an object", backtrace);
@@ -1053,8 +1078,15 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             }
             break;
         case Builtin::HASATTR:
+        case Builtin::IMPLICIT_HASATTR:
             {
-                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env, backtrace.with("arg:0"));
+                boost::shared_ptr<scoped_cJSON_t> data;
+                if (c.builtin().type() == Builtin::GETATTR) {
+                    boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env, backtrace.with("arg:0"));
+                } else {
+                    rassert(env->implicit_attribute_value.has_value());
+                    boost::shared_ptr<scoped_cJSON_t> data = env->implicit_attribute_value.get_value();
+                }
 
                 if (!data->type() == cJSON_Object) {
                     throw runtime_exc_t("Data must be an object", backtrace);
@@ -1070,8 +1102,15 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             }
             break;
         case Builtin::PICKATTRS:
+        case Builtin::IMPLICIT_PICKATTRS:
             {
-                boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env, backtrace.with("arg:0"));
+                boost::shared_ptr<scoped_cJSON_t> data;
+                if (c.builtin().type() == Builtin::GETATTR) {
+                    boost::shared_ptr<scoped_cJSON_t> data = eval(c.args(0), env, backtrace.with("arg:0"));
+                } else {
+                    rassert(env->implicit_attribute_value.has_value());
+                    boost::shared_ptr<scoped_cJSON_t> data = env->implicit_attribute_value.get_value();
+                }
 
                 if (!data->type() == cJSON_Object) {
                     throw runtime_exc_t("Data must be an object", backtrace);
@@ -1619,6 +1658,7 @@ public:
     bool operator()(boost::shared_ptr<scoped_cJSON_t> json) {
         variable_val_scope_t::new_scope_t scope_maker(&env->scope);
         env->scope.put_in_scope(pred.arg(), json);
+        implicit_value_setter_t impliciter(&env->implicit_attribute_value, json);
         boost::shared_ptr<scoped_cJSON_t> a_bool = eval(pred.body(), env, backtrace.with("predicate"));
 
         if (a_bool->type() == cJSON_True) {
@@ -1670,12 +1710,14 @@ private:
 boost::shared_ptr<scoped_cJSON_t> map(std::string arg, const Term &term, runtime_environment_t *env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
     env->scope.put_in_scope(arg, val);
+    implicit_value_setter_t impliciter(&env->implicit_attribute_value, val);
     return eval(term, env, backtrace);
 }
 
 boost::shared_ptr<json_stream_t> concatmap(std::string arg, const Term &term, runtime_environment_t *env, boost::shared_ptr<scoped_cJSON_t> val, const backtrace_t &backtrace) {
     variable_val_scope_t::new_scope_t scope_maker(&env->scope);
     env->scope.put_in_scope(arg, val);
+    implicit_value_setter_t impliciter(&env->implicit_attribute_value, val);
     return eval_stream(term, env, backtrace);
 }
 
@@ -1684,8 +1726,11 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
         //JSON -> JSON
         case Builtin::NOT:
         case Builtin::GETATTR:
+        case Builtin::IMPLICIT_GETATTR:
         case Builtin::HASATTR:
+        case Builtin::IMPLICIT_HASATTR:
         case Builtin::PICKATTRS:
+        case Builtin::IMPLICIT_PICKATTRS:
         case Builtin::MAPMERGE:
         case Builtin::ARRAYAPPEND:
         case Builtin::ARRAYCONCAT:
@@ -1720,6 +1765,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
                     {
                         variable_val_scope_t::new_scope_t scope_maker(&env->scope);
                         env->scope.put_in_scope(c.builtin().grouped_map_reduce().group_mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->implicit_attribute_value, json);
                         group_mapped_row = eval(c.builtin().grouped_map_reduce().group_mapping().body(), env, backtrace.with("group_mapping"));
                     }
 
@@ -1727,6 +1773,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
                     {
                         variable_val_scope_t::new_scope_t scope_maker(&env->scope);
                         env->scope.put_in_scope(c.builtin().grouped_map_reduce().value_mapping().arg(), json);
+                        implicit_value_setter_t impliciter(&env->implicit_attribute_value, json);
                         value_mapped_row = eval(c.builtin().grouped_map_reduce().value_mapping().body(), env, backtrace.with("value_mapping"));
                     }
 

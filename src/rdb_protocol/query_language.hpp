@@ -63,6 +63,7 @@ enum term_type_t {
 class function_type_t {
 public:
     // _n_args==-1 indicates a variadic function
+    function_type_t(const term_type_t &_return_type);
     function_type_t(const term_type_t& _arg_type, int _n_args, const term_type_t& _return_type);
     function_type_t(const term_type_t& _arg1_type, const term_type_t& _arg2_type, const term_type_t& _return_type);
 
@@ -201,18 +202,23 @@ private:
 
 typedef implicit_value_t<term_type_t> implicit_type_t;
 
+struct type_checking_environment_t {
+    variable_type_scope_t scope;
+    implicit_type_t implicit_type;
+};
+
 /* These functions throw exceptions if their inputs aren't well defined or
 fail type-checking. (A well-defined input has the correct fields filled in.) */
 
-term_type_t get_term_type(const Term &t, variable_type_scope_t *scope, const backtrace_t &backtrace);
-void check_term_type(const Term &t, term_type_t expected, variable_type_scope_t *scope, const backtrace_t &backtrace);
-function_type_t get_function_type(const Builtin &b, variable_type_scope_t *scope, const backtrace_t &backtrace);
-void check_reduction_type(const Reduction &m, variable_type_scope_t *scope, const backtrace_t &backtrace);
-void check_mapping_type(const Mapping &m, term_type_t return_type, variable_type_scope_t *scope, const backtrace_t &backtrace);
-void check_predicate_type(const Predicate &m, variable_type_scope_t *scope, const backtrace_t &backtrace);
-void check_read_query_type(const ReadQuery &rq, variable_type_scope_t *scope, const backtrace_t &backtrace);
-void check_write_query_type(const WriteQuery &wq, variable_type_scope_t *scope, const backtrace_t &backtrace);
-void check_query_type(const Query &q, variable_type_scope_t *scope, const backtrace_t &backtrace);
+term_type_t get_term_type(const Term &t, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_term_type(const Term &t, term_type_t expected, type_checking_environment_t *env, const backtrace_t &backtrace);
+function_type_t get_function_type(const Builtin &b, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_reduction_type(const Reduction &m, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_mapping_type(const Mapping &m, term_type_t return_type, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_predicate_type(const Predicate &m, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_read_query_type(const ReadQuery &rq, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_write_query_type(const WriteQuery &wq, type_checking_environment_t *env, const backtrace_t &backtrace);
+void check_query_type(const Query &q, type_checking_environment_t *env, const backtrace_t &backtrace);
 
 /* functions to evaluate the queries */
 
@@ -467,9 +473,9 @@ public:
 
     variable_val_scope_t scope;
     variable_stream_scope_t stream_scope;
-    variable_type_scope_t type_scope;
+    type_checking_environment_t type_env;
 
-    implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value_t;
+    implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value;
 
     namespace_repo_t<rdb_protocol_t> *ns_repo;
     //TODO this should really just be the namespace metadata... but
@@ -477,6 +483,8 @@ public:
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
     cond_t interruptor;
 };
+
+typedef implicit_value_t<boost::shared_ptr<scoped_cJSON_t> >::impliciter_t implicit_value_setter_t;
 
 //TODO most of these functions that are supposed to only throw runtime exceptions
 

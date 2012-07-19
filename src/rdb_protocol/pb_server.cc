@@ -9,12 +9,12 @@ Response query_server_t::handle(const Query &q) {
     Response res;
     res.set_token(q.token());
 
-    query_language::variable_type_scope_t scope;
+    query_language::type_checking_environment_t type_environment;
 
     query_language::backtrace_t root_backtrace;
 
     try {
-        query_language::check_query_type(q, &scope, root_backtrace);
+        query_language::check_query_type(q, &type_environment, root_backtrace);
     } catch (query_language::bad_protobuf_exc_t &e) {
         res.set_status_code(-3);
         res.add_response("bad protocol buffer; client is buggy.");
