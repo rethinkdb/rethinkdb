@@ -241,7 +241,7 @@ try {
 
     return true;
 
-} catch (linux_tcp_listener_t::address_in_use_exc_t e) {
+} catch (address_in_use_exc_t e) {
     printf("%s. Cannot bind to cluster port. Exiting.\n", e.what());
     exit(1);
 }
