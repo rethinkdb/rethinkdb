@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "arch/types.hpp"
+#include "arch/io/network.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/archive/tcp_conn_stream.hpp"
@@ -55,7 +56,7 @@ public:
         run_t(connectivity_cluster_t *parent,
             int port,
             message_handler_t *message_handler,
-            int client_port = 0) THROWS_NOTHING;
+            int client_port = 0) THROWS_ONLY(linux_tcp_listener_t::address_in_use_exc_t);
 
         ~run_t();
 
