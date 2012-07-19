@@ -241,10 +241,10 @@ bool do_serve(
     // TODO: make this not be shitty (port offsets and such)
 #ifdef NDEBUG
     //http_server_t server(12345, &rdb_parser);
-    query_server_t rdb_pb_server(12346, semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
+    query_server_t rdb_pb_server(12346, &extproc_pool_group, semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
 #else
     //http_server_t server(12345 + ports.port_offset, &rdb_parser);
-    query_server_t rdb_pb_server(12346 + ports.port_offset, semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
+    query_server_t rdb_pb_server(12346 + ports.port_offset, &extproc_pool_group, semilattice_manager_cluster.get_root_view(), &rdb_namespace_repo);
 #endif
 
     boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :

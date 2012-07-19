@@ -10,6 +10,7 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
+#include "extproc/pool.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/backtrace.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -460,9 +461,10 @@ public:
 
 class runtime_environment_t {
 public:
-    runtime_environment_t(namespace_repo_t<rdb_protocol_t> *_ns_repo,
+    runtime_environment_t(extproc::pool_group_t *_pool_group,
+                          namespace_repo_t<rdb_protocol_t> *_ns_repo,
                           boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata)
-        : ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata)
+        : pool_group(_pool_group), ns_repo(_ns_repo), semilattice_metadata(_semilattice_metadata)
     { }
 
     variable_val_scope_t scope;
@@ -471,6 +473,7 @@ public:
 
     implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value_t;
 
+    extproc::pool_group_t *pool_group;   // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;
     //TODO this should really just be the namespace metadata... but
     //constructing views is too hard :-/

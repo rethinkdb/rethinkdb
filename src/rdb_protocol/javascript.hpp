@@ -58,6 +58,7 @@ class eval_t :
 {
   public:
     eval_t();
+    ~eval_t();
 
     void begin(extproc::pool_t *pool);
     void finish();
@@ -111,10 +112,9 @@ class eval_t :
         const boost::shared_ptr<scoped_cJSON_t> json,
         req_config_t *config = NULL);
 
-    // Retrieves an object as JSON from the other side.
-    // Fails if the object can't be represented as JSON.
-    MUST_USE bool getJSON(
-        boost::shared_ptr<scoped_cJSON_t> *out,
+    // Retrieves an object as JSON from the other side. Fails and returns an
+    // empty pointer if the object can't be represented as JSON.
+    boost::shared_ptr<scoped_cJSON_t> getJSON(
         const js_handle_t *json_handle,
         std::string *errmsg,
         req_config_t *config = NULL);

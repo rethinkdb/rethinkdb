@@ -132,6 +132,8 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
         return r;
 
     } else {
+        // TODO (rntz): detect javascript `undefined` & give better error
+        // message for it
         *errmsg = "unknown value type when converting value to json";
         return NULL;
     }
@@ -146,8 +148,11 @@ boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std:
     *errmsg = "unknown error when converting to JSON";
 
     cJSON *json = mkJSON(value, errmsg);
-    boost::shared_ptr<scoped_cJSON_t> ptr = boost::make_shared<scoped_cJSON_t>(json);
-    return ptr;
+    if (json) {
+        return boost::make_shared<scoped_cJSON_t>(json);
+    } else {
+        return boost::shared_ptr<scoped_cJSON_t>();
+    }
 }
 
 v8::Handle<v8::Value> fromJSON(const cJSON &json) {

@@ -22,6 +22,9 @@ boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std:
 // Should never error.
 v8::Handle<v8::Value> fromJSON(const cJSON &json);
 
+// Returns an empty handle and sets `*errmsg` on error.
+v8::Handle<v8::Value> eval(const std::string &src, std::string *errmsg);
+
 // Worker-side JS evaluation environment.
 class env_t {
   public:
@@ -52,13 +55,19 @@ class env_t {
     std::map<id_t, v8::Persistent<v8::ObjectTemplate> > templates_;
 };
 
-// A standard "id or error" result.
-typedef boost::variant<id_t, std::string> id_result_t;
+// Puts us into a fresh context.
+struct context_t {
+    context_t(UNUSED env_t *env) : cx(v8::Context::New()), scope(cx) {}
+    ~context_t() { cx.Dispose(); }
+    v8::Persistent<v8::Context> cx;
+    v8::Context::Scope scope;
+};
 
-// "json or error".
+// Results we get back from tasks, generally "success or error" variants
+typedef boost::variant<id_t, std::string> id_result_t;
 typedef boost::variant<boost::shared_ptr<scoped_cJSON_t>, std::string> json_result_t;
 
-// "Mini-jobs" that we run within an env_t.
+// Tasks: "mini-jobs" that we run within an env_t
 class task_t :
     public extproc::job_t
 {
@@ -68,30 +77,13 @@ class task_t :
     void run_job(control_t *control, void *extra) {
         env_t *env = static_cast<env_t *>(extra);
         rassert(control == env->control_);
+        context_t cx(env);
         run(env);
     }
 };
 
 template <class instance_t>
 struct auto_task_t : extproc::auto_job_t<instance_t, task_t> {};
-
-class eval_task_t :
-        public auto_task_t<eval_task_t>
-{
-  public:
-    eval_task_t() {}
-    explicit eval_task_t(const std::string &src) : src_(src) {}
-
-    void run(env_t *env);
-
-    RDB_MAKE_ME_SERIALIZABLE_1(src_);
-
-  private:
-    void eval(env_t *env, v8::Handle<v8::Context> cx, id_result_t *result);
-
-  private:
-    std::string src_;
-};
 
 } // namespace js
 

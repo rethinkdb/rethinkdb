@@ -615,6 +615,17 @@ class Let(Term):
             toTerm(value).write_ast(binding.term)
         toTerm(self.expr).write_ast(parent.let.expr)
 
+class Javascript(Term):
+    def __init__(self, src):
+        assert isinstance(src, str)
+        self.source = src
+
+    def write_ast(self, parent):
+        parent.type = p.Term.JAVASCRIPT
+        parent.javascript = self.source
+
+js = Javascript                 # convenient abbreviation
+
 # Accepts an arbitrary number of pairs followed by a single
 # expression. Each pair is a variable followed by expression (binds
 # the latter to the former and evaluates the last expression in that
