@@ -255,4 +255,5 @@ private:
     T old_value;
 };
 
+
 #endif // UTILS_HPP_

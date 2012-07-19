@@ -1,6 +1,9 @@
 #include "memcached/parser.hpp"
 
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
+
 #include <inttypes.h>
 #include <stdarg.h>
 #include <unistd.h>
@@ -591,7 +594,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
             unreachable();
         }
 
-        set_result_t res;
+        set_result_t res = set_result_t(-1);
         std::string error_message;
         bool ok;
 
@@ -645,7 +648,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
         }
 
     } else {
-        append_prepend_result_t res;
+        append_prepend_result_t res = append_prepend_result_t(-1);
         std::string error_message;
         bool ok;
 
@@ -932,7 +935,7 @@ void run_delete(txt_memcached_handler_t *rh, pipeliner_acq_t *pipeliner_acq, sto
 
     block_pm_duration set_timer(&rh->stats->pm_cmd_set);
 
-    delete_result_t res;
+    delete_result_t res = delete_result_t(-1);
     std::string error_message;
     bool ok;
 

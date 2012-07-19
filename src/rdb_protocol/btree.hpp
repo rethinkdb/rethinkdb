@@ -118,7 +118,7 @@ protected:
 
 
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                    transaction_t *txn, superblock_t *superblock, traversal_progress_t *p);
+                    transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *p);
 
 
 point_delete_response_t rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock);
