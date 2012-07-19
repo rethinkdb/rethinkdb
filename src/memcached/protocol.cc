@@ -310,7 +310,7 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<memcache
         for (std::map<store_key_t, int>::iterator it = res.key_counts.begin();
              it != res.key_counts.end();
              ++it) {
-            it->second *= scale_factor;
+            it->second = static_cast<int>(it->second * scale_factor);
         }
 
         return memcached_protocol_t::read_response_t(res);

@@ -129,7 +129,11 @@ get_all_metainfos(order_token_t order_token,
     switch_read_tokens(external_token, interruptor, &internal_tokens);
 
     mutex_t ret_mutex;
-    region_map_t<protocol_t, version_range_t> ret(get_multistore_joined_region());
+    typename protocol_t::region_t region = get_multistore_joined_region();
+    // v is initialized here in order to avoid the compiler warning (-Wuninitialized).
+    // pmap should change its value later.
+    version_range_t v(version_t::zero());
+    region_map_t<protocol_t, version_range_t> ret(region, v);
 
     // TODO: For getting, we possibly want to cache things on the home
     // thread, but wait until we want a multithreaded listener.

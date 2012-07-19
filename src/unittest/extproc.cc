@@ -1,7 +1,5 @@
 #include "unittest/gtest.hpp"
 
-#include <iostream>
-
 #include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/scoped_array.hpp>
@@ -157,10 +155,7 @@ void run_serialjob_test(extproc::pool_t *pool) {
 
     for (size_t i = 0; i < sizeof(inputs) / sizeof(inputs[0]); ++i) {
         int n = inputs[i];
-
-        std::stringstream ss;
-        ss << "fib(" << n << ")";
-        SCOPED_TRACE(ss.str());
+        SCOPED_TRACE(strprintf("fib(%d)", n));
 
         {
             write_message_t msg;
