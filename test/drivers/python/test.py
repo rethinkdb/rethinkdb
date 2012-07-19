@@ -21,6 +21,7 @@ class TestTableRef(unittest.TestCase):
     def expect(self, query, *expected):
         try:
             res = self.conn.run(query)
+            self.assertNotEqual(str(query), '')
             self.assertEqual(res, list(expected))
         except Exception:
             root_ast = r.p.Query()
@@ -264,6 +265,7 @@ class TestTableRef(unittest.TestCase):
         self.expect(r.array(self.table.distinct('a')), [3, 9])
 
         self.expect(self.table.filter({"a": 3}), docs[0])
+
 
 if __name__ == '__main__':
     unittest.main()
