@@ -51,7 +51,7 @@ struct r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_read_t &pr) const {
         return rdb_protocol_t::monokey_region(pr.key);
     }
-    
+
     region_t operator()(const rget_read_t &rg) const {
         // TODO: Sam bets this causes problems
         return region_t(rg.key_range);
@@ -73,7 +73,7 @@ struct r_shard_visitor : public boost::static_visitor<read_t> {
         rassert(rdb_protocol_t::monokey_region(pr.key) == region);
         return read_t(pr);
     }
-    
+
     read_t operator()(const rget_read_t &rg) const {
         rassert(region_is_superset(region_t(rg.key_range), region));
         // TODO: Reevaluate this code.  Should rget_query_t really have a region_t range?
@@ -125,8 +125,76 @@ read_response_t read_t::unshard(std::vector<read_response_t> responses, temporar
     unreachable("Unknown read response.");
 }
 
-read_response_t read_t::multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING {
-    return unshard(responses, cache);
+bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> >& a,
+                   const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> >& b) {
+    return a.first < b.first;
+}
+
+void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
+                              std::vector<read_response_t>::iterator end,
+                              rget_read_response_t *response) {
+    std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > merged;
+
+    for (std::vector<read_response_t>::iterator i = begin; i != end; ++i) {
+        const rget_read_response_t *delta = boost::get<rget_read_response_t>(&i->response);
+        rassert(delta);
+        printf("adding %ld keys\n", delta->data.size());
+        merged.insert(merged.end(), delta->data.begin(), delta->data.end());
+    }
+    std::sort(merged.begin(), merged.end(), rget_data_cmp);
+    response->data.insert(response->data.end(), merged.begin(), merged.end());
+}
+
+read_response_t read_t::multistore_unshard(std::vector<read_response_t> responses, UNUSED temporary_cache_t *cache) const THROWS_NOTHING {
+    const point_read_t *pr = boost::get<point_read_t>(&read);
+    if (pr) {
+        rassert(responses.size() == 1);
+        rassert(boost::get<point_read_response_t>(&responses[0].response));
+        return responses[0];
+    }
+
+    const rget_read_t *rg = boost::get<rget_read_t>(&read);
+    if (rg) {
+        std::sort(responses.begin(), responses.end(), read_response_cmp);
+        rget_read_response_t rg_response;
+        rg_response.truncated = false;
+        rg_response.key_range = get_region().inner;
+        typedef std::vector<read_response_t>::iterator rri_t;
+        for(rri_t i = responses.begin(); i != responses.end();) {
+            // TODO: we're ignoring the limit when recombining.
+            const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
+            rassert(_rr);
+            rg_response.truncated = rg_response.truncated || _rr->truncated;
+            printf("rget with %ld responses\n", responses.size());
+
+            // Collect all the responses from the same shard and merge their responses into the final response
+            rri_t shard_end = i;
+            ++shard_end;
+            while (shard_end != responses.end()) {
+                const rget_read_response_t *_rrr = boost::get<rget_read_response_t>(&shard_end->response);
+                rassert(_rrr);
+
+                if (_rrr->key_range != _rr->key_range) {
+                    break;
+                }
+
+                rg_response.truncated = rg_response.truncated || _rrr->truncated;
+                ++shard_end;
+            }
+
+            merge_slices_onto_result(i, shard_end, &rg_response);
+            i = shard_end;
+        }
+
+        for (std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > >::iterator i = rg_response.data.begin();
+             i != rg_response.data.end(); ++i) {
+            rassert(i->second);
+        }
+
+        return read_response_t(rg_response);
+    }
+
+    unreachable("Unknown read response.");
 }
 
 
@@ -136,7 +204,7 @@ struct w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_write_t &pw) const {
         return rdb_protocol_t::monokey_region(pw.key);
     }
-    
+
     region_t operator()(const point_delete_t &pd) const {
         return rdb_protocol_t::monokey_region(pd.key);
     }

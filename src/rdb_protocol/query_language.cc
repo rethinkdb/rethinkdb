@@ -1883,7 +1883,17 @@ view_t eval_view(const Term::Table &t, runtime_environment_t *env, const backtra
         rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         rassert(p_res);
-        boost::shared_ptr<json_stream_t> stream(new in_memory_stream_t(p_res->data.begin(), p_res->data.end()));
+
+        // Convert the result into a format the json stream can use
+        // TODO: probably better to not have this overhead, if possible
+        std::vector<boost::shared_ptr<scoped_cJSON_t> > data;
+        for (std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > >::iterator i = p_res->data.begin();
+             i != p_res->data.end(); ++i) {
+            data.push_back(i->second);
+            rassert(data.back());
+        }
+
+        boost::shared_ptr<json_stream_t> stream(new in_memory_stream_t(data.begin(), data.end()));
         return view_t(ns_access, stream);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);

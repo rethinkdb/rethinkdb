@@ -131,7 +131,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json);
 
 struct rget_response_t {
-    std::vector<boost::shared_ptr<scoped_cJSON_t> > pairs;
+    std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > pairs;
     bool truncated;
 };
 

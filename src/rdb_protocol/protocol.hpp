@@ -70,11 +70,11 @@ struct rdb_protocol_t {
 
     struct rget_read_response_t {
         key_range_t key_range;
-        std::vector<boost::shared_ptr<scoped_cJSON_t> > data;
+        std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > data;
         bool truncated;
         
         rget_read_response_t() { }
-        explicit rget_read_response_t(const key_range_t &_key_range, std::vector<boost::shared_ptr<scoped_cJSON_t> > _data, bool _truncated)
+        explicit rget_read_response_t(const key_range_t &_key_range, std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > _data, bool _truncated)
             : key_range(_key_range), data(_data), truncated(_truncated)
         { }
 
@@ -120,7 +120,7 @@ struct rdb_protocol_t {
         region_t get_region() const THROWS_NOTHING;
         read_t shard(const region_t &region) const THROWS_NOTHING;
         read_response_t unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
-        read_response_t multistore_unshard(const std::vector<read_response_t>& responses, temporary_cache_t *cache) const THROWS_NOTHING;
+        read_response_t multistore_unshard(std::vector<read_response_t> responses, temporary_cache_t *cache) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : read(r.read) { }
