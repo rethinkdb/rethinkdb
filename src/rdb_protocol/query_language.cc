@@ -174,9 +174,9 @@ term_type_t get_term_type(const Term &t, type_checking_environment_t *env, const
             check_protobuf(t.has_if_());
             check_term_type(t.if_().test(), TERM_TYPE_JSON, env, backtrace.with("test"));
 
-            term_type_t true_branch = get_term_type(t.if_().true_branch(), env, backtrace.with("true"));
+            term_type_t true_branch = get_term_type(t.if_().true_branch(), env, backtrace.with("true_branch"));
 
-            term_type_t false_branch = get_term_type(t.if_().false_branch(), env, backtrace.with("false"));
+            term_type_t false_branch = get_term_type(t.if_().false_branch(), env, backtrace.with("false_branch"));
 
             term_type_t combined_type;
             if (!term_type_least_upper_bound(true_branch, false_branch, &combined_type)) {
@@ -335,7 +335,7 @@ function_type_t get_function_type(const Builtin &b, type_checking_environment_t 
     case Builtin::REDUCE: {
         implicit_value_t<term_type_t>::impliciter_t impliciter(&env->implicit_type, TERM_TYPE_JSON); //make the implicit value be of type json
         check_protobuf(b.has_reduce());
-        check_reduction_type(b.reduce(), env, backtrace.with("reduction"));
+        check_reduction_type(b.reduce(), env, backtrace.with("reduce"));
         break;
     }
     case Builtin::GROUPEDMAPREDUCE: {
@@ -1923,14 +1923,24 @@ namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_envir
 
 view_t eval_view(const Term::Table &t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t.table_ref(), env, backtrace);
-    key_range_t range = rdb_protocol_t::region_t::universe();
+    key_range_t range = key_range_t::universe();
     rdb_protocol_t::rget_read_t rget_read(range);
     rdb_protocol_t::read_t read(rget_read);
     try {
         rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, &env->interruptor);
         rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         rassert(p_res);
-        boost::shared_ptr<json_stream_t> stream(new in_memory_stream_t(p_res->data.begin(), p_res->data.end()));
+
+        // Convert the result into a format the json stream can use
+        // TODO: probably better to not have this overhead, if possible
+        std::vector<boost::shared_ptr<scoped_cJSON_t> > data;
+        for (std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > >::iterator i = p_res->data.begin();
+             i != p_res->data.end(); ++i) {
+            data.push_back(i->second);
+            rassert(data.back());
+        }
+
+        boost::shared_ptr<json_stream_t> stream(new in_memory_stream_t(data.begin(), data.end()));
         return view_t(ns_access, stream);
     } catch (cannot_perform_query_exc_t e) {
         throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);

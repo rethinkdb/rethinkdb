@@ -109,8 +109,8 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
     map_insertion_sentry_t<backfill_session_id_t, cond_t *> be_interruptible(&local_interruptors, session_id, &local_interruptor);
 
     /* Set up a local progress monitor so people can query us for progress. */
-    typename protocol_t::backfill_progress_t local_progress;
-    map_insertion_sentry_t<backfill_session_id_t, typename protocol_t::backfill_progress_t *> display_progress(&local_backfill_progress, session_id, &local_progress);
+    traversal_progress_combiner_t local_progress;
+    map_insertion_sentry_t<backfill_session_id_t, traversal_progress_combiner_t *> display_progress(&local_backfill_progress, session_id, &local_progress);
 
     /* Set up a cond that gets pulsed if we're interrupted by either the
        backfillee stopping or the backfiller destructor being called, but don't
@@ -179,7 +179,9 @@ void backfiller_t<protocol_t>::request_backfill_progress(backfill_session_id_t s
                                                          mailbox_addr_t<void(std::pair<int, int>)> response_mbox,
                                                          auto_drainer_t::lock_t) {
     if (std_contains(local_backfill_progress, session_id) && local_backfill_progress[session_id]) {
-        send(mailbox_manager, response_mbox, local_backfill_progress[session_id]->guess_completion());
+        progress_completion_fraction_t fraction = local_backfill_progress[session_id]->guess_completion();
+        std::pair<int, int> pair_fraction = std::make_pair(fraction.estimate_of_released_nodes, fraction.estimate_of_total_nodes);
+        send(mailbox_manager, response_mbox, pair_fraction);
     } else {
         send(mailbox_manager, response_mbox, std::make_pair(-1, -1));
     }

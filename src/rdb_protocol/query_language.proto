@@ -302,9 +302,23 @@ message Query {
 }
 
 message Response {
-    required int32 status_code = 1;
+    enum StatusCode {
+        SUCCESS = 0;
+        BAD_PROTOBUF = -1;
+        BAD_QUERY = -2;
+        RUNTIME_ERROR = -3;
+    }
+    required StatusCode status_code = 1;
 
     required int64 token = 2;
 
     repeated string response = 3;
+
+    optional string error_message = 4;
+
+    message Backtrace {
+        repeated string frame = 1;
+    };
+
+    optional Backtrace backtrace = 5;
 }

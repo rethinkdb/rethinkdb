@@ -14,9 +14,9 @@ namespace {
 
 void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *)> fun) {
     /* Pick shards */
-    std::vector<key_range_t> shards;
-    shards.push_back(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n")));
-    shards.push_back(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") ));
+    std::vector<rdb_protocol_t::region_t> shards;
+    shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::none,   store_key_t(""),  key_range_t::open, store_key_t("n"))));
+    shards.push_back(rdb_protocol_t::region_t(key_range_t(key_range_t::closed, store_key_t("n"), key_range_t::none, store_key_t("") )));
 
     boost::ptr_vector<mock::temp_file_t> temp_files;
     for (int i = 0; i < (int)shards.size(); i++) {

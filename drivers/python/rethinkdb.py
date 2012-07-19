@@ -3,6 +3,7 @@ import rdb_protocol.query_language_pb2 as p
 import json
 import socket
 import struct
+import traceback
 
 DEFAULT_ROW_BINDING = 'row'
 
@@ -15,12 +16,52 @@ DEFAULT_ROW_BINDING = 'row'
 # > q = r.db("foo").bar
 # > r._debug_ast(q)
 
-class RDBException(Exception):
-    def __init__(self, code, msg):
-        self.code = code
-        self.msg = msg
+def format_ast_highlighted(query, ast_path_to_highlight):
+    def trivial_printer(object, name):
+        return object.pretty_print(trivial_printer)
+    def highlighting_printer(ast_path, object, name):
+        current_path = ast_path + [name]
+        return do_print(current_path, object)
+    def do_print(current_path, object):
+        if current_path == ast_path_to_highlight:
+            return "\0" + object.pretty_print(trivial_printer) + "\0"
+        else:
+            return object.pretty_print(lambda o,n: highlighting_printer(current_path, o, n))
+    string = do_print([], query)
+    assert string.count("\0") == 2
+    start = string.index("\0")
+    end = string.index("\0", start + 1) - 1
+    return string.replace("\0", "") + "\n" + " " * start + "^" * (end - start)
+
+class BadQueryError(StandardError):
+    def __init__(self, message, ast_path, query):
+        self.message = message
+        self.ast_path = ast_path
+        self.query = query
+
+    def location(self):
+        return format_ast_highlighted(self.query, self.ast_path)
+
     def __str__(self):
-        return '%d: %s' % (self.code, self.msg)
+        try:
+            return "%s\n\nlocation:\n%s" % (self.message, self.location())
+        except Exception, e:
+            return "Internal error in formatting RethinkDB backtrace: \n" + traceback.format_exc()
+
+class ExecutionError(StandardError):
+    def __init__(self, message, ast_path, query):
+        self.message = message
+        self.ast_path = ast_path
+        self.query = query
+
+    def location(self):
+        return format_ast_highlighted(self.query, self.ast_path)
+
+    def __str__(self):
+        try:
+            return "%s\n\nlocation:\n%s" % (self.message, self.location())
+        except Exception, e:
+            return "Internal error in formatting RethinkDB backtrace: \n" + traceback.format_exc()
 
 class Connection(object):
     def __init__(self, hostname, port):
@@ -32,9 +73,11 @@ class Connection(object):
         self.socket = socket.create_connection((hostname, port))
 
     def run(self, query, debug=False):
+        query = toTerm(query)
+
         root_ast = p.Query()
         root_ast.token = self.get_token()
-        toTerm(query)._finalize_query(root_ast)
+        query._finalize_query(root_ast)
 
         if debug:
             print "sending:", root_ast
@@ -52,10 +95,17 @@ class Connection(object):
         if debug:
             print "response:", response
 
-        if response.status_code:
-            raise RDBException(response.status_code, response.response[0])
-
-        return [json.loads(s) for s in response.response]
+        if response.status_code == p.Response.SUCCESS:
+            return [json.loads(s) for s in response.response]
+        elif response.status_code == p.Response.BAD_PROTOBUF:
+            raise ValueError("RethinkDB server rejected our protocol buffer as "
+                "malformed. RethinkDB client is buggy?")
+        elif response.status_code == p.Response.BAD_QUERY:
+            raise BadQueryError(response.error_message, response.backtrace.frame, query)
+        elif response.status_code == p.Response.RUNTIME_ERROR:
+            raise ExecutionError(response.error_message, response.backtrace.frame, query)
+        else:
+            raise ValueError("Got unexpected status code from server: %d" % response.status_code)
 
     def get_token(self):
         token = self.token
@@ -167,7 +217,7 @@ class Stream(object):
         parent.type = p.Term.CALL
         parent.call.builtin.type = type
         for arg in args:
-            toTerm(arg).write_ast(parent.call.args.add())
+            arg.write_ast(parent.call.args.add())
 
 class Table(Stream):
     def __init__(self, db, name):
@@ -204,16 +254,19 @@ class Table(Stream):
         self.write_ast(term)
         return term
 
+    def pretty_print(self, printer=None):
+        return "r.db(%r).%s" % (self.db, self.name)
+
 class Insert(object):
     def __init__(self, table, entries):
         self.table = table
-        self.entries = entries
+        self.entries = [toTerm(e) for e in entries]
 
     def write_ast(self, insert):
         self.table.write_ref_ast(insert.table_ref)
         for entry in self.entries:
             term = insert.terms.add()
-            toTerm(entry).write_ast(term)
+            entry.write_ast(term)
 
     def _finalize_query(self, root):
         write_query = _finalize_internal(root, p.WriteQuery)
@@ -221,11 +274,21 @@ class Insert(object):
         self.write_ast(write_query.insert)
         return write_query.insert
 
+    def pretty_print(self, printer):
+        if len(self.entries) == 1:
+            return "%s.insert(%s)" % (
+                self.table.pretty_print(),
+                printer(self.entries[0], "term:0"))
+        else:
+            return "%s.insert([%s])" % (
+                self.table.pretty_print(),
+                ", ".join(printer(e, "term:%d" % i) for i, e in enumerate(self.entries)))
+
 class Filter(Stream):
     def __init__(self, parent_view, selector, row):
         super(Filter, self).__init__()
         if type(selector) is dict:
-            self.selector = Conjunction(eq(row + '.' + k, v) for k, v in selector.iteritems())
+            self.selector = and_(*(eq(row + '.' + k, v) for k, v in selector.iteritems()))
         else:
             self.selector = toTerm(selector)
         self.row = row # don't do to term so we can compare in self.filter without overriding bs
@@ -238,6 +301,12 @@ class Filter(Stream):
         predicate.arg = self.row
         self.selector.write_ast(predicate.body)
         self.parent_view.write_ast(parent.call.args.add())
+
+    def pretty_print(self, printer):
+        return "%s.filter(%s, row=%r)" % (
+            printer(self.parent_view, "arg:0"),
+            printer(self.selector, "predicate"),
+            self.row)
 
 class Update(object):
     # Accepts a dict, and eventually, javascript
@@ -257,27 +326,41 @@ class Update(object):
         wq = _finalize_internal(root, p.WriteQuery)
         self.write_ast(wq)
 
+    def pretty_print(self, printer):
+        return "%s.update(%s, row=%r)" % (
+            printer(self.parent_view, "view"),
+            printer(self.updater, "mapping"),
+            self.row)
+
 class Set(object):
     # Accepts a dict, and eventually, javascript
-    def __init__(self, parent_view, value, updater, key, row):
-        self.parent_view = parent_view
-        self.value = value
-        self.updater = updater
+    def __init__(self, table, value, updater, key, row):
+        self.table = table
+        self.value = toTerm(value)
+        self.updater = toTerm(updater)
         self.key = key
         self.row = row
 
     def write_ast(self, parent):
         parent.type = p.WriteQuery.POINTUPDATE
-        self.parent_view.write_ref_ast(parent.point_update.table_ref)
+        self.table.write_ref_ast(parent.point_update.table_ref)
         parent.point_update.attrname = self.key
-        toTerm(self.value).write_ast(parent.point_update.key)
+        self.value.write_ast(parent.point_update.key)
         parent.point_update.mapping.arg = self.row
         body = parent.point_update.mapping.body
-        toTerm(self.updater).write_ast(body)
+        self.updater.write_ast(body)
 
     def _finalize_query(self, root):
         wq = _finalize_internal(root, p.WriteQuery)
         self.write_ast(wq)
+
+    def pretty_print(self, printer):
+        return "%s.set(%s, %s, key=%r, row=%r)" % (
+            self.table.pretty_print(),
+            printer(self.value, "key"),
+            printer(self.updater, "mapping"),
+            self.key,
+            self.row)
 
 class Map(Stream):
     # Accepts a term that get evaluated on each row and returned
@@ -286,7 +369,7 @@ class Map(Stream):
     def __init__(self, parent_view, mapping, row):
         super(Map, self).__init__()
         self.read_only = True
-        self.mapping = mapping
+        self.mapping = toTerm(mapping)
         self.row = row
         self.parent_view = parent_view
 
@@ -296,15 +379,21 @@ class Map(Stream):
         # Mapping
         mapping = parent.call.builtin.map.mapping
         mapping.arg = self.row
-        toTerm(self.mapping).write_ast(mapping.body)
+        self.mapping.write_ast(mapping.body)
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
+
+    def pretty_print(self, printer):
+        return "%s.map(%s, row=%r)" % (
+            printer(self.parent_view, "arg:0"),
+            printer(self.mapping, "mapping"),
+            self.row)
 
 class ConcatMap(Stream):
     def __init__(self, parent_view, mapping, row):
         super(ConcatMap, self).__init__()
         self.read_only = True
-        self.mapping = mapping
+        self.mapping = toTerm(mapping)
         self.row = row
         self.parent_view = parent_view
 
@@ -314,17 +403,24 @@ class ConcatMap(Stream):
         # Mapping
         mapping = parent.call.builtin.concat_map.mapping
         mapping.arg = self.row
-        toTerm(self.mapping).write_ast(mapping.body)
+        self.mapping.write_ast(mapping.body)
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
+
+    def pretty_print(self, printer):
+        return "%s.concat_map(%s, row=%r)" % (
+            printer(self.parent_view, "arg:0"),
+            printer(self.mapping, "mapping"),
+            self.row)
 
 class GroupedMapReduce(Stream):
     def __init__(self, parent_view, group_mapping, value_mapping, reduction, row):
         super(GroupedMapReduce, self).__init__()
         self.read_only = True
         self.parent_view = parent_view
-        self.group_mapping = group_mapping
-        self.value_mapping = value_mapping
+        self.group_mapping = toTerm(group_mapping)
+        self.value_mapping = toTerm(value_mapping)
+        assert isinstance(self.reduction, Reduction)
         self.reduction = reduction
         self.row = row
 
@@ -334,29 +430,40 @@ class GroupedMapReduce(Stream):
         # Group mapping
         group_mapping = parent.call.builtin.grouped_map_reduce.group_mapping
         group_mapping.arg = self.row
-        toTerm(self.group_mapping).write_ast(group_mapping.body)
+        self.group_mapping.write_ast(group_mapping.body)
         # Value mapping
         value_mapping = parent.call.builtin.grouped_map_reduce.value_mapping
         value_mapping.arg = self.row
-        toTerm(self.value_mapping).write_ast(value_mapping.body)
+        self.value_mapping.write_ast(value_mapping.body)
         # Reduction
-        toTerm(self.reduction).write_ast(parent.call.builtin.grouped_map_reduce.reduction)
+        self.reduction.write_ast(parent.call.builtin.grouped_map_reduce.reduction)
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
 
+    def pretty_print(self, printer):
+        return "%s.grouped_map_reduce(%s, %s, Reduction(%s, %r, %r, %s), row=%r)" % (
+            printer(self.parent_view, "arg:0"),
+            printer(self.group_mapping, "group_mapping"),
+            printer(self.value_mapping, "value_mapping"),
+            printer(self.reduction.start, "reduction", "base"),
+            self.reduction.arg1,
+            self.reduction.arg2,
+            printer(self.reduction.body, "reduction", "body"),
+            self.row)
+
 class Reduction(object):
     def __init__(self, start, arg1, arg2, body):
-        self.start = start
+        self.start = toTerm(start)
         self.arg1 = arg1
         self.arg2 = arg2
-        self.body = body
+        self.body = toTerm(body)
 
     def write_ast(self, parent):
         # Reduction
-        toTerm(self.start).write_ast(parent.base)
+        self.start.write_ast(parent.base)
         parent.var1 = self.arg1
         parent.var2 = self.arg2
-        toTerm(self.body).write_ast(parent.body)
+        self.body.write_ast(parent.body)
 
 class Reduce(Stream):
     def __init__(self, parent_view, start, arg1, arg2, body):
@@ -376,11 +483,19 @@ class Reduce(Stream):
         # Parent stream
         self.parent_view.write_ast(parent.call.args.add())
 
+    def pretty_print(self, printer):
+        return "%s.reduce(%s, %r, %r, %s)" % (
+            printer(self.parent_view, "arg:0"),
+            printer(self.start, "reduce", "base"),
+            self.arg1,
+            self.arg2,
+            printer(self.body, "reduce", "body"))
+
 class OrderBy(Stream):
     def __init__(self, parent_view, **ordering):
         super(OrderBy, self).__init__()
         self.read_only = True
-        self.parent_view = parent_view
+        self.parent_view = toTerm(parent_view)
         self.ordering = ordering
 
     def write_ast(self, parent):
@@ -390,9 +505,15 @@ class OrderBy(Stream):
             elem.attr = key
             elem.ascending = bool(val)
 
+    def pretty_print(self, printer):
+        return "%s.orderby(%r)" % (
+            printer(self.parent_view, "arg:0"),
+            self.ordering)
 
 class Term(object):
     def __init__(self):
+        # TODO: All subclasses should call this constructor, and it shouldn't
+        # raise an exception.
         raise NotImplemented
 
     def _finalize_query(self, root):
@@ -400,17 +521,18 @@ class Term(object):
         self.write_ast(read_query.term)
         return read_query.term
 
+    # TODO: Make this a static method?
     def _write_call(self, parent, type, *args):
         parent.type = p.Term.CALL
         parent.call.builtin.type = type
         for arg in args:
-            toTerm(arg).write_ast(parent.call.args.add())
+            arg.write_ast(parent.call.args.add())
 
 class Find(Term):
     def __init__(self, tableref, key, value):
         self.tableref = tableref
         self.key = key
-        self.value = value
+        self.value = toTerm(value)
 
     def set(self, updater, row=DEFAULT_ROW_BINDING):
         return Set(self.tableref, self.value, updater, self.key, row)
@@ -419,25 +541,37 @@ class Find(Term):
         parent.type = p.Term.GETBYKEY
         self.tableref.write_ref_ast(parent.get_by_key.table_ref)
         parent.get_by_key.attrname = self.key
-        toTerm(self.value).write_ast(parent.get_by_key.key)
+        self.value.write_ast(parent.get_by_key.key)
 
-class Delete(Term):
+    def pretty_print(self, printer):
+        return "%s.find(%s, key=%r)" % (
+            self.tableref.pretty_print(),
+            printer(self.value, "key"),
+            self.key)
+
+class Delete(object):
     def __init__(self, tableref, key, value):
         self.tableref = tableref
         self.key = key
-        self.value = value
+        self.value = toTerm(value)
 
     def write_ast(self, parent):
         parent.type = p.WriteQuery.POINTDELETE
         self.tableref.write_ref_ast(parent.point_delete.table_ref)
         parent.point_delete.attrname = self.key
-        toTerm(self.value).write_ast(parent.point_delete.key)
+        self.value.write_ast(parent.point_delete.key)
 
     def _finalize_query(self, root):
         wq = _finalize_internal(root, p.WriteQuery)
         self.write_ast(wq)
 
-class if_(Term):
+    def pretty_print(self, printer):
+        return "%s.delete(%s, key=%r)" % (
+            self.tableref.pretty_print(),
+            printer(self.value, "key"),
+            self.key)
+
+class Conditional(Term):
     def __init__(self, test, true_branch, false_branch):
         self.test = toTerm(test)
         self.true_branch = toTerm(true_branch)
@@ -449,35 +583,43 @@ class if_(Term):
         self.true_branch.write_ast(parent.if_.true_branch)
         self.false_branch.write_ast(parent.if_.false_branch)
 
+    def pretty_print(self, printer):
+        return "r.if_(%s, %s, %s)" % (
+            printer(self.test, "test"),
+            printer(self.true_branch, "true_branch"),
+            printer(self.false_branch, "false_branch"))
+
+if_ = Conditional
+
 class Conjunction(Term):
-    def __init__(self, predicates):
-        if not predicates:
-            raise ValueError
-        self.predicates = predicates
+    def __init__(self, *predicates):
+        self.predicates = [toTerm(p) for p in predicates]
+        if len(self.predicates) < 1:
+            raise ValueError("need at least one parameter to and_()")
 
     def write_ast(self, parent):
         self._write_call(parent, p.Builtin.ALL, *self.predicates)
 
-def and_(*predicates):
-    return Conjunction(predicates)
+    def pretty_print(self, printer):
+        return "r.and_(%s)" % ", ".join(printer(pred, "arg:%d" % i) for i, pred in enumerate(self.predicates))
 
-all = and_
+and_ = all = Conjunction
 
 class Disjunction(Term):
-    def __init__(self, predicates):
-        if not predicates:
-            raise ValueError
-        self.predicates = predicates
+    def __init__(self, *predicates):
+        self.predicates = [toTerm(p) for p in predicates]
+        if len(self.predicates) < 1:
+            raise ValueError("need at least one parameter to or_()")
 
     def write_ast(self, parent):
         self._write_call(parent, p.Builtin.ANY, *self.predicates)
 
-def _or(*predicates):
-    return Disjunction(predicates)
+    def pretty_print(self, printer):
+        return "r.or_(%s)" % ", ".join(printer(pred, "arg:%d" % i) for i, pred in enumerate(self.predicates))
 
-any = _or
+or_ = any = Disjunction
 
-class val(Term):
+class Constant(Term):
     def __init__(self, value):
         self.value = value
 
@@ -506,6 +648,7 @@ class val(Term):
             _value = self.value[key]
             pair = parent.object.add()
             pair.var = key
+            # TODO: This is bad because it might allow through some non-JSON things
             toTerm(_value).write_ast(pair.term)
 
     def make_array(self, parent):
@@ -513,45 +656,60 @@ class val(Term):
         for value in self.value:
             toTerm(value).write_ast(parent.array.add())
 
-def make_comparison(cmp_type):
+    def pretty_print(self, printer):
+        return repr(self.value)
+
+val = Constant
+
+def make_comparison(cmp_type, name):
     class Comparison(Term):
         def __init__(self, *terms):
             if not terms:
                 raise ValueError
-            self.terms = terms
+            self.terms = [toTerm(t) for t in terms]
 
         def write_ast(self, parent):
             self._write_call(parent, p.Builtin.COMPARE, *self.terms)
             parent.call.builtin.comparison = cmp_type
 
+        def pretty_print(self, printer):
+            return "r.%s(%s)" % (
+                name,
+                ", ".join(printer(term, "arg:%d" % i) for i, term in enumerate(self.terms)))
+
     return Comparison
 
-eq = make_comparison(p.Builtin.EQ)
-neq = make_comparison(p.Builtin.NE)
-lt = make_comparison(p.Builtin.LT)
-lte = make_comparison(p.Builtin.LE)
-gt = make_comparison(p.Builtin.GT)
-gte = make_comparison(p.Builtin.GE)
+eq = make_comparison(p.Builtin.EQ, "eq")
+neq = make_comparison(p.Builtin.NE, "neq")
+lt = make_comparison(p.Builtin.LT, "lt")
+lte = make_comparison(p.Builtin.LE, "lte")
+gt = make_comparison(p.Builtin.GT, "gt")
+gte = make_comparison(p.Builtin.GE, "gte")
 
-def make_arithmetic(op_type):
+def make_arithmetic(op_type, name):
     class Arithmetic(Term):
         def __init__(self, *terms):
             if not terms:
                 raise ValueError
             if op_type is p.Builtin.MODULO and len(terms) != 2:
                 raise ValueError
-            self.terms = terms
+            self.terms = [toTerm(t) for t in terms]
 
         def write_ast(self, parent):
             self._write_call(parent, op_type, *self.terms)
 
+        def pretty_print(self, printer):
+            return "r.%s(%s)" % (
+                name,
+                ", ".join(printer(term, "arg:%d" % i) for i, term in enumerate(self.terms)))
+
     return Arithmetic
 
-add = make_arithmetic(p.Builtin.ADD)
-sub = make_arithmetic(p.Builtin.SUBTRACT)
-div = make_arithmetic(p.Builtin.DIVIDE)
-mul = make_arithmetic(p.Builtin.MULTIPLY)
-mod = make_arithmetic(p.Builtin.MODULO)
+add = make_arithmetic(p.Builtin.ADD, "add")
+sub = make_arithmetic(p.Builtin.SUBTRACT, "sub")
+div = make_arithmetic(p.Builtin.DIVIDE, "div")
+mul = make_arithmetic(p.Builtin.MULTIPLY, "mul")
+mod = make_arithmetic(p.Builtin.MODULO, "mod")
 
 class var(Term):
     def __init__(self, name):
@@ -566,16 +724,15 @@ class var(Term):
         parent.type = p.Term.VAR
         parent.var = self.name
 
-class attr(Term):
+    def pretty_print(self, printer):
+        return "r.var(%r)" % self.name
+
+class AttributeGetter(Term):
     def __init__(self, parent, name):
         if not name:
             raise ValueError
-        attrs = name.rsplit('.', 1)
-        self.name = attrs[-1]
-        if len(attrs) > 1:
-            self.parent = attr(parent, attrs[0])
-        else:
-            self.parent = parent
+        self.name = name
+        self.parent = toTerm(parent)
 
     def attr(self, name):
         return attr(self, name)
@@ -584,18 +741,32 @@ class attr(Term):
         self._write_call(parent, p.Builtin.GETATTR, self.parent)
         parent.call.builtin.attr = self.name
 
+    def pretty_print(self, printer):
+        return "r.attr(%s, %r)" % (printer(self.parent, "arg:0"), self.name)
+
+def attr(term, name):
+    if not name:
+        raise ValueError
+    names = name.split(".")
+    for name in names:
+        term = AttributeGetter(term, name)
+    return term
+
 class has(Term):
     def __init__(self, parent, key):
-        self.parent = parent
+        self.parent = toTerm(parent)
         self.key = key
 
     def write_ast(self, parent):
         self._write_call(parent, p.Builtin.HASATTR, self.parent)
         parent.call.builtin.attr = self.key
 
+    def pretty_print(self, printer):
+        return "r.has(%s, %r)" % (printer(self.parent, "arg:0"), self.key)
+
 class pick(Term):
     def __init__(self, parent, *attrs):
-        self.parent = parent
+        self.parent = toTerm(parent)
         self.attrs = attrs
 
     def write_ast(self, parent):
@@ -603,17 +774,28 @@ class pick(Term):
         for attr in self.attrs:
             parent.call.builtin.attrs.add(attr)
 
+    def pretty_print(self, printer):
+        return "r.pick(%s, %r)" % (printer(self.parent, "arg:0"), ", ".join(repr(x) for x in self.attrs))
+
 class Let(Term):
     def __init__(self, pairs, expr):
-        self.pairs = pairs
-        self.expr = expr
+        self.pairs = [(key, toTerm(value)) for key, value in pairs]
+        self.expr = toTerm(expr)
+
     def write_ast(self, parent):
         parent.type = p.Term.LET
         for var, value in self.pairs:
             binding = parent.let.binds.add()
             binding.var = var
-            toTerm(value).write_ast(binding.term)
-        toTerm(self.expr).write_ast(parent.let.expr)
+            value.write_ast(binding.term)
+        self.expr.write_ast(parent.let.expr)
+
+    def pretty_print(self, printer):
+        parts = []
+        for var, value in self.pairs:
+            parts.append("(%r, %s)" % (var, printer(value, "bind:%s" % var)))
+        parts.append(printer(self.expr, "expr"))
+        return "r.let(%s)" % ", ".join(parts)
 
 # Accepts an arbitrary number of pairs followed by a single
 # expression. Each pair is a variable followed by expression (binds
@@ -650,21 +832,27 @@ def parseStringTerm(value):
 
 class Extend(Term):
     # Merges json objects into a destination object
-    def __init__(self, dest, jsons):
-        self.dest = dest
-        self.jsons = jsons
+    def __init__(self, dest, json):
+        self.dest = toTerm(dest)
+        self.json = toTerm(json)
 
     def write_ast(self, parent):
         parent.type = p.Term.CALL
         parent.call.builtin.type = p.Builtin.MAPMERGE
-        if len(self.jsons) == 1:
-            toTerm(self.dest).write_ast(parent.call.args.add())
-        else:
-            Extend(self.dest, self.jsons[:-1]).write_ast(parent.call.args.add())
-        toTerm(self.jsons[-1]).write_ast(parent.call.args.add())
+        self.dest.write_ast(parent.call.args.add())
+        self.json.write_ast(parent.call.args.add())
+
+    def pretty_print(self, printer):
+        return "r.extend(%s, %s)" % (
+            printer(self.dest, "arg:0"),
+            printer(self.json, "arg:1"))
 
 def extend(dest, *jsons):
-    return Extend(dest, jsons)
+    if not jsons:
+        raise ValueError
+    for json in jsons:
+        dest = Extend(dest, json)
+    return dest
 
 def _make_builtin(name, builtin, *args):
     n_args = len(args)
@@ -674,14 +862,19 @@ def _make_builtin(name, builtin, *args):
         if len(args) != n_args:
             raise TypeError("%s takes exactly %d arguments (%d given)"
                             % (signature, n_args, len(args)))
-        self.args = args
+        self.args = [toTerm(a) for a in args]
 
     def write_ast(self, parent):
         self._write_call(parent, builtin, *self.args)
 
-    return type(name, (Term,), {"__init__": __init__, "write_ast": write_ast})
+    def pretty_print(self, printer):
+        return "r.%s(%s)" % (
+            name,
+            ", ".join(printer(term, "arg:%d" % i) for i, term in enumerate(self.args)))
 
-not_ = _make_builtin("_not", p.Builtin.NOT, "term")
+    return type(name, (Term,), {"__init__": __init__, "write_ast": write_ast, "pretty_print": pretty_print})
+
+not_ = _make_builtin("not_", p.Builtin.NOT, "term")
 element = _make_builtin("element", p.Builtin.ARRAYNTH, "array", "index")
 size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
@@ -701,10 +894,15 @@ def _make_stream_builtin(name, builtin, *args):
         if len(args) != n_args:
             raise TypeError("%s takes exactly %d arguments (%d given)"
                             % (signature, n_args, len(args)))
-        self.args = args
+        self.args = [toTerm(a) for a in args]
 
     def write_ast(self, parent):
         self._write_call(parent, builtin, *self.args)
+
+    def pretty_print(self, printer):
+        return "r.%s(%s)" % (
+            name,
+            ", ".join(printer(term, "arg:%d" % i) for i, term in enumerate(self.args)))
 
     return type(name, (Stream,), {"__init__": __init__, "write_ast": write_ast})
 

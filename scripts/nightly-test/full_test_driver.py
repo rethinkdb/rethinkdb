@@ -16,7 +16,7 @@ if __name__ != "__main__":
     raise ImportError("It doesn't make any sense to import this as a module")
 
 parser = optparse.OptionParser()
-parser.add_option("--build-mode", action = "store", choices = ["minimal", "all"], dest = "build_mode")
+parser.add_option("--build-mode", action = "store", choices = ["minimal", "minimal-with-os", "all"], dest = "build_mode")
 parser.add_option("--git-branch", action = "store", dest = "git_branch")
 parser.add_option("--just-tests", action = "store_true", dest = "just_tests")
 parser.add_option("--test-dir", action="store", dest = "test_dir")
@@ -183,7 +183,7 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                         }
             generate_configs(config_bits, [], "")
 
-        elif options.build_mode == "minimal":
+        elif options.build_mode == "minimal" or options.build_mode == "minimal-with-os":
             builds["stress-client"] = {
                 "command_line": "cd rethinkdb/bench/stress-client; make -j12",
                 "products": ["rethinkdb/bench/stress-client/stress", "rethinkdb/bench/stress-client/libstress.so"]
@@ -197,6 +197,38 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
                 "products": ["rethinkdb/build/release/rethinkdb"]
                 }
 
+        if options.build_mode == "all" or options.build_mode == "minimal-with-os": # do the operating system builds
+            builds["ubuntu"] = {
+                "command_line": "cd rethinkdb/src && make deb PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 && mv ../build/packages ../build/ubuntu",
+                "products": ["rethinkdb/build/ubuntu"],
+                "target_os": "ubuntu"
+                }
+            builds["redhat5_1"] = {
+                "command_line": "cd rethinkdb/src && make rpm PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_GCC=1 LEGACY_LINUX=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/redhat5_1",
+                "products": ["rethinkdb/build/redhat5_1"],
+                "target_os": "redhat5_1"
+                }
+            builds["debian"] = {
+                "command_line": "cd rethinkdb/src && make deb PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 NO_EVENTFD=1 LEGACY_LINUX=1 && mv ../build/packages ../build/debian",
+                "products": ["rethinkdb/build/debian"],
+                "target_os": "debian"
+                }
+            builds["centos5_5"] = {
+                "command_line": "cd rethinkdb/src && make rpm PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/centos5_5",
+                "products": ["rethinkdb/build/centos5_5"],
+                "target_os": "centos5_5"
+                }
+            builds["suse"] = {
+                "command_line": "cd rethinkdb/src && make rpm PACKAGING=1 PACKAGE_FOR_SUSE_10=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/suse",
+                "products": ["rethinkdb/build/suse"],
+                "target_os": "suse"
+                }
+            builds["centos6"] = {
+                "command_line": "cd rethinkdb/src && make rpm PACKAGING=1 SYMBOLS=1 DEBUG=1 UNIT_TESTS=0 LEGACY_GCC=1 LEGACY_LINUX=1 LEGACY_PROC_STAT=1 && mv ../build/packages ../build/centos6",
+                "products": ["rethinkdb/build/centos6"],
+                "target_os": "centos6"
+                }
+
         # Run builds
 
         subprocess32.check_call(["tar", "--create", "--gzip", "--file=rethinkdb.tar.gz", "--", "rethinkdb"])
@@ -206,11 +238,16 @@ with simple_linear_db.LinearDBWriter("result_log.txt") as result_log:
             try:
                 with open("builds/%s.txt" % name, "w") as output:
                     try:
+                        prepend = ""
+                        append = ""
+                        if "target_os" in build:
+                            prepend = "./rethinkdb/scripts/VirtuaBuild/vm_access.py --vm-name %s --command \"" % build["target_os"]
+                            append = "\""
                         remotely.run(
                             command_line = """
 tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
 (%(command_line)s) 2>&1
-""" % { "command_line": build["command_line"] },
+""" % { "command_line": prepend + build["command_line"] + append},
                             stdout = output,
                             inputs = ["rethinkdb.tar.gz"],
                             outputs = build["products"],
@@ -290,6 +327,10 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
             test["missing"] = missing_prereqs
     result_log.write(tests = tests)
     run_in_threads(funs)
+
+    # Shut down all Virtual Machines
+    for vm_name in ["suse", "ubuntu", "centos6", "debian", "redhat5_1", "centos5_5"]:
+        os.system("./rethinkdb/scripts/VirtuaBuild/vm_access.py --vm-name %s --shut-down" % vm_name)
 
     print "Done."
 
