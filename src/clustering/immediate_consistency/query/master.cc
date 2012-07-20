@@ -141,8 +141,7 @@ void master_t<protocol_t>::consider_allocating_more_writes() {
             }
         }
         if (most_depleted_parser && most_depleted_parser->allocated_ops < MAX_ALLOCATION) {
-            coro_t::spawn_sometime(boost::bind(
-                                               &master_t<protocol_t>::allocate_more_writes, this,
+            coro_t::spawn_sometime(boost::bind(&master_t<protocol_t>::allocate_more_writes, this,
                                                most_depleted_parser->allocate_mailbox, auto_drainer_t::lock_t(&drainer)
                                                ));
             most_depleted_parser->allocated_ops += ALLOCATION_CHUNK;
