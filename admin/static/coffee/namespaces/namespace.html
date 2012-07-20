@@ -61,7 +61,12 @@
 </script>
 
 
-<script id="namespace_overview-template" type="text/x-handlebars-template">
+<script id="namespace_overview-container-template" type="text/x-handlebars-template">
+    <div class="data_in_memory-container"></div>
+    <div class="data_repartition-container"></div>
+</script>
+
+<script id="namespace_overview-data_in_memory-template" type="text/x-handlebars-template">
     <h3 class="title">Data in memory</h3>
     <div class="two-panel-section">
         <div class="pie_container panel-left">
@@ -82,7 +87,9 @@
             </ul>
         </div>
     </div>
-    
+</script>
+
+<script id="namespace_overview-data_repartition-template" type="text/x-handlebars-template">
     <h3 class="title">Data repartition</h3>
 
     {{#if has_shards}}
