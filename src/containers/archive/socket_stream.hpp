@@ -92,7 +92,9 @@ class linux_event_fd_watcher_t :
     linux_event_callback_t *event_callback_;
 
     // The linux_event_watcher that we use to wait for IO events.
-    boost::scoped_ptr<linux_event_watcher_t> event_watcher_;
+    linux_event_watcher_t event_watcher_;
+
+    DISABLE_COPYING(linux_event_fd_watcher_t);
 };
 
 class socket_stream_t :
