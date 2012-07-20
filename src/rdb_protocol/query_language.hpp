@@ -121,6 +121,18 @@ public:
         scopes.pop_front();
     }
 
+    // TODO (rntz): find a better way to do this.
+    void dump(std::map<std::string, T> *map) {
+        map->clear();
+        for (typename std::deque<std::map<std::string, T> >::iterator sit = scopes.begin(); sit != scopes.end(); ++sit) {
+            for (typename std::map<std::string, T>::iterator it = sit->begin(); it != sit->end(); ++it) {
+                // Earlier bindings take precedence over later ones.
+                if (!map->count(it->first))
+                    map->insert(*it);
+            }
+        }
+    }
+
     struct new_scope_t {
         explicit new_scope_t(variable_scope_t<T> *_parent)
             : parent(_parent)

@@ -1,4 +1,4 @@
-#include "rdb_protocol/javascript_impl.hpp"
+#include "rdb_protocol/jsimpl.hpp"
 
 #include "errors.hpp"
 #include <boost/scoped_array.hpp>
@@ -70,6 +70,8 @@ static cJSON *mkJSON(const v8::Handle<v8::Value> value, std::string *errmsg) {
                 cJSON *eltj = mkJSON(elth, errmsg);
                 if (NULL == eltj) return NULL;
 
+                // FIXME: this is O(n). do this better by explicitly
+                // manipulating object chains.
                 arrayj.AddItemToArray(eltj);
             }
 
@@ -156,9 +158,50 @@ boost::shared_ptr<scoped_cJSON_t> toJSON(const v8::Handle<v8::Value> value, std:
 }
 
 v8::Handle<v8::Value> fromJSON(const cJSON &json) {
-    // FIXME TODO (rntz)
-    (void) json;
-    crash("unimplemented");
+    switch (json.type & ~cJSON_IsReference) {
+      case cJSON_False: return v8::False();
+
+      case cJSON_True: return v8::True();
+
+      case cJSON_NULL: return v8::Null();
+
+      case cJSON_Number: return v8::Number::New(json.valuedouble);
+
+      case cJSON_String: return v8::String::New(json.valuestring);
+
+      case cJSON_Array: {
+          v8::Handle<v8::Array> array = v8::Array::New();
+
+          uint32_t index = 0;
+          for (cJSON *child = json.child; child; child = child->next, ++index) {
+              v8::HandleScope scope;
+              v8::Handle<v8::Value> val = fromJSON(*child);
+              rassert(!val.IsEmpty());
+              array->Set(index, val);
+              // FIXME: try_catch code
+          }
+
+          return array;
+      }
+
+      case cJSON_Object: {
+          v8::Handle<v8::Object> obj = v8::Object::New();
+
+          for (cJSON *child = json.child; child; child = child->next) {
+              v8::HandleScope scope;
+              v8::Handle<v8::Value> key = v8::String::New(child->string);
+              v8::Handle<v8::Value> val = fromJSON(*child);
+              rassert(!key.IsEmpty() && !val.IsEmpty());
+
+              obj->Set(key, val); // FIXME: try_catch code
+          }
+
+          return obj;
+      }
+
+      default:
+        crash("bad cJSON value");
+    }
 }
 
 } // namespace js

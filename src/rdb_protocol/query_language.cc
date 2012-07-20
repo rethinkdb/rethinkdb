@@ -5,7 +5,7 @@
 #include <math.h>
 
 #include "http/json.hpp"
-#include "rdb_protocol/javascript.hpp"
+#include "rdb_protocol/js.hpp"
 
 namespace query_language {
 
@@ -961,34 +961,27 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             std::string errmsg;
             boost::shared_ptr<scoped_cJSON_t> result;
 
-            // TODO(rntz): set up a js::eval_t::req_config_t with an
+            // TODO(rntz): set up a js::runner_t::req_config_t with an
             // appropriately-chosen timeout.
 
             // FIXME TODO (rntz) this is totally ridiculous; we shouldn't spin
             // up a job for every evaluation of a function!
-            js::eval_t js;
+            js::runner_t js;
             js.begin(env->pool_group->get());
             {
-                js::js_handle_t handle;
-                rassert(t.has_javascript());
-
-                // FIXME TODO (rntz): need to evaluate javascript within a
-                // context formed by our environment.
+                // Construct an environment mapping.
+                // TODO (rntz): making a new map for this is wasteful.
+                std::map<std::string, boost::shared_ptr<scoped_cJSON_t> > context;
+                env->scope.dump(&context);
 
                 // Evaluate the source.
-                if (!js.eval(&handle, t.javascript().c_str(), t.javascript().size(), &errmsg)) {
-                    // Evaluation failed.
-                    js.finish();
-                    throw runtime_exc_t("failed to evaluate javascript: " + errmsg, backtrace);
-                }
-
-                // Retrieve the result value.
-                result = js.getJSON(&handle, &errmsg);
+                rassert(t.has_javascript());
+                result = js.eval(t.javascript().c_str(), t.javascript().size(), context, &errmsg);
             }
             js.finish();
 
             if (!result) {
-                throw runtime_exc_t("could not JSONify result of javascript evaluation: " + errmsg, backtrace);
+                throw runtime_exc_t("failed to evaluate javascript: " + errmsg, backtrace);
             }
             return result;
         }
