@@ -1,108 +1,5 @@
-<script id="shard_name-partial" type="text/x-handlebars-template">
-    <h4>{{name}}</h4>
-    About {{shard_stats.rows_approx}} {{pluralize_noun "key" shard_stats.rows_approx}}
-</script>
-
-<script id="namespace_view-sharding-template" type="text/x-handlebars-template">
-    <div class="alert_for_sharding alert alert-error"></div>
-    <div class="sharding">
-        <h3 class="title">Sharding settings</h3>
-        <table class="shards table">
-            <tbody>
-            </tbody>
-        </table>
-        <p><a class="change-sharding-scheme" href="#">Change sharding scheme</a></p>
-    </div>
-    <div class="change-shards"></div>
-    <div class="blackout"></div>
-</script>
-
-
-<script id="namespace_view-sharding_alert-template" type="text/x-handlebars-template">
-    Please solve the current issues before editing the shards not to lose data.
-</script>
-
-<script id="namespace_view_invalid_splitpoint_alert-template" type="text/x-handlebars-template">
-    Error, invalid splitpoint. Shards must not overlap.
-</script>
-
-<script id="namespace_view_invalid_splitpoint_alert-template" type="text/x-handlebars-template">
-    Error, invalid merge.
-</script>
-
-<script id="namespace_view_invalid_shard_alert-template" type="text/x-handlebars-template">
-    Error, the shards that you tried to split doesn't exist.
-</script>
-
-<script id="namespace_view-shard-template" type="text/x-handlebars-template">
-    <td class="shard summary"></td>
-    <td class="status">
-        <div class="datacenter-list"></div>
-    </td>
-</script>
-
-<script id="namespace_view-shard-summary-template" type="text/x-handlebars-template">
-    {{> shard_name}}
-</script>
-
-<script id="namespace_view-shard_datacenter_list-template" type="text/x-handlebars-template">
-    <div class="datacenters"></div>
-</script>
-
-<script id="namespace_view-shard_datacenter-template" type="text/x-handlebars-template">
-    <div class="row header">
-        <div class="expanded arrow"></div>
-        <div class="datacenter summary"></div>
-    </div>
-    <div class="machine-list"></div>
-    <div class="divider"></div>
-</script>
-
-<script id="namespace_view-shard_datacenter-summary-template" type="text/x-handlebars-template">
-    <p class="status">{{humanize_datacenter_reachability status}}</p>
-    <h4 class="datacenter name"><span class="element-type label label-inverse">Datacenter</span><a href="#datacenters/{{id}}">{{name}}</a></h4>
-</script>
-
-<script id="namespace_view-shard_machine_list-template" type="text/x-handlebars-template">
-    <ul class="machines"></ul>
-</script>
-
-<script id="namespace_view-shard_machine-template" type="text/x-handlebars-template">
-    {{#if is_master}}
-        <span class="master label label-info">Master machine</span>
-    {{else}}
-        <span class="secondary label label-info">Secondary machine</span>
-    {{/if}}
-    <a class="machine name" href="#machines/{{id}}">{{name}}</a>
-    {{#unless is_master}}
-        {{#unless no_available_machines}} 
-            <a class="change-machine" href="#" rel="popover" data-title="Change machine for this shard"><i class="icon-edit"></i></a>
-        {{/unless}}
-        {{#unless cannot_be_master}}
-            <a class="make-master" data-loading-text="changing master..." href="#">make master</a>
-        {{/unless}}
-    {{/unless}}
-    <p class="status">
-        {{humanize_machine_reachability status}}{{#if status.reachable}}{{! > backfill_progress_summary}}{{/if}}
-        {{#if status.reachable}}
-            {{> backfill_progress_summary}}
-        {{/if}}
-    </p>
-    {{> backfill_progress_details}}
-</script>
-<script id="namespace_view-shard_machine-assign_machine_popover-template" type="text/x-handlebars-template">
-    <div class="namespace-shard-assign-machine">
-        <select class="chosen-dropdown" data-placeholder="Choose a different machine">
-            <option></option>
-            {{#each available_machines}}
-                <option value="{{id}}">{{name}}</option>
-            {{/each}}
-        </select>
-        <a class="btn btn-primary change-machine" data-loading-text="Loading..." href="#">Change machine</a>
-    </div>
-</script>
-
 <script id="modify_shards-template" type="text/x-handlebars-template">
+    <div class="alert_for_sharding alert alert-error"></div>
     <div class="modify-shards">
         <h3 class="title">Change sharding settings for <a href="/#namespaces/{{namespace.id}}">{{namespace.name}}</a>:</h3>
         <div class="invalid_shard_alert alert alert-error"></div>
@@ -111,12 +8,12 @@
         {{/if}}
         <form class="form">
             <div class="sharding-scheme">
-                <table class="shards table">
-                    <tbody>
-                    </tbody>
-                </table>
+                <div class="shards-container">
+                </div>
                 {{#if suggest_shards_view}}
                 <div class="shard-suggester clearfix">
+                    <a id="cancel_shards_suggester_btn" href="#" class="close_link">Close</a>
+
                     <h4>Suggest sharding scheme:</h4>
                     {{#if error_msg}}
                     <p class="server-error alert alert-error">{{error_msg}}</p>
@@ -127,20 +24,19 @@
                         <button class="btn btn-compute-shards-suggestion" data-loading-text="Calculating...">Suggest</button>
                     </div>
                     <p class="current">Current shards: <strong>{{current_shards_count}}</strong>, Max shards: <strong>{{max_shard_count}}</strong></p>
-                    <a id="cancel_shards_suggester_btn" href="#">Cancel</a>
-                </div>
+                                    </div>
                 {{else}}
-                <p class="suggest_shards_pathway"><a id="suggest_shards_btn" href="#">Suggest shards</a></p>
+                <p class="suggest_shards_pathway"><a id="suggest_shards_btn" href="#">Suggest balanced shards</a></p>
                 {{/if}}
             </div>
             <div class="sharding-plan"></div>
             <div class="btn-footer">
-                <button class="btn btn-cancel" data-loading-text="Cancel">Cancel</button>
-                <button class="btn btn-reset" data-loading-text="Reset">Reset</button>
+                <button class="btn btn-reset" data-loading-text="Renove uncommited changes">Remove uncommited changes</button>
                 <button class="btn btn-primary btn-primary-commit" data-loading-text="Saving...">Commit settings</button>
             </div>
         </form>
     </div>
+    <div class="blackout"></div>
 </script>
 
 <script id="modify_shards-alert-template" type="text/x-handlebars-template">
@@ -151,29 +47,33 @@
 </script>
 
 <script id="modify_shards-view_shard-template" type="text/x-handlebars-template">
-  {{#with shard}}
-    <td class="name">
-        {{> shard_name}}
-    </td>
-    <td class="actions">
-        <p>
-            (<a href="#" class="split" data-index="{{index}}">split</a>)
-            {{#if notlast}}
-                (<a href="#" class="merge" data-index="{{index}}">merge with next</a>)
-            {{/if}}
-        </p>
-    </td>
-  {{/with}}
+    <div class="name">
+    </div>
+    <div class="actions">
+        <input type="button" class="split btn" data-index="{{index}}" value="Split">
+        {{#if shard.notlast}}
+        <input type="button" class="merge btn" data-index="{{index}}" value="Merge with next"
+        {{/if}}
+    </div>
+</script>
+
+<script id="shard_name-shard_keys-template" type="text/x-handlebars-template">
+    <h4>{{name}}</h4>
+    <span class="shard_num_keys">
+    {{#if shard_stats.rows_approx}}
+        About {{shard_stats.rows_approx}} {{pluralize_noun "key" shard_stats.rows_approx}}
+    {{else}}
+        Loading data...
+    {{/if}}
+    </span>
 </script>
 
 <script id="modify_shards-edit_shard-template" type="text/x-handlebars-template">
   {{#with shard}}
-    <td class="name">
-        {{> shard_name}}
-    </td>
+    <div class="name">
+    </div>
   {{/with}}
-  <td class="status">
-    <div class="action">
+    <div class="actions action-coming">
       {{#if splitting}}
       <label for="splitpoint">
         <p>Split point:</p>
@@ -190,6 +90,5 @@
       </p>
       {{/if}}
     </div>
-  </td>
 </script>
 
