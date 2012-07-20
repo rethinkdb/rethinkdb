@@ -10,9 +10,6 @@
 #include <set>
 
 #include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/timing.hpp"
@@ -22,7 +19,6 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/promise.hpp"
-#include "containers/archive/boost_types.hpp"
 #include "protocol_api.hpp"
 
 template <class protocol_t, class value_t>
