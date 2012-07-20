@@ -415,6 +415,14 @@ module 'NamespaceView', ->
         delete_namespace: (event) ->
             event.preventDefault()
             @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
+            #overwrite on_success to add a redirection
+            @remove_namespace_dialog.on_success = (response) ->
+                if (response)
+                    @on_success_with_error()
+                    return
+                super
+
+
             @remove_namespace_dialog.render [@model]
 
         render: =>
