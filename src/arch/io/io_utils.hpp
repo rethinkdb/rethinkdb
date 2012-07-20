@@ -24,7 +24,7 @@ public:
     fd_t get() {
         return fd;
     }
-    fd_t release() {
+    MUST_USE fd_t release() {
         fd_t f = fd;
         fd = INVALID_FD;
         return f;

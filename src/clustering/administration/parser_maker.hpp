@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 #define CLUSTERING_ADMINISTRATION_PARSER_MAKER_HPP_
 
+#include <string>
+
 #include "errors.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 

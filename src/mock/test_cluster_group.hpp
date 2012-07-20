@@ -1,6 +1,10 @@
 #ifndef MOCK_TEST_CLUSTER_GROUP_HPP_
 #define MOCK_TEST_CLUSTER_GROUP_HPP_
 
+#include <map>
+#include <string>
+#include <set>
+
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
 

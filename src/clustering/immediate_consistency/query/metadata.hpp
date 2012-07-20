@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_METADATA_HPP_
 
+#include <string>
+
 #include "errors.hpp"
 #include <boost/variant.hpp>
 

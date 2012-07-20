@@ -1,6 +1,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_LOG_TRANSFER_HPP_
 #define CLUSTERING_ADMINISTRATION_LOG_TRANSFER_HPP_
 
+#include <string>
+#include <vector>
+
 #include "clustering/administration/logger.hpp"
 #include "clustering/resource.hpp"
 #include "containers/archive/boost_types.hpp"

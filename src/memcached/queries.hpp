@@ -3,10 +3,9 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <vector>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
+#include <map>
+#include <vector>
 
 #include "btree/keys.hpp"
 #include "config/args.hpp"

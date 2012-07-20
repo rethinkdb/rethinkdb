@@ -107,7 +107,7 @@ typename protocol_t::write_response_t master_access_t<protocol_t>::write(
     token->end();
 
     if (allocated_writes < THROTTLE_THRESHOLD) {
-        nap(std::min(1000.0, pow(2, -(float(allocated_writes)/100.0))), interruptor);
+        nap(static_cast<int>(std::min(1000.0, pow(2, -(float(allocated_writes)/100.0)))), interruptor);
     }
     allocated_writes--;
 

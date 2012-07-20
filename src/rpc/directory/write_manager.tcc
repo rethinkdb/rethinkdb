@@ -1,5 +1,7 @@
 #include "rpc/directory/write_manager.hpp"
 
+#include <set>
+
 template<class metadata_t>
 directory_write_manager_t<metadata_t>::directory_write_manager_t(
         message_service_t *sub,

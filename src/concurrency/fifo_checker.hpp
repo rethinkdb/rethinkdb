@@ -1,9 +1,9 @@
 #ifndef CONCURRENCY_FIFO_CHECKER_HPP_
 #define CONCURRENCY_FIFO_CHECKER_HPP_
 
-#ifndef NDEBUG
 #include <map>
-#endif
+#include <string>
+#include <utility>
 
 #include "rpc/serialize_macros.hpp"
 #include "containers/uuid.hpp"

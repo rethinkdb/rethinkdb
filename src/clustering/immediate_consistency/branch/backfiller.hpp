@@ -2,7 +2,9 @@
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BACKFILLER_HPP_
 
 #include <map>
+#include <utility>
 
+#include "backfill_progress.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 
@@ -49,7 +51,7 @@ private:
     multistore_ptr_t<protocol_t> *svs;
 
     std::map<backfill_session_id_t, cond_t *> local_interruptors;
-    std::map<backfill_session_id_t, typename protocol_t::backfill_progress_t *> local_backfill_progress;
+    std::map<backfill_session_id_t, traversal_progress_combiner_t *> local_backfill_progress;
     auto_drainer_t drainer;
 
     typename backfiller_business_card_t<protocol_t>::backfill_mailbox_t backfill_mailbox;

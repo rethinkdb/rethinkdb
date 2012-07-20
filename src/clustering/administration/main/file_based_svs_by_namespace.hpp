@@ -13,7 +13,13 @@ public:
     void get_svs(perfmon_collection_t *serializers_perfmon_collection, namespace_id_t namespace_id,
                  stores_lifetimer_t<protocol_t> *stores_out,
                  boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out);
+
+    void destroy_svs(namespace_id_t namespace_id);
+
+    std::string file_name_for(namespace_id_t namespace_id, int i);
+
 private:
+
     io_backender_t *io_backender_;
     const std::string file_path_;
 

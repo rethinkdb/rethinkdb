@@ -4,12 +4,15 @@
 #include <map>
 #include <set>
 #include <stdexcept>
+#include <string>
 #include <vector>
+#include <utility>
 
 #include "errors.hpp"
 #include <boost/function.hpp>
 #include <boost/variant.hpp>
-#include <boost/optional/optional.hpp>
+#include <boost/optional.hpp>
+
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 
