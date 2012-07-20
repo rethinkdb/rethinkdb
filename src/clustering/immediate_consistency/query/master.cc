@@ -1,5 +1,7 @@
 #include "clustering/immediate_consistency/query/master.hpp"
 
+#include "containers/archive/boost_types.hpp"
+
 template <class protocol_t>
 master_t<protocol_t>::master_t(mailbox_manager_t *mm, ack_checker_t *ac,
                                typename protocol_t::region_t r, broadcaster_t<protocol_t> *b) THROWS_ONLY(interrupted_exc_t)

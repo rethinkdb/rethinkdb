@@ -8,7 +8,6 @@
 
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
-#include "containers/archive/boost_types.hpp"
 
 #define ALLOCATION_CHUNK 50
 #define TARGET_OPERATION_QUEUE_LENGTH 5000
