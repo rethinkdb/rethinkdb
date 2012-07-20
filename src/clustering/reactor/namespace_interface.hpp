@@ -221,11 +221,11 @@ private:
                 order_token,
                 &master_to_contact->enforcement_token,
                 interruptor);
-        } catch (resource_lost_exc_t) {
+        } catch (const resource_lost_exc_t&) {
             (*results_or_failures)[i] = "lost contact with master";
-        } catch (cannot_perform_query_exc_t e) {
+        } catch (const cannot_perform_query_exc_t& e) {
             (*results_or_failures)[i] = "master error: " + std::string(e.what());
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t&) {
             rassert(interruptor->is_pulsed());
             /* Ignore `interrupted_exc_t` and just return immediately.
             `dispatch_immediate_op()` will notice the interruptor has been
