@@ -53,7 +53,6 @@ module 'NamespaceView', ->
             log_action 'remove namespace button clicked'
             # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
             if not $(event.currentTarget).hasClass 'disabled'
-                console.log @get_selected_elements()
                 @remove_namespace_dialog.render @get_selected_elements()
             event.preventDefault()
 
@@ -261,6 +260,17 @@ module 'NamespaceView', ->
 
         on_submit: ->
             super
+
+
+            ###
+            # For when /ajax will handle post request
+            data = {}
+            for namespace in @namespaces_to_delete
+                if not data[namespace.get('protocol')]?
+                    data[namespace.get('protocol')] = {}
+                data[namespace.get('protocol')][namespace.get('id')] = null
+            ###
+
             # TODO: change this once we have http support for deleting
             # multiple items with one http request.
             for namespace in @namespaces_to_delete
@@ -268,7 +278,8 @@ module 'NamespaceView', ->
                     url: "/ajax/semilattice/#{namespace.get("protocol")}_namespaces/#{namespace.id}"
                     type: 'DELETE'
                     contentType: 'application/json'
-                    success: @on_success
+                    dataType: 'json',
+                    success: @on_success,
                     error: @on_error
             # TODO: this should happen on success, but I'm hacking
             # this in here until we support multiple deletes in one
@@ -276,6 +287,7 @@ module 'NamespaceView', ->
             # they're uncommented in on_success.
             for namespace in @namespaces_to_delete
                 namespaces.remove(namespace.id)
+
 
         on_success_with_error: =>
             @.$('.error_answer').html @template_remove_error

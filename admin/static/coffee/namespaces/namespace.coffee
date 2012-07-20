@@ -200,7 +200,7 @@ module 'NamespaceView', ->
 
         initialize: ->
             machines.on 'change', @render
-            @model.on 'change:key_distr', @render
+            @model.on 'change:key_distr_sorted', @render
             @model.on 'change:shards', @render
             @json =
                 data_in_memory_percent: -1
@@ -414,16 +414,26 @@ module 'NamespaceView', ->
 
         delete_namespace: (event) ->
             event.preventDefault()
-            @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
-            #overwrite on_success to add a redirection
-            @remove_namespace_dialog.on_success = (response) ->
+            remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
+            #overwrite on_success to add a redirectiona
+            namespace_to_delete = @model
+        
+            remove_namespace_dialog.on_success = (response) ->
+                # Fix the removal of namespaces
                 if (response)
-                    @on_success_with_error()
+                    $('.error_answer').html @template_remove_error
+
+                    if $('.error_answer').css('display') is 'none'
+                        $('.error_answer').slideDown('fast')
+                    else
+                        $('.error_answer').css('display', 'none')
+                        $('.error_answer').fadeIn()
+                    remove_namespace_dialog.reset_buttons()
                     return
-                super
+                namespaces.remove namespace_to_delete
+                window.router.navigate '#namespaces', {'trigger': true}
 
-
-            @remove_namespace_dialog.render [@model]
+            remove_namespace_dialog.render [@model]
 
         render: =>
             @.$el.html @template {}
