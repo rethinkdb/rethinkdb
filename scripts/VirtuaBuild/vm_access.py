@@ -38,6 +38,7 @@ class VM(object):
     def shut_down(self, remove_temp = False):
         if remove_temp:
             self.command("rm -rf /tmp/test.*")
+        time.sleep(5)
         subprocess.Popen(["ssh %s 'VBoxManage controlvm %s poweroff'" % (control_user, self.uuid)], shell = True).wait()
 
 def sys_exit(message, exit_code, shut_down = False):
