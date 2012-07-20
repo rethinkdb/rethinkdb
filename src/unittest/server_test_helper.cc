@@ -40,11 +40,9 @@ void server_test_helper_t::setup_server_and_run_tests() {
 
     {
         standard_serializer_t::create(
-            standard_serializer_t::dynamic_config_t(),
             io_backender.get(),
             standard_serializer_t::private_dynamic_config_t(db_file.name()),
-            standard_serializer_t::static_config_t(),
-            &get_global_perfmon_collection());
+            standard_serializer_t::static_config_t());
         standard_serializer_t log_serializer(
             standard_serializer_t::dynamic_config_t(),
             io_backender.get(),

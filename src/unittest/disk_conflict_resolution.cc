@@ -11,11 +11,13 @@
 
 namespace unittest {
 
+static const int FAKE_FD = 0;
 struct test_driver_t {
 
     struct core_action_t : public intrusive_list_node_t<core_action_t> {
         bool get_is_write() const { return !is_read; }
         bool get_is_read() const { return is_read; }
+        fd_t get_fd() const { return fd; }
         void *get_buf() const { return buf; }
         size_t get_count() const { return count; }
         off_t get_offset() const { return offset; }
@@ -25,8 +27,9 @@ struct test_driver_t {
         size_t count;
         off_t offset;
 
-        core_action_t() : has_begun(false), done(false) { }
+        core_action_t() : has_begun(false), done(false), fd(FAKE_FD) { }
         bool has_begun, done;
+        fd_t fd;
     };
 
     intrusive_list_t<core_action_t> running_actions;
@@ -102,6 +105,7 @@ struct read_test_t {
         buffer(new char[expected.size()])
     {
         action.is_read = true;
+        action.fd = 0;
         action.buf = buffer.get();
         action.count = expected.size();
         action.offset = offset;
@@ -138,6 +142,7 @@ struct write_test_t {
         data(d)
     {
         action.is_read = false;
+        action.fd = 0;
         // It's OK to cast away the const; it won't be modified.
         action.buf = const_cast<void*>(reinterpret_cast<const void*>(d.data()));
         action.count = d.size();

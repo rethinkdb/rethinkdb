@@ -15,12 +15,17 @@ template<class payload_t>
 conflict_resolving_diskmgr_t<payload_t>::~conflict_resolving_diskmgr_t() {
 
     /* Make sure there are no requests still out. */
-    rassert(chunk_queues.empty());
+    for (typename all_chunk_queues_t::iterator fd_t_chunk_queues = all_chunk_queues.begin();
+         fd_t_chunk_queues != all_chunk_queues.end();
+         ++fd_t_chunk_queues) {
+        chunk_queues_t &chunk_queues = fd_t_chunk_queues->second;
+        rassert(chunk_queues.empty());
+    }
 }
 
 template<class payload_t>
 void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
-
+    chunk_queues_t &chunk_queues = all_chunk_queues[action->get_fd()];
     /* Determine the range of file-blocks that this action spans */
     int start, end;
     get_range(action, &start, &end);
@@ -142,10 +147,10 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
 
 template<class payload_t>
 void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
-
     /* The only payloads we get back via done() should be payloads that we sent into
     submit_fun(), which means they should actually be action_t objects secretly. */
     action_t *action = static_cast<action_t *>(payload);
+    chunk_queues_t &chunk_queues = all_chunk_queues[action->get_fd()];
 
     int start, end;
     get_range(action, &start, &end);
