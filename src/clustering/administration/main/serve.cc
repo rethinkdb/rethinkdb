@@ -46,7 +46,7 @@ bool do_serve(
     service_ports_t ports,
     machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata,
     std::string web_assets, signal_t *stop_cond)
-{
+try {
     guarantee(spawner_info);
     extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
 
@@ -282,6 +282,10 @@ bool do_serve(
         persister->stop_and_flush(&non_interruptor);
 
     return true;
+
+} catch (address_in_use_exc_t e) {
+    printf("%s. Cannot bind to cluster port. Exiting.\n", e.what());
+    exit(1);
 }
 
 bool serve(extproc::spawner_t::info_t *spawner_info, io_backender_t *io_backender, const std::string &filepath, metadata_persistence::persistent_file_t *persistent_file, const std::set<peer_address_t> &joins, service_ports_t ports, machine_id_t machine_id, const cluster_semilattice_metadata_t &semilattice_metadata, std::string web_assets, signal_t *stop_cond) {

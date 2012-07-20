@@ -7,14 +7,26 @@ import socket
 
 #actually 0 need for a base class it's really more like a comment
 #that happens to be runable code
+
+class RunError(Exception):
+    def __init__(self, str):
+        self.str = str
+    def __str__(self):
+        return repr(self.str)
+
 def ensure_socket(host, port):
-    while (1):
+    start_time = time.time()
+    success = False
+    while (time.time() - start_time < 5 * 60): # give up after some number of seconds
         try:
             s = socket.create_connection((host, port))
+            success = True
             break
         except:
             time.sleep(20)
             pass
+    if not success:
+        raise RunError("Failed to create a connection.")
     return s
 
 class Refspec():
@@ -52,12 +64,6 @@ def deb_get_binary(path):
 def deb_uninstall(cmd_name): 
     return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\\1/' | xargs dpkg -r" % cmd_name
 
-class VMError(Exception):
-    def __init__(self, str):
-        self.str = str
-    def __str__(self):
-        return repr(self.str)
-
 class VM():
     def __init__(self, uuid, hostname, username = 'rethinkdb', rootname = 'root', vbox_username = 'rethinkdb', vbox_hostname = 'deadshot', startup = True):
         self.uuid = uuid
@@ -72,7 +78,7 @@ class VM():
             while (self.command("true") != 0) and time.time() - start_time < 5 * 60: # give up after some number of seconds
                 time.sleep(3)
             if self.command("true") != 0:
-                raise VMError("Failed to connect to Virtual Machine %s." % uuid)
+                raise RunError("Failed to connect to Virtual Machine %s." % uuid)
 
     def __del__(self):
         os.system("ssh %s@%s VBoxManage controlvm %s poweroff" % (self.vbox_username, self.vbox_hostname, self.uuid))
@@ -105,12 +111,6 @@ class target():
         self.vbox_username = vbox_username # username and hostname for running VirtualBox through ssh
         self.vbox_hostname = vbox_hostname
 
-    class RunError(Exception):
-        def __init__(self, str):
-            self.str = str
-        def __str__(self):
-            return repr(self.str)
-
     def start_vm(self):
         return VM(self.build_uuid, self.build_hostname, self.username, vbox_username = self.vbox_username, vbox_hostname = self.vbox_hostname) # startup = True
 
@@ -142,7 +142,7 @@ class target():
         def run_checked(cmd, root = False, bg = False):
             res = build_vm.command(cmd, root, bg)
             if res != 0:
-                raise self.RunError(cmd + " returned on %d exit." % res)
+                raise RunError(cmd + " returned on %d exit." % res)
 
         def run_unchecked(cmd, root = False, bg = False):
             res = build_vm.command(cmd, root, bg)
@@ -153,7 +153,7 @@ class target():
             run_checked("cd rethinkdb && git fetch && git checkout -f %s && git pull" % refspec.val)
 
         else:
-            raise self.RunError("Invalid refspec type, must be branch or tag.")
+            raise RunError("Invalid refspec type, must be branch or tag.")
 
         run_checked("cd rethinkdb/src &&"+self.build_cl)
 
@@ -170,14 +170,15 @@ class target():
             if (not os.path.exists(os.path.join(dest, short_name))): 
                 os.mkdir(os.path.join(dest, short_name))
 
+            """
             #install antiquated packages here
-            if not os.path.exists('old_versions'):
-                os.makedirs('old_versions')
-            for old_version in os.listdir('old_versions'):
-                pkg = os.listdir(os.path.join('old_versions', old_version, short_name))[0]
-                build_vm.copy_to_tmp(os.path.join('old_versions', old_version, short_name, pkg))
-                run_checked(self.install_cl_f(os.path.join('/tmp', pkg)), True)
-                print "Installed: ", old_version
+            if os.path.exists('old_versions'):
+            	for old_version in os.listdir('old_versions'):
+                	pkg = os.listdir(os.path.join('old_versions', old_version, short_name))[0]
+                	build_vm.copy_to_tmp(os.path.join('old_versions', old_version, short_name, pkg))
+                	run_checked(self.install_cl_f(os.path.join('/tmp', pkg)), True)
+                	print "Installed: ", old_version
+            """
 
             #install current versions
             target_binary_name = build_vm.popen(self.get_binary_f(path), "r").readlines()[0].strip('\n')
@@ -185,18 +186,20 @@ class target():
             run_checked(self.install_cl_f(path), True)
 
             # run smoke test
-            run_unchecked("rm test_data")
-            run_checked("rethinkdb -p 11211 -f test_data", bg = True)
+            run_unchecked("rm -r test_data")
+            run_checked("rethinkdb --port 11211 --directory test_data", bg = True)
             print "Starting tests..."
-            s = ensure_socket(build_vm.hostname, 11211)
+            s = ensure_socket(build_vm.hostname, 11213)
             from smoke_install_test import test_against
-            if (not test_against(build_vm.hostname, 11211)):
-                raise self.RunError("Tests failed")
+            if (not test_against(build_vm.hostname, 11213)):
+                raise RunError("Tests failed")
             s.send("rethinkdb shutdown\r\n")
             scp_string = "scp %s@%s:%s %s" % (self.username, self.build_hostname, path, os.path.join(dest, short_name))
             print scp_string
             os.system(scp_string)
 
+            """
+            # the code below is not updated
             # find legacy binaries
             leg_binaries_raw = build_vm.popen("ls /usr/bin/rethinkdb*", "r").readlines()
             leg_binaries = map(lambda x: x.strip('\n'), leg_binaries_raw)
@@ -226,6 +229,7 @@ class target():
                 check_migration_data(build_vm.hostname, 11211)
                 s.send("rethinkdb shutdown\r\n")
                 print "Done"
+            """
 
             purge_installed_packages()
 

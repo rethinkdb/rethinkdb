@@ -70,7 +70,12 @@ private:
 
         buffer[res] = '\0';
 
+#ifndef LEGACY_PROC_STAT
         const int items_to_parse = 44;
+#else
+        const int items_to_parse = 42;
+#endif
+
         int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u"
                           " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
                           " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64
@@ -79,9 +84,13 @@ private:
                           " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64
                           " %d %d"
                           " %u %u"
+#ifndef LEGACY_PROC_STAT
                           " %" SCNu64
                           " %" SCNu64
                           " %" SCNd64,
+#else
+                          " %" SCNu64,
+#endif
                           &pid,
                           name,
                           &state,
@@ -96,9 +105,14 @@ private:
                           &sigignore, &sigcatch, &wchan, &nswap, &cnswap,
                           &exit_signal, &processor,
                           &rt_priority, &policy,
+#ifndef LEGACY_PROC_STAT
                           &delayacct_blkio_ticks,
                           &guest_time,
-                          &cguest_time);
+                          &cguest_time
+#else
+                          &delayacct_blkio_ticks
+#endif
+                          );
         if (res2 != items_to_parse) {
             throw std::runtime_error(strprintf("Could not parse '%s': expected "
                 "to parse %d items, parsed %d. Buffer contents: %s", path,

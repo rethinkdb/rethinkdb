@@ -56,7 +56,7 @@ class MemcacheConnection(object):
             # libmemcached is annoying: they changed the "poll timeout" behavior name in some version, so we have to do the following:
             for poll_timeout_behavior in ["poll timeout", "_poll_timeout"]:
                 if poll_timeout_behavior in self.mc.behaviors:
-                    self.mc.behaviors[poll_timeout_behavior] = 10 # Tim: "Seconds (I think)"
+                    self.mc.behaviors[poll_timeout_behavior] = 500 # half a second
                     break
         else:
             assert self.protocol == "text"   # python-memcache does not support the binary protocol

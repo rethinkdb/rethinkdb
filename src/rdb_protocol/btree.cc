@@ -113,7 +113,7 @@ public:
 };
 
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                    transaction_t *txn, superblock_t *superblock, traversal_progress_t *p) {
+                    transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *p) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range);
     value_sizer_t<rdb_value_t> sizer(slice->cache()->get_block_size());
     do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, p);
@@ -180,11 +180,11 @@ class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_c
 public:
     rdb_rget_depth_first_traversal_callback_t(transaction_t *txn, int max) :
         transaction(txn), maximum(max), cumulative_size(0) { }
-    bool handle_pair(const btree_key_t*, const void *value) {
+    bool handle_pair(const btree_key_t* key, const void *value) {
         const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
         boost::shared_ptr<scoped_cJSON_t> data = get_data(rdb_value, transaction);
-        response.data.push_back(data);
-        cumulative_size += estimate_rget_response_size(response.data.back());
+        response.data.push_back(std::make_pair(store_key_t(key), data));
+        cumulative_size += estimate_rget_response_size(response.data.back().second);
         return int(response.data.size()) < maximum && cumulative_size < rget_max_chunk_size;
     }
     transaction_t *transaction;
