@@ -93,7 +93,7 @@ message Builtin {
         ARRAYAPPEND = 9;
         ARRAYCONCAT = 10;
         ARRAYSLICE = 11;
-        ARRAYNTH  = 12;
+        ARRAYNTH = 12;
         ARRAYLENGTH = 13;
         ADD = 14;
         SUBTRACT = 15;

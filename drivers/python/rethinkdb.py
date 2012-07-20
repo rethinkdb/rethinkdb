@@ -17,20 +17,25 @@ DEFAULT_ROW_BINDING = 'row'
 # > q = r.db("foo").bar
 # > r._debug_ast(q)
 
+def _pretty_or_repr(obj, printer):
+    try:
+        return obj.pretty_print(printer)
+    except AttributeError:
+        return repr(obj)
+
 def format_ast_highlighted(query, ast_path_to_highlight):
     def trivial_printer(obj, name):
-        return obj.pretty_print(trivial_printer)
+        return _pretty_or_repr(obj, trivial_printer)
     def highlighting_printer(ast_path):
         def printer(obj, name):
-            current_path = ast_path + [name]
-            return do_print(current_path, obj)
+            return do_print(obj, ast_path + [name])
         return printer
-    def do_print(current_path, obj):
+    def do_print(obj, current_path):
         if current_path == ast_path_to_highlight:
-            return "\0" + obj.pretty_print(trivial_printer) + "\0"
-        else:
-            return obj.pretty_print(highlighting_printer(current_path))
-    string = do_print([], query)
+            return '\0' + _pretty_or_repr(obj, trivial_printer) + '\0'
+        return _pretty_or_repr(obj, highlighting_printer(current_path))
+    string = do_print(query, [])
+    assert string.count('\0') == 2, (repr(string), ast_path_to_highlight)
     start = string.find("\0")
     end = string.rfind("\0") - 1
     return string.replace("\0", "") + "\n" + " " * start + "^" * (end - start)
@@ -40,11 +45,9 @@ class PrettyFormatter(string.Formatter):
         self.printer = printer
 
     def format_field(self, value, format_spec):
-        if format_spec == '':
-            return repr(value)
-        elif format_spec == 's':
+        if format_spec == 's':
             return str(value)
-        elif ':' in format_spec:  # arg: and term:
+        elif format_spec in ('arg:', 'term:'):
             return  ", ".join(self.printer(el, format_spec + str(n)) for n, el in enumerate(value))
         else:
             return self.printer(value, format_spec)
@@ -154,12 +157,12 @@ class db(object):
         return 'r.db(%r)' % self.name
 
 class Common(object):
-    def pretty_print(self, printer, pretty_fmt=None):
-        return PrettyFormatter(printer).format(pretty_fmt or self.pretty, **self.__dict__)
+    def pretty_print(self, printer, fmt=None):
+        return PrettyFormatter(printer).format(fmt or self.pretty, **self.__dict__)
 
     def __repr__(self):
         def trivial_printer(obj, name):
-            return obj.pretty_print(trivial_printer)
+            return _pretty_or_repr(obj, trivial_printer)
         return self.pretty_print(trivial_printer)
 
 
@@ -194,6 +197,10 @@ class Stream(Common):
         self.check_readonly()
         return Update(self, updater, row)
 
+    def delete(self):
+        self.check_readonly()
+        return Delete(self)
+
     def orderby(self, **ordering):
         return OrderBy(self, **ordering)
 
@@ -220,11 +227,11 @@ class Stream(Common):
     def union(self, other):
         return union(self, other)
 
-    def pluck(self, *rows):
-        if len(rows) == 1:
-            return self.map('row.' + rows[0])
+    def pluck(self, *attrs):
+        if len(attrs) == 1:
+            return self.map(attr(attrs[0]))
         else:
-            return self.map(list('row.' + var for var in rows))
+            return self.map(list(attr(x) for x in attrs))
 
     def _finalize_query(self, root):
         term = _finalize_internal(root, p.Term)
@@ -237,7 +244,7 @@ class Stream(Common):
             arg.write_ast(parent.call.args.add())
 
 class Table(Stream):
-    pretty = "{db}.{name:s}"
+    pretty = "r.db({db.name}).{name:s}"
     def __init__(self, db, name):
         super(Table, self).__init__()
         self.db = db
@@ -252,8 +259,10 @@ class Table(Stream):
     def find(self, value, key='id'):
         return Find(self, key, value)
 
-    def delete(self, value, key='id'):
-        return Delete(self, key, value)
+    def delete(self, value=None, key='id'):
+        if value is not None:
+            return PointDelete(self, key, value)
+        return Stream.delete(self)
 
     def set(self, value, updater, key='id', row=DEFAULT_ROW_BINDING):
         self.check_readonly()
@@ -292,16 +301,16 @@ class Insert(Common):
     def pretty_print(self, printer):
         fmt = PrettyFormatter(printer)
         if len(self.entries) == 1:
-            return super(Insert, self).pretty_print(printer, '{table}.insert({entries[0]:term:0})')
+            return super(Insert, self).pretty_print(printer, fmt='{table}.insert({entries[0]:term:0})')
         else:
-            return super(Insert, self).pretty_print(printer, '{table}.insert([{entries:term:}])')
+            return super(Insert, self).pretty_print(printer, fmt='{table}.insert([{entries:term:}])')
 
 class Filter(Stream):
     pretty = "{parent_view:arg:0}.filter({selector:predicate}, row={row})"
     def __init__(self, parent_view, selector, row):
         super(Filter, self).__init__()
         if type(selector) is dict:
-            self.selector = and_(*(eq(row + '.' + k, v) for k, v in selector.iteritems()))
+            self.selector = and_(*(eq(ImplicitAttr(k), v) for k, v in selector.iteritems()))
         else:
             self.selector = toTerm(selector)
         self.row = row # don't do to term so we can compare in self.filter without overriding bs
@@ -314,6 +323,19 @@ class Filter(Stream):
         predicate.arg = self.row
         self.selector.write_ast(predicate.body)
         self.parent_view.write_ast(parent.call.args.add())
+
+class Delete(Common):
+    pretty = "{parent_view:view}.delete()"
+    def __init__(self, parent_view):
+        self.parent_view = parent_view
+
+    def write_ast(self, parent):
+        parent.type = p.WriteQuery.DELETE
+        self.parent_view.write_ast(parent.delete.view)
+
+    def _finalize_query(self, root):
+        wq = _finalize_internal(root, p.WriteQuery)
+        self.write_ast(wq)
 
 class Update(Common):
     pretty = "{parent_view:view}.update({updater:mapping}, row={row})"
@@ -335,7 +357,7 @@ class Update(Common):
         self.write_ast(wq)
 
 class Set(Common):
-    pretty = "{table}.set({value:key}, {updater:mapping}, key={key}, row={row}"
+    pretty = "{table}.set({value:key}, {updater:mapping}, key={key}, row={row})"
     # Accepts a dict, and eventually, javascript
     def __init__(self, table, value, updater, key, row):
         self.table = table
@@ -508,7 +530,7 @@ class Find(Term):
         parent.get_by_key.attrname = self.key
         self.value.write_ast(parent.get_by_key.key)
 
-class Delete(Common):
+class PointDelete(Common):
     pretty = "{tableref}.delete({value:key}, key={key}"
     def __init__(self, tableref, key, value):
         self.tableref = tableref
@@ -526,7 +548,7 @@ class Delete(Common):
         self.write_ast(wq)
 
 class Conditional(Term):
-    pretty = "r.if_({test:test}, {true_branch:true_branch}, {false_branch:false_branch}"
+    pretty = "r.if_({test:test}, {true_branch:true_branch}, {false_branch:false_branch})"
     def __init__(self, test, true_branch, false_branch):
         self.test = toTerm(test)
         self.true_branch = toTerm(true_branch)
@@ -541,7 +563,7 @@ class Conditional(Term):
 if_ = Conditional
 
 class Conjunction(Term):
-    pretty = "r.and({predicates:arg:})"
+    pretty = "r.and_({predicates:arg:})"
     def __init__(self, *predicates):
         self.predicates = [toTerm(p) for p in predicates]
         if len(self.predicates) < 1:
@@ -576,7 +598,7 @@ class Constant(Term):
         elif isinstance(self.value, (int, float)):
             parent.type = p.Term.NUMBER
             parent.number = self.value
-        elif isinstance(self.value, str):
+        elif isinstance(self.value, (str, unicode)):
             parent.type = p.Term.STRING
             parent.valuestring = self.value
         elif isinstance(self.value, dict):
@@ -661,8 +683,8 @@ class var(Term):
         parent.var = self.name
 
 
-class AttributeGetter(Term):
-    pretty = "r.attr({parent:arg:0}, {name})"
+class GetAttr(Term):
+    pretty = "r.attr({parent:arg:0}, {name:attr})"
     def __init__(self, parent, name):
         if not name:
             raise ValueError
@@ -676,12 +698,26 @@ class AttributeGetter(Term):
         self._write_call(parent, p.Builtin.GETATTR, self.parent)
         parent.call.builtin.attr = self.name
 
-def attr(term, name):
+class ImplicitAttr(Term):
+    pretty = "r.attr({name:attr})"
+    def __init__(self, name):
+        self.name = name
+
+    def write_ast(self, parent):
+        self._write_call(parent, p.Builtin.IMPLICIT_GETATTR)
+        parent.call.builtin.attr = self.name
+
+def attr(term, name=None):
+    if name is None:
+        if '.' not in term:
+            return ImplicitAttr(term)
+        term, name = term.split(".", 1)
+        term = ImplicitAttr(term)
     if not name:
         raise ValueError
     names = name.split(".")
     for name in names:
-        term = AttributeGetter(term, name)
+        term = GetAttr(term, name)
     return term
 
 class has(Term):
@@ -705,7 +741,8 @@ class pick(Term):
             parent.call.builtin.attrs.add(attr)
 
     def pretty_print(self, printer):
-        return "r.pick(%s, %r)" % (printer(self.parent, "arg:0"), ", ".join(repr(x) for x in self.attrs))
+        return "r.pick(%s, %s)" % (printer(self.parent, "arg:0"),
+                    ", ".join(repr(x) for x in self.attrs))
 
 class Let(Term):
     def __init__(self, pairs, expr):
@@ -732,30 +769,12 @@ def let(*args):
     return Let(args[:-1], args[-1])
 
 def toTerm(value):
-    if isinstance(value, (bool, int, float, dict, list)):
+    if isinstance(value, (bool, int, float, dict, list, str, unicode)):
         return val(value)
-    elif isinstance(value, str):
-        return parseStringTerm(value)
     elif value is None:
         return val(value)
     else:
         return value
-
-def parseStringTerm(value):
-    # Empty strings get passed through
-    if not value:
-        return val(value)
-    # If the string is quoted, it's a value
-    if ((value.strip().startswith('"') and value.strip().endswith('"'))
-        or (value.strip().startswith("'") and value.strip().endswith("'"))):
-        return val(value.strip().strip("'").strip('"'))
-    # If it isn't, it's a combo var/args
-    terms = value.strip().split('.')
-    first = var(terms[0])
-    if len(terms) > 1:
-        return var(terms[0]).attr('.'.join(terms[1:]))
-    else:
-        return var(terms[0])
 
 class Extend(Term):
     pretty = "r.extend({dest:arg:0}, {json:arg:1})"
@@ -777,6 +796,13 @@ def extend(dest, *jsons):
         dest = Extend(dest, json)
     return dest
 
+def _make_pretty(args, name):
+    if args[0] == 'stream':
+        return '{args[0]:arg:0}.%s(%s)' % (name, ", ".join(
+            "{args[%d]:arg:%d}" % (n, n) for n in range(1, len(args))))
+    else:
+        return "r.%s({args:arg:})" % name
+
 def _make_builtin(name, builtin, *args):
     n_args = len(args)
     signature = "%s(%s)" % (name, ", ".join(args))
@@ -790,7 +816,7 @@ def _make_builtin(name, builtin, *args):
     def write_ast(self, parent):
         self._write_call(parent, builtin, *self.args)
 
-    return type(name, (Term,), {"__init__": __init__, "write_ast": write_ast, "pretty": "r.%s({args:arg:})" % name})
+    return type(name, (Term,), {"__init__": __init__, "write_ast": write_ast, "pretty": _make_pretty(args, name)})
 
 not_ = _make_builtin("not_", p.Builtin.NOT, "term")
 element = _make_builtin("element", p.Builtin.ARRAYNTH, "array", "index")
@@ -817,7 +843,7 @@ def _make_stream_builtin(name, builtin, *args):
     def write_ast(self, parent):
         self._write_call(parent, builtin, *self.args)
 
-    return type(name, (Stream,), {"__init__": __init__, "write_ast": write_ast, "pretty": "r.%s({args:arg:})" % name})
+    return type(name, (Stream,), {"__init__": __init__, "write_ast": write_ast, "pretty": _make_pretty(args, name)})
 
 distinct = _make_stream_builtin("distinct", p.Builtin.DISTINCT, "stream")
 limit = _make_stream_builtin("limit", p.Builtin.LIMIT, "stream", "count")

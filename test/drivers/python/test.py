@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# coding=utf8
 # TO RUN: PORT=1234 python insert_scan.py
 # also respects HOST env variable (defaults to localhost)
 
@@ -6,6 +8,7 @@ import os
 import sys
 import unittest
 import sys
+import traceback
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
 
@@ -19,11 +22,11 @@ class TestTableRef(unittest.TestCase):
         self.table = r.db("").Welcome
 
     def expect(self, query, *expected):
+        res = self.conn.run(query)
         try:
-            res = self.conn.run(query)
             self.assertNotEqual(str(query), '')
             self.assertEqual(res, list(expected))
-        except Exception:
+        except Exception, e:
             root_ast = r.p.Query()
             r.toTerm(query)._finalize_query(root_ast)
             print root_ast
@@ -40,6 +43,8 @@ class TestTableRef(unittest.TestCase):
         with self.assertRaises(r.ExecutionError) as cm:
             res = self.conn.run(query)
         e = cm.exception
+        print "\n\n"
+        print e
         self.assertIn(msg, e.message)
 
     def test_arith(self):
@@ -103,18 +108,15 @@ class TestTableRef(unittest.TestCase):
         expect(r.lt(3, 4, 5), True)
         expect(r.lt(5, 6, 7, 7), False)
 
-        expect(r.eq(r.val("asdf"), r.val("asdf")), True)
-        expect(r.eq(r.val("asd"), r.val("asdf")), False)
+        expect(r.eq("asdf", "asdf"), True)
+        expect(r.eq("asd", "asdf"), False)
 
         expect(r.eq(True, True), True)
         expect(r.lt(False, True), True)
 
-        fail(r.eq(None, None), "undefined")
-        fail(r.eq([], []), "undefined")
-        fail(r.eq({}, {}), "undefined")
-        fail(r.eq(0, ""), "compare")
-        fail(r.eq("", 0), "compare")
-        fail(r.eq(True, 0), "compare")
+        expect(r.lt(False, True, 1, ""), True)
+        expect(r.gt("", 1, True, False), True)
+        expect(r.lt(False, True, "", 1), False)
 
     def test_junctions(self):
         self.expect(r.any(False), False)
@@ -136,16 +138,16 @@ class TestTableRef(unittest.TestCase):
         self.expect_execution_error(r.not_(3), "bool")
 
     def test_let(self):
-        self.expect(r.let(("x", 3), "x"), 3)
-        self.expect(r.let(("x", 3), ("x", 4), "x"), 4)
-        self.expect(r.let(("x", 3), ("y", 4), "x"), 3)
+        self.expect(r.let(("x", 3), r.var("x")), 3)
+        self.expect(r.let(("x", 3), ("x", 4), r.var("x")), 4)
+        self.expect(r.let(("x", 3), ("y", 4), r.var("x")), 3)
 
-        self.expect_bad_query("x", "not in scope")
+        self.expect_bad_query(r.var("x"), "not in scope")
 
     def test_if(self):
         self.expect(r.if_(True, 3, 4), 3)
         self.expect(r.if_(False, 4, 5), 5)
-        self.expect(r.if_(r.eq(3, 3), r.val("foo"), r.val("bar")), "foo")
+        self.expect(r.if_(r.eq(3, 3), "foo", "bar"), "foo")
 
         self.expect_execution_error(r.if_(5, 1, 2), "bool")
 
@@ -239,7 +241,6 @@ class TestTableRef(unittest.TestCase):
         expect(distinct([1, 2, 3, 2]), [1, 2, 3])
         expect(distinct([True, 2, False, 2]), [True, 2, False])
 
-
     def test_ordering(self):
         expect = self.expect
         fail = self.expect_execution_error
@@ -254,7 +255,12 @@ class TestTableRef(unittest.TestCase):
         expect(order(arr, a=True), sorted(arr, key=get('a')))
         expect(order(arr, a=False), sorted(arr, key=get('a'), reverse=True))
 
+    def clear_table(self):
+        self.conn.run(self.table.delete())
+
     def test_table_insert(self):
+        self.clear_table()
+
         docs = [{"a": 3, "b": 10, "id": 1}, {"a": 9, "b": -5, "id": 2}]
 
         self.expect(self.table.insert(docs), {'inserted': len(docs)})
@@ -266,6 +272,17 @@ class TestTableRef(unittest.TestCase):
 
         self.expect(self.table.filter({"a": 3}), docs[0])
 
+        self.expect_execution_error(self.table.filter({"a": r.add(self.table.count(), "")}), "numbers")
+
+        self.expect_execution_error(self.table.insert({"a": 3}), "id")
+
+    def test_unicode(self):
+        self.clear_table()
+
+        doc = {"id": 100, "text": u"グルメ"}
+
+        self.expect(self.table.insert(doc), {'inserted': 1})
+        self.expect(self.table.find(100), doc)
 
 if __name__ == '__main__':
     unittest.main()
