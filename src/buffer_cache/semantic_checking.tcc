@@ -199,8 +199,8 @@ block_size_t scc_cache_t<inner_cache_t>::get_block_size() {
 }
 
 template<class inner_cache_t>
-boost::shared_ptr<typename inner_cache_t::cache_account_type> scc_cache_t<inner_cache_t>::create_account(int priority) {
-    return inner_cache.create_account(priority);
+boost::shared_ptr<typename inner_cache_t::cache_account_type> scc_cache_t<inner_cache_t>::create_cache_account(int priority) {
+    return inner_cache.create_cache_account(priority);
 }
 
 template<class inner_cache_t>

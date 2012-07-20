@@ -336,7 +336,7 @@ public:
 
     // TODO: Come up with a consistent priority scheme, i.e. define a "default" priority etc.
     // TODO: As soon as we can support it, we might consider supporting a mem_cap paremeter.
-    boost::shared_ptr<mc_cache_account_t> create_account(int priority);
+    boost::shared_ptr<mc_cache_account_t> create_cache_account(int priority);
 
     bool contains_block(block_id_t block_id);
 

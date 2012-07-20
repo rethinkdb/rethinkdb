@@ -141,7 +141,7 @@ public:
                 perfmon_collection_t *parent);
 
     block_size_t get_block_size();
-    boost::shared_ptr<typename inner_cache_t::cache_account_type> create_account(int priority);
+    boost::shared_ptr<typename inner_cache_t::cache_account_type> create_cache_account(int priority);
 
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
     bool contains_block(block_id_t block_id);

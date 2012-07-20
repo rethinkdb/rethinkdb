@@ -138,7 +138,7 @@ public:
 
     block_size_t get_block_size();
 
-    boost::shared_ptr<mock_cache_account_t> create_account(UNUSED int priority) { return boost::shared_ptr<mock_cache_account_t>(); }
+    boost::shared_ptr<mock_cache_account_t> create_cache_account(UNUSED int priority) { return boost::shared_ptr<mock_cache_account_t>(); }
 
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 

@@ -1491,7 +1491,7 @@ bool mc_cache_t::contains_block(block_id_t block_id) {
 }
 
 
-boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
+boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_cache_account(int priority) {
     // We assume that a priority of 100 means that the transaction should have the same priority as
     // all the non-accounted transactions together. Not sure if this makes sense.
 
