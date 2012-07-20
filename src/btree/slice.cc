@@ -35,6 +35,4 @@ btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent)
     post_begin_transaction_checkpoint_.set_tagappend("post");
 }
 
-btree_slice_t::~btree_slice_t() {
-    // Cache's destructor handles flushing and stuff
-}
+btree_slice_t::~btree_slice_t() { }
