@@ -53,8 +53,6 @@ class mc_inner_buf_t : public evictable_t,
     friend class array_map_t;
     friend class patch_disk_storage_t;
 
-    typedef mc_cache_t cache_t;
-
     typedef uint64_t version_id_t;
 
     class buf_snapshot_t;
@@ -71,14 +69,14 @@ class mc_inner_buf_t : public evictable_t,
     void unload();
 
     // Load an existing buf from disk
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, file_account_t *io_account);
+    mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, file_account_t *io_account);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 
     // Create an entirely new buf
-    static mc_inner_buf_t *allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
+    static mc_inner_buf_t *allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
+    mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
     ~mc_inner_buf_t();
 
     // Loads data from the serializer.
@@ -250,21 +248,17 @@ private:
 class mc_transaction_t :
     public home_thread_mixin_t
 {
-    typedef mc_cache_t cache_t;
-    typedef mc_inner_buf_t inner_buf_t;
-    typedef mc_cache_account_t cache_account_t;
-
     friend class mc_buf_lock_t;
     friend class mc_cache_t;
     friend class writeback_t;
 
 public:
-    mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
-    mc_transaction_t(cache_t *cache, access_t access, int fook, bool dont_assert_about_shutting_down = false);   // Not for use with write transactions
-    mc_transaction_t(cache_t *cache, access_t access, i_am_writeback_t i_am_writeback);
+    mc_transaction_t(mc_cache_t *cache, access_t access, int expected_change_count, repli_timestamp_t recency_timestamp);
+    mc_transaction_t(mc_cache_t *cache, access_t access, int fook, bool dont_assert_about_shutting_down = false);   // Not for use with write transactions
+    mc_transaction_t(mc_cache_t *cache, access_t access, i_am_writeback_t i_am_writeback);
     ~mc_transaction_t();
 
-    cache_t *get_cache() const { return cache; }
+    mc_cache_t *get_cache() const { return cache; }
     access_t get_access() const { return access; }
 
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb);
@@ -272,7 +266,7 @@ public:
     // This just sets the snapshotted flag, we finalize the snapshot as soon as the first block has been acquired (see finalize_version() )
     void snapshot();
 
-    void set_account(const boost::shared_ptr<cache_account_t>& cache_account);
+    void set_account(const boost::shared_ptr<mc_cache_account_t>& cache_account);
 
     // Order tokens are only actually stored by semantic checking and mock caches.
     void set_token(UNUSED order_token_t token) { }
@@ -287,7 +281,7 @@ private:
 
     // Note: Make sure that no automatic destructors do anything
     // interesting, they could get run on the WRONG THREAD!
-    cache_t *cache;
+    mc_cache_t *cache;
 
     ticks_t start_time;
     const int expected_change_count;
@@ -297,10 +291,9 @@ private:
     bool snapshotted;
 
     // This is manually reset() in the destructor.
-    boost::shared_ptr<cache_account_t> cache_account_;
+    boost::shared_ptr<mc_cache_account_t> cache_account_;
 
-    typedef std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> > owned_snapshots_list_t;
-    owned_snapshots_list_t owned_buf_snapshots;
+    std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> > owned_buf_snapshots;
 
     int64_t num_buf_locks_acquired;
 
@@ -331,10 +324,9 @@ class mc_cache_t : public home_thread_mixin_t, public serializer_read_ahead_call
     friend class patch_disk_storage_t;
 
 public:
-    typedef mc_buf_lock_t buf_lock_t;
-    typedef mc_inner_buf_t inner_buf_t;
-    typedef mc_transaction_t transaction_t;
-    typedef mc_cache_account_t cache_account_t;
+    typedef mc_buf_lock_t buf_lock_type;
+    typedef mc_transaction_t transaction_type;
+    typedef mc_cache_account_t cache_account_type;
 
     static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
     mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *);
@@ -344,7 +336,7 @@ public:
 
     // TODO: Come up with a consistent priority scheme, i.e. define a "default" priority etc.
     // TODO: As soon as we can support it, we might consider supporting a mem_cap paremeter.
-    boost::shared_ptr<cache_account_t> create_account(int priority);
+    boost::shared_ptr<mc_cache_account_t> create_account(int priority);
 
     bool contains_block(block_id_t block_id);
 
@@ -371,8 +363,8 @@ private:
     size_t register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
     size_t calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
 
-    inner_buf_t *find_buf(block_id_t block_id);
-    void on_transaction_commit(transaction_t *txn);
+    mc_inner_buf_t *find_buf(block_id_t block_id);
+    void on_transaction_commit(mc_transaction_t *txn);
 
 public:
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
@@ -442,8 +434,7 @@ private:
 
     bool read_ahead_registered;
 
-    typedef std::map<mc_inner_buf_t::version_id_t, mc_transaction_t*> snapshots_map_t;
-    snapshots_map_t active_snapshots;
+    std::map<mc_inner_buf_t::version_id_t, mc_transaction_t *> active_snapshots;
     mc_inner_buf_t::version_id_t next_snapshot_version;
 
     coro_fifo_t co_begin_coro_fifo_;
