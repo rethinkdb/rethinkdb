@@ -64,7 +64,7 @@ module 'NamespaceView', ->
             @suggest_shards_view = false
 
             # We should rerender on key distro updates
-            @namespace.on 'change:shards', @render_only_shards
+            @namespace.on 'change:shards', @refresh_all
             @shard_views = []
 
             # Forbid changes if issues
@@ -73,6 +73,12 @@ module 'NamespaceView', ->
             issues.on 'all', @check_has_unsatisfiable_goals
 
             super
+
+        refresh_all: =>
+            shard_set = @namespace.get('shards')
+            @original_shard_set = _.map(shard_set, _.identity)
+            @shard_set = _.map(shard_set, _.identity)
+            @render_only_shards()
 
         check_has_unsatisfiable_goals: =>
             if @should_be_hidden
@@ -137,7 +143,7 @@ module 'NamespaceView', ->
 
             # grab the data
             data = @namespace.get('key_distr')
-            distr_keys = @namespace.sorted_key_distr_keys(data)
+            distr_keys = @namespace.get('key_distr_sorted')
             total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
             rows_per_shard = total_rows / @desired_shards
 
@@ -377,7 +383,8 @@ module 'NamespaceView', ->
             e.preventDefault()
 
         destroy: =>
-            @namespace.off()
+            @namespace.off 'change:key_distr_sorted', @render_num_keys
+            @namespace.off 'change:shards', @render_num_keys
             @name_view.destroy()
 
 

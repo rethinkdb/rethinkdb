@@ -2,9 +2,11 @@
 class Namespace extends Backbone.Model
     initialize: ->
         # Add a computed shards property for convenience and metadata
+        @compute_shards()
+    compute_shards: =>
         @.set 'computed_shards', new DataUtils.Shards [],@
 
-    set_interval_key_distr: ->
+    set_interval_key_distr: =>
         @set_interval = setInterval @load_key_distr, 5000
 
     clear_interval_key_distr: ->
@@ -18,42 +20,40 @@ class Namespace extends Backbone.Model
             type: 'GET'
             success: (distr_data) =>
                 # Cache the data
-                @set('key_distr', distr_data)
                 # Sort the keys and cache that too
                 distr_keys = []
                 for key, count of distr_data
                     distr_keys.push(key)
                 _.sortBy(distr_keys, _.identity)
+
+                @set('key_distr', distr_data)
                 @set('key_distr_sorted', distr_keys)
             error: ->
                 window.issues_redundancy.compute_redundancy_errors() # In case a master is down, we have redundancy error
-    sorted_key_distr_keys: =>
-        keys = @get('key_distr_sorted')
-        if keys?
-            return keys
-        else
-            return []
 
     # Some shard helpers
     compute_shard_rows_approximation: (shard) =>
         # first see if we can grab the distr data
         shard = $.parseJSON(shard)
-        distr_data = @get('key_distr')
-        if not distr_data?
+        if not @get('key_distr')? or not @get('key_distr_sorted')?
             return null
+
         # some basic initialization
         start_key = shard[0]
         end_key = shard[1]
-        distr_keys = @sorted_key_distr_keys()
+
+
         # TODO: we should probably support interpolation here, but
         # fuck it for now.
 
         # find the first key greater than the beginning of our shard
         # and keep summing until we get past our shard boundary.
         count = 0
-        for key in distr_keys
+
+        for key in @get('key_distr_sorted')
             if key >= start_key
-                count += distr_data[key]
+                if @get('key_distr')[key]?
+                    count += @get('key_distr')[key]
             if end_key? and key >= end_key
                 break
 
@@ -61,7 +61,6 @@ class Namespace extends Backbone.Model
 
     # Is x between the lower and upper splitpoints (the open interval) for the given index?
     splitpoint_between: (shard_index, sp) =>
-        #console.log "splitpoint_between #{shard_index}, #{sp}"
         all_sps = @.get('splitpoints')
         return (shard_index == 0 || all_sps[shard_index - 1] < sp) && (shard_index == all_sps.length || sp < all_sps[shard_index])
 
@@ -436,8 +435,6 @@ module 'DataUtils', ->
     # Our models and collections have direct representations on the server. For
     # convenience, it's useful to pick data from several of these models: these
     # are computed models (and computed collections).
-    class @ComputedModel extends Backbone.Model
-    class @ComputedCollection extends Backbone.Collection
 
     # Computed shard for a particular namespace: computed for convenience and for extra metadata
     # Arguments:
@@ -447,11 +444,11 @@ module 'DataUtils', ->
     #   shard_boundaries: JSON string representing the shard boundaries
     #   primary_uuid: machine uuid that is the master for this shard
     #   secondary_uuids: list of machine_uuids that are the secondaries for this shard
-    class @Shard extends @ComputedModel
+    class @Shard extends Backbone.Model
         get_primary_uuid: => DataUtils.get_shard_primary_uuid @namespace.get('id'), @shard
         get_secondary_uuids: => DataUtils.get_shard_secondary_uuids @namespace.get('id'), @shard
 
-        initialize: (shard, namespace) ->
+        initialize: (shard, namespace) =>
             @shard = shard
             @namespace = namespace
 
@@ -459,33 +456,42 @@ module 'DataUtils', ->
             @.set 'primary_uuid', @get_primary_uuid()
             @.set 'secondary_uuids',  @get_secondary_uuids()
 
-            namespace.on 'change:blueprint', =>
-                new_primary_uuid = @get_primary_uuid()
-                new_secondary_uuids = @get_secondary_uuids()
-                @.set 'primary_uuid', new_primary_uuid if @.get('primary_uuid') isnt new_primary_uuid
-                @.set 'secondary_uuids', new_secondary_uuids if not _.isEqual @.get('secondary_uuids'), new_secondary_uuids
-            
+            namespace.on 'change:blueprint', @set_uuids
+                
+        set_uuids: =>
+            new_primary_uuid = @get_primary_uuid()
+            new_secondary_uuids = @get_secondary_uuids()
+            @.set 'primary_uuid', new_primary_uuid if @.get('primary_uuid') isnt new_primary_uuid
+            @.set 'secondary_uuids', new_secondary_uuids if not _.isEqual @.get('secondary_uuids'), new_secondary_uuids
+        
+        destroy: =>
+            namespace.on 'change:blueprint', @set_uuids
+
     # The Shards collection maintains the computed shards for a given namespace.
     # It will observe for any changes in the sharding scheme (or if the
     # namespace has just been added) and maintains the list of computed shards,
     # rebuilding if necessary.
-    class @Shards extends @ComputedCollection
+    class @Shards extends Backbone.Collection
         model: DataUtils.Shard
 
-        initialize: (models, namespace) ->
+        initialize: (models, namespace) =>
             @namespace = namespace
-            @namespace.on 'change:shards', => @compute_shards @namespace.get('shards')
-            @namespace.on 'add', => @compute_shards @namespace.get('shards')
+            @namespace.on 'change:shards', @compute_shards_without_args
+            @namespace.on 'add', @compute_shards_without_args
+
+        compute_shards_without_args: =>
+            @compute_shards @namespace.get('shards')
 
         compute_shards: (shards) =>
-            @namespace.off()
             new_shards = []
             for shard in shards
                 new_shards.push new DataUtils.Shard shard, @namespace
             @.reset new_shards
-            # Looks like @.reset kills the listeners...
-            @namespace.on 'change:shards', => @compute_shards @namespace.get('shards')
-            @namespace.on 'add', => @compute_shards @namespace.get('shards')
+
+        destroy: =>
+            @namespace.off 'change:shards', @compute_shards_without_args
+            @namespace.off 'add', @compute_shards_without_args
+
 
 
     #TODO destroy

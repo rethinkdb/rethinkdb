@@ -86,7 +86,7 @@ module 'NamespaceView', ->
             confirmation_modal.on_submit = =>
                 # grab the data
                 data = @model.get('key_distr')
-                distr_keys = @model.sorted_key_distr_keys(data)
+                distr_keys = @model.get 'key_distr_sorted'
                 total_rows = _.reduce distr_keys, ((agg, key) => return agg + data[key]), 0
                 desired_shards = @model.get('shards').length
                 rows_per_shard = total_rows / desired_shards
@@ -241,17 +241,17 @@ module 'NamespaceView', ->
 
 
 
+            valid_data = true
             shards = []
             for shard in namespaces.models[0].get('computed_shards').models
                 new_shard =
                     boundaries: shard.get('shard_boundaries')
-                    num_keys: @model.compute_shard_rows_approximation(shard.get('shard_boundaries'))
+                    num_keys: parseInt @model.compute_shard_rows_approximation shard.get 'shard_boundaries'
                 shards.push new_shard
 
             # We could probably use apply for a cleaner code, but d3.max has a strange behavior.
             max_keys = d3.max shards, (d) -> return d.num_keys
             min_keys = d3.min shards, (d) -> return d.num_keys
-
             json = _.extend json,
                 max_keys: max_keys
                 min_keys: min_keys
@@ -301,7 +301,7 @@ module 'NamespaceView', ->
                 #arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc).style('opacity', 0).transition().duration(600).style('opacity', 1)
 
             # Draw histogram
-            if json.max_keys? and json.max_keys isnt NaN and shards.length isnt 0
+            if json.max_keys? and not _.isNaN json.max_keys and shards.length isnt 0
                 @.$('.data_repartition-diagram > g').remove()
                 @.$('.loading_text-diagram').remove()
                 

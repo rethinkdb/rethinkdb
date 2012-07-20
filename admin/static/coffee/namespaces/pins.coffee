@@ -32,6 +32,7 @@ module 'NamespaceView', ->
             @check_has_unsatisfiable_goals()
             issues.on 'all', @check_has_unsatisfiable_goals
             @model.on 'change:replica_affinities', @render
+            @model.on 'change:shards', @render
             @model.on 'blueprint', @render
 
 
@@ -64,8 +65,7 @@ module 'NamespaceView', ->
                             break
 
         render: =>
-            super()
-
+            super
             @.$el.toggleClass('namespace-shards-blackout', @should_be_hidden)
             @.$('.blackout').toggleClass('blackout-active', @should_be_hidden)
             @.$('.alert_for_sharding').toggle @should_be_hidden
@@ -80,7 +80,7 @@ module 'NamespaceView', ->
             @.$('.change-shards').html view.render().el
 
         destroy: ->
-            super()
+            super
             issues.off()
             @model.off()
 
@@ -128,7 +128,8 @@ module 'NamespaceView', ->
 
         destroy: =>
             @datacenter_list.destroy()
-            @namespace.off()
+            @namespace.off 'change:key_distr_sorted', @render_summary
+            @namespace.off 'change:blueprint', @reset_datacenter_list
 
     class @ShardDatacenterList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_datacenter_list-template').html()
@@ -138,7 +139,7 @@ module 'NamespaceView', ->
         summary_template: Handlebars.compile $('#namespace_view-shard_datacenter-summary-template').html()
 
         initialize: ->
-            super()
+            super
 
             @namespace = @options.args.namespace
 
@@ -184,7 +185,7 @@ module 'NamespaceView', ->
                 @render_summary()
                 @.$('.machine-list').html @machine_list.render().el
 
-            super()
+            super
 
             return @
 
@@ -196,15 +197,18 @@ module 'NamespaceView', ->
 
         destroy: =>
             @machine_list.destroy()
-            @model.off()
-            directory.off()
-            @namespace.off()
+
+            @model.off 'change', @render_summary
+            directory.off 'all', @render_summary
+            @namespace.off 'change:replica_affinities', @reset_list
+            @namespace.off 'change:secondary_pinnings', @reset_list
+            @namespace.off 'change:blueprint', @reset_list
 
     class @ShardMachineList extends UIComponents.AbstractList
         template: Handlebars.compile $('#namespace_view-shard_machine_list-template').html()
 
         initialize: =>
-            super()
+            super
             @namespace = @options.element_args.namespace
             @namespace.on 'change:primary_pinnings', @render
             @namespace.on 'change:replica_affinities', @render
@@ -212,8 +216,10 @@ module 'NamespaceView', ->
 
 
         destroy: =>
-            super()
-            @namespace.off()
+            super
+
+            @namespace.off 'change:primary_pinnings', @render
+            @namespace.off 'change:replica_affinities', @render
 
     class @ShardMachine extends Backbone.View
         template: Handlebars.compile $('#namespace_view-shard_machine-template').html()
@@ -325,7 +331,7 @@ module 'NamespaceView', ->
                 modal_title: 'Set new machine'
                 btn_primary_text: 'Commit'
                 machines: []
-            super()
+            super
 
         set_data: (data) =>
             for key of data
@@ -336,7 +342,7 @@ module 'NamespaceView', ->
             super @data
 
         on_submit: (response) =>
-            super()
+            super
             form_data = form_data_as_object($('form', @$modal))
             post_data = {}
             old_pin = JSON.parse form_data.old_pin
@@ -351,4 +357,4 @@ module 'NamespaceView', ->
                 error: @on_error
 
         on_success: (response) =>
-            super()
+            super
