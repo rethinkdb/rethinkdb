@@ -4,6 +4,7 @@
 
 #include "arch/timing.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/archive/boost_types.hpp"
 
 #define THROTTLE_THRESHOLD 200
 

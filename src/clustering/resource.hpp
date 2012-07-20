@@ -3,6 +3,9 @@
 
 #include <string>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "concurrency/wait_any.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/mailbox/mailbox.hpp"
