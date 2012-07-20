@@ -81,8 +81,10 @@ module 'NamespaceView', ->
 
         destroy: ->
             super
-            issues.off()
-            @model.off()
+            issues.off 'all', @check_has_unsatisfiable_goals
+            @model.off 'change:replica_affinities', @render
+            @model.off 'change:shards', @render
+            @model.off 'blueprint', @render
 
     class @Shard extends Backbone.View
         tagName: 'div'
@@ -309,9 +311,11 @@ module 'NamespaceView', ->
             return @
 
         destroy: =>
-            @shard.off()
-            @model.off()
-            directory.off()
+
+            @shard.off 'change:primary_uuid', @render
+            @shard.off 'change:secondary_uuids', @render
+            @model.off 'change:name', @render
+            directory.off 'all', @render
 
     class @SetMachineModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#shard-set_machine-template').html()

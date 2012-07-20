@@ -42,7 +42,7 @@
 </script>
 
 <script id="namespace_view_title-template" type="text/x-handlebars-template">
-    <h1>Namespace overview for {{name}}</h1> (<a href="#" class="rename-namespace">rename</a>)
+    <h1>Namespace overview for {{name}}</h1>
 </script>
 
 <script id="namespace_view-profile-template" type="text/x-handlebars-template">
@@ -165,19 +165,19 @@
 <script id="namespace_other-template" type="text/x-handlebars-template">
     <h3 class="title">Other operations</h3>
     <div class="other_section rename_namespace">
-        <input type="button" class="btn other_button" value="Rename"/>
+        <input type="button" class="btn other_button rename_namespace-button" value="Rename"/>
         <p>Rename the namespace</p>
     </div>
-    <div class="other_section rename_namespace">
-        <input type="button" class="btn other_button" value="Import"/>
+    <div class="other_section import_data">
+        <input type="button" class="btn other_button import_data-button" value="Import"/>
         <p>Import data</p>
     </div>
-    <div class="other_section rename_namespace">
-        <input type="button" class="btn other_button" value="Export"/>
+    <div class="other_section export_data-container">
+        <input type="button" class="btn other_button export_data-button" value="Export"/>
         <p>Export data</p>
     </div>
-    <div class="other_section rename_namespace">
-        <input type="button" class="btn other_button" value="Delete"/>
+    <div class="other_section delete_namespace-container">
+        <input type="button" class="btn other_button delete_namespace-button" value="Delete"/>
         <p>Delete the namespace</p>
     </div>
 

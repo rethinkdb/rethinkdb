@@ -110,8 +110,9 @@
 </script>
 
 <script id="remove_namespace-modal-template" type="text/x-handlebars-template">
+  <div class="alert alert-error">Removing the namespace will delete all the data. This action cannot be reversed.</div>
   <div class="alert alert-error error_answer"></div>
-  <h2>Are you sure you want to remove these namespaces:</h2>
+  <h4>Are you sure you want to remove {{#if namespaces_length_is_one}}this{{else}}these{{/if}} namespaces:</h4>
   <ul class="namespace-list">
     {{#each namespaces}}
     <li><a href="#namespaces/{{id}}">{{name}}</a></li>

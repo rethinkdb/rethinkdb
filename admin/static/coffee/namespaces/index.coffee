@@ -53,6 +53,7 @@ module 'NamespaceView', ->
             log_action 'remove namespace button clicked'
             # Make sure the button isn't disabled, and pass the list of namespace UUIDs selected
             if not $(event.currentTarget).hasClass 'disabled'
+                console.log @get_selected_elements()
                 @remove_namespace_dialog.render @get_selected_elements()
             event.preventDefault()
 
@@ -141,8 +142,8 @@ module 'NamespaceView', ->
             rename_modal.render()
 
         destroy: =>
-            @model.off()
-            machines.off()
+            @model.off 'change', @render
+            machines.off 'all', @render
 
     # A modal for adding namespaces
     class @AddNamespaceModal extends UIComponents.AbstractModal
@@ -255,6 +256,8 @@ module 'NamespaceView', ->
                 modal_title: 'Remove namespace'
                 btn_primary_text: 'Remove'
                 namespaces: array_for_template
+                namespaces_length_is_one: @namespaces_to_delete.length is 1
+
 
         on_submit: ->
             super

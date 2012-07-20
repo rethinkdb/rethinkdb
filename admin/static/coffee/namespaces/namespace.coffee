@@ -12,7 +12,6 @@ module 'NamespaceView', ->
         className: 'namespace-view'
         template: Handlebars.compile $('#namespace_view-container-template').html()
         events: ->
-            'click a.rename-namespace': 'rename_namespace'
             'click .close': 'close_alert'
             'click .rebalance_shards-link': 'rebalance_shards'
             'click .change_shards-link': 'change_shards'
@@ -33,12 +32,6 @@ module 'NamespaceView', ->
             @other = new NamespaceView.Other(model: @model)
 
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
-
-        rename_namespace: (event) ->
-            event.preventDefault()
-            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'namespace'
-            rename_modal.render()
-            @title.update()
 
         render: =>
             log_render '(rendering) namespace view: container'
@@ -389,15 +382,40 @@ module 'NamespaceView', ->
             @history_opsec.push @model.get_stats().keys_read + @model.get_stats().keys_set
 
         destroy: =>
-            @model.off()
+            machines.off 'change', @render
+            @model.off 'change:key_distr', @render
+            @model.off 'change:shards', @render
 
     class @Other extends Backbone.View
         className: 'namespace-other'
 
         template: Handlebars.compile $('#namespace_other-template').html()
+        events: ->
+            'click .rename_namespace-button': 'rename_namespace'
+            'click .import_data-button': 'import_data'
+            'click .export_data-button': 'export_data'
+            'click .delete_namespace-button': 'delete_namespace'
 
         initialize: =>
             @model.on 'change:name', @render
+
+        rename_namespace: (event) ->
+            event.preventDefault()
+            rename_modal = new UIComponents.RenameItemModal @model.get('id'), 'namespace'
+            rename_modal.render()
+
+        import_data: (event) ->
+            event.preventDefault()
+            #TODO Implement
+        
+        export_data: (event) ->
+            event.preventDefault()
+            #TODO Implement
+
+        delete_namespace: (event) ->
+            event.preventDefault()
+            @remove_namespace_dialog = new NamespaceView.RemoveNamespaceModal
+            @remove_namespace_dialog.render [@model]
 
         render: =>
             @.$el.html @template {}
