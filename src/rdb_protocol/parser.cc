@@ -2,6 +2,7 @@
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
+#include <boost/scoped_ptr.hpp>
 
 namespace rdb_protocol {
 

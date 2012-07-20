@@ -426,19 +426,19 @@ private:
             bool is_start, bool is_primary, const typename protocol_t::region_t &region,
             auto_drainer_t::lock_t lock) THROWS_NOTHING {
         try {
-            boost::scoped_ptr<master_access_t<protocol_t> > master_access;
-            boost::scoped_ptr<resource_access_t<direct_reader_business_card_t<protocol_t> > > direct_reader_access;
+            scoped_ptr_t<master_access_t<protocol_t> > master_access;
+            scoped_ptr_t<resource_access_t<direct_reader_business_card_t<protocol_t> > > direct_reader_access;
             if (is_primary) {
-                master_access.reset(new master_access_t<protocol_t>(
+                master_access.init(new master_access_t<protocol_t>(
                     mailbox_manager,
                     directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, _1, peer_id, activity_id)),
                     lock.get_drain_signal()
                     ));
-                direct_reader_access.reset(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
+                direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
                     directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, _1, peer_id, activity_id))
                     ));
             } else {
-                direct_reader_access.reset(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
+                direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(
                     directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary_up_to_date, _1, peer_id, activity_id))
                     ));
             }
@@ -464,10 +464,10 @@ private:
             }
 
             wait_any_t waiter(lock.get_drain_signal());
-            if (master_access) {
+            if (master_access.has()) {
                 waiter.add(master_access->get_failed_signal());
             }
-            if (direct_reader_access) {
+            if (direct_reader_access.has()) {
                 waiter.add(direct_reader_access->get_failed_signal());
             }
             waiter.wait_lazily_unordered();
