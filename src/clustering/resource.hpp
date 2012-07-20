@@ -3,9 +3,11 @@
 
 #include <string>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "concurrency/wait_any.hpp"
 #include "concurrency/watchable.hpp"
-#include "containers/archive/boost_types.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/mailbox/typed.hpp"
 
