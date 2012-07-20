@@ -1754,7 +1754,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
             break;
         case Builtin::ORDERBY:
             {
-                ordering_t o(c.builtin().order_by(), backtrace);
+                ordering_t o(c.builtin().order_by(), backtrace.with("order_by"));
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env, backtrace.with("arg:0"));
 
                 boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(stream));

@@ -37,15 +37,14 @@ class TestTableRef(unittest.TestCase):
         with self.assertRaises(r.BadQueryError) as cm:
             res = self.conn.run(query)
         e = cm.exception
-        self.assertIn(msg, e.message)
+        self.assertIn(msg, str(e))
 
     def expect_execution_error(self, query, msg):
         with self.assertRaises(r.ExecutionError) as cm:
             res = self.conn.run(query)
         e = cm.exception
-        print "\n\n"
-        print e
-        self.assertIn(msg, e.message)
+        #print "\n\n", e
+        self.assertIn(msg, str(e))
 
     def test_arith(self):
         expect = self.expect
@@ -85,21 +84,21 @@ class TestTableRef(unittest.TestCase):
         expect(r.eq(3, 3), True)
         expect(r.eq(3, 4), False)
 
-        expect(r.neq(3, 3), False)
-        expect(r.neq(3, 4), True)
+        expect(r.ne(3, 3), False)
+        expect(r.ne(3, 4), True)
 
         expect(r.gt(3, 2), True)
         expect(r.gt(3, 3), False)
 
-        expect(r.gte(3, 3), True)
-        expect(r.gte(3, 4), False)
+        expect(r.ge(3, 3), True)
+        expect(r.ge(3, 4), False)
 
         expect(r.lt(3, 3), False)
         expect(r.lt(3, 4), True)
 
-        expect(r.lte(3, 3), True)
-        expect(r.lte(3, 4), True)
-        expect(r.lte(3, 2), False)
+        expect(r.le(3, 3), True)
+        expect(r.le(3, 4), True)
+        expect(r.le(3, 2), False)
 
         expect(r.eq(1, 1, 2), False)
         expect(r.eq(5, 5, 5), True)
@@ -163,7 +162,7 @@ class TestTableRef(unittest.TestCase):
     def test_extend(self):
         self.expect(r.extend({"a": 5}, {"b": 3}), {"a": 5, "b": 3})
         self.expect(r.extend({"a": 5}, {"a": 3}), {"a": 3})
-        self.expect(r.extend({"a": 5, "b": 1}, {"a": 3}, {"b": 6}), {"a": 3, "b": 6})
+        self.expect(r.extend(r.extend({"a": 5, "b": 1}, {"a": 3}), {"b": 6}), {"a": 3, "b": 6})
 
         self.expect_execution_error(r.extend(5, {"a": 3}), "object")
         self.expect_execution_error(r.extend({"a": 5}, 5), "object")
