@@ -1,5 +1,5 @@
 #include "errors.hpp"
-#include <boost/function.hpp>
+#include <boost/bind.hpp>
 
 #include "clustering/administration/stat_manager.hpp"
 #include "concurrency/watchable.hpp"

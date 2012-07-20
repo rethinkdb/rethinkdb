@@ -75,8 +75,8 @@ void data_block_manager_t::end_reconstruct() {
 void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
     rassert(state == state_unstarted);
     dbfile = file;
-    gc_io_account_nice.reset(new file_account_t(file, GC_IO_PRIORITY_NICE));
-    gc_io_account_high.reset(new file_account_t(file, GC_IO_PRIORITY_HIGH));
+    gc_io_account_nice.init(new file_account_t(file, GC_IO_PRIORITY_NICE));
+    gc_io_account_high.init(new file_account_t(file, GC_IO_PRIORITY_HIGH));
 
     /* Reconstruct the active data block extents from the metablock. */
 

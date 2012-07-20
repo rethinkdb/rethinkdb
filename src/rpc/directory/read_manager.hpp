@@ -5,10 +5,10 @@
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
+#include "containers/scoped.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
 
@@ -35,7 +35,7 @@ private:
         `connectivity_service_t` from `super_connectivity_service`. */
         const uuid_t session_id;
         cond_t got_initial_message;
-        boost::scoped_ptr<fifo_enforcer_sink_t> metadata_fifo_sink;
+        scoped_ptr_t<fifo_enforcer_sink_t> metadata_fifo_sink;
         auto_drainer_t drainer;
     };
 
