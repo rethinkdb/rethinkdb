@@ -18,6 +18,7 @@ class Namespace extends Backbone.Model
             processData: false
             url: "/ajax/distribution?namespace=#{@get('id')}&depth=2"
             type: 'GET'
+            contentType: 'application/json'
             success: (distr_data) =>
                 # Cache the data
                 # Sort the keys and cache that too
