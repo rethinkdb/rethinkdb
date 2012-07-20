@@ -1349,8 +1349,8 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
 
     {
         on_thread_t thread_switcher(serializer->home_thread());
-        reads_io_account.reset(serializer->make_io_account(dynamic_config->io_priority_reads));
-        writes_io_account.reset(serializer->make_io_account(dynamic_config->io_priority_writes));
+        reads_io_account.init(serializer->make_io_account(dynamic_config->io_priority_reads));
+        writes_io_account.init(serializer->make_io_account(dynamic_config->io_priority_writes));
     }
 
 #ifndef NDEBUG
@@ -1358,7 +1358,7 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
 #endif
 
     /* Load differential log from disk */
-    patch_disk_storage.reset(new patch_disk_storage_t(this, MC_CONFIGBLOCK_ID));
+    patch_disk_storage.init(new patch_disk_storage_t(this, MC_CONFIGBLOCK_ID));
     patch_disk_storage->load_patches(&patch_memory_storage);
 
     /* Please note: writebacks must *not* happen prior to this point! */

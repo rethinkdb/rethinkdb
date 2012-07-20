@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "arch/types.hpp"
@@ -20,6 +19,7 @@
 #include "concurrency/mutex.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/two_level_array.hpp"
+#include "containers/scoped.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
@@ -397,13 +397,13 @@ private:
     // components it wasn't originally given.
 
     serializer_t *serializer;
-    boost::scoped_ptr<mc_cache_stats_t> stats;
+    scoped_ptr_t<mc_cache_stats_t> stats;
 
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,
     // thereby blocking user queries.
-    boost::scoped_ptr<file_account_t> reads_io_account;
-    boost::scoped_ptr<file_account_t> writes_io_account;
+    scoped_ptr_t<file_account_t> reads_io_account;
+    scoped_ptr_t<file_account_t> writes_io_account;
 
     array_map_t page_map;
     page_repl_t page_repl;
@@ -424,7 +424,7 @@ private:
     patch_memory_storage_t patch_memory_storage;
 
     // Pointer, not member, because we need to call its destructor explicitly in our destructor
-    boost::scoped_ptr<patch_disk_storage_t> patch_disk_storage;
+    scoped_ptr_t<patch_disk_storage_t> patch_disk_storage;
 
     // The ratio of block size to patch size (for some block id, at
     // some point in time) at which we think it's worth it to flush
