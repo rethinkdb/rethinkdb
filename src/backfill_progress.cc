@@ -5,6 +5,13 @@
 
 #include "concurrency/pmap.hpp"
 
+traversal_progress_combiner_t::~traversal_progress_combiner_t() {
+    while (!constituents.empty()) {
+        delete constituents.back();
+        constituents.pop_back();
+    }
+}
+
 void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
     assert_thread();
     constituents.push_back(c);
@@ -14,8 +21,8 @@ void traversal_progress_combiner_t::get_constituent_fraction(int i, std::vector<
     guarantee(size_t(i) < constituents.size());
     rassert(size_t(i) < outputs->size());
 
-    on_thread_t th(constituents[i].home_thread());
-    (*outputs)[i] = constituents[i].guess_completion();
+    on_thread_t th(constituents[i]->home_thread());
+    (*outputs)[i] = constituents[i]->guess_completion();
 }
 
 progress_completion_fraction_t traversal_progress_combiner_t::guess_completion() const {

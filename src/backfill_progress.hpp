@@ -1,8 +1,9 @@
 #ifndef BACKFILL_PROGRESS_HPP_
 #define BACKFILL_PROGRESS_HPP_
 
+#include <vector>
+
 #include "utils.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
 
 struct progress_completion_fraction_t {
     progress_completion_fraction_t(int _released, int _total) : estimate_of_released_nodes(_released), estimate_of_total_nodes(_total) {
@@ -42,6 +43,7 @@ class traversal_progress_combiner_t : public traversal_progress_t {
 public:
     traversal_progress_combiner_t(int specified_home_thread) : traversal_progress_t(specified_home_thread) { }
     traversal_progress_combiner_t() { }
+    ~traversal_progress_combiner_t();
 
     // The constituent is welcome to have a different home thread.
     void add_constituent(traversal_progress_t *constituent);
@@ -52,7 +54,8 @@ private:
     // constituent's home thread.
     void get_constituent_fraction(int i, std::vector<progress_completion_fraction_t> *outputs) const;
 
-    boost::ptr_vector<traversal_progress_t> constituents;
+    // constituents _owns_ these pointers.
+    std::vector<traversal_progress_t *> constituents;
 
     DISABLE_COPYING(traversal_progress_combiner_t);
 };
