@@ -176,7 +176,7 @@ void test_header_parser() {
 }
 
 http_server_t::http_server_t(int port, http_app_t *_application) : application(_application) {
-    tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+    tcp_listener.init(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
 }
 
 http_server_t::~http_server_t() { }
@@ -270,7 +270,7 @@ std::string human_readable_status(int code) {
     }
 }
 
-void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) {
+void write_http_msg(tcp_conn_t *conn, const http_res_t &res) {
     conn->writef("HTTP/%s %d %s\r\n", res.version.c_str(), res.code, human_readable_status(res.code).c_str());
     for (std::vector<header_line_t>::const_iterator it = res.header_lines.begin(); it != res.header_lines.end(); it++) {
         conn->writef("%s: %s\r\n", it->key.c_str(), it->val.c_str());
@@ -279,8 +279,8 @@ void write_http_msg(boost::scoped_ptr<tcp_conn_t> &conn, http_res_t const &res) 
     conn->write(res.body.c_str(), res.body.size());
 }
 
-void http_server_t::handle_conn(const boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
-    boost::scoped_ptr<tcp_conn_t> conn;
+void http_server_t::handle_conn(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t) {
+    scoped_ptr_t<tcp_conn_t> conn;
     nconn->ennervate(&conn);
 
     http_req_t req;
@@ -291,12 +291,12 @@ void http_server_t::handle_conn(const boost::scoped_ptr<nascent_tcp_conn_t> &nco
         if (http_msg_parser.parse(conn.get(), &req)) {
             http_res_t res = application->handle(req);
             res.version = req.version;
-            write_http_msg(conn, res);
+            write_http_msg(conn.get(), res);
         } else {
             // Write error
             http_res_t res;
             res.code = 400;
-            write_http_msg(conn, res);
+            write_http_msg(conn.get(), res);
         }
     } catch (const linux_tcp_conn_t::read_closed_exc_t &) {
         //Someone disconnected before sending us all the information we
