@@ -16,6 +16,7 @@
         <li><a href="#namespace-replication" class="namespace_replication-link" data-toggle="tab">Replication</a></li>
         <li><a href="#namespace-sharding" class="namespace_sharding-link" data-toggle="tab">Sharding</a></li>
         <li><a href="#namespace-pinning" class="namespace_pinning-link" data-toggle="tab">Pinning</a></li>
+        <li><a href="#namespace-other" class="namespace_other-link" data-toggle="tab">Other</a></li>
     </ul>
     <div class="tab-content">  
         <div class="tab-pane active" id="namespace-overview">
@@ -30,6 +31,9 @@
         <div class="tab-pane" id="namespace-pinning">
             <div class="section pinning"></div>
         </div>
+        <div class="tab-pane" id="namespace-other">
+            <div class="section other"></div>
+        </div>
     </div>
 </script>
 
@@ -38,7 +42,7 @@
 </script>
 
 <script id="namespace_view_title-template" type="text/x-handlebars-template">
-    <h1>Namespace overview for {{name}}</h1> (<a href="#" class="rename-namespace">rename</a>)
+    <h1>Namespace overview for {{name}}</h1>
 </script>
 
 <script id="namespace_view-profile-template" type="text/x-handlebars-template">
@@ -57,7 +61,12 @@
 </script>
 
 
-<script id="namespace_overview-template" type="text/x-handlebars-template">
+<script id="namespace_overview-container-template" type="text/x-handlebars-template">
+    <div class="data_in_memory-container"></div>
+    <div class="data_repartition-container"></div>
+</script>
+
+<script id="namespace_overview-data_in_memory-template" type="text/x-handlebars-template">
     <h3 class="title">Data in memory</h3>
     <div class="two-panel-section">
         <div class="pie_container panel-left">
@@ -78,7 +87,9 @@
             </ul>
         </div>
     </div>
-    
+</script>
+
+<script id="namespace_overview-data_repartition-template" type="text/x-handlebars-template">
     <h3 class="title">Data repartition</h3>
 
     {{#if has_shards}}
@@ -154,6 +165,30 @@
     {{else}}
         <p class="no-shard">You do not have shards for this namespace.</p>    
     {{/if}}
+</script>
+
+
+
+<script id="namespace_other-template" type="text/x-handlebars-template">
+    <h3 class="title">Other operations</h3>
+    <div class="other_section rename_namespace">
+        <input type="button" class="btn other_button rename_namespace-button" value="Rename"/>
+        <p>Rename the namespace</p>
+    </div>
+    <div class="other_section import_data">
+        <input type="button" class="btn other_button import_data-button" value="Import"/>
+        <p>Import data</p>
+    </div>
+    <div class="other_section export_data-container">
+        <input type="button" class="btn other_button export_data-button" value="Export"/>
+        <p>Export data</p>
+    </div>
+    <div class="other_section delete_namespace-container">
+        <input type="button" class="btn other_button delete_namespace-button" value="Delete"/>
+        <p>Delete the namespace</p>
+    </div>
+
 
 
 </script>
+

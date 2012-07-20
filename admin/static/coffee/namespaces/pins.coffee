@@ -81,8 +81,10 @@ module 'NamespaceView', ->
 
         destroy: ->
             super
-            issues.off()
-            @model.off()
+            issues.off 'all', @check_has_unsatisfiable_goals
+            @model.off 'change:replica_affinities', @render
+            @model.off 'change:shards', @render
+            @model.off 'blueprint', @render
 
     class @Shard extends Backbone.View
         tagName: 'div'
@@ -95,19 +97,13 @@ module 'NamespaceView', ->
             @datacenter_list = new NamespaceView.ShardDatacenterList datacenters, NamespaceView.ShardDatacenter, 'div.datacenters',
                 filter: (datacenter) =>
                     return true
-                ###
-                filter: (datacenter) =>
-                    for datacenter_uuid of @model.get('secondary_uuids')
-                        return true if datacenter.get('id') is datacenter_uuid
-                    if @model.get('primary_uuid')
-                        return true if datacenter.get('id') is machines.get(@model.get('primary_uuid')).get('datacenter_uuid')
-                ###
                 element_args:
                     shard: @model
                     namespace: @namespace
 
             @namespace.on 'change:key_distr_sorted', @render_summary
             @namespace.on 'change:blueprint', @reset_datacenter_list #TODO bind to peers_roles
+            @namespace.on 'change:replica_affinities', @reset_datacenter_list #TODO bind to peers_roles
 
         render: =>
             @.el = @template({})
@@ -138,7 +134,7 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#namespace_view-shard_datacenter-template').html()
         summary_template: Handlebars.compile $('#namespace_view-shard_datacenter-summary-template').html()
 
-        initialize: ->
+        initialize: =>
             super
 
             @namespace = @options.args.namespace
@@ -315,9 +311,11 @@ module 'NamespaceView', ->
             return @
 
         destroy: =>
-            @shard.off()
-            @model.off()
-            directory.off()
+
+            @shard.off 'change:primary_uuid', @render
+            @shard.off 'change:secondary_uuids', @render
+            @model.off 'change:name', @render
+            directory.off 'all', @render
 
     class @SetMachineModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#shard-set_machine-template').html()
