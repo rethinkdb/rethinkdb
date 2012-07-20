@@ -10,6 +10,7 @@
 #include "concurrency/access.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/iterators.hpp"
 #include "memcached/btree/append_prepend.hpp"
@@ -74,6 +75,16 @@ RDB_IMPL_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount);
 RDB_IMPL_SERIALIZABLE_2(incr_decr_result_t, res, new_value);
 RDB_IMPL_SERIALIZABLE_3(append_prepend_mutation_t, kind, key, data);
 RDB_IMPL_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, cas_or_zero);
+
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::read_response_t, result);
+RDB_IMPL_SERIALIZABLE_2(memcached_protocol_t::read_t, query, effective_time);
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::write_response_t, result);
+RDB_IMPL_SERIALIZABLE_3(memcached_protocol_t::write_t, mutation, proposed_cas, effective_time);
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t::delete_key_t, key);
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t::delete_range_t, range);
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t::key_value_pair_t, backfill_atom);
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t, val);
+
 
 
 hash_region_t<key_range_t> monokey_region(const store_key_t &k) {
