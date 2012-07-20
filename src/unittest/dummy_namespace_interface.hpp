@@ -1,14 +1,14 @@
 #ifndef UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
 #define UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_
 
+#include <vector>
+
 #include "utils.hpp"
 #include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
-#include <boost/scoped_ptr.hpp>
-
-#include <vector>
 
 #include "concurrency/pmap.hpp"
+#include "containers/scoped.hpp"
 #include "mock/clustering_utils.hpp"
 #include "mock/unittest_utils.hpp"
 #include "protocol_api.hpp"
@@ -233,7 +233,7 @@ public:
             shards_of_this_db.push_back(typename dummy_sharder_t<protocol_t>::shard_t(timestamper, performer, shards[i]));
         }
 
-        sharder.reset(new dummy_sharder_t<protocol_t>(shards_of_this_db));
+        sharder.init(new dummy_sharder_t<protocol_t>(shards_of_this_db));
     }
 
     typename protocol_t::read_response_t read(typename protocol_t::read_t read, order_token_t tok, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
@@ -251,7 +251,7 @@ public:
 private:
     boost::ptr_vector<dummy_performer_t<protocol_t> > performers;
     boost::ptr_vector<dummy_timestamper_t<protocol_t> > timestampers;
-    boost::scoped_ptr<dummy_sharder_t<protocol_t> > sharder;
+    scoped_ptr_t<dummy_sharder_t<protocol_t> > sharder;
 };
 
 }   /* namespace unittest */
