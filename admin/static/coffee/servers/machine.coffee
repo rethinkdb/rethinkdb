@@ -102,7 +102,8 @@ module 'MachineView', ->
             return @
 
         destroy: =>
-            @model.off()
+
+            @model.off 'change:name', @update
 
     # MachineView.Profile
     class @Profile extends Backbone.View
@@ -143,8 +144,8 @@ module 'MachineView', ->
             return @
 
         destroy: =>
-            directory.off()
-            @model.off()
+            directory.off 'all', @render
+            @model.off 'all', @render
 
     class @Data extends Backbone.View
         className: 'machine-info-view'
@@ -185,5 +186,5 @@ module 'MachineView', ->
             return @
 
         destroy: =>
-            @model.off()
-            directory.off()
+            @model.off 'all', @render
+            directory.off 'all', @render

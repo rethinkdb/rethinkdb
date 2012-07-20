@@ -95,19 +95,13 @@ module 'NamespaceView', ->
             @datacenter_list = new NamespaceView.ShardDatacenterList datacenters, NamespaceView.ShardDatacenter, 'div.datacenters',
                 filter: (datacenter) =>
                     return true
-                ###
-                filter: (datacenter) =>
-                    for datacenter_uuid of @model.get('secondary_uuids')
-                        return true if datacenter.get('id') is datacenter_uuid
-                    if @model.get('primary_uuid')
-                        return true if datacenter.get('id') is machines.get(@model.get('primary_uuid')).get('datacenter_uuid')
-                ###
                 element_args:
                     shard: @model
                     namespace: @namespace
 
             @namespace.on 'change:key_distr_sorted', @render_summary
             @namespace.on 'change:blueprint', @reset_datacenter_list #TODO bind to peers_roles
+            @namespace.on 'change:replica_affinities', @reset_datacenter_list #TODO bind to peers_roles
 
         render: =>
             @.el = @template({})
@@ -138,7 +132,7 @@ module 'NamespaceView', ->
         template: Handlebars.compile $('#namespace_view-shard_datacenter-template').html()
         summary_template: Handlebars.compile $('#namespace_view-shard_datacenter-summary-template').html()
 
-        initialize: ->
+        initialize: =>
             super
 
             @namespace = @options.args.namespace

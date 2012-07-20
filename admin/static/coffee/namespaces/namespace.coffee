@@ -30,6 +30,8 @@ module 'NamespaceView', ->
             @shards = new NamespaceView.Sharding(model: @model)
             @pins = new NamespaceView.Pinning(model: @model)
             @overview = new NamespaceView.Overview(model: @model)
+            @other = new NamespaceView.Other(model: @model)
+
             @performance_graph = new Vis.OpsPlot(@model.get_stats_for_performance)
 
         rename_namespace: (event) ->
@@ -63,6 +65,8 @@ module 'NamespaceView', ->
             # Display the pins
             @.$('.pinning').html @pins.render().el
 
+            # Display other
+            @.$('.other').html @other.render().el
 
             @.$('.nav-tabs').tab()
 
@@ -386,3 +390,15 @@ module 'NamespaceView', ->
 
         destroy: =>
             @model.off()
+
+    class @Other extends Backbone.View
+        className: 'namespace-other'
+
+        template: Handlebars.compile $('#namespace_other-template').html()
+
+        initialize: =>
+            @model.on 'change:name', @render
+
+        render: =>
+            @.$el.html @template {}
+            return @
