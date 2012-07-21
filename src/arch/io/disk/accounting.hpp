@@ -29,7 +29,7 @@ private:
 number of different "accounts". */
 
 template<class payload_t>
-class accounting_diskmgr_t {
+class accounting_diskmgr_t : home_thread_mixin_t {
 public:
 
     explicit accounting_diskmgr_t(int batch_factor)
@@ -47,15 +47,29 @@ public:
     `unlimited_fifo_queue_t` associated with it. Operations for that account
     queue up on that queue while they wait for the `accounting_queue_t` on the
     `accounting_diskmgr_t` to draw from that account. */
-    struct account_t : public semaphore_available_callback_t {
-        account_t(accounting_diskmgr_t *par, int pri, int outstanding_requests_limit) :
+    struct eager_account_t : public semaphore_available_callback_t {
+        eager_account_t(accounting_diskmgr_t *par, int pri, int outstanding_requests_limit) :
                 parent(par),
                 outstanding_requests_limiter(outstanding_requests_limit == UNLIMITED_OUTSTANDING_REQUESTS ? SEMAPHORE_NO_LIMIT : outstanding_requests_limit),
                 account(&par->queue, &queue, pri) {
             rassert(outstanding_requests_limit == UNLIMITED_OUTSTANDING_REQUESTS || outstanding_requests_limit > 0);
         }
+
+        void push(action_t *action) {
+            throttled_queue.push_back(action);
+            outstanding_requests_limiter.lock(this, 1);
+        }
+        void on_semaphore_available() {
+            action_t *action = throttled_queue.head();
+            throttled_queue.pop_front();
+            queue.push(action);
+        }
+        semaphore_t &get_outstanding_requests_limiter() {
+            return outstanding_requests_limiter;
+        }
+
     private:
-        friend class accounting_diskmgr_t;
+        friend class account_t;
         accounting_diskmgr_t *parent;
 
         // It would be nice if we could just use a limited_fifo_queue to
@@ -67,17 +81,44 @@ public:
         intrusive_list_t<action_t> throttled_queue;
         unlimited_fifo_queue_t<action_t *, intrusive_list_t<action_t> > queue;
         semaphore_t outstanding_requests_limiter;
-        void push(action_t *action) {
-            throttled_queue.push_back(action);
-            outstanding_requests_limiter.lock(this, 1);
-        }
-        void on_semaphore_available() {
-            action_t *action = throttled_queue.head();
-            throttled_queue.pop_front();
-            queue.push(action);
-        }
 
         typename accounting_queue_t<action_t *>::account_t account;
+    };
+
+    struct account_t {
+        account_t(accounting_diskmgr_t *par, int pri, int outstanding_requests_limit) :
+            _par(par), _pri(pri),
+            _outstanding_requests_limit(outstanding_requests_limit),
+            eager_account(NULL) { }
+        virtual ~account_t() {
+            rassert(get_thread_id() == _par->home_thread());
+            delete eager_account;
+        }
+
+        void push(action_t *action) {
+            maybe_init();
+            eager_account->push(action);
+        }
+        void on_semaphore_available() {
+            maybe_init();
+            eager_account->on_semaphore_available();
+        }
+        semaphore_t &get_outstanding_requests_limiter() {
+            maybe_init();
+            return eager_account->get_outstanding_requests_limiter();
+        }
+
+    private:
+        void maybe_init(){
+            if (!eager_account) {
+                rassert(get_thread_id() == _par->home_thread());
+                eager_account = new eager_account_t(_par, _pri, _outstanding_requests_limit);
+            }
+        }
+        accounting_diskmgr_t *_par;
+        int _pri;
+        int _outstanding_requests_limit;
+        eager_account_t *eager_account;
     };
 
     void submit(action_t *a) {
@@ -89,7 +130,7 @@ public:
     void done(payload_t *p) {
         // p really is an action_t...
         action_t *a = static_cast<action_t *>(p);
-        a->account->outstanding_requests_limiter.unlock(1);
+        a->account->get_outstanding_requests_limiter().unlock(1);
         done_fun(static_cast<action_t *>(p));
     }
 

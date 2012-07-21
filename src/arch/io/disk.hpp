@@ -82,7 +82,7 @@ class linux_file_account_t {
 public:
     linux_file_account_t(linux_file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
     ~linux_file_account_t();
-    void *get_account();
+    void *get_account() { return account; };
 
 private:
     friend class linux_file_t;

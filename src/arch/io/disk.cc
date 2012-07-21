@@ -70,37 +70,46 @@ public:
     }
 
     void *create_account(int pri, int outstanding_requests_limit) {
-        on_thread_t t(home_thread());
         return new typename accounter_t::account_t(&accounter, pri, outstanding_requests_limit);
     }
 
-    void destroy_account(void *account) {
+    void delayed_destroy(void *_account) {
         on_thread_t t(home_thread());
-        delete static_cast<typename accounter_t::account_t *>(account);
+        delete static_cast<typename accounter_t::account_t *>(_account);
+    }
+
+    void destroy_account(void *account) {
+        coro_t::spawn_now(boost::bind(&linux_templated_disk_manager_t::delayed_destroy, this, account));
+    }
+
+    void submit_action_to_stack_stats(action_t *a) {
+        on_thread_t t(home_thread());
+        outstanding_txn++;
+        stack_stats.submit(a);
     }
 
     void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
         int calling_thread = get_thread_id();
-        on_thread_t t(home_thread());
-        outstanding_txn++;
+
         action_t *a = new action_t;
         a->make_write(fd, buf, count, offset);
         a->account = static_cast<typename accounter_t::account_t*>(account);
         a->cb = cb;
         a->cb_thread = calling_thread;
-        stack_stats.submit(a);
+
+        coro_t::spawn_later_ordered(boost::bind(&linux_templated_disk_manager_t::submit_action_to_stack_stats, this, a));
     }
 
     void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
         int calling_thread = get_thread_id();
-        on_thread_t t(home_thread());
-        outstanding_txn++;
+
         action_t *a = new action_t;
         a->make_read(fd, buf, count, offset);
         a->account = static_cast<typename accounter_t::account_t*>(account);
         a->cb = cb;
         a->cb_thread = calling_thread;
-        stack_stats.submit(a);
+
+        coro_t::spawn_later_ordered(boost::bind(&linux_templated_disk_manager_t::submit_action_to_stack_stats, this, a));
     };
 
     void done(typename stack_stats_t::action_t *a) {
@@ -165,12 +174,10 @@ void make_io_backender(io_backend_t backend, boost::scoped_ptr<io_backender_t> *
 
 /* Disk account object */
 
-linux_file_account_t::linux_file_account_t(linux_file_t *par, int pri, int outstanding_requests_limit_) : parent(par), priority(pri), outstanding_requests_limit(outstanding_requests_limit_), account(0) { }
-
-void *linux_file_account_t::get_account() {
-    if (!account) account = parent->diskmgr->create_account(priority, outstanding_requests_limit);
-    return account;
-}
+linux_file_account_t::linux_file_account_t(linux_file_t *par, int pri, int outstanding_requests_limit_) :
+    parent(par), priority(pri),
+    outstanding_requests_limit(outstanding_requests_limit_),
+    account(parent->diskmgr->create_account(priority, outstanding_requests_limit)) { }
 
 linux_file_account_t::~linux_file_account_t() {
     parent->diskmgr->destroy_account(account);
