@@ -446,8 +446,8 @@ private:
             relationship_t relationship_record;
             relationship_record.is_local = (peer_id == mailbox_manager->get_connectivity_service()->get_me());
             relationship_record.region = region;
-            relationship_record.master_access = master_access.get();
-            relationship_record.direct_reader_access = direct_reader_access.get();
+            relationship_record.master_access = master_access.has() ? master_access.get() : NULL;
+            relationship_record.direct_reader_access = direct_reader_access.has() ? direct_reader_access.get() : NULL;
 
             region_map_set_membership_t<protocol_t, relationship_t *> relationship_map_insertion(
                 &relationships,
