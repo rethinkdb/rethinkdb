@@ -254,8 +254,7 @@ module 'NamespaceView', ->
                 if not @json_in_memory[key]? or @json_in_memory[key] != json[key]
                     need_update = true
                     break
-
-            if need_update or force_render is true # Need is true since Machine is passed as an argument
+            if need_update or force_render is true or @.$('.pie_chart-data_in_memory').children().length is 0 # Need is true for force_render since Machine is passed as an argument
                 @json_in_memory = json
                 @.$('.data_in_memory-container').html @data_in_memory_template @json_in_memory
 
@@ -278,7 +277,7 @@ module 'NamespaceView', ->
                     @.$('.pie_chart-data_in_memory > g').remove()
                     @.$('.loading_text-pie_chart').remove()
 
-                    arc = d3.svg.arc().innerRadius(0).outerRadius(r);
+                    arc = d3.svg.arc().innerRadius(0).outerRadius(r)
                     svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
                     arcs = svg.selectAll('path').data(d3.layout.pie().sort(null)(data_pie)).enter().append('svg:path').attr('fill', (d,i) -> color(i)).attr('d', arc)
 
