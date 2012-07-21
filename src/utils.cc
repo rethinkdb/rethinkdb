@@ -144,7 +144,9 @@ void home_thread_mixin_t::assert_thread() const {
 #endif
 
 home_thread_mixin_t::home_thread_mixin_t(int specified_home_thread)
-    : real_home_thread(specified_home_thread) { }
+    : real_home_thread(specified_home_thread) {
+    assert_good_thread_id(specified_home_thread);
+}
 home_thread_mixin_t::home_thread_mixin_t()
     : real_home_thread(get_thread_id()) { }
 
