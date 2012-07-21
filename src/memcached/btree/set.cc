@@ -79,7 +79,8 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
         b.append_region(txn, data->size());
         buffer_group_t bg;
-        boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
+        // TODO: We shouldn't have to do the scoped_ptr thing here, let blob_acq_t have a reset method.
+        scoped_ptr_t<blob_acq_t> acq(new blob_acq_t);
         b.expose_region(txn, rwi_write, 0, data->size(), &bg, acq.get());
 
         try {
