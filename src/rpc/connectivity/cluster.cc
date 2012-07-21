@@ -22,7 +22,7 @@ const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
         message_handler_t *mh,
-        int client_port) THROWS_NOTHING :
+        int client_port) THROWS_ONLY(address_in_use_exc_t) :
     parent(p), message_handler(mh),
 
     /* The local port to use when connecting to the cluster port of peers */

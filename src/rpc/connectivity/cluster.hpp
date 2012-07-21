@@ -55,7 +55,7 @@ public:
         run_t(connectivity_cluster_t *parent,
             int port,
             message_handler_t *message_handler,
-            int client_port = 0) THROWS_NOTHING;
+            int client_port = 0) THROWS_ONLY(address_in_use_exc_t);
 
         ~run_t();
 

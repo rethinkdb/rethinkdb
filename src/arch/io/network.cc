@@ -17,6 +17,7 @@
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
+#include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/printf_buffer.hpp"
@@ -744,7 +745,7 @@ bool linux_nonthrowing_tcp_listener_t::bind_socket() {
         }
     }
 
-    return (bound = false);
+    return (bound = true);
 }
 
 void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
@@ -827,7 +828,7 @@ linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
         linux_nonthrowing_tcp_listener_t(_port, noop)
 {
     if(!bind_socket()) {
-        throw linux_tcp_listener_t::address_in_use_exc_t("localhost", port);
+        throw address_in_use_exc_t("localhost", port);
     }
 }
 
@@ -836,7 +837,9 @@ int linux_tcp_bound_socket_t::get_port() const {
 }
 
 fd_t linux_tcp_bound_socket_t::release() {
-    return sock.reset(INVALID_FD);
+    fd_t tmp = sock.get();
+    sock.reset(INVALID_FD);
+    return tmp;
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(int port,
@@ -853,33 +856,33 @@ linux_tcp_listener_t::linux_tcp_listener_t(
                     boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback) :
     linux_nonthrowing_tcp_listener_t(bound_socket->get_port(), callback)
 {
-    sock.reset(bound_socket->release());
-    bound = true;
+    bound_socket->callback = callback;
 
-    if(!begin_listening()) {
+    if(!bound_socket->begin_listening()) {
         throw address_in_use_exc_t("localhost", port);
     }
 }
 
-repeated_linux_nonthrowing_tcp_listener_t::repeated_linux_nonthrowing_tcp_listener_t(int port,
+linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(int port,
                     boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback) :
     linux_nonthrowing_tcp_listener_t(port, callback)
 { }
 
-repeated_linux_nonthrowing_tcp_listener_t::~repeated_linux_nonthrowing_tcp_listener_t() {
+linux_repeated_nonthrowing_tcp_listener_t::~linux_repeated_nonthrowing_tcp_listener_t() {
     interrupted_cond.pulse();
 }
 
-signal_t *repeated_linux_nonthrowing_tcp_listener_t::begin_listening() {
-    coro_t::spawn_sometime(boost::bind(&repeated_linux_nonthrowing_tcp_listener_t::retry_loop, this));
+signal_t *linux_repeated_nonthrowing_tcp_listener_t::begin_listening() {
+    coro_t::spawn_sometime(boost::bind(&linux_repeated_nonthrowing_tcp_listener_t::retry_loop, this));
     return &bound_cond;
 }
 
-void repeated_linux_nonthrowing_tcp_listener_t::retry_loop() {
+void linux_repeated_nonthrowing_tcp_listener_t::retry_loop() {
     try {
         begin_listening();
 
         for(int retry_interval = 1; !is_bound(); retry_interval *= 2) {
+            printf("Could not bind to port %d, retrying in %d seconds.\n", port, retry_interval);
             nap(retry_interval * 1000, &interrupted_cond);
             begin_listening();
         }

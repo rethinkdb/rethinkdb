@@ -327,6 +327,8 @@ public:
     int get_port() const;
     MUST_USE fd_t release();
 
+    friend class linux_tcp_listener_t;
+
 private:
     boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> noop;
 };
@@ -338,29 +340,14 @@ public:
                     boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
     linux_tcp_listener_t(int port,
                     boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
-
-    // The constructor can throw this exception
-    struct address_in_use_exc_t :
-        public std::exception
-    {
-        address_in_use_exc_t(const char* hostname, int port) throw () :
-            info(strprintf("The address at %s:%d is already in use", hostname, port)) { }
-        ~address_in_use_exc_t() throw () { }
-
-        const char *what() const throw () {
-            return info.c_str();
-        }
-    private:
-        std::string info;
-    };
 };
 
 /* Like a linux tcp listener but repeatedly tries to bind to its port until successful */
-class repeated_linux_nonthrowing_tcp_listener_t : public linux_nonthrowing_tcp_listener_t {
+class linux_repeated_nonthrowing_tcp_listener_t : public linux_nonthrowing_tcp_listener_t {
 public:
-    repeated_linux_nonthrowing_tcp_listener_t(int port,
+    linux_repeated_nonthrowing_tcp_listener_t(int port,
                     boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
-    ~repeated_linux_nonthrowing_tcp_listener_t();
+    ~linux_repeated_nonthrowing_tcp_listener_t();
     signal_t *begin_listening();
 
 private:

@@ -310,7 +310,7 @@ struct read_multistore_unshard_visitor_t : public boost::static_visitor<memcache
         for (std::map<store_key_t, int>::iterator it = res.key_counts.begin();
              it != res.key_counts.end();
              ++it) {
-            it->second *= scale_factor;
+            it->second = static_cast<int>(it->second * scale_factor);
         }
 
         return memcached_protocol_t::read_response_t(res);
@@ -786,7 +786,7 @@ private:
 
 static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<hash_region_t<key_range_t>, state_timestamp_t> > &regions,
         memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress) {
-    traversal_progress_t *p = new traversal_progress_t;
+    parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     progress->add_constituent(p);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p);
