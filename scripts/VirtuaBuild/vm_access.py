@@ -38,6 +38,7 @@ class VM(object):
     def shut_down(self, remove_temp = False):
         if remove_temp:
             self.command("rm -rf /tmp/test.*")
+        time.sleep(5)
         subprocess.Popen(["ssh %s 'VBoxManage controlvm %s poweroff'" % (control_user, self.uuid)], shell = True).wait()
 
 def sys_exit(message, exit_code, shut_down = False):
@@ -46,14 +47,15 @@ def sys_exit(message, exit_code, shut_down = False):
         target.shut_down()
     sys.exit(exit_code)
 
-suse = VM('suse', '7bd61095-36c6-4e98-a2c2-4ce6322de5d7', 'root@192.168.0.173')
-redhat5_1 = VM('redhat5_1', '32340f79-cea9-42ca-94d5-2da13d408d02', 'root@192.168.0.159')
-ubuntu = VM('ubuntu', '1f4521a0-6e74-4d20-b4b9-9ffd8e231423', 'root@192.168.0.172')
-debian = VM('debian', 'cc76e2a5-92c0-4208-be08-5c02429c2c50', 'root@192.168.0.176')
-centos5_5 = VM('centos5_5', '7595c315-9be0-4e6d-a757-33f018182937', 'root@192.168.0.177')
-centos6 = VM('centos6', '3f9e9d18-dccb-40b9-ba31-5a68f627b258', 'root@192.168.0.178')
+suse2 = VM('suse2', '12c1cf78-5dc5-4baa-8e93-ac6fdd1ebf1f', 'root@192.168.0.173', 'rethinkdb@lex-luthor') # this SUSE uses an older version of GLIBC and GCC (where tests happen)
+suse = VM('suse', '7bd61095-36c6-4e98-a2c2-4ce6322de5d7', 'root@192.168.0.173', control_user) # this SUSE uses a new version of GLIBC and GCC (where builds happen)
+redhat5_1 = VM('redhat5_1', '32340f79-cea9-42ca-94d5-2da13d408d02', 'root@192.168.0.159', control_user)
+ubuntu = VM('ubuntu', '1f4521a0-6e74-4d20-b4b9-9ffd8e231423', 'root@192.168.0.172', control_user)
+debian = VM('debian', 'cc76e2a5-92c0-4208-be08-5c02429c2c50', 'root@192.168.0.176', control_user)
+centos5_5 = VM('centos5_5', '7595c315-9be0-4e6d-a757-33f018182937', 'root@192.168.0.177', control_user)
+centos6 = VM('centos6', '3f9e9d18-dccb-40b9-ba31-5a68f627b258', 'root@192.168.0.178', control_user)
 
-vm_list = {"suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5, "centos6" : centos6}
+vm_list = {"suse2": suse2, "suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ubuntu, "debian" : debian, "centos5_5" : centos5_5, "centos6" : centos6}
 
 def help():
     print "VM Access:"
@@ -111,7 +113,7 @@ print "***Will be working in directory " + dir_name
 print "***Transferring files to virtual machine..."
 if "RETHINKDB" in os.environ:
     print "*****(debug: we are currently running a test)"
-subprocess.Popen(" ".join((["cd", os.environ["RETHINKDB"] + "/..", "&&"] if "RETHINKDB" in os.environ else []) + ["tar", "czf", "tmp.tar.gz", "*", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
+subprocess.Popen(" ".join((["cd", os.environ["RETHINKDB"] + "/..", "&&"] if "RETHINKDB" in os.environ else []) + ["tar", "czf", "tmp.tar.gz", "*", "--exclude", "tmp.tar.gz", "&&", "scp", "tmp.tar.gz", "%s:%s/tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
 target.command(" ".join(["cd", dir_name, "&&", "tar", "xzf", "tmp.tar.gz"]), output = True)
 
 # Execute command
@@ -122,10 +124,11 @@ proc = target.command(("cd %s && " % dir_name) + opts["command"], output = True)
 
 # Move files from VM
 print "***Transferring files from virtual machine..."
-proc = target.command(" ".join(["cd", dir_name, "&&", "rm", "tmp.tar.gz", "&&", "tar", "czf", "tmp.tar.gz", "*"]), output = True)
+proc = target.command(" ".join(["cd", dir_name, "&&", "rm", "tmp.tar.gz", "&&", "tar", "czf", "tmp.tar.gz", "*", "--exclude", "tmp.tar.gz"]), output = True)
 subprocess.Popen(" ".join(["scp", "%s:%s/tmp.tar.gz tmp.tar.gz" % (target.host, dir_name)]), shell = True).wait()
 subprocess.Popen(" ".join(["tar", "xzf", "tmp.tar.gz"]), shell = True).wait()
 
-# Note: VMs are not shut down here in case multiple tests are going on.
+print "***Removing temporary files and shutting down VM..."
+target.shut_down(True)
 
 sys_exit("Done.", 0)
