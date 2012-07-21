@@ -4,12 +4,15 @@
 #include <map>
 #include <set>
 #include <stdexcept>
+#include <string>
 #include <vector>
+#include <utility>
 
 #include "errors.hpp"
 #include <boost/function.hpp>
 #include <boost/variant.hpp>
-#include <boost/optional/optional.hpp>
+#include <boost/optional.hpp>
+
 #include "containers/uuid.hpp"
 #include "http/json.hpp"
 
@@ -478,7 +481,7 @@ template<class T, class cxt_t>
 std::string render_as_json_string(const T &t, const cxt_t cxt) {
     T copy = t;
     scoped_cJSON_t json(render_as_json(&copy, cxt));
-    return cJSON_print_unformatted_std_string(json.get());
+    return json.PrintUnformatted();
 }
 
 template<class T>

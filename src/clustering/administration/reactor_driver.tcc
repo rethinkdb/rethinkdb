@@ -3,8 +3,10 @@
 
 #include "clustering/administration/reactor_driver.hpp"
 
+#include <map>
+#include <set>
+
 #include "errors.hpp"
-#include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
@@ -224,18 +226,23 @@ reactor_driver_t<protocol_t>::~reactor_driver_t() {
 }
 
 template<class protocol_t>
-void reactor_driver_t<protocol_t>::delete_reactor_data(auto_drainer_t::lock_t lock, typename reactor_map_t::auto_type *thing_to_delete) {
+void reactor_driver_t<protocol_t>::delete_reactor_data(
+        auto_drainer_t::lock_t lock, 
+        typename reactor_map_t::auto_type *thing_to_delete,
+        namespace_id_t namespace_id)
+{
     lock.assert_is_holding(&drainer);
     delete thing_to_delete;
+    svs_by_namespace->destroy_svs(namespace_id);
 }
 
 template<class protocol_t>
 void reactor_driver_t<protocol_t>::on_change() {
-    typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t namespaces = namespaces_view->get().namespaces;
+    typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t 
+            namespaces = namespaces_view->get().namespaces;
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =  namespaces.begin();
-                                                                                                 it != namespaces.end();
-                                                                                                 it++) {
+    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator 
+                it =  namespaces.begin(); it != namespaces.end(); it++) {
         if (it->second.is_deleted() && std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
              * semilattice subscription, however the
@@ -245,7 +252,14 @@ void reactor_driver_t<protocol_t>::on_change() {
              * map but the destructor hasn't been called... then this needs
              * to be heap allocated so that it can be safely passed to a
              * coroutine for destruction. */
-            coro_t::spawn_sometime(boost::bind(&reactor_driver_t<protocol_t>::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new typename reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first)))));
+            coro_t::spawn_sometime(boost::bind(
+                &reactor_driver_t<protocol_t>::delete_reactor_data,
+                this,
+                auto_drainer_t::lock_t(&drainer),
+                new typename
+                    reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
+                it->first
+            ));
         } else {
             persistable_blueprint_t<protocol_t> pbp;
 
@@ -273,7 +287,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                 /* The blueprint does not mentions us so we destroy the
                  * reactor. */
                 if (std_contains(reactor_data, it->first)) {
-                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t<protocol_t>::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new typename reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first)))));
+                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t<protocol_t>::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new typename reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))), it->first));
                 }
             }
         }

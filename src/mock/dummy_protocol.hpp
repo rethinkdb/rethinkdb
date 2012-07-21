@@ -5,10 +5,12 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "utils.hpp"
 #include <boost/function.hpp>
 
+#include "backfill_progress.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "protocol_api.hpp"
@@ -94,9 +96,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_3(key, value, timestamp);
     };
 
-    struct backfill_progress_t {
-        std::pair<int, int> guess_completion() {
-            return std::make_pair(-1, -1);
+    struct backfill_progress_t : public traversal_progress_t {
+        backfill_progress_t(int specified_home_thread) : traversal_progress_t(specified_home_thread) { }
+        progress_completion_fraction_t guess_completion() const {
+            return progress_completion_fraction_t::make_invalid();
         }
     };
 

@@ -2,7 +2,12 @@
 #define CLUSTERING_REACTOR_NAMESPACE_INTERFACE_HPP_
 
 #include <math.h>
+
 #include <algorithm>
+#include <map>
+#include <string>
+#include <vector>
+#include <set>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
@@ -113,6 +118,7 @@ public:
 private:
     class relationship_t {
     public:
+        bool is_local;
         typename protocol_t::region_t region;
         master_access_t<protocol_t> *master_access;
         resource_access_t<direct_reader_business_card_t<protocol_t> > *direct_reader_access;
@@ -180,7 +186,7 @@ private:
 
         std::vector<boost::variant<op_response_type, std::string> > results_or_failures(masters_to_contact.size());
         pmap(masters_to_contact.size(), boost::bind(
-            &cluster_namespace_interface_t::perform_immediate_op<op_type, fifo_enforcer_token_type, op_response_type>, this,
+            &cluster_namespace_interface_t::template perform_immediate_op<op_type, fifo_enforcer_token_type, op_response_type>, this,
             how_to_run_query, &masters_to_contact, &op, order_token, &results_or_failures, _1, interruptor));
 
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
@@ -242,12 +248,20 @@ private:
         {
             region_map_t<protocol_t, std::set<relationship_t *> > submap = relationships.mask(op.get_region());
             for (typename region_map_t<protocol_t, std::set<relationship_t *> >::iterator it = submap.begin(); it != submap.end(); it++) {
+                std::vector<relationship_t *> potential_relationships;
                 relationship_t *chosen_relationship = NULL;
-                for (typename std::set<relationship_t *>::const_iterator jt = it->second.begin(); jt != it->second.end(); it++) {
+                for (typename std::set<relationship_t *>::const_iterator jt = it->second.begin(); jt != it->second.end(); jt++) {
                     if ((*jt)->direct_reader_access) {
-                        chosen_relationship = *jt;
-                        break;
+                        if ((*jt)->is_local) {
+                            chosen_relationship = *jt;
+                            break;
+                        } else {
+                            potential_relationships.push_back(*jt);
+                        }
                     }
+                }
+                if (!chosen_relationship && !potential_relationships.empty()) {
+                    chosen_relationship = potential_relationships[distributor_rng.randint(potential_relationships.size())];
                 }
                 if (!chosen_relationship) {
                     /* Don't bother looking for masters; if there are no direct
@@ -434,6 +448,7 @@ private:
             }
 
             relationship_t relationship_record;
+            relationship_record.is_local = (peer_id == mailbox_manager->get_connectivity_service()->get_me());
             relationship_record.region = region;
             relationship_record.master_access = master_access.get();
             relationship_record.direct_reader_access = direct_reader_access.get();
@@ -489,6 +504,8 @@ private:
     clone_ptr_t<watchable_t<std::map<peer_id_t, reactor_business_card_t<protocol_t> > > > directory_view;
 
     typename protocol_t::temporary_cache_t temporary_cache;
+
+    rng_t distributor_rng;
 
     std::set<reactor_activity_id_t> handled_activity_ids;
     region_map_t<protocol_t, std::set<relationship_t *> > relationships;

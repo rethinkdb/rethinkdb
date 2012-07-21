@@ -118,7 +118,7 @@ protected:
 
 
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range, repli_timestamp_t since_when, backfill_callback_t *callback,
-                    transaction_t *txn, superblock_t *superblock, traversal_progress_t *p);
+                    transaction_t *txn, superblock_t *superblock, parallel_traversal_progress_t *p);
 
 
 point_delete_response_t rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock);
@@ -131,7 +131,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json);
 
 struct rget_response_t {
-    std::vector<boost::shared_ptr<scoped_cJSON_t> > pairs;
+    std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > pairs;
     bool truncated;
 };
 

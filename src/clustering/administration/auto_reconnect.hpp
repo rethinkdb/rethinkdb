@@ -2,6 +2,7 @@
 #define CLUSTERING_ADMINISTRATION_AUTO_RECONNECT_HPP_
 
 #include <map>
+#include <utility>
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>

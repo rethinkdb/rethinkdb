@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 #define CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 
+#include <map>
+
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 

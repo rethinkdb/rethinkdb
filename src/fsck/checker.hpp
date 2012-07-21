@@ -1,6 +1,7 @@
 #ifndef FSCK_CHECKER_HPP_
 #define FSCK_CHECKER_HPP_
 
+#include <string>
 #include <vector>
 
 #include "arch/io/io_utils.hpp"

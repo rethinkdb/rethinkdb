@@ -2,6 +2,7 @@
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_METADATA_HPP_
 
 #include <map>
+#include <utility>
 
 #include "clustering/registration_metadata.hpp"
 #include "clustering/resource.hpp"

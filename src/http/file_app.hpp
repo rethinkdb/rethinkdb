@@ -1,6 +1,9 @@
 #ifndef HTTP_FILE_APP_HPP_
 #define HTTP_FILE_APP_HPP_
 
+#include <string>
+#include <set>
+
 #include "http/http.hpp"
 
 class file_http_app_t : public http_app_t {

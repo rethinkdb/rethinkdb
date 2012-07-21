@@ -8,6 +8,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
+#include "backfill_progress.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
@@ -88,7 +89,7 @@ private:
     DISABLE_COPYING(interesting_children_callback_t);
 };
 
-class traversal_progress_t;
+class parallel_traversal_progress_t;
 
 struct btree_traversal_helper_t {
     btree_traversal_helper_t()
@@ -119,14 +120,15 @@ struct btree_traversal_helper_t {
 
     virtual ~btree_traversal_helper_t() { }
 
-    traversal_progress_t *progress;
+    parallel_traversal_progress_t *progress;
 };
 
 void btree_parallel_traversal(transaction_t *txn, superblock_t *superblock, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
-class traversal_progress_t : public home_thread_mixin_t {
+
+class parallel_traversal_progress_t : public traversal_progress_t {
 public:
-    traversal_progress_t()
+    parallel_traversal_progress_t()
         : height(-1), print_counter(0)
     { }
 
@@ -144,7 +146,7 @@ public:
 
     void inform(int level, action_t, node_type_t);
 
-    std::pair<int, int> guess_completion();
+    progress_completion_fraction_t guess_completion() const;
 
 private:
     std::vector<int> learned; //How many nodes at each level we believe exist
@@ -154,17 +156,8 @@ private:
     int height; //The height we've learned the tree has. Or -1 if we're still unsure;
 
     int print_counter;
-};
 
-class traversal_progress_combiner_t : public home_thread_mixin_t {
-public:
-    traversal_progress_combiner_t() { }
-
-    void add_constituent(traversal_progress_t *);
-    std::pair<int, int> guess_completion();
-
-private:
-    boost::ptr_vector<traversal_progress_t> constituents;
+    DISABLE_COPYING(parallel_traversal_progress_t);
 };
 
 #endif  // BTREE_PARALLEL_TRAVERSAL_HPP_

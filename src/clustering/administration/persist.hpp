@@ -1,6 +1,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 
+#include <string>
+
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"

@@ -2,6 +2,7 @@
 #define CONTAINERS_MAP_SENTRIES_HPP_
 
 #include <map>
+#include <utility>
 
 /* `map_insertion_sentry_t` inserts a value into a map on construction, and
 removes it in the destructor. */

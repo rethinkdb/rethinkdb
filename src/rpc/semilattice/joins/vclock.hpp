@@ -1,6 +1,10 @@
 #ifndef RPC_SEMILATTICE_JOINS_VCLOCK_HPP_
 #define RPC_SEMILATTICE_JOINS_VCLOCK_HPP_
 
+#include <map>
+#include <vector>
+#include <utility>
+
 #include "containers/uuid.hpp"
 #include "containers/map_sentries.hpp"
 #include "http/json.hpp"

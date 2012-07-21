@@ -1,6 +1,9 @@
 #ifndef CLUSTERING_REACTOR_REACTOR_HPP_
 #define CLUSTERING_REACTOR_REACTOR_HPP_
 
+#include <map>
+#include <vector>
+
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"

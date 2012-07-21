@@ -7,7 +7,7 @@ void priority_queue_t<T, Less>::entry_t::update() {
 }
 
 template<class T, class Less>
-void priority_queue_t<T, Less>::swap(unsigned int i, unsigned int j) {
+void priority_queue_t<T, Less>::swap_entries(unsigned int i, unsigned int j) {
     entry_t *tmp = heap[i];
     heap[i] = heap[j];
     heap[j] = tmp;
@@ -33,7 +33,7 @@ unsigned int priority_queue_t<T, Less>::right(unsigned int i) {
 template<class T, class Less>
 void priority_queue_t<T, Less>::bubble_up(int *i) {
     while (*i > 0 && Less()(heap[parent(*i)]->data, heap[*i]->data)) {
-        swap(*i, parent(*i));
+        swap_entries(*i, parent(*i));
         *i = parent(*i);
     }
 }
@@ -49,10 +49,10 @@ void priority_queue_t<T, Less>::bubble_down(int *i) {
     while ((left(*i) < heap.size() && Less()(heap[*i]->data, heap[left(*i)]->data)) ||
            (right(*i) < heap.size() &&  Less()(heap[*i]->data, heap[right(*i)]->data))) {
         if ((right(*i) < heap.size()) && Less()(heap[left(*i)]->data, heap[right(*i)]->data)) {
-            swap(*i, right(*i));
+            swap_entries(*i, right(*i));
             *i = right(*i);
         } else {
-            swap(*i, left(*i));
+            swap_entries(*i, left(*i));
             *i = left(*i);
         }
     }

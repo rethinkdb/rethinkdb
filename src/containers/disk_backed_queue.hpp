@@ -3,6 +3,9 @@
 
 #define MAX_REF_SIZE 251
 
+#include <string>
+#include <vector>
+
 #include "arch/io/disk.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
