@@ -6,6 +6,7 @@
 #include "concurrency/pmap.hpp"
 
 traversal_progress_combiner_t::~traversal_progress_combiner_t() {
+    guarantee(!is_destructing);
     is_destructing = true;
     pmap(constituents.size(), boost::bind(&traversal_progress_combiner_t::destroy_constituent, this, _1));
 }
