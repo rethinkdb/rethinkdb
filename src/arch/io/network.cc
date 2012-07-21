@@ -770,7 +770,7 @@ void linux_tcp_listener_t::initialize_internal() {
     guarantee_err(res == 0, "Could not make socket non-blocking");
 
     // Start the accept loop
-    accept_loop_drainer.reset(new auto_drainer_t);
+    accept_loop_drainer.init(new auto_drainer_t);
     coro_t::spawn_sometime(boost::bind(
         &linux_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())
         ));

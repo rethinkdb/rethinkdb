@@ -4,6 +4,7 @@
 #include <boost/bind.hpp>
 
 #include "concurrency/pmap.hpp"
+#include "containers/scoped.hpp"
 
 traversal_progress_combiner_t::~traversal_progress_combiner_t() {
     guarantee(!is_destructing);
@@ -16,10 +17,10 @@ void traversal_progress_combiner_t::destroy_constituent(int i) {
     delete constituents[i];
 }
 
-void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
+void traversal_progress_combiner_t::add_constituent(scoped_ptr_t<traversal_progress_t> *c) {
     assert_thread();
     guarantee(!is_destructing);
-    constituents.push_back(c);
+    constituents.push_back(c->release());
 }
 
 void traversal_progress_combiner_t::get_constituent_fraction(int i, std::vector<progress_completion_fraction_t> *outputs) const {

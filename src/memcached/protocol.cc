@@ -13,6 +13,7 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/iterators.hpp"
+#include "containers/scoped.hpp"
 #include "memcached/btree/append_prepend.hpp"
 #include "memcached/btree/delete.hpp"
 #include "memcached/btree/distribution.hpp"
@@ -798,7 +799,8 @@ private:
 static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<hash_region_t<key_range_t>, state_timestamp_t> > &regions,
         memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
-    progress->add_constituent(p);
+    scoped_ptr_t<traversal_progress_t> p_owner(p);
+    progress->add_constituent(&p_owner);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p);
 }
