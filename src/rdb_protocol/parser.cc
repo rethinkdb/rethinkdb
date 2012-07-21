@@ -1,5 +1,9 @@
 #include "rdb_protocol/parser.hpp"
 
+#include "errors.hpp"
+#include <boost/make_shared.hpp>
+#include <boost/scoped_ptr.hpp>
+
 namespace rdb_protocol {
 
 query_http_app_t::query_http_app_t(namespace_interface_t<rdb_protocol_t> * _namespace_if)

@@ -31,6 +31,8 @@ module 'MachineView', ->
             @logs = new LogView.Container
                 route: "/ajax/log/"+@model.get('id')+"_?"
                 template_header: Handlebars.compile $('#log-header-machine-template').html()
+
+            @moodel.on 'change:name', @render
         
         rename_machine: (event) ->
             event.preventDefault()
@@ -72,7 +74,7 @@ module 'MachineView', ->
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
         destroy: =>
-            machines.off()
+            @moodel.off 'change:name', @render
             @title.destroy()
             @profile.destroy()
             @data.destroy()
@@ -102,7 +104,8 @@ module 'MachineView', ->
             return @
 
         destroy: =>
-            @model.off()
+
+            @model.off 'change:name', @update
 
     # MachineView.Profile
     class @Profile extends Backbone.View
@@ -143,8 +146,8 @@ module 'MachineView', ->
             return @
 
         destroy: =>
-            directory.off()
-            @model.off()
+            directory.off 'all', @render
+            @model.off 'all', @render
 
     class @Data extends Backbone.View
         className: 'machine-info-view'
@@ -185,5 +188,5 @@ module 'MachineView', ->
             return @
 
         destroy: =>
-            @model.off()
-            directory.off()
+            @model.off 'all', @render
+            directory.off 'all', @render

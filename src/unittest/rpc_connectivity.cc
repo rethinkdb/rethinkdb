@@ -1,9 +1,9 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
+#include "containers/scoped.hpp"
 #include "mock/unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
@@ -251,7 +251,7 @@ void run_event_watchers_test() {
     connectivity_cluster_t::run_t cr1(&c1, port, NULL);
 
     connectivity_cluster_t c2;
-    boost::scoped_ptr<connectivity_cluster_t::run_t> cr2(new connectivity_cluster_t::run_t(&c2, port+1, NULL));
+    scoped_ptr_t<connectivity_cluster_t::run_t> cr2(new connectivity_cluster_t::run_t(&c2, port+1, NULL));
 
     /* Make sure `c1` notifies us when `c2` connects */
     struct : public cond_t, public peers_list_callback_t {
@@ -372,11 +372,11 @@ void run_stop_mid_join_test() {
     const int num_members = 5;
 
     /* Spin up `num_members` cluster-members */
-    boost::scoped_ptr<connectivity_cluster_t> nodes[num_members];
-    boost::scoped_ptr<connectivity_cluster_t::run_t> runs[num_members];
+    scoped_ptr_t<connectivity_cluster_t> nodes[num_members];
+    scoped_ptr_t<connectivity_cluster_t::run_t> runs[num_members];
     for (int i = 0; i < num_members; i++) {
-        nodes[i].reset(new connectivity_cluster_t);
-        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
+        nodes[i].init(new connectivity_cluster_t);
+        runs[i].init(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
     for (int i = 1; i < num_members; i++) {
         runs[i]->join(nodes[0]->get_peer_address(nodes[0]->get_me()));
@@ -410,11 +410,11 @@ void run_blob_join_test() {
     const size_t blob_size = 4;
 
     /* Spin up cluster-members */
-    boost::scoped_ptr<connectivity_cluster_t> nodes[blob_size * 2];
-    boost::scoped_ptr<connectivity_cluster_t::run_t> runs[blob_size * 2];
+    scoped_ptr_t<connectivity_cluster_t> nodes[blob_size * 2];
+    scoped_ptr_t<connectivity_cluster_t::run_t> runs[blob_size * 2];
     for (size_t i = 0; i < blob_size * 2; i++) {
-        nodes[i].reset(new connectivity_cluster_t);
-        runs[i].reset(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
+        nodes[i].init(new connectivity_cluster_t);
+        runs[i].init(new connectivity_cluster_t::run_t(nodes[i].get(), port+i, NULL));
     }
 
     for (size_t i = 1; i < blob_size; i++) {

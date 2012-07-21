@@ -655,8 +655,8 @@ linux_nascent_tcp_conn_t::~linux_nascent_tcp_conn_t() {
     rassert(fd_ == -1);
 }
 
-void linux_nascent_tcp_conn_t::ennervate(boost::scoped_ptr<linux_tcp_conn_t> *tcp_conn) {
-    tcp_conn->reset(new linux_tcp_conn_t(fd_));
+void linux_nascent_tcp_conn_t::ennervate(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn) {
+    tcp_conn->init(new linux_tcp_conn_t(fd_));
     fd_ = -1;
 }
 
@@ -671,7 +671,7 @@ void linux_nascent_tcp_conn_t::ennervate(linux_tcp_conn_t **tcp_conn_out) {
 
 linux_nonthrowing_tcp_listener_t::linux_nonthrowing_tcp_listener_t(
         int port_,
-        boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> cb) :
+        boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> cb) :
     port(port_),
     bound(false),
     sock(socket(AF_INET, SOCK_STREAM, 0)),
@@ -696,7 +696,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     guarantee_err(res == 0, "Could not make socket non-blocking");
 
     // Start the accept loop
-    accept_loop_drainer.reset(new auto_drainer_t);
+    accept_loop_drainer.init(new auto_drainer_t);
     coro_t::spawn_sometime(boost::bind(
         &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())
         ));
@@ -798,7 +798,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
 }
 
 void linux_nonthrowing_tcp_listener_t::handle(fd_t socket) {
-    boost::scoped_ptr<linux_nascent_tcp_conn_t> nconn(new linux_nascent_tcp_conn_t(socket));
+    scoped_ptr_t<linux_nascent_tcp_conn_t> nconn(new linux_nascent_tcp_conn_t(socket));
     callback(nconn);
 }
 
@@ -843,7 +843,7 @@ fd_t linux_tcp_bound_socket_t::release() {
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(int port,
-                    boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback) :
+                    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback) :
         linux_nonthrowing_tcp_listener_t(port, callback)
 {
     if(!begin_listening()) {
@@ -853,7 +853,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(int port,
 
 linux_tcp_listener_t::linux_tcp_listener_t(
                     linux_tcp_bound_socket_t *bound_socket,
-                    boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback) :
+                    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback) :
     linux_nonthrowing_tcp_listener_t(bound_socket->get_port(), callback)
 {
     bound_socket->callback = callback;
@@ -864,7 +864,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(
 }
 
 linux_repeated_nonthrowing_tcp_listener_t::linux_repeated_nonthrowing_tcp_listener_t(int port,
-                    boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback) :
+                    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback) :
     linux_nonthrowing_tcp_listener_t(port, callback)
 { }
 

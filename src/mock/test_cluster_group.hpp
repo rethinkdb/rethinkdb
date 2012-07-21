@@ -15,6 +15,7 @@
 #include "clustering/reactor/metadata.hpp"
 #include "clustering/reactor/namespace_interface.hpp"
 #include "clustering/reactor/reactor.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "concurrency/watchable.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "rpc/connectivity/multiplexer.hpp"

@@ -112,7 +112,7 @@ repli_timestamp_t scc_buf_lock_t<inner_cache_t>::get_recency() const {
 
 template<class inner_cache_t>
 scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t()
-    : snapshotted(false), has_been_changed(false), internal_buf_lock(new typename inner_cache_t::buf_lock_t()), cache(NULL) { }
+    : snapshotted(false), has_been_changed(false), internal_buf_lock(new typename inner_cache_t::buf_lock_type()), cache(NULL) { }
 
 template<class inner_cache_t>
 scc_buf_lock_t<inner_cache_t>::~scc_buf_lock_t() {
@@ -135,7 +135,7 @@ scc_transaction_t<inner_cache_t>::~scc_transaction_t() {
 }
 
 template<class inner_cache_t>
-void scc_transaction_t<inner_cache_t>::set_account(const boost::shared_ptr<typename inner_cache_t::cache_account_t>& cache_account) {
+void scc_transaction_t<inner_cache_t>::set_account(const boost::shared_ptr<typename inner_cache_t::cache_account_type>& cache_account) {
     inner_transaction.set_account(cache_account);
 }
 
@@ -150,7 +150,7 @@ scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t(scc_transaction_t<inner_cache_t> *
         cache->sink_map[block_id].check_out(txn->order_token);
     }
 
-    internal_buf_lock.init(new typename inner_cache_t::buf_lock_t(&txn->inner_transaction, block_id, mode, order_mode, call_when_in_line));
+    internal_buf_lock.init(new typename inner_cache_t::buf_lock_type(&txn->inner_transaction, block_id, mode, order_mode, call_when_in_line));
     rassert(block_id == get_block_id());
     if (!txn->snapshotted) {
         if (cache->crc_map.get(block_id)) {
@@ -165,7 +165,7 @@ template<class inner_cache_t>
 scc_buf_lock_t<inner_cache_t>::scc_buf_lock_t(scc_transaction_t<inner_cache_t> *txn) :
     snapshotted(txn->snapshotted || txn->access == rwi_read_outdated_ok),
     has_been_changed(false),
-    internal_buf_lock(new typename inner_cache_t::buf_lock_t(&txn->inner_transaction)),
+    internal_buf_lock(new typename inner_cache_t::buf_lock_type(&txn->inner_transaction)),
     cache(txn->cache)
 {
     cache->crc_map.set(internal_buf_lock->get_block_id(), compute_crc());
@@ -199,8 +199,8 @@ block_size_t scc_cache_t<inner_cache_t>::get_block_size() {
 }
 
 template<class inner_cache_t>
-boost::shared_ptr<typename inner_cache_t::cache_account_t> scc_cache_t<inner_cache_t>::create_account(int priority) {
-    return inner_cache.create_account(priority);
+boost::shared_ptr<typename inner_cache_t::cache_account_type> scc_cache_t<inner_cache_t>::create_cache_account(int priority) {
+    return inner_cache.create_cache_account(priority);
 }
 
 template<class inner_cache_t>

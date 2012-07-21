@@ -128,9 +128,9 @@ class mock_cache_account_t {
 
 class mock_cache_t : public home_thread_mixin_t, public serializer_read_ahead_callback_t {
 public:
-    typedef mock_buf_lock_t buf_lock_t;
-    typedef mock_transaction_t transaction_t;
-    typedef mock_cache_account_t cache_account_t;
+    typedef mock_buf_lock_t buf_lock_type;
+    typedef mock_transaction_t transaction_type;
+    typedef mock_cache_account_t cache_account_type;
 
     static void create(serializer_t *serializer, mirrored_cache_static_config_t *static_config);
     mock_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config, perfmon_collection_t *parent);
@@ -138,7 +138,7 @@ public:
 
     block_size_t get_block_size();
 
-    boost::shared_ptr<cache_account_t> create_account(UNUSED int priority) { return boost::shared_ptr<cache_account_t>(); }
+    boost::shared_ptr<mock_cache_account_t> create_cache_account(UNUSED int priority) { return boost::shared_ptr<mock_cache_account_t>(); }
 
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 

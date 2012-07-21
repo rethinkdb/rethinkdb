@@ -202,7 +202,7 @@ void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backen
         );
     }
 
-    serializer.reset(new standard_serializer_t(
+    serializer.init(new standard_serializer_t(
         standard_serializer_t::dynamic_config_t(),
         io_backender,
         standard_serializer_t::private_dynamic_config_t(filename),
@@ -218,13 +218,13 @@ void persistent_file_t::construct_serializer_and_cache(io_backender_t *io_backen
     cache_dynamic_config.flush_waiting_threshold = 0;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-    cache.reset(new cache_t(serializer.get(), &cache_dynamic_config, perfmon_parent));
+    cache.init(new cache_t(serializer.get(), &cache_dynamic_config, perfmon_parent));
 }
 
 void persistent_file_t::construct_branch_history_managers(bool create) {
-    dummy_branch_history_manager.reset(new persistent_branch_history_manager_t<mock::dummy_protocol_t>(
+    dummy_branch_history_manager.init(new persistent_branch_history_manager_t<mock::dummy_protocol_t>(
         this, &metadata_superblock_t::dummy_branch_history_blob, create));
-    memcached_branch_history_manager.reset(new persistent_branch_history_manager_t<memcached_protocol_t>(
+    memcached_branch_history_manager.init(new persistent_branch_history_manager_t<memcached_protocol_t>(
         this, &metadata_superblock_t::memcached_branch_history_blob, create));
 }
 
@@ -247,7 +247,8 @@ void semilattice_watching_persister_t::dump_loop(auto_drainer_t::lock_t keepaliv
                 wait_interruptible(&c, keepalive.get_drain_signal());
             }
             if (flush_again->is_pulsed()) {
-                flush_again.reset(new cond_t);
+                scoped_ptr_t<cond_t> tmp(new cond_t);
+                flush_again.swap(tmp);
             } else {
                 break;
             }

@@ -14,9 +14,9 @@
 
 #include "utils.hpp"
 #include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "config/args.hpp"
+#include "containers/scoped.hpp"
 #include "arch/address.hpp"
 #include "arch/io/event_watcher.hpp"
 #include "arch/io/io_utils.hpp"
@@ -245,16 +245,14 @@ private:
     static const size_t POP_THRESHOLD = 1024;
     size_t popped_bytes;
 
-    boost::scoped_ptr<auto_drainer_t> drainer;
+    scoped_ptr_t<auto_drainer_t> drainer;
 };
 
 class linux_nascent_tcp_conn_t {
 public:
     ~linux_nascent_tcp_conn_t();
 
-    // Must get called exactly once during lifetime of this object.
-    // Call it on the thread you'll use the connection on.
-    void ennervate(boost::scoped_ptr<linux_tcp_conn_t> *tcp_conn);
+    void ennervate(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn);
 
     // Must get called exactly once during lifetime of this object.
     // Call it on the thread you'll use the connection on.
@@ -278,7 +276,7 @@ the provided callback will be called in a new coroutine every time something con
 class linux_nonthrowing_tcp_listener_t : private linux_event_callback_t {
 public:
     linux_nonthrowing_tcp_listener_t(int port,
-                         boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
+                         boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
 
     ~linux_nonthrowing_tcp_listener_t();
 
@@ -294,7 +292,7 @@ protected:
     new connections; when accept() blocks, then it waits for events from the
     event loop. */
     void accept_loop(auto_drainer_t::lock_t);
-    boost::scoped_ptr<auto_drainer_t> accept_loop_drainer;
+    scoped_ptr_t<auto_drainer_t> accept_loop_drainer;
 
     void handle(fd_t sock);
 
@@ -315,7 +313,7 @@ protected:
     linux_event_watcher_t event_watcher;
 
     // The callback to call when we get a connection
-    boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback;
+    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback;
 
     bool log_next_error;
 };
@@ -330,23 +328,23 @@ public:
     friend class linux_tcp_listener_t;
 
 private:
-    boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> noop;
+    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> noop;
 };
 
 /* Replicates old constructor-exception-throwing style for backwards compaitbility */
 class linux_tcp_listener_t : public linux_nonthrowing_tcp_listener_t {
 public:
     linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
-                    boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
+                    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
     linux_tcp_listener_t(int port,
-                    boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
+                    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
 };
 
 /* Like a linux tcp listener but repeatedly tries to bind to its port until successful */
 class linux_repeated_nonthrowing_tcp_listener_t : public linux_nonthrowing_tcp_listener_t {
 public:
     linux_repeated_nonthrowing_tcp_listener_t(int port,
-                    boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> callback);
+                    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback);
     ~linux_repeated_nonthrowing_tcp_listener_t();
     signal_t *begin_listening();
 

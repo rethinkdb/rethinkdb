@@ -110,7 +110,7 @@ module 'DatacenterView', ->
             return @
 
         destroy: ->
-            datacenters.off()
+            datacenters.off 'all', @update
 
     class @Profile extends Backbone.View
         className: 'datacenter-info-view'
@@ -197,9 +197,9 @@ module 'DatacenterView', ->
             return @
 
         destroy: =>
-            @model.off()
-            machines.off()
-            directory.off()
+            @model.off 'all', @render
+            machines.off 'all', @render
+            directory.off 'all', @render
 
 
     class @Data extends Backbone.View
@@ -266,6 +266,6 @@ module 'DatacenterView', ->
             return @
 
         destroy: =>
-            @model.off()
-            machines.off()
-            directory.off()
+            @model.off 'all', @render
+            machines.off 'all', @render
+            directory.off 'all', @render

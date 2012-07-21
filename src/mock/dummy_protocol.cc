@@ -1,8 +1,5 @@
 #include "mock/dummy_protocol.hpp"
 
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-
 // TODO: Move version_range_t out of clustering/immediate_consistency/branch/metadata.hpp.
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "arch/timing.hpp"
@@ -393,7 +390,7 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
         const boost::function<void(dummy_protocol_t::backfill_chunk_t)> &chunk_fun, backfill_progress_t *, scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> *token, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), start_point.get_domain()));
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
 
     wait_interruptible(local_token.get(), interruptor);
 

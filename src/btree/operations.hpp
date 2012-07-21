@@ -5,9 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-
 #include "utils.hpp"
 #include "containers/scoped.hpp"
 #include "btree/node.hpp"
