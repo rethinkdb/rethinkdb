@@ -5,6 +5,8 @@
 
 #include "utils.hpp"
 
+template <class> class scoped_ptr_t;
+
 struct progress_completion_fraction_t {
     progress_completion_fraction_t(int _released, int _total) : estimate_of_released_nodes(_released), estimate_of_total_nodes(_total) {
         rassert(0 <= estimate_of_released_nodes && estimate_of_released_nodes <= estimate_of_total_nodes);
@@ -46,7 +48,7 @@ public:
     ~traversal_progress_combiner_t();
 
     // The constituent is welcome to have a different home thread.
-    void add_constituent(traversal_progress_t *constituent);
+    void add_constituent(scoped_ptr_t<traversal_progress_t> *constituent);
     progress_completion_fraction_t guess_completion() const;
 
 private:

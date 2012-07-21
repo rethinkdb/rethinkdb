@@ -261,7 +261,8 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
     typename protocol_t::backfill_progress_t *store_progress = new typename protocol_t::backfill_progress_t(dest_thread);
-    progress->add_constituent(store_progress);
+    scoped_ptr_t<traversal_progress_t> progress_owner(store_progress);
+    progress->add_constituent(&progress_owner);
 
     on_thread_t th(dest_thread);
 
