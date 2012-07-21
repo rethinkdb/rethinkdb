@@ -405,9 +405,9 @@ module 'NamespaceView', ->
             @history_opsec.push @model.get_stats().keys_read + @model.get_stats().keys_set
 
         destroy: =>
-            machines.off 'change', @render
-            @model.off 'change:key_distr', @render
-            @model.off 'change:shards', @render
+            machines.off 'change', @render_data_in_memory
+            @model.off 'change:key_distr_sorted', @render_data_repartition
+            @model.off 'change:shards', @render_data_repartition
 
     class @Other extends Backbone.View
         className: 'namespace-other'
