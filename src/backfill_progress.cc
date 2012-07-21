@@ -6,20 +6,25 @@
 #include "concurrency/pmap.hpp"
 
 traversal_progress_combiner_t::~traversal_progress_combiner_t() {
-    while (!constituents.empty()) {
-        delete constituents.back();
-        constituents.pop_back();
-    }
+    is_destructing = true;
+    pmap(constituents.size(), boost::bind(&traversal_progress_combiner_t::destroy_constituent, this, _1));
+}
+
+void traversal_progress_combiner_t::destroy_constituent(int i) {
+    on_thread_t th(constituents[i]->home_thread());
+    delete constituents[i];
 }
 
 void traversal_progress_combiner_t::add_constituent(traversal_progress_t *c) {
     assert_thread();
+    guarantee(!is_destructing);
     constituents.push_back(c);
 }
 
 void traversal_progress_combiner_t::get_constituent_fraction(int i, std::vector<progress_completion_fraction_t> *outputs) const {
     guarantee(size_t(i) < constituents.size());
     rassert(size_t(i) < outputs->size());
+    guarantee(!is_destructing);
 
     on_thread_t th(constituents[i]->home_thread());
     (*outputs)[i] = constituents[i]->guess_completion();
@@ -27,6 +32,8 @@ void traversal_progress_combiner_t::get_constituent_fraction(int i, std::vector<
 
 progress_completion_fraction_t traversal_progress_combiner_t::guess_completion() const {
     assert_thread();
+    guarantee(!is_destructing);
+
     int released = 0, total = 0;
 
     std::vector<progress_completion_fraction_t> fractions(constituents.size(), progress_completion_fraction_t::make_invalid());

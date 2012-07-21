@@ -41,7 +41,7 @@ private:
 
 class traversal_progress_combiner_t : public traversal_progress_t {
 public:
-    traversal_progress_combiner_t(int specified_home_thread) : traversal_progress_t(specified_home_thread) { }
+    traversal_progress_combiner_t(int specified_home_thread) : traversal_progress_t(specified_home_thread), is_destructing(false) { }
     traversal_progress_combiner_t() { }
     ~traversal_progress_combiner_t();
 
@@ -50,12 +50,17 @@ public:
     progress_completion_fraction_t guess_completion() const;
 
 private:
+    // Used in a pmap by the destructor.
+    void destroy_constituent(int i);
+
     // Used by guess_completion in a pmap call to go to the
     // constituent's home thread.
     void get_constituent_fraction(int i, std::vector<progress_completion_fraction_t> *outputs) const;
 
     // constituents _owns_ these pointers.
     std::vector<traversal_progress_t *> constituents;
+
+    bool is_destructing;
 
     DISABLE_COPYING(traversal_progress_combiner_t);
 };
