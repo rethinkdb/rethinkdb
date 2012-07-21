@@ -6,7 +6,6 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -41,7 +40,7 @@ public:
         }
     }
 
-    boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> >& stores() {
+    boost::scoped_array<scoped_ptr_t<typename protocol_t::store_t> >& stores() {
         return stores_;
     }
 
@@ -53,7 +52,7 @@ public:
 
 
 private:
-    boost::scoped_array<boost::scoped_ptr<typename protocol_t::store_t> > stores_;
+    boost::scoped_array<scoped_ptr_t<typename protocol_t::store_t> > stores_;
     int num_stores_;
 
     DISABLE_COPYING(stores_lifetimer_t);
@@ -64,7 +63,7 @@ class svs_by_namespace_t {
 public:
     virtual void get_svs(perfmon_collection_t *perfmon_collection, namespace_id_t namespace_id,
                          stores_lifetimer_t<protocol_t> *stores_out,
-                         boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) = 0;
+                         scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out) = 0;
     virtual void destroy_svs(namespace_id_t namespace_id) = 0;
 
 protected:
