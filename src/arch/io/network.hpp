@@ -14,7 +14,6 @@
 
 #include "utils.hpp"
 #include <boost/function.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include "config/args.hpp"
 #include "containers/scoped.hpp"
@@ -246,16 +245,12 @@ private:
     static const size_t POP_THRESHOLD = 1024;
     size_t popped_bytes;
 
-    boost::scoped_ptr<auto_drainer_t> drainer;
+    scoped_ptr_t<auto_drainer_t> drainer;
 };
 
 class linux_nascent_tcp_conn_t {
 public:
     ~linux_nascent_tcp_conn_t();
-
-    // Must get called exactly once during lifetime of this object.
-    // Call it on the thread you'll use the connection on.
-    void ennervate(boost::scoped_ptr<linux_tcp_conn_t> *tcp_conn);
 
     void ennervate(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn);
 
@@ -313,7 +308,7 @@ private:
     new connections; when accept() blocks, then it waits for events from the
     event loop. */
     void accept_loop(auto_drainer_t::lock_t);
-    boost::scoped_ptr<auto_drainer_t> accept_loop_drainer;
+    scoped_ptr_t<auto_drainer_t> accept_loop_drainer;
 
     void handle(fd_t sock);
 
