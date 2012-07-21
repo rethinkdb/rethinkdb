@@ -283,5 +283,13 @@ class TestTableRef(unittest.TestCase):
         self.expect(self.table.insert(doc), {'inserted': 1})
         self.expect(self.table.find(100), doc)
 
+    def test_view(self):
+        self.clear_table()
+
+        docs = [{"id": 1}, {"id": 2}]
+
+        self.expect(self.table.insert(docs), {'inserted': 2})
+        self.expect(self.table.limit(1).delete(), {'deleted': 1})
+
 if __name__ == '__main__':
     unittest.main()

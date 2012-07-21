@@ -734,7 +734,8 @@ count = _make_builtin("count", p.Builtin.LENGTH, "stream")
 nth = _make_builtin("nth", p.Builtin.NTH, "stream", "index")
 extend = _make_builtin("extend", p.Builtin.MAPMERGE, "dest", "json")
 
-def _make_stream_builtin(name, builtin, *args):
+def _make_stream_builtin(name, builtin, *args, **kwargs):
+    view = 'view' in kwargs
     n_args = len(args)
     signature = "%s(%s)" % (name, ", ".join(args))
 
@@ -742,7 +743,8 @@ def _make_stream_builtin(name, builtin, *args):
         pretty = _make_pretty(args, name)
         def __init__(self, *args):
             Stream.__init__(self)
-            self.read_only = True
+            if not view:
+                self.read_only = True
             if len(args) != n_args:
                 raise TypeError("%s takes exactly %d arguments (%d given)"
                                 % (signature, n_args, len(args)))
@@ -754,6 +756,6 @@ def _make_stream_builtin(name, builtin, *args):
     return StreamBuiltin
 
 distinct = _make_stream_builtin("distinct", p.Builtin.DISTINCT, "stream")
-limit = _make_stream_builtin("limit", p.Builtin.LIMIT, "stream", "count")
+limit = _make_stream_builtin("limit", p.Builtin.LIMIT, "stream", "count", view=True)
 union = _make_stream_builtin("union", p.Builtin.UNION, "a", "b")
 stream = _make_stream_builtin("stream", p.Builtin.ARRAYTOSTREAM, "array")
