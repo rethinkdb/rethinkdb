@@ -42,7 +42,7 @@ private:
 class traversal_progress_combiner_t : public traversal_progress_t {
 public:
     traversal_progress_combiner_t(int specified_home_thread) : traversal_progress_t(specified_home_thread), is_destructing(false) { }
-    traversal_progress_combiner_t() { }
+    traversal_progress_combiner_t() : is_destructing(false) { }
     ~traversal_progress_combiner_t();
 
     // The constituent is welcome to have a different home thread.
