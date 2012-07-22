@@ -119,9 +119,9 @@ module 'NamespaceView', ->
             return @
 
         destroy: ->
-            @model.off()
-            directory.off()
-            progress_list.off()
+            @model.off 'all', @render
+            directory.off 'all', @render
+            progress_list.off 'all', @render
 
     # Modify replica counts and ack counts in each datacenter
     class @ModifyReplicasModal extends UIComponents.AbstractModal

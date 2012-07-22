@@ -41,22 +41,22 @@ public:
     ~administrative_http_server_manager_t();
 
 private:
-    boost::scoped_ptr<file_http_app_t> file_app;
-    boost::scoped_ptr<semilattice_http_app_t> semilattice_app;
-    boost::scoped_ptr<directory_http_app_t> directory_app;
-    boost::scoped_ptr<issues_http_app_t> issues_app;
-    boost::scoped_ptr<stat_http_app_t> stat_app;
-    boost::scoped_ptr<last_seen_http_app_t> last_seen_app;
-    boost::scoped_ptr<log_http_app_t> log_app;
-    boost::scoped_ptr<progress_app_t> progress_app;
-    boost::scoped_ptr<distribution_app_t> distribution_app;
-    boost::scoped_ptr<combining_http_app_t> combining_app;
+    scoped_ptr_t<file_http_app_t> file_app;
+    scoped_ptr_t<semilattice_http_app_t> semilattice_app;
+    scoped_ptr_t<directory_http_app_t> directory_app;
+    scoped_ptr_t<issues_http_app_t> issues_app;
+    scoped_ptr_t<stat_http_app_t> stat_app;
+    scoped_ptr_t<last_seen_http_app_t> last_seen_app;
+    scoped_ptr_t<log_http_app_t> log_app;
+    scoped_ptr_t<progress_app_t> progress_app;
+    scoped_ptr_t<distribution_app_t> distribution_app;
+    scoped_ptr_t<combining_http_app_t> combining_app;
 #ifndef NDEBUG
-    boost::scoped_ptr<cyanide_http_app_t> cyanide_app;
+    scoped_ptr_t<cyanide_http_app_t> cyanide_app;
 #endif
-    boost::scoped_ptr<routing_http_app_t> ajax_routing_app;
-    boost::scoped_ptr<routing_http_app_t> root_routing_app;
-    boost::scoped_ptr<http_server_t> server;
+    scoped_ptr_t<routing_http_app_t> ajax_routing_app;
+    scoped_ptr_t<routing_http_app_t> root_routing_app;
+    scoped_ptr_t<http_server_t> server;
 
     DISABLE_COPYING(administrative_http_server_manager_t);  // kind of redundant with the scoped_ptrs but too bad.
 };

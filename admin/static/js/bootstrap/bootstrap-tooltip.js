@@ -129,6 +129,12 @@
 
         actualWidth = $tip[0].offsetWidth
         actualHeight = $tip[0].offsetHeight
+        
+        if ((actualWidth == undefined || actualWidth == 0) && ($tip[0] !== undefined) && ($tip[0].getBBox !== undefined)) {
+            actualWidth = $tip[0].getBBox().width
+            actualWidth = $tip[0].getBBox().height
+            console.log(actualWidth)
+        }
 
         switch (inside ? placement.split(' ')[1] : placement) {
           case 'bottom':
@@ -192,9 +198,16 @@
     }
 
   , getPosition: function (inside) {
+      var box_width = 0
+      var box_height = 0
+      if (this.$element[0].getBBox !== undefined) {
+        box_width = this.$element[0].getBBox().width;
+        box_height = this.$element[0].getBBox().height;
+      }
+
       return $.extend({}, (inside ? {top: 0, left: 0} : this.$element.offset()), {
-        width: this.$element[0].offsetWidth
-      , height: this.$element[0].offsetHeight
+        width: Math.max(this.$element[0].offsetWidth, box_width)
+      , height: Math.max(this.$element[0].offsetHeight, box_height)
       })
     }
 

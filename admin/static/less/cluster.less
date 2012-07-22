@@ -858,7 +858,6 @@
 */
 .namespace-view, .datacenter-view, .machine-view {
     .two-panel-section {
-        border-bottom: thin solid #CCC;
         padding-bottom: 10px;
         margin-bottom: 10px;
         width: 100%;
@@ -906,16 +905,88 @@
         margin-top: 15px;
     }
 
+    .pie_legend{
+        .legend{
+            margin: 40px 0px 0px 0px;
+            li{
+                list-style: none;
+            }
+            .title-legend{
+                margin: 0px 0px 10px 0px;
+            }
+            .data_in_memory-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .data_not_in_memory-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .more_statistics{
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+        }
+    }
+    
+    .no-shard{
+        text-indent: 25px;
+    }
+
+    .data_repartition-graph{
+        rect{
+            fill: #ed993e;
+        }
+    }
+
+    .data_repartition-legend{
+        overflow: auto;
+        .legend{
+            margin: 40px 0px 0px 0px;
+            li{
+                list-style: none;
+            }
+            .title-legend{
+                margin: 0px 0px 10px 0px;
+            }
+            .data_in_memory-legend{
+                border-left: 40px solid #f00;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .data_not_in_memory-legend{
+                border-left: 40px solid #1f77b4;
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+            .more_statistics{
+                padding: 0px 0px 0px 10px;
+                margin: 5px 10px;
+            }
+        }
+        .legend_left{
+            float: left;
+            width: 350px;
+            margin: 20px 0px 30px 0px;
+        }
+        .legend_right{
+            float: left;
+            margin: 350px;
+            margin: 20px 0px 30px 0px;
+        }
+    }
+
     .namespace-shards{
         position: relative;
         .alert_for_sharding{
             display: none;
         }
-
- 
     }
     .namespace-shards-blackout{
-        .sharding{
+        position: relative;
+        .sharding, .modify-shards{
             opacity: 0.7;
             opacity: 0.7;
             -webkit-touch-callout: none;
@@ -988,6 +1059,20 @@
         }
     }
 
+    .other_section{
+        height: 30px;
+        margin: 10px 0px;
+        .border-radius(4px);
+        background-color: #F0F2EB;
+        border: thin solid #B9D7D9;
+        padding: 7px 14px;
+        p{
+            padding: 7px 0px;
+        }
+        .other_button{
+            float: right;
+        }
+    }
 }
 
 /*
@@ -1008,20 +1093,18 @@
         } 
     }
 
-   table.shards {
-        margin-bottom: 15px;
-        td {
-            border-bottom: thin solid @grayLighter;
-            padding: 10px 0;
-            &.name {
-                width: 15%;
+   .shards-container {
+        .shard-element{
+            margin: 10px 0px;
+            padding: 10px 0px;
+            border-bottom: 1px solid #eaeaea;
+            overflow: auto;
+            .name{
+                float: left;
             }
-        }
-        td.summary {
-            width: 130px;
-        }
-        div.progress {
-            width: 200px;
+            .actions{
+                float: right;
+            }
         }
     }
 
@@ -1085,7 +1168,13 @@
                 border-left: thin solid #DDD;
                 border-right: thin solid #DDD;
                 &:last-child { border-bottom: thin solid #DDD; }
-                .status { text-align: right; }
+                .status {
+                    margin: 4px 0px;
+                    float: none;
+                }
+                .action{
+                    float: right;
+                }
                 a.machine.name { 
                     display: block-inline;
                     margin-right: 5px; 
@@ -1114,7 +1203,6 @@
         border: none;
         th, td {
             border-top: none;
-            border-bottom: thin solid @grayLighter;
             margin: 0;
             padding: 0;
         }
@@ -1355,7 +1443,9 @@
             }
         }
 
-        table.shards { margin-bottom: 10px; }
+        table.shards {
+            margin-bottom: 10px; 
+       }
     }
 
     /* Override Bootstrap */
@@ -1418,7 +1508,6 @@
         p.suggest_shards_pathway {
             margin-top: 1em;
             margin-bottom: 0;
-            font-size: large;
         }
 
         .shard-suggester {
@@ -1438,7 +1527,9 @@
             .shard_suggest_elements {
                 margin-top: 0.5em;
             }
-
+            .close_link{
+                float: right;
+            }
         }
     }
 
@@ -1458,8 +1549,8 @@
     .shard-suggester {
         margin-top: 1em;
     }
-    .action, .shard-suggester, .unsaved-settings-warning {
-       margin-right: 1em;
+    .action-coming, .shard-suggester, .unsaved-settings-warning {
+        margin: 0px;
         .border-radius(4px);
         background-color: #F0F2EB;
         border: thin solid #B9D7D9;
@@ -1539,6 +1630,27 @@
     }
 }
 
+.shards-table{
+    .summary-tr{
+        height: 30px;
+        vertical-align: top;
+        overflow: auto;
+        td{
+            overflow: auto;
+            .shard-boundaries-name{
+                float: left;
+                margin: 0px 10px 0px 0px;
+            }
+        }
+    }
+    .datacenter-list{
+        padding: 0px 0px 0px 50px;
+        .datacenters{
+            margin-right: 50px;
+        }
+    }
+}
+ 
 /*
     --------------------
     Visualization styles

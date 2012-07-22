@@ -63,7 +63,7 @@ void run_rethinkdb_create(const std::string &filepath, const std::string &machin
         return;
     }
 
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
 
     perfmon_collection_t metadata_perfmon_collection;
@@ -116,7 +116,7 @@ void run_rethinkdb_serve(extproc::spawner_t::info_t *spawner_info, const std::st
         return;
     }
 
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
 
     perfmon_collection_t metadata_perfmon_collection;
@@ -141,7 +141,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
     if (check_existence(filepath)) {
         printf("It already exists.  Loading data...\n");
 
-        boost::scoped_ptr<io_backender_t> io_backender;
+        scoped_ptr_t<io_backender_t> io_backender;
         make_io_backender(io_backend, &io_backender);
 
         perfmon_collection_t metadata_perfmon_collection;
@@ -268,7 +268,7 @@ void run_rethinkdb_porcelain(extproc::spawner_t::info_t *spawner_info, const std
             semilattice_metadata.machines.machines.insert(std::make_pair(our_machine_id, our_machine_metadata));
         }
 
-        boost::scoped_ptr<io_backender_t> io_backender;
+        scoped_ptr_t<io_backender_t> io_backender;
         make_io_backender(io_backend, &io_backender);
 
         perfmon_collection_t metadata_perfmon_collection;
@@ -290,7 +290,7 @@ void run_rethinkdb_proxy(extproc::spawner_t::info_t *spawner_info, const std::st
     os_signal_cond_t sigint_cond;
     rassert(!joins.empty());
 
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(io_backend, &io_backender);
 
     *result_out = serve_proxy(spawner_info,

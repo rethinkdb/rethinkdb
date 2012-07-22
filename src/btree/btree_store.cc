@@ -357,7 +357,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
 
     btree->assert_thread();
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_backfill");
@@ -378,7 +378,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
 
     btree->assert_thread();
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_write");

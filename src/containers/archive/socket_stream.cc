@@ -47,7 +47,7 @@ void blocking_fd_watcher_t::init_callback(UNUSED linux_event_callback_t *cb) {}
 linux_event_fd_watcher_t::linux_event_fd_watcher_t(fd_t fd)
     : io_in_progress_(false),
       event_callback_(NULL),
-      event_watcher_(new linux_event_watcher_t(fd, this))
+      event_watcher_(fd, this)
 {
     guarantee_err(0 == fcntl(fd, F_SETFL, O_NONBLOCK),
                   "Could not make fd non-blocking.");
@@ -86,7 +86,7 @@ bool linux_event_fd_watcher_t::wait_for_read() {
     guarantee(!io_in_progress_);
     io_in_progress_ = true;
 
-    linux_event_watcher_t::watch_t watch(event_watcher_.get(), poll_event_in);
+    linux_event_watcher_t::watch_t watch(&event_watcher_, poll_event_in);
     wait_any_t waiter(&watch, &read_closed_);
     waiter.wait_lazily_unordered();
 
@@ -102,7 +102,7 @@ bool linux_event_fd_watcher_t::wait_for_write() {
     guarantee(!io_in_progress_);
     io_in_progress_ = true;
 
-    linux_event_watcher_t::watch_t watch(event_watcher_.get(), poll_event_out);
+    linux_event_watcher_t::watch_t watch(&event_watcher_, poll_event_out);
     wait_any_t waiter(&watch, &write_closed_);
     waiter.wait_lazily_unordered();
 

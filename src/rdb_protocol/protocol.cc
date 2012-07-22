@@ -364,7 +364,8 @@ private:
 static void call_rdb_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
         backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, backfill_progress_t *progress) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
-    progress->add_constituent(p);
+    scoped_ptr_t<traversal_progress_t> p_owned(p);
+    progress->add_constituent(&p_owned);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     rdb_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p);
 }

@@ -1,8 +1,5 @@
 #include "errors.hpp"
-#include <boost/function.hpp>
-#include <boost/serialization/set.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <boost/bind.hpp>
 
 #include "clustering/administration/stat_manager.hpp"
 #include "concurrency/watchable.hpp"
@@ -24,6 +21,6 @@ void stat_manager_t::on_stats_request(const return_address_t& reply_address, con
 }
 
 void stat_manager_t::perform_stats_request(const return_address_t& reply_address, UNUSED const std::set<stat_id_t>& requested_stats, auto_drainer_t::lock_t) {
-    boost::scoped_ptr<perfmon_result_t> perfmon_result(perfmon_get_stats());
-    send(mailbox_manager, reply_address, *perfmon_result);
+    scoped_ptr_t<perfmon_result_t> perfmon_result(perfmon_get_stats());
+    send(mailbox_manager, reply_address, *perfmon_result.get());
 }

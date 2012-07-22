@@ -18,22 +18,21 @@ declare_client_connected = ->
 
 # Check if new_data is included in old_data and if the values are equals. (Note: We don't check if the objects are equals)
 need_update_objects = (new_data, old_data) ->
-    need_update = false
     for key of new_data
         if key of old_data is false
-            need_update = true
-            break
+            return true
 
-    if need_update is false
-        for key of new_data
-            if typeof new_data[key] is object and typeof old_data[key] is object
-                need_update = compare_object(new_data[key], old_data[key])
-                if need_update is true
-                    break
-                else if new_data[key] isnt old_data[key]
-                    need_update = true
-                    break
-    return need_update
+    for key of new_data
+        if typeof new_data[key] is object and typeof old_data[key] is object
+            need_update = compare_object(new_data[key], old_data[key])
+            if need_update is true
+                return need_update
+        else if typeof new_data[key] isnt typeof old_data[key]
+            return true
+        else if new_data[key] isnt old_data[key]
+            return true
+
+    return false
 
 
 
@@ -47,10 +46,12 @@ apply_to_collection = (collection, collection_data) ->
                             delete collection_data[id].blueprint.peers_roles[machine_uuid]
             if collection.get(id)
                 # We update only if something changed so we don't trigger to much 'update'
+                ###
                 need_update = need_update_objects(data, collection.get(id))
                 if need_update is true
-                    collection.get(id).set(data)
-                    collection.trigger('change')
+                ###
+                collection.get(id).set(data)
+                collection.trigger('change')
             else
                 data.id = id
                 collection.add(new collection.model(data))

@@ -141,8 +141,8 @@ module 'NamespaceView', ->
             rename_modal.render()
 
         destroy: =>
-            @model.off()
-            machines.off()
+            @model.off 'change', @render
+            machines.off 'all', @render
 
     # A modal for adding namespaces
     class @AddNamespaceModal extends UIComponents.AbstractModal
@@ -233,9 +233,22 @@ module 'NamespaceView', ->
                 modal_title: 'Remove namespace'
                 btn_primary_text: 'Remove'
                 namespaces: array_for_template
+                namespaces_length_is_one: @namespaces_to_delete.length is 1
+
 
         on_submit: ->
             super
+
+
+            ###
+            # For when /ajax will handle post request
+            data = {}
+            for namespace in @namespaces_to_delete
+                if not data[namespace.get('protocol')]?
+                    data[namespace.get('protocol')] = {}
+                data[namespace.get('protocol')][namespace.get('id')] = null
+            ###
+
             # TODO: change this once we have http support for deleting
             # multiple items with one http request.
             for namespace in @namespaces_to_delete
@@ -243,7 +256,8 @@ module 'NamespaceView', ->
                     url: "/ajax/semilattice/#{namespace.get("protocol")}_namespaces/#{namespace.id}"
                     type: 'DELETE'
                     contentType: 'application/json'
-                    success: @on_success
+                    dataType: 'json',
+                    success: @on_success,
                     error: @on_error
             # TODO: this should happen on success, but I'm hacking
             # this in here until we support multiple deletes in one
@@ -251,6 +265,7 @@ module 'NamespaceView', ->
             # they're uncommented in on_success.
             for namespace in @namespaces_to_delete
                 namespaces.remove(namespace.id)
+
 
         on_success_with_error: =>
             @.$('.error_answer').html @template_remove_error

@@ -1,13 +1,11 @@
 #ifndef CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_SOCKET_STREAM_HPP_
 
-#include "utils.hpp"
-#include <boost/scoped_ptr.hpp>
-
 #include "arch/io/event_watcher.hpp" // linux_event_watcher_t
 #include "arch/io/io_utils.hpp"      // scoped_fd_t
 #include "concurrency/cond_var.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/scoped.hpp"
 #include "errors.hpp"
 
 /* fd_watcher_t exists to factor the problem of "how to wait for I/O on an fd"
@@ -92,7 +90,9 @@ class linux_event_fd_watcher_t :
     linux_event_callback_t *event_callback_;
 
     // The linux_event_watcher that we use to wait for IO events.
-    boost::scoped_ptr<linux_event_watcher_t> event_watcher_;
+    linux_event_watcher_t event_watcher_;
+
+    DISABLE_COPYING(linux_event_fd_watcher_t);
 };
 
 class socket_stream_t :
@@ -126,7 +126,7 @@ class socket_stream_t :
     // Member fields
   protected:
     scoped_fd_t fd_;
-    boost::scoped_ptr<fd_watcher_t> fd_watcher_;
+    scoped_ptr_t<fd_watcher_t> fd_watcher_;
 
   private:
     DISABLE_COPYING(socket_stream_t);

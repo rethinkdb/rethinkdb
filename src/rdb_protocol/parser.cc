@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "utils.hpp"
+#include <boost/make_shared.hpp>
 
 #include "rdb_protocol/query_language.pb.h"
 

@@ -176,7 +176,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_account_t *io_account
 }
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_account_t *_io_account)
+mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_account_t *_io_account)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
@@ -210,7 +210,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, file_accou
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, void *_buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
@@ -240,7 +240,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, void *_buf
     replay_patches();
 }
 
-mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
+mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
     cache->assert_thread();
 
     if (snapshot_version == faux_version_id)
@@ -280,7 +280,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
 // Used by mc_inner_buf_t::allocate() and by the patch log.
 // If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
-mc_inner_buf_t::mc_inner_buf_t(cache_t *_cache, block_id_t _block_id, version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp)
+mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, version_id_t _snapshot_version, repli_timestamp_t _recency_timestamp)
     : evictable_t(_cache),
       writeback_t::local_buf_t(),
       block_id(_block_id),
@@ -1062,7 +1062,7 @@ void mc_buf_lock_t::release() {
  * Transaction implementation.
  */
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp_t _recency_timestamp)
     : cache(_cache),
       expected_change_count(_expected_change_count),
       access(_access),
@@ -1135,7 +1135,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
 }
 
 /* This version is only for read transactions from the writeback!  And some unit tests use it. */
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED int fook, UNUSED bool dont_assert_about_shutting_down) :
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED int fook, UNUSED bool dont_assert_about_shutting_down) :
     cache(_cache),
     expected_change_count(0),
     access(_access),
@@ -1156,7 +1156,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED int
     cache->stats->pm_transactions_active.begin(&start_time);
 }
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED i_am_writeback_t i_am_writeback) :
+mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED i_am_writeback_t i_am_writeback) :
     cache(_cache),
     expected_change_count(0),
     access(_access),
@@ -1194,7 +1194,9 @@ mc_transaction_t::~mc_transaction_t() {
 
     if (snapshotted && snapshot_version != mc_inner_buf_t::faux_version_id) {
         cache->unregister_snapshot(this);
-        for (owned_snapshots_list_t::iterator it = owned_buf_snapshots.begin(); it != owned_buf_snapshots.end(); it++) {
+        for (std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> >::iterator it = owned_buf_snapshots.begin();
+             it != owned_buf_snapshots.end();
+             ++it) {
             (*it).first->release_snapshot((*it).second);
         }
     }
@@ -1271,7 +1273,7 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
     bool need_second_loop = false;
     for (size_t i = 0; i < num_block_ids; ++i) {
         if (block_ids[i] != NULL_BLOCK_ID) {
-            inner_buf_t *inner_buf = cache->find_buf(block_ids[i]);
+            mc_inner_buf_t *inner_buf = cache->find_buf(block_ids[i]);
             if (inner_buf) {
                 recencies_out[i] = inner_buf->subtree_recency;
             } else {
@@ -1349,8 +1351,8 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
 
     {
         on_thread_t thread_switcher(serializer->home_thread());
-        reads_io_account.reset(serializer->make_io_account(dynamic_config->io_priority_reads));
-        writes_io_account.reset(serializer->make_io_account(dynamic_config->io_priority_writes));
+        reads_io_account.init(serializer->make_io_account(dynamic_config->io_priority_reads));
+        writes_io_account.init(serializer->make_io_account(dynamic_config->io_priority_writes));
     }
 
 #ifndef NDEBUG
@@ -1358,7 +1360,7 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
 #endif
 
     /* Load differential log from disk */
-    patch_disk_storage.reset(new patch_disk_storage_t(this, MC_CONFIGBLOCK_ID));
+    patch_disk_storage.init(new patch_disk_storage_t(this, MC_CONFIGBLOCK_ID));
     patch_disk_storage->load_patches(&patch_memory_storage);
 
     /* Please note: writebacks must *not* happen prior to this point! */
@@ -1440,7 +1442,7 @@ void mc_cache_t::register_snapshot(mc_transaction_t *txn) {
 }
 
 void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
-    snapshots_map_t::iterator it = active_snapshots.find(txn->snapshot_version);
+    std::map<mc_inner_buf_t::version_id_t, mc_transaction_t *>::iterator it = active_snapshots.find(txn->snapshot_version);
     if (it != active_snapshots.end() && (*it).second == txn) {
         active_snapshots.erase(it);
     } else {
@@ -1452,7 +1454,7 @@ void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
 size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
     rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
     size_t num_snapshots_affected = 0;
-    for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version),
+    for (std::map<mc_inner_buf_t::version_id_t, mc_transaction_t *>::iterator it = active_snapshots.lower_bound(snapshotted_version),
              itend = active_snapshots.lower_bound(new_version);
          it != itend;
          it++) {
@@ -1464,7 +1466,7 @@ size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t sna
 size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
     rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
     size_t num_snapshots_affected = 0;
-    for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version),
+    for (std::map<mc_inner_buf_t::version_id_t, mc_transaction_t *>::iterator it = active_snapshots.lower_bound(snapshotted_version),
              itend = active_snapshots.lower_bound(new_version);
          it != itend;
          it++) {
@@ -1474,8 +1476,8 @@ size_t mc_cache_t::register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf
     return num_snapshots_affected;
 }
 
-mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
-    inner_buf_t *buf = page_map.find(block_id);
+mc_inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
+    mc_inner_buf_t *buf = page_map.find(block_id);
     if (buf) {
         ++stats->pm_cache_hits;
     } else {
@@ -1489,7 +1491,7 @@ bool mc_cache_t::contains_block(block_id_t block_id) {
 }
 
 
-boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
+boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_cache_account(int priority) {
     // We assume that a priority of 100 means that the transaction should have the same priority as
     // all the non-accounted transactions together. Not sure if this makes sense.
 
@@ -1505,10 +1507,10 @@ boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
         io_account = serializer->make_io_account(io_priority, outstanding_requests_limit);
     }
 
-    return boost::shared_ptr<cache_account_t>(new cache_account_t(serializer->home_thread(), io_account));
+    return boost::shared_ptr<mc_cache_account_t>(new mc_cache_account_t(serializer->home_thread(), io_account));
 }
 
-void mc_cache_t::on_transaction_commit(transaction_t *txn) {
+void mc_cache_t::on_transaction_commit(mc_transaction_t *txn) {
     assert_thread();
 
     writeback.on_transaction_commit(txn);

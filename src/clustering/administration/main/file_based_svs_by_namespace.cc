@@ -26,7 +26,7 @@ void do_construct_existing_store(int i, io_backender_t *io_backender,
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
     typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, false, serializers_perfmon_collection);
-    stores_out->stores()[i].reset(store);
+    stores_out->stores()[i].init(store);
     store_views[i] = store;
 }
 
@@ -44,7 +44,7 @@ void do_create_new_store(int i, io_backender_t *io_backender,
     std::string file_name = fbssvsbn->file_name_for(namespace_id, i);
 
     typename protocol_t::store_t *store = new typename protocol_t::store_t(io_backender, file_name, true, serializers_perfmon_collection);
-    stores_out->stores()[i].reset(store);
+    stores_out->stores()[i].init(store);
     store_views[i] = store;
 }
 
@@ -54,7 +54,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
             perfmon_collection_t *serializers_perfmon_collection,
             namespace_id_t namespace_id,
             stores_lifetimer_t<protocol_t> *stores_out,
-            boost::scoped_ptr<multistore_ptr_t<protocol_t> > *svs_out) {
+            scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out) {
 
     const int num_db_threads = get_num_db_threads();
 
@@ -78,7 +78,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         // The files already exist, thus we don't create them.
         boost::scoped_array<store_view_t<protocol_t> *> store_views(
                                         new store_view_t<protocol_t> *[num_stores]);
-        stores_out->stores().reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
+        stores_out->stores().reset(new scoped_ptr_t<typename protocol_t::store_t>[num_stores]);
         stores_out->set_num_stores(num_stores);
 
         debugf("loading %d hash-sharded stores\n", num_stores);
@@ -92,11 +92,11 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                                      this, namespace_id,
                                      num_db_threads, stores_out, store_views.get()));
 
-        svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
+        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
     } else {
         const int num_stores = 4 + randint(4);
         debugf("creating %d hash-sharded stores\n", num_stores);
-        stores_out->stores().reset(new boost::scoped_ptr<typename protocol_t::store_t>[num_stores]);
+        stores_out->stores().reset(new scoped_ptr_t<typename protocol_t::store_t>[num_stores]);
         stores_out->set_num_stores(num_stores);
 
         // TODO: How do we specify what the stores' regions are?
@@ -113,7 +113,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                                      this, namespace_id,
                                      num_db_threads, stores_out, store_views.get()));
 
-        svs_out->reset(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
+        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.get(), num_stores));
 
         // Initialize the metadata in the underlying stores.
         scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> write_token;

@@ -167,11 +167,11 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
     guarantee(backfill_end_timestamp >= streaming_begin_point);
 
     current_timestamp = backfill_end_timestamp;
-    write_queue_coro_pool_callback.reset(
+    write_queue_coro_pool_callback.init(
         new typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t(
             boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, backfill_end_timestamp, _2)
         ));
-    write_queue_coro_pool.reset(
+    write_queue_coro_pool.init(
         new coro_pool_t<write_queue_entry_t>(
             OPERATION_CORO_POOL_SIZE, &write_queue, write_queue_coro_pool_callback.get()
         ));
@@ -256,11 +256,11 @@ listener_t<protocol_t>::listener_t(io_backender_t *io_backender,
 
     /* Start streaming, just like we do after we finish a backfill */
     current_timestamp = registration_done_cond.get_value().broadcaster_begin_timestamp;
-    write_queue_coro_pool_callback.reset(
+    write_queue_coro_pool_callback.init(
         new typename coro_pool_t<write_queue_entry_t>::boost_function_callback_t(
             boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, current_timestamp, _2)
         ));
-    write_queue_coro_pool.reset(
+    write_queue_coro_pool.init(
         new coro_pool_t<write_queue_entry_t>(
             OPERATION_CORO_POOL_SIZE, &write_queue, write_queue_coro_pool_callback.get()
         ));
@@ -326,7 +326,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
                       boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1, _2, _3));
 
     try {
-        registrant.reset(new registrant_t<listener_business_card_t<protocol_t> >(
+        registrant.init(new registrant_t<listener_business_card_t<protocol_t> >(
             mailbox_manager,
             broadcaster->subview(&listener_t<protocol_t>::get_registrar_from_broadcaster_bcard),
             listener_business_card_t<protocol_t>(intro_mailbox.get_address(), write_mailbox.get_address())

@@ -2,7 +2,7 @@
 #define PROTOB_PROTOB_HPP_
 
 #include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
+#include <boost/function.hpp>
 
 #include "arch/arch.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -20,11 +20,11 @@ public:
     ~protob_server_t();
 private:
 
-    void handle_conn(boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t);
+    void handle_conn(scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t);
     void send(const response_t &, tcp_conn_t *conn);
 
     auto_drainer_t auto_drainer;
-    boost::scoped_ptr<tcp_listener_t> tcp_listener;
+    scoped_ptr_t<tcp_listener_t> tcp_listener;
     boost::function<response_t(const request_t &)> f;
     protob_server_callback_mode_t cb_mode;
 };
