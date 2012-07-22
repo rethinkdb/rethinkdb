@@ -1,5 +1,8 @@
 #include "unittest/gtest.hpp"
 
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"

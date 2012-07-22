@@ -273,8 +273,8 @@ public:
         return out;
     }
 
-    void make_namespace_interface(int i, boost::scoped_ptr<cluster_namespace_interface_t<protocol_t> > *out) {
-        out->reset(new cluster_namespace_interface_t<protocol_t>(
+    void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t<protocol_t> > *out) {
+        out->init(new cluster_namespace_interface_t<protocol_t>(
             &test_clusters[i].mailbox_manager,
             (&test_clusters[i])->directory_read_manager.get_root_view()
                 ->subview(&test_cluster_group_t::extract_reactor_business_cards_no_optional)
@@ -285,7 +285,7 @@ public:
     void run_queries() {
         nap(200);
         for (unsigned i = 0; i < test_clusters.size(); i++) {
-            boost::scoped_ptr<cluster_namespace_interface_t<protocol_t> > namespace_if;
+            scoped_ptr_t<cluster_namespace_interface_t<protocol_t> > namespace_if;
             make_namespace_interface(i, &namespace_if);
 
             order_source_t order_source;
