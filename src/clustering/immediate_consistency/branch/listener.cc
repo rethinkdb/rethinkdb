@@ -1,8 +1,5 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 
-#include "errors.hpp"
-#include <boost/scoped_array.hpp>
-
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
