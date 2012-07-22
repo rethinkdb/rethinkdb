@@ -2,7 +2,6 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/scoped_array.hpp>
 
 #include "mock/unittest_utils.hpp"
 
@@ -219,7 +218,7 @@ void run_multijob_test(extproc::spawner_t::info_t *spawner_info) {
     extproc::pool_group_t pool_group(spawner_info, config);
     extproc::pool_t *pool = pool_group.get();
 
-    boost::scoped_array<extproc::job_handle_t> handles(new extproc::job_handle_t[njobs]);
+    scoped_array_t<extproc::job_handle_t> handles(njobs);
 
     // Spawn off enough jobs that we need more than the minimum number of
     // workers to service them all at once, to check that the pool will spawn

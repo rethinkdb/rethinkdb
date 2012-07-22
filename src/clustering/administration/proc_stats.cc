@@ -11,7 +11,6 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/scoped_array.hpp>
 
 #include "arch/io/io_utils.hpp"   /* for `scoped_fd_t` and `_gettid()` */
 #include "arch/timing.hpp"
@@ -312,11 +311,11 @@ static void fetch_tid(int thread, pid_t *out) {
 
 void proc_stats_collector_t::collect_periodically(auto_drainer_t::lock_t keepalive) {
     try {
-        boost::scoped_array<pid_t> tids(new pid_t[get_num_threads()]);
-        pmap(get_num_threads(), boost::bind(&fetch_tid, _1, tids.get()));
+        scoped_array_t<pid_t> tids(get_num_threads());
+        pmap(get_num_threads(), boost::bind(&fetch_tid, _1, tids.data()));
 
         ticks_t last_ticks = get_ticks();
-        boost::scoped_array<proc_pid_stat_t> last_per_thread(new proc_pid_stat_t[get_num_threads()]);
+        scoped_array_t<proc_pid_stat_t> last_per_thread(get_num_threads());
         for (int i = 0; i < get_num_threads(); i++) {
             last_per_thread[i] = proc_pid_stat_t::for_pid_and_tid(getpid(), tids[i]);
         }
@@ -328,7 +327,7 @@ void proc_stats_collector_t::collect_periodically(auto_drainer_t::lock_t keepali
                 wait_interruptible(&timer, keepalive.get_drain_signal());
 
                 ticks_t current_ticks = get_ticks();
-                boost::scoped_array<proc_pid_stat_t> current_per_thread(new proc_pid_stat_t[get_num_threads()]);
+                scoped_array_t<proc_pid_stat_t> current_per_thread(get_num_threads());
                 for (int i = 0; i < get_num_threads(); i++) {
                     current_per_thread[i] = proc_pid_stat_t::for_pid_and_tid(getpid(), tids[i]);
                 }
@@ -358,7 +357,7 @@ void proc_stats_collector_t::collect_periodically(auto_drainer_t::lock_t keepali
                     (current_global.bytes_sent - last_global.bytes_sent) / elapsed_secs);
 
                 last_ticks = current_ticks;
-                swap(last_per_thread, current_per_thread);
+                last_per_thread.swap(current_per_thread);
                 last_global = current_global;
             }
         } catch (interrupted_exc_t) {

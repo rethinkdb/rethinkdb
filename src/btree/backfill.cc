@@ -66,9 +66,8 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
     struct annoying_t : public get_subtree_recencies_callback_t {
         interesting_children_callback_t *cb;
-        boost::scoped_array<block_id_t> block_ids;
-        ranged_block_ids_t *ids_source;
-        boost::scoped_array<repli_timestamp_t> recencies;
+        scoped_array_t<block_id_t> block_ids;
+        scoped_array_t<repli_timestamp_t> recencies;
         repli_timestamp_t since_when;
         cond_t *done_cond;
 
@@ -79,7 +78,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         void do_got_subtree_recencies() {
             rassert(coro_t::self());
 
-            for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
+            for (int i = 0, e = block_ids.size(); i < e; ++i) {
                 if (block_ids[i] != NULL_BLOCK_ID && recencies[i].time >= since_when.time) {
                     cb->receive_interesting_child(i);
                 }
@@ -97,7 +96,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         assert_thread();
         annoying_t *fsm = new annoying_t;
         int num_block_ids = ids_source->num_block_ids();
-        fsm->block_ids.reset(new block_id_t[num_block_ids]);
+        fsm->block_ids.init(num_block_ids);
         for (int i = 0; i < num_block_ids; ++i) {
             const btree_key_t *left, *right;
             block_id_t id;
@@ -111,12 +110,11 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
         cond_t done_cond;
         fsm->cb = cb;
-        fsm->ids_source = ids_source;
         fsm->since_when = since_when_;
-        fsm->recencies.reset(new repli_timestamp_t[num_block_ids]);
+        fsm->recencies.init(num_block_ids);
         fsm->done_cond = &done_cond;
 
-        txn->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
+        txn->get_subtree_recencies(fsm->block_ids.data(), num_block_ids, fsm->recencies.data(), fsm);
         done_cond.wait();
     }
 
