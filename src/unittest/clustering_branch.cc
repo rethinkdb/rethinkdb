@@ -1,8 +1,5 @@
 #include "unittest/gtest.hpp"
 
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
@@ -35,9 +32,9 @@ void run_with_broadcaster(
             mock::simple_mailbox_cluster_t *,
             branch_history_manager_t<dummy_protocol_t> *,
             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
-            boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *,
+            scoped_ptr_t<broadcaster_t<dummy_protocol_t> > *,
             mock::test_store_t<dummy_protocol_t> *,
-            boost::scoped_ptr<listener_t<dummy_protocol_t> > *
+            scoped_ptr_t<listener_t<dummy_protocol_t> > *
             )> fun)
 {
     /* Set up a cluster so mailboxes can be created */
@@ -55,7 +52,7 @@ void run_with_broadcaster(
     multistore_ptr_t<dummy_protocol_t> initial_svs(&initial_store_ptr, 1);
     cond_t interruptor;
 
-    boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > broadcaster(
+    scoped_ptr_t<broadcaster_t<dummy_protocol_t> > broadcaster(
         new broadcaster_t<dummy_protocol_t>(
             cluster.get_mailbox_manager(),
             &branch_history_manager,
@@ -67,7 +64,7 @@ void run_with_broadcaster(
     watchable_variable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > broadcaster_directory_controller(
         boost::optional<broadcaster_business_card_t<dummy_protocol_t> >(broadcaster->get_business_card()));
 
-    boost::scoped_ptr<listener_t<dummy_protocol_t> > initial_listener(
+    scoped_ptr_t<listener_t<dummy_protocol_t> > initial_listener(
         new listener_t<dummy_protocol_t>(
             io_backender.get(),
             cluster.get_mailbox_manager(),
@@ -93,9 +90,9 @@ void run_in_thread_pool_with_broadcaster(
             mock::simple_mailbox_cluster_t *,
             branch_history_manager_t<dummy_protocol_t> *,
             clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
-            boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *,
+            scoped_ptr_t<broadcaster_t<dummy_protocol_t> > *,
             mock::test_store_t<dummy_protocol_t> *,
-            boost::scoped_ptr<listener_t<dummy_protocol_t> > *
+            scoped_ptr_t<listener_t<dummy_protocol_t> > *
             )> fun)
 {
     mock::run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
@@ -110,9 +107,9 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
                          UNUSED mock::simple_mailbox_cluster_t *cluster,
                          UNUSED branch_history_manager_t<dummy_protocol_t> *,
                          UNUSED clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
-                         boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
+                         scoped_ptr_t<broadcaster_t<dummy_protocol_t> > *broadcaster,
                          UNUSED mock::test_store_t<dummy_protocol_t> *store,
-                         boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener)
+                         scoped_ptr_t<listener_t<dummy_protocol_t> > *initial_listener)
 {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
@@ -191,9 +188,9 @@ void run_backfill_test(io_backender_t *io_backender,
                        mock::simple_mailbox_cluster_t *cluster,
                        branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
                        clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
-                       boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
+                       scoped_ptr_t<broadcaster_t<dummy_protocol_t> > *broadcaster,
                        mock::test_store_t<dummy_protocol_t> *store1,
-                       boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener) {
+                       scoped_ptr_t<listener_t<dummy_protocol_t> > *initial_listener) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
@@ -257,9 +254,9 @@ void run_partial_backfill_test(io_backender_t *io_backender,
                                mock::simple_mailbox_cluster_t *cluster,
                                branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
                                clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
-                               boost::scoped_ptr<broadcaster_t<dummy_protocol_t> > *broadcaster,
+                               scoped_ptr_t<broadcaster_t<dummy_protocol_t> > *broadcaster,
                                mock::test_store_t<dummy_protocol_t> *store1,
-                               boost::scoped_ptr<listener_t<dummy_protocol_t> > *initial_listener) {
+                               scoped_ptr_t<listener_t<dummy_protocol_t> > *initial_listener) {
     /* Set up a replier so the broadcaster can handle operations */
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     replier_t<dummy_protocol_t> replier(initial_listener->get());
