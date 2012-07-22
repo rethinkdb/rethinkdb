@@ -3,6 +3,9 @@
 
 #include <map>
 
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/semantic_checking.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
