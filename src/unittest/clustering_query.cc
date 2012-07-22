@@ -33,7 +33,7 @@ static void run_read_write_test() {
     /* Set up branch history tracker */
     mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a branch */
@@ -122,7 +122,7 @@ static void run_broadcaster_problem_test() {
     mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
     // io backender.
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a branch */

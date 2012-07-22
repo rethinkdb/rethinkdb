@@ -132,22 +132,22 @@ private:
 
 void native_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                                               perfmon_collection_t *stats,
-                                              boost::scoped_ptr<linux_disk_manager_t> *out) {
-    out->reset(new linux_templated_disk_manager_t<linux_diskmgr_aio_t>(queue, batch_factor, stats));
+                                              scoped_ptr_t<linux_disk_manager_t> *out) {
+    out->init(new linux_templated_disk_manager_t<linux_diskmgr_aio_t>(queue, batch_factor, stats));
 }
 
 void pool_io_backender_t::make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                                             perfmon_collection_t *stats,
-                                            boost::scoped_ptr<linux_disk_manager_t> *out) {
-    out->reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue, batch_factor, stats));
+                                            scoped_ptr_t<linux_disk_manager_t> *out) {
+    out->init(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue, batch_factor, stats));
 }
 
 
-void make_io_backender(io_backend_t backend, boost::scoped_ptr<io_backender_t> *out) {
+void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out) {
     if (backend == aio_native) {
-        out->reset(new native_io_backender_t);
+        out->init(new native_io_backender_t);
     } else if (backend == aio_pool) {
-        out->reset(new pool_io_backender_t);
+        out->init(new pool_io_backender_t);
     } else {
         crash("impossible io_backend_t value: %d\n", backend);
     }
@@ -261,7 +261,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, pe
         linux_event_queue_t *queue = &linux_thread_pool_t::thread->queue;
         io_backender->make_disk_manager(queue, batch_factor, stats, &diskmgr);
 
-        default_account.reset(new linux_file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
+        default_account.init(new linux_file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
 
@@ -301,7 +301,7 @@ void linux_file_t::set_size_at_least(size_t size) {
 }
 
 void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
-    rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
+    rassert(diskmgr.has(), "No diskmgr has been constructed (are we running without an event queue?)");
 
     verify(offset, length, buf);
     diskmgr->submit_read(fd.get(), buf, length, offset,
@@ -310,7 +310,7 @@ void linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_fil
 }
 
 void linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_file_account_t *account, linux_iocallback_t *callback) {
-    rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
+    rassert(diskmgr.has(), "No diskmgr has been constructed (are we running without an event queue?)");
 
 #ifdef DEBUG_DUMP_WRITES
     printf("--- WRITE BEGIN ---\n");

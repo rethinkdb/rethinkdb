@@ -173,7 +173,7 @@ template<class protocol_t>
 class test_cluster_group_t {
 public:
     boost::ptr_vector<temp_file_t> files;
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     boost::ptr_vector<typename protocol_t::store_t> stores;
     boost::ptr_vector<multistore_ptr_t<protocol_t> > svses;
     boost::ptr_vector<reactor_test_cluster_t<protocol_t> > test_clusters;

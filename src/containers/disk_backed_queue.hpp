@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
 #include "arch/io/disk.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"

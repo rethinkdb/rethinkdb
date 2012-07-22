@@ -43,7 +43,7 @@ void run_with_broadcaster(
     /* Set up branch history manager */
     mock::in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a broadcaster and initial listener */

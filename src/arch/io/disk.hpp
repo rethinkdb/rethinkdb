@@ -1,13 +1,12 @@
 #ifndef ARCH_IO_DISK_HPP_
 #define ARCH_IO_DISK_HPP_
 
-#include "utils.hpp"
-#include <boost/scoped_ptr.hpp>
-
-#include "config/args.hpp"
 #include "arch/io/io_utils.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/types.hpp"
+#include "config/args.hpp"
+#include "containers/scoped.hpp"
+#include "utils.hpp"
 
 class linux_iocallback_t;
 struct linux_disk_manager_t;
@@ -40,7 +39,7 @@ class io_backender_t {
 public:
     virtual void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                                    perfmon_collection_t *stats,
-                                   boost::scoped_ptr<linux_disk_manager_t> *out) = 0;
+                                   scoped_ptr_t<linux_disk_manager_t> *out) = 0;
 
     virtual ~io_backender_t() { }
 
@@ -55,17 +54,17 @@ class native_io_backender_t : public io_backender_t {
 public:
     void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                            perfmon_collection_t *stats,
-                           boost::scoped_ptr<linux_disk_manager_t> *out);
+                           scoped_ptr_t<linux_disk_manager_t> *out);
 };
 
 class pool_io_backender_t : public io_backender_t {
 public:
     void make_disk_manager(linux_event_queue_t *queue, const int batch_factor,
                            perfmon_collection_t *stats,
-                           boost::scoped_ptr<linux_disk_manager_t> *out);
+                           scoped_ptr_t<linux_disk_manager_t> *out);
 };
 
-void make_io_backender(io_backend_t backend, boost::scoped_ptr<io_backender_t> *out);
+void make_io_backender(io_backend_t backend, scoped_ptr_t<io_backender_t> *out);
 
 class linux_file_account_t {
 public:
@@ -115,10 +114,10 @@ private:
     void verify(size_t offset, size_t length, const void *buf);
 
     /* In a scoped pointer because it's polymorphic */
-    boost::scoped_ptr<linux_disk_manager_t> diskmgr;
+    scoped_ptr_t<linux_disk_manager_t> diskmgr;
 
     /* In a scoped_ptr so we can initialize it after "diskmgr" */
-    boost::scoped_ptr<linux_file_account_t> default_account;
+    scoped_ptr_t<linux_file_account_t> default_account;
 
     DISABLE_COPYING(linux_file_t);
 };

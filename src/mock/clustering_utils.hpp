@@ -4,6 +4,9 @@
 #include <map>
 #include <string>
 
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"

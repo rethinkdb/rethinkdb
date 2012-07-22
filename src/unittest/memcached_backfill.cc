@@ -29,7 +29,7 @@ void run_with_broadcaster(
     mock::in_memory_branch_history_manager_t<memcached_protocol_t> branch_history_manager;
 
     // io backender
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
     /* Set up a broadcaster and initial listener */

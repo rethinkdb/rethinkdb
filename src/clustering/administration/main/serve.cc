@@ -2,6 +2,9 @@
 
 #include <stdio.h>
 
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
 #include "arch/arch.hpp"
 #include "arch/os_signal.hpp"
 #include "clustering/administration/admin_tracker.hpp"

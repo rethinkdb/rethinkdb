@@ -5,6 +5,9 @@
 
 #include <algorithm>
 
+#include "errors.hpp"
+#include <boost/scoped_ptr.hpp>
+
 #include "arch/arch.hpp"
 #include "containers/scoped.hpp"
 #include "containers/segmented_vector.hpp"
@@ -1478,7 +1481,7 @@ std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config
 }
 
 bool check_files(const config_t *cfg) {
-    boost::scoped_ptr<io_backender_t> backender;
+    scoped_ptr_t<io_backender_t> backender;
     make_io_backender(cfg->io_backend, &backender);
 
     // 1. Open.
