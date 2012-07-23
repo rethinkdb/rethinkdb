@@ -174,10 +174,9 @@ void make_io_backender(io_backend_t backend, boost::scoped_ptr<io_backender_t> *
 
 /* Disk account object */
 
-linux_file_account_t::linux_file_account_t(linux_file_t *par, int pri, int outstanding_requests_limit_) :
-    parent(par), priority(pri),
-    outstanding_requests_limit(outstanding_requests_limit_),
-    account(parent->diskmgr->create_account(priority, outstanding_requests_limit)) { }
+linux_file_account_t::linux_file_account_t(linux_file_t *par, int pri, int outstanding_requests_limit) :
+    parent(par),
+    account(parent->diskmgr->create_account(pri, outstanding_requests_limit)) { }
 
 linux_file_account_t::~linux_file_account_t() {
     parent->diskmgr->destroy_account(account);

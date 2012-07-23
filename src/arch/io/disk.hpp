@@ -92,8 +92,6 @@ private:
        IO backend is chosen. */
     // Maybe accounting_diskmgr_t shouldn't be a templated class then.
 
-    int priority;
-    int outstanding_requests_limit;
     void *account;
 };
 
