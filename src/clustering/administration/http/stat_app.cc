@@ -59,11 +59,11 @@ cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &no
     scoped_cJSON_t ghosts(cJSON_CreateArray());
     scoped_cJSON_t timed_out(cJSON_CreateArray());
 
-    std::map<peer_id_t,machine_id_t> peer_id_to_machine_id(directory->subview(
+    std::map<peer_id_t, machine_id_t> peer_id_to_machine_id(directory->subview(
             field_getter_t<machine_id_t, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::machine_id
             ))->get());
-    std::map<machine_id_t,peer_id_t> machine_id_to_peer_id(invert_bijection_map(peer_id_to_machine_id));
+    std::map<machine_id_t, peer_id_t> machine_id_to_peer_id(invert_bijection_map(peer_id_to_machine_id));
 
     machines_semilattice_metadata_t::machine_map_t machines_ids = semilattice->get().machines.machines;
     for (machines_semilattice_metadata_t::machine_map_t::const_iterator it = machines_ids.begin(); it != machines_ids.end(); it++) {

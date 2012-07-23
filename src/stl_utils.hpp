@@ -36,8 +36,8 @@ void debug_print(append_only_printf_buffer_t *buf, const std::vector<T> &vec);
 template <class T, class U>
 void debug_print(append_only_printf_buffer_t *buf, const std::pair<T, U> &p);
 
-template<typename A, typename B>
-std::map<B,A> invert_bijection_map(const std::map<A,B> &bijection);
+template<class A, class B>
+std::map<B, A> invert_bijection_map(const std::map<A, B> &bijection);
 
 #include "stl_utils.tcc"
 

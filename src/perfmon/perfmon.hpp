@@ -39,12 +39,13 @@ struct perfmon_perthread_t : public perfmon_t {
         return new thread_stat_t[get_num_threads()];
     }
     void visit_stats(void *data) {
-        get_thread_stat(&(reinterpret_cast<thread_stat_t *>(data))[get_thread_id()]);
+        get_thread_stat(&(static_cast<thread_stat_t *>(data))[get_thread_id()]);
     }
-    perfmon_result_t *end_stats(void *data) {
-        combined_stat_t combined = combine_stats(reinterpret_cast<thread_stat_t *>(data));
+    perfmon_result_t *end_stats(void *v_data) {
+        thread_stat_t *data = static_cast<thread_stat_t *>(v_data);
+        combined_stat_t combined = combine_stats(data);
         perfmon_result_t *result = output_stat(combined);
-        delete[] reinterpret_cast<thread_stat_t *>(data);
+        delete[] data;
         return result;
     }
 

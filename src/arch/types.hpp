@@ -1,6 +1,8 @@
 #ifndef ARCH_TYPES_HPP_
 #define ARCH_TYPES_HPP_
 
+#include <string>
+
 #include "utils.hpp"
 
 #define DEFAULT_DISK_ACCOUNT (static_cast<linux_file_account_t *>(0))
