@@ -154,11 +154,13 @@ int64_t socket_stream_t::read(void *buf, int64_t size) {
             guarantee(res <= size);
             return res;
 
-        } else if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
+        } else if (res == -1 && errno == EINTR) {
+            // Go around loop & retry system call.
+
+        } else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             // Wait until we can read, or we shut down.
             if (!fd_watcher_->wait_for_read())
                 return -1;          // we shut down.
-
             // Go around the loop to try to read again
 
         } else {
@@ -199,7 +201,10 @@ int64_t socket_stream_t::write(const void *buf, int64_t size) {
             size -= res;
             // Go around the loop; keep writing until done.
 
-        } else if (res == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
+        } else if (res == -1 && errno == EINTR) {
+            // Go around the loop & retry system call
+
+        } else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             // Wait until we can write, or we shut down.
             if (!fd_watcher_->wait_for_write())
                 return -1;      // we shut down.
@@ -282,7 +287,10 @@ int unix_socket_stream_t::send_fds(size_t num_fds, int *fds) {
         return -1;
 
     while (-1 == ::send_fds(fd_.get(), num_fds, fds)) {
-        if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) {
+        // Retry on interruption
+        if (errno == EINTR) continue;
+
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
             if (errno != EPIPE && errno != ENOTCONN && errno != ECONNRESET) {
                 // Unexpected error (not just "we closed")
                 logERR("Could not send fds on socket: %s", strerror(errno));
@@ -309,9 +317,10 @@ archive_result_t unix_socket_stream_t::recv_fds(size_t num_fds, int *fds) {
           case FD_RECV_EOF: return ARCHIVE_SOCK_EOF;
 
           case FD_RECV_ERROR:
-            if ((errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
-                // Wait until we can read, or we shut down.
-                && fd_watcher_->wait_for_read())
+            if (errno == EINTR // retry if interrupted
+                || ((errno == EAGAIN || errno == EWOULDBLOCK)
+                    // Wait until we can read, or we shut down.
+                    && fd_watcher_->wait_for_read()))
             {
                 // Go around the loop and try again.
                 continue;
