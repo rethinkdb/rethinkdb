@@ -806,9 +806,7 @@ linux_nonthrowing_tcp_listener_t::~linux_nonthrowing_tcp_listener_t() {
     /* Interrupt the accept loop */
     accept_loop_drainer.reset();
 
-    int res;
-
-    res = shutdown(sock.get(), SHUT_RDWR);
+    int res = shutdown(sock.get(), SHUT_RDWR);
     guarantee_err(res == 0, "Could not shutdown main socket");
 
     // scoped_fd_t destructor will close() the socket
@@ -825,21 +823,11 @@ void linux_nonthrowing_tcp_listener_t::on_event(int events) {
 }
 
 linux_tcp_bound_socket_t::linux_tcp_bound_socket_t(int _port) :
-        linux_nonthrowing_tcp_listener_t(_port, noop)
-{
-    if(!bind_socket()) {
-        throw address_in_use_exc_t("localhost", port);
-    }
-}
+        port(_port)
+{ }
 
 int linux_tcp_bound_socket_t::get_port() const {
     return port;
-}
-
-fd_t linux_tcp_bound_socket_t::release() {
-    fd_t tmp = sock.get();
-    sock.reset(INVALID_FD);
-    return tmp;
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(int port,
@@ -856,9 +844,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(
                     boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> callback) :
     linux_nonthrowing_tcp_listener_t(bound_socket->get_port(), callback)
 {
-    bound_socket->callback = callback;
-
-    if(!bound_socket->begin_listening()) {
+    if(!begin_listening()) {
         throw address_in_use_exc_t("localhost", port);
     }
 }

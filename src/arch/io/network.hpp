@@ -318,17 +318,13 @@ protected:
     bool log_next_error;
 };
 
-/* Used by the deprecated old style tcp listener */
-class linux_tcp_bound_socket_t : public linux_nonthrowing_tcp_listener_t {
+/* Used by the old style tcp listener */
+class linux_tcp_bound_socket_t {
 public:
     explicit linux_tcp_bound_socket_t(int _port);
     int get_port() const;
-    MUST_USE fd_t release();
-
-    friend class linux_tcp_listener_t;
-
 private:
-    boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> noop;
+    int port;
 };
 
 /* Replicates old constructor-exception-throwing style for backwards compaitbility */
