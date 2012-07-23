@@ -160,7 +160,7 @@ void linux_thread_pool_t::enable_coroutine_summary() {
 }
 #endif
 
-void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
+void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_message) {
     int res;
 
     do_shutdown = false;

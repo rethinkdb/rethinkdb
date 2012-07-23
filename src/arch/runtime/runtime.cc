@@ -58,5 +58,5 @@ private:
 void run_in_thread_pool(const boost::function<void()>& fun, int worker_threads) {
     linux_thread_pool_t thread_pool(worker_threads, false);
     starter_t starter(&thread_pool, fun);
-    thread_pool.run(&starter);
+    thread_pool.run_thread_pool(&starter);
 }

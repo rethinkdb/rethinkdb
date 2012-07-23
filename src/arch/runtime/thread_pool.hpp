@@ -47,7 +47,7 @@ public:
     // Blocks while threads are working. Only returns after shutdown() is called. initial_message
     // is a thread message that will be delivered to one of the threads after all of the event queues
     // have been started; it is used to start the server's activity.
-    void run(linux_thread_message_t *initial_message);
+    void run_thread_pool(linux_thread_message_t *initial_message);
 
 #ifndef NDEBUG
     void enable_coroutine_summary();
