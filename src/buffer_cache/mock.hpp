@@ -99,7 +99,7 @@ public:
 
     void snapshot() { }
 
-    void set_account(UNUSED const boost::shared_ptr<mock_cache_account_t>& cache_account) { }
+    void set_account(UNUSED mock_cache_account_t *cache_account) { }
 
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb);
 
@@ -122,6 +122,7 @@ private:
 /* Cache */
 
 class mock_cache_account_t {
+    friend class mock_cache_t;
     mock_cache_account_t() { }
     DISABLE_COPYING(mock_cache_account_t);
 };
@@ -138,7 +139,9 @@ public:
 
     block_size_t get_block_size();
 
-    boost::shared_ptr<mock_cache_account_t> create_cache_account(UNUSED int priority) { return boost::shared_ptr<mock_cache_account_t>(); }
+    void create_cache_account(UNUSED int priority, scoped_ptr_t<mock_cache_account_t> *out) {
+        out->init(new mock_cache_account_t());
+    }
 
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, const intrusive_ptr_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
 
