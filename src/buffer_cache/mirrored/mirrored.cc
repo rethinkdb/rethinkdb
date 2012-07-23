@@ -1069,6 +1069,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
       recency_timestamp(_recency_timestamp),
       snapshot_version(mc_inner_buf_t::faux_version_id),
       snapshotted(false),
+      cache_account_(NULL),
       num_buf_locks_acquired(0),
       is_writeback_transaction(false) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
@@ -1097,6 +1098,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     recency_timestamp(repli_timestamp_t::distant_past),
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false),
+    cache_account_(NULL),
     num_buf_locks_acquired(0),
     is_writeback_transaction(false) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
@@ -1118,6 +1120,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     recency_timestamp(repli_timestamp_t::distant_past),
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false),
+    cache_account_(NULL),
     num_buf_locks_acquired(0),
     is_writeback_transaction(true) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
@@ -1177,8 +1180,6 @@ mc_transaction_t::~mc_transaction_t() {
 
     cache->stats->pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
     cache->stats->pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
-
-    cache_account_.reset();
 }
 
 void mc_transaction_t::maybe_finalize_version() {
@@ -1203,12 +1204,14 @@ void mc_transaction_t::snapshot() {
     snapshotted = true;
 }
 
-void mc_transaction_t::set_account(const boost::shared_ptr<mc_cache_account_t>& cache_account) {
+void mc_transaction_t::set_account(mc_cache_account_t *cache_account) {
+    rassert(cache_account_ == NULL, "trying to set the transaction's cache_account twice");
+
     cache_account_ = cache_account;
 }
 
 file_account_t *mc_transaction_t::get_io_account() const {
-    return (cache_account_.get() == NULL ? cache->reads_io_account.get() : cache_account_->io_account_);
+    return (cache_account_ == NULL ? cache->reads_io_account.get() : cache_account_->io_account_);
 }
 
 void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
@@ -1454,7 +1457,7 @@ bool mc_cache_t::contains_block(block_id_t block_id) {
 }
 
 
-boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_cache_account(int priority) {
+void mc_cache_t::create_cache_account(int priority, scoped_ptr_t<mc_cache_account_t> *out) {
     // We assume that a priority of 100 means that the transaction should have the same priority as
     // all the non-accounted transactions together. Not sure if this makes sense.
 
@@ -1470,7 +1473,7 @@ boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_cache_account(int prior
         io_account = serializer->make_io_account(io_priority, outstanding_requests_limit);
     }
 
-    return boost::shared_ptr<mc_cache_account_t>(new mc_cache_account_t(serializer->home_thread(), io_account));
+    out->init(new mc_cache_account_t(serializer->home_thread(), io_account));
 }
 
 void mc_cache_t::on_transaction_commit(mc_transaction_t *txn) {
