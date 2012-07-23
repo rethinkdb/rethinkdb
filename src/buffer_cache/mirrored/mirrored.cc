@@ -1069,54 +1069,9 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
       recency_timestamp(_recency_timestamp),
       snapshot_version(mc_inner_buf_t::faux_version_id),
       snapshotted(false),
-      num_buf_locks_acquired(0)
-{
+      num_buf_locks_acquired(0),
+      is_writeback_transaction(false) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
-
-    // HISTORICAL COMMENTS:
-
-    // Writes and reads must separately have their order preserved,
-    // but we're expecting, in the case of throttling, for writes to
-    // be throttled while reads are not.
-
-    // We think there is a bug in throttling that could reorder writes
-    // when throttling _ends_.  Reordering can also happen if
-    // begin_transaction sometimes returns NULL and other times does
-    // not, because then in one case cb.join() needs to spin around
-    // the event loop.  So there's an obvious problem with the code
-    // below, if we did not have coro_fifo_acq_t protecting it.
-
-    // MODERN COMMENTS:
-
-    // Why do "writes" need to have their order preserved at all, now
-    // that we have sequence_group_t?  Perhaps it's because in the
-    // presence of replication, that prevents the gated store gate
-    // limitations being bypassed.  You could look at the gated store
-    // code to prove or disprove this claim, but since v1.1.x is
-    // supposed to be stable, we're being conservative.
-    //
-    // Yeah.  Really it's only backfill or replication that is the big
-    // question and the reason we're being conservative here.
-
-    // POST-MODERN COMMENTS:
-    //
-    // It would make more sense if this function took a
-    // per_slice_sequence_group_t, instead of taking a
-    // sequence_group_t and having the cache know about what slice it
-    // is.  This would be proper software design.  However, it would
-    // require that stop using the get_store and set_store_interface_t
-    // stuff as abstract classes, or interfaces.  While that would
-    // make sense, and even though it always would have made sense,
-    // that would be more pain to do and then merge.  So we're not
-    // doing it.
-
-    // It is important that we leave the sequence group's fifo _after_
-    // we leave the write throttle fifo.  So we construct it first.
-    // (The destructor will run after.)
-
-    // POST-POST-MODERN COMMENTS:
-
-    // Sequence groups are going away now.
 
     coro_fifo_acq_t write_throttle_acq;
 
@@ -1128,7 +1083,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
     cache->assert_thread();
     rassert(!cache->shutting_down);
     rassert(access == rwi_write || expected_change_count == 0);
-    cache->num_live_transactions++;
+    cache->num_live_non_writeback_transactions++;
     cache->writeback.begin_transaction(this);
 
     cache->stats->pm_transactions_active.begin(&start_time);
@@ -1142,8 +1097,8 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     recency_timestamp(repli_timestamp_t::distant_past),
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false),
-    num_buf_locks_acquired(0)
-{
+    num_buf_locks_acquired(0),
+    is_writeback_transaction(false) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
@@ -1151,7 +1106,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
 
     cache->assert_thread();
     rassert(dont_assert_about_shutting_down || !cache->shutting_down);
-    cache->num_live_transactions++;
+    cache->num_live_non_writeback_transactions++;
     cache->writeback.begin_transaction(this);
     cache->stats->pm_transactions_active.begin(&start_time);
 }
@@ -1163,13 +1118,13 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     recency_timestamp(repli_timestamp_t::distant_past),
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false),
-    num_buf_locks_acquired(0)
-{
+    num_buf_locks_acquired(0),
+    is_writeback_transaction(true) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
 
     cache->assert_thread();
-    cache->num_live_transactions++;
+    cache->num_live_writeback_transactions++;
     cache->writeback.begin_transaction(this);
     cache->stats->pm_transactions_active.begin(&start_time);
 }
@@ -1343,7 +1298,8 @@ mc_cache_t::mc_cache_t(serializer_t *_serializer,
     /* Build list of free blocks (the free_list constructor blocks) */
     free_list(_serializer, stats.get()),
     shutting_down(false),
-    num_live_transactions(0),
+    num_live_writeback_transactions(0),
+    num_live_non_writeback_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),
     max_patches_size_ratio((dynamic_config->wait_for_flush || dynamic_config->flush_timer_ms == 0) ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
     read_ahead_registered(false),
@@ -1387,12 +1343,17 @@ mc_cache_t::~mc_cache_t() {
     shutting_down = true;
     serializer->unregister_read_ahead_cb(this);
 
+    rassert(num_live_non_writeback_transactions == 0,
+            "num_live_non_writeback_transactions is %d\n",
+            num_live_non_writeback_transactions);
+
     /* Wait for all transactions to commit before shutting down */
-    if (num_live_transactions > 0) {
+    if (num_live_non_writeback_transactions + num_live_writeback_transactions > 0) {
         cond_t cond;
         to_pulse_when_last_transaction_commits = &cond;
         cond.wait();
-        to_pulse_when_last_transaction_commits = NULL; // writeback is going to start another transaction, we don't want to get notified again (which would fail)
+        // writeback is going to start another transaction, we don't want to get notified again (which would fail)
+        to_pulse_when_last_transaction_commits = NULL;
     }
 
     if (writeback.has_active_flushes()) {
@@ -1403,7 +1364,9 @@ mc_cache_t::~mc_cache_t() {
     }
 
     rassert(!writeback.has_active_flushes());
-    rassert(num_live_transactions == 0, "num_live_transactions = %d", num_live_transactions);
+    rassert(num_live_writeback_transactions + num_live_non_writeback_transactions == 0,
+            "num_live_writeback_transactions = %d, num_live_non_writeback_transactions = %d",
+            num_live_writeback_transactions, num_live_non_writeback_transactions);
 
     /* Perform a final sync */
     struct : public writeback_t::sync_callback_t, public cond_t {
@@ -1515,8 +1478,13 @@ void mc_cache_t::on_transaction_commit(mc_transaction_t *txn) {
 
     writeback.on_transaction_commit(txn);
 
-    num_live_transactions--;
-    if (to_pulse_when_last_transaction_commits && num_live_transactions == 0) {
+    if (txn->is_writeback_transaction) {
+        num_live_writeback_transactions--;
+    } else {
+        num_live_non_writeback_transactions--;
+    }
+
+    if (to_pulse_when_last_transaction_commits && num_live_writeback_transactions + num_live_non_writeback_transactions == 0) {
         // We started a shutdown earlier, but we had to wait for the transactions to all finish.
         // Now that all transactions are done, continue shutting down.
         to_pulse_when_last_transaction_commits->pulse();

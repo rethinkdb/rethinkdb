@@ -297,6 +297,9 @@ private:
 
     int64_t num_buf_locks_acquired;
 
+    // TODO: Make this debug-only.
+    bool is_writeback_transaction;
+
     DISABLE_COPYING(mc_transaction_t);
 };
 
@@ -408,9 +411,13 @@ private:
     bool writebacks_allowed;
 #endif
 
-    // Used to keep track of how many transactions there are so that we can wait for transactions to
-    // complete before shutting down.
-    int num_live_transactions;
+    // Used to keep track of how many transactions there are so that
+    // we can wait for transactions to complete before shutting down,
+    // and assert that there are no non-writeback transactions when
+    // the cache destructor is called.
+    int num_live_writeback_transactions;
+    int num_live_non_writeback_transactions;
+
     cond_t *to_pulse_when_last_transaction_commits;
 
     patch_memory_storage_t patch_memory_storage;
