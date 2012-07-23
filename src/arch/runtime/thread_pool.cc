@@ -175,10 +175,8 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
         tdata->barrier = &barrier;
         tdata->thread_pool = this;
         tdata->current_thread = i;
-        // The initial message (which creates utility workers) gets
-        // sent to the last thread. The last thread is not reported by
-        // get_num_db_threads() (see it for more details).
-        tdata->initial_message = (i == n_threads - 1) ? initial_message : NULL;
+        // The initial message gets sent to thread zero.
+        tdata->initial_message = (i == 0) ? initial_message : NULL;
 
         res = pthread_create(&pthreads[i], NULL, &start_thread, tdata);
         guarantee(res == 0, "Could not create thread");
