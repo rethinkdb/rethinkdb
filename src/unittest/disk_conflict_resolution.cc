@@ -11,8 +11,11 @@
 
 namespace unittest {
 
-static const int FAKE_FD = 0;
 struct test_driver_t {
+    /* We need for multiple test_driver_t objects to share a file
+       descriptor in order to test the conflict resolution logic, but
+       it doesn't matter what that file descriptor is. */
+    static const int IRRELEVANT_DEFAULT_FD = 0;
 
     struct core_action_t : public intrusive_list_node_t<core_action_t> {
         bool get_is_write() const { return !is_read; }
@@ -27,7 +30,8 @@ struct test_driver_t {
         size_t count;
         off_t offset;
 
-        core_action_t() : has_begun(false), done(false), fd(FAKE_FD) { }
+        core_action_t() :
+            has_begun(false), done(false), fd(IRRELEVANT_DEFAULT_FD) { }
         bool has_begun, done;
         fd_t fd;
     };
