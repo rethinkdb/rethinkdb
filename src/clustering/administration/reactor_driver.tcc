@@ -149,7 +149,7 @@ private:
         // TODO: We probably shouldn't have to pass in this perfmon collection.
         svs_by_namespace->get_svs(serializers_collection, namespace_id, &stores_lifetimer, &svs);
 
-        reactor.reset(new reactor_t<protocol_t>(
+        reactor.init(new reactor_t<protocol_t>(
             io_backender,
             parent->mbox_manager,
             this,
@@ -160,7 +160,7 @@ private:
 
         {
             typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::freeze_t reactor_directory_freeze(reactor->get_reactor_directory());
-            reactor_directory_subscription.reset(
+            reactor_directory_subscription.init(
                 new typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t(
                     boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
                     reactor->get_reactor_directory(), &reactor_directory_freeze
@@ -182,10 +182,10 @@ private:
     svs_by_namespace_t<protocol_t> *const svs_by_namespace;
 
     stores_lifetimer_t<protocol_t> stores_lifetimer;
-    boost::scoped_ptr<multistore_ptr_t<protocol_t> > svs;
-    boost::scoped_ptr<reactor_t<protocol_t> > reactor;
+    scoped_ptr_t<multistore_ptr_t<protocol_t> > svs;
+    scoped_ptr_t<reactor_t<protocol_t> > reactor;
 
-    boost::scoped_ptr<typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t> reactor_directory_subscription;
+    scoped_ptr_t<typename watchable_t<directory_echo_wrapper_t<reactor_business_card_t<protocol_t> > >::subscription_t> reactor_directory_subscription;
 
     DISABLE_COPYING(watchable_and_reactor_t);
 };

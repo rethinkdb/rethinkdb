@@ -22,7 +22,7 @@ const char *const cluster_proto_header = CLUSTER_PROTO_HEADER;
 connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
         int port,
         message_handler_t *mh,
-        int client_port) THROWS_NOTHING :
+        int client_port) THROWS_ONLY(address_in_use_exc_t) :
     parent(p), message_handler(mh),
 
     /* The local port to use when connecting to the cluster port of peers */
@@ -129,13 +129,13 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::~entry_
     }
 }
 
-void connectivity_cluster_t::run_t::on_new_connection(const boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
+void connectivity_cluster_t::run_t::on_new_connection(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING {
     parent->assert_thread();
 
     // conn gets owned by the tcp_conn_stream_t.
     tcp_conn_t *conn;
     nconn->ennervate(&conn);
-    boost::scoped_ptr<tcp_conn_stream_t> conn_stream(new tcp_conn_stream_t(conn));
+    scoped_ptr_t<tcp_conn_stream_t> conn_stream(new tcp_conn_stream_t(conn));
 
     handle(conn_stream.get(), boost::none, boost::none, lock);
 }
@@ -304,7 +304,7 @@ void connectivity_cluster_t::run_t::handle(
     established. When there are multiple connections trying to be established,
     this is referred to as a "conflict". */
 
-    boost::scoped_ptr<map_insertion_sentry_t<peer_id_t, peer_address_t> >
+    scoped_ptr_t<map_insertion_sentry_t<peer_id_t, peer_address_t> >
         routing_table_entry_sentry;
 
     /* We pick one side of the connection to be the "leader" and the other side
@@ -345,7 +345,7 @@ void connectivity_cluster_t::run_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table_entry_sentry.reset(
+            routing_table_entry_sentry.init(
                 new map_insertion_sentry_t<peer_id_t, peer_address_t>(
                     &routing_table, other_id, other_address
                     ));
@@ -390,7 +390,7 @@ void connectivity_cluster_t::run_t::handle(
 
             /* Register ourselves while in the critical section, so that whoever
             comes next will see us */
-            routing_table_entry_sentry.reset(
+            routing_table_entry_sentry.init(
                 new map_insertion_sentry_t<peer_id_t, peer_address_t>(
                     &routing_table, other_id, other_address
                     ));

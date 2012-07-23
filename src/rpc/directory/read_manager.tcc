@@ -152,7 +152,10 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
 
     /* Create a metadata FIFO sink and pulse the `got_initial_message` cond so
     that instances of `propagate_update()` can proceed */
-    session->metadata_fifo_sink.reset(new fifo_enforcer_sink_t(metadata_fifo_state));
+    // TODO: Do we want this .reset() here?  It is not easily provable
+    // that it'll be initialized only once.
+    session->metadata_fifo_sink.reset();
+    session->metadata_fifo_sink.init(new fifo_enforcer_sink_t(metadata_fifo_state));
     session->got_initial_message.pulse();
 }
 

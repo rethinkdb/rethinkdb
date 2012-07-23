@@ -55,7 +55,7 @@ public:
         run_t(connectivity_cluster_t *parent,
             int port,
             message_handler_t *message_handler,
-            int client_port = 0) THROWS_NOTHING;
+            int client_port = 0) THROWS_ONLY(address_in_use_exc_t);
 
         ~run_t();
 
@@ -131,7 +131,7 @@ public:
             run_t *value;
         };
 
-        void on_new_connection(const boost::scoped_ptr<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING;
+        void on_new_connection(const scoped_ptr_t<nascent_tcp_conn_t> &nconn, auto_drainer_t::lock_t lock) THROWS_NOTHING;
 
         /* `connectivity_cluster_t::join_blocking()` is spawned in a new
         coroutine by `connectivity_cluster_t::join()`. It's also run by

@@ -12,7 +12,7 @@ namespace unittest {
 
 void run_many_ints_test() {
     static const int NUM_ELTS_IN_QUEUE = 1000;
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
     disk_backed_queue_t<int> queue(io_backender.get(), "test", &get_global_perfmon_collection());
     std::queue<int> ref_queue;
@@ -35,7 +35,7 @@ TEST(DiskBackedQueue, ManyInts) {
 
 void run_big_values_test() {
     static const int NUM_BIG_ELTS_IN_QUEUE = 100;
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
     disk_backed_queue_t<std::string> queue(io_backender.get(), "test", &get_global_perfmon_collection());
@@ -64,7 +64,7 @@ static void randomly_delay(int, signal_t *) {
 }
 
 void run_concurrent_test() {
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
     disk_backed_queue_wrapper_t<int> queue(io_backender.get(), "test", &get_global_perfmon_collection());

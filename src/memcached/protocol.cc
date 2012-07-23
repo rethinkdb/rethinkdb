@@ -10,8 +10,10 @@
 #include "concurrency/access.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/iterators.hpp"
+#include "containers/scoped.hpp"
 #include "memcached/btree/append_prepend.hpp"
 #include "memcached/btree/delete.hpp"
 #include "memcached/btree/distribution.hpp"
@@ -74,6 +76,16 @@ RDB_IMPL_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount);
 RDB_IMPL_SERIALIZABLE_2(incr_decr_result_t, res, new_value);
 RDB_IMPL_SERIALIZABLE_3(append_prepend_mutation_t, kind, key, data);
 RDB_IMPL_SERIALIZABLE_6(backfill_atom_t, key, value, flags, exptime, recency, cas_or_zero);
+
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::read_response_t, result);
+RDB_IMPL_SERIALIZABLE_2(memcached_protocol_t::read_t, query, effective_time);
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::write_response_t, result);
+RDB_IMPL_SERIALIZABLE_3(memcached_protocol_t::write_t, mutation, proposed_cas, effective_time);
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t::delete_key_t, key);
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t::delete_range_t, range);
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t::key_value_pair_t, backfill_atom);
+RDB_IMPL_SERIALIZABLE_1(memcached_protocol_t::backfill_chunk_t, val);
+
 
 
 hash_region_t<key_range_t> monokey_region(const store_key_t &k) {
@@ -466,7 +478,7 @@ memcached_protocol_t::store_t::store_t(io_backender_t *io_backender, const std::
         scoped_ptr_t<real_superblock_t> superblock;
         order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::store_t");
         order_token = btree->order_checkpoint_.check_through(order_token);
-        get_btree_superblock(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, &txn);
+        get_btree_superblock_and_txn(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, &txn);
         buf_lock_t* sb_buf = superblock->get();
         clear_superblock_metainfo(txn.get(), sb_buf);
 
@@ -510,7 +522,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_read(
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_read");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_reading(btree.get(), access, order_token, CACHE_SNAPSHOTTED_NO, sb_out, txn_out);
+    get_btree_superblock_and_txn_for_reading(btree.get(), access, order_token, CACHE_SNAPSHOTTED_NO, sb_out, txn_out);
 }
 
 void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
@@ -528,7 +540,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_backfill");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_backfilling(btree.get(), order_token, sb_out, txn_out);
+    get_btree_superblock_and_txn_for_backfilling(btree.get(), order_token, sb_out, txn_out);
 }
 
 void memcached_protocol_t::store_t::acquire_superblock_for_write(
@@ -548,7 +560,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_write(
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_write");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, sb_out, txn_out);
+    get_btree_superblock_and_txn(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, sb_out, txn_out);
 }
 
 memcached_protocol_t::store_t::metainfo_t
@@ -787,7 +799,8 @@ private:
 static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<hash_region_t<key_range_t>, state_timestamp_t> > &regions,
         memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, memcached_protocol_t::backfill_progress_t *progress) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
-    progress->add_constituent(p);
+    scoped_ptr_t<traversal_progress_t> p_owner(p);
+    progress->add_constituent(&p_owner);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, p);
 }

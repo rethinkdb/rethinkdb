@@ -200,7 +200,7 @@ std::string strprint_leaf(value_sizer_t<void> *sizer, const leaf_node_t *node) {
         out += strprintf(":");
         if (iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            out += strprintf("[t=%u]", tstamp.time);
+            out += strprintf("[t=%lu]", tstamp.longtime);
         }
         strprint_entry(&out, sizer, get_entry(node, iter.offset));
         iter.step(sizer, node);
@@ -256,7 +256,7 @@ void print(FILE *fp, value_sizer_t<void> *sizer, const leaf_node_t *node) {
         fflush(fp);
         if (iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            fprintf(fp, "[t=%u]", tstamp.time);
+            fprintf(fp, "[t=%lu]", tstamp.longtime);
             fflush(fp);
         }
         print_entry(fp, sizer, get_entry(node, iter.offset));
@@ -1146,7 +1146,7 @@ void assert_not_old_timestamp(DEBUG_ONLY_VAR leaf_node_t *node, DEBUG_ONLY_VAR r
         repli_timestamp_t old_tstamp = get_timestamp(node, node->frontmost);
         // Timestamps aren't unique (because they're low-resolution)
         // but they are in order.
-        rassert(tstamp >= old_tstamp, "tstamp = %u, old_tstamp = %u, key=%.*s", tstamp.time, old_tstamp.time, key->size, key->contents);
+        rassert(tstamp >= old_tstamp, "tstamp = %lu, old_tstamp = %lu, key=%.*s", tstamp.longtime, old_tstamp.longtime, key->size, key->contents);
     }
 #endif
 }
@@ -1296,7 +1296,7 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
-            rassert(earliest_so_far >= tstamp, "asserted earliest_so_far (%u) >= tstamp (%u)", earliest_so_far.time, tstamp.time);
+            rassert(earliest_so_far >= tstamp, "asserted earliest_so_far (%lu) >= tstamp (%lu)", earliest_so_far.longtime, tstamp.longtime);
             earliest_so_far = tstamp;
 
             if (tstamp < minimum_tstamp) {

@@ -10,7 +10,6 @@
 #include "btree/backfill.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
-#include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
 #include "memcached/queries.hpp"
@@ -63,7 +62,6 @@ public:
         explicit read_response_t(const result_t& r) : result(r) { }
 
         result_t result;
-        RDB_MAKE_ME_SERIALIZABLE_1(result);
     };
 
     struct read_t {
@@ -80,8 +78,6 @@ public:
 
         query_t query;
         exptime_t effective_time;
-
-        RDB_MAKE_ME_SERIALIZABLE_2(query, effective_time);
     };
 
     struct write_response_t {
@@ -92,7 +88,6 @@ public:
         explicit write_response_t(const result_t& rv) : result(rv) { }
 
         result_t result;
-        RDB_MAKE_ME_SERIALIZABLE_1(result);
     };
 
     struct write_t {
@@ -109,8 +104,6 @@ public:
         query_t mutation;
         cas_t proposed_cas;
         exptime_t effective_time;   /* so operations are deterministic even with expiration */
-
-        RDB_MAKE_ME_SERIALIZABLE_3(mutation, proposed_cas, effective_time);
     };
 
     struct backfill_chunk_t {
@@ -120,24 +113,18 @@ public:
 
             delete_key_t() { }
             delete_key_t(const store_key_t& key_, const repli_timestamp_t& recency_) : key(key_), recency(recency_) { }
-
-            RDB_MAKE_ME_SERIALIZABLE_1(key);
         };
         struct delete_range_t {
             region_t range;
 
             delete_range_t() { }
             explicit delete_range_t(const region_t& _range) : range(_range) { }
-
-            RDB_MAKE_ME_SERIALIZABLE_1(range);
         };
         struct key_value_pair_t {
             backfill_atom_t backfill_atom;
 
             key_value_pair_t() { }
             explicit key_value_pair_t(const backfill_atom_t& backfill_atom_) : backfill_atom(backfill_atom_) { }
-
-            RDB_MAKE_ME_SERIALIZABLE_1(backfill_atom);
         };
 
         backfill_chunk_t() { }
@@ -160,8 +147,6 @@ public:
         static backfill_chunk_t set_key(const backfill_atom_t& key) {
             return backfill_chunk_t(key_value_pair_t(key));
         }
-
-        RDB_MAKE_ME_SERIALIZABLE_1(val);
     };
 
     typedef traversal_progress_combiner_t backfill_progress_t;
@@ -278,6 +263,16 @@ public:
         perfmon_membership_t perfmon_collection_membership;
     };
 };
+
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::read_response_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::read_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::write_response_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::write_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::delete_key_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::delete_range_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t::key_value_pair_t);
+RDB_DECLARE_SERIALIZABLE(memcached_protocol_t::backfill_chunk_t);
+
 
 void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::write_t& write);
 void debug_print(append_only_printf_buffer_t *buf, const memcached_protocol_t::backfill_chunk_t& chunk);

@@ -3,9 +3,6 @@
 
 #include <set>
 
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-
 #include "arch/timing.hpp"
 #include "rpc/connectivity/cluster.hpp"
 
@@ -41,7 +38,7 @@ private:
     connectivity_cluster_t *cluster;
     std::set<peer_address_t> peers_not_heard_from;
     cond_t done_signal;
-    boost::scoped_ptr<signal_timer_t> grace_period_timer;
+    scoped_ptr_t<signal_timer_t> grace_period_timer;
     auto_drainer_t drainer;
     connectivity_service_t::peers_list_subscription_t subs;
     bool successful_connection;
