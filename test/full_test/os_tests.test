@@ -8,7 +8,7 @@ os_list = [
             ]
 
 for os_name, build_folder, pkg_type in os_list:
-    mode = build_folder[len("build/") + 1:]
+    mode = build_folder[len("build/"):]
     do_test(
         "$RETHINKDB/scripts/VirtuaBuild/vm_access.py --vm-name %s --command 'cd rethinkdb && scripts/VirtuaBuild/smoke_test.py --mode %s --pkg-type %s'" % (os_name, mode, pkg_type),
         repeat = 1,
