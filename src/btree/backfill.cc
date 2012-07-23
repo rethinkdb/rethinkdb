@@ -79,7 +79,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             rassert(coro_t::self());
 
             for (int i = 0, e = block_ids.size(); i < e; ++i) {
-                if (block_ids[i] != NULL_BLOCK_ID && recencies[i].time >= since_when.time) {
+                if (block_ids[i] != NULL_BLOCK_ID && recencies[i] >= since_when) {
                     cb->receive_interesting_child(i);
                 }
             }
