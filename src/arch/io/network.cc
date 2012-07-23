@@ -60,7 +60,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port, signal_t 
 
     int res = connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)); if (res != 0) {
         if (errno == EINPROGRESS) {
-            linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
+            linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
             wait_interruptible(&watch, interruptor);
             int error;
             socklen_t error_size = sizeof(error);
@@ -142,7 +142,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
             /* There's no data available right now, so we must wait for a notification from the
             epoll queue, or for an order to shut down. */
 
-            linux_event_watcher_t::watch_t watch(event_watcher, poll_event_in);
+            linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_in);
             wait_any_t waiter(&watch, &read_closed);
             waiter.wait_lazily_unordered();
 
@@ -299,10 +299,10 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
     released once the write is over. */
     op->buffer = current_write_buffer->buffer;
     op->size = current_write_buffer->size;
-    op->dealloc = current_write_buffer;
+    op->dealloc = current_write_buffer.release();
     op->cond = NULL;
     op->keepalive = auto_drainer_t::lock_t(drainer.get());
-    current_write_buffer = get_write_buffer();
+    current_write_buffer.init(get_write_buffer());
 
     /* Acquire the write semaphore so the write queue doesn't get too long
     to be released once the write is completed by the coroutine pool */
@@ -329,7 +329,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             /* Wait for a notification from the event queue, or for an order to
             shut down */
-            linux_event_watcher_t::watch_t watch(event_watcher, poll_event_out);
+            linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
             wait_any_t waiter(&watch, &write_closed);
             waiter.wait_lazily_unordered();
 
@@ -521,44 +521,23 @@ void linux_tcp_conn_t::set_keepalive() {
     guarantee_err(res == 0, "setsockopt(SO_KEEPALIVE) failed");
 }
 
-linux_tcp_conn_t::~linux_tcp_conn_t() {
+linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
     assert_thread();
 
     if (is_read_open()) shutdown_read();
     if (is_write_open()) shutdown_write();
-
-    drainer.reset();
-
-    delete event_watcher;
-    event_watcher = NULL;
-
-    while (!unused_write_buffers.empty()) {
-        write_buffer_t *buffer = unused_write_buffers.head();
-        unused_write_buffers.pop_front();
-        delete buffer;
-    }
-
-    while (!unused_write_queue_ops.empty()) {
-        write_queue_op_t *op = unused_write_queue_ops.head();
-        unused_write_queue_ops.pop_front();
-        delete op;
-    }
-
-    delete current_write_buffer;
-    /* scoped_fd_t's destructor will take care of close()ing the socket. */
 }
 
 void linux_tcp_conn_t::rethread(int new_thread) {
     if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
         rassert(!read_in_progress);
         rassert(!write_in_progress);
-        rassert(event_watcher);
-        delete event_watcher;
-        event_watcher = NULL;
+        rassert(event_watcher.has());
+        event_watcher.reset();
 
     } else if (home_thread() == INVALID_THREAD && new_thread == get_thread_id()) {
-        rassert(!event_watcher);
-        event_watcher = new linux_event_watcher_t(sock.get(), this);
+        rassert(!event_watcher.has());
+        event_watcher.init(new linux_event_watcher_t(sock.get(), this));
 
     } else {
         crash("linux_tcp_conn_t can be rethread()ed from no thread to the current thread or "
