@@ -17,6 +17,14 @@ Handlebars.registerHelper 'comma_separated', (context, block) ->
         out += ", " if i isnt context.length-1
     return out
 
+# Returns a comma-separated list of the provided array without the need of a transformation
+Handlebars.registerHelper 'comma_separated_simple', (context) ->
+    out = ""
+    for i in [0...context.length]
+        out += context[i]
+        out += ", " if i isnt context.length-1
+    return out
+
 # Returns an html list
 Handlebars.registerHelper 'html_list', (context) ->
     out = "<ul>"

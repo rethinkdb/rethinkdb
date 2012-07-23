@@ -9,6 +9,7 @@ module 'NamespaceView', ->
 
     # Container for the entire namespace view
     class @Container extends Backbone.View
+        #TODO Add a class to keep alert when adding multiple namespaces
         className: 'namespace-view'
         template: Handlebars.compile $('#namespace_view-container-template').html()
         alert_tmpl: Handlebars.compile $('#modify_shards-alert-template').html()
