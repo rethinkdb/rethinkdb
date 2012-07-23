@@ -18,8 +18,7 @@ conflict_resolving_diskmgr_t<payload_t>::~conflict_resolving_diskmgr_t() {
     for (typename all_chunk_queues_t::iterator fd_t_chunk_queues = all_chunk_queues.begin();
          fd_t_chunk_queues != all_chunk_queues.end();
          ++fd_t_chunk_queues) {
-        chunk_queues_t &chunk_queues = fd_t_chunk_queues->second;
-        rassert(chunk_queues.empty());
+        rassert(fd_t_chunk_queues->second.empty());
     }
 }
 
