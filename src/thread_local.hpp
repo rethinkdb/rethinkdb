@@ -8,8 +8,8 @@
 static pthread_key_t TLS_ ## name ## _key; \
 static pthread_once_t TLS_ ## name ## _key_once; \
 \
-static void TLS_ ## name ## _destructor(void * ptr) {\
-    delete reinterpret_cast<type *>(ptr);\
+static void TLS_ ## name ## _destructor(void *ptr) {\
+    delete static_cast<type *>(ptr);\
 }\
 \
 static void TLS_make_ ## name ## _key() {\
@@ -28,12 +28,12 @@ static void TLS_intialize_ ## name () {\
 \
 type TLS_get_ ## name () {\
     TLS_intialize_ ## name();\
-    return *reinterpret_cast<type *>(pthread_getspecific(TLS_ ## name ## _key));\
+    return *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key));\
 }\
 \
 void TLS_set_ ## name (type val) {\
     TLS_intialize_ ## name();\
-    *reinterpret_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)) = val;\
+    *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)) = val;\
 }
 
 #else
@@ -63,8 +63,8 @@ void TLS_set_ ## name(type val) {\
 static pthread_key_t TLS_ ## name ## _key; \
 static pthread_once_t TLS_ ## name ## _key_once; \
 \
-static void TLS_ ## name ## _destructor(void * ptr) {\
-    delete reinterpret_cast<type *>(ptr);\
+static void TLS_ ## name ## _destructor(void *ptr) {\
+    delete static_cast<type *>(ptr);\
 }\
 \
 static void TLS_make_ ## name ## _key() {\
@@ -82,12 +82,12 @@ static void TLS_intialize_ ## name () {\
 \
 type TLS_get_ ## name () {\
     TLS_intialize_ ## name();\
-    return *reinterpret_cast<type *>(pthread_getspecific(TLS_ ## name ## _key));\
+    return *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key));\
 }\
 \
 void TLS_set_ ## name (type val) {\
     TLS_intialize_ ## name();\
-    *reinterpret_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)) = val;\
+    *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)) = val;\
 }
 
 #else
