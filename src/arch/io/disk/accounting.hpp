@@ -3,6 +3,7 @@
 
 #include <boost/function.hpp>
 #include "containers/intrusive_list.hpp"
+#include "containers/scoped.hpp"
 #include "concurrency/queue/accounting.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "arch/io/disk.hpp"
@@ -88,12 +89,8 @@ public:
     struct account_t {
         account_t(accounting_diskmgr_t *par, int pri, int outstanding_requests_limit) :
             _par(par), _pri(pri),
-            _outstanding_requests_limit(outstanding_requests_limit),
-            eager_account(NULL) { }
-        virtual ~account_t() {
-            rassert(get_thread_id() == _par->home_thread());
-            delete eager_account;
-        }
+            _outstanding_requests_limit(outstanding_requests_limit) { }
+        virtual ~account_t() { rassert(get_thread_id() == _par->home_thread()); }
 
         void push(action_t *action) {
             maybe_init();
@@ -110,15 +107,15 @@ public:
 
     private:
         void maybe_init(){
-            if (!eager_account) {
+            if (!eager_account.get()) {
                 rassert(get_thread_id() == _par->home_thread());
-                eager_account = new eager_account_t(_par, _pri, _outstanding_requests_limit);
+                eager_account.init(new eager_account_t(_par, _pri, _outstanding_requests_limit));
             }
         }
         accounting_diskmgr_t *_par;
         int _pri;
         int _outstanding_requests_limit;
-        eager_account_t *eager_account;
+        scoped_ptr_t<eager_account_t> eager_account;
     };
 
     void submit(action_t *a) {
