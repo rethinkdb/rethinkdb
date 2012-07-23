@@ -300,6 +300,7 @@ bind_dev_tools = ->
 
     $('#reset-simulation-data').click (e) ->
         $.ajax
+            contentType: 'application/json'
             url: '/ajax/reset_data',
             success: ->
                 console.log 'Reset simulation data.'
@@ -307,6 +308,7 @@ bind_dev_tools = ->
 
     $('#reset-session').click (e) ->
         $.ajax
+            contentType: 'application/json'
             url: '/ajax/reset_session',
             success: ->
                 console.log 'Reset session.'
@@ -317,6 +319,7 @@ bind_dev_tools = ->
 
     $('#make-diff').click (e) ->
         $.ajax
+            contentType: 'application/json'
             url: '/ajax/make_diff',
             success: ->
                 console.log 'Made diff to simulation data.'
