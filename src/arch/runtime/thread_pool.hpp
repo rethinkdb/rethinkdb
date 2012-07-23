@@ -54,7 +54,7 @@ public:
 #endif
 
     // Shut down all the threads. Can be called from any thread.
-    void shutdown();
+    void shutdown_thread_pool();
 
     ~linux_thread_pool_t();
 

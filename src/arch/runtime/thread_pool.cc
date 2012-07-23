@@ -324,7 +324,7 @@ void linux_thread_pool_t::sigsegv_handler(int signum, siginfo_t *info, UNUSED vo
     }
 }
 
-void linux_thread_pool_t::shutdown() {
+void linux_thread_pool_t::shutdown_thread_pool() {
     int res;
 
     // This will tell the main() thread to tell all the child threads to

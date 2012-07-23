@@ -51,7 +51,7 @@ struct starter_t : public thread_message_t {
 private:
     void run_wrapper(const boost::function<void()>& fun) {
         fun();
-        tp->shutdown();
+        tp->shutdown_thread_pool();
     }
 };
 
