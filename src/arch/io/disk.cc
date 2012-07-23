@@ -83,7 +83,7 @@ public:
     }
 
     void submit_action_to_stack_stats(action_t *a) {
-        on_thread_t t(home_thread());
+        assert_thread();
         outstanding_txn++;
         stack_stats.submit(a);
     }
@@ -97,7 +97,7 @@ public:
         a->cb = cb;
         a->cb_thread = calling_thread;
 
-        coro_t::spawn_later_ordered(boost::bind(&linux_templated_disk_manager_t::submit_action_to_stack_stats, this, a));
+        do_on_thread(home_thread(), boost::bind(&linux_templated_disk_manager_t::submit_action_to_stack_stats, this, a));
     }
 
     void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
@@ -109,7 +109,7 @@ public:
         a->cb = cb;
         a->cb_thread = calling_thread;
 
-        coro_t::spawn_later_ordered(boost::bind(&linux_templated_disk_manager_t::submit_action_to_stack_stats, this, a));
+        do_on_thread(home_thread(), boost::bind(&linux_templated_disk_manager_t::submit_action_to_stack_stats, this, a));
     };
 
     void done(typename stack_stats_t::action_t *a) {
