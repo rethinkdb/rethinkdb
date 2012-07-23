@@ -106,12 +106,13 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
-        explicit rget_read_t(const key_range_t &_key_range)
-            : key_range(_key_range) { }
+        explicit rget_read_t(const key_range_t &_key_range, int _maximum)
+            : key_range(_key_range), maximum(_maximum) { }
 
         key_range_t key_range;
+        int maximum;
 
-        RDB_MAKE_ME_SERIALIZABLE_1(key_range);
+        RDB_MAKE_ME_SERIALIZABLE_2(key_range, maximum);
     };
 
     struct read_t {

@@ -1950,28 +1950,8 @@ view_t eval_view(const Term &t, runtime_environment_t *env, const backtrace_t &b
 
 view_t eval_view(const Term::Table &t, runtime_environment_t *env, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     namespace_repo_t<rdb_protocol_t>::access_t ns_access = eval(t.table_ref(), env, backtrace);
-    key_range_t range = key_range_t::universe();
-    rdb_protocol_t::rget_read_t rget_read(range);
-    rdb_protocol_t::read_t read(rget_read);
-    try {
-        rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, env->interruptor);
-        rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
-        rassert(p_res);
-
-        // Convert the result into a format the json stream can use
-        // TODO: probably better to not have this overhead, if possible
-        std::vector<boost::shared_ptr<scoped_cJSON_t> > data;
-        for (std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > >::iterator i = p_res->data.begin();
-             i != p_res->data.end(); ++i) {
-            data.push_back(i->second);
-            rassert(data.back());
-        }
-
-        boost::shared_ptr<json_stream_t> stream(new in_memory_stream_t(data.begin(), data.end()));
-        return view_t(ns_access, stream);
-    } catch (cannot_perform_query_exc_t e) {
-        throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);
-    }
+    boost::shared_ptr<json_stream_t> stream(new batched_rget_stream_t(ns_access, env->interruptor, key_range_t::universe(), 100, backtrace));
+    return view_t(ns_access, stream);
 }
 
 } //namespace query_language

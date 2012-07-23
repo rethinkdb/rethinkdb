@@ -49,6 +49,20 @@ public:
     backtrace_t backtrace;
 };
 
+class runtime_exc_t {
+public:
+    runtime_exc_t(const std::string &_what, const backtrace_t &bt)
+        : message(_what), backtrace(bt)
+    { }
+
+    std::string what() const throw() {
+        return message;
+    }
+
+    std::string message;
+    backtrace_t backtrace;
+};
+
 enum term_type_t {
     TERM_TYPE_JSON,
     TERM_TYPE_STREAM,
@@ -249,6 +263,65 @@ private:
     cJSON_list_t data;
 };
 
+class batched_rget_stream_t : public json_stream_t {
+public:
+    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, signal_t *_interruptor, key_range_t _range, int _batch_size,
+        backtrace_t _backtrace)
+        : ns_access(_ns_access), interruptor(_interruptor), range(_range), batch_size(_batch_size), index(0), finished(false), backtrace(_backtrace) { }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        if (data.empty()) {
+            if (finished) {
+                return boost::shared_ptr<scoped_cJSON_t>();
+            }
+            read_more();
+            if (data.empty()) {
+                finished = true;
+                return boost::shared_ptr<scoped_cJSON_t>();
+            }
+        }
+        boost::shared_ptr<scoped_cJSON_t> ret = data.front();
+        data.pop_front();
+        return ret;
+    }
+
+private:
+    void read_more() {
+        rdb_protocol_t::rget_read_t rget_read(range, batch_size);
+        rdb_protocol_t::read_t read(rget_read);
+        try {
+            rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, interruptor);
+            rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+            rassert(p_res);
+
+            // todo: just do a straight copy?
+            for (std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > >::iterator i = p_res->data.begin();
+                 i != p_res->data.end(); ++i) {
+                data.push_back(i->second);
+                rassert(data.back());
+                range.left = i->first;
+            }
+
+            if (!range.left.increment()) {
+                finished = true;
+            }
+        } catch (cannot_perform_query_exc_t e) {
+            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);
+        }
+    }
+
+    namespace_repo_t<rdb_protocol_t>::access_t ns_access;
+    signal_t *interruptor;
+    key_range_t range;
+    int batch_size;
+
+    cJSON_list_t data;
+    int index;
+    bool finished;
+
+    backtrace_t backtrace;
+};
+
 class stream_multiplexer_t {
 public:
 
@@ -431,20 +504,6 @@ typedef variable_val_scope_t::new_scope_t new_val_scope_t;
 typedef variable_scope_t<boost::shared_ptr<stream_multiplexer_t> > variable_stream_scope_t;
 
 typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
-
-class runtime_exc_t {
-public:
-    runtime_exc_t(const std::string &_what, const backtrace_t &bt)
-        : message(_what), backtrace(bt)
-    { }
-
-    std::string what() const throw() {
-        return message;
-    }
-
-    std::string message;
-    backtrace_t backtrace;
-};
 
 class runtime_environment_t {
 public:

@@ -138,7 +138,6 @@ void merge_slices_onto_result(std::vector<read_response_t>::iterator begin,
     for (std::vector<read_response_t>::iterator i = begin; i != end; ++i) {
         const rget_read_response_t *delta = boost::get<rget_read_response_t>(&i->response);
         rassert(delta);
-        printf("adding %ld keys\n", delta->data.size());
         merged.insert(merged.end(), delta->data.begin(), delta->data.end());
     }
     std::sort(merged.begin(), merged.end(), rget_data_cmp);
@@ -165,7 +164,6 @@ read_response_t read_t::multistore_unshard(std::vector<read_response_t> response
             const rget_read_response_t *_rr = boost::get<rget_read_response_t>(&i->response);
             rassert(_rr);
             rg_response.truncated = rg_response.truncated || _rr->truncated;
-            printf("rget with %ld responses\n", responses.size());
 
             // Collect all the responses from the same shard and merge their responses into the final response
             rri_t shard_end = i;
