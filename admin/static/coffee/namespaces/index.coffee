@@ -186,6 +186,23 @@ module 'NamespaceView', ->
                 $('.alert_modal').alert()
                 @reset_buttons()
             else
+                ### TODO use this call so we are sure to be consistent when we update the namespace
+                data = {}
+                data['memcached_namespaces'] = {}
+                data['memcached_namespaces']['new'] =
+                    name: formdata.name
+                    primary_uuid: formdata.primary_datacenter
+                    port : parseInt(formdata.port)
+
+                $.ajax
+                    processData: false
+                    url: '/ajax/semilattice'
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify data
+                    success: @on_success
+                    error: @on_error
+                ###
                 $.ajax
                     processData: false
                     url: '/ajax/semilattice/rdb_namespaces/new'
@@ -217,7 +234,6 @@ module 'NamespaceView', ->
     class @RemoveNamespaceModal extends UIComponents.AbstractModal
         template: Handlebars.compile $('#remove_namespace-modal-template').html()
         alert_tmpl: Handlebars.compile $('#removed_namespace-alert-template').html()
-        template_remove_error: Handlebars.compile $('#fail_rename_namespace-template').html()
         class: 'remove-namespace-dialog'
 
         initialize: ->
@@ -235,61 +251,36 @@ module 'NamespaceView', ->
                 namespaces: array_for_template
                 namespaces_length_is_one: @namespaces_to_delete.length is 1
 
+            @.$('.btn-primary').focus()
 
         on_submit: ->
             super
 
 
-            ###
             # For when /ajax will handle post request
             data = {}
             for namespace in @namespaces_to_delete
-                if not data[namespace.get('protocol')]?
-                    data[namespace.get('protocol')] = {}
-                data[namespace.get('protocol')][namespace.get('id')] = null
-            ###
+                if not data[namespace.get('protocol')+'_namespaces']?
+                    data[namespace.get('protocol')+'_namespaces'] = {}
+                data[namespace.get('protocol')+'_namespaces'][namespace.get('id')] = null
 
-            # TODO: change this once we have http support for deleting
-            # multiple items with one http request.
-            for namespace in @namespaces_to_delete
-                $.ajax
-                    url: "/ajax/semilattice/#{namespace.get("protocol")}_namespaces/#{namespace.id}"
-                    type: 'DELETE'
-                    contentType: 'application/json'
-                    dataType: 'json',
-                    success: @on_success,
-                    error: @on_error
-            # TODO: this should happen on success, but I'm hacking
-            # this in here until we support multiple deletes in one
-            # blow on the server. Remove the next two lines once
-            # they're uncommented in on_success.
-            for namespace in @namespaces_to_delete
-                namespaces.remove(namespace.id)
-
-
-        on_success_with_error: =>
-            @.$('.error_answer').html @template_remove_error
-
-            if @.$('.error_answer').css('display') is 'none'
-                @.$('.error_answer').slideDown('fast')
-            else
-                @.$('.error_answer').css('display', 'none')
-                @.$('.error_answer').fadeIn()
-            @reset_buttons()
-
+            $.ajax
+                url: "/ajax/semilattice"
+                type: 'POST'
+                contentType: 'application/json'
+                data: JSON.stringify data
+                dataType: 'json',
+                success: @on_success,
+                error: @on_error
 
         on_success: (response) ->
-            if (response)
-                @on_success_with_error()
-                return
+            deleted_namespaces = []
+            for namespace in @namespaces_to_delete
+                deleted_namespaces.push namespaces.get(namespace.id).get('name')
+
+            $('#user-alert-space').append @alert_tmpl 
+                deleted_namespaces: deleted_namespaces
+            
+            apply_diffs response
 
             super
-
-            # TODO: hook this up once we have support for deleting
-            # multiple items with one http request.
-            #for namespace in @namespaces_to_delete
-            #    namespaces.remove(namespace.id)
-            #
-            #for namespace in response_json.op_result
-            #    $('#user-alert-space').append @alert_tmpl namespace
-

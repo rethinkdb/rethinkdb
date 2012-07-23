@@ -1,5 +1,3 @@
-#include "unittest/gtest.hpp"
-
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
@@ -10,6 +8,7 @@
 #include "extproc/pool.hpp"
 #include "extproc/spawner.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "unittest/gtest.hpp"
 
 // ----- Infrastructure
 typedef void (*test_t)(extproc::pool_t *pool);
@@ -30,7 +29,8 @@ int fib(int n) {
     if (!n) return 0;
     while (--n) {
         int next = a + b;
-        a = b; b = next;
+        a = b;
+        b = next;
     }
     return b;
 }

@@ -113,6 +113,7 @@ module 'NamespaceView', ->
                 processData: false
                 url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                 type: 'POST'
+                contentType: 'application/json'
                 data: JSON.stringify(output)
                 success: @on_success
 
@@ -202,6 +203,7 @@ module 'NamespaceView', ->
                 processData: false
                 url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                 type: 'POST'
+                contentType: 'application/json'
                 data: JSON.stringify(output)
                 success: @on_success
 

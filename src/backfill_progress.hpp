@@ -31,7 +31,7 @@ private:
 class traversal_progress_t : public home_thread_mixin_t {
 public:
     traversal_progress_t() { }
-    traversal_progress_t(int specified_home_thread) : home_thread_mixin_t(specified_home_thread) { }
+    explicit traversal_progress_t(int specified_home_thread) : home_thread_mixin_t(specified_home_thread) { }
 
     virtual progress_completion_fraction_t guess_completion() const = 0;
 
@@ -43,7 +43,7 @@ private:
 
 class traversal_progress_combiner_t : public traversal_progress_t {
 public:
-    traversal_progress_combiner_t(int specified_home_thread) : traversal_progress_t(specified_home_thread), is_destructing(false) { }
+    explicit traversal_progress_combiner_t(int specified_home_thread) : traversal_progress_t(specified_home_thread), is_destructing(false) { }
     traversal_progress_combiner_t() : is_destructing(false) { }
     ~traversal_progress_combiner_t();
 

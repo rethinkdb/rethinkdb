@@ -58,7 +58,7 @@ class job_t {
     // RDB_MAKE_ME_SERIALIZABLE_#(..) in subclass definition.
     friend class write_message_t;
     friend class archive_deserializer_t;
-    virtual void rdb_serialize(write_message_t &msg) const = 0;
+    virtual void rdb_serialize(write_message_t &msg /* NOLINT */) const = 0;
     virtual archive_result_t rdb_deserialize(read_stream_t *s) = 0;
 };
 

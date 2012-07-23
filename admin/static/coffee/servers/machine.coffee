@@ -32,7 +32,7 @@ module 'MachineView', ->
                 route: "/ajax/log/"+@model.get('id')+"_?"
                 template_header: Handlebars.compile $('#log-header-machine-template').html()
 
-            @moodel.on 'change:name', @render
+            @model.on 'change:name', @render
         
         rename_machine: (event) ->
             event.preventDefault()
@@ -74,7 +74,7 @@ module 'MachineView', ->
             $(event.currentTarget).parent().slideUp('fast', -> $(this).remove())
 
         destroy: =>
-            @moodel.off 'change:name', @render
+            @model.off 'change:name', @render
             @title.destroy()
             @profile.destroy()
             @data.destroy()
