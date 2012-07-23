@@ -1,11 +1,9 @@
 #ifndef BTREE_SLICE_HPP_
 #define BTREE_SLICE_HPP_
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
+#include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 
 const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
@@ -55,7 +53,7 @@ public:
     ~btree_slice_t();
 
     cache_t *cache() { return cache_; }
-    boost::shared_ptr<cache_account_t> get_backfill_account() { return backfill_account; }
+    cache_account_t *get_backfill_account() { return backfill_account.get(); }
 
     plain_sink_t pre_begin_transaction_sink_;
 
@@ -76,7 +74,7 @@ private:
     cache_t *cache_;
 
     // Cache account to be used when backfilling.
-    boost::shared_ptr<cache_account_t> backfill_account;
+    scoped_ptr_t<cache_account_t> backfill_account;
 
     DISABLE_COPYING(btree_slice_t);
 

@@ -51,9 +51,9 @@ TEST(DiskFormatTest, LbaMetablockMixinT) {
 
 TEST(DiskFormatTest, LbaEntryT) {
     EXPECT_EQ(0, offsetof(lba_entry_t, block_id));
-    EXPECT_EQ(4, offsetof(lba_entry_t, recency));
-    EXPECT_EQ(8, offsetof(lba_entry_t, offset));
-    EXPECT_EQ(16, sizeof(lba_entry_t));
+    EXPECT_EQ(16, offsetof(lba_entry_t, recency));
+    EXPECT_EQ(24, offsetof(lba_entry_t, offset));
+    EXPECT_EQ(32, sizeof(lba_entry_t));
 
     EXPECT_TRUE(divides(sizeof(lba_entry_t), DEVICE_BLOCK_SIZE));
 
@@ -70,14 +70,14 @@ TEST(DiskFormatTest, LbaEntryT) {
 }
 
 TEST(DiskFormatTest, LbaExtentT) {
-    EXPECT_EQ(16, sizeof(lba_extent_t::header_t));
+    EXPECT_EQ(32, sizeof(lba_extent_t::header_t));
 
     // (You might want to update this test if LBA_SUPER_MAGIC_SIZE changes.)
     EXPECT_EQ(8, LBA_SUPER_MAGIC_SIZE);
     EXPECT_EQ(0, offsetof(lba_extent_t, header));
     EXPECT_EQ(8, offsetof(lba_extent_t, header.padding));
-    EXPECT_EQ(16, offsetof(lba_extent_t, entries));
-    EXPECT_EQ(16, sizeof(lba_extent_t));
+    EXPECT_EQ(32, offsetof(lba_extent_t, entries));
+    EXPECT_EQ(32, sizeof(lba_extent_t));
 }
 
 TEST(DiskFormatTest, LbaSuperblockT) {

@@ -160,7 +160,7 @@ void linux_thread_pool_t::enable_coroutine_summary() {
 }
 #endif
 
-void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
+void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_message) {
     int res;
 
     do_shutdown = false;
@@ -175,10 +175,8 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
         tdata->barrier = &barrier;
         tdata->thread_pool = this;
         tdata->current_thread = i;
-        // The initial message (which creates utility workers) gets
-        // sent to the last thread. The last thread is not reported by
-        // get_num_db_threads() (see it for more details).
-        tdata->initial_message = (i == n_threads - 1) ? initial_message : NULL;
+        // The initial message gets sent to thread zero.
+        tdata->initial_message = (i == 0) ? initial_message : NULL;
 
         res = pthread_create(&pthreads[i], NULL, &start_thread, tdata);
         guarantee(res == 0, "Could not create thread");
@@ -324,7 +322,7 @@ void linux_thread_pool_t::sigsegv_handler(int signum, siginfo_t *info, UNUSED vo
     }
 }
 
-void linux_thread_pool_t::shutdown() {
+void linux_thread_pool_t::shutdown_thread_pool() {
     int res;
 
     // This will tell the main() thread to tell all the child threads to

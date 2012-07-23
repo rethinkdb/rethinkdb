@@ -146,6 +146,6 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
 
 administrative_http_server_manager_t::~administrative_http_server_manager_t() {
     /* This must be declared in the `.cc` file because the definitions of the
-    destructors for the things in `boost::scoped_ptr`s are not available from
+    destructors for the things in `scoped_ptr_t`s are not available from
     the `.hpp` file. */
 }

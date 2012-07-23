@@ -11,19 +11,6 @@
 
 namespace unittest {
 
-struct starter_t : public thread_message_t {
-    thread_pool_t *tp;
-    boost::function<void()> fun;
-    starter_t(thread_pool_t *tp, boost::function<void()> fun) : tp(tp), fun(fun) { }
-    void run() {
-        fun();
-        tp->shutdown();
-    }
-    void on_thread_switch() {
-        coro_t::spawn_now(boost::bind(&starter_t::run, this));
-    }
-};
-
 /* `recording_test_application_t` sends and receives integers over a
 `message_service_t`. It keeps track of the integers it has received.
 */

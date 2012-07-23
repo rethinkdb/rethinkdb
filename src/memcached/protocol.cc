@@ -478,7 +478,7 @@ memcached_protocol_t::store_t::store_t(io_backender_t *io_backender, const std::
         scoped_ptr_t<real_superblock_t> superblock;
         order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::store_t");
         order_token = btree->order_checkpoint_.check_through(order_token);
-        get_btree_superblock(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, &txn);
+        get_btree_superblock_and_txn(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, &txn);
         buf_lock_t* sb_buf = superblock->get();
         clear_superblock_metainfo(txn.get(), sb_buf);
 
@@ -522,7 +522,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_read(
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_read");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_reading(btree.get(), access, order_token, CACHE_SNAPSHOTTED_NO, sb_out, txn_out);
+    get_btree_superblock_and_txn_for_reading(btree.get(), access, order_token, CACHE_SNAPSHOTTED_NO, sb_out, txn_out);
 }
 
 void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
@@ -540,7 +540,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_backfill(
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_backfill");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_backfilling(btree.get(), order_token, sb_out, txn_out);
+    get_btree_superblock_and_txn_for_backfilling(btree.get(), order_token, sb_out, txn_out);
 }
 
 void memcached_protocol_t::store_t::acquire_superblock_for_write(
@@ -560,7 +560,7 @@ void memcached_protocol_t::store_t::acquire_superblock_for_write(
     order_token_t order_token = order_source.check_in("memcached_protocol_t::store_t::acquire_superblock_for_write");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, sb_out, txn_out);
+    get_btree_superblock_and_txn(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, sb_out, txn_out);
 }
 
 memcached_protocol_t::store_t::metainfo_t

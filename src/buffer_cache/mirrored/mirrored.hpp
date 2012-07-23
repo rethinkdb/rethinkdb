@@ -6,9 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "arch/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
@@ -266,7 +263,7 @@ public:
     // This just sets the snapshotted flag, we finalize the snapshot as soon as the first block has been acquired (see finalize_version() )
     void snapshot();
 
-    void set_account(const boost::shared_ptr<mc_cache_account_t>& cache_account);
+    void set_account(mc_cache_account_t *cache_account);
 
     // Order tokens are only actually stored by semantic checking and mock caches.
     void set_token(UNUSED order_token_t token) { }
@@ -290,12 +287,13 @@ private:
     mc_inner_buf_t::version_id_t snapshot_version;
     bool snapshotted;
 
-    // This is manually reset() in the destructor.
-    boost::shared_ptr<mc_cache_account_t> cache_account_;
+    mc_cache_account_t *cache_account;
 
     std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> > owned_buf_snapshots;
 
     int64_t num_buf_locks_acquired;
+
+    bool is_writeback_transaction;
 
     DISABLE_COPYING(mc_transaction_t);
 };
@@ -336,7 +334,7 @@ public:
 
     // TODO: Come up with a consistent priority scheme, i.e. define a "default" priority etc.
     // TODO: As soon as we can support it, we might consider supporting a mem_cap paremeter.
-    boost::shared_ptr<mc_cache_account_t> create_cache_account(int priority);
+    void create_cache_account(int priority, scoped_ptr_t<mc_cache_account_t> *out);
 
     bool contains_block(block_id_t block_id);
 
@@ -408,9 +406,13 @@ private:
     bool writebacks_allowed;
 #endif
 
-    // Used to keep track of how many transactions there are so that we can wait for transactions to
-    // complete before shutting down.
-    int num_live_transactions;
+    // Used to keep track of how many transactions there are so that
+    // we can wait for transactions to complete before shutting down,
+    // and assert that there are no non-writeback transactions when
+    // the cache destructor is called.
+    int num_live_writeback_transactions;
+    int num_live_non_writeback_transactions;
+
     cond_t *to_pulse_when_last_transaction_commits;
 
     patch_memory_storage_t patch_memory_storage;

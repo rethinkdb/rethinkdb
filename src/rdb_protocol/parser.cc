@@ -2,7 +2,6 @@
 
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
-#include <boost/scoped_ptr.hpp>
 
 namespace rdb_protocol {
 
@@ -29,9 +28,11 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 rdb_protocol_t::point_read_response_t response = boost::get<rdb_protocol_t::point_read_response_t>(read_res.response);
                 if (response.data) {
-                    boost::scoped_ptr<char> json(cJSON_Print(response.data.get()->get()));
+                    // TODO: What should this smart pointer be?
+                    char *json = cJSON_Print(response.data.get()->get());
                     res.code = 200;
-                    res.set_body("application/json", json.get());
+                    res.set_body("application/json", json);
+                    free(json);
                 } else {
                     res.code = 404;
                 }

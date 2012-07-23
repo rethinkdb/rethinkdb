@@ -125,9 +125,9 @@ try {
 
     proc_stats_collector_t proc_stats_collector(&proc_stats_collection);
 
-    boost::scoped_ptr<initial_joiner_t> initial_joiner;
+    scoped_ptr_t<initial_joiner_t> initial_joiner;
     if (!joins.empty()) {
-        initial_joiner.reset(new initial_joiner_t(&connectivity_cluster, &connectivity_cluster_run, joins));
+        initial_joiner.init(new initial_joiner_t(&connectivity_cluster, &connectivity_cluster_run, joins));
         try {
             wait_interruptible(initial_joiner->get_ready_signal(), stop_cond);
         } catch (interrupted_exc_t) {
@@ -139,7 +139,7 @@ try {
 
     file_based_svs_by_namespace_t<mock::dummy_protocol_t> dummy_svs_source(io_backender, filepath);
     // Reactor drivers
-    boost::scoped_ptr<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!i_am_a_server ? NULL :
+    scoped_ptr_t<reactor_driver_t<mock::dummy_protocol_t> > dummy_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<mock::dummy_protocol_t>(
             io_backender,
             &mailbox_manager,
@@ -152,7 +152,7 @@ try {
                 field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
             &dummy_svs_source,
             &perfmon_repo));
-    boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
+    scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t> >
         dummy_reactor_directory_copier(!i_am_a_server ? NULL :
             new field_copier_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::dummy_namespaces,
@@ -160,7 +160,7 @@ try {
                 &our_root_directory_variable));
 
     file_based_svs_by_namespace_t<memcached_protocol_t> memcached_svs_source(io_backender, filepath);
-    boost::scoped_ptr<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!i_am_a_server ? NULL :
+    scoped_ptr_t<reactor_driver_t<memcached_protocol_t> > memcached_reactor_driver(!i_am_a_server ? NULL :
         new reactor_driver_t<memcached_protocol_t>(
             io_backender,
             &mailbox_manager,
@@ -173,7 +173,7 @@ try {
                 field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
             &memcached_svs_source,
             &perfmon_repo));
-    boost::scoped_ptr<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
+    scoped_ptr_t<field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t> >
         memcached_reactor_directory_copier(!i_am_a_server ? NULL :
             new field_copier_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::memcached_namespaces,
@@ -205,7 +205,7 @@ try {
         &memcached_namespace_repo,
         &perfmon_repo);
 
-    boost::scoped_ptr<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
+    scoped_ptr_t<metadata_persistence::semilattice_watching_persister_t> persister(!i_am_a_server ? NULL :
         new metadata_persistence::semilattice_watching_persister_t(
             persistent_file, semilattice_manager_cluster.get_root_view()));
 
@@ -236,8 +236,9 @@ try {
     }
 
     cond_t non_interruptor;
-    if (persister)
+    if (persister.has()) {
         persister->stop_and_flush(&non_interruptor);
+    }
 
     return true;
 

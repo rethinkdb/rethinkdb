@@ -1,8 +1,6 @@
 #include "extproc/pool.hpp"
 
-#include "utils.hpp"
-#include <boost/scoped_array.hpp>
-
+#include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -136,7 +134,7 @@ void pool_t::spawn_workers(int num) {
 
     // Spawn off `num` processes.
     pid_t pids[num];
-    boost::scoped_array<scoped_fd_t> fds(new scoped_fd_t[num]);
+    scoped_array_t<scoped_fd_t> fds(num);
     {
         on_thread_t switcher(spawner()->home_thread());
         for (int i = 0; i < num; ++i) {

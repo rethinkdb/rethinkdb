@@ -2,9 +2,7 @@
 #define MOCK_UNITTEST_UTILS_HPP_
 
 #include "errors.hpp"
-
-// Include run_in_thread_pool for people.
-#include "arch/runtime/starter.hpp"
+#include <boost/function.hpp>
 
 #include "containers/scoped.hpp"
 
@@ -40,6 +38,6 @@ int randport();
 
 void run_in_thread_pool(const boost::function<void()>& fun, int num_workers = 1);
 
-}  // namespace unittest
+}  // namespace mock
 
 #endif /* MOCK_UNITTEST_UTILS_HPP_ */

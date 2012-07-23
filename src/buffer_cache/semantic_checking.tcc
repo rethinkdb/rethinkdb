@@ -135,7 +135,7 @@ scc_transaction_t<inner_cache_t>::~scc_transaction_t() {
 }
 
 template<class inner_cache_t>
-void scc_transaction_t<inner_cache_t>::set_account(const boost::shared_ptr<typename inner_cache_t::cache_account_type>& cache_account) {
+void scc_transaction_t<inner_cache_t>::set_account(typename inner_cache_t::cache_account_type *cache_account) {
     inner_transaction.set_account(cache_account);
 }
 
@@ -199,8 +199,8 @@ block_size_t scc_cache_t<inner_cache_t>::get_block_size() {
 }
 
 template<class inner_cache_t>
-boost::shared_ptr<typename inner_cache_t::cache_account_type> scc_cache_t<inner_cache_t>::create_cache_account(int priority) {
-    return inner_cache.create_cache_account(priority);
+void scc_cache_t<inner_cache_t>::create_cache_account(int priority, scoped_ptr_t<typename inner_cache_t::cache_account_type> *out) {
+    inner_cache.create_cache_account(priority, out);
 }
 
 template<class inner_cache_t>
