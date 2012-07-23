@@ -224,6 +224,9 @@ class Stream(Common):
         else:
             return self.map(list(attr(x) for x in attrs))
 
+    def array(self):
+        return array(self)
+
 class Table(Stream):
     pretty = "r.db({db.name}).{name:s}"
     def __init__(self, db, name):
@@ -434,7 +437,6 @@ class OrderBy(Stream):
     pretty = "{parent_view:arg:0}.orderby({ordering:order_by}"
     def __init__(self, parent_view, **ordering):
         super(OrderBy, self).__init__()
-        self.read_only = True
         self.parent_view = toTerm(parent_view)
         self.ordering = ordering
 

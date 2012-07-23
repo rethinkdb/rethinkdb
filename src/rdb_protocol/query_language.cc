@@ -365,13 +365,17 @@ term_type_t get_function_type(const Term::Call &c, type_checking_environment_t *
             check_function_args(c, TERM_TYPE_JSON, 3, env, backtrace);
             return TERM_TYPE_JSON;
             break;
-        case Builtin::FILTER:
         case Builtin::MAP:
         case Builtin::CONCATMAP:
-        case Builtin::ORDERBY:
         case Builtin::DISTINCT:
             check_function_args(c, TERM_TYPE_STREAM, 1, env, backtrace);
             return TERM_TYPE_STREAM;
+            break;
+        case Builtin::FILTER:
+        case Builtin::ORDERBY:
+            check_function_args(c, TERM_TYPE_STREAM, 1, env, backtrace);
+            // polymorphic
+            return get_term_type(c.args(0), env, backtrace);
             break;
         case Builtin::LIMIT:
             check_function_args(c, TERM_TYPE_STREAM, TERM_TYPE_JSON, env, backtrace);
@@ -1855,10 +1859,21 @@ view_t eval_view(const Term::Call &c, UNUSED runtime_environment_t *env, const b
             unreachable("eval_view called on a function that does not return a view");
             break;
         case Builtin::FILTER:
-            throw runtime_exc_t("Unimplemented: Builtin::FILTER", backtrace);
+            {
+                view_t view = eval_view(c.args(0), env, backtrace.with("arg:0"));
+                predicate_t p(c.builtin().filter().predicate(), *env, backtrace);
+                return view_t(view.access, boost::shared_ptr<json_stream_t>(new filter_stream_t<predicate_t>(view.stream, p)));
+            }
             break;
         case Builtin::ORDERBY:
-            throw runtime_exc_t("Unimplemented: Builtin::ORDERBY", backtrace);
+            {
+                ordering_t o(c.builtin().order_by(), backtrace.with("order_by"));
+                view_t view = eval_view(c.args(0), env, backtrace.with("arg:0"));
+
+                boost::shared_ptr<in_memory_stream_t> sorted_stream(new in_memory_stream_t(view.stream));
+                sorted_stream->sort(o);
+                return view_t(view.access, sorted_stream);
+            }
             break;
         case Builtin::LIMIT:
             {
