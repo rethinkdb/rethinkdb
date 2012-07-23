@@ -238,13 +238,13 @@ module 'NamespaceView', ->
                     error: @on_error
 
         on_success: (response) =>
+            debugger
             super
 
             # the result of this operation are some
             # attributes about the namespace we
             # created, to be used in an alert
             apply_to_collection(namespaces, add_protocol_tag(response, "memcached"))
-
             # Notify the user
             for id, namespace of response
                 $('#user-alert-space').append @alert_tmpl
