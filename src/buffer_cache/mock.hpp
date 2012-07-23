@@ -3,9 +3,6 @@
 
 #include <algorithm>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
@@ -73,7 +70,7 @@ public:
         return ZERO_EVICTION_PRIORITY;
     }
 
-    void set_eviction_priority(eviction_priority_t __attribute__ ((unused)) val) {
+    void set_eviction_priority(UNUSED eviction_priority_t val) {
         // Mock cache does not implement eviction priorities
     }
 

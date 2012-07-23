@@ -6,9 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "arch/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
@@ -290,7 +287,7 @@ private:
     mc_inner_buf_t::version_id_t snapshot_version;
     bool snapshotted;
 
-    mc_cache_account_t *cache_account_;
+    mc_cache_account_t *cache_account;
 
     std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::buf_snapshot_t*> > owned_buf_snapshots;
 

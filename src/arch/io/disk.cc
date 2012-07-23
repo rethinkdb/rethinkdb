@@ -97,8 +97,9 @@ public:
     void done(typename stack_stats_t::action_t *a) {
         outstanding_txn--;
         action_t *a2 = static_cast<action_t *>(a);
-        a2->cb->on_io_complete();
+        linux_iocallback_t *local_cb = a2->cb;
         delete a2;
+        local_cb->on_io_complete();
     }
 
 private:

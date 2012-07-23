@@ -1069,7 +1069,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, int _ex
       recency_timestamp(_recency_timestamp),
       snapshot_version(mc_inner_buf_t::faux_version_id),
       snapshotted(false),
-      cache_account_(NULL),
+      cache_account(NULL),
       num_buf_locks_acquired(0),
       is_writeback_transaction(false) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
@@ -1098,7 +1098,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     recency_timestamp(repli_timestamp_t::distant_past),
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false),
-    cache_account_(NULL),
+    cache_account(NULL),
     num_buf_locks_acquired(0),
     is_writeback_transaction(false) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
@@ -1120,7 +1120,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     recency_timestamp(repli_timestamp_t::distant_past),
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false),
-    cache_account_(NULL),
+    cache_account(NULL),
     num_buf_locks_acquired(0),
     is_writeback_transaction(true) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
@@ -1204,14 +1204,14 @@ void mc_transaction_t::snapshot() {
     snapshotted = true;
 }
 
-void mc_transaction_t::set_account(mc_cache_account_t *cache_account) {
-    rassert(cache_account_ == NULL, "trying to set the transaction's cache_account twice");
+void mc_transaction_t::set_account(mc_cache_account_t *_cache_account) {
+    rassert(cache_account == NULL, "trying to set the transaction's cache_account twice");
 
-    cache_account_ = cache_account;
+    cache_account = _cache_account;
 }
 
 file_account_t *mc_transaction_t::get_io_account() const {
-    return (cache_account_ == NULL ? cache->reads_io_account.get() : cache_account_->io_account_);
+    return (cache_account == NULL ? cache->reads_io_account.get() : cache_account->io_account_);
 }
 
 void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
