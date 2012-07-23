@@ -5,12 +5,13 @@ from vcoptparse import *
 control_user = "rethinkdb@deadshot"
 
 class VM(object):
-    def __init__(self, name, uuid, host):
+    def __init__(self, name, uuid, host, control):
         self.name = name
         self.uuid = uuid
         self.host = host
+        self.control = control
     def start(self):
-        subprocess.Popen(["ssh %s 'VBoxManage startvm --type headless %s'" % (control_user, self.uuid)], shell = True).wait()
+        subprocess.Popen(["ssh %s 'VBoxManage startvm --type headless %s'" % (self.control, self.uuid)], shell = True).wait()
         start_time = time.time()
         while os.system("ssh %s 'true'" % self.host) and time.time() - start_time < 5 * 60: # timeout after 5 minutes
             time.sleep(1)
@@ -39,7 +40,7 @@ class VM(object):
         if remove_temp:
             self.command("rm -rf /tmp/test.*")
         time.sleep(5)
-        subprocess.Popen(["ssh %s 'VBoxManage controlvm %s poweroff'" % (control_user, self.uuid)], shell = True).wait()
+        subprocess.Popen(["ssh %s 'VBoxManage controlvm %s poweroff'" % (self.control, self.uuid)], shell = True).wait()
 
 def sys_exit(message, exit_code, shut_down = False):
     print message
@@ -59,7 +60,7 @@ vm_list = {"suse2": suse2, "suse" : suse, "redhat5_1" : redhat5_1, "ubuntu" : ub
 
 def help():
     print "VM Access:"
-    print "       Runs a command on a remote virtual machine. Starts the virtual machine if necessary, and shuts it down on completion. If the command fails or if the virtual machine is inaccessible, then this script will throw an exception. All virtual machines are controlled through " + control_user + ". Before commands are run, the curent directory is compressed and sent over. The command is run in a temporary directory and all its resulting contents are copied back."
+    print "       Runs a command on a remote virtual machine. Starts the virtual machine if necessary, and shuts it down on completion. If the command fails or if the virtual machine is inaccessible, then this script will throw an exception. Before commands are run, the curent directory is compressed and sent over. The command is run in a temporary directory and all its resulting contents are copied back."
     print "       --help      Print this help."
     print "       --vm-name   The target virtual machine to run the command on. Options are:"
     print "                   ", vm_list.keys()
