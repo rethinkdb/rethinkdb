@@ -238,7 +238,6 @@ module 'NamespaceView', ->
                     error: @on_error
 
         on_success: (response) =>
-            debugger
             super
 
             # the result of this operation are some
