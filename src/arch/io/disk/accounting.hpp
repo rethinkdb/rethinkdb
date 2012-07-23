@@ -107,7 +107,7 @@ public:
 
     private:
         void maybe_init(){
-            if (!eager_account.get()) {
+            if (!eager_account.has()) {
                 rassert(get_thread_id() == _par->home_thread());
                 eager_account.init(new eager_account_t(_par, _pri, _outstanding_requests_limit));
             }
