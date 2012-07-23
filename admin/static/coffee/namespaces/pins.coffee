@@ -350,6 +350,7 @@ module 'NamespaceView', ->
                 processData: false
                 url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.get('id')}/secondary_pinnings"
                 type: 'POST'
+                contentType: 'application/json'
                 data: JSON.stringify(post_data)
                 success: @on_success
                 error: @on_error

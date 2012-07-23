@@ -2,6 +2,7 @@
 #define CLUSTERING_ADMINISTRATION_HTTP_STAT_APP_HPP_
 
 #include <map>
+#include <vector>
 
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"

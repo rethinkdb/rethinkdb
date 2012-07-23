@@ -17,6 +17,14 @@ Handlebars.registerHelper 'comma_separated', (context, block) ->
         out += ", " if i isnt context.length-1
     return out
 
+# Returns a comma-separated list of the provided array without the need of a transformation
+Handlebars.registerHelper 'comma_separated_simple', (context) ->
+    out = ""
+    for i in [0...context.length]
+        out += context[i]
+        out += ", " if i isnt context.length-1
+    return out
+
 # Returns an html list
 Handlebars.registerHelper 'html_list', (context) ->
     out = "<ul>"
@@ -300,6 +308,7 @@ bind_dev_tools = ->
 
     $('#reset-simulation-data').click (e) ->
         $.ajax
+            contentType: 'application/json'
             url: '/ajax/reset_data',
             success: ->
                 console.log 'Reset simulation data.'
@@ -307,6 +316,7 @@ bind_dev_tools = ->
 
     $('#reset-session').click (e) ->
         $.ajax
+            contentType: 'application/json'
             url: '/ajax/reset_session',
             success: ->
                 console.log 'Reset session.'
@@ -317,6 +327,7 @@ bind_dev_tools = ->
 
     $('#make-diff').click (e) ->
         $.ajax
+            contentType: 'application/json'
             url: '/ajax/make_diff',
             success: ->
                 console.log 'Made diff to simulation data.'

@@ -173,6 +173,7 @@ collections_ready = ->
     $.ajax({
         url: '/ajax/stat',
         dataType: 'json',
+        contentType: 'application/json',
         success: function(data) {
             set_stats(data)
             setTimeout(collect_stat_data, statUpdateInterval)
@@ -184,6 +185,7 @@ function collect_server_data_once(async, optional_callback) {
     $.ajax({
         url: '/ajax',
         dataType: 'json',
+        contentType: 'application/json',
         async: async,
         success: function(updates) {
             if (window.is_disconnected != null) {
@@ -210,12 +212,14 @@ function collect_server_data_once(async, optional_callback) {
     })
 
     $.ajax({
+        contentType: 'application/json',
         url: '/ajax/progress',
         dataType: 'json',
         success: set_progress
     })
 
     $.ajax({
+        contentType: 'application/json',
         url: '/ajax/log/_?max_length=10&min_timestamp='+window.recent_log_entries.min_timestamp,
         dataType: 'json',
         success: set_log_entries

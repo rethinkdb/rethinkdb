@@ -328,9 +328,4 @@ tar --extract --gzip --touch --file=rethinkdb.tar.gz -- rethinkdb
     result_log.write(tests = tests)
     run_in_threads(funs)
 
-    # Shut down all Virtual Machines
-    for vm_name in ["suse", "ubuntu", "centos6", "debian", "redhat5_1", "centos5_5"]:
-        os.system("./rethinkdb/scripts/VirtuaBuild/vm_access.py --vm-name %s --shut-down" % vm_name)
-
     print "Done."
-
