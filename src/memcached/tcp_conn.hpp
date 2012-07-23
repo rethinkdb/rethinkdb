@@ -36,7 +36,7 @@ private:
 
     scoped_ptr_t<tcp_listener_t> tcp_listener;
 
-    void handle(auto_drainer_t::lock_t keepalive, const boost::scoped_ptr<nascent_tcp_conn_t>& conn);
+    void handle(auto_drainer_t::lock_t keepalive, const scoped_ptr_t<nascent_tcp_conn_t>& conn);
 };
 
 #endif /* MEMCACHED_TCP_CONN_HPP_ */

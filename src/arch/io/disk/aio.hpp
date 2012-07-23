@@ -3,13 +3,12 @@
 
 #include <libaio.h>
 
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
+#include "utils.hpp"
 #include <boost/function.hpp>
 
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/system_event.hpp"
-#include "utils.hpp"
+#include "containers/scoped.hpp"
 #include "config/args.hpp"
 
 #include "concurrency/queue/passive_producer.hpp"
@@ -106,8 +105,8 @@ public:
     are created and destroyed after they are destroyed. */
     linux_aio_context_t aio_context;
 
-    boost::scoped_ptr<submit_strategy_t> submitter;
-    boost::scoped_ptr<getevents_strategy_t> getter;
+    scoped_ptr_t<submit_strategy_t> submitter;
+    scoped_ptr_t<getevents_strategy_t> getter;
 
     /* We are a `passive_provider_t<iocb*>` for our `submitter`. */
     iocb *produce_next_value();

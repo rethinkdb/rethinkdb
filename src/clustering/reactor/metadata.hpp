@@ -10,6 +10,7 @@
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 #include "clustering/immediate_consistency/query/metadata.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "rpc/serialize_macros.hpp"
 
 /* `reactor_business_card_t` is the way that each peer tells peers what's

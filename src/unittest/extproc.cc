@@ -1,8 +1,5 @@
-#include "unittest/gtest.hpp"
-
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/scoped_array.hpp>
 
 #include "mock/unittest_utils.hpp"
 
@@ -11,6 +8,7 @@
 #include "extproc/pool.hpp"
 #include "extproc/spawner.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "unittest/gtest.hpp"
 
 // ----- Infrastructure
 typedef void (*test_t)(extproc::pool_t *pool);
@@ -31,7 +29,8 @@ int fib(int n) {
     if (!n) return 0;
     while (--n) {
         int next = a + b;
-        a = b; b = next;
+        a = b;
+        b = next;
     }
     return b;
 }
@@ -219,7 +218,7 @@ void run_multijob_test(extproc::spawner_t::info_t *spawner_info) {
     extproc::pool_group_t pool_group(spawner_info, config);
     extproc::pool_t *pool = pool_group.get();
 
-    boost::scoped_array<extproc::job_handle_t> handles(new extproc::job_handle_t[njobs]);
+    scoped_array_t<extproc::job_handle_t> handles(njobs);
 
     // Spawn off enough jobs that we need more than the minimum number of
     // workers to service them all at once, to check that the pool will spawn

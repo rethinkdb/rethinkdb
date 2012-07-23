@@ -120,7 +120,7 @@ private:
     DISABLE_COPYING(memcache_conn_closing_subscription_t);
 };
 
-void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const boost::scoped_ptr<nascent_tcp_conn_t> &nconn) {
+void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const scoped_ptr_t<nascent_tcp_conn_t> &nconn) {
     assert_thread();
 
     block_pm_duration conn_timer(&stats.pm_conns);
@@ -135,7 +135,7 @@ void memcache_listener_t::handle(auto_drainer_t::lock_t keepalive, const boost::
     cross_thread_signal_t signal_transfer(keepalive.get_drain_signal(), chosen_thread);
 
     on_thread_t thread_switcher(chosen_thread);
-    boost::scoped_ptr<tcp_conn_t> conn;
+    scoped_ptr_t<tcp_conn_t> conn;
     nconn->ennervate(&conn);
 
     /* Set up an object that will close the network connection when a shutdown signal

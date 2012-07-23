@@ -14,12 +14,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 import rethinkdb as r
 
-class TestTableRef(unittest.TestCase):
-    # Shared db ref, ast
-    def setUp(self):
-        self.conn = r.Connection(os.getenv('HOST') or 'localhost',
+class RDBTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.conn = r.Connection(os.getenv('HOST') or 'localhost',
                                  12346 + (int(os.getenv('PORT') or 2010)))
-        self.table = r.db("").Welcome
+        cls.table = r.db("").Welcome
 
     def expect(self, query, *expected):
         res = self.conn.run(query)
@@ -33,23 +33,28 @@ class TestTableRef(unittest.TestCase):
             print res
             raise
 
-    def expect_bad_query(self, query, msg):
+    def error_query(self, query, msg):
         with self.assertRaises(r.BadQueryError) as cm:
             res = self.conn.run(query)
         e = cm.exception
-        self.assertIn(msg, e.message)
+        self.assertIn(msg, str(e))
 
-    def expect_execution_error(self, query, msg):
+    def error_exec(self, query, msg):
         with self.assertRaises(r.ExecutionError) as cm:
             res = self.conn.run(query)
         e = cm.exception
-        print "\n\n"
-        print e
-        self.assertIn(msg, e.message)
+        #print "\n\n", e
+        self.assertIn(msg, str(e))
+
+    def clear_table(self):
+        self.conn.run(self.table.delete())
+
+    def do_insert(self, docs):
+        self.expect(self.table.insert(docs), {'inserted': len(docs)})
 
     def test_arith(self):
         expect = self.expect
-        fail = self.expect_execution_error
+        fail = self.error_exec
 
         expect(r.add(3, 4), 7)
         expect(r.add(3, 4, 5), 12)
@@ -80,26 +85,26 @@ class TestTableRef(unittest.TestCase):
 
     def test_cmp(self):
         expect = self.expect
-        fail = self.expect_execution_error
+        fail = self.error_exec
 
         expect(r.eq(3, 3), True)
         expect(r.eq(3, 4), False)
 
-        expect(r.neq(3, 3), False)
-        expect(r.neq(3, 4), True)
+        expect(r.ne(3, 3), False)
+        expect(r.ne(3, 4), True)
 
         expect(r.gt(3, 2), True)
         expect(r.gt(3, 3), False)
 
-        expect(r.gte(3, 3), True)
-        expect(r.gte(3, 4), False)
+        expect(r.ge(3, 3), True)
+        expect(r.ge(3, 4), False)
 
         expect(r.lt(3, 3), False)
         expect(r.lt(3, 4), True)
 
-        expect(r.lte(3, 3), True)
-        expect(r.lte(3, 4), True)
-        expect(r.lte(3, 2), False)
+        expect(r.le(3, 3), True)
+        expect(r.le(3, 4), True)
+        expect(r.le(3, 2), False)
 
         expect(r.eq(1, 1, 2), False)
         expect(r.eq(5, 5, 5), True)
@@ -129,48 +134,48 @@ class TestTableRef(unittest.TestCase):
         self.expect(r.all(True, True), True)
         self.expect(r.all(True, True, True), True)
 
-        self.expect_execution_error(r.all(True, 3), "bool")
-        self.expect_execution_error(r.any(True, 4), "bool")
+        self.error_exec(r.all(True, 3), "bool")
+        self.error_exec(r.any(True, 4), "bool")
 
     def test_not(self):
         self.expect(r.not_(True), False)
         self.expect(r.not_(False), True)
-        self.expect_execution_error(r.not_(3), "bool")
+        self.error_exec(r.not_(3), "bool")
 
     def test_let(self):
         self.expect(r.let(("x", 3), r.var("x")), 3)
         self.expect(r.let(("x", 3), ("x", 4), r.var("x")), 4)
         self.expect(r.let(("x", 3), ("y", 4), r.var("x")), 3)
 
-        self.expect_bad_query(r.var("x"), "not in scope")
+        self.error_query(r.var("x"), "not in scope")
 
     def test_if(self):
         self.expect(r.if_(True, 3, 4), 3)
         self.expect(r.if_(False, 4, 5), 5)
         self.expect(r.if_(r.eq(3, 3), "foo", "bar"), "foo")
 
-        self.expect_execution_error(r.if_(5, 1, 2), "bool")
+        self.error_exec(r.if_(5, 1, 2), "bool")
 
     def test_attr(self):
         self.expect(r.has({"foo": 3}, "foo"), True)
         self.expect(r.has({"foo": 3}, "bar"), False)
 
         self.expect(r.attr({"foo": 3}, "foo"), 3)
-        self.expect_execution_error(r.attr({"foo": 3}, "bar"), "missing")
+        self.error_exec(r.attr({"foo": 3}, "bar"), "missing")
 
         self.expect(r.attr({"a": {"b": 3}}, "a.b"), 3)
 
     def test_extend(self):
         self.expect(r.extend({"a": 5}, {"b": 3}), {"a": 5, "b": 3})
         self.expect(r.extend({"a": 5}, {"a": 3}), {"a": 3})
-        self.expect(r.extend({"a": 5, "b": 1}, {"a": 3}, {"b": 6}), {"a": 3, "b": 6})
+        self.expect(r.extend(r.extend({"a": 5, "b": 1}, {"a": 3}), {"b": 6}), {"a": 3, "b": 6})
 
-        self.expect_execution_error(r.extend(5, {"a": 3}), "object")
-        self.expect_execution_error(r.extend({"a": 5}, 5), "object")
+        self.error_exec(r.extend(5, {"a": 3}), "object")
+        self.error_exec(r.extend({"a": 5}, 5), "object")
 
     def test_array(self):
         expect = self.expect
-        fail = self.expect_execution_error
+        fail = self.error_exec
 
         expect(r.append([], 2), [2])
         expect(r.append([1], 2), [1, 2])
@@ -204,7 +209,7 @@ class TestTableRef(unittest.TestCase):
 
     def test_stream(self):
         expect = self.expect
-        fail = self.expect_execution_error
+        fail = self.error_exec
         arr = range(10)
 
         expect(r.array(r.stream(arr)), arr)
@@ -219,7 +224,7 @@ class TestTableRef(unittest.TestCase):
 
     def test_stream_fancy(self):
         expect = self.expect
-        fail = self.expect_execution_error
+        fail = self.error_exec
 
         def limit(arr, count):
             return r.array(r.stream(arr).limit(count))
@@ -243,27 +248,37 @@ class TestTableRef(unittest.TestCase):
 
     def test_ordering(self):
         expect = self.expect
-        fail = self.expect_execution_error
+        fail = self.error_exec
 
         def order(arr, **kwargs):
             return r.array(r.stream(arr).orderby(**kwargs))
 
-        arr = [{"a": n, "b": n % 3} for n in range(10)]
+        docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
 
         from operator import itemgetter as get
 
-        expect(order(arr, a=True), sorted(arr, key=get('a')))
-        expect(order(arr, a=False), sorted(arr, key=get('a'), reverse=True))
+        expect(order(docs, a=True), sorted(docs, key=get('a')))
+        expect(order(docs, a=False), sorted(docs, key=get('a'), reverse=True))
 
-    def clear_table(self):
-        self.conn.run(self.table.delete())
+        self.clear_table()
+        self.do_insert(docs)
+
+        expect(self.table.orderby(a=True).array(), sorted(docs, key=get('a')))
+        expect(self.table.orderby(a=False).array(), sorted(docs, key=get('a'), reverse=True))
+
+        expect(self.table.filter({'b': 0}).orderby(a=True).array(),
+               sorted(doc for doc in docs if doc['b'] == 0))
+
+        expect(self.table.filter({'b': 0}).orderby(a=True).delete(),
+               {'deleted': len(sorted(doc for doc in docs if doc['b'] == 0))})
+
 
     def test_table_insert(self):
         self.clear_table()
 
-        docs = [{"a": 3, "b": 10, "id": 1}, {"a": 9, "b": -5, "id": 2}]
+        docs = [{"a": 3, "b": 10, "id": 1}, {"a": 9, "b": -5, "id": 2}, {"a": 9, "b": 3, "id": 3}]
 
-        self.expect(self.table.insert(docs), {'inserted': len(docs)})
+        self.do_insert(docs)
 
         for doc in docs:
             self.expect(self.table.find(doc['id']), doc)
@@ -272,9 +287,9 @@ class TestTableRef(unittest.TestCase):
 
         self.expect(self.table.filter({"a": 3}), docs[0])
 
-        self.expect_execution_error(self.table.filter({"a": r.add(self.table.count(), "")}), "numbers")
+        self.error_exec(self.table.filter({"a": r.add(self.table.count(), "")}), "numbers")
 
-        self.expect_execution_error(self.table.insert({"a": 3}), "id")
+        self.error_exec(self.table.insert({"a": 3}), "id")
 
     def test_unicode(self):
         self.clear_table()
@@ -283,6 +298,14 @@ class TestTableRef(unittest.TestCase):
 
         self.expect(self.table.insert(doc), {'inserted': 1})
         self.expect(self.table.find(100), doc)
+
+    def test_view(self):
+        self.clear_table()
+
+        docs = [{"id": 1}, {"id": 2}]
+
+        self.do_insert(docs)
+        self.expect(self.table.limit(1).delete(), {'deleted': 1})
 
 if __name__ == '__main__':
     unittest.main()

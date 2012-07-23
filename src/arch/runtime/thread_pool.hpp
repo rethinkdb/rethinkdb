@@ -45,16 +45,16 @@ public:
     static linux_thread_message_t *set_interrupt_message(linux_thread_message_t *interrupt_message);
 
     // Blocks while threads are working. Only returns after shutdown() is called. initial_message
-    // is a thread message that will be delivered to one of the threads after all of the event queues
+    // is a thread message that will be delivered to thread zero after all of the event queues
     // have been started; it is used to start the server's activity.
-    void run(linux_thread_message_t *initial_message);
+    void run_thread_pool(linux_thread_message_t *initial_message);
 
 #ifndef NDEBUG
     void enable_coroutine_summary();
 #endif
 
     // Shut down all the threads. Can be called from any thread.
-    void shutdown();
+    void shutdown_thread_pool();
 
     ~linux_thread_pool_t();
 

@@ -97,7 +97,7 @@ public:
     };
 
     struct backfill_progress_t : public traversal_progress_t {
-        backfill_progress_t(int specified_home_thread) : traversal_progress_t(specified_home_thread) { }
+        explicit backfill_progress_t(int specified_home_thread) : traversal_progress_t(specified_home_thread) { }
         progress_completion_fraction_t guess_completion() const {
             return progress_completion_fraction_t::make_invalid();
         }

@@ -98,20 +98,23 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/walkthrough/4.jpg");
     white_list.insert("/images/walkthrough/5.jpg");
     white_list.insert("/index.html");
-    file_app.reset(new file_http_app_t(white_list, path));
+    file_app.init(new file_http_app_t(white_list, path));
 
-    semilattice_app.reset(new semilattice_http_app_t(_metadata_change_handler, _directory_metadata, _us));
-    directory_app.reset(new directory_http_app_t(_directory_metadata));
-    issues_app.reset(new issues_http_app_t(&_admin_tracker->issue_aggregator));
-    stat_app.reset(new stat_http_app_t(mbox_manager, _directory_metadata, _semilattice_metadata));
-    last_seen_app.reset(new last_seen_http_app_t(&_admin_tracker->last_seen_tracker));
-    log_app.reset(new log_http_app_t(mbox_manager,
+    semilattice_app.init(new semilattice_http_app_t(_metadata_change_handler, _directory_metadata, _us));
+    directory_app.init(new directory_http_app_t(_directory_metadata));
+    issues_app.init(new issues_http_app_t(&_admin_tracker->issue_aggregator));
+    stat_app.init(new stat_http_app_t(mbox_manager, _directory_metadata, _semilattice_metadata));
+    last_seen_app.init(new last_seen_http_app_t(&_admin_tracker->last_seen_tracker));
+    log_app.init(new log_http_app_t(mbox_manager,
         _directory_metadata->subview(&get_log_mailbox),
         _directory_metadata->subview(&get_machine_id)
         ));
-    progress_app.reset(new progress_app_t(_directory_metadata, mbox_manager));
-    distribution_app.reset(new distribution_app_t(metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, _semilattice_metadata), _namespace_repo));
-    DEBUG_ONLY_CODE(cyanide_app.reset(new cyanide_http_app_t));
+    progress_app.init(new progress_app_t(_directory_metadata, mbox_manager));
+    distribution_app.init(new distribution_app_t(metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces, _semilattice_metadata), _namespace_repo));
+
+#ifndef NDEBUG
+    cyanide_app.init(new cyanide_http_app_t);
+#endif
 
     std::map<std::string, http_app_t *> ajax_routes;
     ajax_routes["directory"] = directory_app.get();
@@ -130,19 +133,19 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     default_views["issues"] = issues_app.get();
     default_views["last_seen"] = last_seen_app.get();
 
-    combining_app.reset(new combining_http_app_t(default_views));
+    combining_app.init(new combining_http_app_t(default_views));
 
-    ajax_routing_app.reset(new routing_http_app_t(combining_app.get(), ajax_routes));
+    ajax_routing_app.init(new routing_http_app_t(combining_app.get(), ajax_routes));
 
     std::map<std::string, http_app_t *> root_routes;
     root_routes["ajax"] = ajax_routing_app.get();
-    root_routing_app.reset(new routing_http_app_t(file_app.get(), root_routes));
+    root_routing_app.init(new routing_http_app_t(file_app.get(), root_routes));
 
-    server.reset(new http_server_t(port, root_routing_app.get()));
+    server.init(new http_server_t(port, root_routing_app.get()));
 }
 
 administrative_http_server_manager_t::~administrative_http_server_manager_t() {
     /* This must be declared in the `.cc` file because the definitions of the
-    destructors for the things in `boost::scoped_ptr`s are not available from
+    destructors for the things in `scoped_ptr_t`s are not available from
     the `.hpp` file. */
 }

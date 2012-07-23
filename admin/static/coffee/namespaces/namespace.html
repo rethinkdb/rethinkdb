@@ -2,7 +2,7 @@
     <div class="full_profile">
         <div class="main_title"></div>
         <dIv id="user-alert-space">{{print_safe old_alert_html}}</div>
-        <div class="two-panel-section">
+        <div class="two-panel-section section">
             <div class="panel-left-unbalanced profile">
         </div>
         <div class="panel-right-unbalanced">
@@ -12,19 +12,27 @@
       </div>
 
     <ul class="nav nav-tabs">
-        <li class="active"><a href="#namespace-statistics" data-toggle="tab">Statistics</a></li>
-        <li><a href="#namespace-replication" data-toggle="tab">Replication</a></li>
-        <li><a href="#namespace-sharding" data-toggle="tab">Sharding</a></li>
+        <li class="active"><a href="#namespace-overview" data-toggle="tab">Overview</a></li>
+        <li><a href="#namespace-replication" class="namespace_replication-link" data-toggle="tab">Replication</a></li>
+        <li><a href="#namespace-sharding" class="namespace_sharding-link" data-toggle="tab">Sharding</a></li>
+        <li><a href="#namespace-pinning" class="namespace_pinning-link" data-toggle="tab">Pinning</a></li>
+        <li><a href="#namespace-other" class="namespace_other-link" data-toggle="tab">Other</a></li>
     </ul>
     <div class="tab-content">  
-        <div class="tab-pane active" id="namespace-statistics">
-            <div class="section namespace-stats"></div>
+        <div class="tab-pane active" id="namespace-overview">
+            <div class="section namespace-overview-container"></div>
         </div>
         <div class="tab-pane" id="namespace-replication">
             <div class="section replication"></div>
         </div>
         <div class="tab-pane" id="namespace-sharding">
             <div class="section sharding"></div>
+        </div>
+        <div class="tab-pane" id="namespace-pinning">
+            <div class="section pinning"></div>
+        </div>
+        <div class="tab-pane" id="namespace-other">
+            <div class="section other"></div>
         </div>
     </div>
 </script>
@@ -34,7 +42,7 @@
 </script>
 
 <script id="namespace_view_title-template" type="text/x-handlebars-template">
-    <h1>Namespace overview for {{name}}</h1> (<a href="#" class="rename-namespace">rename</a>)
+    <h1>Namespace overview for {{name}}</h1>
 </script>
 
 <script id="namespace_view-profile-template" type="text/x-handlebars-template">
@@ -53,20 +61,134 @@
 </script>
 
 
-<script id="namespace_stats-template" type="text/x-handlebars-template">
-    <h3 class="title">Statistics</h3>
-    <ul class="list_stats total_ops_sec">
-        <li class="title"><span>Total ops/sec:</span></td>
-        <li class="opsec_sparkline">Loading...</td>
-        <li class="value"><span>{{total_ops_sec}}</span></td>
-    </ul>
-    <ul class="list_stats ram_usage">
-        <li class="title"><span>Ram usage:</span></td>
-        <li class="minichart">
-            <div class="progress contains_info">
-                <div class="bar" style="width: {{data_in_memory_percent}}%;"></div>
-            </div>
-        </li>
-        <li class="value"><span>{{data_in_memory}} of {{data_total}} in RAM</span></td>
-    </ul>
+<script id="namespace_overview-container-template" type="text/x-handlebars-template">
+    <div class="data_in_memory-container"></div>
+    <div class="data_repartition-container"></div>
 </script>
+
+<script id="namespace_overview-data_in_memory-template" type="text/x-handlebars-template">
+    <h3 class="title">Data in memory</h3>
+    <div class="two-panel-section">
+        <div class="pie_container panel-left">
+            <svg class="pie_chart-data_in_memory" width="270" height="270">
+                <text x="100" y="135" class="loading_text-pie_chart">Loading data...</text>
+            </svg>
+        </div>
+        <div class="pie_legend panel-right">
+            <ul class="legend">
+                <li class="title-legend"><h4>Legend</h4></li>
+                <li class="data_in_memory-legend">Data in memory: {{data_in_memory}}</li>
+                <li class="data_not_in_memory-legend">Data on disk and not in memory: {{data_not_in_memory}}</li>
+            </ul>
+            <ul class="legend">
+                <li class="title-legend"><h4>More statistics</h4></li>
+                <li class="more_statistics">Data on disk: {{data_total}}</li>
+                <li class="more_statistics">Data in memory / data in disk: {{data_in_memory_percent}}</li>
+            </ul>
+        </div>
+    </div>
+</script>
+
+<script id="namespace_overview-data_repartition-template" type="text/x-handlebars-template">
+    <h3 class="title">Data repartition</h3>
+
+    {{#if has_shards}}
+        {{#if numerous_shards}}
+            <div class="data_repartition-graph">
+                <svg class="data_repartition-diagram" width="700" height="350">
+                    <text x="300" y="150" class="loading_text-diagram">Loading data...</text>
+                </svg>
+            </div>
+
+            <div class="data_repartition-legend">
+                <ul class="legend legend_left">
+                    <li class="title-legend"><h4>More statistics</h4></li>
+
+                    <li class="more_statistics">
+                        {{#if max_keys}}
+                        Biggest shard has {{max_keys}} keys
+                        {{else}}
+                        Loading stats for biggest shards
+                        {{/if}}
+                    </li>
+                    <li class="more_statistics">
+                        {{#if min_keys}}
+                        Smallest shard has {{min_keys}} keys
+                        {{else}}
+                        Loading stats for smallest shards
+                        {{/if}}
+     
+                    </li>
+                </ul>
+                <ul class="legend legend_right">
+                    <li class="title-legend"><h4>Operations on shards</h4></li>
+                    <li class="more_statistics"><a href="#" class="rebalance_shards-link">Rebalance shards</a></li>
+                    <li class="more_statistics"><a href="#" class="change_shards-link" >Add/Modify/Remove shards</a></li>
+                </ul>
+            </div>
+     
+        {{else}}
+        <div class="two-panel-section">
+            <div class="data_repartition-graph panel-left">
+                <svg class="data_repartition-diagram" width="270" height="270">
+                    <text x="100" y="135" class="loading_text-diagram">Loading data...</text>
+                </svg>
+            </div>
+            <div class="data_repartition-legend panel-right">
+                <ul class="legend">
+                    <li class="title-legend"><h4>More statistics</h4></li>
+
+                    <li class="more_statistics">
+                        {{#if max_keys}}
+                        Biggest shard has {{max_keys}} keys
+                        {{else}}
+                        Loading stats for biggest shards
+                        {{/if}}
+                    </li>
+                    <li class="more_statistics">
+                        {{#if min_keys}}
+                        Smallest shard has {{min_keys}} keys
+                        {{else}}
+                        Loading stats for smallest shards
+                        {{/if}}
+     
+                    </li>
+                </ul>
+                <ul class="legend">
+                    <li class="title-legend"><h4>Operations on shards</h4></li>
+                    <li class="more_statistics"><a href="#" class="rebalance_shards-link">Rebalance shards</a></li>
+                    <li class="more_statistics"><a href="#" class="change_shards-link" >Add/Modify/Remove shards</a></li>
+                </ul>
+            </div>
+        </div>
+        {{/if}}
+    {{else}}
+        <p class="no-shard">You do not have shards for this namespace.</p>    
+    {{/if}}
+</script>
+
+
+
+<script id="namespace_other-template" type="text/x-handlebars-template">
+    <h3 class="title">Other operations</h3>
+    <div class="other_section rename_namespace">
+        <input type="button" class="btn other_button rename_namespace-button" value="Rename"/>
+        <p>Rename the namespace</p>
+    </div>
+    <div class="other_section import_data">
+        <input type="button" class="btn other_button import_data-button" value="Import"/>
+        <p>Import data</p>
+    </div>
+    <div class="other_section export_data-container">
+        <input type="button" class="btn other_button export_data-button" value="Export"/>
+        <p>Export data</p>
+    </div>
+    <div class="other_section delete_namespace-container">
+        <input type="button" class="btn other_button delete_namespace-button" value="Delete"/>
+        <p>Delete the namespace</p>
+    </div>
+
+
+
+</script>
+

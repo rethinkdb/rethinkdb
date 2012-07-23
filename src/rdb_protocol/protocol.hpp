@@ -72,7 +72,7 @@ struct rdb_protocol_t {
         key_range_t key_range;
         std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > data;
         bool truncated;
-        
+
         rget_read_response_t() { }
         explicit rget_read_response_t(const key_range_t &_key_range, std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > _data, bool _truncated)
             : key_range(_key_range), data(_data), truncated(_truncated)
@@ -106,12 +106,13 @@ struct rdb_protocol_t {
     class rget_read_t {
     public:
         rget_read_t() { }
-        explicit rget_read_t(const key_range_t &_key_range)
-            : key_range(_key_range) { }
+        explicit rget_read_t(const key_range_t &_key_range, int _maximum)
+            : key_range(_key_range), maximum(_maximum) { }
 
         key_range_t key_range;
+        int maximum;
 
-        RDB_MAKE_ME_SERIALIZABLE_1(key_range);
+        RDB_MAKE_ME_SERIALIZABLE_2(key_range, maximum);
     };
 
     struct read_t {
@@ -143,12 +144,12 @@ struct rdb_protocol_t {
 
     struct point_delete_response_t {
         point_delete_result_t result;
-        
+
         point_delete_response_t() {}
         explicit point_delete_response_t(point_delete_result_t _result)
             : result(_result)
         { }
-        
+
         RDB_MAKE_ME_SERIALIZABLE_1(result);
     };
 

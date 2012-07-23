@@ -50,6 +50,20 @@ public:
     backtrace_t backtrace;
 };
 
+class runtime_exc_t {
+public:
+    runtime_exc_t(const std::string &_what, const backtrace_t &bt)
+        : message(_what), backtrace(bt)
+    { }
+
+    std::string what() const throw() {
+        return message;
+    }
+
+    std::string message;
+    backtrace_t backtrace;
+};
+
 enum term_type_t {
     TERM_TYPE_JSON,
     TERM_TYPE_STREAM,
@@ -59,24 +73,6 @@ enum term_type_t {
     `Error` term can be either a stream or an object. It is a subtype of every
     type. */
     TERM_TYPE_ARBITRARY
-};
-
-class function_type_t {
-public:
-    // _n_args==-1 indicates a variadic function
-    function_type_t(const term_type_t &_return_type);
-    function_type_t(const term_type_t& _arg_type, int _n_args, const term_type_t& _return_type);
-    function_type_t(const term_type_t& _arg1_type, const term_type_t& _arg2_type, const term_type_t& _return_type);
-
-    const term_type_t& get_arg_type(int n) const;
-    const term_type_t& get_return_type() const;
-    bool is_variadic() const;
-
-    int get_n_args() const;
-private:
-    term_type_t arg_type[3];
-    int n_args;
-    term_type_t return_type;
 };
 
 template <class T>
@@ -163,7 +159,7 @@ typedef variable_type_scope_t::new_scope_t new_scope_t;
 template <class T>
 class implicit_value_t {
 public:
-    implicit_value_t() { 
+    implicit_value_t() {
         push();
     }
 
@@ -181,13 +177,13 @@ public:
 
     class impliciter_t {
     public:
-        explicit impliciter_t(implicit_value_t *_parent) 
+        explicit impliciter_t(implicit_value_t *_parent)
             : parent(_parent)
         {
             parent->push();
         }
 
-        impliciter_t(implicit_value_t *_parent, const T& t) 
+        impliciter_t(implicit_value_t *_parent, const T& t)
             : parent(_parent)
         {
             parent->push(t);
@@ -225,7 +221,7 @@ fail type-checking. (A well-defined input has the correct fields filled in.) */
 
 term_type_t get_term_type(const Term &t, type_checking_environment_t *env, const backtrace_t &backtrace);
 void check_term_type(const Term &t, term_type_t expected, type_checking_environment_t *env, const backtrace_t &backtrace);
-function_type_t get_function_type(const Builtin &b, type_checking_environment_t *env, const backtrace_t &backtrace);
+term_type_t get_function_type(const Term::Call &c, type_checking_environment_t *env, const backtrace_t &backtrace);
 void check_reduction_type(const Reduction &m, type_checking_environment_t *env, const backtrace_t &backtrace);
 void check_mapping_type(const Mapping &m, term_type_t return_type, type_checking_environment_t *env, const backtrace_t &backtrace);
 void check_predicate_type(const Predicate &m, type_checking_environment_t *env, const backtrace_t &backtrace);
@@ -278,6 +274,65 @@ public:
     }
 private:
     cJSON_list_t data;
+};
+
+class batched_rget_stream_t : public json_stream_t {
+public:
+    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access, signal_t *_interruptor, key_range_t _range, int _batch_size,
+        backtrace_t _backtrace)
+        : ns_access(_ns_access), interruptor(_interruptor), range(_range), batch_size(_batch_size), index(0), finished(false), backtrace(_backtrace) { }
+
+    boost::shared_ptr<scoped_cJSON_t> next() {
+        if (data.empty()) {
+            if (finished) {
+                return boost::shared_ptr<scoped_cJSON_t>();
+            }
+            read_more();
+            if (data.empty()) {
+                finished = true;
+                return boost::shared_ptr<scoped_cJSON_t>();
+            }
+        }
+        boost::shared_ptr<scoped_cJSON_t> ret = data.front();
+        data.pop_front();
+        return ret;
+    }
+
+private:
+    void read_more() {
+        rdb_protocol_t::rget_read_t rget_read(range, batch_size);
+        rdb_protocol_t::read_t read(rget_read);
+        try {
+            rdb_protocol_t::read_response_t res = ns_access.get_namespace_if()->read(read, order_token_t::ignore, interruptor);
+            rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+            rassert(p_res);
+
+            // todo: just do a straight copy?
+            for (std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > >::iterator i = p_res->data.begin();
+                 i != p_res->data.end(); ++i) {
+                data.push_back(i->second);
+                rassert(data.back());
+                range.left = i->first;
+            }
+
+            if (!range.left.increment()) {
+                finished = true;
+            }
+        } catch (cannot_perform_query_exc_t e) {
+            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), backtrace);
+        }
+    }
+
+    namespace_repo_t<rdb_protocol_t>::access_t ns_access;
+    signal_t *interruptor;
+    key_range_t range;
+    int batch_size;
+
+    cJSON_list_t data;
+    int index;
+    bool finished;
+
+    backtrace_t backtrace;
 };
 
 class stream_multiplexer_t {
@@ -463,20 +518,6 @@ typedef variable_scope_t<boost::shared_ptr<stream_multiplexer_t> > variable_stre
 
 typedef variable_stream_scope_t::new_scope_t new_stream_scope_t;
 
-class runtime_exc_t {
-public:
-    runtime_exc_t(const std::string &_what, const backtrace_t &bt)
-        : message(_what), backtrace(bt)
-    { }
-
-    std::string what() const throw() {
-        return message;
-    }
-
-    std::string message;
-    backtrace_t backtrace;
-};
-
 class runtime_environment_t {
 public:
     runtime_environment_t(extproc::pool_group_t *_pool_group,
@@ -521,8 +562,6 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
 
 boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
-boost::shared_ptr<scoped_cJSON_t> eval_cmp(const Term::Call &c, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
-
 namespace_repo_t<rdb_protocol_t>::access_t eval(const TableRef &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 class view_t {
@@ -534,6 +573,10 @@ public:
     namespace_repo_t<rdb_protocol_t>::access_t access;
     boost::shared_ptr<json_stream_t> stream;
 };
+
+view_t eval_view(const Term &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
+
+view_t eval_view(const Term::Call &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 
 view_t eval_view(const Term::Table &t, runtime_environment_t *, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t);
 

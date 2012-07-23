@@ -44,7 +44,7 @@ public:
     // TODO get rid of this. This is only for a hack until we know what to do with timestamps
     repli_timestamp_t to_repli_timestamp() const {
         repli_timestamp_t ts;
-        ts.time = static_cast<uint32_t>(num);   // FIXME Aaaargh!!! We're losing precision here
+        ts.longtime = num;
         return ts;
     }
 
