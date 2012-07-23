@@ -274,9 +274,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, io
 
     // Construct a disk manager. (given that we have an event pool)
     if (linux_thread_pool_t::thread) {
-        //linux_event_queue_t *queue = &linux_thread_pool_t::thread->queue;
         diskmgr = io_backender->get_diskmgr_ptr();
-        //io_backender->make_disk_manager(queue, batch_factor, stats, &diskmgr);
         default_account.reset(new linux_file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
