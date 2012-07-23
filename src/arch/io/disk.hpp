@@ -15,8 +15,6 @@
 class linux_iocallback_t;
 struct linux_disk_manager_t;
 
-//class perfmon_collection_t;
-
 /* Disk manager object takes care of queueing operations, collecting statistics, preventing
    conflicts, and actually sending them to the disk. */
 
