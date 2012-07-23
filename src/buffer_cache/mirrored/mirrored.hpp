@@ -6,9 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "arch/types.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
