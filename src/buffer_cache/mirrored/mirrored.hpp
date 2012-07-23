@@ -297,7 +297,6 @@ private:
 
     int64_t num_buf_locks_acquired;
 
-    // TODO: Make this debug-only.
     bool is_writeback_transaction;
 
     DISABLE_COPYING(mc_transaction_t);
