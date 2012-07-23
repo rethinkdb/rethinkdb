@@ -1218,7 +1218,7 @@ void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serialize
     serializer->assert_thread();
 
     for (size_t i = 0; i < num_block_ids; ++i) {
-        if (block_ids[i] != NULL_BLOCK_ID && recencies_out[i].time == repli_timestamp_t::invalid.time) {
+        if (block_ids[i] != NULL_BLOCK_ID && recencies_out[i] == repli_timestamp_t::invalid) {
             recencies_out[i] = serializer->get_recency(block_ids[i]);
         }
     }
