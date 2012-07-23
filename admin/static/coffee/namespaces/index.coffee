@@ -207,6 +207,23 @@ module 'NamespaceView', ->
                 $('.alert_modal').alert()
                 @reset_buttons()
             else
+                ### TODO use this call so we are sure to be consistent when we update the namespace
+                data = {}
+                data['memcached_namespaces'] = {}
+                data['memcached_namespaces']['new'] =
+                    name: formdata.name
+                    primary_uuid: formdata.primary_datacenter
+                    port : parseInt(formdata.port)
+
+                $.ajax
+                    processData: false
+                    url: '/ajax/semilattice'
+                    type: 'POST'
+                    contentType: 'application/json'
+                    data: JSON.stringify data
+                    success: @on_success
+                    error: @on_error
+                ###
                 $.ajax
                     processData: false
                     url: '/ajax/semilattice/memcached_namespaces/new'
