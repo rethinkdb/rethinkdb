@@ -37,14 +37,13 @@ struct thread_doer_t :
         do_return_home();
     }
 
+    // We go back to the home thread because it's nice to tcmalloc if
+    // we free memory on the same thread upon which it was allocated.
     void do_return_home() {
         state = state_go_home;
 
-#ifndef NDEBUG
-        rassert(!continue_on_thread(home_thread(), this));
-#else
-        continue_on_thread(home_thread(), this);
-#endif
+        DEBUG_ONLY_VAR bool no_switch = continue_on_thread(home_thread(), this);
+        rassert(!no_switch);
     }
 
     void on_thread_switch() {
