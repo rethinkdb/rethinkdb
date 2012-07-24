@@ -97,12 +97,15 @@ class ContinuousWorkload(object):
 #     scenario.py --split-workload 'workload1.py $HOST:$PORT' 'workload2.py $HOST:$PORT' [--timeout timeout]
 #     scenario.py --continuous-workload 'workload.py $HOST:$PORT'
 
-def prepare_option_parser_for_split_or_continuous_workload(op):
-    op["workload-before"] = StringFlag("--workload-before", None)
-    op["timeout-before"] = IntFlag("--timeout-before", 600)
+def prepare_option_parser_for_split_or_continuous_workload(op, allow_between = False):
     op["workload-during"] = StringFlag("--workload-during", None)
     op["extra-before"] = IntFlag("--extra-before", 10)
     op["extra-after"] = IntFlag("--extra-after", 10)
+    op["workload-before"] = StringFlag("--workload-before", None)
+    op["timeout-before"] = IntFlag("--timeout-before", 600)
+    if allow_between:
+        op["workload-between"] = StringFlag("--workload-between", None)
+        op["timeout-between"] = IntFlag("--timeout-between", 600)
     op["workload-after"] = StringFlag("--workload-after", None)
     op["timeout-after"] = IntFlag("--timeout-after", 600)
 
@@ -114,7 +117,7 @@ class SplitOrContinuousWorkload(object):
             self.continuous_workload = ContinuousWorkload(self.opts["workload-during"], self.host, self.port)
             self.continuous_workload.__enter__()
         return self
-    def step1(self):
+    def run_before(self):
         if self.opts["workload-before"] is not None:
             run(self.opts["workload-before"], self.host, self.port, self.opts["timeout-before"])
         if self.opts["workload-during"] is not None:
@@ -127,7 +130,12 @@ class SplitOrContinuousWorkload(object):
     def check(self):
         if self.opts["workload-during"] is not None:
             self.continuous_workload.check()
-    def step2(self):
+    def run_between(self):
+        self.check()
+        assert "workload-between" in self.opts, "pass allow_between=True to prepare_option_parser_for_split_or_continuous_workload()"
+        if self.opts["workload-between"] is not None:
+            run(self.opts["workload-between"], self.host, self.port, self.opts["timeout-between"])
+    def run_after(self):
         if self.opts["workload-during"] is not None:
             if self.opts["extra-after"] != 0:
                 print "Letting %r run for %d seconds..." % (self.opts["workload-during"], self.opts["extra-after"])

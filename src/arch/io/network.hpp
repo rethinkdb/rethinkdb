@@ -131,9 +131,7 @@ public:
     transmitted over the network. */
     perfmon_rate_monitor_t *write_perfmon;
 
-    /* Note that is_read_open() and is_write_open() must both be false before the socket is
-    destroyed. */
-    ~linux_tcp_conn_t();
+    ~linux_tcp_conn_t() THROWS_NOTHING;
 
 public:
 
@@ -156,7 +154,7 @@ private:
 
     /* Object that we use to watch for events. It's NULL when we are not registered on any
     thread, and otherwise is an object that's valid for the current thread. */
-    linux_event_watcher_t *event_watcher;
+    scoped_ptr_t<linux_event_watcher_t> event_watcher;
 
     /* True if there is a pending read or write */
     bool read_in_progress, write_in_progress;
@@ -197,10 +195,21 @@ private:
         void coro_pool_callback(write_queue_op_t *operation, signal_t *interruptor);
     } write_handler;
 
+    template <class T>
+    class deleting_intrusive_list_t : public intrusive_list_t<T> {
+    public:
+        ~deleting_intrusive_list_t() {
+            while (T *x = this->head()) {
+                this->pop_front();
+                delete x;
+            }
+        }
+    };
+
     /* Lists of unused buffers, new buffers will be put on this list until needed again, reducing
        the use of dynamic memory.  TODO: decay over time? */
-    intrusive_list_t<write_buffer_t> unused_write_buffers;
-    intrusive_list_t<write_queue_op_t> unused_write_queue_ops;
+    deleting_intrusive_list_t<write_buffer_t> unused_write_buffers;
+    deleting_intrusive_list_t<write_queue_op_t> unused_write_queue_ops;
 
     write_buffer_t * get_write_buffer();
     write_queue_op_t * get_write_queue_op();
@@ -226,7 +235,7 @@ private:
 
     /* Buffer we are currently filling up with data that we want to write. When it reaches a
     certain size, we push it onto `write_queue`. */
-    write_buffer_t* current_write_buffer;
+    scoped_ptr_t<write_buffer_t> current_write_buffer;
 
     /* Used to actually perform a write. If the write end of the connection is open, then writes
     `size` bytes from `buffer` to the socket. */

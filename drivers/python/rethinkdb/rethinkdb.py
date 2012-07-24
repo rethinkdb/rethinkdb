@@ -240,6 +240,9 @@ class Table(Stream):
         else:
             return Insert(self, [docs])
 
+    def insert_stream(self, stream):
+        return InsertStream(self, stream)
+
     def find(self, value, key='id'):
         return Find(self, key, value)
 
@@ -282,6 +285,17 @@ class Insert(WriteQuery):
         else:
             arg = '[{entries:term:}]'
         return super(Insert, self)._pretty_print(printer, '{table:table_ref}.insert(%s)' % arg)
+
+class InsertStream(WriteQuery):
+    pretty = "{table:table_ref}.insert_stream({stream:stream})"
+    def __init__(self, table, stream):
+        self.table = table
+        self.stream = stream
+
+    def _write_ast(self, parent):
+        parent.type = p.WriteQuery.INSERTSTREAM
+        self.table._write_ref_ast(parent.insert_stream.table_ref)
+        self.stream._write_ast(parent.insert_stream.stream)
 
 class Filter(Stream):
     pretty = "{parent_view:arg:0}.filter({selector:predicate}, row={row})"
@@ -451,6 +465,57 @@ class Term(Common):
     def _finalize_query(self, root):
         root.type = p.Query.READ
         self._write_ast(root.read_query.term)
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            if index.step is not None:
+                raise ValueError, "slice steps are not supported"
+            return slice_(self, index.start, index.stop)
+        elif isinstance(index, int):
+            return element(self, index)
+        else:
+            return attr(self, index)
+
+    def __lt__(self, other):
+        return lt(self, other)
+    def __le__(self, other):
+        return le(self, other)
+    def __eq__(self, other):
+        return eq(self, other)
+    def __ne__(self, other):
+        return ne(self, other)
+    def __gt__(self, other):
+        return gt(self, other)
+    def __ge__(self, other):
+        return ge(self, other)
+
+    def __add__(self, other):
+        return add(self, other)
+    def __sub__(self, other):
+        return sub(self, other)
+    def __mul__(self, other):
+        return mul(self, other)
+    def __div__(self, other):
+        return div(self, other)
+    def __mod__(self, other):
+        return mod(self, other)
+
+    def __radd__(self, other):
+        return add(other, self)
+    def __rsub__(self, other):
+        return sub(other, self)
+    def __rmul__(self, other):
+        return mul(other, self)
+    def __rdiv__(self, other):
+        return div(other, self)
+    def __rmod__(self, other):
+        return mod(other, self)
+
+    def __neg__(self):
+        return sub(self)
+    def __pos__(self):
+        return self
+
 
 class Find(Term):
     pretty = "{table:table_ref}.find({value:key}, key={key:attrname})"
@@ -744,7 +809,7 @@ element = _make_builtin("element", p.Builtin.ARRAYNTH, "array", "index")
 size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
 concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
-slice = _make_builtin("slice", p.Builtin.ARRAYSLICE, "array", "start", "end")
+slice_ = _make_builtin("slice_", p.Builtin.ARRAYSLICE, "array", "start", "end")
 array = _make_builtin("array", p.Builtin.STREAMTOARRAY, "stream")
 count = _make_builtin("count", p.Builtin.LENGTH, "stream")
 nth = _make_builtin("nth", p.Builtin.NTH, "stream", "index")

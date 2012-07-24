@@ -1,0 +1,8 @@
+// Internal extensions. Do not distribute.
+package query_language;
+
+import "rdb_protocol/query_language.proto";
+
+extend Term {
+    optional int32 inferred_type = 1000;
+};
