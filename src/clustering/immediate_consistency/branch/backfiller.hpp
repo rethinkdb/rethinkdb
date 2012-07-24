@@ -4,13 +4,12 @@
 #include <map>
 #include <utility>
 
-#include "backfill_progress.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/metadata.hpp"
 
 template <class> class semilattice_read_view_t;
 template <class> class multistore_ptr_t;
-
+class traversal_progress_combiner_t;
 
 /* If you construct a `backfiller_t` for a given store, then it will advertise
 its existence in the metadata and serve backfills over the network. */

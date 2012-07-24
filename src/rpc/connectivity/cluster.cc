@@ -144,6 +144,7 @@ void connectivity_cluster_t::run_t::join_blocking(
         peer_address_t address,
         boost::optional<peer_id_t> expected_id,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
+    drainer_lock.assert_is_holding(&parent->current_run->drainer);
     parent->assert_thread();
     {
         mutex_assertion_t::acq_t acq(&attempt_table_mutex);

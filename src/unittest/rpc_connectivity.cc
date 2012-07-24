@@ -210,7 +210,7 @@ void run_get_peers_list_test() {
 
         /* Make sure `get_peers_list()` correctly notices that a peer connects */
         std::set<peer_id_t> list_2 = c1.get_peers_list();
-        EXPECT_TRUE(list_2.find(c2.get_me()) != list_2.end());
+        ASSERT_TRUE(list_2.find(c2.get_me()) != list_2.end());
         EXPECT_EQ(port + 1, c1.get_peer_address(c2.get_me()).port);
 
         /* `c2`'s destructor is called here */
