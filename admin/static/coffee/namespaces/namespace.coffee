@@ -370,7 +370,7 @@ module 'NamespaceView', ->
                         .enter()
                         .append('rect')
                         .attr('x', (d, i) -> return x(i))
-                        .attr('y', (d) -> return svg_height-y(d.num_keys)-margin_height)
+                        .attr('y', (d) -> return svg_height-y(d.num_keys)-margin_height-1) #-1 not to overlap with axe
                         .attr('width', width)
                         .attr( 'height', (d) -> return y(d.num_keys))
                         .attr( 'title', (d) -> return 'Shard:'+d.boundaries+'<br />'+d.num_keys+' keys')

@@ -25,7 +25,7 @@ class Namespace extends Backbone.Model
                 distr_keys = []
                 for key, count of distr_data
                     distr_keys.push(key)
-                _.sortBy(distr_keys, _.identity)
+                distr_keys = _.sortBy(distr_keys, _.identity)
 
                 @set('key_distr', distr_data)
                 @set('key_distr_sorted', distr_keys)
@@ -43,7 +43,6 @@ class Namespace extends Backbone.Model
         start_key = shard[0]
         end_key = shard[1]
 
-
         # TODO: we should probably support interpolation here, but
         # fuck it for now.
 
@@ -52,11 +51,10 @@ class Namespace extends Backbone.Model
         count = 0
 
         for key in @get('key_distr_sorted')
-            if key >= start_key
-                if @get('key_distr')[key]?
-                    count += @get('key_distr')[key]
-            if end_key? and key >= end_key
-                break
+            if key >= start_key or start_key is null
+                if end_key is null or key < end_key
+                    if @get('key_distr')[key]?
+                        count += @get('key_distr')[key]
 
         return count.toString() # Return string since [] == 0 return true (for Handlebars)
 
