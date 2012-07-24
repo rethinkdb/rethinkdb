@@ -1,6 +1,8 @@
 import subprocess, os, time, string, signal
 from vcoptparse import *
 
+# TODO: Merge this file into `scenario_common.py`?
+
 class Ports(object):
     def __init__(self, host, http_port, memcached_port):
         self.host = host
@@ -99,9 +101,16 @@ class ContinuousWorkload(object):
                 pass
 
 def prepare_option_parser_for_split_or_continuous_workload(op, allow_between = False):
+    # `--workload-during` specifies one or more workloads that will be run
+    # continuously while other stuff is happening. `--extra-*` specifies how
+    # many seconds to sit while the workloads are running.
     op["workload-during"] = ValueFlag("--workload-during", converter = str, default = [], combiner = append_combiner)
     op["extra-before"] = IntFlag("--extra-before", 10)
+    op["extra-between"] = IntFlag("--extra-between", 10)
     op["extra-after"] = IntFlag("--extra-after", 10)
+
+    # `--workload-*` specifies a workload to run at some point in the scenario.
+    # `--timeout-*` specifies the timeout to enforce for `--workload-*`.
     op["workload-before"] = StringFlag("--workload-before", None)
     op["timeout-before"] = IntFlag("--timeout-before", 600)
     if allow_between:
@@ -120,18 +129,21 @@ class SplitOrContinuousWorkload(object):
             cwl.__enter__()
             self.continuous_workloads.append(cwl)
         return self
+    def _spin_continuous_workloads(self, seconds):
+        assert self.opts["workload-during"]
+        if seconds != 0:
+            print "Letting %s run for %d seconds..." % \
+                (" and ".join(repr(x) for x in self.opts["workload-during"]), seconds)
+            for i in xrange(seconds):
+                time.sleep(1)
+                self.check()
     def run_before(self):
         if self.opts["workload-before"] is not None:
             run(self.opts["workload-before"], self.ports, self.opts["timeout-before"])
         if self.opts["workload-during"]:
             for cwl in self.continuous_workloads:
                 cwl.start()
-            if self.opts["extra-before"] != 0:
-                print "Letting %s run for %d seconds..." % \
-                    (" and ".join(repr(x) for x in self.opts["workload-during"]), self.opts["extra-before"])
-                for i in xrange(self.opts["extra-before"]):
-                    time.sleep(1)
-                    self.check()
+            self._spin_continuous_workloads(self.opts["extra-before"])
     def check(self):
         for cwl in self.continuous_workloads:
             cwl.check()
@@ -140,14 +152,11 @@ class SplitOrContinuousWorkload(object):
         assert "workload-between" in self.opts, "pass allow_between=True to prepare_option_parser_for_split_or_continuous_workload()"
         if self.opts["workload-between"] is not None:
             run(self.opts["workload-between"], self.ports, self.opts["timeout-between"])
+        if self.opts["workload-during"]:
+            self._spin_continuous_workloads(self.opts["extra-between"])
     def run_after(self):
         if self.opts["workload-during"]:
-            if self.opts["extra-after"] != 0:
-                print "Letting %s run for %d seconds..." % \
-                    (" and ".join(repr(x) for x in self.opts["workload-during"]), self.opts["extra-after"])
-                for i in xrange(self.opts["extra-after"]):
-                    self.check()
-                    time.sleep(1)
+            self._spin_continuous_workloads(self.opts["extra-after"])
             for cwl in self.continuous_workloads:
                 cwl.stop()
         if self.opts["workload-after"] is not None:
