@@ -6,7 +6,7 @@ scenarios = [
     "$RETHINKDB/test/scenarios/change_primary.py --workload-during '%(workload)s'",
     "$RETHINKDB/test/scenarios/failover_to_secondary.py --workload-during '%(workload)s'",
     "$RETHINKDB/test/scenarios/kill_secondary.py --workload-during '%(workload)s'",
-    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --less --workload-during '%(workload)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 1-1+1-1 --workload-during '%(workload)s'",
     "$RETHINKDB/test/scenarios/kill_access_point.py '%(workload)s'",
     ]
 
