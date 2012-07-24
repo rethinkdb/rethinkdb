@@ -305,3 +305,13 @@ module 'NamespaceView', ->
             apply_diffs response
 
             super
+
+        ton_error: =>
+            @.$('.error_answer').html @template_remove_error
+
+            if $('.error_answer').css('display') is 'none'
+                $('.error_answer').slideDown('fast')
+            else
+                $('.error_answer').css('display', 'none')
+                $('.error_answer').fadeIn()
+            remove_namespace_dialog.reset_buttons()

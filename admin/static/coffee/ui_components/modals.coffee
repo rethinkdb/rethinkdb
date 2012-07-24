@@ -125,6 +125,7 @@ module 'UIComponents', ->
                 modal_title: 'Confirmation'
                 btn_secondary_text: 'No'
                 btn_primary_text: 'Yes'
+            @.$('.btn-primary').focus()
 
         on_submit: ->
             super
