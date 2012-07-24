@@ -338,7 +338,7 @@ module 'NamespaceView', ->
                     need_update = true
                     break
  
-            if need_update or force_render is true
+            if need_update or force_render is true or @.$('.data-repartition-diagram').children().length is 1
                 @json_repartition = json
                 @.$('.data_repartition-container').html @data_repartition_template @json_repartition
 
