@@ -46,7 +46,7 @@ module 'NamespaceView', ->
                     diff[@model.get('id')] = response
                     apply_to_collection(namespaces, add_protocol_tag(diff, "memcached"))
                     # Grab the latest view of things
-                    $('#user-alert-space').append (@alert_tmpl
+                    $('#user-alert-space').html(@alert_tmpl
                         namespace_uuid: @model.get('id')
                         namespace_name: @model.get('name')
                         datacenter_uuid: new_dc.get('id')
@@ -249,7 +249,7 @@ module 'NamespaceView', ->
             super
             namespaces.get(@namespace.id).set(response)
             if @modified_replicas or @modified_acks
-                $('#user-alert-space').append (@alert_tmpl
+                $('#user-alert-space').html(@alert_tmpl
                     modified_replicas: @modified_replicas
                     old_replicas: @old_replicas
                     new_replicas: @nreplicas
