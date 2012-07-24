@@ -78,6 +78,9 @@ message Term {
     };
 
     optional Table table = 15;
+
+    // reserved for RethinkDB internal use.
+    extensions 1000 to 1099;
 };
 
 message Builtin {
