@@ -156,6 +156,11 @@ for path in res_paths:
     print "Tests completed. Killing instance now..."
     proc.send_signal(signal.SIGINT)
 
+    time.sleep(2)
+    if proc.poll() != 0:
+        print "RethinkDB failed to shut down properly. (TEST FAILED)"
+        failed_test = False
+
     if res != (num_keys, num_keys):
         print "Done: FAILED"
         print "Results: %d successful sets, %d successful gets (%d total)" % (res[0], res[1], num_keys)
