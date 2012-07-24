@@ -118,6 +118,17 @@ bool http_req_t::has_header_line(const std::string& key) const {
     return false;
 }
 
+std::string http_req_t::get_sanitized_body() const {
+    std::string sanitized = body;
+    for (int i = 0; i < int(sanitized.length()); ++i) {
+        if (sanitized[i] == '\n' || sanitized[i] == '\t') {
+            sanitized[i] = ' ';
+        } else if (sanitized[i] < ' ' || sanitized[i] > '~') {
+            sanitized[i] = '?';
+        }
+    }
+    return sanitized;
+}
 
 int content_length(http_req_t msg) {
     for (std::vector<header_line_t>::iterator it = msg.header_lines.begin(); it != msg.header_lines.end(); it++) {
