@@ -22,15 +22,14 @@ class RDBTest(unittest.TestCase):
         cls.table = r.db("").Welcome
 
     def expect(self, query, *expected):
-        res = self.conn.run(query)
         try:
+            res = self.conn.run(query)
             self.assertNotEqual(str(query), '')
             self.assertEqual(res, list(expected))
         except Exception, e:
             root_ast = r.p.Query()
             r.toTerm(query)._finalize_query(root_ast)
             print root_ast
-            print res
             raise
 
     def error_query(self, query, msg):
@@ -306,6 +305,25 @@ class RDBTest(unittest.TestCase):
 
         self.do_insert(docs)
         self.expect(self.table.limit(1).delete(), {'deleted': 1})
+
+    def test_insertstream(self):
+        self.clear_table()
+
+        docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(4)]
+        self.expect(self.table.insert_stream(r.stream(docs)),
+                    {'inserted': len(docs)})
+
+        for doc in docs:
+            self.expect(self.table.find(doc['id']), doc)
+
+    # def test_huge(self):
+    #     self.clear_table()
+    #     self.do_insert([{"id": 1}])
+
+    #     increase = self.table.insert_stream(self.table.concat_map(r.stream(r.toTerm(range(10))).map(
+    #         r.extend(r.var('r'), {'id': r.add(r.mul(r.var('r').attr('id'), 10), r.var('y'))}), row='y'), row='r'))
+
+    #     self.expect(increase, {'inserted': '10'})
 
 if __name__ == '__main__':
     unittest.main()

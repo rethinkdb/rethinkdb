@@ -240,6 +240,9 @@ class Table(Stream):
         else:
             return Insert(self, [docs])
 
+    def insert_stream(self, stream):
+        return InsertStream(self, stream)
+
     def find(self, value, key='id'):
         return Find(self, key, value)
 
@@ -282,6 +285,17 @@ class Insert(WriteQuery):
         else:
             arg = '[{entries:term:}]'
         return super(Insert, self)._pretty_print(printer, '{table:table_ref}.insert(%s)' % arg)
+
+class InsertStream(WriteQuery):
+    pretty = "{table:table_ref}.insert_stream({stream:stream})"
+    def __init__(self, table, stream):
+        self.table = table
+        self.stream = stream
+
+    def _write_ast(self, parent):
+        parent.type = p.WriteQuery.INSERTSTREAM
+        self.table._write_ref_ast(parent.insert_stream.table_ref)
+        self.stream._write_ast(parent.insert_stream.stream)
 
 class Filter(Stream):
     pretty = "{parent_view:arg:0}.filter({selector:predicate}, row={row})"

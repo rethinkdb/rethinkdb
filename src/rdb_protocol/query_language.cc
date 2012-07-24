@@ -290,7 +290,7 @@ term_type_t get_function_type(const Term::Call &c, type_checking_environment_t *
     case Builtin::CONCATMAP: {
         implicit_value_t<term_type_t>::impliciter_t impliciter(&env->implicit_type, TERM_TYPE_JSON); //make the implicit value be of type json
         check_protobuf(b.has_concat_map());
-        check_mapping_type(b.map().mapping(), TERM_TYPE_STREAM, env, backtrace.with("mapping"));
+        check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, backtrace.with("mapping"));
         break;
     }
     case Builtin::ORDERBY:
@@ -1731,7 +1731,7 @@ boost::shared_ptr<json_stream_t> eval_stream(const Term::Call &c, runtime_enviro
                 boost::shared_ptr<json_stream_t> stream = eval_stream(c.args(0), env, backtrace.with("arg:0"));
 
                 return boost::shared_ptr<json_stream_t>(new concat_mapping_stream_t<boost::function<boost::shared_ptr<json_stream_t>(boost::shared_ptr<scoped_cJSON_t>)> >(
-                                                                stream, boost::bind(&concatmap, c.builtin().map().mapping().arg(), c.builtin().map().mapping().body(), *env, _1, backtrace.with("mapping"))));
+                                                                stream, boost::bind(&concatmap, c.builtin().concat_map().mapping().arg(), c.builtin().concat_map().mapping().body(), *env, _1, backtrace.with("mapping"))));
             }
             break;
         case Builtin::ORDERBY:
