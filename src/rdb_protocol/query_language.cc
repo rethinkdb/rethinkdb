@@ -10,6 +10,7 @@ namespace query_language {
 
 void check_protobuf(bool cond) {
     if (!cond) {
+        BREAKPOINT;
         throw bad_protobuf_exc_t();
     }
 }
@@ -292,21 +293,15 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
         check_protobuf(b.attrs_size());
         break;
     case Builtin::FILTER: {
-        //implicit_value_t<term_type_t>::impliciter_t impliciter(&env->implicit_type, TERM_TYPE_JSON); //make the implicit value be of type json
         check_protobuf(b.has_filter());
-        //check_predicate_type(b.filter().predicate(), env, backtrace.with("predicate"));
         break;
     }
     case Builtin::MAP: {
-        //implicit_value_t<term_type_t>::impliciter_t impliciter(&env->implicit_type, TERM_TYPE_JSON); //make the implicit value be of type json
         check_protobuf(b.has_map());
-        //check_mapping_type(b.map().mapping(), TERM_TYPE_JSON, env, backtrace.with("mapping"));
         break;
     }
     case Builtin::CONCATMAP: {
-        //implicit_value_t<term_type_t>::impliciter_t impliciter(&env->implicit_type, TERM_TYPE_JSON); //make the implicit value be of type json
         check_protobuf(b.has_concat_map());
-        //check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, backtrace.with("mapping"));
         break;
     }
     case Builtin::ORDERBY:
@@ -320,10 +315,6 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
     }
     case Builtin::GROUPEDMAPREDUCE: {
         check_protobuf(b.has_grouped_map_reduce());
-        //implicit_value_t<term_type_t>::impliciter_t impliciter(&env->implicit_type, TERM_TYPE_JSON); //make the implicit value be of type json
-        //check_mapping_type(b.grouped_map_reduce().group_mapping(), TERM_TYPE_JSON, env, backtrace.with("group_mapping"));
-        //check_mapping_type(b.grouped_map_reduce().value_mapping(), TERM_TYPE_JSON, env, backtrace.with("value_mapping"));
-        //check_reduction_type(b.grouped_map_reduce().reduction(), env, backtrace.with("reduction"));
         break;
     }
     case Builtin::RANGE:
@@ -383,16 +374,45 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             return term_info_t(TERM_TYPE_JSON, deterministic);
             break;
         case Builtin::MAP:
+            {
+                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+
+                implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
+                check_mapping_type(b.map().mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("mapping"));
+                return term_info_t(TERM_TYPE_STREAM, deterministic);
+            }
+            break;
         case Builtin::CONCATMAP:
+            {
+                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+
+                implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
+                check_mapping_type(b.concat_map().mapping(), TERM_TYPE_STREAM, env, &deterministic, deterministic, backtrace.with("mapping"));
+                return term_info_t(TERM_TYPE_STREAM, deterministic);
+            }
+            break;
         case Builtin::DISTINCT:
-            check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
-            return term_info_t(TERM_TYPE_STREAM, deterministic);
+            {
+                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+
+                return term_info_t(TERM_TYPE_STREAM, deterministic);
+            }
             break;
         case Builtin::FILTER:
-        case Builtin::ORDERBY:
             {
                 check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
                 // polymorphic
+                implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
+
+                check_predicate_type(b.filter().predicate(), env, &deterministic, deterministic, backtrace.with("predicate"));
+                term_info_t res = get_term_type(c.args(0), env, backtrace);
+                res.deterministic &= deterministic;
+                return res;
+            }
+            break;
+        case Builtin::ORDERBY:
+            {
+                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
                 term_info_t res = get_term_type(c.args(0), env, backtrace);
                 res.deterministic &= deterministic;
                 return res;
@@ -413,10 +433,26 @@ term_info_t get_function_type(const Term::Call &c, type_checking_environment_t *
             break;
         case Builtin::LENGTH:
         case Builtin::STREAMTOARRAY:
-        case Builtin::REDUCE:
-        case Builtin::GROUPEDMAPREDUCE:
             check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
             return term_info_t(TERM_TYPE_JSON, deterministic);
+            break;
+        case Builtin::REDUCE:
+            {
+                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
+                check_reduction_type(b.reduce(), env, &deterministic, deterministic, backtrace.with("reduce"));
+                return term_info_t(TERM_TYPE_JSON, false); //This is always false because we can't be sure the functions is associative or commutative
+            }
+            break;
+        case Builtin::GROUPEDMAPREDUCE:
+            {
+                check_function_args(c, TERM_TYPE_STREAM, 1, env, &deterministic, backtrace);
+                implicit_value_t<term_info_t>::impliciter_t impliciter(&env->implicit_type, term_info_t(TERM_TYPE_JSON, deterministic)); //make the implicit value be of type json
+                check_mapping_type(b.grouped_map_reduce().group_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("group_mapping"));
+                check_mapping_type(b.grouped_map_reduce().value_mapping(), TERM_TYPE_JSON, env, &deterministic, deterministic, backtrace.with("value_mapping"));
+                check_reduction_type(b.grouped_map_reduce().reduction(), env, &deterministic, deterministic, backtrace.with("reduction"));
+                return term_info_t(TERM_TYPE_JSON, false);
+            }
             break;
         case Builtin::UNION:
             check_function_args(c, TERM_TYPE_STREAM, 2, env, &deterministic, backtrace);
