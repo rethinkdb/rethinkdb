@@ -127,7 +127,8 @@ class SplitOrContinuousWorkload(object):
             for cwl in self.continuous_workloads:
                 cwl.start()
             if self.opts["extra-before"] != 0:
-                print "Letting %r run for %d seconds..." % (self.opts["workload-during"], self.opts["extra-before"])
+                print "Letting %s run for %d seconds..." % \
+                    (" and ".join(repr(x) for x in self.opts["workload-during"]), self.opts["extra-before"])
                 for i in xrange(self.opts["extra-before"]):
                     time.sleep(1)
                     self.check()
@@ -142,7 +143,8 @@ class SplitOrContinuousWorkload(object):
     def run_after(self):
         if self.opts["workload-during"]:
             if self.opts["extra-after"] != 0:
-                print "Letting %r run for %d seconds..." % (self.opts["workload-during"], self.opts["extra-after"])
+                print "Letting %s run for %d seconds..." % \
+                    (" and ".join(repr(x) for x in self.opts["workload-during"]), self.opts["extra-after"])
                 for i in xrange(self.opts["extra-after"]):
                     self.check()
                     time.sleep(1)

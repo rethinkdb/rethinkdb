@@ -1,6 +1,0 @@
-# Test heavy backfilling while under continuous load
-do_test(
-    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --more --workload-during '$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d infinity -q qps_out' --extra-before 1000",
-    repeat = 3,
-    inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
-    )
