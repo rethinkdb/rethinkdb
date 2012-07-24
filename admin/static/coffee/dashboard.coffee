@@ -37,7 +37,8 @@ module 'DashboardView', ->
             $popover.on 'clickoutside', (e) ->
                 if e.target isnt event.target  # so we don't remove the popover when we click on the link
                     $(e.currentTarget).remove()
-
+            $('.popover_close').on 'click', (e) ->
+                $(e.target).parent().parent().remove()
         initialize: ->
             log_initial '(initializing) dashboard cluster status'
             issues.on 'all', @render
