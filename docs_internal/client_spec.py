@@ -14,7 +14,26 @@ q = r.db('foo').table('bar')
 q = r.table('foo.bar')
 q = r.table('foo', 'bar')
 
+# Default database
+conn = r.connect('newton', db='foo')
+q = r.table('bar').run(conn)
+
 conn.run(q)       # Either throws an error, or returns a Python iterator (or an element, see below)
+# => iterator or scalar
+conn.run([q1, q2, q3]) # Packing queries, asynchronisity of queries?
+# => [a1, a2, a3]
+
+# We can also start a query off a connection
+r.db('foo').table('bar').run(conn)
+q.run(conn)
+
+# Default connection mode
+r.set_default_conn(conn)
+q.run()
+q1.run()
+
+# Specifying batch count/streaming
+conn.run(q, batch_size=200) # Asyncrhonous preload, though we're not going to do that.
 
 # Filter/selectors (the following three queries are equivalent)
 q = r.table('foo.bar').filter({ 'age' : r.gt(r['candles']),
@@ -91,7 +110,8 @@ q = r.table('foo.bar').insert(r.db('foo.baz'))
 # (requires primary key). Returns nothing.
 q = r.table('foo.bar').insert([{ 'foo': 1, 'bar': 2},
                                { 'foo': 3, 'bar': 4}],
-                              upsert=True)
+                              upsert=True,
+                              extend=True) # extend document
 
 # Updates (multi row)
 q = r.table('foo.bar').update({ 'foo': r.incr(r['foo']) })
@@ -333,8 +353,41 @@ q = r.table('users').filter(lambda user: user.age.eq(get_posts_count(user)))
 
 ---
 
+def get_posts_count(user):
+    return r.table('posts')
+            .filter(lambda post: post.user_id == user.age })
+            .count()
 
+q = r.table('users').filter(lambda user: user.age == get_posts_count(user) )
 
+---
+
+# Lazyness/strictness
+q = r.table('users').map(fn).limit(10) # fn gets evaluated only ten times
+q = r.table('users').orderby('bar').limit(10) # we sort the entire table (ignoring indices)
+
+q = r.table('users').filter(...).map(fn) # fn gets executed only on the result set
+q = r.table('users').map(fn).filter(...) # this is strict
+
+# Timing parts of the query, getting execution info (strict/lazy/etc.) -- explain
+conn.run(q, error_on_strict=True) # flags only make sense if we don't have a good explain
+# Do it on a table/connection level, override on run?
+
+# Error handling...
+
+# For write errors - we complete all the writes that we can, and
+# report all errors (possibly truncated + count, if we have time let
+# people stream errors).
+
+# For read errors - the moment an error happens, we report it and
+# abort if the operation no longer makes sense (i.e. reduction,
+# sort). In case of per-row operations, we do the same thing as we do
+# for writes (i.e. return what makes sense and report errors).
+
+# Determinism/parallelism/atomicity
+q = r.table('foo').update({ 'foo': r['foo'] + r.table('bar').get(r['foo']) }) # Explain
+q = r.table('foo').update( { 'foo': r['foo'].incr(), 'bar': r['bar'].incr()}) # Atomic
+q = r.table('foo').update( { 'foo': r['bar'].incr(), 'bar': r['foo'].incr()}) # Atomic
 
 # Note: consider
 # a.equals(b.add(3))
@@ -490,3 +543,30 @@ q = r.table('users').filter(lambda user: user.age.eq(get_posts_count(user)))
 # Arrays: insert at nth space, beginning, end, remove nth element
 
 # Lets with multiple write queries
+
+# Creating tables/databases, admin crap.
+
+# Packing queries, asynchronisity of queries?
+
+# We actually don't want index/strictness flag, we want explain
+
+# Restricting queries is an environment level control and is a
+# separate feature. Possibly a permissions feature.
+
+# Selection/filtering for existence of an attribute.
+
+# Abort queries that run out of ram.
+
+# Dry run
+
+# Geography limitation
+
+# Client has to send the query to the closest possible machine.
+
+# Create tables/databases ad hoc if possible, if not, no problemo :)
+
+# Create/drop/list tables/databases
+
+# Support without along with pluck/pick
+
+# Use table names to disambiguate instead of lambdas
