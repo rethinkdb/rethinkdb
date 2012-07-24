@@ -12,7 +12,7 @@ import traceback
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
 
-import rethinkdb as r
+from rethinkdb.abbrev import *
 
 class RDBTest(unittest.TestCase):
     @classmethod
@@ -315,6 +315,54 @@ class RDBTest(unittest.TestCase):
 
         for doc in docs:
             self.expect(self.table.find(doc['id']), doc)
+
+    def test_overload(self):
+
+        self.clear_table()
+
+        docs = [{"id": 100 + n, "a": n, "b": n % 3} for n in range(10)]
+        self.do_insert(docs)
+
+        def filt(exp, fn):
+            expect(self.table.filter(exp).orderby(id=1), *filter(fn, docs))
+
+        filt(r['a'] == 5, lambda r: r['a'] == 5)
+        filt(r['a'] != 5, lambda r: r['a'] != 5)
+        filt(r['a'] < 5, lambda r: r['a'] < 5)
+        filt(r['a'] <= 5, lambda r: r['a'] <= 5)
+        filt(r['a'] > 5, lambda r: r['a'] > 5)
+        filt(r['a'] >= 5, lambda r: r['a'] >= 5)
+
+        filt(5 == r['a'], lambda r: 5 == r['a'])
+        filt(5 != r['a'], lambda r: 5 != r['a'])
+        filt(5 < r['a'], lambda r: 5 < r['a'])
+        filt(5 <= r['a'], lambda r: 5 <= r['a'])
+        filt(5 > r['a'], lambda r: 5 > r['a'])
+        filt(5 >= r['a'], lambda r: 5 >= r['a'])
+
+        filt(r['a'] == r['b'], lambda r: r['a'] == r['b'])
+        filt(r['a'] == r['b'] + 1, lambda r: r['a'] == r['b'] + 1)
+        filt(r['a'] == r['b'] + 1, lambda r: r['a'] == r['b'] + 1)
+
+        expect = self.expect
+        t = r.toTerm
+
+        expect(-t(3), -3)
+        expect(+t(3), 3)
+
+        expect(t(3) + 4, 7)
+        expect(t(3) - 4, -1)
+        expect(t(3) * 4, 12)
+        expect(t(3) / 4, 3./4)
+        expect(t(3) % 2, 3 % 2)
+
+        expect(3 + t(4), 7)
+        expect(3 - t(4), -1)
+        expect(3 * t(4), 12)
+        expect(3 / t(4), 3./4)
+        expect(3 % t(2), 3 % 2)
+
+        expect((t(3) + 4) * -t(6) * (t(-5) + 3), 84)
 
     # def test_huge(self):
     #     self.clear_table()

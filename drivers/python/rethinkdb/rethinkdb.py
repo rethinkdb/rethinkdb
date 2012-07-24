@@ -466,6 +466,47 @@ class Term(Common):
         root.type = p.Query.READ
         self._write_ast(root.read_query.term)
 
+    def __lt__(self, other):
+        return lt(self, other)
+    def __le__(self, other):
+        return le(self, other)
+    def __eq__(self, other):
+        return eq(self, other)
+    def __ne__(self, other):
+        return ne(self, other)
+    def __gt__(self, other):
+        return gt(self, other)
+    def __ge__(self, other):
+        return ge(self, other)
+
+    def __add__(self, other):
+        return add(self, other)
+    def __sub__(self, other):
+        return sub(self, other)
+    def __mul__(self, other):
+        return mul(self, other)
+    def __div__(self, other):
+        return div(self, other)
+    def __mod__(self, other):
+        return mod(self, other)
+
+    def __radd__(self, other):
+        return add(other, self)
+    def __rsub__(self, other):
+        return sub(other, self)
+    def __rmul__(self, other):
+        return mul(other, self)
+    def __rdiv__(self, other):
+        return div(other, self)
+    def __rmod__(self, other):
+        return mod(other, self)
+
+    def __neg__(self):
+        return sub(self)
+    def __pos__(self):
+        return self
+
+
 class Find(Term):
     pretty = "{table:table_ref}.find({value:key}, key={key:attrname})"
     def __init__(self, table, key, value):
