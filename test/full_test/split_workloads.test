@@ -1,28 +1,52 @@
-workloads = [
-    ("$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d 10000q",
-     "true"),
+two_phase_workloads = [
     ("$RETHINKDB/test/workloads/many_keys.py $HOST:$PORT --phase w",
      "$RETHINKDB/test/workloads/many_keys.py $HOST:$PORT --phase r"),
+    ]
+
+n_phase_workloads = [
+    ("$RETHINKDB/bench/stress-client/stress -s $HOST:$PORT -w 0/0/1/0 -d 10000q",
+     "true",
+     "true"),
     ("$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT --save values",
+     "$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT --load values --save values",
      "$RETHINKDB/test/workloads/serial_mix.py $HOST:$PORT --load values"),
     ("$RETHINKDB/test/workloads/multi_serial_mix.py $HOST:$PORT --save values",
+     "$RETHINKDB/test/workloads/multi_serial_mix.py $HOST:$PORT --load values --save values",
      "$RETHINKDB/test/workloads/multi_serial_mix.py $HOST:$PORT --load values"),
     ]
 
-scenarios = [
-    "$RETHINKDB/test/scenarios/rebalance.py '%(workload1)s' '%(workload2)s'",
-    "$RETHINKDB/test/scenarios/change_primary.py --workload-before '%(workload1)s' --workload-after '%(workload2)s'",
-    "$RETHINKDB/test/scenarios/failover_to_secondary.py --workload-before '%(workload1)s' --workload-after '%(workload2)s'",
-    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --more --workload-before '%(workload1)s' --workload-after '%(workload2)s'",
-    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py --less --workload-before '%(workload1)s' --workload-after '%(workload2)s'",
-    "$RETHINKDB/test/scenarios/kill_secondary.py --workload-before '%(workload1)s' --workload-after '%(workload2)s'",
-    "$RETHINKDB/test/scenarios/transfer.py '%(workload1)s' '%(workload2)s'",
+two_phase_scenarios = [
+    "$RETHINKDB/test/scenarios/rebalance.py '%(before)s' '%(after)s'",
+    "$RETHINKDB/test/scenarios/change_primary.py --workload-before '%(before)s' --workload-after '%(after)s'",
+    "$RETHINKDB/test/scenarios/failover_to_secondary.py --workload-before '%(before)s' --workload-after '%(after)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 1+1 --workload-before '%(before)s' --workload-after '%(after)s'",
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 1-1 --workload-before '%(before)s' --workload-after '%(after)s'",
+    "$RETHINKDB/test/scenarios/kill_secondary.py --workload-before '%(before)s' --workload-after '%(after)s'",
+    "$RETHINKDB/test/scenarios/transfer.py '%(before)s' '%(after)s'",
     ]
 
-for scenario in scenarios:
-    for w1, w2 in workloads:
+n_phase_scenarios = [
+    "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 2+1-1+1-1+1-1+1-1+1-1 --workload-before '%(before)s' --workload-after '%(after)s' --workload-between '%(between)s'",
+    ]
+
+for scenario in two_phase_scenarios:
+    for before, after in two_phase_workloads:
         do_test(
-            scenario % {"workload1": w1, "workload2": w2},
+            scenario % {"before": before, "after": after},
+            repeat = 3,
+            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
+            )
+    for before, between, after in n_phase_workloads:
+        do_test(
+            scenario % {"before": before, "after": after},
+            repeat = 3,
+            inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
+            )
+
+for scenario in n_phase_scenarios:
+    for before, between, after in n_phase_workloads:
+        do_test(
+            scenario % {"before": before, "between": between, "after": after},
             repeat = 3,
             inputs = ["build/debug/rethinkdb", "test/scenarios", "test/common", "test/workloads", "bench/stress-client/stress"]
             )
