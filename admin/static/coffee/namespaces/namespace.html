@@ -1,7 +1,6 @@
 <script id="namespace_view-container-template" type="text/x-handlebars-template">
     <div class="full_profile">
         <div class="main_title"></div>
-        <dIv id="user-alert-space">{{print_safe old_alert_html}}</div>
         <div class="two-panel-section section">
             <div class="panel-left-unbalanced profile">
         </div>
@@ -18,6 +17,8 @@
         <li><a href="#namespace-pinning" class="namespace_pinning-link" data-toggle="tab">Pinning</a></li>
         <li><a href="#namespace-other" class="namespace_other-link" data-toggle="tab">Other</a></li>
     </ul>
+
+    <div id="user-alert-space">{{print_safe old_alert_html}}</div>
     <div class="tab-content">  
         <div class="tab-pane active" id="namespace-overview">
             <div class="section namespace-overview-container"></div>

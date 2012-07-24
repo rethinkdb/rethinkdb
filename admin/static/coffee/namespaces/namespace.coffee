@@ -18,6 +18,7 @@ module 'NamespaceView', ->
             'click .close': 'close_alert'
             'click .rebalance_shards-link': 'rebalance_shards'
             'click .change_shards-link': 'change_shards'
+            'click .namespace-pinning-link': 'change_pinning'
 
         initialize: ->
             log_initial '(initializing) namespace view: container'
@@ -76,6 +77,12 @@ module 'NamespaceView', ->
             event.preventDefault()
             @.$('.namespace_sharding-link').tab('show')
 
+        change_pinning: (event) =>
+            event.preventDefault()
+            @.$('.namespace_pinning-link').tab('show')
+            $(event.currentTarget).parent().parent().slideUp('fast', -> $(this).remove())
+
+
         rebalance_shards: (event) =>
             event.preventDefault()
             confirmation_modal = new UIComponents.ConfirmationDialogModal
@@ -128,7 +135,12 @@ module 'NamespaceView', ->
                     secondary_pinnings: empty_replica_pins
 
                 that = @
-                # TODO detect when there are no changes.
+                @model.set 'key_distr', {}
+                @model.set 'key_distr_sorted', []
+
+                @.$('.loading_text-pie_chart').css 'display', 'block'
+
+
                 $.ajax
                     processData: false
                     url: "/ajax/semilattice/#{@model.get('protocol')}_namespaces/#{@model.get('id')}"
@@ -136,8 +148,8 @@ module 'NamespaceView', ->
                     contentType: 'application/json'
                     data: JSON.stringify(json)
                     success: (response) =>
-                        that.overview.render_data_repartition(true)
-                        that.$('#user-alert-space').append(@alert_tmpl({}))
+                        that.model.load_key_distr()
+                        that.$('#user-alert-space').html @alert_tmpl({})
                         clear_modals()
 
 
@@ -240,7 +252,7 @@ module 'NamespaceView', ->
                 json =
                     data_in_memory_percent: Math.floor(data_in_memory/data_total*100).toString()+'%'
                     data_in_memory: human_readable_units(data_in_memory, units_space)
-                    data_not_in_memory: human_readable_units(data_total-data_in_memory, units_space)
+                    data_not_in_memory: if data_total-data_in_memory>=0 then human_readable_units(data_total-data_in_memory, units_space) else human_readable_units(0, units_space)
                     data_total: human_readable_units(data_total, units_space)
             else
                 json =
@@ -266,17 +278,16 @@ module 'NamespaceView', ->
                     height = 270
                     color = (i) ->
                         if i is 0
-                            return '#f00'
-                        else
                             return '#1f77b4'
+                        else
+                            return '#f00'
 
-                    data_pie = [data_in_memory, data_total-data_in_memory]
+                    data_pie = [data_total-data_in_memory, data_in_memory]
 
                     # Remove transition for the time being. We have to use transition with opacity only the first time
                     # For update, we should just move/extend pieces, too much work for now
                     #@.$('.loading_text-svg').fadeOut '600', -> $(@).remove() 
-                    @.$('.pie_chart-data_in_memory > g').remove()
-                    @.$('.loading_text-pie_chart').remove()
+                    @.$('.loading_text-pie_chart').css 'display', 'none'
 
                     arc = d3.svg.arc().innerRadius(0).outerRadius(r)
                     svg = d3.select('.pie_chart-data_in_memory').attr('width', width).attr('height', height).append('svg:g').attr('transform', 'translate('+width/2+', '+height/2+')')
@@ -322,8 +333,8 @@ module 'NamespaceView', ->
 
                 # Draw histogram
                 if json.max_keys? and not _.isNaN json.max_keys and shards.length isnt 0
-                    @.$('.data_repartition-diagram > g').remove()
-                    @.$('.loading_text-diagram').remove()
+
+                    @.$('.loading_text-pie_chart').css 'opacity', 'none' #TODO FIX
                     
                     if json.numerous_shards? and json.numerous_shards
                         svg_width = 700
