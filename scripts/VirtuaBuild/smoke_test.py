@@ -135,7 +135,8 @@ for path in res_paths:
 
     print "Starting RethinkDB..."
 
-    exec_command('rm -rf rethinkdb_cluster_data')
+    exec_command("rm -rf rethinkdb_cluster_data")
+    exec_command("rm -f core.*")
     proc = exec_command("rethinkdb", bg = True)
 
     # gets the IP address
