@@ -86,11 +86,16 @@ module 'NamespaceView', ->
         rebalance_shards: (event) =>
             event.preventDefault()
             confirmation_modal = new UIComponents.ConfirmationDialogModal
-            confirmation_modal.render("Are you sure you want to rebalance the shards for the namespace "+@model.get('name')+"?",
+            confirmation_modal.render("Are you sure you want to rebalance the shards for the namespace "+@model.get('name')+"? This operation might take some time",
                 "",
                 {},
                 undefined)
             confirmation_modal.on_submit = =>
+                debugger
+                # Because Coffeescript doesn't want me to access this and I need _this
+                `this.$('.btn-primary').button('loading');
+                this.$('.cancel').button('loading');`
+
                 # grab the data
                 data = @model.get('key_distr')
                 distr_keys = @model.get 'key_distr_sorted'
@@ -138,7 +143,7 @@ module 'NamespaceView', ->
                 @model.set 'key_distr', {}
                 @model.set 'key_distr_sorted', []
 
-                @.$('.loading_text-pie_chart').css 'display', 'block'
+                @.$('.loading_text-diagram').css 'display', 'block'
 
 
                 $.ajax
@@ -148,7 +153,7 @@ module 'NamespaceView', ->
                     contentType: 'application/json'
                     data: JSON.stringify(json)
                     success: (response) =>
-                        that.model.load_key_distr()
+                        that.model.load_key_distr() #This call will fail since we cannot make queries while sharding.
                         that.$('#user-alert-space').html @alert_tmpl({})
                         clear_modals()
 
