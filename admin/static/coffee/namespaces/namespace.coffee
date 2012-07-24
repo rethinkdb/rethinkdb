@@ -216,6 +216,11 @@ module 'NamespaceView', ->
             @.$el.html @template json
 
             return @
+        
+        destroy: =>
+            @model.off 'all', @render
+            directory.off 'all', @render
+            progress_list.off 'all', @render
 
     class @Overview extends Backbone.View
         className: 'namespace-overview'
@@ -459,20 +464,9 @@ module 'NamespaceView', ->
             #overwrite on_success to add a redirectiona
             namespace_to_delete = @model
         
-            remove_namespace_dialog.on_success = (response) ->
-                # Fix the removal of namespaces
-                if (response)
-                    $('.error_answer').html @template_remove_error
-
-                    if $('.error_answer').css('display') is 'none'
-                        $('.error_answer').slideDown('fast')
-                    else
-                        $('.error_answer').css('display', 'none')
-                        $('.error_answer').fadeIn()
-                    remove_namespace_dialog.reset_buttons()
-                    return
-                namespaces.remove namespace_to_delete
+            remove_namespace_dialog.on_success = (response) =>
                 window.router.navigate '#namespaces', {'trigger': true}
+                namespaces.remove @model.get 'id'
 
             remove_namespace_dialog.render [@model]
 
