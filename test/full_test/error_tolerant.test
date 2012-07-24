@@ -3,6 +3,8 @@ error_tolerant_workloads = [
     ]
 
 scenarios = [
+    "$RETHINKDB/test/scenarios/rebalance.py --workload-during '%(workload)s'",
+    "$RETHINKDB/test/scenarios/relocate_namespace.py --workload-during '%(workload)s'",
     "$RETHINKDB/test/scenarios/change_primary.py --workload-during '%(workload)s'",
     "$RETHINKDB/test/scenarios/failover_to_secondary.py --workload-during '%(workload)s'",
     "$RETHINKDB/test/scenarios/kill_secondary.py --workload-during '%(workload)s'",

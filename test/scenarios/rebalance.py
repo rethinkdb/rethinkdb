@@ -6,9 +6,7 @@ from vcoptparse import *
 
 op = OptParser()
 scenario_common.prepare_option_parser_mode_flags(op)
-op["workload1"] = PositionalArg()
-op["workload2"] = PositionalArg()
-op["timeout"] = IntFlag("--timeout", 600)
+workload_runner.prepare_option_parser_for_split_or_continuous_workload(op)
 op["num-nodes"] = IntFlag("--num-nodes", 3)
 opts = op.parse(sys.argv)
 
@@ -21,6 +19,7 @@ with driver.Metacluster() as metacluster:
         for i in xrange(opts["num-nodes"])]
     for process in processes:
         process.wait_until_started_up()
+
     print "Creating namespace..."
     http = http_admin.ClusterAccess([("localhost", p.http_port) for p in processes])
     primary_dc = http.add_datacenter()
@@ -34,13 +33,16 @@ with driver.Metacluster() as metacluster:
     http.add_namespace_shard(ns, "j")
     http.wait_until_blueprint_satisfied(ns)
     cluster.check()
-    host, port = driver.get_namespace_host(ns.port, processes)
-    workload_runner.run(opts["workload1"], host, port, opts["timeout"])
-    cluster.check()
-    print "Rebalancing..."
-    http.change_namespace_shards(ns, adds = ["q"], removes = ["j"])
-    http.wait_until_blueprint_satisfied(ns)
-    cluster.check()
-    http.check_no_issues()
-    workload_runner.run(opts["workload2"], host, port, opts["timeout"])
+
+    workload_ports = scenario_common.get_workload_ports(ns.port, processes)
+    with worload_runner.SplitOrContinuousWorkload(opts, workload_ports) as workload:
+        workload.run_before()
+        cluster.check()
+        print "Rebalancing..."
+        http.change_namespace_shards(ns, adds = ["q"], removes = ["j"])
+        http.wait_until_blueprint_satisfied(ns)
+        cluster.check()
+        http.check_no_issues()
+        workload.run_after()
+
     cluster.check_and_stop()

@@ -16,7 +16,8 @@ n_phase_workloads = [
     ]
 
 two_phase_scenarios = [
-    "$RETHINKDB/test/scenarios/rebalance.py '%(before)s' '%(after)s'",
+    "$RETHINKDB/test/scenarios/rebalance.py --workload-before '%(before)s' --workload-after '%(after)s'",
+    "$RETHINKDB/test/scenarios/relocate_namespace.py --workload-before '%(before)s' --workload-after '%(after)s'",
     "$RETHINKDB/test/scenarios/change_primary.py --workload-before '%(before)s' --workload-after '%(after)s'",
     "$RETHINKDB/test/scenarios/failover_to_secondary.py --workload-before '%(before)s' --workload-after '%(after)s'",
     "$RETHINKDB/test/scenarios/more_or_less_secondaries.py 1+1 --workload-before '%(before)s' --workload-after '%(after)s'",
