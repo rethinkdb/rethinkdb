@@ -13,6 +13,7 @@
 #include "extproc/pool.hpp"
 #include "http/json.hpp"
 #include "rdb_protocol/backtrace.hpp"
+#include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/query_language.pb.h"
 
@@ -523,10 +524,12 @@ public:
     runtime_environment_t(extproc::pool_group_t *_pool_group,
                           namespace_repo_t<rdb_protocol_t> *_ns_repo,
                           boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _semilattice_metadata,
+                          boost::shared_ptr<js::runner_t> _js_runner,
                           signal_t *_interruptor)
-        : pool_group(_pool_group),
+        : pool(_pool_group->get()),
           ns_repo(_ns_repo),
           semilattice_metadata(_semilattice_metadata),
+          js_runner(_js_runner),
           interruptor(_interruptor)
     { }
 
@@ -536,11 +539,31 @@ public:
 
     implicit_value_t<boost::shared_ptr<scoped_cJSON_t> > implicit_attribute_value;
 
-    extproc::pool_group_t *pool_group;   // for running external JS jobs
+    extproc::pool_t *pool;      // for running external JS jobs
     namespace_repo_t<rdb_protocol_t> *ns_repo;
     //TODO this should really just be the namespace metadata... but
     //constructing views is too hard :-/
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > semilattice_metadata;
+
+  private:
+    // Ideally this would be a scoped_ptr_t<js::runner_t>, but unfortunately we
+    // copy runtime_environment_ts to capture scope.
+    //
+    // Note that js_runner is "lazily initialized": we only call
+    // js_runner->begin() once we know we need to evaluate javascript. This
+    // means we only allocate a worker process to queries that actually need
+    // javascript execution.
+    //
+    // In the future we might want to be even finer-grained than this, and
+    // release worker jobs once we know we no longer need JS execution, or
+    // multiplex queries onto worker processes.
+    boost::shared_ptr<js::runner_t> js_runner;
+
+  public:
+    // Returns js_runner, but first calls js_runner->begin() if it hasn't
+    // already been called.
+    boost::shared_ptr<js::runner_t> get_js_runner();
+
     signal_t *interruptor;
 };
 

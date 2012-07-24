@@ -615,6 +615,14 @@ private:
     backtrace_t backtrace;
 };
 
+boost::shared_ptr<js::runner_t> runtime_environment_t::get_js_runner() {
+    if (!js_runner->begun()) {
+        pool->assert_thread();
+        js_runner->begin(pool);
+    }
+    return js_runner;
+}
+
 void execute(const Query &q, runtime_environment_t *env, Response *res, const backtrace_t &backtrace) THROWS_ONLY(runtime_exc_t) {
     if (q.type() == Query::READ) {
         execute(q.read_query(), env, res, backtrace);
@@ -961,16 +969,12 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
             crash("Term::TABLE must be evaluated with eval_stream or eval_view");
 
         case Term::JAVASCRIPT: {
+            boost::shared_ptr<js::runner_t> js = env->get_js_runner();
             std::string errmsg;
             boost::shared_ptr<scoped_cJSON_t> result;
 
             // TODO(rntz): set up a js::runner_t::req_config_t with an
             // appropriately-chosen timeout.
-
-            // FIXME TODO (rntz) this is totally ridiculous; we shouldn't spin
-            // up a job for every evaluation of a function!
-            js::runner_t js;
-            js.begin(env->pool_group->get());
             {
                 // Construct an environment mapping.
                 // TODO (rntz): making a new map for this is wasteful.
@@ -979,9 +983,8 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term &t, runtime_environment_t *env
 
                 // Evaluate the source.
                 rassert(t.has_javascript());
-                result = js.eval(t.javascript().c_str(), t.javascript().size(), context, &errmsg);
+                result = js->eval(t.javascript().c_str(), t.javascript().size(), context, &errmsg);
             }
-            js.finish();
 
             if (!result) {
                 throw runtime_exc_t("failed to evaluate javascript: " + errmsg, backtrace);
