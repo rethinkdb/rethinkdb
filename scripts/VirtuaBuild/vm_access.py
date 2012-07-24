@@ -42,7 +42,7 @@ class VM(object):
         time.sleep(5)
         subprocess.Popen(["ssh %s 'VBoxManage controlvm %s poweroff'" % (self.control, self.uuid)], shell = True).wait()
 
-def sys_exit(message, exit_code, shut_down = False):
+def sys_exit(message, exit_code, shut_down = True):
     print message
     if shut_down:
         target.shut_down()
@@ -76,20 +76,20 @@ o["shut-down"] = BoolFlag("--shut-down")
 try:
     opts = o.parse(sys.argv)
 except OptError:
-    sys_exit("Argument parsing error", -1)
+    sys_exit("Argument parsing error", -1, False)
 
 if opts["help"]:
     help()
-    sys_exit("", 0)
+    sys_exit("", 0, False)
 
 if not opts["vm-name"]:
-    sys_exit("Error: must specify a VM name.", -1)
+    sys_exit("Error: must specify a VM name.", -1, False)
 
 if not opts["command"] and not opts["shut-down"]:
-    sys_exit("Error: must specify a command or call shut-down.", -1)
+    sys_exit("Error: must specify a command or call shut-down.", -1, False)
 
 if opts["vm-name"] not in vm_list:
-    sys_exit("Error: invalid VM name.", -1)
+    sys_exit("Error: invalid VM name.", -1, False)
 
 target = vm_list[opts["vm-name"]]
 
@@ -132,4 +132,4 @@ subprocess.Popen(" ".join(["tar", "xzf", "tmp.tar.gz"]), shell = True).wait()
 print "***Removing temporary files and shutting down VM..."
 target.shut_down(True)
 
-sys_exit("Done.", 0)
+sys_exit("Done.", 0, False)
