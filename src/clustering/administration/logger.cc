@@ -264,6 +264,18 @@ void log_writer_t::write(const log_message_t &lm) {
 }
 
 void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_out, bool *ok_out) {
+    int res; 
+    std::string formatted = format_log_message(msg);
+    std::string console_formatted = "[LOGGER] " + formatted;
+
+    // Print the log message to stderr.
+    res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
+    if (res != int(console_formatted.length())) {
+        *error_out = std::string("cannot write to standard error: ") + strerror(errno);
+        *ok_out = false;
+        return;
+    }
+
     if (fd.get() == -1) {
         fd.reset(open(filename.c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644));
         if (fd.get() == -1) {
@@ -272,13 +284,13 @@ void log_writer_t::write_blocking(const log_message_t &msg, std::string *error_o
             return;
         }
     }
-    std::string formatted = format_log_message(msg);
-    int res = ::write(fd.get(), formatted.data(), formatted.length());
+    res = ::write(fd.get(), formatted.data(), formatted.length());
     if (res != int(formatted.length())) {
         *error_out = std::string("cannot write to log file: ") + strerror(errno);
         *ok_out = false;
         return;
     }
+
     *ok_out = true;
     return;
 }
