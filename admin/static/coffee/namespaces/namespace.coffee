@@ -267,7 +267,7 @@ module 'NamespaceView', ->
                 if not @json_in_memory[key]? or @json_in_memory[key] != json[key]
                     need_update = true
                     break
-            if need_update or force_render is true or @.$('.pie_chart-data_in_memory').children().length is 0 # Need is true for force_render since Machine is passed as an argument
+            if need_update or force_render is true or @.$('.pie_chart-data_in_memory').children().length is 1 # Need is true for force_render since Machine is passed as an argument
                 @json_in_memory = json
                 @.$('.data_in_memory-container').html @data_in_memory_template @json_in_memory
 
@@ -312,6 +312,7 @@ module 'NamespaceView', ->
             json =
                 max_keys: max_keys
                 min_keys: min_keys
+                shards_length: shards.length
 
             if shards.length > 1
                 json.has_shards = true
@@ -334,7 +335,7 @@ module 'NamespaceView', ->
                 # Draw histogram
                 if json.max_keys? and not _.isNaN json.max_keys and shards.length isnt 0
 
-                    @.$('.loading_text-pie_chart').css 'opacity', 'none' #TODO FIX
+                    @.$('.loading_text-diagram').css 'display', 'none'
                     
                     if json.numerous_shards? and json.numerous_shards
                         svg_width = 700
@@ -345,8 +346,13 @@ module 'NamespaceView', ->
                     margin_width = 20
                     margin_height = 20
 
-                    width = Math.floor((svg_width-margin_width*2)/shards.length*0.7)
-                    x = d3.scale.linear().domain([0, shards.length]).range([margin_width+Math.floor(width/2), svg_width-margin_width*2])
+                    width = Math.floor((svg_width-margin_width*3)/shards.length*0.8)
+                    margin_bar = Math.floor((svg_width-margin_width*3)/shards.length*0.2/2)
+                    if shards.length is 1 # Special hack when there is just one shard
+                        width = Math.floor width/2
+                        margin_bar = Math.floor margin_bar+width/2
+ 
+                    x = d3.scale.linear().domain([0, shards.length-1]).range([margin_width*1.5+margin_bar, svg_width-margin_width*1.5-margin_bar-width])
                     y = d3.scale.linear().domain([0, json.max_keys]).range([1, svg_height-margin_height*2.5])
 
                     svg = d3.select('.data_repartition-diagram').attr('width', svg_width).attr('height', svg_height).append('svg:g')
@@ -358,10 +364,6 @@ module 'NamespaceView', ->
                         .attr('width', width)
                         .attr( 'height', (d) -> return y(d.num_keys))
                         .attr( 'title', (d) -> return 'Shard:'+d.boundaries+'<br />'+d.num_keys+' keys')
-                        ###
-                        .attr('data-num_keys', (d) -> return d.num_keys)
-                        .attr('data-shard', (d) -> return d.boundaries)
-                        ###
 
                     arrow_width = 4
                     arrow_length = 7
