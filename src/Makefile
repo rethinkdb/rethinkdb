@@ -163,6 +163,8 @@ else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
+# TODO: remove this once memcached is added back in the release (disables memcached from showing up in the admin CLI help or tab-completion)
+CXXFLAGS+=-DNO_MEMCACHE
 endif
 
 ifneq ($(TRIAL),0)

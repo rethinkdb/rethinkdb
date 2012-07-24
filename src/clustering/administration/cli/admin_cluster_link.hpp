@@ -96,6 +96,28 @@ private:
     size_t get_machine_count_in_datacenter(const cluster_semilattice_metadata_t& cluster_metadata, const datacenter_id_t& datacenter);
 
     template <class protocol_t>
+    std::string admin_merge_shard_internal(namespaces_semilattice_metadata_t<protocol_t> *ns_map,
+                                           const namespace_id_t &ns_id,
+                                           const std::vector<std::string> &split_points);
+
+    std::string merge_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
+                             const std::vector<std::string> &split_points);
+
+    std::string merge_shards(vclock_t<std::set<key_range_t> > *shards_vclock,
+                             const std::vector<std::string> &split_points);
+
+    template <class protocol_t>
+    std::string admin_split_shard_internal(namespaces_semilattice_metadata_t<protocol_t> *ns,
+                                           const namespace_id_t &ns_id,
+                                           const std::vector<std::string> &split_points);
+
+    std::string split_shards(vclock_t<std::set<key_range_t> > *shards_vclock,
+                             const std::vector<std::string> &split_points);
+
+    std::string split_shards(vclock_t<std::set<hash_region_t<key_range_t> > > *shards_vclock,
+                             const std::vector<std::string> &split_points);
+
+    template <class protocol_t>
     void do_admin_set_acks_internal(const datacenter_id_t& datacenter,
                                     int num_acks,
                                     namespace_semilattice_metadata_t<protocol_t> *ns);
