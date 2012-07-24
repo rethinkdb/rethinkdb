@@ -656,9 +656,12 @@ class Javascript(Term):
         assert isinstance(src, str)
         self.source = src
 
-    def write_ast(self, parent):
+    def _write_ast(self, parent):
         parent.type = p.Term.JAVASCRIPT
         parent.javascript = self.source
+
+    def _pretty_print(self, printer):
+        return "r.js(%r)" % self.source
 
 js = Javascript                 # convenient abbreviation
 
