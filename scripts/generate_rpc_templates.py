@@ -41,8 +41,8 @@ def generate_async_message_template(nargs):
     print "public:"
     print "    typedef mailbox_addr_t< void(" + csep("arg#_t") + ") > address_t;"
     print
-    print "    mailbox_t(mailbox_manager_t *manager, const boost::function< void(" + csep("arg#_t") + ") > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine) :"
-    print "        fun(f), callback_mode(cbm), mailbox(manager, boost::bind(&mailbox_t::on_message, this, _1))"
+    print "    mailbox_t(mailbox_manager_t *manager, const boost::function< void(" + csep("arg#_t") + ") > &f, mailbox_callback_mode_t cbm = mailbox_callback_mode_coroutine, mailbox_thread_mode_t tm = mailbox_home_thread) :"
+    print "        fun(f), callback_mode(cbm), mailbox(manager, tm, boost::bind(&mailbox_t::on_message, this, _1))"
     print "        { }"
     print
     print "    address_t get_address() {"
