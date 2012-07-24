@@ -1176,6 +1176,9 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
             break;
         case Builtin::ARRAYSLICE:
             {
+                int start, stop, length;
+                bool start_unbounded = false, stop_unbounded = false;
+
                 // Check first arg type
                 boost::shared_ptr<scoped_cJSON_t> array = eval(c.args(0), env, backtrace.with("arg:0"));
                 if (array->type() != cJSON_Array) {
@@ -1183,29 +1186,53 @@ boost::shared_ptr<scoped_cJSON_t> eval(const Term::Call &c, runtime_environment_
                 }
 
                 // Check second arg type
-                boost::shared_ptr<scoped_cJSON_t> start_json  = eval(c.args(1), env, backtrace.with("arg:1"));
-                if (start_json->type() != cJSON_Number) {
-                    throw runtime_exc_t("The second argument must be an integer.", backtrace.with("arg:1"));
-                }
+                {
+                    boost::shared_ptr<scoped_cJSON_t> start_json  = eval(c.args(1), env, backtrace.with("arg:1"));
+                    if (start_json->type() == cJSON_NULL) {
+                        start_unbounded = true;
+                    } else {
+                        if (start_json->type() != cJSON_Number) {
+                            throw runtime_exc_t("The second argument must be null or an integer.", backtrace.with("arg:1"));
+                        }
 
-                float float_start = start_json->get()->valuedouble;
-                int start = (int)float_start;
-                if (float_start != start) {
-                    throw runtime_exc_t("The second argument must be an integer.", backtrace.with("arg:1"));
+                        float float_start = start_json->get()->valuedouble;
+                        start = (int)float_start;
+                        if (float_start != start) {
+                            throw runtime_exc_t("The second argument must be null or an integer.", backtrace.with("arg:1"));
+                        }
+                    }
                 }
 
                 // Check third arg type
-                boost::shared_ptr<scoped_cJSON_t> end_json  = eval(c.args(2), env, backtrace.with("arg:2"));
-                if (end_json->type() != cJSON_Number) {
-                    throw runtime_exc_t("The third argument must be an integer.", backtrace.with("arg:2"));
-                }
-                float float_end = end_json->get()->valuedouble;
-                int stop = (int)float_end;
-                if (float_end != stop) {
-                    throw runtime_exc_t("The third argument must be an integer.", backtrace.with("arg:2"));
+                {
+                    boost::shared_ptr<scoped_cJSON_t> stop_json  = eval(c.args(2), env, backtrace.with("arg:2"));
+                    if (stop_json->type() == cJSON_NULL) {
+                        stop_unbounded = true;
+                    } else {
+                        if (stop_json->type() != cJSON_Number) {
+                            throw runtime_exc_t("The third argument must be null or an integer.", backtrace.with("arg:2"));
+                        }
+
+                        float float_stop = stop_json->get()->valuedouble;
+                        stop = (int)float_stop;
+                        if (float_stop != stop) {
+                            throw runtime_exc_t("The third argument must be null or an integer.", backtrace.with("arg:2"));
+                        }
+                    }
                 }
 
-                int length = array->GetArraySize();
+                if (start_unbounded && stop_unbounded) {
+                    return array;   // nothing to do
+                }
+
+                length = array->GetArraySize();
+
+                if (start_unbounded) {
+                    start = 0;
+                }
+                if (stop_unbounded) {
+                    stop = length;
+                }
 
                 if (start < 0) {
                     start = std::max(start + length, 0);

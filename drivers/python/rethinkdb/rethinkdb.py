@@ -466,6 +466,16 @@ class Term(Common):
         root.type = p.Query.READ
         self._write_ast(root.read_query.term)
 
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            if index.step is not None:
+                raise ValueError, "slice steps are not supported"
+            return slice_(self, index.start, index.stop)
+        elif isinstance(index, int):
+            return element(self, index)
+        else:
+            return attr(self, index)
+
     def __lt__(self, other):
         return lt(self, other)
     def __le__(self, other):
@@ -785,7 +795,7 @@ element = _make_builtin("element", p.Builtin.ARRAYNTH, "array", "index")
 size = _make_builtin("size", p.Builtin.ARRAYLENGTH, "array")
 append = _make_builtin("append", p.Builtin.ARRAYAPPEND, "array", "item")
 concat = _make_builtin("concat", p.Builtin.ARRAYCONCAT, "array1", "array2")
-slice = _make_builtin("slice", p.Builtin.ARRAYSLICE, "array", "start", "end")
+slice_ = _make_builtin("slice_", p.Builtin.ARRAYSLICE, "array", "start", "end")
 array = _make_builtin("array", p.Builtin.STREAMTOARRAY, "stream")
 count = _make_builtin("count", p.Builtin.LENGTH, "stream")
 nth = _make_builtin("nth", p.Builtin.NTH, "stream", "index")

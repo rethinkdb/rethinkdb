@@ -186,15 +186,20 @@ class RDBTest(unittest.TestCase):
         fail(r.concat([1], 1), "array")
 
         arr = range(10)
-        expect(r.slice(arr, 0, 3), arr[0: 3])
-        expect(r.slice(arr, 0, 0), arr[0: 0])
-        expect(r.slice(arr, 5, 15), arr[5: 15])
-        expect(r.slice(arr, 5, -3), arr[5: -3])
-        expect(r.slice(arr, -5, -3), arr[-5: -3])
-        fail(r.slice(1, 0, 0), "array")
-        fail(r.slice(arr, .5, 0), "integer")
-        fail(r.slice(arr, 0, 1.01), "integer")
-        fail(r.slice(arr, 5, 3), "greater")
+        expect(r.slice_(arr, 0, 3), arr[0: 3])
+        expect(r.slice_(arr, 0, 0), arr[0: 0])
+        expect(r.slice_(arr, 5, 15), arr[5: 15])
+        expect(r.slice_(arr, 5, -3), arr[5: -3])
+        expect(r.slice_(arr, -5, -3), arr[-5: -3])
+        fail(r.slice_(1, 0, 0), "array")
+        fail(r.slice_(arr, .5, 0), "integer")
+        fail(r.slice_(arr, 0, 1.01), "integer")
+        fail(r.slice_(arr, 5, 3), "greater")
+        expect(r.slice_(arr, 5, None), arr[5:])
+        expect(r.slice_(arr, None, 7), arr[:7])
+        expect(r.slice_(arr, None, -2), arr[:-2])
+        expect(r.slice_(arr, -2, None), arr[-2:])
+        expect(r.slice_(arr, None, None), arr[:])
 
         expect(r.element(arr, 3), 3)
         expect(r.element(arr, -1), 9)
@@ -324,7 +329,7 @@ class RDBTest(unittest.TestCase):
         self.do_insert(docs)
 
         def filt(exp, fn):
-            expect(self.table.filter(exp).orderby(id=1), *filter(fn, docs))
+            self.expect(self.table.filter(exp).orderby(id=1), *filter(fn, docs))
 
         filt(r['a'] == 5, lambda r: r['a'] == 5)
         filt(r['a'] != 5, lambda r: r['a'] != 5)
@@ -363,6 +368,29 @@ class RDBTest(unittest.TestCase):
         expect(3 % t(2), 3 % 2)
 
         expect((t(3) + 4) * -t(6) * (t(-5) + 3), 84)
+
+    def test_getitem(self):
+        expect = self.expect
+        fail = self.error_exec
+        t = r.toTerm
+
+        arr = range(10)
+        expect(t(arr)[:], arr[:])
+        expect(t(arr)[2:], arr[2:])
+        expect(t(arr)[:2], arr[:2])
+        expect(t(arr)[-1:], arr[-1:])
+        expect(t(arr)[:-1], arr[:-1])
+        expect(t(arr)[3:5], arr[3:5])
+
+        expect(t(arr)[3], arr[3])
+        expect(t(arr)[-1], arr[-1])
+
+        d = {'a': 3, 'b': 4}
+        expect(t(d)['a'], d['a'])
+        expect(t(d)['b'], d['b'])
+        fail(t(d)['c'], 'missing attribute')
+
+
 
     # def test_huge(self):
     #     self.clear_table()
