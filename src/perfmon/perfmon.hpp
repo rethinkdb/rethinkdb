@@ -39,12 +39,13 @@ struct perfmon_perthread_t : public perfmon_t {
         return new thread_stat_t[get_num_threads()];
     }
     void visit_stats(void *data) {
-        get_thread_stat(&(reinterpret_cast<thread_stat_t *>(data))[get_thread_id()]);
+        get_thread_stat(&(static_cast<thread_stat_t *>(data))[get_thread_id()]);
     }
-    perfmon_result_t *end_stats(void *data) {
-        combined_stat_t combined = combine_stats(reinterpret_cast<thread_stat_t *>(data));
+    perfmon_result_t *end_stats(void *v_data) {
+        thread_stat_t *data = static_cast<thread_stat_t *>(v_data);
+        combined_stat_t combined = combine_stats(data);
         perfmon_result_t *result = output_stat(combined);
-        delete[] reinterpret_cast<thread_stat_t *>(data);
+        delete[] data;
         return result;
     }
 
@@ -207,37 +208,6 @@ private:
 public:
     explicit perfmon_rate_monitor_t(ticks_t length);
     void record(double value = 1.0);
-};
-
-/* perfmon_function_t is a perfmon for calling an arbitrary function to compute
- * a stat. You should not create such a perfmon at runtime; instead, declare it
- * as a static variable and then construct a perfmon_function_t::internal_function_t
- * instance for it. This way things get called on the right cores and if there
- * are multiple internal_function_t instances the perfmon_function_t can
- * combine them by inserting commas.
- */
-struct perfmon_function_t : public perfmon_t {
-public:
-    class internal_function_t : public intrusive_list_node_t<internal_function_t> {
-    public:
-        explicit internal_function_t(perfmon_function_t *p);
-        virtual ~internal_function_t();
-        virtual std::string compute_stat() = 0;
-    private:
-        perfmon_function_t *parent;
-    };
-
-private:
-    friend class internal_function_t;
-    intrusive_list_t<internal_function_t> funs[MAX_THREADS];
-
-public:
-    perfmon_function_t() : perfmon_t() { }
-    virtual ~perfmon_function_t() { }
-
-    void *begin_stats();
-    void visit_stats(void *data);
-    perfmon_result_t *end_stats(void *data);
 };
 
 /* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a

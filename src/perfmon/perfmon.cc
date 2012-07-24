@@ -282,40 +282,6 @@ perfmon_result_t *perfmon_rate_monitor_t::output_stat(const double &stat) {
     return new perfmon_result_t(strprintf("%.8f", stat / ticks_to_secs(length)));
 }
 
-/* perfmon_function_t */
-
-perfmon_function_t::internal_function_t::internal_function_t(perfmon_function_t *p)
-    : parent(p)
-{
-    rassert(get_thread_id() >= 0);
-    parent->funs[get_thread_id()].push_back(this);
-}
-
-perfmon_function_t::internal_function_t::~internal_function_t() {
-    rassert(get_thread_id() >= 0);
-    parent->funs[get_thread_id()].remove(this);
-}
-
-void *perfmon_function_t::begin_stats() {
-    return reinterpret_cast<void*>(new std::string());
-}
-
-void perfmon_function_t::visit_stats(void *data) {
-    rassert(get_thread_id() >= 0);
-    std::string *string = reinterpret_cast<std::string*>(data);
-    for (internal_function_t *f = funs[get_thread_id()].head(); f; f = funs[get_thread_id()].next(f)) {
-        if (string->size() > 0) (*string) += ", ";
-        (*string) += f->compute_stat();
-    }
-}
-
-perfmon_result_t *perfmon_function_t::end_stats(void *data) {
-    std::string *string = reinterpret_cast<std::string *>(data);
-    perfmon_result_t *result = new perfmon_result_t(string->empty() ? "N/A" : *string);
-    delete string;
-    return result;
-}
-
 perfmon_duration_sampler_t::perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon)
     : stat(), active(), total(), recent(length, true),
       active_membership(&stat, &active, "active_count"),

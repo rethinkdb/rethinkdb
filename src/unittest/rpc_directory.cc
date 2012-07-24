@@ -78,11 +78,11 @@ void run_update_test() {
     mock::let_stuff_happen();
     w1.set_value(151);
     mock::let_stuff_happen();
-    EXPECT_EQ(1, rm1.get_root_view()->get().count(c1.get_me()));
+    ASSERT_EQ(1, rm1.get_root_view()->get().count(c1.get_me()));
     EXPECT_EQ(151, rm1.get_root_view()->get().find(c1.get_me())->second);
-    EXPECT_EQ(1, rm2.get_root_view()->get().count(c1.get_me()));
+    ASSERT_EQ(1, rm2.get_root_view()->get().count(c1.get_me()));
     EXPECT_EQ(151, rm2.get_root_view()->get().find(c1.get_me())->second);
-    EXPECT_EQ(1, rm3.get_root_view()->get().count(c1.get_me()));
+    ASSERT_EQ(1, rm3.get_root_view()->get().count(c1.get_me()));
     EXPECT_EQ(151, rm3.get_root_view()->get().find(c1.get_me())->second);
 }
 TEST(RPCDirectoryTest, Update) {
