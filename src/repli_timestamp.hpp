@@ -12,18 +12,18 @@ counter. */
 
 class repli_timestamp_t {
 public:
-    uint32_t time;
+    uint64_t longtime;
 
-    bool operator==(repli_timestamp_t t) const { return time == t.time; }
-    bool operator!=(repli_timestamp_t t) const { return time != t.time; }
-    bool operator<(repli_timestamp_t t) const { return time < t.time; }
-    bool operator>(repli_timestamp_t t) const { return time > t.time; }
-    bool operator<=(repli_timestamp_t t) const { return time <= t.time; }
-    bool operator>=(repli_timestamp_t t) const { return time >= t.time; }
+    bool operator==(repli_timestamp_t t) const { return longtime == t.longtime; }
+    bool operator!=(repli_timestamp_t t) const { return longtime != t.longtime; }
+    bool operator<(repli_timestamp_t t) const { return longtime < t.longtime; }
+    bool operator>(repli_timestamp_t t) const { return longtime > t.longtime; }
+    bool operator<=(repli_timestamp_t t) const { return longtime <= t.longtime; }
+    bool operator>=(repli_timestamp_t t) const { return longtime >= t.longtime; }
 
     repli_timestamp_t next() const {
         repli_timestamp_t t;
-        t.time = time + 1;
+        t.longtime = longtime + 1;
         return t;
     }
 

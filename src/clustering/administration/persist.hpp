@@ -12,6 +12,7 @@
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
+#include "containers/scoped.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "serializer/log/log_serializer.hpp"
 
@@ -39,13 +40,13 @@ private:
     void construct_serializer_and_cache(io_backender_t *io_backender, bool create, const std::string &filename, perfmon_collection_t *perfmon_parent);
     void construct_branch_history_managers(bool create);
 
-    boost::scoped_ptr<standard_serializer_t> serializer;
-    boost::scoped_ptr<cache_t> cache;
+    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<cache_t> cache;
     mirrored_cache_config_t cache_dynamic_config;
 
-    boost::scoped_ptr<persistent_branch_history_manager_t<mock::dummy_protocol_t> > dummy_branch_history_manager;
-    boost::scoped_ptr<persistent_branch_history_manager_t<memcached_protocol_t> > memcached_branch_history_manager;
-    boost::scoped_ptr<persistent_branch_history_manager_t<rdb_protocol_t> > rdb_branch_history_manager;
+    scoped_ptr_t<persistent_branch_history_manager_t<mock::dummy_protocol_t> > dummy_branch_history_manager;
+    scoped_ptr_t<persistent_branch_history_manager_t<memcached_protocol_t> > memcached_branch_history_manager;
+    scoped_ptr_t<persistent_branch_history_manager_t<rdb_protocol_t> > rdb_branch_history_manager;
 };
 
 class semilattice_watching_persister_t {
@@ -71,7 +72,7 @@ private:
     machine_id_t machine_id;
     boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > view;
 
-    boost::scoped_ptr<cond_t> flush_again;
+    scoped_ptr_t<cond_t> flush_again;
 
     cond_t stop, stopped;
     auto_drainer_t drainer;

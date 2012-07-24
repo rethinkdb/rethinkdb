@@ -118,6 +118,7 @@ module 'ResolveIssuesView', ->
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
+                contentType: 'application/json'
                 success: set_issues
                 async: false
             
@@ -173,6 +174,7 @@ module 'ResolveIssuesView', ->
             # Grab the new set of issues (so we don't have to wait)
             $.ajax
                 url: '/ajax/issues'
+                contentType: 'application/json'
                 success: set_issues
                 async: false
 
@@ -220,6 +222,7 @@ module 'ResolveIssuesView', ->
             $.ajax
                 processData: false
                 url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
+                contentType: 'application/json'
                 type: 'POST'
                 data: JSON.stringify
                     replica_affinities: replica_affinities_to_send
@@ -318,6 +321,7 @@ module 'ResolveIssuesView', ->
                         # Grab the new set of issues (so we don't have to wait)
                         $.ajax
                             url: '/ajax/issues'
+                            contentType: 'application/json'
                             success: set_issues
                             async: false
 

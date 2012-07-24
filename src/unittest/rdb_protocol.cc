@@ -24,7 +24,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     }
 
     boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
     for (int i = 0; i < (int)shards.size(); i++) {

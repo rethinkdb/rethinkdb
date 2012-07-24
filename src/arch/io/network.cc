@@ -655,8 +655,8 @@ linux_nascent_tcp_conn_t::~linux_nascent_tcp_conn_t() {
     rassert(fd_ == -1);
 }
 
-void linux_nascent_tcp_conn_t::ennervate(boost::scoped_ptr<linux_tcp_conn_t> *tcp_conn) {
-    tcp_conn->reset(new linux_tcp_conn_t(fd_));
+void linux_nascent_tcp_conn_t::ennervate(scoped_ptr_t<linux_tcp_conn_t> *tcp_conn) {
+    tcp_conn->init(new linux_tcp_conn_t(fd_));
     fd_ = -1;
 }
 
@@ -737,7 +737,7 @@ int linux_tcp_bound_socket_t::get_port() const {
 
 linux_tcp_listener_t::linux_tcp_listener_t(
         int port,
-        boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> cb) :
+        boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> cb) :
     sock(socket(AF_INET, SOCK_STREAM, 0)),
     event_watcher(sock.get(), this),
     callback(cb),
@@ -749,7 +749,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(
 }
 
 linux_tcp_listener_t::linux_tcp_listener_t(linux_tcp_bound_socket_t *bound_socket,
-                                           boost::function<void(boost::scoped_ptr<linux_nascent_tcp_conn_t>&)> cb) :
+                                           boost::function<void(scoped_ptr_t<linux_nascent_tcp_conn_t>&)> cb) :
     sock(bound_socket->release()),
     event_watcher(sock.get(), this),
     callback(cb),
@@ -770,7 +770,7 @@ void linux_tcp_listener_t::initialize_internal() {
     guarantee_err(res == 0, "Could not make socket non-blocking");
 
     // Start the accept loop
-    accept_loop_drainer.reset(new auto_drainer_t);
+    accept_loop_drainer.init(new auto_drainer_t);
     coro_t::spawn_sometime(boost::bind(
         &linux_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())
         ));
@@ -826,7 +826,7 @@ void linux_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) {
 }
 
 void linux_tcp_listener_t::handle(fd_t socket) {
-    boost::scoped_ptr<linux_nascent_tcp_conn_t> nconn(new linux_nascent_tcp_conn_t(socket));
+    scoped_ptr_t<linux_nascent_tcp_conn_t> nconn(new linux_nascent_tcp_conn_t(socket));
     callback(nconn);
 }
 

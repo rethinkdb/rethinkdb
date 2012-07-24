@@ -21,21 +21,13 @@ server_test_helper_t::server_test_helper_t()
 server_test_helper_t::~server_test_helper_t() { }
 
 void server_test_helper_t::run() {
-    struct starter_t : public thread_message_t {
-        server_test_helper_t *server_test;
-        explicit starter_t(server_test_helper_t *_server_test) : server_test(_server_test) { }
-        void on_thread_switch() {
-            coro_t::spawn(boost::bind(&server_test_helper_t::setup_server_and_run_tests, server_test));
-        }
-    } starter(this);
-
-    thread_pool->run(&starter);
+    mock::run_in_thread_pool(boost::bind(&server_test_helper_t::setup_server_and_run_tests, this));
 }
 
 void server_test_helper_t::setup_server_and_run_tests() {
     mock::temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_native, &io_backender);
 
     {
@@ -61,7 +53,7 @@ void server_test_helper_t::setup_server_and_run_tests() {
         run_serializer_tests();
     }
 
-    trace_call(thread_pool->shutdown);
+    trace_call(thread_pool->shutdown_thread_pool);
 }
 
 void server_test_helper_t::run_serializer_tests() {

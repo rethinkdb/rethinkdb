@@ -260,8 +260,9 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
 
     cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
-    typename protocol_t::backfill_progress_t store_progress(dest_thread);
-    progress->add_constituent(&store_progress);
+    typename protocol_t::backfill_progress_t *store_progress = new typename protocol_t::backfill_progress_t(dest_thread);
+    scoped_ptr_t<traversal_progress_t> progress_owner(store_progress);
+    progress->add_constituent(&progress_owner);
 
     on_thread_t th(dest_thread);
 
@@ -273,7 +274,7 @@ void multistore_ptr_t<protocol_t>::single_shard_backfill(int i,
         store->send_backfill(start_point.mask(get_region(i)),
                              boost::bind(&multistore_send_backfill_should_backfill_t<protocol_t>::should_backfill, helper, _1),
                              boost::bind(regionwrap_chunkfun<protocol_t>, chunk_fun, chunk_fun_target_hread, get_region(i), _1),
-                             &store_progress,
+                             store_progress,
                              &store_token,
                              &ct_interruptor);
     } catch (const interrupted_exc_t& exc) {

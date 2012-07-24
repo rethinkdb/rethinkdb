@@ -101,7 +101,7 @@ btree_store_t<protocol_t>::btree_store_t(io_backender_t *io_backender,
         scoped_ptr_t<real_superblock_t> superblock;
         order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::store_t::store_t");
         order_token = btree->order_checkpoint_.check_through(order_token);
-        get_btree_superblock(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, &txn);
+        get_btree_superblock_and_txn(btree.get(), rwi_write, 1, repli_timestamp_t::invalid, order_token, &superblock, &txn);
         buf_lock_t* sb_buf = superblock->get();
         clear_superblock_metainfo(txn.get(), sb_buf);
 
@@ -344,7 +344,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_read");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_reading(btree.get(), access, order_token, CACHE_SNAPSHOTTED_NO, sb_out, txn_out);
+    get_btree_superblock_and_txn_for_reading(btree.get(), access, order_token, CACHE_SNAPSHOTTED_NO, sb_out, txn_out);
 }
 
 template <class protocol_t>
@@ -357,13 +357,13 @@ void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
 
     btree->assert_thread();
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_read_t> local_token(token->release());
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_backfill");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_for_backfilling(btree.get(), order_token, sb_out, txn_out);
+    get_btree_superblock_and_txn_for_backfilling(btree.get(), order_token, sb_out, txn_out);
 }
 
 template <class protocol_t>
@@ -378,13 +378,13 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
 
     btree->assert_thread();
 
-    boost::scoped_ptr<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
+    scoped_ptr_t<fifo_enforcer_sink_t::exit_write_t> local_token(token->release());
     wait_interruptible(local_token.get(), interruptor);
 
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_write");
     order_token = btree->order_checkpoint_.check_through(order_token);
 
-    get_btree_superblock(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, sb_out, txn_out);
+    get_btree_superblock_and_txn(btree.get(), access, expected_change_count, repli_timestamp_t::invalid, order_token, sb_out, txn_out);
 }
 
 /* store_view_t interface */

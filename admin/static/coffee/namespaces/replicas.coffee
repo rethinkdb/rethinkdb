@@ -119,9 +119,9 @@ module 'NamespaceView', ->
             return @
 
         destroy: ->
-            @model.off()
-            directory.off()
-            progress_list.off()
+            @model.off 'all', @render
+            directory.off 'all', @render
+            progress_list.off 'all', @render
 
     # Modify replica counts and ack counts in each datacenter
     class @ModifyReplicasModal extends UIComponents.AbstractModal
@@ -238,6 +238,7 @@ module 'NamespaceView', ->
                 processData: false
                 url: "/ajax/semilattice/#{@namespace.get("protocol")}_namespaces/#{@namespace.id}"
                 type: 'POST'
+                contentType: 'application/json'
                 data: JSON.stringify
                     replica_affinities: replica_affinities_to_send
                     ack_expectations: ack_expectations_to_send

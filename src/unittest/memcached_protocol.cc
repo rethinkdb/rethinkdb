@@ -23,7 +23,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
         temp_files.push_back(new mock::temp_file_t("/tmp/rdb_unittest.XXXXXX"));
     }
 
-    boost::scoped_ptr<io_backender_t> io_backender;
+    scoped_ptr_t<io_backender_t> io_backender;
     make_io_backender(aio_default, &io_backender);
 
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;

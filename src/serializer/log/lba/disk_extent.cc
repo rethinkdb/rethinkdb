@@ -8,7 +8,7 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, direct_file_t *file,
     // Make sure that the size of the header is a multiple of the size of one entry, so that the
     // header doesn't prevent the entries from aligning with DEVICE_BLOCK_SIZE.
     rassert(divides(sizeof(lba_entry_t), offsetof(lba_extent_t, entries[0])));
-    rassert(offsetof(lba_extent_t, entries[0]) == sizeof(lba_extent_t::header_t));
+    CT_ASSERT(offsetof(lba_extent_t, entries[0]) == sizeof(lba_extent_t::header_t));
 
     lba_extent_t::header_t header;
     bzero(&header, sizeof(header));

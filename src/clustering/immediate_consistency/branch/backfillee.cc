@@ -1,6 +1,3 @@
-#include "errors.hpp"
-#include <boost/scoped_array.hpp>
-
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"

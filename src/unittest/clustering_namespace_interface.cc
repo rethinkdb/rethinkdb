@@ -64,7 +64,7 @@ static void run_read_outdated_test() {
 
     cluster_group.wait_until_blueprint_is_satisfied("p,s");
 
-    boost::scoped_ptr<cluster_namespace_interface_t<dummy_protocol_t> > namespace_if;
+    scoped_ptr_t<cluster_namespace_interface_t<dummy_protocol_t> > namespace_if;
     cluster_group.make_namespace_interface(0, &namespace_if);
 
     dummy_protocol_t::read_t r;

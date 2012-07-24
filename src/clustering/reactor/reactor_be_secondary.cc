@@ -1,8 +1,5 @@
 #include "clustering/reactor/reactor.hpp"
 
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"

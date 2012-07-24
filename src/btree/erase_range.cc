@@ -1,6 +1,3 @@
-#include "errors.hpp"
-#include <boost/scoped_ptr.hpp>
-
 #include "btree/erase_range.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
